@@ -104,6 +104,33 @@ the existing URI) and a same-second scrobble of the same track isn't duplicated.
 
 Node ≥ 22 (global `WebSocket`/`fetch`) or Bun.
 
+## Remote control
+
+Build a controllable player or a remote UI over the remote-control WebSocket (see
+[`remote-ws/PROTOCOL.md`](../../remote-ws/PROTOCOL.md)). Heartbeat, reconnect, and
+the register handshake are handled for you.
+
+```ts
+import { RemotePlayer, RemoteController } from "@rocksky/sdk";
+
+// A controllable player (advertises now-playing + obeys commands):
+const player = new RemotePlayer({ token, name: "My Player" });
+player.on("play", () => engine.play()).on("pause", () => engine.pause());
+player.connect();
+player.setNowPlaying({ title, artist, albumArt, durationMs, elapsedMs, isPlaying: true });
+player.setStatus("playing");
+
+// A controller (lists devices, picks the primary, sends commands):
+const controller = new RemoteController({ token, name: "My Controller" });
+controller.on("devices", ({ devices }) => render(devices));
+controller.on("nowPlaying", ({ deviceId, track }) => show(deviceId, track));
+controller.connect();
+controller.setPrimary(deviceId);
+controller.pause(deviceId);
+```
+
+See `examples/remote.ts`.
+
 ## Example
 
 ```sh

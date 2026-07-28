@@ -972,6 +972,46 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -1251,6 +1291,50 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_library_update_playlist(`ptr`: Pointer,`playlistId`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`comment`: RustBuffer.ByValue,`songIdToAdd`: RustBuffer.ByValue,`songIndexToRemove`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_clone_remotecontroller(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_rocksky_uniffi_fn_free_remotecontroller(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_constructor_remotecontroller_connect(`token`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`url`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_disconnect(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_enqueue(`ptr`: Pointer,`target`: RustBuffer.ByValue,`tracks`: RustBuffer.ByValue,`mode`: RustBuffer.ByValue,`shuffle`: Byte,`startIndex`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_next(`ptr`: Pointer,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_next_event(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_pause(`ptr`: Pointer,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_play(`ptr`: Pointer,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_previous(`ptr`: Pointer,`target`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump(`ptr`: Pointer,`target`: RustBuffer.ByValue,`index`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_remove(`ptr`: Pointer,`target`: RustBuffer.ByValue,`index`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_seek(`ptr`: Pointer,`target`: RustBuffer.ByValue,`positionMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary(`ptr`: Pointer,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_clone_remoteplayer(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_rocksky_uniffi_fn_free_remoteplayer(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_constructor_remoteplayer_connect(`token`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`url`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_rocksky_uniffi_fn_method_remoteplayer_disconnect(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remoteplayer_next_command(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_remoteplayer_set_now_playing(`ptr`: Pointer,`track`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remoteplayer_set_queue(`ptr`: Pointer,`items`: RustBuffer.ByValue,`index`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remoteplayer_set_status(`ptr`: Pointer,`status`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_rocksky_uniffi_fn_func_album_hash(`album`: RustBuffer.ByValue,`albumArtist`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_func_artist_hash(`albumArtist`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1617,11 +1701,47 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_library_update_playlist(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_disconnect(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_enqueue(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_next(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_next_event(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_pause(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_play(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_previous(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remoteplayer_next_command(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_now_playing(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_queue(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_status(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_constructor_agent_login_password(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_constructor_appview_new(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_constructor_library_new(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_constructor_remotecontroller_connect(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_constructor_remoteplayer_connect(
     ): Short
     fun ffi_rocksky_uniffi_uniffi_contract_version(
     ): Int
@@ -2012,6 +2132,54 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_library_update_playlist() != 33660.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_disconnect() != 31325.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_enqueue() != 48358.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next() != 11226.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next_event() != 54957.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_pause() != 11197.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_play() != 13910.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_previous() != 19564.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump() != 17792.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove() != 35754.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek() != 48407.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary() != 14660.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect() != 61915.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_next_command() != 58471.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_now_playing() != 24311.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_queue() != 3903.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_status() != 46113.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password() != 59184.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -2019,6 +2187,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_constructor_library_new() != 16490.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_constructor_remotecontroller_connect() != 38521.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_constructor_remoteplayer_connect() != 22717.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -2088,6 +2262,29 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterInt: FfiConverter<Int, Int> {
+    override fun lift(value: Int): Int {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Int {
+        return buf.getInt()
+    }
+
+    override fun lower(value: Int): Int {
+        return value
+    }
+
+    override fun allocationSize(value: Int) = 4UL
+
+    override fun write(value: Int, buf: ByteBuffer) {
+        buf.putInt(value)
     }
 }
 
@@ -5197,6 +5394,782 @@ public object FfiConverterTypeLibrary: FfiConverter<Library, Pointer> {
 }
 
 
+// This template implements a class for working with a Rust struct via a Pointer/Arc<T>
+// to the live Rust struct on the other side of the FFI.
+//
+// Each instance implements core operations for working with the Rust `Arc<T>` and the
+// Kotlin Pointer to work with the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque pointer to the underlying Rust struct.
+//     Method calls need to read this pointer from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its pointer should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the pointer, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the pointer, but is interrupted
+//      before it can pass the pointer over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read pointer value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+/**
+ * A remote controller: list the user's players, observe what they're playing,
+ * pick the primary device, and send commands. Host languages poll
+ * [`Self::next_event`] in a loop on a background thread. See
+ * `remote-ws/PROTOCOL.md`.
+ */
+public interface RemoteControllerInterface {
+    
+    /**
+     * Disconnect and stop the background task.
+     */
+    fun `disconnect`()
+    
+    /**
+     * Enqueue tracks on the target device. `mode` is `"now"` | `"next"` | `"last"`.
+     */
+    fun `enqueue`(`target`: kotlin.String?, `tracks`: List<RemoteQueueItem>, `mode`: kotlin.String, `shuffle`: kotlin.Boolean, `startIndex`: kotlin.UInt)
+    
+    fun `next`(`target`: kotlin.String?)
+    
+    /**
+     * Block until the next update (or `None` once disconnected). Call in a loop
+     * on a background thread.
+     */
+    fun `nextEvent`(): RemoteEvent?
+    
+    fun `pause`(`target`: kotlin.String?)
+    
+    /**
+     * `play` — `target` is a device id, or `None` to broadcast to all devices.
+     */
+    fun `play`(`target`: kotlin.String?)
+    
+    fun `previous`(`target`: kotlin.String?)
+    
+    fun `queueJump`(`target`: kotlin.String?, `index`: kotlin.UInt)
+    
+    fun `queueRemove`(`target`: kotlin.String?, `index`: kotlin.UInt)
+    
+    fun `seek`(`target`: kotlin.String?, `positionMs`: kotlin.ULong)
+    
+    /**
+     * Choose the primary (scrobble/profile) device.
+     */
+    fun `setPrimary`(`deviceId`: kotlin.String)
+    
+    companion object
+}
+
+/**
+ * A remote controller: list the user's players, observe what they're playing,
+ * pick the primary device, and send commands. Host languages poll
+ * [`Self::next_event`] in a loop on a background thread. See
+ * `remote-ws/PROTOCOL.md`.
+ */
+open class RemoteController: Disposable, AutoCloseable, RemoteControllerInterface {
+
+    constructor(pointer: Pointer) {
+        this.pointer = pointer
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+
+    /**
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noPointer: NoPointer) {
+        this.pointer = null
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+
+    protected val pointer: Pointer?
+    protected val cleanable: UniffiCleaner.Cleanable
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithPointer(block: (ptr: Pointer) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the pointer being freed concurrently.
+        try {
+            return block(this.uniffiClonePointer())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val pointer: Pointer?) : Runnable {
+        override fun run() {
+            pointer?.let { ptr ->
+                uniffiRustCall { status ->
+                    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_free_remotecontroller(ptr, status)
+                }
+            }
+        }
+    }
+
+    fun uniffiClonePointer(): Pointer {
+        return uniffiRustCall() { status ->
+            UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_clone_remotecontroller(pointer!!, status)
+        }
+    }
+
+    
+    /**
+     * Disconnect and stop the background task.
+     */override fun `disconnect`()
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_disconnect(
+        it, _status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Enqueue tracks on the target device. `mode` is `"now"` | `"next"` | `"last"`.
+     */override fun `enqueue`(`target`: kotlin.String?, `tracks`: List<RemoteQueueItem>, `mode`: kotlin.String, `shuffle`: kotlin.Boolean, `startIndex`: kotlin.UInt)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_enqueue(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterSequenceTypeRemoteQueueItem.lower(`tracks`),FfiConverterString.lower(`mode`),FfiConverterBoolean.lower(`shuffle`),FfiConverterUInt.lower(`startIndex`),_status)
+}
+    }
+    
+    
+
+    override fun `next`(`target`: kotlin.String?)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_next(
+        it, FfiConverterOptionalString.lower(`target`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Block until the next update (or `None` once disconnected). Call in a loop
+     * on a background thread.
+     */override fun `nextEvent`(): RemoteEvent? {
+            return FfiConverterOptionalTypeRemoteEvent.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_next_event(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `pause`(`target`: kotlin.String?)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_pause(
+        it, FfiConverterOptionalString.lower(`target`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * `play` — `target` is a device id, or `None` to broadcast to all devices.
+     */override fun `play`(`target`: kotlin.String?)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_play(
+        it, FfiConverterOptionalString.lower(`target`),_status)
+}
+    }
+    
+    
+
+    override fun `previous`(`target`: kotlin.String?)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_previous(
+        it, FfiConverterOptionalString.lower(`target`),_status)
+}
+    }
+    
+    
+
+    override fun `queueJump`(`target`: kotlin.String?, `index`: kotlin.UInt)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterUInt.lower(`index`),_status)
+}
+    }
+    
+    
+
+    override fun `queueRemove`(`target`: kotlin.String?, `index`: kotlin.UInt)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_remove(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterUInt.lower(`index`),_status)
+}
+    }
+    
+    
+
+    override fun `seek`(`target`: kotlin.String?, `positionMs`: kotlin.ULong)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_seek(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterULong.lower(`positionMs`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Choose the primary (scrobble/profile) device.
+     */override fun `setPrimary`(`deviceId`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary(
+        it, FfiConverterString.lower(`deviceId`),_status)
+}
+    }
+    
+    
+
+    
+
+    
+    companion object {
+        
+    /**
+     * Connect and register in the background. `token` is a Rocksky access token
+     * (JWT); `name` is a registration label; `url` defaults to the public
+     * endpoint when `None`.
+     */ fun `connect`(`token`: kotlin.String, `name`: kotlin.String, `url`: kotlin.String?): RemoteController {
+            return FfiConverterTypeRemoteController.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_constructor_remotecontroller_connect(
+        FfiConverterString.lower(`token`),FfiConverterString.lower(`name`),FfiConverterOptionalString.lower(`url`),_status)
+}
+    )
+    }
+    
+
+        
+    }
+    
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteController: FfiConverter<RemoteController, Pointer> {
+
+    override fun lower(value: RemoteController): Pointer {
+        return value.uniffiClonePointer()
+    }
+
+    override fun lift(value: Pointer): RemoteController {
+        return RemoteController(value)
+    }
+
+    override fun read(buf: ByteBuffer): RemoteController {
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
+    }
+
+    override fun allocationSize(value: RemoteController) = 8UL
+
+    override fun write(value: RemoteController, buf: ByteBuffer) {
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
+    }
+}
+
+
+// This template implements a class for working with a Rust struct via a Pointer/Arc<T>
+// to the live Rust struct on the other side of the FFI.
+//
+// Each instance implements core operations for working with the Rust `Arc<T>` and the
+// Kotlin Pointer to work with the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque pointer to the underlying Rust struct.
+//     Method calls need to read this pointer from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its pointer should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the pointer, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the pointer, but is interrupted
+//      before it can pass the pointer over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read pointer value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+/**
+ * A Rocksky-controllable player over the remote-control WebSocket.
+ *
+ * Connects and registers in the background, then advertises now-playing /
+ * status / queue and receives commands. Host languages poll [`Self::next_command`]
+ * in a loop on a background thread — it blocks until a command arrives (or
+ * returns `None` once disconnected). See `remote-ws/PROTOCOL.md`.
+ */
+public interface RemotePlayerInterface {
+    
+    /**
+     * Disconnect and stop the background task.
+     */
+    fun `disconnect`()
+    
+    /**
+     * Block until the next controller command (or `None` once disconnected).
+     * Call in a loop on a background thread.
+     */
+    fun `nextCommand`(): RemoteCommand?
+    
+    /**
+     * Advertise the currently-playing track.
+     */
+    fun `setNowPlaying`(`track`: RemoteNowPlaying)
+    
+    /**
+     * Advertise the current queue and the active index.
+     */
+    fun `setQueue`(`items`: List<RemoteQueueItem>, `index`: kotlin.UInt)
+    
+    /**
+     * Advertise transport status.
+     */
+    fun `setStatus`(`status`: RemoteStatus)
+    
+    companion object
+}
+
+/**
+ * A Rocksky-controllable player over the remote-control WebSocket.
+ *
+ * Connects and registers in the background, then advertises now-playing /
+ * status / queue and receives commands. Host languages poll [`Self::next_command`]
+ * in a loop on a background thread — it blocks until a command arrives (or
+ * returns `None` once disconnected). See `remote-ws/PROTOCOL.md`.
+ */
+open class RemotePlayer: Disposable, AutoCloseable, RemotePlayerInterface {
+
+    constructor(pointer: Pointer) {
+        this.pointer = pointer
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+
+    /**
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noPointer: NoPointer) {
+        this.pointer = null
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+
+    protected val pointer: Pointer?
+    protected val cleanable: UniffiCleaner.Cleanable
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithPointer(block: (ptr: Pointer) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the pointer being freed concurrently.
+        try {
+            return block(this.uniffiClonePointer())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val pointer: Pointer?) : Runnable {
+        override fun run() {
+            pointer?.let { ptr ->
+                uniffiRustCall { status ->
+                    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_free_remoteplayer(ptr, status)
+                }
+            }
+        }
+    }
+
+    fun uniffiClonePointer(): Pointer {
+        return uniffiRustCall() { status ->
+            UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_clone_remoteplayer(pointer!!, status)
+        }
+    }
+
+    
+    /**
+     * Disconnect and stop the background task.
+     */override fun `disconnect`()
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remoteplayer_disconnect(
+        it, _status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Block until the next controller command (or `None` once disconnected).
+     * Call in a loop on a background thread.
+     */override fun `nextCommand`(): RemoteCommand? {
+            return FfiConverterOptionalTypeRemoteCommand.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remoteplayer_next_command(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Advertise the currently-playing track.
+     */override fun `setNowPlaying`(`track`: RemoteNowPlaying)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_now_playing(
+        it, FfiConverterTypeRemoteNowPlaying.lower(`track`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Advertise the current queue and the active index.
+     */override fun `setQueue`(`items`: List<RemoteQueueItem>, `index`: kotlin.UInt)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_queue(
+        it, FfiConverterSequenceTypeRemoteQueueItem.lower(`items`),FfiConverterUInt.lower(`index`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Advertise transport status.
+     */override fun `setStatus`(`status`: RemoteStatus)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_status(
+        it, FfiConverterTypeRemoteStatus.lower(`status`),_status)
+}
+    }
+    
+    
+
+    
+
+    
+    companion object {
+        
+    /**
+     * Connect and register in the background. `token` is a Rocksky access token
+     * (JWT); `name` is the display name in the miniplayer device picker; `url`
+     * defaults to the public endpoint when `None`.
+     */ fun `connect`(`token`: kotlin.String, `name`: kotlin.String, `url`: kotlin.String?): RemotePlayer {
+            return FfiConverterTypeRemotePlayer.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_constructor_remoteplayer_connect(
+        FfiConverterString.lower(`token`),FfiConverterString.lower(`name`),FfiConverterOptionalString.lower(`url`),_status)
+}
+    )
+    }
+    
+
+        
+    }
+    
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemotePlayer: FfiConverter<RemotePlayer, Pointer> {
+
+    override fun lower(value: RemotePlayer): Pointer {
+        return value.uniffiClonePointer()
+    }
+
+    override fun lift(value: Pointer): RemotePlayer {
+        return RemotePlayer(value)
+    }
+
+    override fun read(buf: ByteBuffer): RemotePlayer {
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
+    }
+
+    override fun allocationSize(value: RemotePlayer) = 8UL
+
+    override fun write(value: RemotePlayer, buf: ByteBuffer) {
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
+    }
+}
+
+
 
 /**
  * An album record (`app.rocksky.album`); `artist` is the album artist.
@@ -5788,6 +6761,190 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
             FfiConverterOptionalString.write(value.`avatar`, buf)
             FfiConverterOptionalString.write(value.`createdAt`, buf)
             FfiConverterOptionalString.write(value.`updatedAt`, buf)
+    }
+}
+
+
+
+/**
+ * A player device visible to a controller (from the device snapshot).
+ */
+data class RemoteDevice (
+    var `deviceId`: kotlin.String, 
+    var `name`: kotlin.String, 
+    var `nowPlaying`: RemoteNowPlaying?, 
+    var `queueIndex`: kotlin.UInt, 
+    var `queue`: List<RemoteQueueItem>
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteDevice: FfiConverterRustBuffer<RemoteDevice> {
+    override fun read(buf: ByteBuffer): RemoteDevice {
+        return RemoteDevice(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalTypeRemoteNowPlaying.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterSequenceTypeRemoteQueueItem.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteDevice) = (
+            FfiConverterString.allocationSize(value.`deviceId`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterOptionalTypeRemoteNowPlaying.allocationSize(value.`nowPlaying`) +
+            FfiConverterUInt.allocationSize(value.`queueIndex`) +
+            FfiConverterSequenceTypeRemoteQueueItem.allocationSize(value.`queue`)
+    )
+
+    override fun write(value: RemoteDevice, buf: ByteBuffer) {
+            FfiConverterString.write(value.`deviceId`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterOptionalTypeRemoteNowPlaying.write(value.`nowPlaying`, buf)
+            FfiConverterUInt.write(value.`queueIndex`, buf)
+            FfiConverterSequenceTypeRemoteQueueItem.write(value.`queue`, buf)
+    }
+}
+
+
+
+/**
+ * Playback state for the remote miniplayer (host -> Rocksky).
+ */
+data class RemoteNowPlaying (
+    var `title`: kotlin.String, 
+    var `artist`: kotlin.String, 
+    var `album`: kotlin.String, 
+    var `albumArtist`: kotlin.String = "", 
+    var `albumArt`: kotlin.String = "", 
+    /**
+     * Total track length, ms.
+     */
+    var `durationMs`: kotlin.ULong = 0uL, 
+    /**
+     * Current position, ms.
+     */
+    var `elapsedMs`: kotlin.ULong = 0uL, 
+    var `isPlaying`: kotlin.Boolean = true
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNowPlaying> {
+    override fun read(buf: ByteBuffer): RemoteNowPlaying {
+        return RemoteNowPlaying(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteNowPlaying) = (
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`artist`) +
+            FfiConverterString.allocationSize(value.`album`) +
+            FfiConverterString.allocationSize(value.`albumArtist`) +
+            FfiConverterString.allocationSize(value.`albumArt`) +
+            FfiConverterULong.allocationSize(value.`durationMs`) +
+            FfiConverterULong.allocationSize(value.`elapsedMs`) +
+            FfiConverterBoolean.allocationSize(value.`isPlaying`)
+    )
+
+    override fun write(value: RemoteNowPlaying, buf: ByteBuffer) {
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`artist`, buf)
+            FfiConverterString.write(value.`album`, buf)
+            FfiConverterString.write(value.`albumArtist`, buf)
+            FfiConverterString.write(value.`albumArt`, buf)
+            FfiConverterULong.write(value.`durationMs`, buf)
+            FfiConverterULong.write(value.`elapsedMs`, buf)
+            FfiConverterBoolean.write(value.`isPlaying`, buf)
+    }
+}
+
+
+
+/**
+ * One entry of the remote player's queue (host -> Rocksky, and echoed back
+ * inside an `Enqueue` command).
+ */
+data class RemoteQueueItem (
+    var `uploadId`: kotlin.String = "", 
+    var `trackId`: kotlin.String = "", 
+    var `title`: kotlin.String, 
+    var `artist`: kotlin.String, 
+    var `album`: kotlin.String = "", 
+    var `albumArtist`: kotlin.String = "", 
+    var `albumArt`: kotlin.String = "", 
+    var `durationMs`: kotlin.ULong = 0uL, 
+    var `songUri`: kotlin.String = "", 
+    var `albumUri`: kotlin.String = "", 
+    var `trackNumber`: kotlin.Int = 0
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteQueueItem: FfiConverterRustBuffer<RemoteQueueItem> {
+    override fun read(buf: ByteBuffer): RemoteQueueItem {
+        return RemoteQueueItem(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RemoteQueueItem) = (
+            FfiConverterString.allocationSize(value.`uploadId`) +
+            FfiConverterString.allocationSize(value.`trackId`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`artist`) +
+            FfiConverterString.allocationSize(value.`album`) +
+            FfiConverterString.allocationSize(value.`albumArtist`) +
+            FfiConverterString.allocationSize(value.`albumArt`) +
+            FfiConverterULong.allocationSize(value.`durationMs`) +
+            FfiConverterString.allocationSize(value.`songUri`) +
+            FfiConverterString.allocationSize(value.`albumUri`) +
+            FfiConverterInt.allocationSize(value.`trackNumber`)
+    )
+
+    override fun write(value: RemoteQueueItem, buf: ByteBuffer) {
+            FfiConverterString.write(value.`uploadId`, buf)
+            FfiConverterString.write(value.`trackId`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`artist`, buf)
+            FfiConverterString.write(value.`album`, buf)
+            FfiConverterString.write(value.`albumArtist`, buf)
+            FfiConverterString.write(value.`albumArt`, buf)
+            FfiConverterULong.write(value.`durationMs`, buf)
+            FfiConverterString.write(value.`songUri`, buf)
+            FfiConverterString.write(value.`albumUri`, buf)
+            FfiConverterInt.write(value.`trackNumber`, buf)
     }
 }
 
@@ -6557,6 +7714,433 @@ public object FfiConverterTypeDateInterval : FfiConverterRustBuffer<DateInterval
 
 
 
+/**
+ * A command from a controller (web/mobile miniplayer) to this player.
+ */
+sealed class RemoteCommand {
+    
+    object Play : RemoteCommand()
+    
+    
+    object Pause : RemoteCommand()
+    
+    
+    object Next : RemoteCommand()
+    
+    
+    object Previous : RemoteCommand()
+    
+    
+    data class Seek(
+        val `positionMs`: kotlin.ULong) : RemoteCommand() {
+        companion object
+    }
+    
+    data class QueueJump(
+        val `index`: kotlin.UInt) : RemoteCommand() {
+        companion object
+    }
+    
+    data class QueueRemove(
+        val `index`: kotlin.UInt) : RemoteCommand() {
+        companion object
+    }
+    
+    data class Enqueue(
+        val `tracks`: List<RemoteQueueItem>, 
+        /**
+         * "now" | "next" | "last".
+         */
+        val `mode`: kotlin.String, 
+        val `shuffle`: kotlin.Boolean, 
+        val `startIndex`: kotlin.UInt) : RemoteCommand() {
+        companion object
+    }
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteCommand : FfiConverterRustBuffer<RemoteCommand>{
+    override fun read(buf: ByteBuffer): RemoteCommand {
+        return when(buf.getInt()) {
+            1 -> RemoteCommand.Play
+            2 -> RemoteCommand.Pause
+            3 -> RemoteCommand.Next
+            4 -> RemoteCommand.Previous
+            5 -> RemoteCommand.Seek(
+                FfiConverterULong.read(buf),
+                )
+            6 -> RemoteCommand.QueueJump(
+                FfiConverterUInt.read(buf),
+                )
+            7 -> RemoteCommand.QueueRemove(
+                FfiConverterUInt.read(buf),
+                )
+            8 -> RemoteCommand.Enqueue(
+                FfiConverterSequenceTypeRemoteQueueItem.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterBoolean.read(buf),
+                FfiConverterUInt.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: RemoteCommand) = when(value) {
+        is RemoteCommand.Play -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+            )
+        }
+        is RemoteCommand.Pause -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+            )
+        }
+        is RemoteCommand.Next -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+            )
+        }
+        is RemoteCommand.Previous -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+            )
+        }
+        is RemoteCommand.Seek -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterULong.allocationSize(value.`positionMs`)
+            )
+        }
+        is RemoteCommand.QueueJump -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterUInt.allocationSize(value.`index`)
+            )
+        }
+        is RemoteCommand.QueueRemove -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterUInt.allocationSize(value.`index`)
+            )
+        }
+        is RemoteCommand.Enqueue -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterSequenceTypeRemoteQueueItem.allocationSize(value.`tracks`)
+                + FfiConverterString.allocationSize(value.`mode`)
+                + FfiConverterBoolean.allocationSize(value.`shuffle`)
+                + FfiConverterUInt.allocationSize(value.`startIndex`)
+            )
+        }
+    }
+
+    override fun write(value: RemoteCommand, buf: ByteBuffer) {
+        when(value) {
+            is RemoteCommand.Play -> {
+                buf.putInt(1)
+                Unit
+            }
+            is RemoteCommand.Pause -> {
+                buf.putInt(2)
+                Unit
+            }
+            is RemoteCommand.Next -> {
+                buf.putInt(3)
+                Unit
+            }
+            is RemoteCommand.Previous -> {
+                buf.putInt(4)
+                Unit
+            }
+            is RemoteCommand.Seek -> {
+                buf.putInt(5)
+                FfiConverterULong.write(value.`positionMs`, buf)
+                Unit
+            }
+            is RemoteCommand.QueueJump -> {
+                buf.putInt(6)
+                FfiConverterUInt.write(value.`index`, buf)
+                Unit
+            }
+            is RemoteCommand.QueueRemove -> {
+                buf.putInt(7)
+                FfiConverterUInt.write(value.`index`, buf)
+                Unit
+            }
+            is RemoteCommand.Enqueue -> {
+                buf.putInt(8)
+                FfiConverterSequenceTypeRemoteQueueItem.write(value.`tracks`, buf)
+                FfiConverterString.write(value.`mode`, buf)
+                FfiConverterBoolean.write(value.`shuffle`, buf)
+                FfiConverterUInt.write(value.`startIndex`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
+
+
+
+
+/**
+ * An update pushed to a controller by the server.
+ */
+sealed class RemoteEvent {
+    
+    data class Devices(
+        val `primaryDevice`: kotlin.String?, 
+        val `devices`: List<RemoteDevice>) : RemoteEvent() {
+        companion object
+    }
+    
+    data class DeviceRegistered(
+        val `deviceId`: kotlin.String, 
+        val `name`: kotlin.String) : RemoteEvent() {
+        companion object
+    }
+    
+    data class DeviceUnregistered(
+        val `deviceId`: kotlin.String) : RemoteEvent() {
+        companion object
+    }
+    
+    data class PrimaryChanged(
+        val `deviceId`: kotlin.String) : RemoteEvent() {
+        companion object
+    }
+    
+    data class NowPlaying(
+        val `deviceId`: kotlin.String, 
+        val `deviceName`: kotlin.String, 
+        val `track`: RemoteNowPlaying) : RemoteEvent() {
+        companion object
+    }
+    
+    data class Status(
+        val `deviceId`: kotlin.String, 
+        val `deviceName`: kotlin.String, 
+        val `status`: RemoteStatus) : RemoteEvent() {
+        companion object
+    }
+    
+    data class Queue(
+        val `deviceId`: kotlin.String, 
+        val `deviceName`: kotlin.String, 
+        val `index`: kotlin.UInt, 
+        val `queue`: List<RemoteQueueItem>) : RemoteEvent() {
+        companion object
+    }
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteEvent : FfiConverterRustBuffer<RemoteEvent>{
+    override fun read(buf: ByteBuffer): RemoteEvent {
+        return when(buf.getInt()) {
+            1 -> RemoteEvent.Devices(
+                FfiConverterOptionalString.read(buf),
+                FfiConverterSequenceTypeRemoteDevice.read(buf),
+                )
+            2 -> RemoteEvent.DeviceRegistered(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                )
+            3 -> RemoteEvent.DeviceUnregistered(
+                FfiConverterString.read(buf),
+                )
+            4 -> RemoteEvent.PrimaryChanged(
+                FfiConverterString.read(buf),
+                )
+            5 -> RemoteEvent.NowPlaying(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterTypeRemoteNowPlaying.read(buf),
+                )
+            6 -> RemoteEvent.Status(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterTypeRemoteStatus.read(buf),
+                )
+            7 -> RemoteEvent.Queue(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterUInt.read(buf),
+                FfiConverterSequenceTypeRemoteQueueItem.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: RemoteEvent) = when(value) {
+        is RemoteEvent.Devices -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterOptionalString.allocationSize(value.`primaryDevice`)
+                + FfiConverterSequenceTypeRemoteDevice.allocationSize(value.`devices`)
+            )
+        }
+        is RemoteEvent.DeviceRegistered -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`deviceId`)
+                + FfiConverterString.allocationSize(value.`name`)
+            )
+        }
+        is RemoteEvent.DeviceUnregistered -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`deviceId`)
+            )
+        }
+        is RemoteEvent.PrimaryChanged -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`deviceId`)
+            )
+        }
+        is RemoteEvent.NowPlaying -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`deviceId`)
+                + FfiConverterString.allocationSize(value.`deviceName`)
+                + FfiConverterTypeRemoteNowPlaying.allocationSize(value.`track`)
+            )
+        }
+        is RemoteEvent.Status -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`deviceId`)
+                + FfiConverterString.allocationSize(value.`deviceName`)
+                + FfiConverterTypeRemoteStatus.allocationSize(value.`status`)
+            )
+        }
+        is RemoteEvent.Queue -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`deviceId`)
+                + FfiConverterString.allocationSize(value.`deviceName`)
+                + FfiConverterUInt.allocationSize(value.`index`)
+                + FfiConverterSequenceTypeRemoteQueueItem.allocationSize(value.`queue`)
+            )
+        }
+    }
+
+    override fun write(value: RemoteEvent, buf: ByteBuffer) {
+        when(value) {
+            is RemoteEvent.Devices -> {
+                buf.putInt(1)
+                FfiConverterOptionalString.write(value.`primaryDevice`, buf)
+                FfiConverterSequenceTypeRemoteDevice.write(value.`devices`, buf)
+                Unit
+            }
+            is RemoteEvent.DeviceRegistered -> {
+                buf.putInt(2)
+                FfiConverterString.write(value.`deviceId`, buf)
+                FfiConverterString.write(value.`name`, buf)
+                Unit
+            }
+            is RemoteEvent.DeviceUnregistered -> {
+                buf.putInt(3)
+                FfiConverterString.write(value.`deviceId`, buf)
+                Unit
+            }
+            is RemoteEvent.PrimaryChanged -> {
+                buf.putInt(4)
+                FfiConverterString.write(value.`deviceId`, buf)
+                Unit
+            }
+            is RemoteEvent.NowPlaying -> {
+                buf.putInt(5)
+                FfiConverterString.write(value.`deviceId`, buf)
+                FfiConverterString.write(value.`deviceName`, buf)
+                FfiConverterTypeRemoteNowPlaying.write(value.`track`, buf)
+                Unit
+            }
+            is RemoteEvent.Status -> {
+                buf.putInt(6)
+                FfiConverterString.write(value.`deviceId`, buf)
+                FfiConverterString.write(value.`deviceName`, buf)
+                FfiConverterTypeRemoteStatus.write(value.`status`, buf)
+                Unit
+            }
+            is RemoteEvent.Queue -> {
+                buf.putInt(7)
+                FfiConverterString.write(value.`deviceId`, buf)
+                FfiConverterString.write(value.`deviceName`, buf)
+                FfiConverterUInt.write(value.`index`, buf)
+                FfiConverterSequenceTypeRemoteQueueItem.write(value.`queue`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
+
+
+
+
+/**
+ * Transport status advertised to controllers.
+ */
+
+enum class RemoteStatus {
+    
+    PLAYING,
+    PAUSED,
+    STOPPED;
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRemoteStatus: FfiConverterRustBuffer<RemoteStatus> {
+    override fun read(buf: ByteBuffer) = try {
+        RemoteStatus.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: RemoteStatus) = 4UL
+
+    override fun write(value: RemoteStatus, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
 
 
 /**
@@ -6848,6 +8432,38 @@ public object FfiConverterOptionalTypeProfile: FfiConverterRustBuffer<Profile?> 
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNowPlaying?> {
+    override fun read(buf: ByteBuffer): RemoteNowPlaying? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRemoteNowPlaying.read(buf)
+    }
+
+    override fun allocationSize(value: RemoteNowPlaying?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRemoteNowPlaying.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RemoteNowPlaying?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRemoteNowPlaying.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeShoutGifInput: FfiConverterRustBuffer<ShoutGifInput?> {
     override fun read(buf: ByteBuffer): ShoutGifInput? {
         if (buf.get().toInt() == 0) {
@@ -6870,6 +8486,70 @@ public object FfiConverterOptionalTypeShoutGifInput: FfiConverterRustBuffer<Shou
         } else {
             buf.put(1)
             FfiConverterTypeShoutGifInput.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeRemoteCommand: FfiConverterRustBuffer<RemoteCommand?> {
+    override fun read(buf: ByteBuffer): RemoteCommand? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRemoteCommand.read(buf)
+    }
+
+    override fun allocationSize(value: RemoteCommand?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRemoteCommand.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RemoteCommand?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRemoteCommand.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeRemoteEvent: FfiConverterRustBuffer<RemoteEvent?> {
+    override fun read(buf: ByteBuffer): RemoteEvent? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRemoteEvent.read(buf)
+    }
+
+    override fun allocationSize(value: RemoteEvent?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRemoteEvent.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RemoteEvent?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRemoteEvent.write(value, buf)
         }
     }
 }
@@ -7010,6 +8690,62 @@ public object FfiConverterSequenceTypeProfileView: FfiConverterRustBuffer<List<P
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeProfileView.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRemoteDevice: FfiConverterRustBuffer<List<RemoteDevice>> {
+    override fun read(buf: ByteBuffer): List<RemoteDevice> {
+        val len = buf.getInt()
+        return List<RemoteDevice>(len) {
+            FfiConverterTypeRemoteDevice.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RemoteDevice>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRemoteDevice.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RemoteDevice>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRemoteDevice.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRemoteQueueItem: FfiConverterRustBuffer<List<RemoteQueueItem>> {
+    override fun read(buf: ByteBuffer): List<RemoteQueueItem> {
+        val len = buf.getInt()
+        return List<RemoteQueueItem>(len) {
+            FfiConverterTypeRemoteQueueItem.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RemoteQueueItem>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRemoteQueueItem.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RemoteQueueItem>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRemoteQueueItem.write(it, buf)
         }
     }
 }

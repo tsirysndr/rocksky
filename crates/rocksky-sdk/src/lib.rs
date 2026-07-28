@@ -73,6 +73,10 @@ pub mod facets;
 pub mod jetstream;
 pub mod library;
 pub mod namespaces;
+#[cfg(feature = "remote-player")]
+pub mod remote_controller;
+#[cfg(feature = "remote-player")]
+pub mod remote_player;
 
 pub use agent::{
     AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, RockskyAgentBuilder, ScrobbleDraft,
@@ -90,6 +94,13 @@ pub use error::{Result, SdkError};
 #[cfg(feature = "jetstream")]
 pub use jetstream::JetstreamConfig;
 pub use library::Library;
+#[cfg(feature = "remote-player")]
+pub use remote_controller::{RemoteController, RemoteControllerConfig, RemoteDevice, RemoteEvent};
+#[cfg(feature = "remote-player")]
+pub use remote_player::{
+    RemoteCommand, RemoteNowPlaying, RemotePlayer, RemotePlayerConfig, RemoteQueueItem,
+    RemoteStatus, DEFAULT_REMOTE_WS,
+};
 
 /// The default public AppView base URL.
 pub const DEFAULT_APPVIEW: &str = "https://api.rocksky.app";

@@ -1486,6 +1486,468 @@ pub fn artist_hash(album_artist: String) -> String {
     rocksky_sdk::dedup::artist_hash(&album_artist)
 }
 
+// ---- remote player (Rocksky-controllable player over the WebSocket) ------
+
+/// Playback state for the remote miniplayer (host -> Rocksky).
+#[cfg(feature = "remote-player")]
+#[derive(Debug, Clone, Default, uniffi::Record)]
+pub struct RemoteNowPlaying {
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    #[uniffi(default = "")]
+    pub album_artist: String,
+    #[uniffi(default = "")]
+    pub album_art: String,
+    /// Total track length, ms.
+    #[uniffi(default = 0)]
+    pub duration_ms: u64,
+    /// Current position, ms.
+    #[uniffi(default = 0)]
+    pub elapsed_ms: u64,
+    #[uniffi(default = true)]
+    pub is_playing: bool,
+}
+
+/// Transport status advertised to controllers.
+#[cfg(feature = "remote-player")]
+#[derive(Debug, Clone, Copy, uniffi::Enum)]
+pub enum RemoteStatus {
+    Playing,
+    Paused,
+    Stopped,
+}
+
+/// One entry of the remote player's queue (host -> Rocksky, and echoed back
+/// inside an `Enqueue` command).
+#[cfg(feature = "remote-player")]
+#[derive(Debug, Clone, Default, uniffi::Record)]
+pub struct RemoteQueueItem {
+    #[uniffi(default = "")]
+    pub upload_id: String,
+    #[uniffi(default = "")]
+    pub track_id: String,
+    pub title: String,
+    pub artist: String,
+    #[uniffi(default = "")]
+    pub album: String,
+    #[uniffi(default = "")]
+    pub album_artist: String,
+    #[uniffi(default = "")]
+    pub album_art: String,
+    #[uniffi(default = 0)]
+    pub duration_ms: u64,
+    #[uniffi(default = "")]
+    pub song_uri: String,
+    #[uniffi(default = "")]
+    pub album_uri: String,
+    #[uniffi(default = 0)]
+    pub track_number: i32,
+}
+
+/// A command from a controller (web/mobile miniplayer) to this player.
+#[cfg(feature = "remote-player")]
+#[derive(Debug, Clone, uniffi::Enum)]
+pub enum RemoteCommand {
+    Play,
+    Pause,
+    Next,
+    Previous,
+    Seek {
+        position_ms: u64,
+    },
+    QueueJump {
+        index: u32,
+    },
+    QueueRemove {
+        index: u32,
+    },
+    Enqueue {
+        tracks: Vec<RemoteQueueItem>,
+        /// "now" | "next" | "last".
+        mode: String,
+        shuffle: bool,
+        start_index: u32,
+    },
+}
+
+#[cfg(feature = "remote-player")]
+impl From<RemoteNowPlaying> for rocksky_sdk::RemoteNowPlaying {
+    fn from(v: RemoteNowPlaying) -> Self {
+        Self {
+            title: v.title,
+            artist: v.artist,
+            album: v.album,
+            album_artist: v.album_artist,
+            album_art: v.album_art,
+            duration_ms: v.duration_ms,
+            elapsed_ms: v.elapsed_ms,
+            is_playing: v.is_playing,
+        }
+    }
+}
+
+#[cfg(feature = "remote-player")]
+impl From<RemoteStatus> for rocksky_sdk::RemoteStatus {
+    fn from(v: RemoteStatus) -> Self {
+        match v {
+            RemoteStatus::Playing => Self::Playing,
+            RemoteStatus::Paused => Self::Paused,
+            RemoteStatus::Stopped => Self::Stopped,
+        }
+    }
+}
+
+#[cfg(feature = "remote-player")]
+impl From<RemoteQueueItem> for rocksky_sdk::RemoteQueueItem {
+    fn from(v: RemoteQueueItem) -> Self {
+        Self {
+            upload_id: v.upload_id,
+            track_id: v.track_id,
+            title: v.title,
+            artist: v.artist,
+            album: v.album,
+            album_artist: v.album_artist,
+            album_art: v.album_art,
+            duration_ms: v.duration_ms,
+            song_uri: v.song_uri,
+            album_uri: v.album_uri,
+            track_number: v.track_number,
+        }
+    }
+}
+
+#[cfg(feature = "remote-player")]
+impl From<rocksky_sdk::RemoteQueueItem> for RemoteQueueItem {
+    fn from(v: rocksky_sdk::RemoteQueueItem) -> Self {
+        Self {
+            upload_id: v.upload_id,
+            track_id: v.track_id,
+            title: v.title,
+            artist: v.artist,
+            album: v.album,
+            album_artist: v.album_artist,
+            album_art: v.album_art,
+            duration_ms: v.duration_ms,
+            song_uri: v.song_uri,
+            album_uri: v.album_uri,
+            track_number: v.track_number,
+        }
+    }
+}
+
+#[cfg(feature = "remote-player")]
+impl From<rocksky_sdk::RemoteCommand> for RemoteCommand {
+    fn from(v: rocksky_sdk::RemoteCommand) -> Self {
+        use rocksky_sdk::RemoteCommand as C;
+        match v {
+            C::Play => Self::Play,
+            C::Pause => Self::Pause,
+            C::Next => Self::Next,
+            C::Previous => Self::Previous,
+            C::Seek { position_ms } => Self::Seek { position_ms },
+            C::QueueJump { index } => Self::QueueJump { index },
+            C::QueueRemove { index } => Self::QueueRemove { index },
+            C::Enqueue {
+                tracks,
+                mode,
+                shuffle,
+                start_index,
+            } => Self::Enqueue {
+                tracks: tracks.into_iter().map(Into::into).collect(),
+                mode,
+                shuffle,
+                start_index,
+            },
+        }
+    }
+}
+
+/// A Rocksky-controllable player over the remote-control WebSocket.
+///
+/// Connects and registers in the background, then advertises now-playing /
+/// status / queue and receives commands. Host languages poll [`Self::next_command`]
+/// in a loop on a background thread — it blocks until a command arrives (or
+/// returns `None` once disconnected). See `remote-ws/PROTOCOL.md`.
+#[cfg(feature = "remote-player")]
+#[derive(uniffi::Object)]
+pub struct RemotePlayer {
+    inner: rocksky_sdk::RemotePlayer,
+}
+
+#[cfg(feature = "remote-player")]
+#[uniffi::export]
+impl RemotePlayer {
+    /// Connect and register in the background. `token` is a Rocksky access token
+    /// (JWT); `name` is the display name in the miniplayer device picker; `url`
+    /// defaults to the public endpoint when `None`.
+    #[uniffi::constructor]
+    pub fn connect(token: String, name: String, url: Option<String>) -> Arc<Self> {
+        let mut cfg = rocksky_sdk::RemotePlayerConfig::new(token, name);
+        if let Some(url) = url {
+            cfg = cfg.url(url);
+        }
+        // `connect` spawns a background task with `tokio::spawn`, which needs an
+        // active runtime — enter RT for the (synchronous) call.
+        let inner = RT.block_on(async { rocksky_sdk::RemotePlayer::connect(cfg) });
+        Arc::new(Self { inner })
+    }
+
+    /// Block until the next controller command (or `None` once disconnected).
+    /// Call in a loop on a background thread.
+    pub fn next_command(&self) -> Option<RemoteCommand> {
+        RT.block_on(self.inner.next_command()).map(Into::into)
+    }
+
+    /// Advertise the currently-playing track.
+    pub fn set_now_playing(&self, track: RemoteNowPlaying) {
+        self.inner.set_now_playing(track.into());
+    }
+
+    /// Advertise transport status.
+    pub fn set_status(&self, status: RemoteStatus) {
+        self.inner.set_status(status.into());
+    }
+
+    /// Advertise the current queue and the active index.
+    pub fn set_queue(&self, items: Vec<RemoteQueueItem>, index: u32) {
+        self.inner
+            .set_queue(items.into_iter().map(Into::into).collect(), index);
+    }
+
+    /// Disconnect and stop the background task.
+    pub fn disconnect(&self) {
+        self.inner.disconnect();
+    }
+}
+
+// ---- remote controller (drive & observe the user's players) --------------
+
+/// A player device visible to a controller (from the device snapshot).
+#[cfg(feature = "remote-player")]
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct RemoteDevice {
+    pub device_id: String,
+    pub name: String,
+    pub now_playing: Option<RemoteNowPlaying>,
+    pub queue_index: u32,
+    pub queue: Vec<RemoteQueueItem>,
+}
+
+/// An update pushed to a controller by the server.
+#[cfg(feature = "remote-player")]
+#[derive(Debug, Clone, uniffi::Enum)]
+pub enum RemoteEvent {
+    Devices {
+        primary_device: Option<String>,
+        devices: Vec<RemoteDevice>,
+    },
+    DeviceRegistered {
+        device_id: String,
+        name: String,
+    },
+    DeviceUnregistered {
+        device_id: String,
+    },
+    PrimaryChanged {
+        device_id: String,
+    },
+    NowPlaying {
+        device_id: String,
+        device_name: String,
+        track: RemoteNowPlaying,
+    },
+    Status {
+        device_id: String,
+        device_name: String,
+        status: RemoteStatus,
+    },
+    Queue {
+        device_id: String,
+        device_name: String,
+        index: u32,
+        queue: Vec<RemoteQueueItem>,
+    },
+}
+
+#[cfg(feature = "remote-player")]
+impl From<rocksky_sdk::RemoteNowPlaying> for RemoteNowPlaying {
+    fn from(v: rocksky_sdk::RemoteNowPlaying) -> Self {
+        Self {
+            title: v.title,
+            artist: v.artist,
+            album: v.album,
+            album_artist: v.album_artist,
+            album_art: v.album_art,
+            duration_ms: v.duration_ms,
+            elapsed_ms: v.elapsed_ms,
+            is_playing: v.is_playing,
+        }
+    }
+}
+
+#[cfg(feature = "remote-player")]
+impl From<rocksky_sdk::RemoteStatus> for RemoteStatus {
+    fn from(v: rocksky_sdk::RemoteStatus) -> Self {
+        match v {
+            rocksky_sdk::RemoteStatus::Playing => Self::Playing,
+            rocksky_sdk::RemoteStatus::Paused => Self::Paused,
+            rocksky_sdk::RemoteStatus::Stopped => Self::Stopped,
+        }
+    }
+}
+
+#[cfg(feature = "remote-player")]
+impl From<rocksky_sdk::RemoteDevice> for RemoteDevice {
+    fn from(v: rocksky_sdk::RemoteDevice) -> Self {
+        Self {
+            device_id: v.device_id,
+            name: v.name,
+            now_playing: v.now_playing.map(Into::into),
+            queue_index: v.queue_index,
+            queue: v.queue.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[cfg(feature = "remote-player")]
+impl From<rocksky_sdk::RemoteEvent> for RemoteEvent {
+    fn from(v: rocksky_sdk::RemoteEvent) -> Self {
+        use rocksky_sdk::RemoteEvent as E;
+        match v {
+            E::Devices {
+                primary_device,
+                devices,
+            } => Self::Devices {
+                primary_device,
+                devices: devices.into_iter().map(Into::into).collect(),
+            },
+            E::DeviceRegistered { device_id, name } => Self::DeviceRegistered { device_id, name },
+            E::DeviceUnregistered { device_id } => Self::DeviceUnregistered { device_id },
+            E::PrimaryChanged { device_id } => Self::PrimaryChanged { device_id },
+            E::NowPlaying {
+                device_id,
+                device_name,
+                track,
+            } => Self::NowPlaying {
+                device_id,
+                device_name,
+                track: track.into(),
+            },
+            E::Status {
+                device_id,
+                device_name,
+                status,
+            } => Self::Status {
+                device_id,
+                device_name,
+                status: status.into(),
+            },
+            E::Queue {
+                device_id,
+                device_name,
+                index,
+                queue,
+            } => Self::Queue {
+                device_id,
+                device_name,
+                index,
+                queue: queue.into_iter().map(Into::into).collect(),
+            },
+        }
+    }
+}
+
+/// A remote controller: list the user's players, observe what they're playing,
+/// pick the primary device, and send commands. Host languages poll
+/// [`Self::next_event`] in a loop on a background thread. See
+/// `remote-ws/PROTOCOL.md`.
+#[cfg(feature = "remote-player")]
+#[derive(uniffi::Object)]
+pub struct RemoteController {
+    inner: rocksky_sdk::RemoteController,
+}
+
+#[cfg(feature = "remote-player")]
+#[uniffi::export]
+impl RemoteController {
+    /// Connect and register in the background. `token` is a Rocksky access token
+    /// (JWT); `name` is a registration label; `url` defaults to the public
+    /// endpoint when `None`.
+    #[uniffi::constructor]
+    pub fn connect(token: String, name: String, url: Option<String>) -> Arc<Self> {
+        let mut cfg = rocksky_sdk::RemoteControllerConfig::new(token, name);
+        if let Some(url) = url {
+            cfg = cfg.url(url);
+        }
+        let inner = RT.block_on(async { rocksky_sdk::RemoteController::connect(cfg) });
+        Arc::new(Self { inner })
+    }
+
+    /// Block until the next update (or `None` once disconnected). Call in a loop
+    /// on a background thread.
+    pub fn next_event(&self) -> Option<RemoteEvent> {
+        RT.block_on(self.inner.next_event()).map(Into::into)
+    }
+
+    /// Choose the primary (scrobble/profile) device.
+    pub fn set_primary(&self, device_id: String) {
+        self.inner.set_primary(device_id);
+    }
+
+    /// `play` — `target` is a device id, or `None` to broadcast to all devices.
+    pub fn play(&self, target: Option<String>) {
+        self.inner.play(target);
+    }
+
+    pub fn pause(&self, target: Option<String>) {
+        self.inner.pause(target);
+    }
+
+    pub fn next(&self, target: Option<String>) {
+        self.inner.next(target);
+    }
+
+    pub fn previous(&self, target: Option<String>) {
+        self.inner.previous(target);
+    }
+
+    pub fn seek(&self, target: Option<String>, position_ms: u64) {
+        self.inner.seek(target, position_ms);
+    }
+
+    pub fn queue_jump(&self, target: Option<String>, index: u32) {
+        self.inner.queue_jump(target, index);
+    }
+
+    pub fn queue_remove(&self, target: Option<String>, index: u32) {
+        self.inner.queue_remove(target, index);
+    }
+
+    /// Enqueue tracks on the target device. `mode` is `"now"` | `"next"` | `"last"`.
+    pub fn enqueue(
+        &self,
+        target: Option<String>,
+        tracks: Vec<RemoteQueueItem>,
+        mode: String,
+        shuffle: bool,
+        start_index: u32,
+    ) {
+        self.inner.enqueue(
+            target,
+            tracks.into_iter().map(Into::into).collect(),
+            mode,
+            shuffle,
+            start_index,
+        );
+    }
+
+    /// Disconnect and stop the background task.
+    pub fn disconnect(&self) {
+        self.inner.disconnect();
+    }
+}
+
 // ---- library client (auth-gated uploaded-music API) ----------------------
 
 /// Authenticated `app.rocksky.library.*` client. A non-empty access token is

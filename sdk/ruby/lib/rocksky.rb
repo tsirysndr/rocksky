@@ -47,7 +47,26 @@ module Rocksky
       "char* rocksky_agent_shout(void*, const char*, const char*, const char*)",
       "char* rocksky_agent_shout_with_gif(void*, const char*, const char*, const char*, const char*)",
       "char* rocksky_agent_reply_shout_with_gif(void*, const char*, const char*, const char*, const char*, const char*, const char*)",
-      "char* rocksky_agent_refresh_session(void*)"
+      "char* rocksky_agent_refresh_session(void*)",
+      # ---- remote player (a controllable device) ----
+      "void* rocksky_remote_player_connect(const char*, const char*, const char*)",
+      "char* rocksky_remote_player_next_command(void*)",
+      "char* rocksky_remote_player_set_now_playing(void*, const char*)",
+      "char* rocksky_remote_player_set_status(void*, const char*)",
+      "char* rocksky_remote_player_set_queue(void*, const char*, unsigned int)",
+      "char* rocksky_remote_player_disconnect(void*)",
+      "void rocksky_remote_player_free(void*)",
+      # ---- remote controller (a remote UI: drive & observe players) ----
+      "void* rocksky_remote_controller_connect(const char*, const char*, const char*)",
+      "char* rocksky_remote_controller_next_event(void*)",
+      "char* rocksky_remote_controller_set_primary(void*, const char*)",
+      "char* rocksky_remote_controller_command(void*, const char*, const char*)",
+      "char* rocksky_remote_controller_seek(void*, const char*, unsigned long long)",
+      "char* rocksky_remote_controller_queue_jump(void*, const char*, unsigned int)",
+      "char* rocksky_remote_controller_queue_remove(void*, const char*, unsigned int)",
+      "char* rocksky_remote_controller_enqueue(void*, const char*, const char*, const char*, char, unsigned int)",
+      "char* rocksky_remote_controller_disconnect(void*)",
+      "void rocksky_remote_controller_free(void*)"
     ].each { |sig| extern sig }
   end
   private_constant :C
@@ -74,6 +93,20 @@ module Rocksky
     raise Error, parsed["error"] if parsed.key?("error")
 
     parsed["ok"]
+  end
+
+  # Recursively convert Hash string keys to symbols (Arrays walked too). Used by
+  # the remote-control glue so commands/events reach handlers as symbol-keyed
+  # hashes (e.g. cmd[:action], event[:type]).
+  def self.symbolize(obj)
+    case obj
+    when Hash
+      obj.each_with_object({}) { |(k, v), acc| acc[k.to_sym] = symbolize(v) }
+    when Array
+      obj.map { |e| symbolize(e) }
+    else
+      obj
+    end
   end
 
   # ---- reads (unauthenticated; base: overrides the AppView URL) ----
@@ -269,3 +302,4 @@ module Rocksky
 end
 
 require_relative "rocksky/library"
+require_relative "rocksky/remote"

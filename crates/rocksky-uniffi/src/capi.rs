@@ -595,3 +595,610 @@ pub unsafe extern "C" fn rocksky_agent_refresh_session(agent: *mut Agent) -> *mu
             .map_err(|e| e.to_string()),
     )
 }
+
+// ---- remote player (Rocksky-controllable player over the WebSocket) ------
+//
+// An opaque handle over `rocksky_sdk::RemotePlayer`. The player registers and
+// runs in the background; host languages poll `next_command` in a loop on a
+// dedicated thread (it blocks until a command arrives, or returns `null` once
+// disconnected). All JSON here is camelCase, matching remote-ws/PROTOCOL.md.
+
+/// Playback state accepted by [`rocksky_remote_player_set_now_playing`].
+#[cfg(feature = "remote-player")]
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+struct NowPlayingJson {
+    title: String,
+    artist: String,
+    album: String,
+    album_artist: String,
+    album_art: String,
+    duration_ms: u64,
+    elapsed_ms: u64,
+    is_playing: bool,
+}
+
+#[cfg(feature = "remote-player")]
+impl Default for NowPlayingJson {
+    fn default() -> Self {
+        Self {
+            title: String::new(),
+            artist: String::new(),
+            album: String::new(),
+            album_artist: String::new(),
+            album_art: String::new(),
+            duration_ms: 0,
+            elapsed_ms: 0,
+            is_playing: true,
+        }
+    }
+}
+
+/// A queue entry accepted by [`rocksky_remote_player_set_queue`].
+#[cfg(feature = "remote-player")]
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+struct QueueItemJson {
+    upload_id: String,
+    track_id: String,
+    title: String,
+    artist: String,
+    album: String,
+    album_artist: String,
+    album_art: String,
+    duration_ms: u64,
+    song_uri: String,
+    album_uri: String,
+    track_number: i32,
+}
+
+/// An opaque remote-player handle.
+#[cfg(feature = "remote-player")]
+pub struct RemotePlayerHandle(rocksky_sdk::RemotePlayer);
+
+#[cfg(feature = "remote-player")]
+fn queue_item_to_json(it: &rocksky_sdk::RemoteQueueItem) -> serde_json::Value {
+    serde_json::json!({
+        "uploadId": it.upload_id,
+        "trackId": it.track_id,
+        "title": it.title,
+        "artist": it.artist,
+        "album": it.album,
+        "albumArtist": it.album_artist,
+        "albumArt": it.album_art,
+        "duration": it.duration_ms,
+        "songUri": it.song_uri,
+        "albumUri": it.album_uri,
+        "trackNumber": it.track_number,
+    })
+}
+
+#[cfg(feature = "remote-player")]
+fn command_to_json(cmd: &rocksky_sdk::RemoteCommand) -> serde_json::Value {
+    use rocksky_sdk::RemoteCommand as C;
+    match cmd {
+        C::Play => serde_json::json!({ "action": "play" }),
+        C::Pause => serde_json::json!({ "action": "pause" }),
+        C::Next => serde_json::json!({ "action": "next" }),
+        C::Previous => serde_json::json!({ "action": "previous" }),
+        C::Seek { position_ms } => serde_json::json!({ "action": "seek", "position": position_ms }),
+        C::QueueJump { index } => serde_json::json!({ "action": "queue_jump", "index": index }),
+        C::QueueRemove { index } => {
+            serde_json::json!({ "action": "queue_remove", "index": index })
+        }
+        C::Enqueue {
+            tracks,
+            mode,
+            shuffle,
+            start_index,
+        } => serde_json::json!({
+            "action": "enqueue",
+            "tracks": tracks.iter().map(queue_item_to_json).collect::<Vec<_>>(),
+            "mode": mode,
+            "shuffle": shuffle,
+            "startIndex": start_index,
+        }),
+    }
+}
+
+/// Connect and register a controllable player in the background. `token` is a
+/// Rocksky access token (JWT); `name` is the miniplayer device-picker label;
+/// `url` may be empty for the public endpoint. Release with
+/// [`rocksky_remote_player_free`].
+///
+/// # Safety
+/// The string args must be valid C strings (or null).
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_player_connect(
+    token: *const c_char,
+    name: *const c_char,
+    url: *const c_char,
+) -> *mut RemotePlayerHandle {
+    let mut cfg = rocksky_sdk::RemotePlayerConfig::new(cstr(token), cstr(name));
+    let u = cstr(url);
+    if !u.is_empty() {
+        cfg = cfg.url(u);
+    }
+    // `connect` spawns a background task with `tokio::spawn`, which needs an
+    // active runtime context.
+    let player = RT.block_on(async { rocksky_sdk::RemotePlayer::connect(cfg) });
+    Box::into_raw(Box::new(RemotePlayerHandle(player)))
+}
+
+/// Block until the next controller command, returned as `{"ok": <cmd>}` where
+/// `<cmd>` is a command object (`{"action":"…", …}`) or `null` once
+/// disconnected. Caller frees with [`rocksky_string_free`].
+///
+/// # Safety
+/// `handle` must be a live handle from [`rocksky_remote_player_connect`].
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_player_next_command(
+    handle: *mut RemotePlayerHandle,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    let p = &(*handle).0;
+    match RT.block_on(p.next_command()) {
+        Some(cmd) => respond(Ok(command_to_json(&cmd))),
+        None => respond(Ok(serde_json::Value::Null)),
+    }
+}
+
+/// Advertise the currently-playing track. `track_json` is a camelCase now-playing
+/// object (`title`, `artist`, `album`, `albumArtist`, `albumArt`, `durationMs`,
+/// `elapsedMs`, `isPlaying`).
+///
+/// # Safety
+/// `handle` must be live; `track_json` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_player_set_now_playing(
+    handle: *mut RemotePlayerHandle,
+    track_json: *const c_char,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    let p = &(*handle).0;
+    match serde_json::from_str::<NowPlayingJson>(&cstr(track_json)) {
+        Ok(t) => {
+            p.set_now_playing(rocksky_sdk::RemoteNowPlaying {
+                title: t.title,
+                artist: t.artist,
+                album: t.album,
+                album_artist: t.album_artist,
+                album_art: t.album_art,
+                duration_ms: t.duration_ms,
+                elapsed_ms: t.elapsed_ms,
+                is_playing: t.is_playing,
+            });
+            respond(Ok(true))
+        }
+        Err(e) => respond::<()>(Err(e.to_string())),
+    }
+}
+
+/// Advertise transport status: `"playing"`, `"paused"`, or `"stopped"`.
+///
+/// # Safety
+/// `handle` must be live; `status` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_player_set_status(
+    handle: *mut RemotePlayerHandle,
+    status: *const c_char,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    let p = &(*handle).0;
+    let status = match cstr(status).as_str() {
+        "playing" => rocksky_sdk::RemoteStatus::Playing,
+        "paused" => rocksky_sdk::RemoteStatus::Paused,
+        "stopped" => rocksky_sdk::RemoteStatus::Stopped,
+        other => {
+            return respond::<()>(Err(format!(
+                "unknown status {other:?} (expected playing|paused|stopped)"
+            )))
+        }
+    };
+    p.set_status(status);
+    respond(Ok(true))
+}
+
+/// Advertise the current queue (`items_json` = JSON array of camelCase queue
+/// items) and the active `index`.
+///
+/// # Safety
+/// `handle` must be live; `items_json` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_player_set_queue(
+    handle: *mut RemotePlayerHandle,
+    items_json: *const c_char,
+    index: u32,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    let p = &(*handle).0;
+    match serde_json::from_str::<Vec<QueueItemJson>>(&cstr(items_json)) {
+        Ok(items) => {
+            let items = items
+                .into_iter()
+                .map(|i| rocksky_sdk::RemoteQueueItem {
+                    upload_id: i.upload_id,
+                    track_id: i.track_id,
+                    title: i.title,
+                    artist: i.artist,
+                    album: i.album,
+                    album_artist: i.album_artist,
+                    album_art: i.album_art,
+                    duration_ms: i.duration_ms,
+                    song_uri: i.song_uri,
+                    album_uri: i.album_uri,
+                    track_number: i.track_number,
+                })
+                .collect();
+            p.set_queue(items, index);
+            respond(Ok(true))
+        }
+        Err(e) => respond::<()>(Err(e.to_string())),
+    }
+}
+
+/// Disconnect and stop the background task (the handle stays valid until freed).
+///
+/// # Safety
+/// `handle` must be a live handle (or null).
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_player_disconnect(
+    handle: *mut RemotePlayerHandle,
+) -> *mut c_char {
+    if !handle.is_null() {
+        (*handle).0.disconnect();
+    }
+    respond(Ok(true))
+}
+
+/// Release a remote-player handle.
+///
+/// # Safety
+/// `p` must be a handle from [`rocksky_remote_player_connect`] (or null), freed once.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_player_free(p: *mut RemotePlayerHandle) {
+    if !p.is_null() {
+        drop(Box::from_raw(p));
+    }
+}
+
+// ---- remote controller (drive & observe the user's players) --------------
+//
+// An opaque handle over `rocksky_sdk::RemoteController`. Poll
+// `rocksky_remote_controller_next_event` in a loop on a dedicated thread; send
+// commands / `set_primary` from anywhere. All JSON is camelCase.
+
+/// An opaque remote-controller handle.
+#[cfg(feature = "remote-player")]
+pub struct RemoteControllerHandle(rocksky_sdk::RemoteController);
+
+/// An empty target string means "broadcast to all devices".
+#[cfg(feature = "remote-player")]
+fn opt_target(p: *const c_char) -> Option<String> {
+    let s = cstr(p);
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
+}
+
+#[cfg(feature = "remote-player")]
+fn now_playing_to_json(t: &rocksky_sdk::RemoteNowPlaying) -> serde_json::Value {
+    serde_json::json!({
+        "title": t.title,
+        "artist": t.artist,
+        "album": t.album,
+        "albumArtist": t.album_artist,
+        "albumArt": t.album_art,
+        "durationMs": t.duration_ms,
+        "elapsedMs": t.elapsed_ms,
+        "isPlaying": t.is_playing,
+    })
+}
+
+#[cfg(feature = "remote-player")]
+fn status_str(s: &rocksky_sdk::RemoteStatus) -> &'static str {
+    match s {
+        rocksky_sdk::RemoteStatus::Playing => "playing",
+        rocksky_sdk::RemoteStatus::Paused => "paused",
+        rocksky_sdk::RemoteStatus::Stopped => "stopped",
+    }
+}
+
+#[cfg(feature = "remote-player")]
+fn device_to_json(d: &rocksky_sdk::RemoteDevice) -> serde_json::Value {
+    serde_json::json!({
+        "deviceId": d.device_id,
+        "name": d.name,
+        "nowPlaying": d.now_playing.as_ref().map(now_playing_to_json),
+        "queueIndex": d.queue_index,
+        "queue": d.queue.iter().map(queue_item_to_json).collect::<Vec<_>>(),
+    })
+}
+
+#[cfg(feature = "remote-player")]
+fn event_to_json(e: &rocksky_sdk::RemoteEvent) -> serde_json::Value {
+    use rocksky_sdk::RemoteEvent as E;
+    match e {
+        E::Devices {
+            primary_device,
+            devices,
+        } => serde_json::json!({
+            "type": "devices",
+            "primaryDevice": primary_device,
+            "devices": devices.iter().map(device_to_json).collect::<Vec<_>>(),
+        }),
+        E::DeviceRegistered { device_id, name } => serde_json::json!({
+            "type": "device_registered", "deviceId": device_id, "name": name,
+        }),
+        E::DeviceUnregistered { device_id } => serde_json::json!({
+            "type": "device_unregistered", "deviceId": device_id,
+        }),
+        E::PrimaryChanged { device_id } => serde_json::json!({
+            "type": "primary_changed", "deviceId": device_id,
+        }),
+        E::NowPlaying {
+            device_id,
+            device_name,
+            track,
+        } => serde_json::json!({
+            "type": "now_playing",
+            "deviceId": device_id,
+            "deviceName": device_name,
+            "track": now_playing_to_json(track),
+        }),
+        E::Status {
+            device_id,
+            device_name,
+            status,
+        } => serde_json::json!({
+            "type": "status",
+            "deviceId": device_id,
+            "deviceName": device_name,
+            "status": status_str(status),
+        }),
+        E::Queue {
+            device_id,
+            device_name,
+            index,
+            queue,
+        } => serde_json::json!({
+            "type": "queue",
+            "deviceId": device_id,
+            "deviceName": device_name,
+            "index": index,
+            "queue": queue.iter().map(queue_item_to_json).collect::<Vec<_>>(),
+        }),
+    }
+}
+
+/// Connect and register a controller in the background. Returns an opaque handle
+/// (release with [`rocksky_remote_controller_free`]).
+///
+/// # Safety
+/// The string args must be valid C strings (or null).
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_connect(
+    token: *const c_char,
+    name: *const c_char,
+    url: *const c_char,
+) -> *mut RemoteControllerHandle {
+    let mut cfg = rocksky_sdk::RemoteControllerConfig::new(cstr(token), cstr(name));
+    let u = cstr(url);
+    if !u.is_empty() {
+        cfg = cfg.url(u);
+    }
+    let controller = RT.block_on(async { rocksky_sdk::RemoteController::connect(cfg) });
+    Box::into_raw(Box::new(RemoteControllerHandle(controller)))
+}
+
+/// Block until the next update, returned as `{"ok": <event>}` where `<event>` is
+/// an event object (`{"type":"…", …}`) or `null` once disconnected. Caller frees
+/// with [`rocksky_string_free`].
+///
+/// # Safety
+/// `handle` must be a live handle from [`rocksky_remote_controller_connect`].
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_next_event(
+    handle: *mut RemoteControllerHandle,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    let c = &(*handle).0;
+    match RT.block_on(c.next_event()) {
+        Some(ev) => respond(Ok(event_to_json(&ev))),
+        None => respond(Ok(serde_json::Value::Null)),
+    }
+}
+
+/// Choose the primary (scrobble/profile) device.
+///
+/// # Safety
+/// `handle` must be live; `device_id` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_set_primary(
+    handle: *mut RemoteControllerHandle,
+    device_id: *const c_char,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    (*handle).0.set_primary(cstr(device_id));
+    respond(Ok(true))
+}
+
+/// Send a simple command (`play` | `pause` | `next` | `previous`). `target` may
+/// be empty to broadcast to all the user's devices.
+///
+/// # Safety
+/// `handle` must be live; `action` and `target` valid C strings.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_command(
+    handle: *mut RemoteControllerHandle,
+    action: *const c_char,
+    target: *const c_char,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    let c = &(*handle).0;
+    let target = opt_target(target);
+    match cstr(action).as_str() {
+        "play" => c.play(target),
+        "pause" => c.pause(target),
+        "next" => c.next(target),
+        "previous" => c.previous(target),
+        other => {
+            return respond::<()>(Err(format!(
+                "unknown action {other:?} (expected play|pause|next|previous)"
+            )))
+        }
+    }
+    respond(Ok(true))
+}
+
+/// Seek the target device to `position_ms` (empty `target` = broadcast).
+///
+/// # Safety
+/// `handle` must be live; `target` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_seek(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    position_ms: u64,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    (*handle).0.seek(opt_target(target), position_ms);
+    respond(Ok(true))
+}
+
+/// Jump to `index` in the target device's queue (empty `target` = broadcast).
+///
+/// # Safety
+/// `handle` must be live; `target` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_queue_jump(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    index: u32,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    (*handle).0.queue_jump(opt_target(target), index);
+    respond(Ok(true))
+}
+
+/// Remove queue item `index` on the target device (empty `target` = broadcast).
+///
+/// # Safety
+/// `handle` must be live; `target` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_queue_remove(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    index: u32,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    (*handle).0.queue_remove(opt_target(target), index);
+    respond(Ok(true))
+}
+
+/// Enqueue tracks on the target device. `tracks_json` is a JSON array of camelCase
+/// queue items; `mode` is `"now"` | `"next"` | `"last"`; empty `target` = broadcast.
+///
+/// # Safety
+/// `handle` must be live; `target`, `tracks_json`, `mode` valid C strings.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_enqueue(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    tracks_json: *const c_char,
+    mode: *const c_char,
+    shuffle: bool,
+    start_index: u32,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    let c = &(*handle).0;
+    match serde_json::from_str::<Vec<QueueItemJson>>(&cstr(tracks_json)) {
+        Ok(items) => {
+            let items = items
+                .into_iter()
+                .map(|i| rocksky_sdk::RemoteQueueItem {
+                    upload_id: i.upload_id,
+                    track_id: i.track_id,
+                    title: i.title,
+                    artist: i.artist,
+                    album: i.album,
+                    album_artist: i.album_artist,
+                    album_art: i.album_art,
+                    duration_ms: i.duration_ms,
+                    song_uri: i.song_uri,
+                    album_uri: i.album_uri,
+                    track_number: i.track_number,
+                })
+                .collect();
+            c.enqueue(opt_target(target), items, cstr(mode), shuffle, start_index);
+            respond(Ok(true))
+        }
+        Err(e) => respond::<()>(Err(e.to_string())),
+    }
+}
+
+/// Disconnect and stop the background task (the handle stays valid until freed).
+///
+/// # Safety
+/// `handle` must be a live handle (or null).
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_disconnect(
+    handle: *mut RemoteControllerHandle,
+) -> *mut c_char {
+    if !handle.is_null() {
+        (*handle).0.disconnect();
+    }
+    respond(Ok(true))
+}
+
+/// Release a remote-controller handle.
+///
+/// # Safety
+/// `p` must be a handle from [`rocksky_remote_controller_connect`] (or null), freed once.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_free(p: *mut RemoteControllerHandle) {
+    if !p.is_null() {
+        drop(Box::from_raw(p));
+    }
+}

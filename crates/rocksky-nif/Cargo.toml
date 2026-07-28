@@ -1,6 +1,6 @@
 [package]
 name = "rocksky-nif"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "Erlang NIF (Rustler) bindings for rocksky-sdk — powers the Erlang, Elixir & Gleam SDKs"
 authors.workspace = true
@@ -21,7 +21,9 @@ serde_json = "1"
 tracing = { version = "0.1", optional = true }
 
 [features]
-default = ["dedup", "jetstream"]
+default = ["dedup", "jetstream", "remote-player"]
 # Mirror the dedup / jetstream index into the NIF (RocksDB + firehose).
 dedup = ["rocksky-sdk/dedup"]
 jetstream = ["rocksky-sdk/jetstream", "dep:tracing"]
+# Build a Rocksky-controllable player over the remote-control WebSocket.
+remote-player = ["rocksky-sdk/remote-player"]
