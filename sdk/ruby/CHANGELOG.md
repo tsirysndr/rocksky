@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.1
+
+- Fix a segfault when tearing down a `RemotePlayer` / `RemoteController`.
+  `#close` freed the native handle while the `#listen` background thread was
+  still blocked inside `#next_command` / `#next_event` (a use-after-free). It now
+  stops the background task and **joins** the listen thread — so the poll has
+  returned — before freeing. `#next_command` / `#next_event` also no-op once the
+  handle is released.
+
 ## 0.3.0
 
 - `feed.get_stories` now accepts optional `feed:` (at-uri) and `following:`

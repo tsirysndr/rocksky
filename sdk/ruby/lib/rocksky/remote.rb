@@ -57,6 +57,8 @@ module Rocksky
     # Block until the next controller command, returned as a symbol-keyed Hash
     # (e.g. +{ action: "play" }+), or +nil+ once disconnected.
     def next_command
+      return nil if @ptr.null?
+
       cmd = Rocksky.unwrap(C.rocksky_remote_player_next_command(@ptr))
       cmd && Rocksky.symbolize(cmd)
     end
@@ -103,7 +105,12 @@ module Rocksky
     def close
       return if @ptr.null?
 
-      @thread&.kill
+      # Stop the background task so a blocked #next_command returns nil and the
+      # #listen loop exits, then WAIT for that thread to leave the native call
+      # before freeing — freeing the handle while a poll is in flight is a
+      # use-after-free (segfault).
+      C.rocksky_remote_player_disconnect(@ptr)
+      @thread&.join unless @thread == Thread.current
       @thread = nil
       C.rocksky_remote_player_free(@ptr)
       @ptr = Fiddle::Pointer.new(0)
@@ -166,6 +173,8 @@ module Rocksky
     # Block until the next update, returned as a symbol-keyed Hash (each carries a
     # +:type+), or +nil+ once disconnected.
     def next_event
+      return nil if @ptr.null?
+
       ev = Rocksky.unwrap(C.rocksky_remote_controller_next_event(@ptr))
       ev && Rocksky.symbolize(ev)
     end
@@ -244,7 +253,12 @@ module Rocksky
     def close
       return if @ptr.null?
 
-      @thread&.kill
+      # Stop the background task so a blocked #next_event returns nil and the
+      # #listen loop exits, then WAIT for that thread to leave the native call
+      # before freeing — freeing the handle while a poll is in flight is a
+      # use-after-free (segfault).
+      C.rocksky_remote_controller_disconnect(@ptr)
+      @thread&.join unless @thread == Thread.current
       @thread = nil
       C.rocksky_remote_controller_free(@ptr)
       @ptr = Fiddle::Pointer.new(0)
