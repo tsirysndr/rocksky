@@ -10,6 +10,9 @@ protocol and publishes the same NATS events, so every existing client and
 consumer (the CLI, the web/mobile miniplayers, `apps/api/src/subscribers/status`)
 works against it unchanged.
 
+> **Building a client?** See **[PROTOCOL.md](./PROTOCOL.md)** — the full wire
+> spec for building a controllable player or a remote controller in any language.
+
 ## What it does
 
 A raw-JSON WebSocket relay at `GET /ws` that lets the web/mobile miniplayers and
