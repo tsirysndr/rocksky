@@ -4,6 +4,40 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.10.0] - 2026-07-28
+
+A **backwards-compatible** release — it only *adds* the remote-controller
+surface, so existing `^0.9.0` code keeps working.
+
+### Added
+
+- **`RemoteController`** — the controller half of the remote-control WebSocket
+  protocol (see [`remote-ws/PROTOCOL.md`](../../remote-ws/PROTOCOL.md)). Lists the
+  user's player devices, observes what each is playing (now-playing / status /
+  queue), selects the primary device, and sends commands — `play` / `pause` /
+  `next` / `previous`, `seek`, `queueJump`, `queueRemove`, `enqueue`, and
+  `setPrimary`. Heartbeat, reconnect, and the register handshake are handled for
+  you; subscribe to server updates with `.on(event, handler)`.
+- New exported types: `RemoteControllerOptions`, `RemoteControllerEvents`,
+  `RemoteDevice`, `RemoteStatus`.
+
+## [0.9.0] - 2026-07-28
+
+A **backwards-compatible** release — it only *adds* the remote-player surface.
+
+### Added
+
+- **`RemotePlayer`** — build a Rocksky-controllable player over the
+  remote-control WebSocket (see [`remote-ws/PROTOCOL.md`](../../remote-ws/PROTOCOL.md)):
+  it registers as a device, advertises what you're playing (`setNowPlaying` /
+  `setStatus` / `setQueue`), and invokes your handlers when a miniplayer sends a
+  command (`play` / `pause` / `next` / `previous` / `seek` / `enqueue` /
+  `queueJump` / `queueRemove`). Heartbeat, reconnect, and the device-id handshake
+  are handled for you; register handlers with `.on(event, handler)`.
+- New exports: `DEFAULT_REMOTE_WS` and the types `RemoteNowPlaying`,
+  `RemoteQueueItem`, `EnqueueCommand`, `RemotePlayerOptions`,
+  `RemotePlayerHandlers`.
+
 ## [0.7.3] - 2026-07-24
 
 A **backwards-compatible** patch release.
