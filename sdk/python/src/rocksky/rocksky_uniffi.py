@@ -709,11 +709,47 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_library_update_playlist() != 33660:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_disconnect() != 31325:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_enqueue() != 48358:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next() != 11226:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next_event() != 54957:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_pause() != 11197:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_play() != 13910:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_previous() != 19564:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump() != 17792:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove() != 35754:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek() != 48407:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary() != 14660:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect() != 61915:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_next_command() != 58471:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_now_playing() != 24311:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_queue() != 3903:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_status() != 46113:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password() != 59184:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_constructor_appview_new() != 526:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_constructor_library_new() != 16490:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_constructor_remotecontroller_connect() != 38521:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_constructor_remoteplayer_connect() != 22717:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
 
 # A ctypes library to expose the extern-C FFI definitions.
@@ -1698,6 +1734,140 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_library_update_playlist.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_library_update_playlist.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_clone_remotecontroller.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_clone_remotecontroller.restype = ctypes.c_void_p
+_UniffiLib.uniffi_rocksky_uniffi_fn_free_remotecontroller.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_free_remotecontroller.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_constructor_remotecontroller_connect.argtypes = (
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_constructor_remotecontroller_connect.restype = ctypes.c_void_p
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_disconnect.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_disconnect.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_enqueue.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.c_int8,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_enqueue.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_next.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_next.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_next_event.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_next_event.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_pause.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_pause.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_play.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_play.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_previous.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_previous.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_remove.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_remove.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_seek.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_seek.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_clone_remoteplayer.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_clone_remoteplayer.restype = ctypes.c_void_p
+_UniffiLib.uniffi_rocksky_uniffi_fn_free_remoteplayer.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_free_remoteplayer.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_constructor_remoteplayer_connect.argtypes = (
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_constructor_remoteplayer_connect.restype = ctypes.c_void_p
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_disconnect.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_disconnect.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_next_command.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_next_command.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_now_playing.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_now_playing.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_queue.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_queue.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_status.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_status.restype = None
 _UniffiLib.uniffi_rocksky_uniffi_fn_func_album_hash.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -2356,6 +2526,54 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_library_update_now_playing.rest
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_library_update_playlist.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_library_update_playlist.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_disconnect.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_disconnect.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_enqueue.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_enqueue.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next_event.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_next_event.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_pause.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_pause.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_play.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_play.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_previous.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_previous.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_next_command.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_next_command.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_now_playing.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_now_playing.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_queue.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_queue.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_status.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_set_status.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password.restype = ctypes.c_uint16
@@ -2365,6 +2583,12 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_appview_new.restype = ctyp
 _UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_library_new.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_library_new.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_remotecontroller_connect.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_remotecontroller_connect.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_remoteplayer_connect.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_remoteplayer_connect.restype = ctypes.c_uint16
 _UniffiLib.ffi_rocksky_uniffi_uniffi_contract_version.argtypes = (
 )
 _UniffiLib.ffi_rocksky_uniffi_uniffi_contract_version.restype = ctypes.c_uint32
@@ -2387,6 +2611,19 @@ class _UniffiConverterUInt32(_UniffiConverterPrimitiveInt):
     @staticmethod
     def write(value, buf):
         buf.write_u32(value)
+
+class _UniffiConverterInt32(_UniffiConverterPrimitiveInt):
+    CLASS_NAME = "i32"
+    VALUE_MIN = -2**31
+    VALUE_MAX = 2**31
+
+    @staticmethod
+    def read(buf):
+        return buf.read_i32()
+
+    @staticmethod
+    def write(value, buf):
+        buf.write_i32(value)
 
 class _UniffiConverterUInt64(_UniffiConverterPrimitiveInt):
     CLASS_NAME = "u64"
@@ -5216,6 +5453,504 @@ class _UniffiConverterTypeLibrary:
         buf.write_u64(cls.lower(value))
 
 
+
+class RemoteControllerProtocol(typing.Protocol):
+    """
+    A remote controller: list the user's players, observe what they're playing,
+    pick the primary device, and send commands. Host languages poll
+    [`Self::next_event`] in a loop on a background thread. See
+    `remote-ws/PROTOCOL.md`.
+    """
+
+    def disconnect(self, ):
+        """
+        Disconnect and stop the background task.
+        """
+
+        raise NotImplementedError
+    def enqueue(self, target: "typing.Optional[str]",tracks: "typing.List[RemoteQueueItem]",mode: "str",shuffle: "bool",start_index: "int"):
+        """
+        Enqueue tracks on the target device. `mode` is `"now"` | `"next"` | `"last"`.
+        """
+
+        raise NotImplementedError
+    def next(self, target: "typing.Optional[str]"):
+        raise NotImplementedError
+    def next_event(self, ):
+        """
+        Block until the next update (or `None` once disconnected). Call in a loop
+        on a background thread.
+        """
+
+        raise NotImplementedError
+    def pause(self, target: "typing.Optional[str]"):
+        raise NotImplementedError
+    def play(self, target: "typing.Optional[str]"):
+        """
+        `play` — `target` is a device id, or `None` to broadcast to all devices.
+        """
+
+        raise NotImplementedError
+    def previous(self, target: "typing.Optional[str]"):
+        raise NotImplementedError
+    def queue_jump(self, target: "typing.Optional[str]",index: "int"):
+        raise NotImplementedError
+    def queue_remove(self, target: "typing.Optional[str]",index: "int"):
+        raise NotImplementedError
+    def seek(self, target: "typing.Optional[str]",position_ms: "int"):
+        raise NotImplementedError
+    def set_primary(self, device_id: "str"):
+        """
+        Choose the primary (scrobble/profile) device.
+        """
+
+        raise NotImplementedError
+
+
+class RemoteController:
+    """
+    A remote controller: list the user's players, observe what they're playing,
+    pick the primary device, and send commands. Host languages poll
+    [`Self::next_event`] in a loop on a background thread. See
+    `remote-ws/PROTOCOL.md`.
+    """
+
+    _pointer: ctypes.c_void_p
+    
+    def __init__(self, *args, **kwargs):
+        raise ValueError("This class has no default constructor")
+
+    def __del__(self):
+        # In case of partial initialization of instances.
+        pointer = getattr(self, "_pointer", None)
+        if pointer is not None:
+            _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_free_remotecontroller, pointer)
+
+    def _uniffi_clone_pointer(self):
+        return _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_clone_remotecontroller, self._pointer)
+
+    # Used by alternative constructors or any methods which return this type.
+    @classmethod
+    def _make_instance_(cls, pointer):
+        # Lightly yucky way to bypass the usual __init__ logic
+        # and just create a new instance with the required pointer.
+        inst = cls.__new__(cls)
+        inst._pointer = pointer
+        return inst
+    @classmethod
+    def connect(cls, token: "str",name: "str",url: "typing.Optional[str]"):
+        """
+        Connect and register in the background. `token` is a Rocksky access token
+        (JWT); `name` is a registration label; `url` defaults to the public
+        endpoint when `None`.
+        """
+
+        _UniffiConverterString.check_lower(token)
+        
+        _UniffiConverterString.check_lower(name)
+        
+        _UniffiConverterOptionalString.check_lower(url)
+        
+        # Call the (fallible) function before creating any half-baked object instances.
+        pointer = _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_constructor_remotecontroller_connect,
+        _UniffiConverterString.lower(token),
+        _UniffiConverterString.lower(name),
+        _UniffiConverterOptionalString.lower(url))
+        return cls._make_instance_(pointer)
+
+
+
+    def disconnect(self, ) -> None:
+        """
+        Disconnect and stop the background task.
+        """
+
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_disconnect,self._uniffi_clone_pointer(),)
+
+
+
+
+
+
+    def enqueue(self, target: "typing.Optional[str]",tracks: "typing.List[RemoteQueueItem]",mode: "str",shuffle: "bool",start_index: "int") -> None:
+        """
+        Enqueue tracks on the target device. `mode` is `"now"` | `"next"` | `"last"`.
+        """
+
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterSequenceTypeRemoteQueueItem.check_lower(tracks)
+        
+        _UniffiConverterString.check_lower(mode)
+        
+        _UniffiConverterBool.check_lower(shuffle)
+        
+        _UniffiConverterUInt32.check_lower(start_index)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_enqueue,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterSequenceTypeRemoteQueueItem.lower(tracks),
+        _UniffiConverterString.lower(mode),
+        _UniffiConverterBool.lower(shuffle),
+        _UniffiConverterUInt32.lower(start_index))
+
+
+
+
+
+
+    def next(self, target: "typing.Optional[str]") -> None:
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_next,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target))
+
+
+
+
+
+
+    def next_event(self, ) -> "typing.Optional[RemoteEvent]":
+        """
+        Block until the next update (or `None` once disconnected). Call in a loop
+        on a background thread.
+        """
+
+        return _UniffiConverterOptionalTypeRemoteEvent.lift(
+            _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_next_event,self._uniffi_clone_pointer(),)
+        )
+
+
+
+
+
+    def pause(self, target: "typing.Optional[str]") -> None:
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_pause,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target))
+
+
+
+
+
+
+    def play(self, target: "typing.Optional[str]") -> None:
+        """
+        `play` — `target` is a device id, or `None` to broadcast to all devices.
+        """
+
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_play,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target))
+
+
+
+
+
+
+    def previous(self, target: "typing.Optional[str]") -> None:
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_previous,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target))
+
+
+
+
+
+
+    def queue_jump(self, target: "typing.Optional[str]",index: "int") -> None:
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterUInt32.check_lower(index)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterUInt32.lower(index))
+
+
+
+
+
+
+    def queue_remove(self, target: "typing.Optional[str]",index: "int") -> None:
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterUInt32.check_lower(index)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_remove,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterUInt32.lower(index))
+
+
+
+
+
+
+    def seek(self, target: "typing.Optional[str]",position_ms: "int") -> None:
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterUInt64.check_lower(position_ms)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_seek,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterUInt64.lower(position_ms))
+
+
+
+
+
+
+    def set_primary(self, device_id: "str") -> None:
+        """
+        Choose the primary (scrobble/profile) device.
+        """
+
+        _UniffiConverterString.check_lower(device_id)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(device_id))
+
+
+
+
+
+
+
+class _UniffiConverterTypeRemoteController:
+
+    @staticmethod
+    def lift(value: int):
+        return RemoteController._make_instance_(value)
+
+    @staticmethod
+    def check_lower(value: RemoteController):
+        if not isinstance(value, RemoteController):
+            raise TypeError("Expected RemoteController instance, {} found".format(type(value).__name__))
+
+    @staticmethod
+    def lower(value: RemoteControllerProtocol):
+        if not isinstance(value, RemoteController):
+            raise TypeError("Expected RemoteController instance, {} found".format(type(value).__name__))
+        return value._uniffi_clone_pointer()
+
+    @classmethod
+    def read(cls, buf: _UniffiRustBuffer):
+        ptr = buf.read_u64()
+        if ptr == 0:
+            raise InternalError("Raw pointer value was null")
+        return cls.lift(ptr)
+
+    @classmethod
+    def write(cls, value: RemoteControllerProtocol, buf: _UniffiRustBuffer):
+        buf.write_u64(cls.lower(value))
+
+
+
+class RemotePlayerProtocol(typing.Protocol):
+    """
+    A Rocksky-controllable player over the remote-control WebSocket.
+
+    Connects and registers in the background, then advertises now-playing /
+    status / queue and receives commands. Host languages poll [`Self::next_command`]
+    in a loop on a background thread — it blocks until a command arrives (or
+    returns `None` once disconnected). See `remote-ws/PROTOCOL.md`.
+    """
+
+    def disconnect(self, ):
+        """
+        Disconnect and stop the background task.
+        """
+
+        raise NotImplementedError
+    def next_command(self, ):
+        """
+        Block until the next controller command (or `None` once disconnected).
+        Call in a loop on a background thread.
+        """
+
+        raise NotImplementedError
+    def set_now_playing(self, track: "RemoteNowPlaying"):
+        """
+        Advertise the currently-playing track.
+        """
+
+        raise NotImplementedError
+    def set_queue(self, items: "typing.List[RemoteQueueItem]",index: "int"):
+        """
+        Advertise the current queue and the active index.
+        """
+
+        raise NotImplementedError
+    def set_status(self, status: "RemoteStatus"):
+        """
+        Advertise transport status.
+        """
+
+        raise NotImplementedError
+
+
+class RemotePlayer:
+    """
+    A Rocksky-controllable player over the remote-control WebSocket.
+
+    Connects and registers in the background, then advertises now-playing /
+    status / queue and receives commands. Host languages poll [`Self::next_command`]
+    in a loop on a background thread — it blocks until a command arrives (or
+    returns `None` once disconnected). See `remote-ws/PROTOCOL.md`.
+    """
+
+    _pointer: ctypes.c_void_p
+    
+    def __init__(self, *args, **kwargs):
+        raise ValueError("This class has no default constructor")
+
+    def __del__(self):
+        # In case of partial initialization of instances.
+        pointer = getattr(self, "_pointer", None)
+        if pointer is not None:
+            _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_free_remoteplayer, pointer)
+
+    def _uniffi_clone_pointer(self):
+        return _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_clone_remoteplayer, self._pointer)
+
+    # Used by alternative constructors or any methods which return this type.
+    @classmethod
+    def _make_instance_(cls, pointer):
+        # Lightly yucky way to bypass the usual __init__ logic
+        # and just create a new instance with the required pointer.
+        inst = cls.__new__(cls)
+        inst._pointer = pointer
+        return inst
+    @classmethod
+    def connect(cls, token: "str",name: "str",url: "typing.Optional[str]"):
+        """
+        Connect and register in the background. `token` is a Rocksky access token
+        (JWT); `name` is the display name in the miniplayer device picker; `url`
+        defaults to the public endpoint when `None`.
+        """
+
+        _UniffiConverterString.check_lower(token)
+        
+        _UniffiConverterString.check_lower(name)
+        
+        _UniffiConverterOptionalString.check_lower(url)
+        
+        # Call the (fallible) function before creating any half-baked object instances.
+        pointer = _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_constructor_remoteplayer_connect,
+        _UniffiConverterString.lower(token),
+        _UniffiConverterString.lower(name),
+        _UniffiConverterOptionalString.lower(url))
+        return cls._make_instance_(pointer)
+
+
+
+    def disconnect(self, ) -> None:
+        """
+        Disconnect and stop the background task.
+        """
+
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_disconnect,self._uniffi_clone_pointer(),)
+
+
+
+
+
+
+    def next_command(self, ) -> "typing.Optional[RemoteCommand]":
+        """
+        Block until the next controller command (or `None` once disconnected).
+        Call in a loop on a background thread.
+        """
+
+        return _UniffiConverterOptionalTypeRemoteCommand.lift(
+            _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_next_command,self._uniffi_clone_pointer(),)
+        )
+
+
+
+
+
+    def set_now_playing(self, track: "RemoteNowPlaying") -> None:
+        """
+        Advertise the currently-playing track.
+        """
+
+        _UniffiConverterTypeRemoteNowPlaying.check_lower(track)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_now_playing,self._uniffi_clone_pointer(),
+        _UniffiConverterTypeRemoteNowPlaying.lower(track))
+
+
+
+
+
+
+    def set_queue(self, items: "typing.List[RemoteQueueItem]",index: "int") -> None:
+        """
+        Advertise the current queue and the active index.
+        """
+
+        _UniffiConverterSequenceTypeRemoteQueueItem.check_lower(items)
+        
+        _UniffiConverterUInt32.check_lower(index)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_queue,self._uniffi_clone_pointer(),
+        _UniffiConverterSequenceTypeRemoteQueueItem.lower(items),
+        _UniffiConverterUInt32.lower(index))
+
+
+
+
+
+
+    def set_status(self, status: "RemoteStatus") -> None:
+        """
+        Advertise transport status.
+        """
+
+        _UniffiConverterTypeRemoteStatus.check_lower(status)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remoteplayer_set_status,self._uniffi_clone_pointer(),
+        _UniffiConverterTypeRemoteStatus.lower(status))
+
+
+
+
+
+
+
+class _UniffiConverterTypeRemotePlayer:
+
+    @staticmethod
+    def lift(value: int):
+        return RemotePlayer._make_instance_(value)
+
+    @staticmethod
+    def check_lower(value: RemotePlayer):
+        if not isinstance(value, RemotePlayer):
+            raise TypeError("Expected RemotePlayer instance, {} found".format(type(value).__name__))
+
+    @staticmethod
+    def lower(value: RemotePlayerProtocol):
+        if not isinstance(value, RemotePlayer):
+            raise TypeError("Expected RemotePlayer instance, {} found".format(type(value).__name__))
+        return value._uniffi_clone_pointer()
+
+    @classmethod
+    def read(cls, buf: _UniffiRustBuffer):
+        ptr = buf.read_u64()
+        if ptr == 0:
+            raise InternalError("Raw pointer value was null")
+        return cls.lift(ptr)
+
+    @classmethod
+    def write(cls, value: RemotePlayerProtocol, buf: _UniffiRustBuffer):
+        buf.write_u64(cls.lower(value))
+
+
 class AlbumInput:
     """
     An album record (`app.rocksky.album`); `artist` is the album artist.
@@ -6057,6 +6792,303 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.avatar, buf)
         _UniffiConverterOptionalString.write(value.created_at, buf)
         _UniffiConverterOptionalString.write(value.updated_at, buf)
+
+
+class RemoteDevice:
+    """
+    A player device visible to a controller (from the device snapshot).
+    """
+
+    device_id: "str"
+    name: "str"
+    now_playing: "typing.Optional[RemoteNowPlaying]"
+    queue_index: "int"
+    queue: "typing.List[RemoteQueueItem]"
+    def __init__(self, *, device_id: "str", name: "str", now_playing: "typing.Optional[RemoteNowPlaying]", queue_index: "int", queue: "typing.List[RemoteQueueItem]"):
+        self.device_id = device_id
+        self.name = name
+        self.now_playing = now_playing
+        self.queue_index = queue_index
+        self.queue = queue
+
+    def __str__(self):
+        return "RemoteDevice(device_id={}, name={}, now_playing={}, queue_index={}, queue={})".format(self.device_id, self.name, self.now_playing, self.queue_index, self.queue)
+
+    def __eq__(self, other):
+        if self.device_id != other.device_id:
+            return False
+        if self.name != other.name:
+            return False
+        if self.now_playing != other.now_playing:
+            return False
+        if self.queue_index != other.queue_index:
+            return False
+        if self.queue != other.queue:
+            return False
+        return True
+
+class _UniffiConverterTypeRemoteDevice(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return RemoteDevice(
+            device_id=_UniffiConverterString.read(buf),
+            name=_UniffiConverterString.read(buf),
+            now_playing=_UniffiConverterOptionalTypeRemoteNowPlaying.read(buf),
+            queue_index=_UniffiConverterUInt32.read(buf),
+            queue=_UniffiConverterSequenceTypeRemoteQueueItem.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.device_id)
+        _UniffiConverterString.check_lower(value.name)
+        _UniffiConverterOptionalTypeRemoteNowPlaying.check_lower(value.now_playing)
+        _UniffiConverterUInt32.check_lower(value.queue_index)
+        _UniffiConverterSequenceTypeRemoteQueueItem.check_lower(value.queue)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.device_id, buf)
+        _UniffiConverterString.write(value.name, buf)
+        _UniffiConverterOptionalTypeRemoteNowPlaying.write(value.now_playing, buf)
+        _UniffiConverterUInt32.write(value.queue_index, buf)
+        _UniffiConverterSequenceTypeRemoteQueueItem.write(value.queue, buf)
+
+
+class RemoteNowPlaying:
+    """
+    Playback state for the remote miniplayer (host -> Rocksky).
+    """
+
+    title: "str"
+    artist: "str"
+    album: "str"
+    album_artist: "str"
+    album_art: "str"
+    duration_ms: "int"
+    """
+    Total track length, ms.
+    """
+
+    elapsed_ms: "int"
+    """
+    Current position, ms.
+    """
+
+    is_playing: "bool"
+    def __init__(self, *, title: "str", artist: "str", album: "str", album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, elapsed_ms: "int" = _DEFAULT, is_playing: "bool" = _DEFAULT):
+        self.title = title
+        self.artist = artist
+        self.album = album
+        if album_artist is _DEFAULT:
+            self.album_artist = ""
+        else:
+            self.album_artist = album_artist
+        if album_art is _DEFAULT:
+            self.album_art = ""
+        else:
+            self.album_art = album_art
+        if duration_ms is _DEFAULT:
+            self.duration_ms = 0
+        else:
+            self.duration_ms = duration_ms
+        if elapsed_ms is _DEFAULT:
+            self.elapsed_ms = 0
+        else:
+            self.elapsed_ms = elapsed_ms
+        if is_playing is _DEFAULT:
+            self.is_playing = True
+        else:
+            self.is_playing = is_playing
+
+    def __str__(self):
+        return "RemoteNowPlaying(title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, elapsed_ms={}, is_playing={})".format(self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.elapsed_ms, self.is_playing)
+
+    def __eq__(self, other):
+        if self.title != other.title:
+            return False
+        if self.artist != other.artist:
+            return False
+        if self.album != other.album:
+            return False
+        if self.album_artist != other.album_artist:
+            return False
+        if self.album_art != other.album_art:
+            return False
+        if self.duration_ms != other.duration_ms:
+            return False
+        if self.elapsed_ms != other.elapsed_ms:
+            return False
+        if self.is_playing != other.is_playing:
+            return False
+        return True
+
+class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return RemoteNowPlaying(
+            title=_UniffiConverterString.read(buf),
+            artist=_UniffiConverterString.read(buf),
+            album=_UniffiConverterString.read(buf),
+            album_artist=_UniffiConverterString.read(buf),
+            album_art=_UniffiConverterString.read(buf),
+            duration_ms=_UniffiConverterUInt64.read(buf),
+            elapsed_ms=_UniffiConverterUInt64.read(buf),
+            is_playing=_UniffiConverterBool.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.title)
+        _UniffiConverterString.check_lower(value.artist)
+        _UniffiConverterString.check_lower(value.album)
+        _UniffiConverterString.check_lower(value.album_artist)
+        _UniffiConverterString.check_lower(value.album_art)
+        _UniffiConverterUInt64.check_lower(value.duration_ms)
+        _UniffiConverterUInt64.check_lower(value.elapsed_ms)
+        _UniffiConverterBool.check_lower(value.is_playing)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.title, buf)
+        _UniffiConverterString.write(value.artist, buf)
+        _UniffiConverterString.write(value.album, buf)
+        _UniffiConverterString.write(value.album_artist, buf)
+        _UniffiConverterString.write(value.album_art, buf)
+        _UniffiConverterUInt64.write(value.duration_ms, buf)
+        _UniffiConverterUInt64.write(value.elapsed_ms, buf)
+        _UniffiConverterBool.write(value.is_playing, buf)
+
+
+class RemoteQueueItem:
+    """
+    One entry of the remote player's queue (host -> Rocksky, and echoed back
+    inside an `Enqueue` command).
+    """
+
+    upload_id: "str"
+    track_id: "str"
+    title: "str"
+    artist: "str"
+    album: "str"
+    album_artist: "str"
+    album_art: "str"
+    duration_ms: "int"
+    song_uri: "str"
+    album_uri: "str"
+    track_number: "int"
+    def __init__(self, *, upload_id: "str" = _DEFAULT, track_id: "str" = _DEFAULT, title: "str", artist: "str", album: "str" = _DEFAULT, album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, song_uri: "str" = _DEFAULT, album_uri: "str" = _DEFAULT, track_number: "int" = _DEFAULT):
+        if upload_id is _DEFAULT:
+            self.upload_id = ""
+        else:
+            self.upload_id = upload_id
+        if track_id is _DEFAULT:
+            self.track_id = ""
+        else:
+            self.track_id = track_id
+        self.title = title
+        self.artist = artist
+        if album is _DEFAULT:
+            self.album = ""
+        else:
+            self.album = album
+        if album_artist is _DEFAULT:
+            self.album_artist = ""
+        else:
+            self.album_artist = album_artist
+        if album_art is _DEFAULT:
+            self.album_art = ""
+        else:
+            self.album_art = album_art
+        if duration_ms is _DEFAULT:
+            self.duration_ms = 0
+        else:
+            self.duration_ms = duration_ms
+        if song_uri is _DEFAULT:
+            self.song_uri = ""
+        else:
+            self.song_uri = song_uri
+        if album_uri is _DEFAULT:
+            self.album_uri = ""
+        else:
+            self.album_uri = album_uri
+        if track_number is _DEFAULT:
+            self.track_number = 0
+        else:
+            self.track_number = track_number
+
+    def __str__(self):
+        return "RemoteQueueItem(upload_id={}, track_id={}, title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, song_uri={}, album_uri={}, track_number={})".format(self.upload_id, self.track_id, self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.song_uri, self.album_uri, self.track_number)
+
+    def __eq__(self, other):
+        if self.upload_id != other.upload_id:
+            return False
+        if self.track_id != other.track_id:
+            return False
+        if self.title != other.title:
+            return False
+        if self.artist != other.artist:
+            return False
+        if self.album != other.album:
+            return False
+        if self.album_artist != other.album_artist:
+            return False
+        if self.album_art != other.album_art:
+            return False
+        if self.duration_ms != other.duration_ms:
+            return False
+        if self.song_uri != other.song_uri:
+            return False
+        if self.album_uri != other.album_uri:
+            return False
+        if self.track_number != other.track_number:
+            return False
+        return True
+
+class _UniffiConverterTypeRemoteQueueItem(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return RemoteQueueItem(
+            upload_id=_UniffiConverterString.read(buf),
+            track_id=_UniffiConverterString.read(buf),
+            title=_UniffiConverterString.read(buf),
+            artist=_UniffiConverterString.read(buf),
+            album=_UniffiConverterString.read(buf),
+            album_artist=_UniffiConverterString.read(buf),
+            album_art=_UniffiConverterString.read(buf),
+            duration_ms=_UniffiConverterUInt64.read(buf),
+            song_uri=_UniffiConverterString.read(buf),
+            album_uri=_UniffiConverterString.read(buf),
+            track_number=_UniffiConverterInt32.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.upload_id)
+        _UniffiConverterString.check_lower(value.track_id)
+        _UniffiConverterString.check_lower(value.title)
+        _UniffiConverterString.check_lower(value.artist)
+        _UniffiConverterString.check_lower(value.album)
+        _UniffiConverterString.check_lower(value.album_artist)
+        _UniffiConverterString.check_lower(value.album_art)
+        _UniffiConverterUInt64.check_lower(value.duration_ms)
+        _UniffiConverterString.check_lower(value.song_uri)
+        _UniffiConverterString.check_lower(value.album_uri)
+        _UniffiConverterInt32.check_lower(value.track_number)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.upload_id, buf)
+        _UniffiConverterString.write(value.track_id, buf)
+        _UniffiConverterString.write(value.title, buf)
+        _UniffiConverterString.write(value.artist, buf)
+        _UniffiConverterString.write(value.album, buf)
+        _UniffiConverterString.write(value.album_artist, buf)
+        _UniffiConverterString.write(value.album_art, buf)
+        _UniffiConverterUInt64.write(value.duration_ms, buf)
+        _UniffiConverterString.write(value.song_uri, buf)
+        _UniffiConverterString.write(value.album_uri, buf)
+        _UniffiConverterInt32.write(value.track_number, buf)
 
 
 class ScrobbleInput:
@@ -7248,6 +8280,637 @@ class _UniffiConverterTypeDateInterval(_UniffiConverterRustBuffer):
 
 
 
+
+
+
+class RemoteCommand:
+    """
+    A command from a controller (web/mobile miniplayer) to this player.
+    """
+
+    def __init__(self):
+        raise RuntimeError("RemoteCommand cannot be instantiated directly")
+
+    # Each enum variant is a nested class of the enum itself.
+    class PLAY:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "RemoteCommand.PLAY()".format()
+
+        def __eq__(self, other):
+            if not other.is_play():
+                return False
+            return True
+    
+    class PAUSE:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "RemoteCommand.PAUSE()".format()
+
+        def __eq__(self, other):
+            if not other.is_pause():
+                return False
+            return True
+    
+    class NEXT:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "RemoteCommand.NEXT()".format()
+
+        def __eq__(self, other):
+            if not other.is_next():
+                return False
+            return True
+    
+    class PREVIOUS:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "RemoteCommand.PREVIOUS()".format()
+
+        def __eq__(self, other):
+            if not other.is_previous():
+                return False
+            return True
+    
+    class SEEK:
+        position_ms: "int"
+
+        def __init__(self,position_ms: "int"):
+            self.position_ms = position_ms
+
+        def __str__(self):
+            return "RemoteCommand.SEEK(position_ms={})".format(self.position_ms)
+
+        def __eq__(self, other):
+            if not other.is_seek():
+                return False
+            if self.position_ms != other.position_ms:
+                return False
+            return True
+    
+    class QUEUE_JUMP:
+        index: "int"
+
+        def __init__(self,index: "int"):
+            self.index = index
+
+        def __str__(self):
+            return "RemoteCommand.QUEUE_JUMP(index={})".format(self.index)
+
+        def __eq__(self, other):
+            if not other.is_queue_jump():
+                return False
+            if self.index != other.index:
+                return False
+            return True
+    
+    class QUEUE_REMOVE:
+        index: "int"
+
+        def __init__(self,index: "int"):
+            self.index = index
+
+        def __str__(self):
+            return "RemoteCommand.QUEUE_REMOVE(index={})".format(self.index)
+
+        def __eq__(self, other):
+            if not other.is_queue_remove():
+                return False
+            if self.index != other.index:
+                return False
+            return True
+    
+    class ENQUEUE:
+        tracks: "typing.List[RemoteQueueItem]"
+        mode: "str"
+        """
+        "now" | "next" | "last".
+        """
+
+        shuffle: "bool"
+        start_index: "int"
+
+        def __init__(self,tracks: "typing.List[RemoteQueueItem]", mode: "str", shuffle: "bool", start_index: "int"):
+            self.tracks = tracks
+            self.mode = mode
+            self.shuffle = shuffle
+            self.start_index = start_index
+
+        def __str__(self):
+            return "RemoteCommand.ENQUEUE(tracks={}, mode={}, shuffle={}, start_index={})".format(self.tracks, self.mode, self.shuffle, self.start_index)
+
+        def __eq__(self, other):
+            if not other.is_enqueue():
+                return False
+            if self.tracks != other.tracks:
+                return False
+            if self.mode != other.mode:
+                return False
+            if self.shuffle != other.shuffle:
+                return False
+            if self.start_index != other.start_index:
+                return False
+            return True
+    
+    
+
+    # For each variant, we have an `is_NAME` method for easily checking
+    # whether an instance is that variant.
+    def is_play(self) -> bool:
+        return isinstance(self, RemoteCommand.PLAY)
+    def is_pause(self) -> bool:
+        return isinstance(self, RemoteCommand.PAUSE)
+    def is_next(self) -> bool:
+        return isinstance(self, RemoteCommand.NEXT)
+    def is_previous(self) -> bool:
+        return isinstance(self, RemoteCommand.PREVIOUS)
+    def is_seek(self) -> bool:
+        return isinstance(self, RemoteCommand.SEEK)
+    def is_queue_jump(self) -> bool:
+        return isinstance(self, RemoteCommand.QUEUE_JUMP)
+    def is_queue_remove(self) -> bool:
+        return isinstance(self, RemoteCommand.QUEUE_REMOVE)
+    def is_enqueue(self) -> bool:
+        return isinstance(self, RemoteCommand.ENQUEUE)
+    
+
+# Now, a little trick - we make each nested variant class be a subclass of the main
+# enum class, so that method calls and instance checks etc will work intuitively.
+# We might be able to do this a little more neatly with a metaclass, but this'll do.
+RemoteCommand.PLAY = type("RemoteCommand.PLAY", (RemoteCommand.PLAY, RemoteCommand,), {})  # type: ignore
+RemoteCommand.PAUSE = type("RemoteCommand.PAUSE", (RemoteCommand.PAUSE, RemoteCommand,), {})  # type: ignore
+RemoteCommand.NEXT = type("RemoteCommand.NEXT", (RemoteCommand.NEXT, RemoteCommand,), {})  # type: ignore
+RemoteCommand.PREVIOUS = type("RemoteCommand.PREVIOUS", (RemoteCommand.PREVIOUS, RemoteCommand,), {})  # type: ignore
+RemoteCommand.SEEK = type("RemoteCommand.SEEK", (RemoteCommand.SEEK, RemoteCommand,), {})  # type: ignore
+RemoteCommand.QUEUE_JUMP = type("RemoteCommand.QUEUE_JUMP", (RemoteCommand.QUEUE_JUMP, RemoteCommand,), {})  # type: ignore
+RemoteCommand.QUEUE_REMOVE = type("RemoteCommand.QUEUE_REMOVE", (RemoteCommand.QUEUE_REMOVE, RemoteCommand,), {})  # type: ignore
+RemoteCommand.ENQUEUE = type("RemoteCommand.ENQUEUE", (RemoteCommand.ENQUEUE, RemoteCommand,), {})  # type: ignore
+
+
+
+
+class _UniffiConverterTypeRemoteCommand(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        variant = buf.read_i32()
+        if variant == 1:
+            return RemoteCommand.PLAY(
+            )
+        if variant == 2:
+            return RemoteCommand.PAUSE(
+            )
+        if variant == 3:
+            return RemoteCommand.NEXT(
+            )
+        if variant == 4:
+            return RemoteCommand.PREVIOUS(
+            )
+        if variant == 5:
+            return RemoteCommand.SEEK(
+                _UniffiConverterUInt64.read(buf),
+            )
+        if variant == 6:
+            return RemoteCommand.QUEUE_JUMP(
+                _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 7:
+            return RemoteCommand.QUEUE_REMOVE(
+                _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 8:
+            return RemoteCommand.ENQUEUE(
+                _UniffiConverterSequenceTypeRemoteQueueItem.read(buf),
+                _UniffiConverterString.read(buf),
+                _UniffiConverterBool.read(buf),
+                _UniffiConverterUInt32.read(buf),
+            )
+        raise InternalError("Raw enum value doesn't match any cases")
+
+    @staticmethod
+    def check_lower(value):
+        if value.is_play():
+            return
+        if value.is_pause():
+            return
+        if value.is_next():
+            return
+        if value.is_previous():
+            return
+        if value.is_seek():
+            _UniffiConverterUInt64.check_lower(value.position_ms)
+            return
+        if value.is_queue_jump():
+            _UniffiConverterUInt32.check_lower(value.index)
+            return
+        if value.is_queue_remove():
+            _UniffiConverterUInt32.check_lower(value.index)
+            return
+        if value.is_enqueue():
+            _UniffiConverterSequenceTypeRemoteQueueItem.check_lower(value.tracks)
+            _UniffiConverterString.check_lower(value.mode)
+            _UniffiConverterBool.check_lower(value.shuffle)
+            _UniffiConverterUInt32.check_lower(value.start_index)
+            return
+        raise ValueError(value)
+
+    @staticmethod
+    def write(value, buf):
+        if value.is_play():
+            buf.write_i32(1)
+        if value.is_pause():
+            buf.write_i32(2)
+        if value.is_next():
+            buf.write_i32(3)
+        if value.is_previous():
+            buf.write_i32(4)
+        if value.is_seek():
+            buf.write_i32(5)
+            _UniffiConverterUInt64.write(value.position_ms, buf)
+        if value.is_queue_jump():
+            buf.write_i32(6)
+            _UniffiConverterUInt32.write(value.index, buf)
+        if value.is_queue_remove():
+            buf.write_i32(7)
+            _UniffiConverterUInt32.write(value.index, buf)
+        if value.is_enqueue():
+            buf.write_i32(8)
+            _UniffiConverterSequenceTypeRemoteQueueItem.write(value.tracks, buf)
+            _UniffiConverterString.write(value.mode, buf)
+            _UniffiConverterBool.write(value.shuffle, buf)
+            _UniffiConverterUInt32.write(value.start_index, buf)
+
+
+
+
+
+
+
+class RemoteEvent:
+    """
+    An update pushed to a controller by the server.
+    """
+
+    def __init__(self):
+        raise RuntimeError("RemoteEvent cannot be instantiated directly")
+
+    # Each enum variant is a nested class of the enum itself.
+    class DEVICES:
+        primary_device: "typing.Optional[str]"
+        devices: "typing.List[RemoteDevice]"
+
+        def __init__(self,primary_device: "typing.Optional[str]", devices: "typing.List[RemoteDevice]"):
+            self.primary_device = primary_device
+            self.devices = devices
+
+        def __str__(self):
+            return "RemoteEvent.DEVICES(primary_device={}, devices={})".format(self.primary_device, self.devices)
+
+        def __eq__(self, other):
+            if not other.is_devices():
+                return False
+            if self.primary_device != other.primary_device:
+                return False
+            if self.devices != other.devices:
+                return False
+            return True
+    
+    class DEVICE_REGISTERED:
+        device_id: "str"
+        name: "str"
+
+        def __init__(self,device_id: "str", name: "str"):
+            self.device_id = device_id
+            self.name = name
+
+        def __str__(self):
+            return "RemoteEvent.DEVICE_REGISTERED(device_id={}, name={})".format(self.device_id, self.name)
+
+        def __eq__(self, other):
+            if not other.is_device_registered():
+                return False
+            if self.device_id != other.device_id:
+                return False
+            if self.name != other.name:
+                return False
+            return True
+    
+    class DEVICE_UNREGISTERED:
+        device_id: "str"
+
+        def __init__(self,device_id: "str"):
+            self.device_id = device_id
+
+        def __str__(self):
+            return "RemoteEvent.DEVICE_UNREGISTERED(device_id={})".format(self.device_id)
+
+        def __eq__(self, other):
+            if not other.is_device_unregistered():
+                return False
+            if self.device_id != other.device_id:
+                return False
+            return True
+    
+    class PRIMARY_CHANGED:
+        device_id: "str"
+
+        def __init__(self,device_id: "str"):
+            self.device_id = device_id
+
+        def __str__(self):
+            return "RemoteEvent.PRIMARY_CHANGED(device_id={})".format(self.device_id)
+
+        def __eq__(self, other):
+            if not other.is_primary_changed():
+                return False
+            if self.device_id != other.device_id:
+                return False
+            return True
+    
+    class NOW_PLAYING:
+        device_id: "str"
+        device_name: "str"
+        track: "RemoteNowPlaying"
+
+        def __init__(self,device_id: "str", device_name: "str", track: "RemoteNowPlaying"):
+            self.device_id = device_id
+            self.device_name = device_name
+            self.track = track
+
+        def __str__(self):
+            return "RemoteEvent.NOW_PLAYING(device_id={}, device_name={}, track={})".format(self.device_id, self.device_name, self.track)
+
+        def __eq__(self, other):
+            if not other.is_now_playing():
+                return False
+            if self.device_id != other.device_id:
+                return False
+            if self.device_name != other.device_name:
+                return False
+            if self.track != other.track:
+                return False
+            return True
+    
+    class STATUS:
+        device_id: "str"
+        device_name: "str"
+        status: "RemoteStatus"
+
+        def __init__(self,device_id: "str", device_name: "str", status: "RemoteStatus"):
+            self.device_id = device_id
+            self.device_name = device_name
+            self.status = status
+
+        def __str__(self):
+            return "RemoteEvent.STATUS(device_id={}, device_name={}, status={})".format(self.device_id, self.device_name, self.status)
+
+        def __eq__(self, other):
+            if not other.is_status():
+                return False
+            if self.device_id != other.device_id:
+                return False
+            if self.device_name != other.device_name:
+                return False
+            if self.status != other.status:
+                return False
+            return True
+    
+    class QUEUE:
+        device_id: "str"
+        device_name: "str"
+        index: "int"
+        queue: "typing.List[RemoteQueueItem]"
+
+        def __init__(self,device_id: "str", device_name: "str", index: "int", queue: "typing.List[RemoteQueueItem]"):
+            self.device_id = device_id
+            self.device_name = device_name
+            self.index = index
+            self.queue = queue
+
+        def __str__(self):
+            return "RemoteEvent.QUEUE(device_id={}, device_name={}, index={}, queue={})".format(self.device_id, self.device_name, self.index, self.queue)
+
+        def __eq__(self, other):
+            if not other.is_queue():
+                return False
+            if self.device_id != other.device_id:
+                return False
+            if self.device_name != other.device_name:
+                return False
+            if self.index != other.index:
+                return False
+            if self.queue != other.queue:
+                return False
+            return True
+    
+    
+
+    # For each variant, we have an `is_NAME` method for easily checking
+    # whether an instance is that variant.
+    def is_devices(self) -> bool:
+        return isinstance(self, RemoteEvent.DEVICES)
+    def is_device_registered(self) -> bool:
+        return isinstance(self, RemoteEvent.DEVICE_REGISTERED)
+    def is_device_unregistered(self) -> bool:
+        return isinstance(self, RemoteEvent.DEVICE_UNREGISTERED)
+    def is_primary_changed(self) -> bool:
+        return isinstance(self, RemoteEvent.PRIMARY_CHANGED)
+    def is_now_playing(self) -> bool:
+        return isinstance(self, RemoteEvent.NOW_PLAYING)
+    def is_status(self) -> bool:
+        return isinstance(self, RemoteEvent.STATUS)
+    def is_queue(self) -> bool:
+        return isinstance(self, RemoteEvent.QUEUE)
+    
+
+# Now, a little trick - we make each nested variant class be a subclass of the main
+# enum class, so that method calls and instance checks etc will work intuitively.
+# We might be able to do this a little more neatly with a metaclass, but this'll do.
+RemoteEvent.DEVICES = type("RemoteEvent.DEVICES", (RemoteEvent.DEVICES, RemoteEvent,), {})  # type: ignore
+RemoteEvent.DEVICE_REGISTERED = type("RemoteEvent.DEVICE_REGISTERED", (RemoteEvent.DEVICE_REGISTERED, RemoteEvent,), {})  # type: ignore
+RemoteEvent.DEVICE_UNREGISTERED = type("RemoteEvent.DEVICE_UNREGISTERED", (RemoteEvent.DEVICE_UNREGISTERED, RemoteEvent,), {})  # type: ignore
+RemoteEvent.PRIMARY_CHANGED = type("RemoteEvent.PRIMARY_CHANGED", (RemoteEvent.PRIMARY_CHANGED, RemoteEvent,), {})  # type: ignore
+RemoteEvent.NOW_PLAYING = type("RemoteEvent.NOW_PLAYING", (RemoteEvent.NOW_PLAYING, RemoteEvent,), {})  # type: ignore
+RemoteEvent.STATUS = type("RemoteEvent.STATUS", (RemoteEvent.STATUS, RemoteEvent,), {})  # type: ignore
+RemoteEvent.QUEUE = type("RemoteEvent.QUEUE", (RemoteEvent.QUEUE, RemoteEvent,), {})  # type: ignore
+
+
+
+
+class _UniffiConverterTypeRemoteEvent(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        variant = buf.read_i32()
+        if variant == 1:
+            return RemoteEvent.DEVICES(
+                _UniffiConverterOptionalString.read(buf),
+                _UniffiConverterSequenceTypeRemoteDevice.read(buf),
+            )
+        if variant == 2:
+            return RemoteEvent.DEVICE_REGISTERED(
+                _UniffiConverterString.read(buf),
+                _UniffiConverterString.read(buf),
+            )
+        if variant == 3:
+            return RemoteEvent.DEVICE_UNREGISTERED(
+                _UniffiConverterString.read(buf),
+            )
+        if variant == 4:
+            return RemoteEvent.PRIMARY_CHANGED(
+                _UniffiConverterString.read(buf),
+            )
+        if variant == 5:
+            return RemoteEvent.NOW_PLAYING(
+                _UniffiConverterString.read(buf),
+                _UniffiConverterString.read(buf),
+                _UniffiConverterTypeRemoteNowPlaying.read(buf),
+            )
+        if variant == 6:
+            return RemoteEvent.STATUS(
+                _UniffiConverterString.read(buf),
+                _UniffiConverterString.read(buf),
+                _UniffiConverterTypeRemoteStatus.read(buf),
+            )
+        if variant == 7:
+            return RemoteEvent.QUEUE(
+                _UniffiConverterString.read(buf),
+                _UniffiConverterString.read(buf),
+                _UniffiConverterUInt32.read(buf),
+                _UniffiConverterSequenceTypeRemoteQueueItem.read(buf),
+            )
+        raise InternalError("Raw enum value doesn't match any cases")
+
+    @staticmethod
+    def check_lower(value):
+        if value.is_devices():
+            _UniffiConverterOptionalString.check_lower(value.primary_device)
+            _UniffiConverterSequenceTypeRemoteDevice.check_lower(value.devices)
+            return
+        if value.is_device_registered():
+            _UniffiConverterString.check_lower(value.device_id)
+            _UniffiConverterString.check_lower(value.name)
+            return
+        if value.is_device_unregistered():
+            _UniffiConverterString.check_lower(value.device_id)
+            return
+        if value.is_primary_changed():
+            _UniffiConverterString.check_lower(value.device_id)
+            return
+        if value.is_now_playing():
+            _UniffiConverterString.check_lower(value.device_id)
+            _UniffiConverterString.check_lower(value.device_name)
+            _UniffiConverterTypeRemoteNowPlaying.check_lower(value.track)
+            return
+        if value.is_status():
+            _UniffiConverterString.check_lower(value.device_id)
+            _UniffiConverterString.check_lower(value.device_name)
+            _UniffiConverterTypeRemoteStatus.check_lower(value.status)
+            return
+        if value.is_queue():
+            _UniffiConverterString.check_lower(value.device_id)
+            _UniffiConverterString.check_lower(value.device_name)
+            _UniffiConverterUInt32.check_lower(value.index)
+            _UniffiConverterSequenceTypeRemoteQueueItem.check_lower(value.queue)
+            return
+        raise ValueError(value)
+
+    @staticmethod
+    def write(value, buf):
+        if value.is_devices():
+            buf.write_i32(1)
+            _UniffiConverterOptionalString.write(value.primary_device, buf)
+            _UniffiConverterSequenceTypeRemoteDevice.write(value.devices, buf)
+        if value.is_device_registered():
+            buf.write_i32(2)
+            _UniffiConverterString.write(value.device_id, buf)
+            _UniffiConverterString.write(value.name, buf)
+        if value.is_device_unregistered():
+            buf.write_i32(3)
+            _UniffiConverterString.write(value.device_id, buf)
+        if value.is_primary_changed():
+            buf.write_i32(4)
+            _UniffiConverterString.write(value.device_id, buf)
+        if value.is_now_playing():
+            buf.write_i32(5)
+            _UniffiConverterString.write(value.device_id, buf)
+            _UniffiConverterString.write(value.device_name, buf)
+            _UniffiConverterTypeRemoteNowPlaying.write(value.track, buf)
+        if value.is_status():
+            buf.write_i32(6)
+            _UniffiConverterString.write(value.device_id, buf)
+            _UniffiConverterString.write(value.device_name, buf)
+            _UniffiConverterTypeRemoteStatus.write(value.status, buf)
+        if value.is_queue():
+            buf.write_i32(7)
+            _UniffiConverterString.write(value.device_id, buf)
+            _UniffiConverterString.write(value.device_name, buf)
+            _UniffiConverterUInt32.write(value.index, buf)
+            _UniffiConverterSequenceTypeRemoteQueueItem.write(value.queue, buf)
+
+
+
+
+
+
+
+class RemoteStatus(enum.Enum):
+    """
+    Transport status advertised to controllers.
+    """
+
+    PLAYING = 0
+    
+    PAUSED = 1
+    
+    STOPPED = 2
+    
+
+
+class _UniffiConverterTypeRemoteStatus(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        variant = buf.read_i32()
+        if variant == 1:
+            return RemoteStatus.PLAYING
+        if variant == 2:
+            return RemoteStatus.PAUSED
+        if variant == 3:
+            return RemoteStatus.STOPPED
+        raise InternalError("Raw enum value doesn't match any cases")
+
+    @staticmethod
+    def check_lower(value):
+        if value == RemoteStatus.PLAYING:
+            return
+        if value == RemoteStatus.PAUSED:
+            return
+        if value == RemoteStatus.STOPPED:
+            return
+        raise ValueError(value)
+
+    @staticmethod
+    def write(value, buf):
+        if value == RemoteStatus.PLAYING:
+            buf.write_i32(1)
+        if value == RemoteStatus.PAUSED:
+            buf.write_i32(2)
+        if value == RemoteStatus.STOPPED:
+            buf.write_i32(3)
+
+
+
+
 # RockskyError
 # We want to define each variant as a nested class that's also a subclass,
 # which is tricky in Python.  To accomplish this we're going to create each
@@ -7498,6 +9161,33 @@ class _UniffiConverterOptionalTypeProfile(_UniffiConverterRustBuffer):
 
 
 
+class _UniffiConverterOptionalTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeRemoteNowPlaying.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeRemoteNowPlaying.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeRemoteNowPlaying.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
 class _UniffiConverterOptionalTypeShoutGifInput(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -7520,6 +9210,60 @@ class _UniffiConverterOptionalTypeShoutGifInput(_UniffiConverterRustBuffer):
             return None
         elif flag == 1:
             return _UniffiConverterTypeShoutGifInput.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
+class _UniffiConverterOptionalTypeRemoteCommand(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeRemoteCommand.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeRemoteCommand.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeRemoteCommand.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
+class _UniffiConverterOptionalTypeRemoteEvent(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeRemoteEvent.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeRemoteEvent.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeRemoteEvent.read(buf)
         else:
             raise InternalError("Unexpected flag byte for optional type")
 
@@ -7650,6 +9394,56 @@ class _UniffiConverterSequenceTypeProfileView(_UniffiConverterRustBuffer):
 
 
 
+class _UniffiConverterSequenceTypeRemoteDevice(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeRemoteDevice.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeRemoteDevice.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeRemoteDevice.read(buf) for i in range(count)
+        ]
+
+
+
+class _UniffiConverterSequenceTypeRemoteQueueItem(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeRemoteQueueItem.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeRemoteQueueItem.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeRemoteQueueItem.read(buf) for i in range(count)
+        ]
+
+
+
 class _UniffiConverterSequenceTypeScrobbleView(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -7766,6 +9560,9 @@ def song_hash(title: "str",artist: "str",album: "str") -> "str":
 __all__ = [
     "InternalError",
     "DateInterval",
+    "RemoteCommand",
+    "RemoteEvent",
+    "RemoteStatus",
     "RockskyError",
     "AlbumInput",
     "AlbumView",
@@ -7778,6 +9575,9 @@ __all__ = [
     "NowPlayingInput",
     "Profile",
     "ProfileView",
+    "RemoteDevice",
+    "RemoteNowPlaying",
+    "RemoteQueueItem",
     "ScrobbleInput",
     "ScrobbleMatchInput",
     "ScrobbleResult",
@@ -7793,5 +9593,7 @@ __all__ = [
     "Agent",
     "AppView",
     "Library",
+    "RemoteController",
+    "RemotePlayer",
 ]
 

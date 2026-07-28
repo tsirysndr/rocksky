@@ -768,4 +768,488 @@ fn agent_hydrate_from_jetstream(agent: ResourceArc<AgentRes>) -> String {
     serde_json::json!({ "ok": true }).to_string()
 }
 
+// ---- remote player (Rocksky-controllable player over the WebSocket) ------
+//
+// An opaque resource over `rocksky_sdk::RemotePlayer`. It registers and runs in
+// the background; the Erlang side polls `remote_player_next_command` in a loop
+// (dirty IO — it blocks until a command arrives, or returns `null` once
+// disconnected). All JSON here is camelCase, matching remote-ws/PROTOCOL.md.
+
+/// Opaque remote-player handle, held on the Erlang side as a resource.
+#[cfg(feature = "remote-player")]
+struct RemotePlayerRes(rocksky_sdk::RemotePlayer);
+
+#[cfg(feature = "remote-player")]
+#[rustler::resource_impl]
+impl Resource for RemotePlayerRes {}
+
+/// Playback state accepted by `remote_player_set_now_playing`.
+#[cfg(feature = "remote-player")]
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+struct NowPlayingJson {
+    title: String,
+    artist: String,
+    album: String,
+    album_artist: String,
+    album_art: String,
+    duration_ms: u64,
+    elapsed_ms: u64,
+    is_playing: bool,
+}
+
+#[cfg(feature = "remote-player")]
+impl Default for NowPlayingJson {
+    fn default() -> Self {
+        Self {
+            title: String::new(),
+            artist: String::new(),
+            album: String::new(),
+            album_artist: String::new(),
+            album_art: String::new(),
+            duration_ms: 0,
+            elapsed_ms: 0,
+            is_playing: true,
+        }
+    }
+}
+
+/// A queue entry accepted by `remote_player_set_queue`.
+#[cfg(feature = "remote-player")]
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+struct QueueItemJson {
+    upload_id: String,
+    track_id: String,
+    title: String,
+    artist: String,
+    album: String,
+    album_artist: String,
+    album_art: String,
+    duration_ms: u64,
+    song_uri: String,
+    album_uri: String,
+    track_number: i32,
+}
+
+#[cfg(feature = "remote-player")]
+fn queue_item_to_json(it: &rocksky_sdk::RemoteQueueItem) -> serde_json::Value {
+    serde_json::json!({
+        "uploadId": it.upload_id,
+        "trackId": it.track_id,
+        "title": it.title,
+        "artist": it.artist,
+        "album": it.album,
+        "albumArtist": it.album_artist,
+        "albumArt": it.album_art,
+        "duration": it.duration_ms,
+        "songUri": it.song_uri,
+        "albumUri": it.album_uri,
+        "trackNumber": it.track_number,
+    })
+}
+
+#[cfg(feature = "remote-player")]
+fn command_to_json(cmd: &rocksky_sdk::RemoteCommand) -> serde_json::Value {
+    use rocksky_sdk::RemoteCommand as C;
+    match cmd {
+        C::Play => serde_json::json!({ "action": "play" }),
+        C::Pause => serde_json::json!({ "action": "pause" }),
+        C::Next => serde_json::json!({ "action": "next" }),
+        C::Previous => serde_json::json!({ "action": "previous" }),
+        C::Seek { position_ms } => serde_json::json!({ "action": "seek", "position": position_ms }),
+        C::QueueJump { index } => serde_json::json!({ "action": "queue_jump", "index": index }),
+        C::QueueRemove { index } => {
+            serde_json::json!({ "action": "queue_remove", "index": index })
+        }
+        C::Enqueue {
+            tracks,
+            mode,
+            shuffle,
+            start_index,
+        } => serde_json::json!({
+            "action": "enqueue",
+            "tracks": tracks.iter().map(queue_item_to_json).collect::<Vec<_>>(),
+            "mode": mode,
+            "shuffle": shuffle,
+            "startIndex": start_index,
+        }),
+    }
+}
+
+/// Connect and register a controllable player in the background. `token` is a
+/// Rocksky access token (JWT); `name` is the miniplayer device-picker label;
+/// `url` may be empty for the public endpoint. Returns an opaque handle.
+#[cfg(feature = "remote-player")]
+#[rustler::nif(schedule = "DirtyIo")]
+fn remote_player_connect(
+    token: String,
+    name: String,
+    url: String,
+) -> ResourceArc<RemotePlayerRes> {
+    let mut cfg = rocksky_sdk::RemotePlayerConfig::new(token, name);
+    if !url.is_empty() {
+        cfg = cfg.url(url);
+    }
+    // `connect` spawns a background task with `tokio::spawn`, which needs an
+    // active runtime context.
+    let player = RT.block_on(async { rocksky_sdk::RemotePlayer::connect(cfg) });
+    ResourceArc::new(RemotePlayerRes(player))
+}
+
+/// Block until the next controller command, returned as `{"ok": <cmd>}` where
+/// `<cmd>` is a command object (`{"action":"…", …}`) or `null` once disconnected.
+#[cfg(feature = "remote-player")]
+#[rustler::nif(schedule = "DirtyIo")]
+fn remote_player_next_command(player: ResourceArc<RemotePlayerRes>) -> String {
+    match RT.block_on(player.0.next_command()) {
+        Some(cmd) => envelope::<_, String>(Ok(command_to_json(&cmd))),
+        None => envelope::<_, String>(Ok(serde_json::Value::Null)),
+    }
+}
+
+/// Advertise the currently-playing track (`track_json` = camelCase now-playing).
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_player_set_now_playing(
+    player: ResourceArc<RemotePlayerRes>,
+    track_json: String,
+) -> String {
+    match parse::<NowPlayingJson>(&track_json) {
+        Ok(t) => {
+            player.0.set_now_playing(rocksky_sdk::RemoteNowPlaying {
+                title: t.title,
+                artist: t.artist,
+                album: t.album,
+                album_artist: t.album_artist,
+                album_art: t.album_art,
+                duration_ms: t.duration_ms,
+                elapsed_ms: t.elapsed_ms,
+                is_playing: t.is_playing,
+            });
+            envelope::<_, String>(Ok(true))
+        }
+        Err(e) => envelope::<(), _>(Err(e)),
+    }
+}
+
+/// Advertise transport status: `"playing"`, `"paused"`, or `"stopped"`.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_player_set_status(player: ResourceArc<RemotePlayerRes>, status: String) -> String {
+    let status = match status.as_str() {
+        "playing" => rocksky_sdk::RemoteStatus::Playing,
+        "paused" => rocksky_sdk::RemoteStatus::Paused,
+        "stopped" => rocksky_sdk::RemoteStatus::Stopped,
+        other => {
+            return envelope::<(), _>(Err(format!(
+                "unknown status {other:?} (expected playing|paused|stopped)"
+            )))
+        }
+    };
+    player.0.set_status(status);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Advertise the current queue (`items_json` = JSON array of camelCase queue
+/// items) and the active `index`.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_player_set_queue(
+    player: ResourceArc<RemotePlayerRes>,
+    items_json: String,
+    index: u32,
+) -> String {
+    match parse::<Vec<QueueItemJson>>(&items_json) {
+        Ok(items) => {
+            let items = items
+                .into_iter()
+                .map(|i| rocksky_sdk::RemoteQueueItem {
+                    upload_id: i.upload_id,
+                    track_id: i.track_id,
+                    title: i.title,
+                    artist: i.artist,
+                    album: i.album,
+                    album_artist: i.album_artist,
+                    album_art: i.album_art,
+                    duration_ms: i.duration_ms,
+                    song_uri: i.song_uri,
+                    album_uri: i.album_uri,
+                    track_number: i.track_number,
+                })
+                .collect();
+            player.0.set_queue(items, index);
+            envelope::<_, String>(Ok(true))
+        }
+        Err(e) => envelope::<(), _>(Err(e)),
+    }
+}
+
+/// Disconnect and stop the background task (the handle stays valid until dropped).
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_player_disconnect(player: ResourceArc<RemotePlayerRes>) -> String {
+    player.0.disconnect();
+    envelope::<_, String>(Ok(true))
+}
+
+// ---- remote controller (drive & observe the user's players) --------------
+//
+// An opaque resource over `rocksky_sdk::RemoteController`. Poll
+// `remote_controller_next_event` in a loop (dirty IO); send commands /
+// `set_primary` from anywhere. All JSON is camelCase.
+
+/// Opaque remote-controller handle, held on the Erlang side as a resource.
+#[cfg(feature = "remote-player")]
+struct RemoteControllerRes(rocksky_sdk::RemoteController);
+
+#[cfg(feature = "remote-player")]
+#[rustler::resource_impl]
+impl Resource for RemoteControllerRes {}
+
+/// An empty target string means "broadcast to all devices".
+#[cfg(feature = "remote-player")]
+fn opt_target(s: String) -> Option<String> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
+}
+
+#[cfg(feature = "remote-player")]
+fn now_playing_to_json(t: &rocksky_sdk::RemoteNowPlaying) -> serde_json::Value {
+    serde_json::json!({
+        "title": t.title,
+        "artist": t.artist,
+        "album": t.album,
+        "albumArtist": t.album_artist,
+        "albumArt": t.album_art,
+        "durationMs": t.duration_ms,
+        "elapsedMs": t.elapsed_ms,
+        "isPlaying": t.is_playing,
+    })
+}
+
+#[cfg(feature = "remote-player")]
+fn status_str(s: &rocksky_sdk::RemoteStatus) -> &'static str {
+    match s {
+        rocksky_sdk::RemoteStatus::Playing => "playing",
+        rocksky_sdk::RemoteStatus::Paused => "paused",
+        rocksky_sdk::RemoteStatus::Stopped => "stopped",
+    }
+}
+
+#[cfg(feature = "remote-player")]
+fn device_to_json(d: &rocksky_sdk::RemoteDevice) -> serde_json::Value {
+    serde_json::json!({
+        "deviceId": d.device_id,
+        "name": d.name,
+        "nowPlaying": d.now_playing.as_ref().map(now_playing_to_json),
+        "queueIndex": d.queue_index,
+        "queue": d.queue.iter().map(queue_item_to_json).collect::<Vec<_>>(),
+    })
+}
+
+#[cfg(feature = "remote-player")]
+fn event_to_json(e: &rocksky_sdk::RemoteEvent) -> serde_json::Value {
+    use rocksky_sdk::RemoteEvent as E;
+    match e {
+        E::Devices {
+            primary_device,
+            devices,
+        } => serde_json::json!({
+            "type": "devices",
+            "primaryDevice": primary_device,
+            "devices": devices.iter().map(device_to_json).collect::<Vec<_>>(),
+        }),
+        E::DeviceRegistered { device_id, name } => serde_json::json!({
+            "type": "device_registered", "deviceId": device_id, "name": name,
+        }),
+        E::DeviceUnregistered { device_id } => serde_json::json!({
+            "type": "device_unregistered", "deviceId": device_id,
+        }),
+        E::PrimaryChanged { device_id } => serde_json::json!({
+            "type": "primary_changed", "deviceId": device_id,
+        }),
+        E::NowPlaying {
+            device_id,
+            device_name,
+            track,
+        } => serde_json::json!({
+            "type": "now_playing",
+            "deviceId": device_id,
+            "deviceName": device_name,
+            "track": now_playing_to_json(track),
+        }),
+        E::Status {
+            device_id,
+            device_name,
+            status,
+        } => serde_json::json!({
+            "type": "status",
+            "deviceId": device_id,
+            "deviceName": device_name,
+            "status": status_str(status),
+        }),
+        E::Queue {
+            device_id,
+            device_name,
+            index,
+            queue,
+        } => serde_json::json!({
+            "type": "queue",
+            "deviceId": device_id,
+            "deviceName": device_name,
+            "index": index,
+            "queue": queue.iter().map(queue_item_to_json).collect::<Vec<_>>(),
+        }),
+    }
+}
+
+/// Connect and register a controller in the background. Returns an opaque handle.
+#[cfg(feature = "remote-player")]
+#[rustler::nif(schedule = "DirtyIo")]
+fn remote_controller_connect(
+    token: String,
+    name: String,
+    url: String,
+) -> ResourceArc<RemoteControllerRes> {
+    let mut cfg = rocksky_sdk::RemoteControllerConfig::new(token, name);
+    if !url.is_empty() {
+        cfg = cfg.url(url);
+    }
+    let controller = RT.block_on(async { rocksky_sdk::RemoteController::connect(cfg) });
+    ResourceArc::new(RemoteControllerRes(controller))
+}
+
+/// Block until the next update, returned as `{"ok": <event>}` where `<event>` is
+/// an event object (`{"type":"…", …}`) or `null` once disconnected.
+#[cfg(feature = "remote-player")]
+#[rustler::nif(schedule = "DirtyIo")]
+fn remote_controller_next_event(controller: ResourceArc<RemoteControllerRes>) -> String {
+    match RT.block_on(controller.0.next_event()) {
+        Some(ev) => envelope::<_, String>(Ok(event_to_json(&ev))),
+        None => envelope::<_, String>(Ok(serde_json::Value::Null)),
+    }
+}
+
+/// Choose the primary (scrobble/profile) device.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_set_primary(
+    controller: ResourceArc<RemoteControllerRes>,
+    device_id: String,
+) -> String {
+    controller.0.set_primary(device_id);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Send a simple command (`play` | `pause` | `next` | `previous`). Empty `target`
+/// broadcasts to all the user's devices.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_command(
+    controller: ResourceArc<RemoteControllerRes>,
+    action: String,
+    target: String,
+) -> String {
+    let target = opt_target(target);
+    match action.as_str() {
+        "play" => controller.0.play(target),
+        "pause" => controller.0.pause(target),
+        "next" => controller.0.next(target),
+        "previous" => controller.0.previous(target),
+        other => {
+            return envelope::<(), _>(Err(format!(
+                "unknown action {other:?} (expected play|pause|next|previous)"
+            )))
+        }
+    }
+    envelope::<_, String>(Ok(true))
+}
+
+/// Seek the target device to `position_ms` (empty `target` = broadcast).
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_seek(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    position_ms: u64,
+) -> String {
+    controller.0.seek(opt_target(target), position_ms);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Jump to `index` in the target device's queue (empty `target` = broadcast).
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_queue_jump(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    index: u32,
+) -> String {
+    controller.0.queue_jump(opt_target(target), index);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Remove queue item `index` on the target device (empty `target` = broadcast).
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_queue_remove(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    index: u32,
+) -> String {
+    controller.0.queue_remove(opt_target(target), index);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Enqueue tracks on the target device. `tracks_json` = JSON array of camelCase
+/// queue items; `mode` = `"now"` | `"next"` | `"last"`; empty `target` = broadcast.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_enqueue(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    tracks_json: String,
+    mode: String,
+    shuffle: bool,
+    start_index: u32,
+) -> String {
+    match parse::<Vec<QueueItemJson>>(&tracks_json) {
+        Ok(items) => {
+            let items = items
+                .into_iter()
+                .map(|i| rocksky_sdk::RemoteQueueItem {
+                    upload_id: i.upload_id,
+                    track_id: i.track_id,
+                    title: i.title,
+                    artist: i.artist,
+                    album: i.album,
+                    album_artist: i.album_artist,
+                    album_art: i.album_art,
+                    duration_ms: i.duration_ms,
+                    song_uri: i.song_uri,
+                    album_uri: i.album_uri,
+                    track_number: i.track_number,
+                })
+                .collect();
+            controller
+                .0
+                .enqueue(opt_target(target), items, mode, shuffle, start_index);
+            envelope::<_, String>(Ok(true))
+        }
+        Err(e) => envelope::<(), _>(Err(e)),
+    }
+}
+
+/// Disconnect and stop the background task.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_disconnect(controller: ResourceArc<RemoteControllerRes>) -> String {
+    controller.0.disconnect();
+    envelope::<_, String>(Ok(true))
+}
+
 rustler::init!("rocksky_nif");

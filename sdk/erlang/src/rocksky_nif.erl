@@ -28,7 +28,15 @@
          agent_like/3, agent_unlike/2, agent_follow/2, agent_unfollow/2,
          agent_shout/4, agent_reply_shout/6, agent_shout_with_gif/5,
          agent_reply_shout_with_gif/7, update_seen/3, agent_set_now_playing/2,
-         agent_clear_now_playing/1]).
+         agent_clear_now_playing/1,
+         remote_player_connect/3, remote_player_next_command/1,
+         remote_player_set_now_playing/2, remote_player_set_status/2,
+         remote_player_set_queue/3, remote_player_disconnect/1,
+         remote_controller_connect/3, remote_controller_next_event/1,
+         remote_controller_set_primary/2, remote_controller_command/3,
+         remote_controller_seek/3, remote_controller_queue_jump/3,
+         remote_controller_queue_remove/3, remote_controller_enqueue/6,
+         remote_controller_disconnect/1]).
 
 -on_load(init/0).
 
@@ -284,3 +292,23 @@ agent_shout_with_gif(_Agent, _SubjectUri, _SubjectCid, _Message, _GifJson) -> ?N
 agent_reply_shout_with_gif(_Agent, _SubjectUri, _SubjectCid, _ParentUri, _ParentCid, _Message, _GifJson) -> ?NOT_LOADED.
 agent_set_now_playing(_Agent, _Json) -> ?NOT_LOADED.
 agent_clear_now_playing(_Agent) -> ?NOT_LOADED.
+
+%% --- remote control (remote-player feature) -----------------------------------
+%% RemotePlayer (a controllable player) + RemoteController (a remote UI). connect
+%% returns an opaque resource; next_command/next_event BLOCK (DirtyIo); the rest
+%% return {"ok"|"error"} JSON envelopes. The resource is GC'd (no _free).
+remote_player_connect(_Token, _Name, _Url) -> ?NOT_LOADED.
+remote_player_next_command(_Player) -> ?NOT_LOADED.
+remote_player_set_now_playing(_Player, _TrackJson) -> ?NOT_LOADED.
+remote_player_set_status(_Player, _Status) -> ?NOT_LOADED.
+remote_player_set_queue(_Player, _ItemsJson, _Index) -> ?NOT_LOADED.
+remote_player_disconnect(_Player) -> ?NOT_LOADED.
+remote_controller_connect(_Token, _Name, _Url) -> ?NOT_LOADED.
+remote_controller_next_event(_Controller) -> ?NOT_LOADED.
+remote_controller_set_primary(_Controller, _DeviceId) -> ?NOT_LOADED.
+remote_controller_command(_Controller, _Action, _Target) -> ?NOT_LOADED.
+remote_controller_seek(_Controller, _Target, _PositionMs) -> ?NOT_LOADED.
+remote_controller_queue_jump(_Controller, _Target, _Index) -> ?NOT_LOADED.
+remote_controller_queue_remove(_Controller, _Target, _Index) -> ?NOT_LOADED.
+remote_controller_enqueue(_Controller, _Target, _TracksJson, _Mode, _Shuffle, _StartIndex) -> ?NOT_LOADED.
+remote_controller_disconnect(_Controller) -> ?NOT_LOADED.

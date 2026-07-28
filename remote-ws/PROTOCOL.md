@@ -321,6 +321,25 @@ Building a **controller**? You:
 
 ## 9. Reference implementations
 
+### In the SDKs (both roles, batteries included)
+
+The protocol is implemented once in the Rust core and reused across every SDK,
+so you don't have to speak raw JSON — use `RemotePlayer` / `RemoteController`:
+
+- **Rust:** `crates/rocksky-sdk` (`remote_player.rs`, `remote_controller.rs`;
+  feature `remote-player`) — example `crates/rocksky-sdk/examples/remote_control.rs`
+- **TypeScript:** `sdk/typescript/src/remote-player.ts`, `remote-controller.ts`
+- **Go:** `sdk/go/rocksky/remoteplayer.go`, `remotecontroller.go`
+- **Python / Kotlin:** the UniFFI bindings (`RemotePlayer`, `RemoteController`)
+- **Ruby / Clojure:** the C-ABI bindings
+- **Erlang / Elixir / Gleam:** the Rustler NIF bindings
+
+The **poll model** is uniform across the FFI SDKs: call the blocking
+`next_command()` (player) / `next_event()` (controller) in a loop on a background
+thread. The Rust, TS, and Go SDKs also offer a handler/callback style.
+
+### In the apps
+
 - **TypeScript** (player): `apps/cli/src/tui/rockskyWs.ts`
 - **Rust** (player): `crates/connect/src/websocket.rs`, `~/…/rockbox-zig/crates/rocksky/src/lib.rs`
 - **Web controller:** `apps/web/src/components/StickyPlayer/StickyPlayerWithData.tsx`

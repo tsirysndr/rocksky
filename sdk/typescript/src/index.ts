@@ -30,6 +30,13 @@ export {
   type RemoteQueueItem,
   type EnqueueCommand,
 } from "./remote-player.js";
+export {
+  RemoteController,
+  type RemoteControllerOptions,
+  type RemoteControllerEvents,
+  type RemoteDevice,
+  type RemoteStatus,
+} from "./remote-controller.js";
 export { songHash, albumHash, artistHash } from "./hash.js";
 export { RockskyError } from "./errors.js";
 export type * from "./generated/types.js";

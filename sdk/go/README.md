@@ -89,6 +89,41 @@ go agent.HydrateFromJetstream(ctx)     // keep it live from Jetstream (all 4 ser
 With an index attached, the write verbs skip records that already exist (return
 the existing URI) and a same-second scrobble of the same track isn't duplicated.
 
+## Remote control
+
+Build a controllable player or a remote UI over the remote-control WebSocket (see
+[`remote-ws/PROTOCOL.md`](../../remote-ws/PROTOCOL.md)). Heartbeat, reconnect, and
+the register handshake are handled for you.
+
+```go
+// A controllable player (advertises now-playing + obeys commands):
+p := rocksky.NewRemotePlayer(rocksky.RemotePlayerOptions{
+    Token: token, Name: "My Player",
+    Handlers: rocksky.RemotePlayerHandlers{
+        Play:  func() { engine.Play() },
+        Pause: func() { engine.Pause() },
+        Seek:  func(ms int64) { engine.Seek(ms) },
+    },
+})
+go p.Run(ctx)
+p.SetNowPlaying(rocksky.RemoteNowPlaying{Title: "…", Artist: "…", IsPlaying: true})
+p.SetStatus("playing")
+
+// A controller (lists devices, picks the primary, sends commands):
+c := rocksky.NewRemoteController(rocksky.RemoteControllerOptions{
+    Token: token, Name: "My Controller",
+    Handlers: rocksky.RemoteControllerHandlers{
+        Devices:    func(primary string, ds []rocksky.RemoteDevice) { render(ds) },
+        NowPlaying: func(id, name string, t rocksky.RemoteNowPlaying) { show(id, t) },
+    },
+})
+go c.Run(ctx)
+c.SetPrimary(deviceID)
+c.Pause(deviceID)
+```
+
+See `examples/remote`.
+
 ## Example
 
 ```sh
