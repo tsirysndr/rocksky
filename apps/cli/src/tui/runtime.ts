@@ -20,8 +20,13 @@ export interface HeadlessRuntime {
  */
 export function startHeadlessRuntime(
   getToken: () => string | undefined,
+  opts: { output?: string } = {},
 ): HeadlessRuntime {
-  playerController.applySettings(loadSettings());
+  // A `--output` flag overrides the persisted audio backend for this run
+  // without being written back to settings.toml.
+  const settings = loadSettings();
+  if (opts.output) settings.output = opts.output;
+  playerController.applySettings(settings);
 
   let saveTimer: NodeJS.Timeout | undefined;
   playerController.onSettingsChange = () => {

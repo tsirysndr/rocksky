@@ -8,6 +8,11 @@ export interface Settings {
   volume: number;
   shuffle: boolean;
   repeat: RepeatName;
+  // Audio output backend spec, passed straight to the rockbox player. Empty =>
+  // the default audio device (cpal). Other specs: `stdout` (or `-`), `fifo:/path`,
+  // `unix:/path` (listen), `unix-connect:/path`, `tcp:host:port` (listen),
+  // `tcp-connect:host:port`. Config the player never mutates (like [mpd]/[remote]).
+  output: string;
   // Music Player Daemon protocol server. `enabled` only gates the copy embedded
   // in the TUI — `rocksky mpd` always serves regardless. `port` is the desired
   // port; the server falls back to the next free one if it's taken.
@@ -42,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.9,
   shuffle: false,
   repeat: "off",
+  output: "",
   mpd: {
     enabled: false,
     port: 6600,
@@ -110,6 +116,7 @@ function serialize(s: Settings): string {
     `volume = ${s.volume}`,
     `shuffle = ${s.shuffle}`,
     `repeat = "${s.repeat}"`,
+    `output = "${s.output}"`,
     ``,
     `[mpd]`,
     `enabled = ${s.mpd.enabled}`,
@@ -156,6 +163,10 @@ export function loadSettings(): Settings {
       volume: num(parsed.volume, DEFAULT_SETTINGS.volume),
       shuffle: bool(parsed.shuffle, DEFAULT_SETTINGS.shuffle),
       repeat,
+      output:
+        typeof parsed.output === "string"
+          ? parsed.output
+          : DEFAULT_SETTINGS.output,
       mpd: {
         enabled: bool(mpd.enabled, DEFAULT_SETTINGS.mpd.enabled),
         port: num(mpd.port, DEFAULT_SETTINGS.mpd.port),
@@ -189,16 +200,24 @@ export function loadSettings(): Settings {
   }
 }
 
-// The player only owns the playback settings; the [mpd] and [remote] sections
-// are config the player never mutates. Accept playback settings and preserve
-// those sections from disk so a playback-triggered save doesn't clobber them.
-export function saveSettings(s: Omit<Settings, "mpd" | "remote">): void {
+// The player only owns the playback settings; the [mpd]/[remote] sections and
+// `output` are config the player never mutates. Accept playback settings and
+// preserve those from disk so a playback-triggered save doesn't clobber them
+// (in particular a CLI `--output` override stays ephemeral — not persisted).
+export function saveSettings(
+  s: Omit<Settings, "mpd" | "remote" | "output">,
+): void {
   try {
     const disk = loadSettings();
     fs.mkdirSync(path.dirname(settingsPath()), { recursive: true });
     fs.writeFileSync(
       settingsPath(),
-      serialize({ ...s, mpd: disk.mpd, remote: disk.remote }),
+      serialize({
+        ...s,
+        output: disk.output,
+        mpd: disk.mpd,
+        remote: disk.remote,
+      }),
     );
   } catch {
     // best-effort; ignore write errors

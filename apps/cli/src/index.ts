@@ -172,7 +172,11 @@ program
   )
   .option("-p, --port <port>", "port to listen on (defaults to settings.toml)")
   .option("-b, --bind <address>", "address to bind (defaults to settings.toml)")
-  .action(async (opts: { port?: string; bind?: string }) => {
+  .option(
+    "-o, --output <spec>",
+    "audio output backend: default device, or stdout / fifo:<path> / unix:<path> / tcp:<host>:<port> (defaults to settings.toml)",
+  )
+  .action(async (opts: { port?: string; bind?: string; output?: string }) => {
     const { mpd } = await import("cmd/mpd");
     await mpd(opts);
   });
@@ -218,9 +222,13 @@ program
   .description(
     "launch the interactive terminal UI to browse scrobbles and stream your music",
   )
-  .action(async () => {
+  .option(
+    "-o, --output <spec>",
+    "audio output backend: default device, or stdout / fifo:<path> / unix:<path> / tcp:<host>:<port> (defaults to settings.toml)",
+  )
+  .action(async (opts: { output?: string }) => {
     const { tui } = await import("cmd/tui");
-    await tui();
+    await tui(opts);
   });
 
 // No subcommand given → launch the interactive TUI (no DB init, lean startup).

@@ -105,6 +105,33 @@ Running `rocksky` with no arguments (or `rocksky tui`) launches a full-screen te
 
 Playback preferences (volume, EQ, crossfade, ReplayGain) are saved to `~/.rocksky/settings.toml`, and the current queue/position is restored on restart.
 
+### Audio output
+
+By default audio plays on your system's default device. You can route the raw
+PCM stream elsewhere with the `output` setting, so another process (or another
+machine) does the actual playback:
+
+```toml
+output = ""                     # default audio device (cpal)
+# output = "stdout"             # raw S16LE stereo PCM on stdout (or "-")
+# output = "fifo:/tmp/rocksky"  # write to a named pipe
+# output = "unix:/tmp/rk.sock"  # listen on a Unix socket (blocks until a client connects)
+# output = "unix-connect:/tmp/rk.sock"
+# output = "tcp:0.0.0.0:9000"   # listen on TCP (blocks until a client connects)
+# output = "tcp-connect:host:9000"
+```
+
+Both `rocksky tui` and `rocksky mpd` accept `-o, --output <spec>` to override the
+persisted value for a single run (without writing it back to `settings.toml`):
+
+```bash
+rocksky tui --output stdout | ffplay -f s16le -ar 44100 -ac 2 -
+rocksky mpd --output tcp:0.0.0.0:9000
+```
+
+In `stdout` mode, keep the stream clean — pipe fd 1 straight into a player such
+as `ffplay -f s16le -ar 44100 -ac 2 -`.
+
 ## MPD Server
 
 Rocksky speaks the [Music Player Daemon](https://www.musicpd.org/) protocol, so any MPD client — [ncmpcpp](https://github.com/ncmpcpp/ncmpcpp), [rmpc](https://github.com/mierak/rmpc), `mpc`, [MALP](https://gitlab.com/gateship-one/malp), … — can control playback and browse your uploaded library.

@@ -11,13 +11,17 @@ import { loadSettings } from "../tui/settings";
  * TUI. Port/bind default to `~/.rocksky/settings.toml` `[mpd]`, overridable via
  * flags; a busy port falls back to the next free one.
  */
-export async function mpd(opts: { port?: string; bind?: string }) {
+export async function mpd(opts: {
+  port?: string;
+  bind?: string;
+  output?: string;
+}) {
   const settings = loadSettings();
   const port = opts.port ? parseInt(opts.port, 10) : settings.mpd.port;
   const bind = opts.bind ?? settings.mpd.bind;
   const getToken = () => loadToken();
 
-  const runtime = startHeadlessRuntime(getToken);
+  const runtime = startHeadlessRuntime(getToken, { output: opts.output });
   const server = await startMpdServer({
     getToken,
     port,

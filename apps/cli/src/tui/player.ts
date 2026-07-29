@@ -127,6 +127,10 @@ class PlayerController {
   private _volume = 0.9;
   private _shuffle = false;
   private _repeat = 0;
+  // Audio output backend spec (see settings.ts / rockbox PlayerConfig.output).
+  // Empty => default audio device. Fixed at engine creation, so a change only
+  // takes effect on the next `ensure()` (i.e. a fresh player).
+  private _output = "";
 
   // Called whenever a persisted setting changes; wired to settings.toml saving.
   onSettingsChange: (() => void) | null = null;
@@ -143,6 +147,8 @@ class PlayerController {
       // keeps memory / initial fill low on constrained devices (e.g. an SBC).
       this.player = new Player({
         volume: this._volume,
+        // Empty string => let the engine pick the default audio device.
+        output: this._output || undefined,
         bufferSeconds: 24,
         crossfadeMode: s.crossfade,
         fadeOutDelayMs: Math.round(s.fadeOutDelay * 1000),
@@ -170,6 +176,7 @@ class PlayerController {
     volume: number;
     shuffle: boolean;
     repeat: "off" | "one" | "all";
+    output?: string;
     equalizer: {
       enabled: boolean;
       bands: number[];
@@ -193,6 +200,7 @@ class PlayerController {
       : 0.9;
     this._shuffle = s.shuffle;
     this._repeat = { off: 0, one: 1, all: 2 }[s.repeat] ?? 0;
+    this._output = s.output ?? "";
     this.sound = {
       eqEnabled: s.equalizer.enabled,
       bands: EQ_BANDS_HZ.map((_, i) => s.equalizer.bands[i] ?? 0),

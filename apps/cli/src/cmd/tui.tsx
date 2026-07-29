@@ -16,7 +16,7 @@ function restoreTerminal() {
   process.stdout.write("\x1b[?1049l\x1b[?25h");
 }
 
-export async function tui() {
+export async function tui(opts: { output?: string } = {}) {
   if (!process.stdin.isTTY) {
     console.error("The Rocksky TUI requires an interactive terminal.");
     process.exit(1);
@@ -26,8 +26,11 @@ export async function tui() {
   process.on("exit", restoreTerminal);
 
   // Restore persisted sound / transport preferences and keep them saved
-  // (debounced) whenever they change.
-  playerController.applySettings(loadSettings());
+  // (debounced) whenever they change. A `--output` flag overrides the persisted
+  // audio backend for this run without being written back to settings.toml.
+  const settings = loadSettings();
+  if (opts.output) settings.output = opts.output;
+  playerController.applySettings(settings);
   let saveTimer: NodeJS.Timeout;
   playerController.onSettingsChange = () => {
     clearTimeout(saveTimer);
