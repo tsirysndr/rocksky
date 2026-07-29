@@ -151,7 +151,7 @@
         "@emotion/styled": "^11.14.0",
         "@hookform/resolvers": "^4.0.0",
         "@iconify-json/teenyicons": "^1.2.2",
-        "@rocksky/sdk": "0.10.1",
+        "@rocksky/sdk": "^0.10.2",
         "@styled-icons/bootstrap": "^10.47.0",
         "@styled-icons/boxicons-logos": "^10.47.0",
         "@styled-icons/boxicons-regular": "^10.47.0",
@@ -249,7 +249,7 @@
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.0",
         "@hookform/resolvers": "^4.0.0",
-        "@rocksky/sdk": "0.10.1",
+        "@rocksky/sdk": "^0.10.2",
         "@styled-icons/evaicons-solid": "^10.46.0",
         "@styled-icons/ionicons-outline": "^10.46.0",
         "@tabler/icons-react": "^3.31.0",
@@ -1167,7 +1167,7 @@
 
     "@rocksky/doc": ["@rocksky/doc@workspace:apps/doc"],
 
-    "@rocksky/sdk": ["@rocksky/sdk@0.10.1", "", { "dependencies": { "@atcute/car": "^6.0.2", "@atcute/cbor": "^2.3.6", "@atcute/cid": "^2.4.2", "@atcute/client": "^5.1.1", "@atcute/identity": "^2.0.2", "@atcute/identity-resolver": "^2.0.1", "@atcute/password-session": "^1.0.2", "classic-level": "^3.0.0" } }, "sha512-A1IEjGnzk3SvNdEoTlzjHMBd3cj38ggw+kxSgr3uYDY8eDTX2KkmHGoD8A3ZHBCl+Yuqnnju1dAU3ICo6HxbKQ=="],
+    "@rocksky/sdk": ["@rocksky/sdk@0.10.2", "", { "dependencies": { "@atcute/car": "^6.0.2", "@atcute/cbor": "^2.3.6", "@atcute/cid": "^2.4.2", "@atcute/client": "^5.1.1", "@atcute/identity": "^2.0.2", "@atcute/identity-resolver": "^2.0.1", "@atcute/password-session": "^1.0.2", "classic-level": "^3.0.0" } }, "sha512-eF7Oj3qtjZ1vrq2VqypzPmeceiVp4mPSdiqOhAERbcwZOQqFWlhyj90o/20qvQCPSRNNuYXopNnXW+xNdZfphQ=="],
 
     "@rocksky/spotify-proxy": ["@rocksky/spotify-proxy@workspace:apps/spotify-proxy"],
 

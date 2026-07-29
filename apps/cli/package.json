@@ -75,7 +75,7 @@
     "open": "^10.1.0",
     "ramda": "^0.32.0",
     "react": "^19.2.7",
-    "rockbox-ffi": "^0.5.1",
+    "rockbox-ffi": "0.6.0",
     "table": "^6.9.0",
     "unstorage": "^1.14.4",
     "uuid": "^13.0.0",

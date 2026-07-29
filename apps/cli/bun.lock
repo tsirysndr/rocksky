@@ -20,7 +20,7 @@
         "@logtape/logtape": "^1.3.6",
         "@modelcontextprotocol/sdk": "^1.10.2",
         "@paralleldrive/cuid2": "^3.0.6",
-        "@rocksky/sdk": "0.10.0",
+        "@rocksky/sdk": "^0.10.2",
         "@tanstack/react-query": "^5.101.3",
         "@types/better-sqlite3": "^7.6.13",
         "axios": "^1.8.4",
@@ -49,7 +49,7 @@
         "open": "^10.1.0",
         "ramda": "^0.32.0",
         "react": "^19.2.7",
-        "rockbox-ffi": "^0.5.1",
+        "rockbox-ffi": "0.6.0",
         "table": "^6.9.0",
         "unstorage": "^1.14.4",
         "uuid": "^13.0.0",
@@ -226,19 +226,19 @@
 
     "@paralleldrive/cuid2": ["@paralleldrive/cuid2@3.3.0", "", { "dependencies": { "@noble/hashes": "^2.0.1", "bignumber.js": "^9.3.1", "error-causes": "^3.0.2" }, "bin": { "cuid2": "bin/cuid2.js" } }, "sha512-OqiFvSOF0dBSesELYY2CAMa4YINvlLpvKOz/rv6NeZEqiyttlHgv98Juwv4Ch+GrEV7IZ8jfI2VcEoYUjXXCjw=="],
 
-    "@rockbox-ffi/darwin-arm64": ["@rockbox-ffi/darwin-arm64@0.5.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-QW5c84CcpOUWcSUch7bQFt0yCfMArU9E9ServxF8ARYsl4cWwtvHRoy2IBE2bAQMLHaVfa4XRhLolj+/SNkQJw=="],
+    "@rockbox-ffi/darwin-arm64": ["@rockbox-ffi/darwin-arm64@0.6.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-WpMiY09rNYIINUU6YbFwg3ppHf704dghmr213f0+TYRcEAg6daOS7volGhICWFF3dl8+CGF8TCSnWQDxHvu6Cw=="],
 
-    "@rockbox-ffi/darwin-x64": ["@rockbox-ffi/darwin-x64@0.5.1", "", { "os": "darwin", "cpu": "x64" }, "sha512-W6uY4KQwL75WFoZsMj9rpX94OexlgEaMMmWkkCSjQOhnILq9e99fRN5Zt0jt53hga2DcWw9j/66olQMM0yIhkA=="],
+    "@rockbox-ffi/darwin-x64": ["@rockbox-ffi/darwin-x64@0.6.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-lXYcONhyQR9xjsoZYRTE4oEq2KxbMtjm+opYYWX1ZSNkfFqPA8AZxrSkKNVX0Ryoz4DF5vxgQ/MpgKiXrUL6ew=="],
 
-    "@rockbox-ffi/freebsd-x64": ["@rockbox-ffi/freebsd-x64@0.5.1", "", { "os": "freebsd", "cpu": "x64" }, "sha512-H82fKDmqE+6ktos7T6EL1CKfWwLTiaZdJToEyvHbL4u1L5v7UA3qZL3XG38wzIhD+Iwhmkn4h3E6itKVRrVjIA=="],
+    "@rockbox-ffi/freebsd-x64": ["@rockbox-ffi/freebsd-x64@0.6.0", "", { "os": "freebsd", "cpu": "x64" }, "sha512-QybMZTLp9nxIjhntDsmR0niKaaV6Qfrt+aawhrKKMsHsO1ztNPOfugG0U+nD4V3wS3CNBj/aARHpzKzQ/80+Gg=="],
 
-    "@rockbox-ffi/linux-arm64": ["@rockbox-ffi/linux-arm64@0.5.1", "", { "os": "linux", "cpu": "arm64" }, "sha512-EBlJnCvGZCqhYR3kMnsv77II/7t5xMXyHeyYgodCJr+0KslYver2nijxYE6xB1mLVhPS/7zVYE/gf+PMkR3TEw=="],
+    "@rockbox-ffi/linux-arm64": ["@rockbox-ffi/linux-arm64@0.6.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-cFADfRf2G8WrIMIjzu3HJxT+Jfr1eA7iqKxv5grGPreF3FF2YjSk75caTppy+DS1Ckg60lIbrjz7w/8+PdZWtA=="],
 
-    "@rockbox-ffi/linux-x64": ["@rockbox-ffi/linux-x64@0.5.1", "", { "os": "linux", "cpu": "x64" }, "sha512-wlMlD/NGsl5szcxJ+D9+GcWELx7fR5jS02B47ymDsp8l2PtQwwBZHXIIRK4O2LTvnPObEQ6jennyqY9uSiKHyQ=="],
+    "@rockbox-ffi/linux-x64": ["@rockbox-ffi/linux-x64@0.6.0", "", { "os": "linux", "cpu": "x64" }, "sha512-Kv2lxJoIrsAVvJY4bmtAG8PTsh8Z2TKhOszdOOG/ypW05s+DsbHsplE61gFmDO52HMOnkYlho660Jpr5OyZzhg=="],
 
-    "@rockbox-ffi/netbsd-x64": ["@rockbox-ffi/netbsd-x64@0.5.1", "", { "os": "none", "cpu": "x64" }, "sha512-qNV6nPMp9n4Mf2TfbdtiikXpASQQa7uaqTbkwoU4iUvhi9lqA0yW+eOrTdEVyp3syofBBH51pQjei4Ry/gRVBg=="],
+    "@rockbox-ffi/netbsd-x64": ["@rockbox-ffi/netbsd-x64@0.6.0", "", { "os": "none", "cpu": "x64" }, "sha512-FDuuSqcAKgQaPRyx6GJirNgG0f2LQtcBNJdmTihoIUwu5mAyH54NLRG/BQF+BzxB/JRIJEbtpgUwj96/dFv/7w=="],
 
-    "@rocksky/sdk": ["@rocksky/sdk@0.10.0", "", { "dependencies": { "@atcute/car": "^6.0.2", "@atcute/cbor": "^2.3.6", "@atcute/cid": "^2.4.2", "@atcute/client": "^5.1.1", "@atcute/identity": "^2.0.2", "@atcute/identity-resolver": "^2.0.1", "@atcute/password-session": "^1.0.2", "classic-level": "^3.0.0" } }, "sha512-L/ADQ84WLXfr9BqlFBJh/3hqu5ujzn8GtX8F2LWVteirSGml/2yBdKD6x0Xxpm+LN/uPN4ftR9ndAWgi+ZnzzA=="],
+    "@rocksky/sdk": ["@rocksky/sdk@0.10.2", "", { "dependencies": { "@atcute/car": "^6.0.2", "@atcute/cbor": "^2.3.6", "@atcute/cid": "^2.4.2", "@atcute/client": "^5.1.1", "@atcute/identity": "^2.0.2", "@atcute/identity-resolver": "^2.0.1", "@atcute/password-session": "^1.0.2", "classic-level": "^3.0.0" } }, "sha512-eF7Oj3qtjZ1vrq2VqypzPmeceiVp4mPSdiqOhAERbcwZOQqFWlhyj90o/20qvQCPSRNNuYXopNnXW+xNdZfphQ=="],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
@@ -796,7 +796,7 @@
 
     "reusify": ["reusify@1.1.0", "", {}, "sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="],
 
-    "rockbox-ffi": ["rockbox-ffi@0.5.1", "", { "dependencies": { "koffi": "^2.9.0" }, "optionalDependencies": { "@rockbox-ffi/darwin-arm64": "0.5.1", "@rockbox-ffi/darwin-x64": "0.5.1", "@rockbox-ffi/freebsd-x64": "0.5.1", "@rockbox-ffi/linux-arm64": "0.5.1", "@rockbox-ffi/linux-x64": "0.5.1", "@rockbox-ffi/netbsd-x64": "0.5.1" } }, "sha512-i5xG452r7TINNagw3KvsLb1Q954DAIUF8a2AuAXBgeFWkZ+pfXJnHQmlUGKu1lxIjxtXvxfOBGzN58hN6XiVew=="],
+    "rockbox-ffi": ["rockbox-ffi@0.6.0", "", { "dependencies": { "koffi": "^2.9.0" }, "optionalDependencies": { "@rockbox-ffi/darwin-arm64": "0.6.0", "@rockbox-ffi/darwin-x64": "0.6.0", "@rockbox-ffi/freebsd-x64": "0.6.0", "@rockbox-ffi/linux-arm64": "0.6.0", "@rockbox-ffi/linux-x64": "0.6.0", "@rockbox-ffi/netbsd-x64": "0.6.0" } }, "sha512-HkMb5FH2u0Du+0FZNvxhpe3Rs2fHLH/qFUCngW339cNCPaEQOg4YFNQ2u8nbDvyPB59YvGKyN78jonu0M0KJeQ=="],
 
     "router": ["router@2.2.0", "", { "dependencies": { "debug": "^4.4.0", "depd": "^2.0.0", "is-promise": "^4.0.0", "parseurl": "^1.3.3", "path-to-regexp": "^8.0.0" } }, "sha512-nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ=="],
 
