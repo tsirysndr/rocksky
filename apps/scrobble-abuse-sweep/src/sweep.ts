@@ -6,6 +6,17 @@ import { env } from "./utils/env.ts";
 const { db } = drizzle;
 
 /**
+ * DIDs that must never be flagged, regardless of what the detectors find. Parsed
+ * once from SWEEP_ALLOWLIST_DIDS (comma-separated). A hard override for
+ * known-good accounts (e.g. the operator's own).
+ */
+const allowlist = new Set(
+  env.SWEEP_ALLOWLIST_DIDS.split(",")
+    .map((d) => d.trim())
+    .filter((d) => d.length > 0),
+);
+
+/**
  * A user whose recent scrobble stream matches a known bot pattern. Two
  * detectors produce candidates:
  *
@@ -199,6 +210,7 @@ export async function detectBots(): Promise<BotCandidate[]> {
 
   const byDid = new Map<string, BotCandidate>();
   for (const c of [...roundTheClock, ...burst]) {
+    if (allowlist.has(c.did)) continue;
     if (!byDid.has(c.did)) byDid.set(c.did, c);
   }
   return [...byDid.values()];
@@ -212,6 +224,7 @@ export async function detectBots(): Promise<BotCandidate[]> {
 export async function flagBots(candidates: BotCandidate[]): Promise<number> {
   let flagged = 0;
   for (const c of candidates) {
+    if (allowlist.has(c.did)) continue;
     const res = await db.execute(sql`
       UPDATE users
       SET is_bot = true, bot_flagged_at = now(), bot_reason = ${c.reason}

@@ -14,6 +14,9 @@ export const env = cleanEnv(process.env, {
   // Detect but don't write the flag — logs what it *would* flag. Use to dry-run
   // threshold changes against production before letting them block anyone.
   SWEEP_DRY_RUN: bool({ default: false }),
+  // Comma-separated DIDs that must never be flagged, regardless of what the
+  // detectors find. A hard override for known-good accounts (e.g. the operator's).
+  SWEEP_ALLOWLIST_DIDS: str({ default: "did:plc:7vdlgi2bflelz7mmuxoqjfcr" }),
 
   // --- Round-the-clock detector thresholds ----------------------------------
   // Validated against the live user base: these five gates flagged exactly the
