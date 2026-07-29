@@ -125,12 +125,23 @@ Both `rocksky tui` and `rocksky mpd` accept `-o, --output <spec>` to override th
 persisted value for a single run (without writing it back to `settings.toml`):
 
 ```bash
-rocksky tui --output stdout | ffplay -f s16le -ar 44100 -ac 2 -
-rocksky mpd --output tcp:0.0.0.0:9000
+# headless daemon: pipe raw PCM straight into a player
+rocksky mpd --output stdout | ffplay -f s16le -ar 44100 -ac 2 -
+
+# TUI: use a fifo/socket, since the TUI itself renders to stdout
+rocksky tui --output unix:/tmp/rocksky.sock
+ffplay -f s16le -ar 44100 -ac 2 unix:///tmp/rocksky.sock   # in another shell
 ```
 
-In `stdout` mode, keep the stream clean — pipe fd 1 straight into a player such
-as `ffplay -f s16le -ar 44100 -ac 2 -`.
+The stream is **raw, headerless S16LE stereo PCM at 44.1 kHz**, so the consumer
+must be told the format explicitly (`-f s16le -ar 44100 -ac 2`) — there is no
+container to autodetect. Two things to remember:
+
+- `stdout` is only for the headless `rocksky mpd` — the `tui` renders to stdout,
+  so use `fifo:` / `unix:` / `tcp:` there instead.
+- `unix:` / `tcp:` are **listen** sockets: rocksky blocks until a client
+  connects. Start rocksky first, then connect your player (or use the
+  `unix-connect:` / `tcp-connect:` variants to have rocksky connect out).
 
 ## MPD Server
 
