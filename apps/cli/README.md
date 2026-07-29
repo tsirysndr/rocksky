@@ -133,9 +133,11 @@ rocksky tui --output unix:/tmp/rocksky.sock
 ffplay -f s16le -ar 44100 -ac 2 unix:///tmp/rocksky.sock   # in another shell
 ```
 
-The stream is **raw, headerless S16LE stereo PCM at 44.1 kHz**, so the consumer
-must be told the format explicitly (`-f s16le -ar 44100 -ac 2`) — there is no
-container to autodetect. Two things to remember:
+The stream is **raw, headerless S16LE stereo PCM, pinned to 44.1 kHz** for the
+socket/stdout sinks, so the consumer must be told the format explicitly
+(`-f s16le -ar 44100 -ac 2`) — there is no container to autodetect. If audio
+plays too slow or too fast, the `-ar` value doesn't match: the raw sinks are
+always 44100 Hz. Two more things to remember:
 
 - `stdout` is only for the headless `rocksky mpd` — the `tui` renders to stdout,
   so use `fifo:` / `unix:` / `tcp:` there instead.

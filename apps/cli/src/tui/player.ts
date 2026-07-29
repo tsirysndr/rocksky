@@ -45,6 +45,13 @@ export const EQ_BANDS_HZ = [
 export const EQ_MAX_DB = 12;
 export const TONE_MAX_DB = 24;
 
+// Sample rate the raw output sinks (stdout/fifo/unix/tcp) resample to. A socket
+// has no audio device to inherit a rate from, so we pin it to a known value —
+// otherwise the engine picks a device/source-dependent rate and the consumer
+// (e.g. `ffplay -f s16le -ar 44100 -ac 2`) has no way to know what to decode.
+// The default device path keeps sampleRate 0 (match the device, no resample).
+export const OUTPUT_SAMPLE_RATE = 44100;
+
 // Crossfade modes, indexed by their native CrossfadeMode value.
 export const CROSSFADE_MODES = [
   "Off",
@@ -149,6 +156,9 @@ class PlayerController {
         volume: this._volume,
         // Empty string => let the engine pick the default audio device.
         output: this._output || undefined,
+        // Pin the rate for raw sinks so the PCM stream is deterministic; leave
+        // the device path at 0 (match the device natively, no extra resample).
+        sampleRate: this._output ? OUTPUT_SAMPLE_RATE : undefined,
         bufferSeconds: 24,
         crossfadeMode: s.crossfade,
         fadeOutDelayMs: Math.round(s.fadeOutDelay * 1000),
