@@ -36,3 +36,6 @@ dist-ssr
 .tanstack
 # rockbox-wasm runtime assets (copied from node_modules by vite.config.ts)
 public/rockbox
+
+# ReScript build cache
+lib/
