@@ -1,7 +1,11 @@
 @module("../consts") external apiUrl: string = "API_URL"
 
-// Auth header captured at module load, matching apikeys.ts's module-level const.
-let headers: Axios.config = {headers: Dict.fromArray([("authorization", Axios.bearer())])}
+// Auth header, computed per call so it always reads the current token. (The old
+// apikeys.ts captured it once at module load, which went stale if the token
+// changed after import — see AccessTokens/Storage/Mirror, which are per-call.)
+let headers = (): Axios.config => {
+  headers: Dict.fromArray([("authorization", Axios.bearer())]),
+}
 
 // Full axios responses (callers read `.data`), matching the old `axios.<verb><T>`.
 @genType
@@ -9,7 +13,7 @@ let createApiKey = (
   name: string,
   description: option<string>,
 ): promise<Axios.response<ApiKey.t>> =>
-  Axios.post(apiUrl ++ "/apikeys", {"name": name, "description": description}, headers)
+  Axios.post(apiUrl ++ "/apikeys", {"name": name, "description": description}, headers())
 
 @genType
 let getApiKeys = (
@@ -22,12 +26,12 @@ let getApiKeys = (
     offset->Option.getOr(0)->Int.toString ++
     "&size=" ++
     size->Option.getOr(20)->Int.toString,
-    headers,
+    headers(),
   )
 
 @genType
 let deleteApiKey = (id: string): promise<Axios.response<unit>> =>
-  Axios.delete(apiUrl ++ "/apikeys/" ++ id, headers)
+  Axios.delete(apiUrl ++ "/apikeys/" ++ id, headers())
 
 @genType
 let updateApiKey = (
@@ -39,5 +43,5 @@ let updateApiKey = (
   Axios.put(
     apiUrl ++ "/apikeys/" ++ id,
     {"name": name, "description": description, "enabled": enabled},
-    headers,
+    headers(),
   )
