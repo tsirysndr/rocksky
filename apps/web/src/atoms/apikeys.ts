@@ -1,4 +1,4 @@
 import { atom } from "jotai";
-import { ApiKey } from "../types/apikey";
+import type { t as ApiKey } from "../types/ApiKey.gen";
 
 export const apiKeysAtom = atom<ApiKey[]>([]);

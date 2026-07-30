@@ -1,7 +1,7 @@
-import { Compatibility } from "../types/compatibility";
-import { Neighbour } from "../types/neighbour";
-import { Profile } from "../types/profile";
-import { Scrobble } from "../types/scrobble";
+import type { t as Compatibility } from "../types/Compatibility.gen";
+import type { t as Neighbour } from "../types/Neighbour.gen";
+import type { t as Profile } from "../types/Profile.gen";
+import type { t as Scrobble } from "../types/Scrobble.gen";
 import { client } from ".";
 
 export const getProfileByDid = async (did: string) => {

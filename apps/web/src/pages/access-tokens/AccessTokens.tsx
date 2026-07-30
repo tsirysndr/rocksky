@@ -18,7 +18,10 @@ import {
   useDeleteAccessTokenMutation,
 } from "../../hooks/useAccessToken";
 import Main from "../../layouts/Main";
-import { AccessToken, CreatedAccessToken } from "../../types/access-token";
+import type {
+  t as AccessToken,
+  created as CreatedAccessToken,
+} from "../../types/AccessToken.gen";
 import { Code, Header } from "./styles";
 
 const schema = z.object({

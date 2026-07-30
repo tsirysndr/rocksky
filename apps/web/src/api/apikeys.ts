@@ -1,6 +1,6 @@
 import axios from "axios";
 import { API_URL } from "../consts";
-import { ApiKey } from "../types/apikey";
+import type { t as ApiKey } from "../types/ApiKey.gen";
 
 const headers = {
   authorization: `Bearer ${localStorage.getItem("token")}`,

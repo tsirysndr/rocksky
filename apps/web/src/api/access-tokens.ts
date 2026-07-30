@@ -1,6 +1,9 @@
 import axios from "axios";
 import { API_URL } from "../consts";
-import { AccessToken, CreatedAccessToken } from "../types/access-token";
+import type {
+  t as AccessToken,
+  created as CreatedAccessToken,
+} from "../types/AccessToken.gen";
 
 const authHeaders = () => ({
   authorization: `Bearer ${localStorage.getItem("token")}`,

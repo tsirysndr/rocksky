@@ -9,7 +9,7 @@ import ContextMenu from "../../components/ContextMenu";
 import Table from "../../components/Table";
 import { useFilesQuery } from "../../hooks/useGoogleDrive";
 import Main from "../../layouts/Main";
-import { File } from "../../types/file";
+import type { t as File } from "../../types/File.gen";
 import { AudioFile, Directory } from "./styles";
 
 const columnHelper = createColumnHelper<File>();

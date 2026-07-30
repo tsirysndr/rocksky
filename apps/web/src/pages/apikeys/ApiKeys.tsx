@@ -22,7 +22,7 @@ import {
 } from "../../hooks/useApikey";
 import { IconHelpCircle } from "@tabler/icons-react";
 import Main from "../../layouts/Main";
-import { ApiKey } from "../../types/apikey";
+import type { t as ApiKey } from "../../types/ApiKey.gen";
 import { Code, Header, HelpNote } from "./styles";
 
 const schema = z.object({
