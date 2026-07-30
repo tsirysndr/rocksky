@@ -7,7 +7,7 @@ import {
   getGenreChart,
   getProfileChart,
   getSongChart,
-} from "../api/charts";
+} from "../api/Charts.gen";
 import { API_URL } from "../consts";
 
 export const useScrobblesChartQuery = () =>
