@@ -23,7 +23,7 @@ import {
   type NavidromeArtist,
   type NavidromeSong,
 } from "../../api/navidrome";
-import { librarySearchOpenAtom } from "../../atoms/searchModal";
+import { librarySearchOpenAtom } from "../../atoms/SearchModal.gen";
 import AlbumArt from "../../components/AlbumArt";
 import Artist from "../../components/Icons/Artist";
 import Disc from "../../components/Icons/Disc";

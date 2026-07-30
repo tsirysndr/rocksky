@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { nowPlayingAtom } from "../atoms/nowpaying";
-import { playerAtom } from "../atoms/player";
+import { playerAtom } from "../atoms/Player.gen";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
 import {
   effectiveQueueIndex,

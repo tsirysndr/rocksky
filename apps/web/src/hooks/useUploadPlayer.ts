@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { InsertMode } from "rockbox-wasm";
 import { deviceCommandAtom } from "../atoms/devices";
 import { nowPlayingAtom } from "../atoms/nowpaying";
-import { playerAtom } from "../atoms/player";
+import { playerAtom } from "../atoms/Player.gen";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
 import { ensureStreamToken } from "../api/uploads";
 import {

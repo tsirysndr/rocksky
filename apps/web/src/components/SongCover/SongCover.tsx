@@ -7,7 +7,7 @@ import SignInModal from "../SignInModal";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
-import { feedGeneratorUriAtom } from "../../atoms/feed";
+import { feedGeneratorUriAtom } from "../../atoms/Feed.gen";
 
 const Cover = styled.img<{ size?: number }>`
   border-radius: 8px;

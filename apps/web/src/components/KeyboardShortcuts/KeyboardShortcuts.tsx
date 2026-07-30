@@ -9,9 +9,9 @@ import {
   librarySearchOpenAtom,
   searchModalOpenAtom,
   searchModalScopeAtom,
-  type SearchScope,
-} from "../../atoms/searchModal";
-import { shortcutsHelpOpenAtom } from "../../atoms/shortcuts";
+  type scope as SearchScope,
+} from "../../atoms/SearchModal.gen";
+import { shortcutsHelpOpenAtom } from "../../atoms/Shortcuts.gen";
 import { themeAtom } from "../../atoms/theme";
 
 // ── Shortcut catalogue (also drives the help modal) ─────────────────────────

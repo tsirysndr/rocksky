@@ -5,7 +5,7 @@ import { PLACEMENT, ToasterContainer } from "baseui/toast";
 import { consola } from "consola";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
-import { displayDrawerAtom } from "../atoms/drawer";
+import { displayDrawerAtom } from "../atoms/Drawer.gen";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";

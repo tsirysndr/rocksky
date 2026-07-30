@@ -6,10 +6,10 @@ import {
   feedAtom,
   feedGeneratorUriAtom,
   feedUrisAtom,
-} from "../../../../atoms/feed";
+} from "../../../../atoms/Feed.gen";
 import { useFeedGeneratorsQuery } from "../../../../hooks/useFeed";
 import * as R from "ramda";
-import { followingFeedAtom } from "../../../../atoms/followingFeed";
+import { followingFeedAtom } from "../../../../atoms/FollowingFeed.gen";
 
 function FeedGenerators() {
   const jwt = localStorage.getItem("token");
