@@ -14,5 +14,8 @@
   ],
   "suffix": ".res.mjs",
   "jsx": { "version": 4 },
+  "gentypeconfig": {
+    "generatedFileExtension": ".gen.tsx"
+  },
   "dependencies": ["@rescript/react"]
 }

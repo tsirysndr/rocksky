@@ -1,5 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { uriToPath } from "../../../lib/uri";
+import { uriToPath } from "../../../lib/Uri.gen";
 import { IconMusic } from "@tabler/icons-react";
 import { useAlbumsByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
