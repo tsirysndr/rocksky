@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { joinBeta } from "../api/beta";
+import { joinBeta } from "../api/Beta.gen";
 import { API_URL } from "../consts";
 
 export const useJoinBetaMutation = () =>

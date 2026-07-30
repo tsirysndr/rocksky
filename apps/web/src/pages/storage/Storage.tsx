@@ -9,11 +9,11 @@ import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StorageProvider,
+  type storageProvider as StorageProvider,
   createStorageProvider,
   deleteStorageProvider,
   getStorageProviders,
-} from "../../api/storage";
+} from "../../api/Storage.gen";
 import Main from "../../layouts/Main";
 
 const inputOverrides = {
