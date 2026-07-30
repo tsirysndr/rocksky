@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { getPlaylists } from "../api/playlists";
+import { getPlaylists } from "../api/Playlists.gen";
 import { API_URL } from "../consts";
 
 export const usePlaylistsQuery = (did: string) =>

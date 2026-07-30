@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getFile, getFiles } from "../api/googledrive";
+import { getFile, getFiles } from "../api/Googledrive.gen";
 
 export const useFilesQuery = (id?: string) =>
   useQuery({

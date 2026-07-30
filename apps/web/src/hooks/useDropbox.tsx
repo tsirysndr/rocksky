@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../api";
-import { getFile, getFiles, getTemporaryLink } from "../api/dropbox";
+import { getFile, getFiles, getTemporaryLink } from "../api/Dropbox.gen";
 
 export const useFilesQuery = (id?: string) =>
   useQuery({
