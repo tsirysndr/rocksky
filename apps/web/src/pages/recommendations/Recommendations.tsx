@@ -15,10 +15,10 @@ import {
   useTrackRecommendationsQuery,
 } from "../../hooks/useRecommendations";
 import type {
-  AlbumRecommendation,
-  ArtistRecommendation,
-  TrackRecommendation,
-} from "../../api/recommendations";
+  albumRecommendation as AlbumRecommendation,
+  artistRecommendation as ArtistRecommendation,
+  trackRecommendation as TrackRecommendation,
+} from "../../api/Recommendations.gen";
 
 const Link = styled(DefaultLink)`
   color: inherit;

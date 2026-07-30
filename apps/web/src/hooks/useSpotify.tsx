@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { next, pause, play, previous, seek } from "../api/spotify";
+import { next, pause, play, previous, seek } from "../api/Spotify.gen";
 import { API_URL } from "../consts";
 
 export const usePlayMutation = () =>

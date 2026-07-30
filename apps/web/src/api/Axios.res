@@ -35,10 +35,32 @@ let post = (url, body, config): promise<response<'data>> => axios->postReq(url, 
 let put = (url, body, config): promise<response<'data>> => axios->putReq(url, body, config)
 let delete = (url, config): promise<response<'data>> => axios->deleteReq(url, config)
 
+// Config carrying axios `params`. axios serializes them into the query string
+// with its default serializer (arrays -> repeated `key[]=`), and DROPS keys
+// whose value is undefined — so callers pass optional params freely, matching
+// the old TS `{ params: { at, cursor, ... } }` behaviour exactly.
+type configP<'params> = {headers: headers, params: 'params}
+
+@send external getReqP: (t, string, configP<'params>) => promise<response<'data>> = "get"
+@send external postReqP: (t, string, 'body, configP<'params>) => promise<response<'data>> = "post"
+@send external putReqP: (t, string, 'body, configP<'params>) => promise<response<'data>> = "put"
+
+let getP = (url, config): promise<response<'data>> => axios->getReqP(url, config)
+let postP = (url, body, config): promise<response<'data>> => axios->postReqP(url, body, config)
+let putP = (url, body, config): promise<response<'data>> => axios->putReqP(url, body, config)
+
 // `Bearer <token>` from localStorage, matching the JS template
 // `Bearer ${localStorage.getItem("token")}` — an absent token renders as the
 // literal string "null", just as `${null}` does, so behaviour is identical.
 @scope("localStorage") @val
 external getItem: string => Null.t<string> = "getItem"
+
+// Header dict with Authorization only when a token exists — some endpoints send
+// no auth header at all (rather than "Bearer null") for anonymous requests.
+let authHeadersIfToken = (): headers =>
+  switch getItem("token")->Null.toOption {
+  | Some(t) => Dict.fromArray([("Authorization", "Bearer " ++ t)])
+  | None => Dict.make()
+  }
 
 let bearer = () => "Bearer " ++ getItem("token")->Null.toOption->Option.getOr("null")
