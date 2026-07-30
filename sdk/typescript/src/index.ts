@@ -13,11 +13,15 @@ export type { DateInterval } from "./client.js";
 export { RockskyLibrary } from "./library.js";
 export {
   Agent,
+  MAX_SAFE_WRITES_PER_HOUR,
+  DEFAULT_MATCH_SONG_PER_HOUR,
   type ScrobbleInput,
   type ScrobbleMatchInput,
   type SongInput,
   type AlbumInput,
   type ArtistInput,
+  type RateLimitOptions,
+  type RateLimitState,
 } from "./agent.js";
 export { RockskyIndex, totalIndexed, type IndexStats } from "./dedup.js";
 export { runJetstream, DEFAULT_JETSTREAM_SERVERS, type JetstreamOptions } from "./jetstream.js";

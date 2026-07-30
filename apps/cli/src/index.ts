@@ -195,6 +195,10 @@ program
     "-r, --rate <perHour>",
     "scrobbles published per hour (hard-capped to stay under Bluesky PDS write limits; each scrobble writes up to 4 records)",
   )
+  .option(
+    "--no-rate-limit",
+    "disable the client-side write throttle — self-hosted PDSes only; always ignored on *.bsky.network",
+  )
   .option("-l, --limit <number>", "only import the first N scrobbles")
   .option("--min-seconds <seconds>", "skip Spotify plays shorter than this (default: 30)")
   .option("--from <date>", "only import scrobbles on or after this date (e.g. 2024-01-01)")

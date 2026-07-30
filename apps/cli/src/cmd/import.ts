@@ -33,53 +33,15 @@ const RED = chalk.hex("#FF5F87");
 const DIM = chalk.dim;
 
 // --- PDS write-limit budget ------------------------------------------------
-// Bluesky's PDS rate-limits repo writes by *points*, not requests: ~5,000
-// points/hour per account, and each createRecord costs 3 points. Crucially the
-// budget is spent per *record written*, so the cap must be expressed in points
-// and scaled by how many records each scrobble writes.
-//
-// As of @rocksky/sdk 0.7.1, publishing one scrobble also materializes the
-// canonical metadata it implies — artist, album and song — each written to the
-// PDS (deduplicated against the local index) *before* the scrobble record. So a
-// single imported scrobble costs up to FOUR createRecord writes in the worst
-// case (a brand-new artist + album + song + the scrobble). matchSong remains an
-// AppView read (no PDS cost). We size the limiter for that worst case so we can
-// never exceed the budget even during a cold-catalog burst where every scrobble
-// is a new artist/album/song. WRITES_PER_SCROBBLE keeps that number in one
-// place: if the SDK's write fan-out changes again, update it here and the safe
-// cap below re-derives automatically.
-const HOURLY_WRITE_POINT_BUDGET = 5000; // points/hour the PDS allows for writes
-const POINTS_PER_CREATE = 3; // cost of one createRecord
+// The actual write throttle now lives in the SDK's Agent, which rate-limits by
+// *points* (Bluesky allows ~5,000 points/hour per account, ~3 points per write)
+// and refuses to be disabled on the official Bluesky PDS. Here we only need the
+// worst-case write fan-out per scrobble to (a) translate the user-facing
+// `--rate` (scrobbles/hour) into the SDK's writes/hour, and (b) show an honest
+// ETA. Publishing one scrobble materializes up to FOUR records — a brand-new
+// artist + album + song + the scrobble itself — each deduped against the local
+// index, so most scrobbles cost fewer writes than this worst case.
 const WRITES_PER_SCROBBLE = 4; // artist + album + song + scrobble (worst case)
-const SAFETY_MARGIN = 0.9; // headroom for 429 retries / clock skew
-
-export const POINTS_PER_SCROBBLE = WRITES_PER_SCROBBLE * POINTS_PER_CREATE;
-// HARD ceiling: derived from the points budget, so neither the default nor any
-// user-supplied `--rate` can ever push past the PDS write limit. (A very large
-// import can still reach the ~35k-points/day ceiling; the 429 backoff +
-// checkpoint handle that by resuming later.)
-const MAX_SAFE_RATE_PER_HOUR = Math.floor(
-  (HOURLY_WRITE_POINT_BUDGET * SAFETY_MARGIN) / POINTS_PER_SCROBBLE,
-);
-const DEFAULT_RATE_PER_HOUR = MAX_SAFE_RATE_PER_HOUR;
-
-/** Coerce a requested rate into the always-safe range [1, MAX_SAFE]. */
-export function safeRatePerHour(requested: number | undefined): {
-  rate: number;
-  capped: boolean;
-  requested: number;
-} {
-  const req = requested ?? DEFAULT_RATE_PER_HOUR;
-  // Invalid / non-positive (including the old `--rate 0`) -> the safe default,
-  // never "unlimited".
-  if (!Number.isFinite(req) || req <= 0) {
-    return { rate: DEFAULT_RATE_PER_HOUR, capped: false, requested: req };
-  }
-  if (req > MAX_SAFE_RATE_PER_HOUR) {
-    return { rate: MAX_SAFE_RATE_PER_HOUR, capped: true, requested: req };
-  }
-  return { rate: req, capped: false, requested: req };
-}
 
 export interface ImportOptions {
   dryRun?: boolean;
@@ -90,6 +52,12 @@ export interface ImportOptions {
   rate?: string;
   from?: string;
   to?: string;
+  /**
+   * Client-side write throttle. Commander's `--no-rate-limit` sets this to
+   * `false`; it is `true`/undefined otherwise. Disabling is honored only on a
+   * self-hosted PDS — the SDK forces it back on for *.bsky.network.
+   */
+  rateLimit?: boolean;
   /** Ignore any saved checkpoint and import from the very beginning. */
   restart?: boolean;
 }
@@ -318,31 +286,74 @@ export async function importCmd(
 
   // ---- Step 5: publish ------------------------------------------------------
   const total = pending.length;
-  const { rate: ratePerHour, capped, requested } = safeRatePerHour(
-    opts.rate !== undefined ? Number(opts.rate) : undefined,
+
+  // Hand the throttle policy to the SDK — it is the single authority on the PDS
+  // write budget and the *.bsky.network guard. `--rate` is expressed in
+  // scrobbles/hour; convert to the SDK's writes/hour. `--no-rate-limit` asks to
+  // turn the throttle off, which the SDK honors only on a self-hosted PDS.
+  const requestedRate =
+    opts.rate !== undefined && Number.isFinite(Number(opts.rate)) && Number(opts.rate) > 0
+      ? Number(opts.rate)
+      : undefined;
+  const rl = agent.configureRateLimit(
+    opts.rateLimit === false
+      ? { disabled: true }
+      : requestedRate !== undefined
+        ? { writesPerHour: requestedRate * WRITES_PER_SCROBBLE }
+        : {},
   );
-  if (capped) {
+  // Effective scrobbles/hour, for the user-facing cap + ETA. Each scrobble needs
+  // one AppView matchSong call (always throttled) plus up to WRITES_PER_SCROBBLE
+  // PDS writes, so the slower of the two gates governs throughput. When writes are
+  // disabled, matchSong is the bottleneck — so the ETA is still finite.
+  const writeScrobblesPerHour = rl.enabled ? rl.writesPerHour / WRITES_PER_SCROBBLE : Infinity;
+  const effRate = Math.max(1, Math.floor(Math.min(writeScrobblesPerHour, rl.matchSongPerHour)));
+
+  if (rl.forcedOn) {
     log.warn(
-      `--rate ${requested}/h exceeds the safe Bluesky PDS write budget; ` +
-        `capping at ${MAX_SAFE_RATE_PER_HOUR}/h.`,
+      `--no-rate-limit is not allowed on the official Bluesky PDS (${rl.pdsHost}) — ` +
+        `its write budget is enforced server-side. Keeping rate limiting enabled at ≤${effRate}/h.`,
+    );
+  } else if (!rl.enabled) {
+    log.warn(
+      `PDS write throttle disabled (--no-rate-limit) for self-hosted PDS ${CYAN(rl.pdsHost)} — ` +
+        `publishing at full speed. Make sure your PDS can handle the write load. ` +
+        DIM(`(Rocksky's matchSong AppView stays throttled at ≤${rl.matchSongPerHour}/h regardless.)`),
+    );
+  } else if (rl.capped) {
+    log.warn(
+      `--rate ${requestedRate}/h exceeds the safe Bluesky PDS write budget; capping at ${effRate}/h.`,
     );
   }
-  const gate = new RateGate(Math.ceil(3_600_000 / ratePerHour));
-  const eta0 = Math.ceil((total / ratePerHour) * 3600);
+
+  const eta0 = Math.ceil((total / effRate) * 3600);
+  const throttleNote = rl.enabled
+    ? `≤${effRate}/h`
+    : `≤${effRate}/h (matchSong-bound; PDS writes unthrottled)`;
   log.start(
     `[5/${steps}] Publishing ${chalk.bold(total.toLocaleString())} scrobble(s) ` +
-      DIM(`— match+enrich, concurrency ${concurrency}, ≤${ratePerHour}/h, ~${fmtDuration(eta0)}`),
+      DIM(`— match+enrich, concurrency ${concurrency}, ${throttleNote}, ~${fmtDuration(eta0)}`),
   );
-  log.info(
-    DIM(
-      `Each scrobble also publishes its artist, album & song (deduped) — up to ` +
-        `${WRITES_PER_SCROBBLE} PDS writes, so the rate is capped at ${ratePerHour}/h ` +
-        `to stay within Bluesky's ${HOURLY_WRITE_POINT_BUDGET} points/hour write budget.`,
-    ),
-  );
-  if (total > ratePerHour) {
+  if (rl.enabled) {
     log.info(
-      "Throttled to stay under Bluesky PDS write limits — a large history takes a while. " +
+      DIM(
+        `Each scrobble also publishes its artist, album & song (deduped) — up to ` +
+          `${WRITES_PER_SCROBBLE} PDS writes, so the SDK throttles to ≤${rl.writesPerHour} writes/h ` +
+          `to stay within Bluesky's write budget.`,
+      ),
+    );
+  } else {
+    log.info(
+      DIM(
+        `Client-side PDS write throttle is OFF for self-hosted PDS ${rl.pdsHost}; ` +
+          `publishing as fast as ${concurrency} workers and the matchSong limit allow. ` +
+          `Transient 429s still back off.`,
+      ),
+    );
+  }
+  if (total > effRate) {
+    log.info(
+      "Throttled to stay under service rate limits — a large history takes a while. " +
         "Safe to Ctrl-C and re-run: it resumes exactly where it left off.",
     );
   }
@@ -408,10 +419,9 @@ export async function importCmd(
     renderProgress(done, total, failed, startedAt, current);
     try {
       await withRateLimitRetry(async () => {
-        // One gate slot per scrobble reserves the worst-case write fan-out
-        // (artist + album + song + scrobble); the SDK dedups so most cost less,
-        // but the reservation guarantees we never exceed the PDS points budget.
-        await gate.take();
+        // The SDK throttles each underlying PDS write (artist + album + song +
+        // scrobble) to the configured budget, so we just issue the scrobble and
+        // let its gate pace the writes.
         // Always enrich via matchSong: the exports carry no duration or album
         // art, and scrobbleMatch falls back to a minimal record when there's no
         // match — so this never writes worse metadata than a raw scrobble would.
@@ -575,25 +585,6 @@ function fmtDuration(seconds: number): string {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Global throttle: spaces write attempts at least `minIntervalMs` apart across
- * all workers so a bulk import stays under the PDS write budget. A shared
- * `nextAt` cursor is advanced atomically per `take()`, so concurrency never
- * bursts past the configured rate.
- */
-class RateGate {
-  private nextAt = 0;
-  constructor(private minIntervalMs: number) {}
-  async take(): Promise<void> {
-    if (this.minIntervalMs <= 0) return;
-    const now = Date.now();
-    const at = Math.max(now, this.nextAt);
-    this.nextAt = at + this.minIntervalMs;
-    const delay = at - now;
-    if (delay > 0) await sleep(delay);
-  }
 }
 
 /**

@@ -10,7 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { detectFormat, parseCsv, parseImport } from "lib/importParsers";
 import { ContiguousTracker, resumeIndex } from "lib/importCheckpoint";
-import { importCmd, safeRatePerHour, POINTS_PER_SCROBBLE } from "cmd/import";
+import { importCmd } from "cmd/import";
 
 const FIX = path.join(path.dirname(fileURLToPath(import.meta.url)), "__fixtures__", "import");
 const fix = (name: string) => path.join(FIX, name);
@@ -94,30 +94,9 @@ await test("--format override forces the parser", () => {
   assert.equal(r.format, "lastfm");
 });
 
-await test("safeRatePerHour never exceeds the PDS-safe points budget", () => {
-  const CAP = safeRatePerHour(1_000_000).rate; // whatever the derived cap is
-  // The critical invariant: even at the cap, the WORST-CASE points/hour (every
-  // scrobble writing artist+album+song+scrobble) stays within Bluesky's budget.
-  assert.ok(
-    CAP * POINTS_PER_SCROBBLE <= 5000,
-    `capped rate ${CAP}/h * ${POINTS_PER_SCROBBLE} pts must stay within 5000 pts/h`,
-  );
-  // user asks for way too much -> capped
-  assert.equal(safeRatePerHour(1_000_000).capped, true);
-  // old "unlimited" escape hatch (0) -> falls back to the safe default, not ∞
-  assert.equal(safeRatePerHour(0).rate, CAP);
-  assert.equal(safeRatePerHour(-5).rate, CAP);
-  assert.equal(safeRatePerHour(NaN).rate, CAP);
-  assert.equal(safeRatePerHour(undefined).rate, CAP);
-  // a reasonable value under the cap is honored as-is
-  const under = Math.max(1, Math.floor(CAP / 2));
-  assert.equal(safeRatePerHour(under).rate, under);
-  assert.equal(safeRatePerHour(under).capped, false);
-  // exactly at the cap is fine, one above is capped
-  assert.equal(safeRatePerHour(CAP).capped, false);
-  assert.equal(safeRatePerHour(CAP + 1).rate, CAP);
-  assert.equal(safeRatePerHour(CAP + 1).capped, true);
-});
+// The write-throttle + matchSong policy (and the *.bsky.network guard) now live
+// in @rocksky/sdk and are covered by its own tests (sdk/typescript/src/
+// agent.ratelimit.test.ts), which run without touching a real PDS/AppView.
 
 await test("resumeIndex resumes right after the saved cursor", () => {
   const list = [

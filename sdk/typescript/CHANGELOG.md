@@ -4,6 +4,48 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.11.0] - 2026-07-30
+
+A **backwards-compatible** release for existing code — it *adds* rate-limiting
+control to `Agent` and turns on an always-enforced `matchSong` throttle. The one
+behavioral change (below) only affects code publishing thousands of writes.
+
+### Added
+
+- **`Agent.configureRateLimit(opts)`** — configure the client-side throttles and
+  get back the effective `RateLimitState`. The `*.bsky.network` guard is
+  authoritative and cannot be bypassed:
+  - `disabled: true` turns the **PDS write** throttle fully off on a self-hosted
+    PDS, but on the official Bluesky PDS it is ignored and the throttle stays on
+    at the safe rate (`forcedOn: true`).
+  - `writesPerHour` is honored as given on a self-hosted PDS, but clamped to
+    `MAX_SAFE_WRITES_PER_HOUR` on the official Bluesky PDS (`capped: true`).
+  - `matchSongPerHour` tunes the (always-on) AppView throttle; `disabled` never
+    turns it off.
+- **`Agent.pdsHost`** and **`Agent.isOfficialBlueskyPds`** — the resolved PDS
+  host and whether it is an official Bluesky PDS (`*.bsky.network`). A look-alike
+  host such as `bsky.network.evil.com` is **not** treated as official.
+- New exports: **`MAX_SAFE_WRITES_PER_HOUR`**, **`DEFAULT_MATCH_SONG_PER_HOUR`**,
+  and the **`RateLimitOptions`** / **`RateLimitState`** types.
+
+### Changed
+
+- **`Agent.scrobbleMatch` now throttles its `matchSong` call.** `matchSong` hits
+  the shared Rocksky AppView (`api.rocksky.app`), whose rate limit is not the
+  account owner's to waive — a self-hosted PDS grants no extra AppView capacity —
+  so it is **always** rate-limited, independent of the write throttle and of any
+  `disabled` request. The default (`DEFAULT_MATCH_SONG_PER_HOUR` ≈ 108,000/h, ~30
+  req/s) is derived from the AppView's real per-IP limit (1,000 requests / 30 s)
+  with a 0.9 safety margin, so ordinary use is unaffected; only very large bulk
+  runs (e.g. history imports) will notice pacing.
+
+### Notes
+
+- The PDS **write** throttle is **off by default** — single live scrobbles never
+  pay for it. Bulk writers (e.g. the CLI `import` command) opt in via
+  `configureRateLimit()`. The write budget follows Bluesky's ~5,000 points/hour
+  (~3 points per `createRecord`/`putRecord`/`deleteRecord`).
+
 ## [0.10.2] - 2026-07-28
 
 A **backwards-compatible** patch release.

@@ -50,6 +50,120 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
+/** Lower-case hostname of a URL, or "" if it can't be parsed. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+// --- PDS write-rate limiting -----------------------------------------------
+// Bluesky's PDS rate-limits repo writes by *points*, not requests: ~5,000
+// points/hour per account, and each createRecord/putRecord/deleteRecord costs
+// ~3 points. A bulk operation (importing a listening history) would blow that
+// budget in seconds, so the Agent can throttle its own writes to stay inside
+// it. The gate is OFF by default — single live scrobbles never need it — and
+// callers opt in via {@link Agent.configureRateLimit}.
+const PDS_WRITE_POINT_BUDGET_PER_HOUR = 5_000;
+const POINTS_PER_WRITE = 3;
+const SAFETY_MARGIN = 0.9; // headroom for 429 retries / clock skew
+
+/**
+ * The highest sustained writes-per-hour that still fits Bluesky's write-point
+ * budget. On the official Bluesky PDS this is a hard ceiling the Agent will not
+ * let any caller exceed; self-hosted PDSes may allow more (or none).
+ */
+export const MAX_SAFE_WRITES_PER_HOUR = Math.floor(
+  (PDS_WRITE_POINT_BUDGET_PER_HOUR * SAFETY_MARGIN) / POINTS_PER_WRITE,
+);
+
+// Rocksky's AppView `matchSong` endpoint is a *shared* service, and unlike PDS
+// writes its rate limit is NOT the account owner's to waive — running your own
+// PDS grants no extra AppView capacity. So matchSong is ALWAYS throttled,
+// independent of the write throttle and of any `disabled` request.
+//
+// The AppView applies a global per-IP XRPC limit (see apps/api/src/index.ts:
+// 1000 requests / 30s). matchSong runs against exactly that budget, so we throttle
+// it to a safe fraction of the real server limit. Tune via `matchSongPerHour` if
+// you operate your own AppView with a different limit.
+const APPVIEW_REQUEST_LIMIT = 1_000; // requests …
+const APPVIEW_WINDOW_SECONDS = 30; // … per this window (apps/api global rate limiter)
+export const DEFAULT_MATCH_SONG_PER_HOUR = Math.floor(
+  ((APPVIEW_REQUEST_LIMIT * SAFETY_MARGIN) / APPVIEW_WINDOW_SECONDS) * 3_600,
+); // ≈ 108,000/h (~30 req/s) — 90% of the AppView's per-IP budget
+
+/** Options for {@link Agent.configureRateLimit}. */
+export interface RateLimitOptions {
+  /**
+   * Target writes (createRecord/putRecord/deleteRecord) per hour. Omitted →
+   * {@link MAX_SAFE_WRITES_PER_HOUR}. On the official Bluesky PDS this is
+   * clamped to the safe ceiling; on a self-hosted PDS it is honored as given.
+   * Ignored when `disabled` is true.
+   */
+  writesPerHour?: number;
+  /**
+   * Turn the client-side *write* throttle off entirely. Honored on self-hosted
+   * PDSes (useful when you run your own PDS with its own limits). IGNORED —
+   * forced back on at the safe rate — when the account lives on the official
+   * Bluesky PDS (*.bsky.network), whose budget is enforced server-side.
+   *
+   * NOTE: this never affects the Rocksky AppView `matchSong` throttle, which is
+   * always enforced (see {@link RateLimitOptions.matchSongPerHour}).
+   */
+  disabled?: boolean;
+  /**
+   * Target Rocksky AppView `matchSong` calls per hour. ALWAYS enforced — a
+   * self-hosted PDS grants no extra AppView capacity — so `disabled` never turns
+   * it off; this only tunes the rate. Omitted → keep the current value
+   * (default {@link DEFAULT_MATCH_SONG_PER_HOUR}). Non-positive values are ignored.
+   */
+  matchSongPerHour?: number;
+}
+
+/** The effective throttle state after {@link Agent.configureRateLimit} applies policy. */
+export interface RateLimitState {
+  /** Whether the *write* throttle is active. */
+  enabled: boolean;
+  /** Effective writes/hour cap (Infinity when disabled). */
+  writesPerHour: number;
+  /** True when `disabled` was requested but overridden by the bsky.network guard. */
+  forcedOn: boolean;
+  /** True when a requested `writesPerHour` was clamped to the safe ceiling. */
+  capped: boolean;
+  /** The resolved PDS host the decision was based on. */
+  pdsHost: string;
+  /** Effective Rocksky AppView matchSong rate — always enforced, never disabled. */
+  matchSongPerHour: number;
+}
+
+/**
+ * Global throttle: spaces calls at least `minIntervalMs` apart. A single shared
+ * `nextAt` cursor is advanced atomically per {@link RateGate.take}, so even
+ * highly concurrent callers never burst past the configured rate.
+ * `minIntervalMs <= 0` means no throttle (take() resolves immediately).
+ */
+class RateGate {
+  private nextAt = 0;
+  private minIntervalMs = 0;
+
+  /** null / non-positive → no throttle. */
+  setRate(writesPerHour: number | null): void {
+    this.minIntervalMs =
+      writesPerHour && writesPerHour > 0 ? Math.ceil(3_600_000 / writesPerHour) : 0;
+  }
+
+  async take(): Promise<void> {
+    if (this.minIntervalMs <= 0) return;
+    const now = Date.now();
+    const at = Math.max(now, this.nextAt);
+    this.nextAt = at + this.minIntervalMs;
+    const delay = at - now;
+    if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+  }
+}
+
 // Write inputs: `createdAt` is optional (the SDK defaults it to now).
 /** Input for {@link Agent.scrobble} (createdAt defaults to now). */
 export type ScrobbleInput = Omit<ScrobbleRecord, "createdAt"> & { createdAt?: string };
@@ -80,13 +194,88 @@ export type ArtistInput = Omit<ArtistRecord, "createdAt"> & { createdAt?: string
  */
 export class Agent {
   private idx?: RockskyIndex;
+  // PDS write throttle — off by default: single live scrobbles don't need it. An
+  // import (or any bulk writer) opts in via configureRateLimit().
+  private writeGate = new RateGate();
+  // Rocksky AppView matchSong throttle — ALWAYS on. A self-hosted PDS grants no
+  // extra AppView capacity, so this is never disabled, only tuned.
+  private matchGate = new RateGate();
+  private matchSongPerHour = DEFAULT_MATCH_SONG_PER_HOUR;
+
+  /** Lower-case hostname of the account's resolved PDS (e.g. "pds.example.com"). */
+  readonly pdsHost: string;
 
   private constructor(
     private rpc: Client,
     readonly did: string,
     readonly session: PasswordSession,
     private pds: string,
-  ) {}
+  ) {
+    this.pdsHost = hostOf(pds);
+    this.matchGate.setRate(this.matchSongPerHour);
+  }
+
+  /**
+   * Whether the account lives on the official Bluesky PDS (*.bsky.network).
+   * Its write budget is enforced server-side, so the client-side throttle can
+   * never be disabled for these hosts.
+   */
+  get isOfficialBlueskyPds(): boolean {
+    return this.pdsHost === "bsky.network" || this.pdsHost.endsWith(".bsky.network");
+  }
+
+  /**
+   * Configure the client-side write throttle and return the effective state.
+   *
+   * Policy — the *.bsky.network guard is authoritative and cannot be bypassed:
+   *  - `disabled: true` turns the throttle off on a self-hosted PDS, but on the
+   *    official Bluesky PDS it is ignored and the throttle stays on at the safe
+   *    rate (`forcedOn: true`).
+   *  - `writesPerHour` is honored as given on a self-hosted PDS, but clamped to
+   *    {@link MAX_SAFE_WRITES_PER_HOUR} on the official Bluesky PDS
+   *    (`capped: true` when clamped).
+   *  - Omitting both enables the throttle at the safe default rate.
+   */
+  configureRateLimit(opts: RateLimitOptions = {}): RateLimitState {
+    // matchSong throttle is always enforced — `disabled` never touches it. A
+    // positive `matchSongPerHour` retunes it; anything else keeps the current rate.
+    if (opts.matchSongPerHour !== undefined && opts.matchSongPerHour > 0) {
+      this.matchSongPerHour = opts.matchSongPerHour;
+      this.matchGate.setRate(this.matchSongPerHour);
+    }
+
+    const official = this.isOfficialBlueskyPds;
+    const state = (partial: Omit<RateLimitState, "pdsHost" | "matchSongPerHour">): RateLimitState => ({
+      ...partial,
+      pdsHost: this.pdsHost,
+      matchSongPerHour: this.matchSongPerHour,
+    });
+
+    if (opts.disabled) {
+      if (official) {
+        // Guard: never let the write throttle be turned off on the official
+        // Bluesky PDS — that only earns 429s and risks account-level throttling.
+        const writesPerHour = Math.min(
+          opts.writesPerHour ?? MAX_SAFE_WRITES_PER_HOUR,
+          MAX_SAFE_WRITES_PER_HOUR,
+        );
+        this.writeGate.setRate(writesPerHour);
+        return state({ enabled: true, writesPerHour, forcedOn: true, capped: false });
+      }
+      this.writeGate.setRate(null);
+      return state({ enabled: false, writesPerHour: Infinity, forcedOn: false, capped: false });
+    }
+
+    let writesPerHour = opts.writesPerHour ?? MAX_SAFE_WRITES_PER_HOUR;
+    if (!(writesPerHour > 0)) writesPerHour = MAX_SAFE_WRITES_PER_HOUR; // reject 0 / NaN / negatives
+    let capped = false;
+    if (official && writesPerHour > MAX_SAFE_WRITES_PER_HOUR) {
+      writesPerHour = MAX_SAFE_WRITES_PER_HOUR;
+      capped = true;
+    }
+    this.writeGate.setRate(writesPerHour);
+    return state({ enabled: true, writesPerHour, forcedOn: false, capped });
+  }
 
   /**
    * Resolve the account's PDS, authenticate with an app password, and return an
@@ -132,6 +321,7 @@ export class Agent {
   }
 
   private async create(collection: string, record: Record<string, unknown>): Promise<string> {
+    await this.writeGate.take();
     const res = await this.rpc.post("com.atproto.repo.createRecord" as never, {
       input: { repo: this.did, collection, record: { ...record, $type: collection } },
     } as never);
@@ -140,6 +330,7 @@ export class Agent {
   }
 
   private async putRecord(collection: string, rkey: string, record: Record<string, unknown>): Promise<string> {
+    await this.writeGate.take();
     const res = await this.rpc.post("com.atproto.repo.putRecord" as never, {
       input: { repo: this.did, collection, rkey, record: { ...record, $type: collection } },
     } as never);
@@ -149,6 +340,7 @@ export class Agent {
 
   /** Delete a record by collection + rkey. */
   async delete(collection: string, rkey: string): Promise<void> {
+    await this.writeGate.take();
     const res = await this.rpc.post("com.atproto.repo.deleteRecord" as never, {
       input: { repo: this.did, collection, rkey },
     } as never);
@@ -223,6 +415,9 @@ export class Agent {
   async scrobbleMatch(input: ScrobbleMatchInput, appview?: string): Promise<string> {
     const { title, artist, album, mbId, isrc, timestamp } = input;
     const { RockskyClient } = await import("./client.js");
+    // matchSong hits the shared Rocksky AppView; always throttle it, regardless
+    // of the write-throttle policy (a self-hosted PDS grants no AppView capacity).
+    await this.matchGate.take();
     const m = (await new RockskyClient(appview).matchSong(title, artist, mbId, isrc)) as Record<
       string,
       unknown
