@@ -7,7 +7,7 @@ import { LabelXSmall } from "baseui/typography";
 import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef } from "react";
-import { playerAtom } from "../../../atoms/player";
+import { playerAtom } from "../../../atoms/Player.gen";
 import { userNowPlayingAtom } from "../../../atoms/userNowplaying";
 import { API_URL } from "../../../consts";
 import { useTimeFormat } from "../../../hooks/useFormat";

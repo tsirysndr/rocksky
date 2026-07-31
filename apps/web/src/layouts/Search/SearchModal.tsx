@@ -14,8 +14,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   searchModalOpenAtom,
   searchModalScopeAtom,
-  type SearchScope,
-} from "../../atoms/searchModal";
+  type scope as SearchScope,
+} from "../../atoms/SearchModal.gen";
 import Artist from "../../components/Icons/Artist";
 import Disc from "../../components/Icons/Disc";
 import Playlist from "../../components/Icons/Playlist";

@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { profileAtom } from "../atoms/profile";
-import { createApiKey, getApiKeys } from "../api/apikeys";
+import { createApiKey, getApiKeys } from "../api/ApiKeys.gen";
 import {
   addTrackToNavidromePlaylist,
   createNavidromePlaylist,

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getWrapped } from "../api/wrapped";
+import { getWrapped } from "../api/Wrapped.gen";
 
 export const useWrappedQuery = (did: string | undefined, year: number) =>
   useQuery({

@@ -4,7 +4,7 @@ import {
   deleteApiKey,
   getApiKeys,
   updateApiKey,
-} from "../api/apikeys";
+} from "../api/ApiKeys.gen";
 
 export const useCreateApikeyMutation = () =>
   useMutation({

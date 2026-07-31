@@ -15,8 +15,8 @@ import {
   IconMusic,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
-import { feedAtom, feedGeneratorUriAtom } from "../../../atoms/feed";
-import { followingFeedAtom } from "../../../atoms/followingFeed";
+import { feedAtom, feedGeneratorUriAtom } from "../../../atoms/Feed.gen";
+import { followingFeedAtom } from "../../../atoms/FollowingFeed.gen";
 import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";

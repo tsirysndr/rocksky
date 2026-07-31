@@ -1,5 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { uriToPath } from "../../../lib/uri";
+import { uriToPath } from "../../../lib/Uri.gen";
 import { useTracksByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import numeral from "numeral";

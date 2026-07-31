@@ -21,7 +21,7 @@ import { API_URL } from "../../consts";
 import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 import WebScrobblerScreenshot from "../../assets/webscrobbler.png";
 import { IconUser, IconMenu2, IconX } from "@tabler/icons-react";
-import { displayDrawerAtom } from "../../atoms/drawer";
+import { displayDrawerAtom } from "../../atoms/Drawer.gen";
 import NotificationBell from "./NotificationBell";
 
 const Container = styled.div`

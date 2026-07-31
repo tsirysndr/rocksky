@@ -9,7 +9,7 @@ import {
   getProfileByDid,
   getProfileStatsByDid,
   getRecentTracksByDid,
-} from "../api/profile";
+} from "../api/ProfileApi.gen";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 

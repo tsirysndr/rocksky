@@ -19,11 +19,11 @@ import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
-  MirrorProvider,
-  MirrorSourceView,
+  type provider as MirrorProvider,
+  type mirrorSourceView as MirrorSourceView,
   getMirrorSources,
   putMirrorSource,
-} from "../../api/mirror";
+} from "../../api/Mirror.gen";
 import Main from "../../layouts/Main";
 
 const inputOverrides = {

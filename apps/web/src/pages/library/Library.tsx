@@ -44,7 +44,7 @@ import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
 import { useSetAtom } from "jotai";
-import { librarySearchOpenAtom } from "../../atoms/searchModal";
+import { librarySearchOpenAtom } from "../../atoms/SearchModal.gen";
 
 // ---------------------------------------------------------------------------
 // Helpers

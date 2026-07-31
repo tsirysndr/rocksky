@@ -1,5 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { uriToPath } from "../../../lib/uri";
+import { uriToPath } from "../../../lib/Uri.gen";
 import { useArtistsByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { BlockProps } from "baseui/block";

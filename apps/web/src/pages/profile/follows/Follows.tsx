@@ -125,7 +125,7 @@ function Follows() {
     unfollowAccount(followDid);
   };
 
-  const count = data?.pages?.flatMap((page) => page.count)[0];
+  const count = data?.pages?.flatMap((page) => page.count)[0] ?? 0;
 
   return (
     <>
