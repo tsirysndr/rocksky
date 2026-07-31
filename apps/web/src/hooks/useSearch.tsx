@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { search } from "../api/search";
+import { search } from "../api/Search.gen";
 
 export const useSearchMutation = () =>
   useMutation({
