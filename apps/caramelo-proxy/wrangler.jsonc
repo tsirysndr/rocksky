@@ -1,0 +1,21 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "caramelo",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-04-27",
+	"observability": {
+		"enabled": true
+	},
+
+	/**
+	 * Upstream origin this Worker proxies. Override per-environment with
+	 * `wrangler deploy --var UPSTREAM_HOST:<host>` or an `env` block.
+	 */
+	"vars": {
+		"UPSTREAM_HOST": "caramelo.social.br"
+	}
+}

@@ -4,8 +4,9 @@ import Redis from "ioredis";
 import Redlock from "redlock";
 import type { Database } from "../db";
 import { env } from "../lib/env";
-import { SessionStore, StateStore } from "./storage";
+import { pdsProxyFetch } from "../lib/pdsProxy";
 import { CustomOAuthClient } from "./oauth-client";
+import { SessionStore, StateStore } from "./storage";
 
 export const SCOPES = [
   "atproto",
@@ -76,5 +77,9 @@ export const createClient = async (db: Database) => {
     stateStore: new StateStore(db),
     sessionStore: new SessionStore(db),
     requestLock,
+    // Metadata resolution, PAR/token calls and every DPoP-signed XRPC request
+    // made through a restored session go through this. It only changes the host
+    // we connect to for PDSes listed in PDS_HOST_OVERRIDES.
+    fetch: pdsProxyFetch,
   });
 };

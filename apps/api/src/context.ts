@@ -1,3 +1,4 @@
+import sqliteKv from "sqliteKv";
 import { createClient } from "auth/client";
 import axios from "axios";
 import { consola } from "consola";
@@ -6,11 +7,15 @@ import drizzle from "drizzle";
 import authVerifier from "lib/authVerifier";
 import { env } from "lib/env";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
+import { installPdsProxyFetch } from "lib/pdsProxy";
 import { connect } from "nats";
 import redis from "redis";
-import sqliteKv from "sqliteKv";
 import { typesense } from "typesense/client";
 import { createStorage } from "unstorage";
+
+// Must run before anything builds an agent or an OAuth client: it swaps the
+// host of outbound requests to PDSes this server cannot reach directly.
+installPdsProxyFetch();
 
 const { DB_PATH } = env;
 export const db = createDb(DB_PATH);

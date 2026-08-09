@@ -63,6 +63,12 @@ export const env = cleanEnv(process.env, {
   // Shared secret sent as the X-Rocksky-Internal header so navidrome trusts the
   // JWT-authenticated user this proxy resolved (skips Subsonic credential auth).
   NAVIDROME_INTERNAL_SECRET: str({ devDefault: "" }),
+  // PDS hosts that are unreachable from this server, mapped to a reverse proxy
+  // that is (see lib/pdsProxy.ts). Comma separated "unreachable=proxy" pairs;
+  // set to "" to disable.
+  PDS_HOST_OVERRIDES: str({
+    default: "caramelo.social.br=caramelo.tsiry.workers.dev",
+  }),
   // Bot-scrobble guard (see lib/scrobbleGuard.ts). Set SCROBBLE_ABUSE_MAX=0 to disable.
   SCROBBLE_ABUSE_WINDOW: num({ default: 1800 }), // rolling window, seconds (30m)
   SCROBBLE_ABUSE_MAX: num({ default: 25 }), // max accepted scrobbles per window
