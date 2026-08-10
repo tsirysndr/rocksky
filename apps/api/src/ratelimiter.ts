@@ -7,6 +7,18 @@ type RateLimitOptions = {
   keyPrefix?: string;
 };
 
+// INCR and EXPIRE must be one atomic step: setting the expiry in a separate
+// round-trip means a failure between the two leaves a counter with no TTL,
+// which blocks that IP forever. The TTL < 0 branch also heals any such key
+// left behind by older code.
+const INCR_WITH_WINDOW = `
+local current = redis.call('INCR', KEYS[1])
+if current == 1 or redis.call('TTL', KEYS[1]) < 0 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return current
+`;
+
 export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {
   const { limit, window, keyPrefix = "ratelimit" } = options;
 
@@ -21,11 +33,10 @@ export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {
       return next();
     }
 
-    const current = await ctx.redis.incr(key);
-
-    if (current === 1) {
-      await ctx.redis.expire(key, window);
-    }
+    const current = (await ctx.redis.eval(INCR_WITH_WINDOW, {
+      keys: [key],
+      arguments: [window.toString()],
+    })) as number;
 
     const remaining = limit - current;
     c.header("X-RateLimit-Limit", limit.toString());
