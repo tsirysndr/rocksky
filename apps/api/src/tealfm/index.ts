@@ -2,13 +2,17 @@ import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import chalk from "chalk";
 import { consola } from "consola";
-import type * as Status from "lexicon/types/fm/teal/alpha/actor/status";
-import type { PlayView } from "lexicon/types/fm/teal/alpha/feed/defs";
-import * as Play from "lexicon/types/fm/teal/alpha/feed/play";
+import type * as Status from "lexicon/types/fm/teal/actor/status";
+import type { PlayView } from "lexicon/types/fm/teal/feed/defs";
+import * as LegacyPlay from "lexicon/types/fm/teal/alpha/feed/play";
+import * as Play from "lexicon/types/fm/teal/feed/play";
 import { env } from "lib/env";
 import type { MusicbrainzTrack } from "types/track";
 
 const SUBMISSION_CLIENT_AGENT = "rocksky/v0.0.1";
+const LEGACY_PLAY_COLLECTION = "fm.teal.alpha.feed.play";
+const PLAY_COLLECTION = "fm.teal.feed.play";
+const STATUS_COLLECTION = "fm.teal.actor.status";
 
 function toMbidUri(mbid?: string | null): string | undefined {
   if (!mbid) return undefined;
@@ -24,12 +28,19 @@ function toTealArtist(artist: MusicbrainzTrack["artist"][number]) {
 }
 
 async function getRecentPlays(agent: Agent, limit = 5) {
-  const res = await agent.com.atproto.repo.listRecords({
-    repo: agent.assertDid,
-    collection: "fm.teal.alpha.feed.play",
-    limit,
-  });
-  return res.data.records;
+  const [legacy, current] = await Promise.all([
+    agent.com.atproto.repo.listRecords({
+      repo: agent.assertDid,
+      collection: LEGACY_PLAY_COLLECTION,
+      limit,
+    }),
+    agent.com.atproto.repo.listRecords({
+      repo: agent.assertDid,
+      collection: PLAY_COLLECTION,
+      limit,
+    }),
+  ]);
+  return [...legacy.data.records, ...current.data.records];
 }
 
 async function publishPlayingNow(
@@ -55,7 +66,11 @@ async function publishPlayingNow(
     const recentPlays = await getRecentPlays(agent, 5);
     // Check if the track was played in the last 5 plays (verify by MBID and timestamp to avoid duplicates)
     const alreadyPlayed = recentPlays.some((play) => {
-      const record = Play.isRecord(play.value) ? play.value : null;
+      const record = Play.isRecord(play.value)
+        ? play.value
+        : LegacyPlay.isRecord(play.value)
+          ? play.value
+          : null;
       return (
         (record?.recordingMbId === recordingMbId ||
           record?.recordingMbId === track.trackMBID ||
@@ -79,7 +94,7 @@ async function publishPlayingNow(
 
     const rkey = TID.nextStr();
     const record: Play.Record = {
-      $type: "fm.teal.alpha.feed.play",
+      $type: PLAY_COLLECTION,
       duration,
       trackName: track.name,
       playedTime: track.timestamp,
@@ -100,7 +115,7 @@ async function publishPlayingNow(
 
     const res = await agent.com.atproto.repo.putRecord({
       repo: agent.assertDid,
-      collection: "fm.teal.alpha.feed.play",
+      collection: PLAY_COLLECTION,
       rkey,
       record,
       validate: false,
@@ -132,7 +147,7 @@ async function publishStatus(
   const now = new Date();
   const expiry = new Date(now.getTime() + 10 * 60 * 1000);
   const record: Status.Record = {
-    $type: "fm.teal.alpha.actor.status",
+    $type: STATUS_COLLECTION,
     item,
     time: now.toISOString(),
     expiry: expiry.toISOString(),
@@ -140,7 +155,7 @@ async function publishStatus(
   const swapRecord = await getStatusSwapRecord(agent);
   const res = await agent.com.atproto.repo.putRecord({
     repo: agent.assertDid,
-    collection: "fm.teal.alpha.actor.status",
+    collection: STATUS_COLLECTION,
     rkey: "self",
     record,
     swapRecord,
@@ -152,7 +167,7 @@ async function getStatusSwapRecord(agent: Agent): Promise<string | undefined> {
   try {
     const res = await agent.com.atproto.repo.getRecord({
       repo: agent.assertDid,
-      collection: "fm.teal.alpha.actor.status",
+      collection: STATUS_COLLECTION,
       rkey: "self",
     });
     return res.data.cid;

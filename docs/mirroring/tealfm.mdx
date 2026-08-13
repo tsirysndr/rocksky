@@ -7,7 +7,8 @@ icon: "bolt"
 Teal.fm publishes plays as AT Protocol records, so Rocksky mirrors them
 through a single
 [Jetstream](https://atproto.com/blog/jetstream) subscription to
-`fm.teal.alpha.feed.play`. No polling, no API keys — your ATProto DID is the
+`fm.teal.feed.play` (and the legacy `fm.teal.alpha.feed.play`). No polling,
+no API keys — your ATProto DID is the
 only identifier needed.
 
 ## Prerequisites
@@ -34,7 +35,7 @@ only identifier needed.
 ## How it works
 
 - One process-wide WebSocket connection subscribes to
-  `fm.teal.alpha.feed.play` on Jetstream.
+  both `fm.teal.feed.play` and `fm.teal.alpha.feed.play` on Jetstream.
 - Enabling mirroring adds your DID to an in-memory set; the next play
   record from that DID gets normalised and re-published as a Rocksky
   scrobble.
