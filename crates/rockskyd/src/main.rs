@@ -1,4 +1,4 @@
-use clap::{arg, Command};
+use clap::Command;
 use dotenv::dotenv;
 use tracing_subscriber::fmt::format::Format;
 
