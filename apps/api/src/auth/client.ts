@@ -21,6 +21,8 @@ export const SCOPES = [
   "repo:app.rocksky.feed.generator",
   "repo:fm.teal.alpha.feed.play",
   "repo:fm.teal.alpha.actor.status",
+  "repo:fm.teal.feed.play",
+  "repo:fm.teal.actor.status",
   "repo:app.rocksky.actor.status",
   "repo:app.rocksky.rockbox.audio.settings",
 ];

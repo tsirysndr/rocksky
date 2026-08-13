@@ -2,9 +2,9 @@ import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import chalk from "chalk";
 import { consola } from "consola";
-import type * as Status from "lexicon/types/fm/teal/alpha/actor/status";
-import type { PlayView } from "lexicon/types/fm/teal/alpha/feed/defs";
-import * as Play from "lexicon/types/fm/teal/alpha/feed/play";
+import type * as Status from "lexicon/types/fm/teal/actor/status";
+import type { PlayView } from "lexicon/types/fm/teal/feed/defs";
+import * as Play from "lexicon/types/fm/teal/feed/play";
 import { env } from "lib/env";
 import type { MusicbrainzTrack } from "types/track";
 
@@ -26,7 +26,7 @@ function toTealArtist(artist: MusicbrainzTrack["artist"][number]) {
 async function getRecentPlays(agent: Agent, limit = 5) {
   const res = await agent.com.atproto.repo.listRecords({
     repo: agent.assertDid,
-    collection: "fm.teal.alpha.feed.play",
+    collection: "fm.teal.feed.play",
     limit,
   });
   return res.data.records;
@@ -79,7 +79,7 @@ async function publishPlayingNow(
 
     const rkey = TID.nextStr();
     const record: Play.Record = {
-      $type: "fm.teal.alpha.feed.play",
+      $type: "fm.teal.feed.play",
       duration,
       trackName: track.name,
       playedTime: track.timestamp,
@@ -100,7 +100,7 @@ async function publishPlayingNow(
 
     const res = await agent.com.atproto.repo.putRecord({
       repo: agent.assertDid,
-      collection: "fm.teal.alpha.feed.play",
+      collection: "fm.teal.feed.play",
       rkey,
       record,
       validate: false,
@@ -132,7 +132,7 @@ async function publishStatus(
   const now = new Date();
   const expiry = new Date(now.getTime() + 10 * 60 * 1000);
   const record: Status.Record = {
-    $type: "fm.teal.alpha.actor.status",
+    $type: "fm.teal.actor.status",
     item,
     time: now.toISOString(),
     expiry: expiry.toISOString(),
@@ -140,7 +140,7 @@ async function publishStatus(
   const swapRecord = await getStatusSwapRecord(agent);
   const res = await agent.com.atproto.repo.putRecord({
     repo: agent.assertDid,
-    collection: "fm.teal.alpha.actor.status",
+    collection: "fm.teal.actor.status",
     rkey: "self",
     record,
     swapRecord,
@@ -152,7 +152,7 @@ async function getStatusSwapRecord(agent: Agent): Promise<string | undefined> {
   try {
     const res = await agent.com.atproto.repo.getRecord({
       repo: agent.assertDid,
-      collection: "fm.teal.alpha.actor.status",
+      collection: "fm.teal.actor.status",
       rkey: "self",
     });
     return res.data.cid;

@@ -1,13 +1,10 @@
 //! Teal.fm mirror — one Jetstream WebSocket connection for all enabled users.
 //!
-//! We subscribe to `fm.teal.alpha.feed.play` and look up the commit's `did`
-//! against a per-process `enabled_dids` set. The Jetstream URL filter cheaply
-//! drops everything outside this collection, so the only work we do per event
-//! is a DID set lookup + optional dedup query.
-//!
-//! Note: the user spec said `fm.teal.alpha.play`, but the actual NSID used by
-//! `apps/api/src/tealfm/index.ts` is `fm.teal.alpha.feed.play`. We use the
-//! real one.
+//! We subscribe to both the legacy `fm.teal.alpha.feed.play` and production
+//! `fm.teal.feed.play` collections and look up the commit's `did` against a
+//! per-process `enabled_dids` set. The Jetstream URL filter cheaply drops
+//! everything outside these collections, so the only work we do per event is a
+//! DID set lookup + optional dedup query.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -30,7 +27,7 @@ use crate::{
     enrich::Enricher,
     rocksky,
     track::{normalize_text, NormalizedTrack},
-    Provider, TEALFM_PLAY_NSID,
+    Provider, TEALFM_PLAY_NSIDS,
 };
 
 /// Set of DIDs currently mirroring Teal.fm — shared with the supervisor so it
@@ -46,7 +43,10 @@ pub async fn run(
 ) -> Result<(), Error> {
     let server = env::var("JETSTREAM_SERVER")
         .unwrap_or_else(|_| "wss://jetstream2.us-west.bsky.network".to_string());
-    let url = format!("{server}/subscribe?wantedCollections={TEALFM_PLAY_NSID}");
+    let url = format!(
+        "{server}/subscribe?wantedCollections={}&wantedCollections={}",
+        TEALFM_PLAY_NSIDS[0], TEALFM_PLAY_NSIDS[1]
+    );
 
     info!(url = %url, "Teal.fm: starting Jetstream subscriber");
 
@@ -119,7 +119,7 @@ async fn handle_event(
     let Some(commit) = evt.commit else {
         return Ok(());
     };
-    if commit.collection != TEALFM_PLAY_NSID {
+    if !is_teal_play_collection(&commit.collection) {
         return Ok(());
     }
     if commit.operation != "create" {
@@ -234,6 +234,10 @@ fn strip_mbid_prefix(s: String) -> String {
     s.strip_prefix("mbid:").map(str::to_string).unwrap_or(s)
 }
 
+fn is_teal_play_collection(collection: &str) -> bool {
+    TEALFM_PLAY_NSIDS.contains(&collection)
+}
+
 #[derive(Debug, Deserialize)]
 struct JetstreamEvent {
     did: String,
@@ -264,4 +268,20 @@ struct PlayRecord {
 #[serde(rename_all = "camelCase")]
 struct PlayArtist {
     artist_name: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_teal_play_collection;
+
+    #[test]
+    fn accepts_alpha_and_production_play_collections() {
+        assert!(is_teal_play_collection("fm.teal.alpha.feed.play"));
+        assert!(is_teal_play_collection("fm.teal.feed.play"));
+    }
+
+    #[test]
+    fn rejects_other_collections() {
+        assert!(!is_teal_play_collection("fm.teal.actor.status"));
+    }
 }

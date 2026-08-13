@@ -26,7 +26,7 @@ pub mod token;
 pub mod track;
 
 pub const MIRROR_NATS_TOPIC: &str = "rocksky.mirror.user";
-pub const TEALFM_PLAY_NSID: &str = "fm.teal.alpha.feed.play";
+pub const TEALFM_PLAY_NSIDS: [&str; 2] = ["fm.teal.alpha.feed.play", "fm.teal.feed.play"];
 
 /// Providers we mirror from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
