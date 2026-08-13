@@ -2060,10 +2060,14 @@ export class FmNS {
 export class FmTealNS {
   _server: Server;
   alpha: FmTealAlphaNS;
+  actor: FmTealActorNS;
+  feed: FmTealFeedNS;
 
   constructor(server: Server) {
     this._server = server;
     this.alpha = new FmTealAlphaNS(server);
+    this.actor = new FmTealActorNS(server);
+    this.feed = new FmTealFeedNS(server);
   }
 }
 
@@ -2147,6 +2151,22 @@ export class FmTealAlphaFeedNS {
   ) {
     const nsid = "fm.teal.alpha.feed.getPlay"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class FmTealActorNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+}
+
+export class FmTealFeedNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
   }
 }
 

@@ -1,13 +1,10 @@
 //! Teal.fm mirror — one Jetstream WebSocket connection for all enabled users.
 //!
-//! We subscribe to `fm.teal.alpha.feed.play` and look up the commit's `did`
-//! against a per-process `enabled_dids` set. The Jetstream URL filter cheaply
-//! drops everything outside this collection, so the only work we do per event
-//! is a DID set lookup + optional dedup query.
-//!
-//! Note: the user spec said `fm.teal.alpha.play`, but the actual NSID used by
-//! `apps/api/src/tealfm/index.ts` is `fm.teal.alpha.feed.play`. We use the
-//! real one.
+//! We subscribe to both the legacy `fm.teal.alpha.feed.play` and production
+//! `fm.teal.feed.play` collections and look up each commit's `did` against a
+//! per-process `enabled_dids` set. The Jetstream URL filter cheaply drops
+//! everything outside these collections, so the only work we do per event is a
+//! DID set lookup + optional dedup query.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -30,7 +27,7 @@ use crate::{
     enrich::Enricher,
     rocksky,
     track::{normalize_text, NormalizedTrack},
-    Provider, TEALFM_PLAY_NSID,
+    Provider, TEALFM_PLAY_NSIDS,
 };
 
 /// Set of DIDs currently mirroring Teal.fm — shared with the supervisor so it
@@ -46,7 +43,10 @@ pub async fn run(
 ) -> Result<(), Error> {
     let server = env::var("JETSTREAM_SERVER")
         .unwrap_or_else(|_| "wss://jetstream2.us-west.bsky.network".to_string());
-    let url = format!("{server}/subscribe?wantedCollections={TEALFM_PLAY_NSID}");
+    let url = format!(
+        "{server}/subscribe?wantedCollections={}&wantedCollections={}",
+        TEALFM_PLAY_NSIDS[0], TEALFM_PLAY_NSIDS[1]
+    );
 
     info!(url = %url, "Teal.fm: starting Jetstream subscriber");
 
@@ -119,7 +119,7 @@ async fn handle_event(
     let Some(commit) = evt.commit else {
         return Ok(());
     };
-    if commit.collection != TEALFM_PLAY_NSID {
+    if !TEALFM_PLAY_NSIDS.contains(&commit.collection.as_str()) {
         return Ok(());
     }
     if commit.operation != "create" {

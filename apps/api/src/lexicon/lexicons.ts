@@ -9258,6 +9258,264 @@ export const schemaDict = {
       },
     },
   },
+  FmTealActorStatus: {
+    lexicon: 1,
+    id: "fm.teal.actor.status",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "This lexicon is in a not officially released state. It is subject to change. | A declaration of the status of the actor. Only one can be shown at a time. If there are multiple, the latest record should be picked and earlier records should be deleted or tombstoned.",
+        key: "literal:self",
+        record: {
+          type: "object",
+          required: ["time", "item"],
+          properties: {
+            time: {
+              type: "string",
+              format: "datetime",
+              description: "The datetime at which the status was recorded.",
+            },
+            expiry: {
+              type: "string",
+              format: "datetime",
+              description:
+                "The datetime after which the status is no longer current. If unavailable, default to 10 minutes after the start time.",
+            },
+            item: {
+              type: "ref",
+              ref: "lex:fm.teal.feed.defs#playView",
+            },
+          },
+        },
+      },
+    },
+  },
+  FmTealFeedDefs: {
+    lexicon: 1,
+    id: "fm.teal.feed.defs",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | Misc. items related to feeds.",
+    defs: {
+      playView: {
+        type: "object",
+        required: ["trackName", "artists"],
+        properties: {
+          trackName: {
+            type: "string",
+            minLength: 1,
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description: "The name of the track",
+          },
+          trackMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
+          },
+          recordingMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
+          },
+          duration: {
+            type: "integer",
+            description: "The length of the track in seconds",
+          },
+          artists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:fm.teal.feed.defs#artist",
+            },
+            description: "Array of artists in order of original appearance.",
+          },
+          releaseName: {
+            type: "string",
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description: "The name of the release/album",
+          },
+          releaseMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
+          },
+          isrc: {
+            type: "string",
+            description: "The ISRC code associated with the recording",
+          },
+          originUri: {
+            type: "string",
+            format: "uri",
+            description: "The exact URI where the listening event originated.",
+          },
+          musicServiceUri: {
+            type: "string",
+            format: "uri",
+            description:
+              "The canonical URI identifying the listening surface or music service.",
+          },
+          submissionClientAgent: {
+            type: "string",
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description:
+              "A user-agent style string specifying the user agent. e.g. tealtracker/0.0.1b (Linux; Android 13; SM-A715F). Defaults to 'manual/unknown' if not provided.",
+          },
+          playedTime: {
+            type: "string",
+            format: "datetime",
+            description: "The datetime at which playback began.",
+          },
+        },
+      },
+      artist: {
+        type: "object",
+        required: ["artistName"],
+        properties: {
+          artistName: {
+            type: "string",
+            minLength: 1,
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description: "The name of the artist",
+          },
+          artistMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz artist ID URI, formatted as mbid:<uuid>",
+          },
+        },
+      },
+    },
+  },
+  FmTealFeedPlay: {
+    lexicon: 1,
+    id: "fm.teal.feed.play",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | A declaration of a teal.fm play. Plays are submitted as a result of a user listening to a track. Plays should be marked as tracked when a user has listened to the entire track if it's under 2 minutes long, or half of the track's duration up to 4 minutes, whichever is longest.",
+    defs: {
+      main: {
+        type: "record",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["trackName"],
+          properties: {
+            trackName: {
+              type: "string",
+              minLength: 1,
+              maxLength: 256,
+              maxGraphemes: 2560,
+              description: "The name of the track",
+            },
+            trackMbId: {
+              type: "string",
+              format: "uri",
+              description:
+                "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
+            },
+            recordingMbId: {
+              type: "string",
+              format: "uri",
+              description:
+                "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
+            },
+            duration: {
+              type: "integer",
+              description: "The length of the track in seconds",
+            },
+            artistNames: {
+              type: "array",
+              items: {
+                type: "string",
+                minLength: 1,
+                maxLength: 256,
+                maxGraphemes: 2560,
+              },
+              description:
+                "DEPRECATED: USE 'artists' INSTEAD. Array of artist names in order of original appearance.",
+            },
+            artistMbIds: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              description:
+                "DEPRECATED: USE 'artists' INSTEAD. Array of Musicbrainz artist IDs.",
+            },
+            artists: {
+              type: "array",
+              items: {
+                type: "ref",
+                ref: "lex:fm.teal.feed.defs#artist",
+              },
+              description: "Array of artists in order of original appearance.",
+            },
+            releaseName: {
+              type: "string",
+              maxLength: 256,
+              maxGraphemes: 2560,
+              description: "The name of the release/album",
+            },
+            releaseMbId: {
+              type: "string",
+              format: "uri",
+              description:
+                "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
+            },
+            isrc: {
+              type: "string",
+              description: "The ISRC code associated with the recording",
+            },
+            originUri: {
+              type: "string",
+              format: "uri",
+              description:
+                "The exact URI where the listening event originated.",
+            },
+            musicServiceUri: {
+              type: "string",
+              format: "uri",
+              description:
+                "The canonical URI identifying the listening surface or music service.",
+            },
+            submissionClientAgent: {
+              type: "string",
+              maxLength: 256,
+              maxGraphemes: 2560,
+              description:
+                "A metadata string specifying the user agent where the format is `<app-identifier>/<version> (<kernel/OS-base>; <platform/OS-version>; <device-model>)`. If string is provided, only `app-identifier` and `version` are required. `app-identifier` is recommended to be in reverse dns format. Defaults to 'manual/unknown' if unavailable or not provided.",
+            },
+            playedTime: {
+              type: "string",
+              format: "datetime",
+              description: "The datetime at which playback began.",
+            },
+            trackDiscriminant: {
+              type: "string",
+              maxLength: 128,
+              maxGraphemes: 1280,
+              description:
+                "Distinguishing information for track variants (e.g. 'Acoustic Version', 'Live at Wembley', 'Radio Edit', 'Demo'). Used to differentiate between different versions of the same base track while maintaining grouping capabilities.",
+            },
+            releaseDiscriminant: {
+              type: "string",
+              maxLength: 128,
+              maxGraphemes: 1280,
+              description:
+                "Distinguishing information for release variants (e.g. 'Deluxe Edition', 'Remastered', '2023 Remaster', 'Special Edition'). Used to differentiate between different versions of the same base release while maintaining grouping capabilities.",
+            },
+          },
+        },
+      },
+    },
+  },
 } as const satisfies Record<string, LexiconDoc>;
 
 export const schemas = Object.values(schemaDict);
@@ -9462,4 +9720,7 @@ export const ids = {
   FmTealAlphaFeedGetActorFeed: "fm.teal.alpha.feed.getActorFeed",
   FmTealAlphaFeedGetPlay: "fm.teal.alpha.feed.getPlay",
   FmTealAlphaFeedPlay: "fm.teal.alpha.feed.play",
+  FmTealActorStatus: "fm.teal.actor.status",
+  FmTealFeedDefs: "fm.teal.feed.defs",
+  FmTealFeedPlay: "fm.teal.feed.play",
 };
