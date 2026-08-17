@@ -65,7 +65,15 @@ export default defineConfig({
         // Deny service worker fallback for routes handled by the app-proxy:
         // /oauth/callback is the AT Protocol OAuth redirect URI — must reach the API, not index.html
         // /login proxies to the API login endpoint
-        navigateFallbackDenylist: [/^\/api\//, /^\/oauth\//, /^\/login/],
+        // /spotify, /dropbox/oauth and /googledrive/oauth are the music-service OAuth redirect URIs
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/oauth\//,
+          /^\/login/,
+          /^\/spotify\//,
+          /^\/dropbox\/oauth\//,
+          /^\/googledrive\/oauth\//,
+        ],
         runtimeCaching: [
           {
             // Exclude auth-sensitive endpoints (/token, /login, /oauth) from caching.
