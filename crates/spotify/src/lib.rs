@@ -30,7 +30,13 @@ pub mod rocksky;
 pub mod token;
 pub mod types;
 
-pub const BASE_URL: &str = "https://api.spotify.com/v1";
+pub const DEFAULT_BASE_URL: &str = "https://api.spotify.com/v1";
+
+/// Spotify API root; point SPOTIFY_API_URL at the rocksky spotify proxy
+/// (e.g. http://localhost:8091/v1) to route all calls through it.
+pub fn base_url() -> String {
+    env::var("SPOTIFY_API_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string())
+}
 
 pub async fn run() -> Result<(), Error> {
     let cache = Cache::new().await?;
@@ -402,7 +408,7 @@ pub async fn get_currently_playing(
     let token = refresh_token(token, client_id, client_secret, pool, user_id).await?;
     let client = Client::new();
     let response = client
-        .get(format!("{}/me/player/currently-playing", BASE_URL))
+        .get(format!("{}/me/player/currently-playing", base_url()))
         .bearer_auth(token.access_token)
         .send()
         .await?;
@@ -575,21 +581,33 @@ pub async fn get_artist(
     email: &str,
 ) -> Result<Option<Artist>, Error> {
     if let Ok(Some(data)) = cache.get(artist_id).await {
-        return Ok(Some(serde_json::from_str(&data)?));
+        match serde_json::from_str::<Artist>(&data) {
+            Ok(artist) => return Ok(Some(artist)),
+            Err(e) => {
+                tracing::warn!(
+                    artist_id = %artist_id,
+                    error = %e,
+                    data = %data,
+                    "cached artist is invalid, refetching"
+                );
+                let _ = cache.del(artist_id).await;
+            }
+        }
     }
 
     let token = refresh_token(token, client_id, client_secret, pool, email).await?;
     let client = Client::new();
     let response = client
-        .get(&format!("{}/artists/{}", BASE_URL, artist_id))
+        .get(&format!("{}/artists/{}", base_url(), artist_id))
         .bearer_auth(token.access_token)
         .send()
         .await?;
 
     let headers = response.headers().clone();
+    let status = response.status();
     let data = response.text().await?;
 
-    if data == "Too many requests" {
+    if !status.is_success() {
         let retry_after = headers
             .get("retry-after")
             .and_then(|v| v.to_str().ok())
@@ -597,11 +615,26 @@ pub async fn get_artist(
         tracing::warn!(
             scope = "get_artist",
             artist_id = %artist_id,
+            status = %status,
             retry_after = %retry_after,
-            "too many requests"
+            body = %data,
+            "spotify returned an error"
         );
         return Ok(None);
     }
+
+    let artist = match serde_json::from_str::<Artist>(&data) {
+        Ok(artist) => artist,
+        Err(e) => {
+            tracing::warn!(
+                artist_id = %artist_id,
+                error = %e,
+                data = %data,
+                "invalid artist data received"
+            );
+            return Ok(None);
+        }
+    };
 
     match cache.setex(artist_id, &data, 20).await {
         Ok(_) => {}
@@ -611,7 +644,7 @@ pub async fn get_artist(
         }
     }
 
-    Ok(Some(serde_json::from_str(&data)?))
+    Ok(Some(artist))
 }
 
 pub async fn get_album(
@@ -624,21 +657,33 @@ pub async fn get_album(
     email: &str,
 ) -> Result<Option<Album>, Error> {
     if let Ok(Some(data)) = cache.get(album_id).await {
-        return Ok(Some(serde_json::from_str(&data)?));
+        match serde_json::from_str::<Album>(&data) {
+            Ok(album) => return Ok(Some(album)),
+            Err(e) => {
+                tracing::warn!(
+                    album_id = %album_id,
+                    error = %e,
+                    data = %data,
+                    "cached album is invalid, refetching"
+                );
+                let _ = cache.del(album_id).await;
+            }
+        }
     }
 
     let token = refresh_token(token, client_id, client_secret, pool, email).await?;
     let client = Client::new();
     let response = client
-        .get(&format!("{}/albums/{}", BASE_URL, album_id))
+        .get(&format!("{}/albums/{}", base_url(), album_id))
         .bearer_auth(token.access_token)
         .send()
         .await?;
 
     let headers = response.headers().clone();
+    let status = response.status();
     let data = response.text().await?;
 
-    if data == "Too many requests" {
+    if !status.is_success() {
         let retry_after = headers
             .get("retry-after")
             .and_then(|v| v.to_str().ok())
@@ -646,11 +691,26 @@ pub async fn get_album(
         tracing::warn!(
             scope = "get_album",
             album_id = %album_id,
+            status = %status,
             retry_after = %retry_after,
-            "too many requests"
+            body = %data,
+            "spotify returned an error"
         );
         return Ok(None);
     }
+
+    let album = match serde_json::from_str::<Album>(&data) {
+        Ok(album) => album,
+        Err(e) => {
+            tracing::warn!(
+                album_id = %album_id,
+                error = %e,
+                data = %data,
+                "invalid album data received"
+            );
+            return Ok(None);
+        }
+    };
 
     match cache.setex(album_id, &data, 20).await {
         Ok(_) => {}
@@ -660,7 +720,7 @@ pub async fn get_album(
         }
     }
 
-    Ok(Some(serde_json::from_str(&data)?))
+    Ok(Some(album))
 }
 
 pub async fn get_album_tracks(
@@ -684,7 +744,7 @@ pub async fn get_album_tracks(
 
     loop {
         let response = client
-            .get(&format!("{}/albums/{}/tracks", BASE_URL, album_id))
+            .get(&format!("{}/albums/{}/tracks", base_url(), album_id))
             .bearer_auth(&token.access_token)
             .query(&[
                 ("limit", &limit.to_string()),
@@ -694,19 +754,29 @@ pub async fn get_album_tracks(
             .await?;
 
         let headers = response.headers().clone();
+        let status = response.status();
         let data = response.text().await?;
-        if data == "Too many requests" {
+        if status.as_u16() == 429 {
             let retry_after = headers
                 .get("retry-after")
                 .and_then(|v| v.to_str().ok())
-                .unwrap_or("");
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(5);
             tracing::warn!(
                 scope = "get_album_tracks",
                 album_id = %album_id,
-                retry_after = %retry_after,
+                retry_after,
                 "too many requests"
             );
+            tokio::time::sleep(Duration::from_secs(std::cmp::min(retry_after, 60))).await;
             continue;
+        }
+
+        if !status.is_success() {
+            return Err(Error::msg(format!(
+                "get_album_tracks failed for {} ({}): {}",
+                album_id, status, data
+            )));
         }
 
         let album_tracks: AlbumTracks = serde_json::from_str(&data)?;
@@ -1041,7 +1111,20 @@ pub async fn watch_currently_playing(
             };
 
             if let Ok(Some(cached)) = cache.get(&format!("{}:current", spotify_email)).await {
-                let current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
+                let current_song = match serde_json::from_str::<CurrentlyPlaying>(&cached) {
+                    Ok(current_song) => current_song,
+                    Err(e) => {
+                        tracing::warn!(
+                            email = %spotify_email,
+                            error = %e,
+                            data = %cached,
+                            "current song cache is invalid, skipping"
+                        );
+                        let _ = cache.del(&format!("{}:current", spotify_email)).await;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                        continue;
+                    }
+                };
                 if let Some(item) = current_song.item {
                     let percentage = current_song.progress_ms.unwrap_or(0) as f32
                         / data_item.duration_ms as f32

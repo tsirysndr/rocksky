@@ -32,7 +32,19 @@ pub async fn scrobble(
         return Ok(());
     }
 
-    let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
+    let cached = cached.unwrap();
+    let track = match serde_json::from_str::<CurrentlyPlaying>(&cached) {
+        Ok(track) => track,
+        Err(e) => {
+            tracing::warn!(
+                email = %spotify_email,
+                error = %e,
+                data = %cached,
+                "cached currently playing song is invalid, skipping"
+            );
+            return Ok(());
+        }
+    };
     if track.item.is_none() {
         tracing::debug!(email = %spotify_email, "no currently playing song found, skipping");
         return Ok(());
@@ -133,8 +145,25 @@ pub async fn update_library(
         .await?;
     }
 
-    let cached = cache.get(spotify_email).await?;
-    let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
+    let cached = match cache.get(spotify_email).await? {
+        Some(cached) => cached,
+        None => {
+            tracing::debug!(email = %spotify_email, "no currently playing song is cached, skipping");
+            return Ok(());
+        }
+    };
+    let track = match serde_json::from_str::<CurrentlyPlaying>(&cached) {
+        Ok(track) => track,
+        Err(e) => {
+            tracing::warn!(
+                email = %spotify_email,
+                error = %e,
+                data = %cached,
+                "cached currently playing song is invalid, skipping"
+            );
+            return Ok(());
+        }
+    };
     if track.item.is_none() {
         tracing::debug!(email = %spotify_email, "no currently playing song found, skipping");
         return Ok(());
@@ -150,8 +179,14 @@ pub async fn update_library(
 
     let tracks = serde_json::from_str::<Vec<Track>>(&cached.unwrap())?;
 
-    let cached = cache.get(&track_item.album.id).await?;
-    let album = serde_json::from_str::<Album>(&cached.unwrap())?;
+    let cached = match cache.get(&track_item.album.id).await? {
+        Some(cached) => cached,
+        None => {
+            tracing::debug!(album_id = %track_item.album.id, "album not cached, skipping");
+            return Ok(());
+        }
+    };
+    let album = serde_json::from_str::<Album>(&cached)?;
 
     let token = generate_token(did)?;
 
