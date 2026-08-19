@@ -1,0 +1,253 @@
+package spotify
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"golang.org/x/time/rate"
+)
+
+func newTestService(upstream string, opts ...Option) *SpotifyService {
+	base := []Option{
+		WithBaseURL(upstream),
+		WithLimiter(rate.NewLimiter(rate.Inf, 0)),
+	}
+	return NewSpotifyService(append(base, opts...)...)
+}
+
+func TestCatalogResponsesAreCached(t *testing.T) {
+	var hits atomic.Int64
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"abc","name":"Some Artist"}`))
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL)
+	ctx := context.Background()
+
+	first, err := s.Proxy(ctx, http.MethodGet, "/artists/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("first call failed: %v", err)
+	}
+	if first.Cached {
+		t.Fatal("first call should not be served from cache")
+	}
+
+	second, err := s.Proxy(ctx, http.MethodGet, "/artists/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("second call failed: %v", err)
+	}
+	if !second.Cached {
+		t.Fatal("second call should be served from cache")
+	}
+	if got := hits.Load(); got != 1 {
+		t.Fatalf("expected 1 upstream hit, got %d", got)
+	}
+	if string(second.Body) != `{"id":"abc","name":"Some Artist"}` {
+		t.Fatalf("unexpected cached body: %s", second.Body)
+	}
+}
+
+func TestStaleResponseServedDuringCooldown(t *testing.T) {
+	var hits atomic.Int64
+	var rateLimited atomic.Bool
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if rateLimited.Load() {
+			w.Header().Set("Retry-After", "60")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"error":{"status":429,"message":"rate limited"}}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"abc"}`))
+	}))
+	defer upstream.Close()
+
+	// Fresh window of zero: every request goes upstream but keeps a stale copy.
+	s := newTestService(upstream.URL, WithCategorizer(func(path string) category {
+		return category{fresh: 0, stale: time.Hour}
+	}))
+	ctx := context.Background()
+
+	first, err := s.Proxy(ctx, http.MethodGet, "/albums/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("first call failed: %v", err)
+	}
+	if first.Status != http.StatusOK {
+		t.Fatalf("first call: expected 200, got %d", first.Status)
+	}
+
+	rateLimited.Store(true)
+
+	second, err := s.Proxy(ctx, http.MethodGet, "/albums/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("second call failed: %v", err)
+	}
+	if second.Status != http.StatusOK || !second.Stale {
+		t.Fatalf("second call: expected stale 200, got status=%d stale=%v", second.Status, second.Stale)
+	}
+
+	// The 429 must have started a cooldown: this call is served stale without
+	// touching the upstream at all.
+	third, err := s.Proxy(ctx, http.MethodGet, "/albums/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("third call failed: %v", err)
+	}
+	if third.Status != http.StatusOK || !third.Stale {
+		t.Fatalf("third call: expected stale 200, got status=%d stale=%v", third.Status, third.Stale)
+	}
+	if got := hits.Load(); got != 2 {
+		t.Fatalf("expected 2 upstream hits, got %d", got)
+	}
+}
+
+func TestUncachedRequestsAre429DuringCooldown(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "60")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL)
+	ctx := context.Background()
+
+	// Trigger the cooldown with a real upstream 429.
+	if _, err := s.Proxy(ctx, http.MethodGet, "/artists/abc", "Bearer user-token", nil); err != nil {
+		t.Fatalf("first call failed: %v", err)
+	}
+
+	// A different, uncached path must not reach the upstream; it gets a local 429.
+	result, err := s.Proxy(ctx, http.MethodGet, "/artists/other", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("second call failed: %v", err)
+	}
+	if result.Status != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 during cooldown, got %d", result.Status)
+	}
+	if result.RetryAfter == "" {
+		t.Fatal("expected Retry-After to be set during cooldown")
+	}
+}
+
+func TestUserEndpointsRequireAuthorization(t *testing.T) {
+	s := newTestService("http://unused.invalid")
+
+	_, err := s.Proxy(context.Background(), http.MethodGet, "/me/player/currently-playing", "", nil)
+	proxyErr, ok := err.(*ProxyError)
+	if !ok {
+		t.Fatalf("expected ProxyError, got %v", err)
+	}
+	if proxyErr.Status != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", proxyErr.Status)
+	}
+}
+
+func TestUserEndpointsAreCachedPerToken(t *testing.T) {
+	var hits atomic.Int64
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"token": r.Header.Get("Authorization")})
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL)
+	ctx := context.Background()
+
+	a1, _ := s.Proxy(ctx, http.MethodGet, "/me/player/currently-playing", "Bearer user-a", nil)
+	b1, _ := s.Proxy(ctx, http.MethodGet, "/me/player/currently-playing", "Bearer user-b", nil)
+	a2, _ := s.Proxy(ctx, http.MethodGet, "/me/player/currently-playing", "Bearer user-a", nil)
+
+	if got := hits.Load(); got != 2 {
+		t.Fatalf("expected 2 upstream hits (one per user), got %d", got)
+	}
+	if !a2.Cached {
+		t.Fatal("repeat call for the same user should be cached")
+	}
+	if string(a1.Body) == string(b1.Body) {
+		t.Fatal("users must not share cached responses")
+	}
+}
+
+func TestForwardsAuthorizationHeader(t *testing.T) {
+	var seenAuth atomic.Value
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenAuth.Store(r.Header.Get("Authorization"))
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL)
+	if _, err := s.Proxy(context.Background(), http.MethodGet, "/tracks/xyz", "Bearer forwarded-token", nil); err != nil {
+		t.Fatalf("call failed: %v", err)
+	}
+	if got := seenAuth.Load(); got != "Bearer forwarded-token" {
+		t.Fatalf("expected forwarded Authorization header, got %v", got)
+	}
+}
+
+func TestClientCredentialsFallbackForCatalog(t *testing.T) {
+	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, _ := r.BasicAuth()
+		if user != "client-id" || pass != "client-secret" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(tokenResponse{AccessToken: "app-token", TokenType: "Bearer", ExpiresIn: 3600})
+	}))
+	defer tokenServer.Close()
+
+	var seenAuth atomic.Value
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenAuth.Store(r.Header.Get("Authorization"))
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL,
+		WithTokenURL(tokenServer.URL),
+		WithCredentials("client-id", "client-secret"),
+	)
+	if _, err := s.Proxy(context.Background(), http.MethodGet, "/artists/abc", "", nil); err != nil {
+		t.Fatalf("call failed: %v", err)
+	}
+	if got := seenAuth.Load(); got != "Bearer app-token" {
+		t.Fatalf("expected app token to be used, got %v", got)
+	}
+}
+
+func TestPlayerControlsAreNotCached(t *testing.T) {
+	var hits atomic.Int64
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL)
+	ctx := context.Background()
+
+	for i := 0; i < 2; i++ {
+		result, err := s.Proxy(ctx, http.MethodPut, "/me/player/pause", "Bearer user-token", nil)
+		if err != nil {
+			t.Fatalf("call %d failed: %v", i, err)
+		}
+		if result.Status != http.StatusNoContent || result.Cached {
+			t.Fatalf("call %d: expected uncached 204, got status=%d cached=%v", i, result.Status, result.Cached)
+		}
+	}
+	if got := hits.Load(); got != 2 {
+		t.Fatalf("expected 2 upstream hits, got %d", got)
+	}
+}

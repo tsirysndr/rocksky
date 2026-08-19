@@ -31,6 +31,7 @@
     "dev:feeds": "cd apps/feeds && deno task dev",
     "mb": "cd musicbrainz && go run main.go",
     "deezer": "cd deezer && go run main.go",
+    "spotify-proxy": "cd spotify && go run main.go",
     "spotify": "cd apps/api && bun run spotify",
     "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src",
     "cron": "tools/cron.ts"
