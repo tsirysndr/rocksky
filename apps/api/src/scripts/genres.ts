@@ -56,7 +56,7 @@ async function getGenresAndPicture(artists) {
         const token = await getSpotifyToken();
         // search artist by name on spotify
         const result = await fetch(
-          `https://api.spotify.com/v1/search?q=${encodeURIComponent(artist.name)}&type=artist&limit=1`,
+          `${env.SPOTIFY_API_URL}/search?q=${encodeURIComponent(artist.name)}&type=artist&limit=1`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

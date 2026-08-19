@@ -240,7 +240,7 @@ async function searchSpotify(
   artist: string,
 ): Promise<SpotifyTrackHit | null> {
   const q = buildSpotifyQuery(title, artist);
-  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=1`;
+  const url = `${env.SPOTIFY_API_URL}/search?q=${encodeURIComponent(q)}&type=track&limit=1`;
 
   // Two nested loops:
   //   - outer: rotate through tokens. Switching tokens after 401/403 covers

@@ -132,7 +132,7 @@ const withSpotifyToken = ({
 const handlePause = (accessToken: string) => {
   return Effect.tryPromise({
     try: () =>
-      fetch("https://api.spotify.com/v1/me/player/pause", {
+      fetch(`${env.SPOTIFY_API_URL}/me/player/pause`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,

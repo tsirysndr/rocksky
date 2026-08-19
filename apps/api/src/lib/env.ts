@@ -21,6 +21,7 @@ export const env = cleanEnv(process.env, {
   }),
   SPOTIFY_CLIENT_ID: str({}),
   SPOTIFY_CLIENT_SECRET: str({}),
+  SPOTIFY_API_URL: str({ default: "https://api.spotify.com/v1" }),
   SPOTIFY_ENCRYPTION_KEY: str({}),
   SPOTIFY_ENCRYPTION_IV: str(),
   ROCKSKY_BETA_TOKEN: str({}),

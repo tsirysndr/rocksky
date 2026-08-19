@@ -148,7 +148,7 @@ const handleSeek = ({
   return Effect.tryPromise({
     try: () =>
       fetch(
-        `https://api.spotify.com/v1/me/player/seek?position_ms=${position}`,
+        `${env.SPOTIFY_API_URL}/me/player/seek?position_ms=${position}`,
         {
           method: "PUT",
           headers: {

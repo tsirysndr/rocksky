@@ -1,7 +1,15 @@
+use std::env;
+
 use anyhow::Error;
 use reqwest::Client;
 
 use crate::types::{self, token::AccessToken};
+
+pub const DEFAULT_BASE_URL: &str = "https://api.spotify.com/v1";
+
+pub fn base_url() -> String {
+    env::var("SPOTIFY_API_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string())
+}
 
 pub async fn refresh_token(
     token: &str,
@@ -32,7 +40,7 @@ pub async fn get_user_playlists(
     let token = refresh_token(&token, &client_id, &client_secret).await?;
     let client = Client::new();
     let response = client
-        .get("https://api.spotify.com/v1/me/playlists")
+        .get(format!("{}/me/playlists", base_url()))
         .header("Authorization", format!("Bearer {}", token.access_token))
         .send()
         .await?;
@@ -51,7 +59,7 @@ pub async fn get_user_playlists(
 pub async fn get_playlist(id: &str, token: &str) -> Result<types::playlist::Playlist, Error> {
     let client = Client::new();
     let response = client
-        .get(format!("https://api.spotify.com/v1/playlists/{}", id))
+        .get(format!("{}/playlists/{}", base_url(), id))
         .header("Authorization", format!("Bearer {}", token))
         .send()
         .await?;

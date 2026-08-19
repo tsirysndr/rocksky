@@ -1,8 +1,12 @@
 use super::types::{Album, Artist, SearchResponse};
 use anyhow::Error;
-use std::time::Duration;
+use std::{env, time::Duration};
 
-pub const BASE_URL: &str = "https://api.spotify.com/v1";
+pub const DEFAULT_BASE_URL: &str = "https://api.spotify.com/v1";
+
+pub fn base_url() -> String {
+    env::var("SPOTIFY_API_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string())
+}
 
 pub struct SpotifyClient {
     token: String,
@@ -24,7 +28,7 @@ impl SpotifyClient {
     }
 
     pub async fn search(&self, query: &str) -> Result<SearchResponse, Error> {
-        let url = format!("{}/search", BASE_URL);
+        let url = format!("{}/search", base_url());
         let response = self
             .client
             .get(&url)
@@ -37,7 +41,7 @@ impl SpotifyClient {
     }
 
     pub async fn get_album(&self, id: &str) -> Result<Option<Album>, Error> {
-        let url = format!("{}/albums/{}", BASE_URL, id);
+        let url = format!("{}/albums/{}", base_url(), id);
         let response = self
             .client
             .get(&url)
@@ -57,7 +61,7 @@ impl SpotifyClient {
     }
 
     pub async fn get_artist(&self, id: &str) -> Result<Option<Artist>, Error> {
-        let url = format!("{}/artists/{}", BASE_URL, id);
+        let url = format!("{}/artists/{}", base_url(), id);
         let response = self
             .client
             .get(&url)

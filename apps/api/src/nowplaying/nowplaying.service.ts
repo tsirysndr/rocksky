@@ -643,7 +643,7 @@ async function fetchSpotifyDuration(
     };
     const q = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
     const searchRes = await fetch(
-      `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`,
+      `${env.SPOTIFY_API_URL}/search?q=${q}&type=track&limit=1`,
       { headers: { Authorization: `Bearer ${access_token}` } },
     );
 

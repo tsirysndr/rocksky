@@ -555,7 +555,7 @@ const searchOnSpotify = async (
 
   const response = await retrySpotifyCall(
     async () =>
-      fetch(`https://api.spotify.com/v1/search?${q}`, {
+      fetch(`${env.SPOTIFY_API_URL}/search?${q}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -610,7 +610,7 @@ const searchOnSpotify = async (
 
     const album = await retrySpotifyCall(
       async () =>
-        fetch(`https://api.spotify.com/v1/albums/${track.album.id}`, {
+        fetch(`${env.SPOTIFY_API_URL}/albums/${track.album.id}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${access_token}`,
@@ -627,7 +627,7 @@ const searchOnSpotify = async (
 
     const fetchedArtist = await retrySpotifyCall(
       async () =>
-        fetch(`https://api.spotify.com/v1/artists/${track.artists[0].id}`, {
+        fetch(`${env.SPOTIFY_API_URL}/artists/${track.artists[0].id}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${access_token}`,

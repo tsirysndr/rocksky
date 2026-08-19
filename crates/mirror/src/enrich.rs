@@ -30,8 +30,14 @@ use crate::db;
 use crate::track::NormalizedTrack;
 
 const SPOTIFY_TOKEN_URL: &str = "https://accounts.spotify.com/api/token";
-const SPOTIFY_SEARCH_URL: &str = "https://api.spotify.com/v1/search";
+const SPOTIFY_DEFAULT_BASE_URL: &str = "https://api.spotify.com/v1";
 const LASTFM_ENDPOINT: &str = "https://ws.audioscrobbler.com/2.0/";
+
+fn spotify_search_url() -> String {
+    let base = std::env::var("SPOTIFY_API_URL")
+        .unwrap_or_else(|_| SPOTIFY_DEFAULT_BASE_URL.to_string());
+    format!("{}/search", base)
+}
 
 #[derive(Clone)]
 pub struct Enricher {
@@ -172,7 +178,7 @@ impl Enricher {
         // tells us the play came from "Future Nostalgia (Deluxe)", we don't
         // want to silently pick the radio-edit single release.
         let resp: SearchResponse = http
-            .get(SPOTIFY_SEARCH_URL)
+            .get(spotify_search_url())
             .bearer_auth(&token)
             .query(&[("q", q.as_str()), ("type", "track"), ("limit", "10")])
             .send()

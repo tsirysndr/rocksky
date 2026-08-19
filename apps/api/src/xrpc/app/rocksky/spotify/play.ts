@@ -132,7 +132,7 @@ const withSpotifyToken = ({
 const handlePlay = (accessToken: string) => {
   return Effect.tryPromise({
     try: () =>
-      fetch("https://api.spotify.com/v1/me/player/play", {
+      fetch(`${env.SPOTIFY_API_URL}/me/player/play`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,

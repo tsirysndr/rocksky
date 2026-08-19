@@ -427,7 +427,7 @@ app.put("/pause", async (c) => {
     access_token: string;
   };
 
-  const response = await fetch("https://api.spotify.com/v1/me/player/pause", {
+  const response = await fetch(`${env.SPOTIFY_API_URL}/me/player/pause`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${access_token}`,
@@ -507,7 +507,7 @@ app.put("/play", async (c) => {
     access_token: string;
   };
 
-  const response = await fetch("https://api.spotify.com/v1/me/player/play", {
+  const response = await fetch(`${env.SPOTIFY_API_URL}/me/player/play`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${access_token}`,
@@ -587,7 +587,7 @@ app.post("/next", async (c) => {
     access_token: string;
   };
 
-  const response = await fetch("https://api.spotify.com/v1/me/player/next", {
+  const response = await fetch(`${env.SPOTIFY_API_URL}/me/player/next`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${access_token}`,
@@ -668,7 +668,7 @@ app.post("/previous", async (c) => {
   };
 
   const response = await fetch(
-    "https://api.spotify.com/v1/me/player/previous",
+    `${env.SPOTIFY_API_URL}/me/player/previous`,
     {
       method: "POST",
       headers: {
@@ -752,7 +752,7 @@ app.put("/seek", async (c) => {
 
   const position = c.req.query("position_ms");
   const response = await fetch(
-    `https://api.spotify.com/v1/me/player/seek?position_ms=${position}`,
+    `${env.SPOTIFY_API_URL}/me/player/seek?position_ms=${position}`,
     {
       method: "PUT",
       headers: {
