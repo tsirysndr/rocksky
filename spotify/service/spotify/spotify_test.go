@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -221,6 +222,71 @@ func TestClientCredentialsFallbackForCatalog(t *testing.T) {
 	}
 	if got := seenAuth.Load(); got != "Bearer app-token" {
 		t.Fatalf("expected app token to be used, got %v", got)
+	}
+}
+
+func TestAppPoolFailsOverOn429(t *testing.T) {
+	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, _, _ := r.BasicAuth()
+		_ = json.NewEncoder(w).Encode(tokenResponse{AccessToken: "token-" + user, TokenType: "Bearer", ExpiresIn: 3600})
+	}))
+	defer tokenServer.Close()
+
+	var appAHits, appBHits atomic.Int64
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Header.Get("Authorization") {
+		case "Bearer token-app-a":
+			appAHits.Add(1)
+			w.Header().Set("Retry-After", "600")
+			w.WriteHeader(http.StatusTooManyRequests)
+		case "Bearer token-app-b":
+			appBHits.Add(1)
+			_, _ = w.Write([]byte(`{"id":"abc"}`))
+		default:
+			t.Errorf("unexpected Authorization header %q", r.Header.Get("Authorization"))
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL,
+		WithTokenURL(tokenServer.URL),
+		WithApps("app-a:secret-a", "app-b:secret-b"),
+	)
+	ctx := context.Background()
+
+	// Both requests must succeed via app-b, whatever app the cursor tries
+	// first; once app-a has answered 429 it must not be contacted again.
+	for i, path := range []string{"/artists/abc", "/artists/other"} {
+		result, err := s.Proxy(ctx, http.MethodGet, path, "", nil)
+		if err != nil {
+			t.Fatalf("call %d failed: %v", i, err)
+		}
+		if result.Status != http.StatusOK {
+			t.Fatalf("call %d: expected 200 via failover, got %d", i, result.Status)
+		}
+	}
+	if got := appAHits.Load(); got > 1 {
+		t.Fatalf("rate-limited app should be in cooldown after one 429, got %d hits", got)
+	}
+	if got := appBHits.Load(); got != 2 {
+		t.Fatalf("expected 2 hits on the healthy app, got %d", got)
+	}
+}
+
+func TestDecryptAES256CTRMatchesNode(t *testing.T) {
+	// Vector produced with Node: crypto.createCipheriv("aes-256-ctr", key, iv)
+	// key = 32 x 0x01, iv = 16 x 0x02, plaintext "super-secret".
+	key := bytes.Repeat([]byte{0x01}, 32)
+	iv := bytes.Repeat([]byte{0x02}, 16)
+	const encrypted = "11db62965692996db68410c1"
+
+	got, err := decryptAES256CTR(encrypted, key, iv)
+	if err != nil {
+		t.Fatalf("decrypt failed: %v", err)
+	}
+	if got != "super-secret" {
+		t.Fatalf("expected %q, got %q", "super-secret", got)
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -34,10 +35,10 @@ const (
 	defaultRPS   = 5
 	defaultBurst = 10
 
-	// maxCooldown caps how long a single 429 Retry-After can pause upstream
-	// calls. Spotify's app-level penalties run to hours (observed >5000s), and
-	// probing before Retry-After expires can extend them — so honor the header
-	// up to this cap rather than retrying early.
+	// maxCooldown caps how long a single 429 Retry-After can pause calls for
+	// one app or token. Spotify's app-level penalties run to hours (observed
+	// >5000s), and probing before Retry-After expires can extend them — so
+	// honor the header up to this cap rather than retrying early.
 	maxCooldown = 2 * time.Hour
 
 	// defaultCooldown is used when a 429 comes without a usable Retry-After.
@@ -96,6 +97,18 @@ type cacheEntry struct {
 	evictAt    time.Time
 }
 
+// appCred is one client-credentials pair in the app pool, with its cached
+// client-credentials token. Spotify rate limits per app (client id), so each
+// entry is an independent quota.
+type appCred struct {
+	clientID     string
+	clientSecret string
+
+	mu           sync.Mutex
+	token        string
+	tokenExpires time.Time
+}
+
 // SpotifyService is a rate-limited, caching proxy in front of the Spotify Web
 // API. It is safe for concurrent use.
 type SpotifyService struct {
@@ -105,18 +118,22 @@ type SpotifyService struct {
 	limiter    *rate.Limiter
 	categorize func(path string) category
 
-	clientID     string
-	clientSecret string
+	// apps is the client-credentials pool used for catalog requests that
+	// arrive without a forwarded Authorization header. Requests round-robin
+	// across apps and fail over when one app is rate limited. The pool is
+	// loaded from the spotify_apps table and refreshed by the janitor.
+	apps      []*appCred
+	appsMutex sync.RWMutex
+	appCursor atomic.Uint64
 
 	cache      map[string]cacheEntry
 	cacheMutex sync.RWMutex
 
-	cooldownUntil time.Time
+	// cooldowns tracks 429 backoff per app ("app:<clientID>") and per
+	// forwarded token ("tok:<hash>"). A penalty on one app must not block
+	// requests running under other apps or user tokens.
+	cooldowns     map[string]time.Time
 	cooldownMutex sync.Mutex
-
-	appToken        string
-	appTokenExpires time.Time
-	appTokenMutex   sync.Mutex
 
 	logger *log.Logger
 }
@@ -144,13 +161,16 @@ func WithLimiter(l *rate.Limiter) Option {
 	return func(s *SpotifyService) { s.limiter = l }
 }
 
-// WithCredentials sets the client-credentials pair used for catalog requests
-// that arrive without a forwarded Authorization header.
+// WithCredentials replaces the app pool with a single client-credentials pair.
 func WithCredentials(clientID, clientSecret string) Option {
 	return func(s *SpotifyService) {
-		s.clientID = clientID
-		s.clientSecret = clientSecret
+		s.apps = []*appCred{{clientID: clientID, clientSecret: clientSecret}}
 	}
+}
+
+// WithApps replaces the app pool. Each pair is "clientID:clientSecret".
+func WithApps(pairs ...string) Option {
+	return func(s *SpotifyService) { s.apps = parseAppPairs(pairs) }
 }
 
 // WithCategorizer overrides cache categorization (used in tests).
@@ -159,6 +179,9 @@ func WithCategorizer(fn func(path string) category) Option {
 }
 
 // NewSpotifyService creates a new proxy service with rate limiting and caching.
+// The app pool is loaded from the spotify_apps table (apps linked from active
+// spotify_tokens), falling back to the SPOTIFY_CLIENT_ID/SPOTIFY_CLIENT_SECRET
+// pair only when the database is unavailable.
 func NewSpotifyService(opts ...Option) *SpotifyService {
 	rps := envFloat("SPOTIFY_PROXY_RPS", defaultRPS)
 	burst := envInt("SPOTIFY_PROXY_BURST", defaultBurst)
@@ -169,81 +192,204 @@ func NewSpotifyService(opts ...Option) *SpotifyService {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		limiter:      rate.NewLimiter(rate.Limit(rps), burst),
-		categorize:   categorize,
-		clientID:     os.Getenv("SPOTIFY_CLIENT_ID"),
-		clientSecret: os.Getenv("SPOTIFY_CLIENT_SECRET"),
-		cache:        make(map[string]cacheEntry),
-		logger:       log.New(os.Stdout, "spotify: ", log.LstdFlags|log.Lmsgprefix),
+		limiter:    rate.NewLimiter(rate.Limit(rps), burst),
+		categorize: categorize,
+		cache:      make(map[string]cacheEntry),
+		cooldowns:  make(map[string]time.Time),
+		logger:     log.New(os.Stdout, "spotify: ", log.LstdFlags|log.Lmsgprefix),
 	}
 	for _, opt := range opts {
 		opt(s)
+	}
+	if len(s.apps) == 0 {
+		if apps, err := loadAppsFromDB(context.Background()); err != nil {
+			s.logger.Printf("could not load spotify apps from db: %v", err)
+		} else if len(apps) > 0 {
+			s.apps = apps
+			s.logger.Printf("loaded %d spotify apps from db", len(apps))
+		}
+	}
+	if len(s.apps) == 0 {
+		if id, secret := os.Getenv("SPOTIFY_CLIENT_ID"), os.Getenv("SPOTIFY_CLIENT_SECRET"); id != "" && secret != "" {
+			s.apps = []*appCred{{clientID: id, clientSecret: secret}}
+			s.logger.Printf("app pool empty, falling back to SPOTIFY_CLIENT_ID")
+		}
 	}
 	go s.janitor()
 	return s
 }
 
 // Proxy forwards one request to the Spotify Web API. GET responses are cached
-// per category; during a 429 cooldown, catalog requests are served stale when
-// possible instead of hitting Spotify again. Non-GET requests (player
-// controls) pass straight through the limiter, uncached.
+// per category; during a 429 cooldown, requests are served stale when possible
+// instead of hitting Spotify again. Cooldowns are scoped: a forwarded user
+// token cools down alone, and catalog requests fail over to the next app in
+// the pool.
 func (s *SpotifyService) Proxy(ctx context.Context, method, path, authHeader string, body []byte) (*ProxyResult, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
-	if method != http.MethodGet {
-		if wait, coolingDown := s.cooldownRemaining(); coolingDown {
-			return cooldownResult(wait), nil
+	isGet := method == http.MethodGet
+	var cat category
+	var key string
+	if isGet {
+		cat = s.categorize(path)
+		key = cacheKey(path, authHeader, cat)
+		if entry, ok := s.cacheGet(key); ok && time.Now().Before(entry.freshUntil) {
+			return entry.response.result(false), nil
 		}
-		return s.fetch(ctx, method, path, authHeader, body)
 	}
 
-	cat := s.categorize(path)
-	key := cacheKey(path, authHeader, cat)
-
-	if entry, ok := s.cacheGet(key); ok && time.Now().Before(entry.freshUntil) {
-		return entry.response.result(false), nil
+	if authHeader != "" {
+		return s.proxyForwarded(ctx, method, path, authHeader, body, isGet, key, cat)
 	}
 
-	if wait, coolingDown := s.cooldownRemaining(); coolingDown {
-		if entry, ok := s.cacheGet(key); ok {
-			s.logger.Printf("cooldown active, serving stale response for %s", path)
-			return entry.response.result(true), nil
+	if strings.HasPrefix(path, "/me/") {
+		return nil, &ProxyError{
+			Status:  http.StatusUnauthorized,
+			Message: "user-scoped endpoints require an Authorization header",
+		}
+	}
+	apps := s.appPool()
+	if len(apps) == 0 {
+		return nil, &ProxyError{
+			Status:  http.StatusUnauthorized,
+			Message: "no Authorization header and no spotify apps available (spotify_apps table empty and no SPOTIFY_CLIENT_ID/SPOTIFY_CLIENT_SECRET fallback)",
+		}
+	}
+
+	return s.proxyViaAppPool(ctx, method, path, body, isGet, key, cat, apps)
+}
+
+// proxyForwarded handles a request carrying the caller's own Authorization
+// header. Its 429 cooldown is scoped to that token.
+func (s *SpotifyService) proxyForwarded(ctx context.Context, method, path, authHeader string, body []byte, isGet bool, key string, cat category) (*ProxyResult, error) {
+	ck := tokenCooldownKey(authHeader)
+	if wait, coolingDown := s.cooldownRemaining(ck); coolingDown {
+		if isGet {
+			if entry, ok := s.cacheGet(key); ok {
+				s.logger.Printf("cooldown active for %s, serving stale response for %s", ck, path)
+				return entry.response.result(true), nil
+			}
 		}
 		return cooldownResult(wait), nil
 	}
 
-	result, err := s.fetch(ctx, http.MethodGet, path, authHeader, nil)
+	result, err := s.fetch(ctx, method, path, authHeader, body)
 	if err != nil {
 		return nil, err
 	}
 
 	switch {
 	case result.Status == http.StatusOK || result.Status == http.StatusNoContent:
-		s.cacheSet(key, cachedResponse{
-			status:      result.Status,
-			contentType: result.ContentType,
-			body:        result.Body,
-		}, cat)
-	case result.Status == http.StatusTooManyRequests || result.Status >= 500:
-		if entry, ok := s.cacheGet(key); ok {
-			s.logger.Printf("upstream returned %d, serving stale response for %s", result.Status, path)
-			return entry.response.result(true), nil
+		if isGet {
+			s.cacheSet(key, cachedResponse{
+				status:      result.Status,
+				contentType: result.ContentType,
+				body:        result.Body,
+			}, cat)
+		}
+	case result.Status == http.StatusTooManyRequests:
+		s.startCooldown(ck, result.RetryAfter)
+		if isGet {
+			if entry, ok := s.cacheGet(key); ok {
+				s.logger.Printf("upstream returned 429, serving stale response for %s", path)
+				return entry.response.result(true), nil
+			}
+		}
+	case result.Status >= 500:
+		if isGet {
+			if entry, ok := s.cacheGet(key); ok {
+				s.logger.Printf("upstream returned %d, serving stale response for %s", result.Status, path)
+				return entry.response.result(true), nil
+			}
 		}
 	}
 
 	return result, nil
 }
 
-// fetch performs one rate-limited request against the Spotify API and records
-// a cooldown when Spotify answers 429.
-func (s *SpotifyService) fetch(ctx context.Context, method, path, authHeader string, body []byte) (*ProxyResult, error) {
-	auth, err := s.resolveAuth(ctx, path, authHeader)
-	if err != nil {
-		return nil, err
+// proxyViaAppPool handles a catalog request with no forwarded token: it walks
+// the app pool round-robin, skipping apps in cooldown and failing over to the
+// next app when one answers 429.
+func (s *SpotifyService) proxyViaAppPool(ctx context.Context, method, path string, body []byte, isGet bool, key string, cat category, apps []*appCred) (*ProxyResult, error) {
+	n := len(apps)
+	start := int(s.appCursor.Add(1)-1) % n
+	minWait := time.Duration(-1)
+	var lastErr error
+
+	for i := 0; i < n; i++ {
+		app := apps[(start+i)%n]
+		ck := appCooldownKey(app.clientID)
+		if wait, coolingDown := s.cooldownRemaining(ck); coolingDown {
+			if minWait < 0 || wait < minWait {
+				minWait = wait
+			}
+			continue
+		}
+
+		token, err := s.getAppToken(ctx, app)
+		if err != nil {
+			// Bad credentials or token endpoint trouble: remember the error
+			// and let another app try.
+			lastErr = err
+			continue
+		}
+
+		result, err := s.fetch(ctx, method, path, "Bearer "+token, body)
+		if err != nil {
+			return nil, err
+		}
+
+		if result.Status == http.StatusTooManyRequests {
+			s.startCooldown(ck, result.RetryAfter)
+			if wait, _ := s.cooldownRemaining(ck); minWait < 0 || wait < minWait {
+				minWait = wait
+			}
+			continue
+		}
+
+		switch {
+		case result.Status == http.StatusOK || result.Status == http.StatusNoContent:
+			if isGet {
+				s.cacheSet(key, cachedResponse{
+					status:      result.Status,
+					contentType: result.ContentType,
+					body:        result.Body,
+				}, cat)
+			}
+		case result.Status >= 500:
+			if isGet {
+				if entry, ok := s.cacheGet(key); ok {
+					s.logger.Printf("upstream returned %d, serving stale response for %s", result.Status, path)
+					return entry.response.result(true), nil
+				}
+			}
+		}
+
+		return result, nil
 	}
 
+	// Every app is cooling down or failed to authenticate.
+	if isGet {
+		if entry, ok := s.cacheGet(key); ok {
+			s.logger.Printf("all %d apps cooling down, serving stale response for %s", n, path)
+			return entry.response.result(true), nil
+		}
+	}
+	if lastErr != nil && minWait < 0 {
+		return nil, lastErr
+	}
+	if minWait < 0 {
+		minWait = defaultCooldown
+	}
+	return cooldownResult(minWait), nil
+}
+
+// fetch performs one rate-limited request against the Spotify API with the
+// given Authorization value. It records no cooldown itself — callers scope
+// that to the app or token that made the request.
+func (s *SpotifyService) fetch(ctx context.Context, method, path, auth string, body []byte) (*ProxyResult, error) {
 	if err := s.limiter.Wait(ctx); err != nil {
 		if ctx.Err() != nil {
 			return nil, fmt.Errorf("context cancelled during rate limiter wait: %w", ctx.Err())
@@ -287,44 +433,18 @@ func (s *SpotifyService) fetch(ctx context.Context, method, path, authHeader str
 	result := &ProxyResult{Status: resp.StatusCode, ContentType: contentType, Body: data}
 	if resp.StatusCode == http.StatusTooManyRequests {
 		result.RetryAfter = resp.Header.Get("Retry-After")
-		s.startCooldown(result.RetryAfter)
 	}
 	return result, nil
 }
 
-// resolveAuth picks the Authorization value: the caller's forwarded header
-// wins; catalog requests fall back to a client-credentials app token.
-func (s *SpotifyService) resolveAuth(ctx context.Context, path, authHeader string) (string, error) {
-	if authHeader != "" {
-		return authHeader, nil
-	}
-	if strings.HasPrefix(path, "/me/") {
-		return "", &ProxyError{
-			Status:  http.StatusUnauthorized,
-			Message: "user-scoped endpoints require an Authorization header",
-		}
-	}
-	if s.clientID == "" || s.clientSecret == "" {
-		return "", &ProxyError{
-			Status:  http.StatusUnauthorized,
-			Message: "no Authorization header and no SPOTIFY_CLIENT_ID/SPOTIFY_CLIENT_SECRET configured",
-		}
-	}
-	token, err := s.getAppToken(ctx)
-	if err != nil {
-		return "", err
-	}
-	return "Bearer " + token, nil
-}
+// getAppToken returns a valid client-credentials token for one app,
+// refreshing it when it is about to expire.
+func (s *SpotifyService) getAppToken(ctx context.Context, app *appCred) (string, error) {
+	app.mu.Lock()
+	defer app.mu.Unlock()
 
-// getAppToken returns a valid client-credentials token, refreshing it when it
-// is about to expire.
-func (s *SpotifyService) getAppToken(ctx context.Context) (string, error) {
-	s.appTokenMutex.Lock()
-	defer s.appTokenMutex.Unlock()
-
-	if s.appToken != "" && time.Now().Before(s.appTokenExpires) {
-		return s.appToken, nil
+	if app.token != "" && time.Now().Before(app.tokenExpires) {
+		return app.token, nil
 	}
 
 	form := url.Values{"grant_type": {"client_credentials"}}
@@ -332,7 +452,7 @@ func (s *SpotifyService) getAppToken(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create token request: %w", err)
 	}
-	req.SetBasicAuth(s.clientID, s.clientSecret)
+	req.SetBasicAuth(app.clientID, app.clientSecret)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := s.httpClient.Do(req)
@@ -357,14 +477,14 @@ func (s *SpotifyService) getAppToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("token response contained no access_token")
 	}
 
-	s.appToken = token.AccessToken
+	app.token = token.AccessToken
 	// Refresh 30 seconds before actual expiry.
-	s.appTokenExpires = time.Now().Add(time.Duration(token.ExpiresIn)*time.Second - 30*time.Second)
-	return s.appToken, nil
+	app.tokenExpires = time.Now().Add(time.Duration(token.ExpiresIn)*time.Second - 30*time.Second)
+	return app.token, nil
 }
 
-// startCooldown pauses upstream calls after a 429, honoring Retry-After.
-func (s *SpotifyService) startCooldown(retryAfter string) {
+// startCooldown pauses one app or token after a 429, honoring Retry-After.
+func (s *SpotifyService) startCooldown(key, retryAfter string) {
 	seconds, err := strconv.Atoi(strings.TrimSpace(retryAfter))
 	d := defaultCooldown
 	if err == nil && seconds > 0 {
@@ -376,19 +496,19 @@ func (s *SpotifyService) startCooldown(retryAfter string) {
 
 	s.cooldownMutex.Lock()
 	until := time.Now().Add(d)
-	if until.After(s.cooldownUntil) {
-		s.cooldownUntil = until
+	if until.After(s.cooldowns[key]) {
+		s.cooldowns[key] = until
 	}
 	s.cooldownMutex.Unlock()
 
-	s.logger.Printf("spotify returned 429 (Retry-After: %q), cooling down for %s", retryAfter, d)
+	s.logger.Printf("spotify returned 429 (Retry-After: %q) for %s, cooling down for %s", retryAfter, key, d)
 }
 
-// cooldownRemaining reports whether upstream calls are currently paused.
-func (s *SpotifyService) cooldownRemaining() (time.Duration, bool) {
+// cooldownRemaining reports whether calls for one app or token are paused.
+func (s *SpotifyService) cooldownRemaining(key string) (time.Duration, bool) {
 	s.cooldownMutex.Lock()
 	defer s.cooldownMutex.Unlock()
-	remaining := time.Until(s.cooldownUntil)
+	remaining := time.Until(s.cooldowns[key])
 	return remaining, remaining > 0
 }
 
@@ -399,6 +519,24 @@ func cooldownResult(wait time.Duration) *ProxyResult {
 		Body:        []byte(`{"error":{"status":429,"message":"spotify proxy is cooling down after an upstream rate limit"}}`),
 		RetryAfter:  strconv.Itoa(int(wait.Seconds()) + 1),
 	}
+}
+
+// appCooldownKey scopes a cooldown to one client-credentials app.
+func appCooldownKey(clientID string) string {
+	return "app:" + truncate(clientID, 8)
+}
+
+// tokenCooldownKey scopes a cooldown to one forwarded Authorization header.
+func tokenCooldownKey(authHeader string) string {
+	sum := sha256.Sum256([]byte(authHeader))
+	return "tok:" + hex.EncodeToString(sum[:8])
+}
+
+func truncate(s string, n int) string {
+	if len(s) > n {
+		return s[:n]
+	}
+	return s
 }
 
 // cacheKey builds the cache key; user-scoped entries include a hash of the
@@ -435,7 +573,47 @@ func (s *SpotifyService) cacheSet(key string, response cachedResponse, cat categ
 	s.cacheMutex.Unlock()
 }
 
-// janitor evicts expired entries so the cache does not grow without bound.
+// appPool returns a snapshot of the current app pool.
+func (s *SpotifyService) appPool() []*appCred {
+	s.appsMutex.RLock()
+	defer s.appsMutex.RUnlock()
+	return s.apps
+}
+
+// refreshApps reloads the pool from the database, keeping existing appCred
+// instances (and their cached client-credentials tokens) for apps that are
+// still present.
+func (s *SpotifyService) refreshApps() {
+	loaded, err := loadAppsFromDB(context.Background())
+	if err != nil || len(loaded) == 0 {
+		return
+	}
+
+	s.appsMutex.Lock()
+	existing := make(map[string]*appCred, len(s.apps))
+	for _, app := range s.apps {
+		existing[app.clientID] = app
+	}
+	merged := make([]*appCred, 0, len(loaded))
+	changed := len(loaded) != len(s.apps)
+	for _, app := range loaded {
+		if prev, ok := existing[app.clientID]; ok {
+			merged = append(merged, prev)
+		} else {
+			merged = append(merged, app)
+			changed = true
+		}
+	}
+	s.apps = merged
+	s.appsMutex.Unlock()
+
+	if changed {
+		s.logger.Printf("refreshed spotify app pool: %d apps", len(merged))
+	}
+}
+
+// janitor evicts expired cache entries and elapsed cooldowns so neither map
+// grows without bound, and refreshes the app pool from the database.
 func (s *SpotifyService) janitor() {
 	ticker := time.NewTicker(janitorInterval)
 	defer ticker.Stop()
@@ -448,7 +626,33 @@ func (s *SpotifyService) janitor() {
 			}
 		}
 		s.cacheMutex.Unlock()
+
+		s.cooldownMutex.Lock()
+		for key, until := range s.cooldowns {
+			if now.After(until) {
+				delete(s.cooldowns, key)
+			}
+		}
+		s.cooldownMutex.Unlock()
+
+		s.refreshApps()
 	}
+}
+
+func parseAppPairs(pairs []string) []*appCred {
+	var apps []*appCred
+	for _, pair := range pairs {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+		id, secret, ok := strings.Cut(pair, ":")
+		if !ok || id == "" || secret == "" {
+			continue
+		}
+		apps = append(apps, &appCred{clientID: id, clientSecret: secret})
+	}
+	return apps
 }
 
 func envFloat(name string, fallback float64) float64 {
