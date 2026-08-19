@@ -425,12 +425,20 @@ pub async fn get_currently_playing(
         let retry_after = headers
             .get("retry-after")
             .and_then(|v| v.to_str().ok())
-            .unwrap_or("");
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(60);
         tracing::warn!(
             email = %user_id,
-            retry_after = %retry_after,
-            "too many requests"
+            retry_after,
+            "too many requests, backing off"
         );
+        // Cache the "nothing playing" marker for the penalty duration so the
+        // 1s poll loop (and its refresh_token call) serves from cache instead
+        // of hammering the API, which keeps extending the rate limit window.
+        let backoff = retry_after.clamp(5, 3600) as usize;
+        if let Err(e) = cache.setex(user_id, "No content", backoff).await {
+            tracing::error!(email = %user_id, error = %e, "redis error");
+        }
         return Ok(None);
     }
 
