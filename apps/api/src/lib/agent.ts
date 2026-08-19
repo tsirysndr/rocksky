@@ -4,6 +4,17 @@ import { consola } from "consola";
 import extractPdsFromDid from "./extractPdsFromDid";
 import { ctx } from "context";
 
+// Body for 401 responses when the user's OAuth session with their PDS is dead
+// (refresh token expired or revoked). Their Rocksky JWT may still be valid, so
+// clients must distinguish this from a bad token: stop retrying and prompt the
+// user to log in again.
+export const pdsSessionExpired = {
+  status: "unauthorized",
+  error: "pds_session_expired",
+  message:
+    "Your session with your PDS has expired. Please log in to Rocksky again.",
+} as const;
+
 export async function createAgent(
   oauthClient: NodeOAuthClient,
   did: string,

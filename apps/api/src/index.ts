@@ -7,7 +7,7 @@ import { ctx } from "context";
 import { and, desc, eq, isNotNull, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { createAgent } from "lib/agent";
+import { createAgent, pdsSessionExpired } from "lib/agent";
 import {
   ScrobbleBlockedError,
   ScrobbleBotFlaggedError,
@@ -174,7 +174,7 @@ app.post("/now-playing", async (c) => {
       `[now-playing] no agent for ${chalk.cyan(did)}, returning 401`,
     );
     c.status(401);
-    return c.text("Unauthorized");
+    return c.json(pdsSessionExpired);
   }
   consola.debug(
     `[now-playing] agent created for ${chalk.cyan(did)}, calling scrobbleTrack`,
@@ -271,6 +271,11 @@ app.post("/likes", async (c) => {
 
   const { did } = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, did);
+  if (!agent) {
+    consola.warn(`[likes] no agent for ${chalk.cyan(did)}, returning 401`);
+    c.status(401);
+    return c.json(pdsSessionExpired);
+  }
 
   const user = await ctx.db
     .select()
@@ -308,6 +313,11 @@ app.delete("/likes/:sha256", async (c) => {
 
   const { did } = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, did);
+  if (!agent) {
+    consola.warn(`[likes] no agent for ${chalk.cyan(did)}, returning 401`);
+    c.status(401);
+    return c.json(pdsSessionExpired);
+  }
 
   const user = await ctx.db
     .select()
@@ -526,8 +536,9 @@ app.post("/tracks", async (c) => {
 
   const agent = await createAgent(ctx.oauthClient, did);
   if (!agent) {
+    consola.warn(`[tracks] no agent for ${chalk.cyan(did)}, returning 401`);
     c.status(401);
-    return c.text("Unauthorized");
+    return c.json(pdsSessionExpired);
   }
 
   try {
