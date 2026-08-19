@@ -35,8 +35,10 @@ const (
 	defaultBurst = 10
 
 	// maxCooldown caps how long a single 429 Retry-After can pause upstream
-	// calls, so one huge header value cannot lock the proxy out for hours.
-	maxCooldown = 5 * time.Minute
+	// calls. Spotify's app-level penalties run to hours (observed >5000s), and
+	// probing before Retry-After expires can extend them — so honor the header
+	// up to this cap rather than retrying early.
+	maxCooldown = 2 * time.Hour
 
 	// defaultCooldown is used when a 429 comes without a usable Retry-After.
 	defaultCooldown = 5 * time.Second
@@ -379,7 +381,7 @@ func (s *SpotifyService) startCooldown(retryAfter string) {
 	}
 	s.cooldownMutex.Unlock()
 
-	s.logger.Printf("spotify returned 429, cooling down for %s", d)
+	s.logger.Printf("spotify returned 429 (Retry-After: %q), cooling down for %s", retryAfter, d)
 }
 
 // cooldownRemaining reports whether upstream calls are currently paused.
