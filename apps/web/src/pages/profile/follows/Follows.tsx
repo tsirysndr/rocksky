@@ -9,7 +9,7 @@ import {
 } from "../../../hooks/useGraph";
 import { Avatar } from "baseui/avatar";
 import { useAtom } from "jotai";
-import { activeTabAtom } from "../../../atoms/tab";
+import { useProfileActiveTab } from "../../../atoms/tab";
 import { followsAtom } from "../../../atoms/follows";
 import { Button } from "baseui/button";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
@@ -45,7 +45,7 @@ function PersonRowSkeleton({ rows = 6 }: { rows?: number }) {
 }
 
 function Follows() {
-  const [, setActiveKey] = useAtom(activeTabAtom);
+  const [, setActiveKey] = useProfileActiveTab();
   const [follows, setFollows] = useAtom(followsAtom);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { did } = useParams({ strict: false });
@@ -157,7 +157,7 @@ function Follows() {
                   to={`/profile/${follow.handle}` as any}
                   className="no-underline"
                   onClick={() => {
-                    setActiveKey(0);
+                    setActiveKey(0, follow.did);
                     scrollToTop();
                   }}
                 >
@@ -172,7 +172,7 @@ function Follows() {
                     to={`/profile/${follow.handle}` as string}
                     className="no-underline"
                     onClick={() => {
-                      setActiveKey(0);
+                      setActiveKey(0, follow.did);
                       scrollToTop();
                     }}
                   >
@@ -187,7 +187,7 @@ function Follows() {
                     to={`/profile/${follow.handle}` as string}
                     className="no-underline text-[var(--color-primary)]"
                     onClick={() => {
-                      setActiveKey(0);
+                      setActiveKey(0, follow.did);
                       scrollToTop();
                     }}
                   >

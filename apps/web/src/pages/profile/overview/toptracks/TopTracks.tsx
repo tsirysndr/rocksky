@@ -9,21 +9,15 @@ import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { themeAtom } from "../../../../atoms/theme";
 import { topTracksAtom } from "../../../../atoms/topTracks";
+import { useTopTracksRange } from "../../../../atoms/range";
 import { userAtom } from "../../../../atoms/user";
 import { useTracksQuery } from "../../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
+import { useProfileKey } from "../../../../hooks/useProfileKey";
 import styles from "./styles";
 import { IconChevronDown } from "@tabler/icons-react";
-import { getLastDays } from "../../../../lib/date";
-import {
-  LAST_7_DAYS,
-  LAST_30_DAYS,
-  LAST_90_DAYS,
-  LAST_180_DAYS,
-  LAST_365_DAYS,
-  LAST_DAYS_LABELS,
-  ALL_TIME,
-} from "../../../../consts";
+import { getRangeDates } from "../../../../lib/date";
+import { LAST_7_DAYS, LAST_DAYS_LABELS, ALL_TIME } from "../../../../consts";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
 import ContentLoader from "react-content-loader";
 
@@ -75,10 +69,13 @@ function TopTracks(props: TopTracksProps) {
     ...props,
   };
 
-  const [range, setRange] = useState<[Date, Date] | []>(
-    props.withDateRange ? getLastDays(7) : [],
+  const withDateRange = props.withDateRange;
+  const profileKey = useProfileKey();
+  const [topTracksRange, setTopTracksRange] = useTopTracksRange(profileKey);
+  const range = useMemo(
+    () => (withDateRange ? getRangeDates(topTracksRange) : []),
+    [withDateRange, topTracksRange],
   );
-  const [topTracksRange, setTopTracksRange] = useState<string>(LAST_7_DAYS);
   const setTopTracks = useSetAtom(topTracksAtom);
   const topTracks = useAtomValue(topTracksAtom);
   const { darkMode } = useAtomValue(themeAtom);
@@ -117,8 +114,11 @@ function TopTracks(props: TopTracksProps) {
       return;
     }
 
-    if (topTracksRange === LAST_7_DAYS && tracksResult.data.length === 0) {
-      setRange([]);
+    if (
+      withDateRange &&
+      topTracksRange === LAST_7_DAYS &&
+      tracksResult.data.length === 0
+    ) {
       setTopTracksRange(ALL_TIME);
     }
   }, [
@@ -126,28 +126,11 @@ function TopTracks(props: TopTracksProps) {
     tracksResult.isError,
     topTracksRange,
     tracksResult.data,
+    withDateRange,
+    setTopTracksRange,
   ]);
   const onSelectLastDays = (id: string) => {
     setTopTracksRange(id);
-    switch (id) {
-      case LAST_7_DAYS:
-        setRange(getLastDays(7));
-        break;
-      case LAST_30_DAYS:
-        setRange(getLastDays(30));
-        break;
-      case LAST_90_DAYS:
-        setRange(getLastDays(90));
-        break;
-      case LAST_180_DAYS:
-        setRange(getLastDays(180));
-        break;
-      case LAST_365_DAYS:
-        setRange(getLastDays(365));
-        break;
-      default:
-        setRange([]);
-    }
   };
 
   const maxScrobbles = topTracks.length > 0 ? topTracks[0].scrobbles || 1 : 0;

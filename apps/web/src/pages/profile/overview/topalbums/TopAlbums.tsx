@@ -4,22 +4,16 @@ import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { HeadingSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
+import { useTopAlbumsRange } from "../../../../atoms/range";
 import { userAtom } from "../../../../atoms/user";
 import SongCover from "../../../../components/SongCover";
 import { useAlbumsQuery } from "../../../../hooks/useLibrary";
+import { useProfileKey } from "../../../../hooks/useProfileKey";
 import { IconChevronDown } from "@tabler/icons-react";
-import { getLastDays } from "../../../../lib/date";
-import {
-  ALL_TIME,
-  LAST_180_DAYS,
-  LAST_30_DAYS,
-  LAST_365_DAYS,
-  LAST_7_DAYS,
-  LAST_90_DAYS,
-  LAST_DAYS_LABELS,
-} from "../../../../consts";
+import { getRangeDates } from "../../../../lib/date";
+import { ALL_TIME, LAST_7_DAYS, LAST_DAYS_LABELS } from "../../../../consts";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
 import ContentLoader from "react-content-loader";
 
@@ -38,10 +32,11 @@ const Link = styled(DefaultLink)`
 `;
 
 function TopAlbums() {
-  const [topAlbumsRange, setTopAlbumsRange] = useState<string>(LAST_7_DAYS);
+  const profileKey = useProfileKey();
+  const [topAlbumsRange, setTopAlbumsRange] = useTopAlbumsRange(profileKey);
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
-  const [range, setRange] = useState<[Date, Date] | []>(getLastDays(7));
+  const range = useMemo(() => getRangeDates(topAlbumsRange), [topAlbumsRange]);
   const { did } = useParams({ strict: false });
   const albumsResult = useAlbumsQuery(did!, 0, 12, ...range);
   const user = useAtomValue(userAtom);
@@ -65,7 +60,6 @@ function TopAlbums() {
     }
 
     if (topAlbumsRange === LAST_7_DAYS && albumsResult.data.length === 0) {
-      setRange([]);
       setTopAlbumsRange(ALL_TIME);
     }
   }, [
@@ -73,32 +67,11 @@ function TopAlbums() {
     albumsResult.isError,
     topAlbumsRange,
     albumsResult.data,
+    setTopAlbumsRange,
   ]);
 
   const onSelectLastDays = (id: string) => {
     setTopAlbumsRange(id);
-    switch (id) {
-      case LAST_7_DAYS:
-        setRange(getLastDays(7));
-        break;
-      case LAST_30_DAYS:
-        setRange(getLastDays(30));
-        break;
-      case LAST_90_DAYS:
-        setRange(getLastDays(90));
-        break;
-      case LAST_180_DAYS:
-        setRange(getLastDays(180));
-        break;
-      case LAST_365_DAYS:
-        setRange(getLastDays(365));
-        break;
-      case ALL_TIME:
-        setRange([]);
-        break;
-      default:
-        setRange([]);
-    }
   };
 
   return (

@@ -14,6 +14,11 @@ import { Link, useParams } from "react-router-dom";
 import numeral from "numeral";
 import { followsAtom } from "../../atoms/follows";
 import { profileAtom } from "../../atoms/profile";
+import {
+  useProfileActiveTab,
+  useProfileLibraryTab,
+  useProfileOverviewRange,
+} from "../../atoms/tab";
 import Main from "../../layouts/Main";
 import {
   useFollowAccountMutation,
@@ -209,7 +214,7 @@ function rangeToDateParams(rangeKey: string): [Date, Date] | [] {
 // ─── overview ─────────────────────────────────────────────────────────────────
 
 function OverviewTab({ did }: { did: string }) {
-  const [rangeKey, setRangeKey] = useState(LAST_7_DAYS);
+  const [rangeKey, setRangeKey] = useProfileOverviewRange(did);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const dateParams = rangeToDateParams(rangeKey);
@@ -457,7 +462,7 @@ function Pager({ page, totalPages, onPrev, onNext }: {
 }
 
 function LibraryTab({ did }: { did: string }) {
-  const [sub, setSub] = useState(0);
+  const [sub, setSub] = useProfileLibraryTab(did);
   const [scrobblePage, setScrobblePage] = useState(1);
   const [artistPage, setArtistPage] = useState(1);
   const [albumPage, setAlbumPage] = useState(1);
@@ -930,13 +935,15 @@ const TABS = ["Overview", "Library", "Followers", "Following", "Circles", "Loved
 
 export default function Profile() {
   const { did } = useParams<{ did: string }>();
-  const [activeTab, setActiveTab] = useState(0);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [follows, setFollows] = useAtom(followsAtom);
   const currentDid = localStorage.getItem("did");
   const loggedInProfile = useAtomValue(profileAtom);
 
   const { data: profile, isLoading } = useProfileByDidQuery(did!);
+  // The route param can be a handle, so key the persisted UI state on the
+  // resolved did whenever it is available.
+  const [activeTab, setActiveTab] = useProfileActiveTab(profile?.did || did);
   const { data: stats } = useProfileStatsByDidQuery(did);
 
   const [genreRange, setGenreRange] = useState<[Date, Date] | []>(getLastDays(7));

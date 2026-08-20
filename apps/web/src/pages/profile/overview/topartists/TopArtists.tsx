@@ -9,24 +9,18 @@ import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { themeAtom } from "../../../../atoms/theme";
 import { topArtistsAtom } from "../../../../atoms/topArtists";
+import { useTopArtistsRange } from "../../../../atoms/range";
 import { userAtom } from "../../../../atoms/user";
 import Artist from "../../../../components/Icons/Artist";
 import { useArtistsQuery } from "../../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
+import { useProfileKey } from "../../../../hooks/useProfileKey";
 import styles from "./styles";
 import { IconChevronDown } from "@tabler/icons-react";
-import { getLastDays } from "../../../../lib/date";
+import { getRangeDates } from "../../../../lib/date";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
 import ContentLoader from "react-content-loader";
-import {
-  ALL_TIME,
-  LAST_180_DAYS,
-  LAST_30_DAYS,
-  LAST_365_DAYS,
-  LAST_7_DAYS,
-  LAST_90_DAYS,
-  LAST_DAYS_LABELS,
-} from "../../../../consts";
+import { ALL_TIME, LAST_7_DAYS, LAST_DAYS_LABELS } from "../../../../consts";
 
 const Group = styled.div<{ mb?: number }>`
   display: flex;
@@ -58,11 +52,11 @@ interface TopArtistsProps {
 
 function TopArtists(props: TopArtistsProps) {
   const { showTitle = true, size = 30, showPagination, withDateRange } = props;
-  const [topArtistsRange, setTopArtistsRange] = useState<string | undefined>(
-    withDateRange ? LAST_7_DAYS : undefined,
-  );
-  const [range, setRange] = useState<[Date, Date] | []>(
-    withDateRange ? getLastDays(7) : [],
+  const profileKey = useProfileKey();
+  const [topArtistsRange, setTopArtistsRange] = useTopArtistsRange(profileKey);
+  const range = useMemo(
+    () => (withDateRange ? getRangeDates(topArtistsRange) : []),
+    [withDateRange, topArtistsRange],
   );
   const setTopArtists = useSetAtom(topArtistsAtom);
   const topArtists = useAtomValue(topArtistsAtom);
@@ -86,25 +80,6 @@ function TopArtists(props: TopArtistsProps) {
 
   const onSelectLastDays = (id: string) => {
     setTopArtistsRange(id);
-    switch (id) {
-      case LAST_7_DAYS:
-        setRange(getLastDays(7));
-        break;
-      case LAST_30_DAYS:
-        setRange(getLastDays(30));
-        break;
-      case LAST_90_DAYS:
-        setRange(getLastDays(90));
-        break;
-      case LAST_180_DAYS:
-        setRange(getLastDays(180));
-        break;
-      case LAST_365_DAYS:
-        setRange(getLastDays(365));
-        break;
-      default:
-        setRange([]);
-    }
   };
 
   useEffect(() => {
@@ -125,8 +100,11 @@ function TopArtists(props: TopArtistsProps) {
       return;
     }
 
-    if (topArtistsRange === LAST_7_DAYS && artistsResult?.data?.length === 0) {
-      setRange([]);
+    if (
+      withDateRange &&
+      topArtistsRange === LAST_7_DAYS &&
+      artistsResult?.data?.length === 0
+    ) {
       setTopArtistsRange(ALL_TIME);
     }
   }, [
@@ -134,6 +112,8 @@ function TopArtists(props: TopArtistsProps) {
     artistsResult.isError,
     topArtistsRange,
     artistsResult.data,
+    withDateRange,
+    setTopArtistsRange,
   ]);
 
   const maxScrobbles = topArtists.length > 0 ? topArtists[0].scrobbles || 1 : 0;

@@ -33,7 +33,7 @@ import {
 } from "../../hooks/useGraph";
 import Follows from "./follows";
 import Followers from "./followers";
-import { activeTabAtom } from "../../atoms/tab";
+import { useProfileActiveTab } from "../../atoms/tab";
 import Circles from "./circles";
 import TopTrack from "./toptrack";
 import { useArtistsQuery } from "../../hooks/useLibrary";
@@ -65,9 +65,9 @@ function Profile(props: ProfileProps) {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [profiles, setProfiles] = useAtom(profilesAtom);
-  const [activeKey, setActiveKey] = useAtom(activeTabAtom);
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
+  const [activeKey, setActiveKey] = useProfileActiveTab(profile.data?.did || did);
   const setUser = useSetAtom(userAtom);
   const { tab } = useSearch({ strict: false });
   const [range, setRange] = useState<[Date, Date] | []>(getLastDays(7));
@@ -140,13 +140,14 @@ function Profile(props: ProfileProps) {
     unfollowAccount(profile.data.did);
   };
 
+  // A route that targets a specific tab (/profile/$did/library, ...) wins;
+  // otherwise keep whatever tab was last selected for this profile.
   useEffect(() => {
     if (!props.activeKey) {
-      setActiveKey("0");
       return;
     }
-    setActiveKey(_.get(props, "activeKey", "0").split("/")[0]);
-  }, [props.activeKey, setActiveKey, props]);
+    setActiveKey(props.activeKey.split("/")[0]);
+  }, [props.activeKey, setActiveKey]);
 
   useEffect(() => {
     if (!data || isLoading) {
@@ -450,9 +451,7 @@ function Profile(props: ProfileProps) {
                 }}
               >
                 <Library
-                  activeKey={
-                    _.get(props, "activeKey", "0").split("/")[1] || "0"
-                  }
+                  activeKey={_.get(props, "activeKey", "").split("/")[1]}
                 />
               </Tab>
               <Tab

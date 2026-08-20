@@ -1,8 +1,9 @@
 import { useSearch } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingSmall } from "baseui/typography";
-import _ from "lodash";
-import { Key, useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useProfileLibraryTab } from "../../../atoms/tab";
+import { useProfileKey } from "../../../hooks/useProfileKey";
 import RecentTracks from "../overview/recenttracks";
 import TopArtists from "../overview/topartists";
 import TopTracks from "../overview/toptracks";
@@ -14,11 +15,20 @@ export type LibraryProps = {
 };
 
 function Library(props: LibraryProps) {
-  const [activeKey, setActiveKey] = useState<Key>(
-    _.get(props, "activeKey", "0"),
-  );
+  const profileKey = useProfileKey();
+  const [activeKey, setActiveKey] = useProfileLibraryTab(profileKey);
   const { tab } = useSearch({ strict: false });
   consola.info("tab", tab);
+
+  // A route/search param that targets a specific sub-tab wins; otherwise keep
+  // the last selected one for this profile.
+  useEffect(() => {
+    if (props.activeKey === undefined) {
+      return;
+    }
+
+    setActiveKey(props.activeKey);
+  }, [props.activeKey, setActiveKey]);
 
   useEffect(() => {
     if (!tab) {
@@ -26,7 +36,7 @@ function Library(props: LibraryProps) {
     }
 
     setActiveKey(tab);
-  }, [tab]);
+  }, [tab, setActiveKey]);
 
   return (
     <>

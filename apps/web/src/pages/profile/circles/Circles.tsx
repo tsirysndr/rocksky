@@ -18,7 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import SignInModal from "../../../components/SignInModal";
-import { activeTabAtom } from "../../../atoms/tab";
+import { useProfileActiveTab } from "../../../atoms/tab";
 import scrollToTop from "../../../lib/scrollToTop";
 
 function CircleRowSkeleton({ rows = 5 }: { rows?: number }) {
@@ -48,7 +48,7 @@ function CircleRowSkeleton({ rows = 5 }: { rows?: number }) {
 }
 
 function Circles() {
-  const [, setActiveKey] = useAtom(activeTabAtom);
+  const [, setActiveKey] = useProfileActiveTab();
   const [follows, setFollows] = useAtom(followsAtom);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { did } = useParams({ strict: false });
@@ -133,7 +133,7 @@ function Circles() {
                   to={`/profile/${neighbour.handle}` as string}
                   className="no-underline mt-[10px]"
                   onClick={() => {
-                    setActiveKey(0);
+                    setActiveKey(0, neighbour.did);
                     scrollToTop();
                   }}
                 >
@@ -149,7 +149,7 @@ function Circles() {
                       to={`/profile/${neighbour.handle}` as string}
                       className="no-underline"
                       onClick={() => {
-                        setActiveKey(0);
+                        setActiveKey(0, neighbour.did);
                         scrollToTop();
                       }}
                     >
@@ -164,7 +164,7 @@ function Circles() {
                       to={`/profile/${neighbour.handle}` as string}
                       className="no-underline text-[var(--color-primary)]"
                       onClick={() => {
-                        setActiveKey(0);
+                        setActiveKey(0, neighbour.did);
                         scrollToTop();
                       }}
                     >
