@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -135,6 +136,125 @@ func TestUncachedRequestsAre429DuringCooldown(t *testing.T) {
 	}
 	if result.RetryAfter == "" {
 		t.Fatal("expected Retry-After to be set during cooldown")
+	}
+}
+
+func TestShortCooldownIsQueuedAndRetried(t *testing.T) {
+	var hits atomic.Int64
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only the first call is rate limited, with a Retry-After short enough
+		// to wait out inside the queue budget.
+		if hits.Add(1) == 1 {
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"abc"}`))
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL, WithMaxQueueWait(10*time.Second))
+
+	start := time.Now()
+	result, err := s.Proxy(context.Background(), http.MethodGet, "/artists/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("call failed: %v", err)
+	}
+	if result.Status != http.StatusOK {
+		t.Fatalf("expected the queued retry to return 200, got %d", result.Status)
+	}
+	if elapsed := time.Since(start); elapsed < time.Second {
+		t.Fatalf("expected the request to wait out the cooldown, returned after %s", elapsed)
+	}
+	if got := hits.Load(); got != 2 {
+		t.Fatalf("expected 2 upstream hits (429 then retry), got %d", got)
+	}
+}
+
+func TestLongCooldownIsNotQueued(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "600")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer upstream.Close()
+
+	s := newTestService(upstream.URL, WithMaxQueueWait(2*time.Second))
+
+	start := time.Now()
+	result, err := s.Proxy(context.Background(), http.MethodGet, "/artists/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("call failed: %v", err)
+	}
+	if result.Status != http.StatusTooManyRequests {
+		t.Fatalf("expected 429, got %d", result.Status)
+	}
+	if elapsed := time.Since(start); elapsed > time.Second {
+		t.Fatalf("a 600s cooldown must not be queued, returned after %s", elapsed)
+	}
+}
+
+func TestSaturatedQueueReturns429NotAnError(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"id":"abc"}`))
+	}))
+	defer upstream.Close()
+
+	// One request per 10 minutes, no burst left after the first call: the
+	// second request cannot get a slot within its budget.
+	s := newTestService(upstream.URL,
+		WithLimiter(rate.NewLimiter(rate.Every(10*time.Minute), 1)),
+		WithMaxQueueWait(time.Second),
+	)
+	ctx := context.Background()
+
+	if _, err := s.Proxy(ctx, http.MethodGet, "/artists/abc", "Bearer user-token", nil); err != nil {
+		t.Fatalf("first call failed: %v", err)
+	}
+
+	start := time.Now()
+	result, err := s.Proxy(ctx, http.MethodGet, "/artists/other", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("saturated queue must not surface as an error (it became a 502): %v", err)
+	}
+	if result.Status != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 when the queue is saturated, got %d", result.Status)
+	}
+	if result.RetryAfter == "" {
+		t.Fatal("expected Retry-After to be set when the queue is saturated")
+	}
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("saturated request should be rejected within its budget, took %s", elapsed)
+	}
+}
+
+func TestCallerCancellationIsReportedAsContextError(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"id":"abc"}`))
+	}))
+	defer upstream.Close()
+
+	// The second call has to wait ~2s for a slot — well inside its budget, so
+	// it is genuinely parked in the limiter when the caller gives up.
+	s := newTestService(upstream.URL,
+		WithLimiter(rate.NewLimiter(rate.Every(2*time.Second), 1)),
+		WithMaxQueueWait(time.Minute),
+	)
+	ctx := context.Background()
+
+	if _, err := s.Proxy(ctx, http.MethodGet, "/artists/abc", "Bearer user-token", nil); err != nil {
+		t.Fatalf("first call failed: %v", err)
+	}
+
+	cancelCtx, cancel := context.WithCancel(ctx)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+
+	_, err := s.Proxy(cancelCtx, http.MethodGet, "/artists/other", "Bearer user-token", nil)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected a context.Canceled error the handler can map to 499, got %v", err)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -44,8 +45,25 @@ const (
 	// defaultCooldown is used when a 429 comes without a usable Retry-After.
 	defaultCooldown = 5 * time.Second
 
+	// defaultMaxQueueWait bounds the total time one request may spend waiting
+	// inside the proxy — for a rate limiter slot, or for a short cooldown to
+	// expire — before it is answered with a 429. Without a bound the limiter
+	// queue grows until clients give up, and every request ends up burning its
+	// caller's full timeout before failing. Override with
+	// SPOTIFY_PROXY_MAX_WAIT (seconds).
+	defaultMaxQueueWait = 20 * time.Second
+
+	// maxCooldownRetries bounds how many times one request may wait out a
+	// cooldown and try again before it gives up and returns 429.
+	maxCooldownRetries = 3
+
 	janitorInterval = 10 * time.Minute
 )
+
+// errQueueFull means the proxy could not get a rate limiter slot within the
+// request's queue budget. It is answered with 429, never 502: nothing reached
+// Spotify, and the caller should simply come back later.
+var errQueueFull = errors.New("proxy queue budget exhausted")
 
 // category describes how responses for a path are cached.
 type category struct {
@@ -118,6 +136,10 @@ type SpotifyService struct {
 	limiter    *rate.Limiter
 	categorize func(path string) category
 
+	// maxQueueWait is how long a single request may spend queued inside the
+	// proxy before it is answered with 429 instead of held open.
+	maxQueueWait time.Duration
+
 	// apps is the client-credentials pool used for catalog requests that
 	// arrive without a forwarded Authorization header. Requests round-robin
 	// across apps and fail over when one app is rate limited. The pool is
@@ -173,6 +195,12 @@ func WithApps(pairs ...string) Option {
 	return func(s *SpotifyService) { s.apps = parseAppPairs(pairs) }
 }
 
+// WithMaxQueueWait overrides how long a request may wait for a limiter slot or
+// a cooldown before the proxy answers 429.
+func WithMaxQueueWait(d time.Duration) Option {
+	return func(s *SpotifyService) { s.maxQueueWait = d }
+}
+
 // WithCategorizer overrides cache categorization (used in tests).
 func WithCategorizer(fn func(path string) category) Option {
 	return func(s *SpotifyService) { s.categorize = fn }
@@ -192,11 +220,12 @@ func NewSpotifyService(opts ...Option) *SpotifyService {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		limiter:    rate.NewLimiter(rate.Limit(rps), burst),
-		categorize: categorize,
-		cache:      make(map[string]cacheEntry),
-		cooldowns:  make(map[string]time.Time),
-		logger:     log.New(os.Stdout, "spotify: ", log.LstdFlags|log.Lmsgprefix),
+		limiter:      rate.NewLimiter(rate.Limit(rps), burst),
+		categorize:   categorize,
+		maxQueueWait: envDuration("SPOTIFY_PROXY_MAX_WAIT", defaultMaxQueueWait),
+		cache:        make(map[string]cacheEntry),
+		cooldowns:    make(map[string]time.Time),
+		logger:       log.New(os.Stdout, "spotify: ", log.LstdFlags|log.Lmsgprefix),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -240,8 +269,16 @@ func (s *SpotifyService) Proxy(ctx context.Context, method, path, authHeader str
 		}
 	}
 
+	// Every request gets a fixed budget for time spent waiting inside the
+	// proxy, tightened to the caller's own deadline when it has one. Anything
+	// that cannot be served within it is answered 429 rather than parked.
+	deadline := time.Now().Add(s.maxQueueWait)
+	if d, ok := ctx.Deadline(); ok && d.Before(deadline) {
+		deadline = d
+	}
+
 	if authHeader != "" {
-		return s.proxyForwarded(ctx, method, path, authHeader, body, isGet, key, cat)
+		return s.proxyForwarded(ctx, method, path, authHeader, body, isGet, key, cat, deadline)
 	}
 
 	if strings.HasPrefix(path, "/me/") {
@@ -258,95 +295,47 @@ func (s *SpotifyService) Proxy(ctx context.Context, method, path, authHeader str
 		}
 	}
 
-	return s.proxyViaAppPool(ctx, method, path, body, isGet, key, cat, apps)
+	return s.proxyViaAppPool(ctx, method, path, body, isGet, key, cat, apps, deadline)
 }
 
 // proxyForwarded handles a request carrying the caller's own Authorization
-// header. Its 429 cooldown is scoped to that token.
-func (s *SpotifyService) proxyForwarded(ctx context.Context, method, path, authHeader string, body []byte, isGet bool, key string, cat category) (*ProxyResult, error) {
+// header. Its 429 cooldown is scoped to that token. A cooldown short enough to
+// fit in the request's queue budget is waited out and retried; a longer one is
+// reported to the caller straight away.
+func (s *SpotifyService) proxyForwarded(ctx context.Context, method, path, authHeader string, body []byte, isGet bool, key string, cat category, deadline time.Time) (*ProxyResult, error) {
 	ck := tokenCooldownKey(authHeader)
-	if wait, coolingDown := s.cooldownRemaining(ck); coolingDown {
-		if isGet {
-			if entry, ok := s.cacheGet(key); ok {
-				s.logger.Printf("cooldown active for %s, serving stale response for %s", ck, path)
-				return entry.response.result(true), nil
-			}
-		}
-		return cooldownResult(wait), nil
-	}
 
-	result, err := s.fetch(ctx, method, path, authHeader, body)
-	if err != nil {
-		return nil, err
-	}
-
-	switch {
-	case result.Status == http.StatusOK || result.Status == http.StatusNoContent:
-		if isGet {
-			s.cacheSet(key, cachedResponse{
-				status:      result.Status,
-				contentType: result.ContentType,
-				body:        result.Body,
-			}, cat)
-		}
-	case result.Status == http.StatusTooManyRequests:
-		s.startCooldown(ck, result.RetryAfter)
-		if isGet {
-			if entry, ok := s.cacheGet(key); ok {
-				s.logger.Printf("upstream returned 429, serving stale response for %s", path)
-				return entry.response.result(true), nil
-			}
-		}
-	case result.Status >= 500:
-		if isGet {
-			if entry, ok := s.cacheGet(key); ok {
-				s.logger.Printf("upstream returned %d, serving stale response for %s", result.Status, path)
-				return entry.response.result(true), nil
-			}
-		}
-	}
-
-	return result, nil
-}
-
-// proxyViaAppPool handles a catalog request with no forwarded token: it walks
-// the app pool round-robin, skipping apps in cooldown and failing over to the
-// next app when one answers 429.
-func (s *SpotifyService) proxyViaAppPool(ctx context.Context, method, path string, body []byte, isGet bool, key string, cat category, apps []*appCred) (*ProxyResult, error) {
-	n := len(apps)
-	start := int(s.appCursor.Add(1)-1) % n
-	minWait := time.Duration(-1)
-	var lastErr error
-
-	for i := 0; i < n; i++ {
-		app := apps[(start+i)%n]
-		ck := appCooldownKey(app.clientID)
+	for attempt := 0; ; attempt++ {
 		if wait, coolingDown := s.cooldownRemaining(ck); coolingDown {
-			if minWait < 0 || wait < minWait {
-				minWait = wait
+			if isGet {
+				if entry, ok := s.cacheGet(key); ok {
+					s.logger.Printf("cooldown active for %s, serving stale response for %s", ck, path)
+					return entry.response.result(true), nil
+				}
 			}
-			continue
+			queued, err := s.waitOut(ctx, wait, deadline, attempt)
+			if err != nil {
+				return nil, err
+			}
+			if queued {
+				s.logger.Printf("queued %s behind a %s cooldown for %s", ck, wait.Round(time.Millisecond), path)
+				continue
+			}
+			return cooldownResult(wait), nil
 		}
 
-		token, err := s.getAppToken(ctx, app)
-		if err != nil {
-			// Bad credentials or token endpoint trouble: remember the error
-			// and let another app try.
-			lastErr = err
-			continue
+		result, err := s.fetch(ctx, method, path, authHeader, body, deadline)
+		if errors.Is(err, errQueueFull) {
+			if isGet {
+				if entry, ok := s.cacheGet(key); ok {
+					s.logger.Printf("proxy queue saturated, serving stale response for %s", path)
+					return entry.response.result(true), nil
+				}
+			}
+			return queueFullResult(), nil
 		}
-
-		result, err := s.fetch(ctx, method, path, "Bearer "+token, body)
 		if err != nil {
 			return nil, err
-		}
-
-		if result.Status == http.StatusTooManyRequests {
-			s.startCooldown(ck, result.RetryAfter)
-			if wait, _ := s.cooldownRemaining(ck); minWait < 0 || wait < minWait {
-				minWait = wait
-			}
-			continue
 		}
 
 		switch {
@@ -357,6 +346,24 @@ func (s *SpotifyService) proxyViaAppPool(ctx context.Context, method, path strin
 					contentType: result.ContentType,
 					body:        result.Body,
 				}, cat)
+			}
+		case result.Status == http.StatusTooManyRequests:
+			s.startCooldown(ck, result.RetryAfter)
+			if isGet {
+				if entry, ok := s.cacheGet(key); ok {
+					s.logger.Printf("upstream returned 429, serving stale response for %s", path)
+					return entry.response.result(true), nil
+				}
+			}
+			// A short Retry-After is worth waiting out here rather than
+			// bouncing the caller, which would only retry anyway.
+			wait, _ := s.cooldownRemaining(ck)
+			queued, err := s.waitOut(ctx, wait, deadline, attempt)
+			if err != nil {
+				return nil, err
+			}
+			if queued {
+				continue
 			}
 		case result.Status >= 500:
 			if isGet {
@@ -369,32 +376,113 @@ func (s *SpotifyService) proxyViaAppPool(ctx context.Context, method, path strin
 
 		return result, nil
 	}
+}
 
-	// Every app is cooling down or failed to authenticate.
-	if isGet {
-		if entry, ok := s.cacheGet(key); ok {
-			s.logger.Printf("all %d apps cooling down, serving stale response for %s", n, path)
-			return entry.response.result(true), nil
+// proxyViaAppPool handles a catalog request with no forwarded token: it walks
+// the app pool round-robin, skipping apps in cooldown and failing over to the
+// next app when one answers 429. When the whole pool is cooling down, the
+// request queues until the earliest app frees up and walks the pool again —
+// as long as that fits inside its queue budget.
+func (s *SpotifyService) proxyViaAppPool(ctx context.Context, method, path string, body []byte, isGet bool, key string, cat category, apps []*appCred, deadline time.Time) (*ProxyResult, error) {
+	n := len(apps)
+	var lastErr error
+
+	for attempt := 0; ; attempt++ {
+		start := int(s.appCursor.Add(1)-1) % n
+		minWait := time.Duration(-1)
+
+		for i := 0; i < n; i++ {
+			app := apps[(start+i)%n]
+			ck := appCooldownKey(app.clientID)
+			if wait, coolingDown := s.cooldownRemaining(ck); coolingDown {
+				if minWait < 0 || wait < minWait {
+					minWait = wait
+				}
+				continue
+			}
+
+			token, err := s.getAppToken(ctx, app)
+			if err != nil {
+				// Bad credentials or token endpoint trouble: remember the error
+				// and let another app try.
+				lastErr = err
+				continue
+			}
+
+			result, err := s.fetch(ctx, method, path, "Bearer "+token, body, deadline)
+			if errors.Is(err, errQueueFull) {
+				if isGet {
+					if entry, ok := s.cacheGet(key); ok {
+						s.logger.Printf("proxy queue saturated, serving stale response for %s", path)
+						return entry.response.result(true), nil
+					}
+				}
+				return queueFullResult(), nil
+			}
+			if err != nil {
+				return nil, err
+			}
+
+			if result.Status == http.StatusTooManyRequests {
+				s.startCooldown(ck, result.RetryAfter)
+				if wait, _ := s.cooldownRemaining(ck); minWait < 0 || wait < minWait {
+					minWait = wait
+				}
+				continue
+			}
+
+			switch {
+			case result.Status == http.StatusOK || result.Status == http.StatusNoContent:
+				if isGet {
+					s.cacheSet(key, cachedResponse{
+						status:      result.Status,
+						contentType: result.ContentType,
+						body:        result.Body,
+					}, cat)
+				}
+			case result.Status >= 500:
+				if isGet {
+					if entry, ok := s.cacheGet(key); ok {
+						s.logger.Printf("upstream returned %d, serving stale response for %s", result.Status, path)
+						return entry.response.result(true), nil
+					}
+				}
+			}
+
+			return result, nil
 		}
+
+		// Every app is cooling down or failed to authenticate.
+		if isGet {
+			if entry, ok := s.cacheGet(key); ok {
+				s.logger.Printf("all %d apps cooling down, serving stale response for %s", n, path)
+				return entry.response.result(true), nil
+			}
+		}
+		if minWait < 0 {
+			if lastErr != nil {
+				return nil, lastErr
+			}
+			minWait = defaultCooldown
+		}
+
+		queued, err := s.waitOut(ctx, minWait, deadline, attempt)
+		if err != nil {
+			return nil, err
+		}
+		if !queued {
+			return cooldownResult(minWait), nil
+		}
+		s.logger.Printf("all %d apps cooling down, queued %s for %s", n, minWait.Round(time.Millisecond), path)
 	}
-	if lastErr != nil && minWait < 0 {
-		return nil, lastErr
-	}
-	if minWait < 0 {
-		minWait = defaultCooldown
-	}
-	return cooldownResult(minWait), nil
 }
 
 // fetch performs one rate-limited request against the Spotify API with the
 // given Authorization value. It records no cooldown itself — callers scope
 // that to the app or token that made the request.
-func (s *SpotifyService) fetch(ctx context.Context, method, path, auth string, body []byte) (*ProxyResult, error) {
-	if err := s.limiter.Wait(ctx); err != nil {
-		if ctx.Err() != nil {
-			return nil, fmt.Errorf("context cancelled during rate limiter wait: %w", ctx.Err())
-		}
-		return nil, fmt.Errorf("rate limiter error: %w", err)
+func (s *SpotifyService) fetch(ctx context.Context, method, path, auth string, body []byte, deadline time.Time) (*ProxyResult, error) {
+	if err := s.waitForSlot(ctx, deadline); err != nil {
+		return nil, err
 	}
 
 	var reader io.Reader
@@ -435,6 +523,48 @@ func (s *SpotifyService) fetch(ctx context.Context, method, path, auth string, b
 		result.RetryAfter = resp.Header.Get("Retry-After")
 	}
 	return result, nil
+}
+
+// waitForSlot blocks until the rate limiter admits this request, bounded by the
+// request's queue budget. Past that point the caller gets an immediate 429
+// instead of a connection held open until it times out — an unbounded limiter
+// queue simply converts load into a wall of client timeouts.
+func (s *SpotifyService) waitForSlot(ctx context.Context, deadline time.Time) error {
+	waitCtx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+
+	if err := s.limiter.Wait(waitCtx); err != nil {
+		if ctx.Err() != nil {
+			return fmt.Errorf("caller went away while waiting for a rate limiter slot: %w", ctx.Err())
+		}
+		return errQueueFull
+	}
+	return nil
+}
+
+// waitOut queues a request behind an active cooldown, but only when the wait
+// fits in what is left of its budget and it has not already retried too often.
+// It reports whether it waited (so the caller should try again); false means
+// answer the caller now rather than sit on the connection.
+func (s *SpotifyService) waitOut(ctx context.Context, wait time.Duration, deadline time.Time, attempt int) (bool, error) {
+	if attempt >= maxCooldownRetries {
+		return false, nil
+	}
+	if wait <= 0 {
+		return true, nil
+	}
+	if time.Now().Add(wait).After(deadline) {
+		return false, nil
+	}
+
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return true, nil
+	case <-ctx.Done():
+		return false, fmt.Errorf("caller went away while queued behind a cooldown: %w", ctx.Err())
+	}
 }
 
 // getAppToken returns a valid client-credentials token for one app,
@@ -510,6 +640,18 @@ func (s *SpotifyService) cooldownRemaining(key string) (time.Duration, bool) {
 	defer s.cooldownMutex.Unlock()
 	remaining := time.Until(s.cooldowns[key])
 	return remaining, remaining > 0
+}
+
+// queueFullResult tells the caller the proxy itself is saturated. It is a 429
+// rather than a 5xx so the Retry-After handling clients already have applies,
+// and so a local queue problem is never mistaken for Spotify being down.
+func queueFullResult() *ProxyResult {
+	return &ProxyResult{
+		Status:      http.StatusTooManyRequests,
+		ContentType: "application/json",
+		Body:        []byte(`{"error":{"status":429,"message":"spotify proxy request queue is saturated"}}`),
+		RetryAfter:  strconv.Itoa(int(defaultCooldown.Seconds())),
+	}
 }
 
 func cooldownResult(wait time.Duration) *ProxyResult {
@@ -659,6 +801,16 @@ func envFloat(name string, fallback float64) float64 {
 	if v := os.Getenv(name); v != "" {
 		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
 			return f
+		}
+	}
+	return fallback
+}
+
+// envDuration reads a duration given in whole seconds.
+func envDuration(name string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(name); v != "" {
+		if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
+			return time.Duration(secs) * time.Second
 		}
 	}
 	return fallback

@@ -15,6 +15,10 @@ import (
 	"github.com/tsirysndr/rocksky/spotify/service/spotify"
 )
 
+// statusClientClosedRequest is nginx's non-standard 499: the client
+// disconnected before the response was written.
+const statusClientClosedRequest = 499
+
 type Server struct {
 	spotify *spotify.SpotifyService
 }
@@ -89,10 +93,19 @@ func (s *Server) proxyHandler(c echo.Context) error {
 	)
 	if err != nil {
 		var proxyErr *spotify.ProxyError
-		if errors.As(err, &proxyErr) {
+		switch {
+		case errors.As(err, &proxyErr):
 			return c.JSON(proxyErr.Status, map[string]string{"error": proxyErr.Message})
+		case c.Request().Context().Err() != nil:
+			// The caller hung up before we could answer; there is nobody left
+			// to write to. Log it as 499 (nginx's convention) so that genuine
+			// upstream failures stay visible as 502 in the access log.
+			return c.NoContent(statusClientClosedRequest)
+		case errors.Is(err, context.DeadlineExceeded):
+			return c.JSON(http.StatusGatewayTimeout, map[string]string{"error": err.Error()})
+		default:
+			return c.JSON(http.StatusBadGateway, map[string]string{"error": err.Error()})
 		}
-		return c.JSON(http.StatusBadGateway, map[string]string{"error": err.Error()})
 	}
 
 	if result.RetryAfter != "" {

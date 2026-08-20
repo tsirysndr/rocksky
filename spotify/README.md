@@ -42,7 +42,22 @@ bun run spotify-proxy   # or: cd spotify && go run main.go
 | `SPOTIFY_PROXY_PORT` (or `PORT`) | `8091` | Listen port |
 | `SPOTIFY_PROXY_RPS` | `5` | Sustained upstream requests per second |
 | `SPOTIFY_PROXY_BURST` | `10` | Burst size for the limiter |
+| `SPOTIFY_PROXY_MAX_WAIT` | `20` | Seconds a request may spend queued (limiter slot or short cooldown) before it is answered `429` |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | — | Optional app credentials for catalog requests without a forwarded token |
+
+### Queueing
+
+A request that cannot be served immediately waits — for a rate limiter slot, or
+for a 429 cooldown to expire — and then tries again, up to
+`SPOTIFY_PROXY_MAX_WAIT`. Anything that will not fit in that budget is answered
+`429` with `Retry-After` right away rather than parked on an open connection.
+The bound matters: an unbounded queue just converts load into a wall of client
+timeouts, which the proxy then logged as `502`.
+
+Callers must set their own request timeout **and** actually abort the request
+when it fires — a caller that abandons a promise but leaves the socket open
+keeps holding a queue slot until its runtime's socket timeout (300s in Node)
+kicks in.
 
 ## Switching clients over
 
