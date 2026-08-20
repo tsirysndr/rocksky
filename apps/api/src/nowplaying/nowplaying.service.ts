@@ -590,6 +590,10 @@ export async function publishScrobble(ctx: Context, id: string) {
   );
 }
 
+// A missing duration is not worth holding a request open for: give up quickly
+// and let the scrobble go through without it.
+const SPOTIFY_LOOKUP_TIMEOUT_MS = 5000;
+
 async function fetchSpotifyDuration(
   ctx: Context,
   title: string,
@@ -636,16 +640,26 @@ async function fetchSpotifyDuration(
           env.SPOTIFY_ENCRYPTION_KEY,
         ),
       }),
+      signal: AbortSignal.timeout(SPOTIFY_LOOKUP_TIMEOUT_MS),
     });
+
+    if (!tokenRes.ok) return null;
 
     const { access_token } = (await tokenRes.json()) as {
       access_token: string;
     };
     const q = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
+    // Without a signal an abandoned request keeps its socket — and its slot in
+    // the Spotify proxy's rate limiter — until Node's 300s socket timeout.
     const searchRes = await fetch(
       `${env.SPOTIFY_API_URL}/search?q=${q}&type=track&limit=1`,
-      { headers: { Authorization: `Bearer ${access_token}` } },
+      {
+        headers: { Authorization: `Bearer ${access_token}` },
+        signal: AbortSignal.timeout(SPOTIFY_LOOKUP_TIMEOUT_MS),
+      },
     );
+
+    if (!searchRes.ok) return null;
 
     const data = (await searchRes.json()) as {
       tracks?: { items?: { duration_ms?: number }[] };
