@@ -19,7 +19,9 @@ func TestSmokeRealDeezerAPI(t *testing.T) {
 		t.Skip("set DEEZER_SMOKE=1 to run the live Deezer API smoke test")
 	}
 
-	// Real base URL, real rate limiter (50 req / 5 s).
+	// Real base URL, real rolling-window limiter and circuit breaker. This is
+	// also the quickest way to tell whether Deezer is refusing a given host:
+	// run it there and read the upstream status out of the failure.
 	svc := NewDeezerService()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

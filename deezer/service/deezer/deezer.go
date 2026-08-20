@@ -3,6 +3,7 @@ package deezer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,33 +16,77 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
 	// defaultBaseURL is the public Deezer API root.
 	defaultBaseURL = "https://api.deezer.com"
 
-	// Deezer rate limit: 50 requests per 5 seconds. We model this as a steady
-	// 10 req/s with a burst of 50 so short spikes are allowed while the
-	// sustained rate stays within quota.
+	// Deezer's documented quota is 50 requests per 5 seconds per IP, counted
+	// over a rolling window at their edge. We stay a few requests under it:
+	// their clock is not ours, and a request we consider spent at T may land
+	// slightly later. Override with DEEZER_RATE_LIMIT.
 	rateLimitWindow   = 5 * time.Second
-	rateLimitRequests = 50
+	rateLimitRequests = 45
 
 	// defaultCacheTTL is how long search / lookup responses stay cached.
 	defaultCacheTTL = 1 * time.Hour
 
+	// failureCacheTTL is how long an upstream failure stays cached. Without it
+	// a blocked or quota-exhausted upstream is re-asked the same question by
+	// every scrobble that follows, and the quota never recovers.
+	failureCacheTTL = 90 * time.Second
+
+	// defaultMaxQueueWait bounds the total time one /enrich may spend queued
+	// for rate limiter slots before it is answered with 429. Deezer's window is
+	// 5s, so this leaves room for several windows of backlog while still
+	// answering long before the caller's own timeout. Override with
+	// DEEZER_MAX_WAIT (seconds).
+	defaultMaxQueueWait = 20 * time.Second
+
+	// Breaker tuning: five consecutive upstream failures pause outbound calls,
+	// starting at 15s and doubling per failed probe up to 5 minutes.
+	breakerThreshold    = 5
+	breakerBaseCooldown = 15 * time.Second
+	breakerMaxCooldown  = 5 * time.Minute
+
 	// maxMatches caps how many ranked candidates we return to callers.
 	maxMatches = 10
 
-	// enrichCandidates is how many top-scoring candidates we deep-fetch to
-	// enrich (each deep fetch costs extra API calls, so keep it small).
+	// enrichScoreFloor is the score below which a candidate is not worth
+	// spending deep-fetch calls on.
 	enrichScoreFloor = 0.5
+
+	// janitorInterval is how often expired cache entries are evicted.
+	janitorInterval = 10 * time.Minute
 )
 
-// cacheEntry holds an arbitrary decoded payload with its expiration.
+// errQueueFull means we could not get a rate limiter slot inside the request's
+// queue budget. Nothing reached Deezer, so it is answered with 429 and never
+// with a 5xx: the caller should simply come back later.
+var errQueueFull = errors.New("deezer request queue budget exhausted")
+
+// UpstreamError carries the status the handler should answer with, so that a
+// saturated local queue (429) and Deezer refusing us outright (503) are never
+// reported as the same thing as a genuine upstream failure (502).
+type UpstreamError struct {
+	// Status is what we answer our own caller with.
+	Status int
+	// Upstream is the status Deezer returned, or 0 when we never reached it.
+	Upstream int
+	// RetryAfter, when non-zero, is how long the caller should wait.
+	RetryAfter time.Duration
+	Message    string
+}
+
+func (e *UpstreamError) Error() string { return e.Message }
+
+// cacheEntry holds an arbitrary decoded payload, or the failure that stands in
+// for it, with its expiration.
 type cacheEntry struct {
 	value     any
+	err       error
 	expiresAt time.Time
 }
 
@@ -50,11 +95,21 @@ type cacheEntry struct {
 type DeezerService struct {
 	baseURL    string
 	httpClient *http.Client
-	limiter    *rate.Limiter
+	limiter    *WindowLimiter
+	breaker    *breaker
 	cache      map[string]cacheEntry
 	cacheMutex sync.RWMutex
 	cacheTTL   time.Duration
 	logger     *log.Logger
+
+	// maxQueueWait is how long one request may stay queued for limiter slots
+	// before it is answered with 429 instead of held open.
+	maxQueueWait time.Duration
+
+	// group collapses concurrent identical lookups into one upstream call.
+	// Scrobbles arrive in bursts of the same album, so without it the same
+	// query is asked several times over while the first answer is in flight.
+	group singleflight.Group
 }
 
 // Option customizes a DeezerService.
@@ -76,8 +131,14 @@ func WithHTTPClient(c *http.Client) Option {
 }
 
 // WithLimiter overrides the rate limiter (used in tests to disable throttling).
-func WithLimiter(l *rate.Limiter) Option {
+func WithLimiter(l *WindowLimiter) Option {
 	return func(s *DeezerService) { s.limiter = l }
+}
+
+// WithMaxQueueWait overrides how long a request may wait for limiter slots
+// before the service answers 429.
+func WithMaxQueueWait(d time.Duration) Option {
+	return func(s *DeezerService) { s.maxQueueWait = d }
 }
 
 // NewDeezerService creates a new service with rate limiting and caching.
@@ -87,26 +148,30 @@ func NewDeezerService(opts ...Option) *DeezerService {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		limiter:  rate.NewLimiter(rate.Every(rateLimitWindow/rateLimitRequests), rateLimitRequests),
-		cache:    make(map[string]cacheEntry),
-		cacheTTL: defaultCacheTTL,
-		logger:   log.New(os.Stdout, "deezer: ", log.LstdFlags|log.Lmsgprefix),
+		limiter:      NewWindowLimiter(envInt("DEEZER_RATE_LIMIT", rateLimitRequests), rateLimitWindow),
+		breaker:      newBreaker(breakerThreshold, breakerBaseCooldown, breakerMaxCooldown),
+		cache:        make(map[string]cacheEntry),
+		cacheTTL:     defaultCacheTTL,
+		maxQueueWait: envDuration("DEEZER_MAX_WAIT", defaultMaxQueueWait),
+		logger:       log.New(os.Stdout, "deezer: ", log.LstdFlags|log.Lmsgprefix),
 	}
 	for _, opt := range opts {
 		opt(s)
 	}
+	go s.janitor()
 	return s
 }
 
-// cacheGet returns a cached, non-expired value.
-func (s *DeezerService) cacheGet(key string) (any, bool) {
+// cacheGet returns a cached, non-expired value, or the cached failure that
+// stands in for it.
+func (s *DeezerService) cacheGet(key string) (any, error, bool) {
 	s.cacheMutex.RLock()
 	entry, found := s.cache[key]
 	s.cacheMutex.RUnlock()
 	if found && time.Now().UTC().Before(entry.expiresAt) {
-		return entry.value, true
+		return entry.value, entry.err, true
 	}
-	return nil, false
+	return nil, nil, false
 }
 
 // cacheSet stores a value with the configured TTL.
@@ -116,21 +181,108 @@ func (s *DeezerService) cacheSet(key string, value any) {
 	s.cacheMutex.Unlock()
 }
 
-// get performs a rate-limited, cached GET against the Deezer API and decodes
-// the JSON body into out. Deezer signals errors with an "error" envelope and a
-// 200 status, so we sniff for that too.
+// cacheFailure remembers an upstream failure for a short while so the same
+// question is not put to a failing upstream over and over. Local queue and
+// breaker rejections are not cached: nothing was learned about the answer, only
+// about our own backlog.
+func (s *DeezerService) cacheFailure(key string, err error) {
+	var upstream *UpstreamError
+	if errors.Is(err, errQueueFull) || errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) ||
+		(errors.As(err, &upstream) && upstream.Upstream == 0) {
+		return
+	}
+
+	ttl := failureCacheTTL
+	if ttl > s.cacheTTL {
+		ttl = s.cacheTTL
+	}
+	s.cacheMutex.Lock()
+	s.cache[key] = cacheEntry{err: err, expiresAt: time.Now().UTC().Add(ttl)}
+	s.cacheMutex.Unlock()
+}
+
+// janitor evicts expired entries so the cache does not grow without bound. The
+// map is only ever written under the lock, so a periodic sweep is enough.
+func (s *DeezerService) janitor() {
+	ticker := time.NewTicker(janitorInterval)
+	defer ticker.Stop()
+	for range ticker.C {
+		now := time.Now().UTC()
+		s.cacheMutex.Lock()
+		for key, entry := range s.cache {
+			if now.After(entry.expiresAt) {
+				delete(s.cache, key)
+			}
+		}
+		s.cacheMutex.Unlock()
+	}
+}
+
+// queueBudgetKey scopes one queue budget to one inbound request.
+type queueBudgetKey struct{}
+
+// withQueueBudget stamps a single deadline on the whole enrich fan-out. One
+// /enrich costs several upstream calls; without a shared budget each of them
+// would get its own, and a saturated queue would hold the caller for the sum.
+func withQueueBudget(ctx context.Context, d time.Duration) context.Context {
+	return context.WithValue(ctx, queueBudgetKey{}, time.Now().Add(d))
+}
+
+// queueDeadline is the point past which this request stops waiting, clamped to
+// the caller's own deadline so we never queue past the point anyone is
+// listening for the answer.
+func (s *DeezerService) queueDeadline(ctx context.Context) time.Time {
+	deadline, ok := ctx.Value(queueBudgetKey{}).(time.Time)
+	if !ok {
+		deadline = time.Now().Add(s.maxQueueWait)
+	}
+	if caller, ok := ctx.Deadline(); ok && caller.Before(deadline) {
+		return caller
+	}
+	return deadline
+}
+
+// get performs a queued, rate-limited, breaker-guarded GET against the Deezer
+// API and decodes the JSON body into out. Deezer signals errors with an "error"
+// envelope and a 200 status, so we sniff for that too.
+//
+// Every failure that actually reached Deezer counts against the breaker; a
+// local rejection (queue budget spent, caller gone) never does.
 func (s *DeezerService) get(ctx context.Context, path string, out any) error {
 	endpoint := s.baseURL + path
 
-	if err := s.limiter.Wait(ctx); err != nil {
-		if ctx.Err() != nil {
-			return fmt.Errorf("context cancelled during rate limiter wait: %w", ctx.Err())
+	// Check the breaker before queueing: when Deezer is refusing us there is no
+	// point spending 20 seconds of budget to find that out again.
+	allowed, probe, cooldown := s.breaker.allow(time.Now())
+	if !allowed {
+		return &UpstreamError{
+			Status:     http.StatusServiceUnavailable,
+			RetryAfter: cooldown,
+			Message: fmt.Sprintf("deezer is unavailable, cooling down for another %s",
+				cooldown.Round(time.Second)),
 		}
-		return fmt.Errorf("rate limiter error: %w", err)
+	}
+
+	if err := s.limiter.Wait(ctx, s.queueDeadline(ctx)); err != nil {
+		if probe {
+			s.breaker.abandon()
+		}
+		if ctx.Err() != nil {
+			return fmt.Errorf("caller went away while queued for a rate limiter slot: %w", ctx.Err())
+		}
+		return &UpstreamError{
+			Status:     http.StatusTooManyRequests,
+			RetryAfter: rateLimitWindow,
+			Message:    err.Error(),
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
+		if probe {
+			s.breaker.abandon()
+		}
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("User-Agent", "rocksky-deezer/0.1.0 ( https://github.com/tsirysndr/rocksky )")
@@ -139,35 +291,81 @@ func (s *DeezerService) get(ctx context.Context, path string, out any) error {
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
-			return fmt.Errorf("context error during request execution: %w", ctx.Err())
+			if probe {
+				s.breaker.abandon()
+			}
+			return fmt.Errorf("caller went away during request execution: %w", ctx.Err())
 		}
-		return fmt.Errorf("failed to execute request to %s: %w", endpoint, err)
+		return s.recordFailure(&UpstreamError{
+			Status:  http.StatusBadGateway,
+			Message: fmt.Sprintf("failed to execute request to %s: %v", endpoint, err),
+		})
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return fmt.Errorf("deezer rate limit exceeded (429) for %s", endpoint)
-	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("deezer API request to %s returned status %d", endpoint, resp.StatusCode)
+		return s.recordFailure(&UpstreamError{
+			Status:     http.StatusBadGateway,
+			Upstream:   resp.StatusCode,
+			RetryAfter: parseRetryAfter(resp.Header.Get("Retry-After")),
+			Message: fmt.Sprintf("deezer API request to %s returned status %d",
+				endpoint, resp.StatusCode),
+		})
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read response body from %s: %w", endpoint, err)
+		return s.recordFailure(&UpstreamError{
+			Status:   http.StatusBadGateway,
+			Upstream: resp.StatusCode,
+			Message:  fmt.Sprintf("failed to read response body from %s: %v", endpoint, err),
+		})
 	}
 
 	// Deezer returns { "error": {...} } with HTTP 200 for quota / bad requests.
 	var apiErr DeezerAPIError
 	if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Error != nil {
-		return fmt.Errorf("deezer API error (code %d, type %s): %s",
-			apiErr.Error.Code, apiErr.Error.Type, apiErr.Error.Message)
+		return s.recordFailure(&UpstreamError{
+			Status:   http.StatusBadGateway,
+			Upstream: resp.StatusCode,
+			Message: fmt.Sprintf("deezer API error (code %d, type %s): %s",
+				apiErr.Error.Code, apiErr.Error.Type, apiErr.Error.Message),
+		})
 	}
 
 	if err := json.Unmarshal(body, out); err != nil {
-		return fmt.Errorf("failed to decode response from %s: %w", endpoint, err)
+		return s.recordFailure(&UpstreamError{
+			Status:   http.StatusBadGateway,
+			Upstream: resp.StatusCode,
+			Message:  fmt.Sprintf("failed to decode response from %s: %v", endpoint, err),
+		})
 	}
+
+	s.breaker.success()
 	return nil
+}
+
+// recordFailure counts one upstream failure against the breaker and logs the
+// cooldown when it trips. The error is returned unchanged so callers can keep
+// wrapping it.
+func (s *DeezerService) recordFailure(err *UpstreamError) error {
+	if cooldown, opened := s.breaker.failure(time.Now(), err.RetryAfter); opened {
+		s.logger.Printf("pausing deezer calls for %s after: %s", cooldown.Round(time.Second), err.Message)
+	} else {
+		s.logger.Printf("upstream failure: %s", err.Message)
+	}
+	return err
+}
+
+// parseRetryAfter reads the delta-seconds form of Retry-After. The HTTP-date
+// form is rare and the breaker has its own backoff, so an unparseable value
+// simply yields zero.
+func parseRetryAfter(value string) time.Duration {
+	seconds, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || seconds <= 0 {
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
 }
 
 // Search queries the Deezer catalogue for candidate tracks. Results are cached
@@ -180,79 +378,115 @@ func (s *DeezerService) Search(ctx context.Context, params SearchParams) ([]Deez
 	query := buildSearchQuery(params)
 	cacheKey := "search:" + query
 
-	if cached, ok := s.cacheGet(cacheKey); ok {
+	if cached, cachedErr, ok := s.cacheGet(cacheKey); ok {
 		s.logger.Printf("cache hit for search: %q", query)
+		if cachedErr != nil {
+			return nil, cachedErr
+		}
 		return cached.([]DeezerTrack), nil
 	}
-	s.logger.Printf("cache miss for search: %q", query)
 
-	var result DeezerSearchResponse
-	path := "/search?q=" + url.QueryEscape(query)
-	if err := s.get(ctx, path, &result); err != nil {
+	value, err := s.fetchCached(cacheKey, func() (any, error) {
+		s.logger.Printf("cache miss for search: %q", query)
+
+		var result DeezerSearchResponse
+		path := "/search?q=" + url.QueryEscape(query)
+		if err := s.get(ctx, path, &result); err != nil {
+			return nil, err
+		}
+
+		// Deezer's advanced query is strict; if it returns nothing, retry with
+		// a looser free-text query so misspelled/decorated titles still match.
+		if len(result.Data) == 0 {
+			loose := strings.TrimSpace(params.Title + " " + params.Artist)
+			var loosely DeezerSearchResponse
+			if err := s.get(ctx, "/search?q="+url.QueryEscape(loose), &loosely); err == nil {
+				result.Data = loosely.Data
+			}
+		}
+		return result.Data, nil
+	})
+	if err != nil {
 		return nil, err
 	}
+	return value.([]DeezerTrack), nil
+}
 
-	// Deezer's advanced query is strict; if it returns nothing, retry with a
-	// looser free-text query so misspelled/decorated titles still match.
-	if len(result.Data) == 0 {
-		loose := strings.TrimSpace(params.Title + " " + params.Artist)
-		var loosely DeezerSearchResponse
-		if err := s.get(ctx, "/search?q="+url.QueryEscape(loose), &loosely); err == nil {
-			result.Data = loosely.Data
-		}
+// fetchCached serves key from the cache, or runs fetch exactly once on behalf
+// of every caller currently asking the same question. Successes are cached for
+// the configured TTL, upstream failures for the much shorter failure TTL.
+func (s *DeezerService) fetchCached(key string, fetch func() (any, error)) (any, error) {
+	if value, err, ok := s.cacheGet(key); ok {
+		return value, err
 	}
 
-	s.cacheSet(cacheKey, result.Data)
-	return result.Data, nil
+	return withSingleflight(s.group.Do(key, func() (any, error) {
+		// Another caller may have filled the entry while we waited our turn.
+		if value, err, ok := s.cacheGet(key); ok {
+			return value, err
+		}
+		value, err := fetch()
+		if err != nil {
+			s.cacheFailure(key, err)
+			return nil, err
+		}
+		s.cacheSet(key, value)
+		return value, nil
+	}))
+}
+
+// withSingleflight drops singleflight's "shared" flag, which we do not use.
+func withSingleflight(value any, err error, _ bool) (any, error) {
+	return value, err
 }
 
 // GetTrack fetches the full track object by Deezer ID (includes ISRC, disk /
 // track position, release date and contributors).
 func (s *DeezerService) GetTrack(ctx context.Context, id int64) (*DeezerTrack, error) {
-	cacheKey := "track:" + strconv.FormatInt(id, 10)
-	if cached, ok := s.cacheGet(cacheKey); ok {
-		t := cached.(DeezerTrack)
-		return &t, nil
-	}
-
-	var track DeezerTrack
-	if err := s.get(ctx, "/track/"+strconv.FormatInt(id, 10), &track); err != nil {
+	value, err := s.fetchCached("track:"+strconv.FormatInt(id, 10), func() (any, error) {
+		var track DeezerTrack
+		if err := s.get(ctx, "/track/"+strconv.FormatInt(id, 10), &track); err != nil {
+			return nil, err
+		}
+		return track, nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	s.cacheSet(cacheKey, track)
+	track := value.(DeezerTrack)
 	return &track, nil
 }
 
 // GetAlbum fetches the full album object by Deezer ID (includes label, genres
 // and UPC).
 func (s *DeezerService) GetAlbum(ctx context.Context, id int64) (*DeezerAlbum, error) {
-	cacheKey := "album:" + strconv.FormatInt(id, 10)
-	if cached, ok := s.cacheGet(cacheKey); ok {
-		a := cached.(DeezerAlbum)
-		return &a, nil
-	}
-
-	var album DeezerAlbum
-	if err := s.get(ctx, "/album/"+strconv.FormatInt(id, 10), &album); err != nil {
+	value, err := s.fetchCached("album:"+strconv.FormatInt(id, 10), func() (any, error) {
+		var album DeezerAlbum
+		if err := s.get(ctx, "/album/"+strconv.FormatInt(id, 10), &album); err != nil {
+			return nil, err
+		}
+		return album, nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	s.cacheSet(cacheKey, album)
+	album := value.(DeezerAlbum)
 	return &album, nil
 }
 
 // GetArtist fetches the full artist object by Deezer ID (includes picture).
 func (s *DeezerService) GetArtist(ctx context.Context, id int64) (*DeezerArtist, error) {
-	cacheKey := "artist:" + strconv.FormatInt(id, 10)
-	if cached, ok := s.cacheGet(cacheKey); ok {
-		a := cached.(DeezerArtist)
-		return &a, nil
-	}
-
-	var artist DeezerArtist
-	if err := s.get(ctx, "/artist/"+strconv.FormatInt(id, 10), &artist); err != nil {
+	value, err := s.fetchCached("artist:"+strconv.FormatInt(id, 10), func() (any, error) {
+		var artist DeezerArtist
+		if err := s.get(ctx, "/artist/"+strconv.FormatInt(id, 10), &artist); err != nil {
+			return nil, err
+		}
+		return artist, nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	s.cacheSet(cacheKey, artist)
+	artist := value.(DeezerArtist)
 	return &artist, nil
 }
 
@@ -311,9 +545,12 @@ func toMatch(c rankedCandidate) Match {
 const matchHydrateConcurrency = 5
 
 // maxHydratedMatches caps how many top-ranked matches we deep-fetch to backfill
-// track position / disc number. Each deep-fetch costs an extra API call, so we
-// only spend them on the most relevant candidates.
-const maxHydratedMatches = 5
+// track position / disc number. Each deep-fetch costs an extra API call out of a
+// fixed per-window quota, so we only spend them on the most relevant
+// candidates: one /enrich already costs a search plus up to three lookups for
+// the best match, and every call beyond that is throughput taken from the next
+// scrobble in the queue.
+const maxHydratedMatches = 3
 
 // hydrateMatches deep-fetches the full track for the top maxHydratedMatches
 // matches to fill in the track position and disc number, which the /search
@@ -330,6 +567,11 @@ func (s *DeezerService) hydrateMatches(ctx context.Context, matches []Match) {
 	var wg sync.WaitGroup
 	for i := range matches[:limit] {
 		if matches[i].ID == 0 || (matches[i].TrackNumber != 0 && matches[i].DiscNumber != 0) {
+			continue
+		}
+		// A candidate this weak is not going to be picked, so its track and
+		// disc numbers are not worth a call out of the window.
+		if matches[i].Score < enrichScoreFloor {
 			continue
 		}
 		wg.Add(1)
@@ -355,6 +597,11 @@ func (s *DeezerService) hydrateMatches(ctx context.Context, matches []Match) {
 // hydrate its full metadata, and returns both the enriched track and the ranked
 // match list.
 func (s *DeezerService) Enrich(ctx context.Context, params SearchParams) (*EnrichResponse, error) {
+	// One budget for the whole fan-out: the search and every deep-fetch below
+	// share it, so a backlogged queue delays the caller once rather than once
+	// per upstream call.
+	ctx = withQueueBudget(ctx, s.maxQueueWait)
+
 	tracks, err := s.Search(ctx, params)
 	if err != nil {
 		return nil, err
@@ -534,6 +781,26 @@ func bestPicture(a DeezerArtist) string {
 	default:
 		return a.Picture
 	}
+}
+
+// envInt reads a positive integer from the environment.
+func envInt(name string, fallback int) int {
+	if v := os.Getenv(name); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return fallback
+}
+
+// envDuration reads a positive number of seconds from the environment.
+func envDuration(name string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(name); v != "" {
+		if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
+			return time.Duration(secs) * time.Second
+		}
+	}
+	return fallback
 }
 
 // yearFromDate extracts the leading YYYY from a Deezer date string.

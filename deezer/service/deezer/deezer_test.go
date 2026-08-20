@@ -2,15 +2,15 @@ package deezer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"golang.org/x/time/rate"
 )
 
 // --- Mock Deezer API ---------------------------------------------------------
@@ -173,7 +173,7 @@ func (m *mockDeezer) close() { m.server.Close() }
 func newTestService(m *mockDeezer, opts ...Option) *DeezerService {
 	base := []Option{
 		WithBaseURL(m.server.URL),
-		WithLimiter(rate.NewLimiter(rate.Inf, 1)),
+		WithLimiter(NewWindowLimiter(1_000_000, time.Nanosecond)),
 	}
 	return NewDeezerService(append(base, opts...)...)
 }
@@ -392,10 +392,10 @@ func TestRateLimiter(t *testing.T) {
 	m := newMockDeezer()
 	defer m.close()
 
-	// 10 req/window, burst 2, over a short window: the 3rd request must wait
-	// for a token, proving the limiter throttles.
+	// 2 requests per 100ms window: the first two go straight out, the third
+	// must wait a full window for the first one to age out.
 	window := 100 * time.Millisecond
-	svc := newTestService(m, WithLimiter(rate.NewLimiter(rate.Every(window/10), 2)))
+	svc := newTestService(m, WithLimiter(NewWindowLimiter(2, window)))
 
 	ctx := context.Background()
 	start := time.Now()
@@ -407,9 +407,208 @@ func TestRateLimiter(t *testing.T) {
 	}
 	elapsed := time.Since(start)
 
-	perToken := window / 10
-	if elapsed < perToken {
-		t.Fatalf("expected limiter to throttle 3rd request by ~%v, elapsed=%v", perToken, elapsed)
+	if elapsed < window {
+		t.Fatalf("expected the 3rd request to wait a full window (%v), elapsed=%v", window, elapsed)
+	}
+}
+
+// The whole point of the window limiter: no rolling window may ever contain
+// more than n sends. A token bucket sized (burst=n, rate=n/window) passes a
+// naive "n per window" test and still emits 2n across one window boundary.
+func TestWindowLimiterNeverExceedsQuotaInAnyWindow(t *testing.T) {
+	const (
+		n      = 5
+		window = 60 * time.Millisecond
+		sends  = 30
+	)
+	limiter := NewWindowLimiter(n, window)
+	deadline := time.Now().Add(10 * time.Second)
+
+	sent := make([]time.Time, 0, sends)
+	for range sends {
+		if err := limiter.Wait(context.Background(), deadline); err != nil {
+			t.Fatalf("Wait returned error: %v", err)
+		}
+		sent = append(sent, time.Now())
+	}
+
+	// For every send, count how many others landed within the preceding window.
+	for i, at := range sent {
+		count := 1
+		for j := i - 1; j >= 0 && at.Sub(sent[j]) < window; j-- {
+			count++
+		}
+		if count > n {
+			t.Fatalf("send %d: %d requests inside one %v window, quota is %d", i, count, window, n)
+		}
+	}
+}
+
+// A request whose slot falls past its deadline is rejected outright rather than
+// parked on an open connection, and it must not consume the slot it was denied.
+func TestWindowLimiterRejectsPastDeadline(t *testing.T) {
+	limiter := NewWindowLimiter(1, time.Hour)
+	now := time.Now()
+
+	if _, ok := limiter.reserve(now, now.Add(time.Second)); !ok {
+		t.Fatal("first reservation should be admitted immediately")
+	}
+	if _, ok := limiter.reserve(now, now.Add(time.Second)); ok {
+		t.Fatal("second reservation should not fit before its deadline")
+	}
+
+	// The rejected reservation consumed nothing: a caller willing to wait the
+	// full window still gets the very next slot.
+	wait, ok := limiter.reserve(now, now.Add(2*time.Hour))
+	if !ok {
+		t.Fatal("a caller with a long enough deadline should be admitted")
+	}
+	if wait < time.Hour-time.Second {
+		t.Fatalf("expected to wait ~1h for the window to roll, got %v", wait)
+	}
+}
+
+func TestWaitReturnsQueueFullPastDeadline(t *testing.T) {
+	limiter := NewWindowLimiter(1, time.Hour)
+	if err := limiter.Wait(context.Background(), time.Now().Add(time.Second)); err != nil {
+		t.Fatalf("first Wait should be admitted: %v", err)
+	}
+	err := limiter.Wait(context.Background(), time.Now().Add(time.Second))
+	if !errors.Is(err, errQueueFull) {
+		t.Fatalf("expected errQueueFull, got %v", err)
+	}
+}
+
+// An upstream that refuses everything must be asked once, not once per scrobble.
+func TestUpstreamFailureIsNegativelyCached(t *testing.T) {
+	var calls int64
+	mux := http.NewServeMux()
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt64(&calls, 1)
+		w.WriteHeader(http.StatusForbidden)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := NewDeezerService(
+		WithBaseURL(server.URL),
+		WithLimiter(NewWindowLimiter(1_000_000, time.Nanosecond)),
+	)
+
+	params := SearchParams{Title: "Tokka", Artist: "Agnes Obel"}
+	for i := range 5 {
+		if _, err := svc.Search(context.Background(), params); err == nil {
+			t.Fatalf("Search #%d should have failed", i)
+		}
+	}
+	if got := atomic.LoadInt64(&calls); got != 1 {
+		t.Fatalf("expected the failing query to be asked once, got %d upstream calls", got)
+	}
+}
+
+// Five consecutive failures pause outbound calls entirely, so distinct queries
+// stop reaching a refusing upstream.
+func TestBreakerStopsCallingRefusingUpstream(t *testing.T) {
+	var calls int64
+	mux := http.NewServeMux()
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt64(&calls, 1)
+		w.WriteHeader(http.StatusForbidden)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := NewDeezerService(
+		WithBaseURL(server.URL),
+		WithLimiter(NewWindowLimiter(1_000_000, time.Nanosecond)),
+	)
+
+	var last error
+	for i := range 12 {
+		// Distinct titles so the negative cache never answers for us.
+		_, last = svc.Search(context.Background(), SearchParams{Title: fmt.Sprintf("song %d", i)})
+	}
+
+	if got := atomic.LoadInt64(&calls); got != breakerThreshold {
+		t.Fatalf("expected the breaker to stop calls after %d failures, got %d", breakerThreshold, got)
+	}
+
+	var upstream *UpstreamError
+	if !errors.As(last, &upstream) || upstream.Status != http.StatusServiceUnavailable {
+		t.Fatalf("expected a 503 UpstreamError once the breaker is open, got %v", last)
+	}
+	if upstream.RetryAfter <= 0 {
+		t.Fatal("an open breaker should tell the caller when to come back")
+	}
+}
+
+// The upstream status must survive to the caller: it is the difference between
+// "Deezer is blocking this IP" (403) and "we are over quota" (429).
+func TestUpstreamStatusIsReported(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "7")
+		w.WriteHeader(http.StatusTooManyRequests)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := NewDeezerService(
+		WithBaseURL(server.URL),
+		WithLimiter(NewWindowLimiter(1_000_000, time.Nanosecond)),
+	)
+
+	_, err := svc.Search(context.Background(), SearchParams{Title: "Tokka", Artist: "Agnes Obel"})
+	var upstream *UpstreamError
+	if !errors.As(err, &upstream) {
+		t.Fatalf("expected an UpstreamError, got %v", err)
+	}
+	if upstream.Upstream != http.StatusTooManyRequests {
+		t.Fatalf("expected the upstream status to be reported, got %d", upstream.Upstream)
+	}
+	if upstream.RetryAfter != 7*time.Second {
+		t.Fatalf("expected Retry-After to be honored, got %v", upstream.RetryAfter)
+	}
+}
+
+// Concurrent callers asking the same question cost one upstream call, not one
+// each — a burst of scrobbles from the same album is the common case.
+func TestConcurrentIdenticalSearchesCollapse(t *testing.T) {
+	release := make(chan struct{})
+	var calls int64
+	mux := http.NewServeMux()
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt64(&calls, 1)
+		<-release
+		writeJSON(w, searchResponseJSON)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := NewDeezerService(
+		WithBaseURL(server.URL),
+		WithLimiter(NewWindowLimiter(1_000_000, time.Nanosecond)),
+	)
+
+	params := SearchParams{Title: "Get Lucky", Artist: "Daft Punk"}
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := svc.Search(context.Background(), params); err != nil {
+				t.Errorf("Search error: %v", err)
+			}
+		}()
+	}
+
+	// Let every caller reach the singleflight before the first one answers.
+	time.Sleep(50 * time.Millisecond)
+	close(release)
+	wg.Wait()
+
+	if got := atomic.LoadInt64(&calls); got != 1 {
+		t.Fatalf("expected 8 concurrent identical searches to cost 1 upstream call, got %d", got)
 	}
 }
 
