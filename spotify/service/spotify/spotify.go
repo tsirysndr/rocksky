@@ -136,6 +136,11 @@ type SpotifyService struct {
 	limiter    *rate.Limiter
 	categorize func(path string) category
 
+	// riff answers catalog reads from the local Parquet dump before Spotify is
+	// considered. nil disables it. See riff.go.
+	riff    *riffClient
+	riffURL string
+
 	// maxQueueWait is how long a single request may spend queued inside the
 	// proxy before it is answered with 429 instead of held open.
 	maxQueueWait time.Duration
@@ -201,6 +206,12 @@ func WithMaxQueueWait(d time.Duration) Option {
 	return func(s *SpotifyService) { s.maxQueueWait = d }
 }
 
+// WithRiffURL points catalog reads at a riff instance. An empty string
+// disables riff and sends everything to Spotify.
+func WithRiffURL(baseURL string) Option {
+	return func(s *SpotifyService) { s.riffURL = baseURL }
+}
+
 // WithCategorizer overrides cache categorization (used in tests).
 func WithCategorizer(fn func(path string) category) Option {
 	return func(s *SpotifyService) { s.categorize = fn }
@@ -222,6 +233,7 @@ func NewSpotifyService(opts ...Option) *SpotifyService {
 		},
 		limiter:      rate.NewLimiter(rate.Limit(rps), burst),
 		categorize:   categorize,
+		riffURL:      riffURLFromEnv(),
 		maxQueueWait: envDuration("SPOTIFY_PROXY_MAX_WAIT", defaultMaxQueueWait),
 		cache:        make(map[string]cacheEntry),
 		cooldowns:    make(map[string]time.Time),
@@ -230,6 +242,16 @@ func NewSpotifyService(opts ...Option) *SpotifyService {
 	for _, opt := range opts {
 		opt(s)
 	}
+
+	// Catalog reads go to riff first; Spotify is the fallback for what riff
+	// does not have. Building the client after the options so WithRiffURL wins
+	// over RIFF_URL.
+	if s.riff = newRiffClient(s.riffURL, s.logger); s.riff != nil {
+		s.logger.Printf("catalog reads served by riff at %s (spotify is the fallback)", s.riff.baseURL)
+	} else {
+		s.logger.Printf("riff disabled, all requests go to spotify")
+	}
+
 	if len(s.apps) == 0 {
 		if apps, err := loadAppsFromDB(context.Background()); err != nil {
 			s.logger.Printf("could not load spotify apps from db: %v", err)
@@ -259,6 +281,7 @@ func (s *SpotifyService) Proxy(ctx context.Context, method, path, authHeader str
 	}
 
 	isGet := method == http.MethodGet
+
 	var cat category
 	var key string
 	if isGet {
@@ -266,6 +289,21 @@ func (s *SpotifyService) Proxy(ctx context.Context, method, path, authHeader str
 		key = cacheKey(path, authHeader, cat)
 		if entry, ok := s.cacheGet(key); ok && time.Now().Before(entry.freshUntil) {
 			return entry.response.result(false), nil
+		}
+	}
+
+	// Catalog reads go to riff — loopback, against our own Parquet dump — and so
+	// take no rate limiter slot, no cooldown and no cache entry. Only when riff
+	// has nothing do we spend a Spotify request.
+	//
+	// This sits *after* the cache lookup on purpose. Everything in the cache got
+	// there by falling back to Spotify, which means riff already missed that
+	// path; asking again on every repeat would re-run a miss that, for a search,
+	// is a full scan of a 255M-row parquet. The cost is that a dump refreshed
+	// since the fallback is not picked up until that entry expires.
+	if isGet && s.riff != nil && riffCanServe(path) {
+		if result, ok := s.riff.get(ctx, path); ok {
+			return result, nil
 		}
 	}
 

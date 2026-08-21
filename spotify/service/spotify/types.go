@@ -12,7 +12,17 @@ type ProxyResult struct {
 	RetryAfter string
 	Cached     bool
 	Stale      bool
+	// Source names who answered: riff (our local Parquet catalog) or spotify.
+	// Surfaced as the X-Source response header so a caller can tell whether a
+	// request cost a Spotify rate-limit slot.
+	Source string
 }
+
+// Response sources, reported in the X-Source header.
+const (
+	SourceRiff    = "riff"
+	SourceSpotify = "spotify"
+)
 
 // ProxyError is a locally-produced error carrying the HTTP status the caller
 // should receive (bad request, missing auth, ...).

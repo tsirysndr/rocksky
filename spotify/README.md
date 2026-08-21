@@ -10,8 +10,51 @@ base-URL change**: point `https://api.spotify.com/v1` at
 `Authorization` header is forwarded as-is). Responses are Spotify's raw JSON,
 untouched.
 
+## Catalog reads go to riff first
+
+`search`, `artists`, `albums` and `tracks` are answered by
+[riff](../riff) — the local service that serves our Spotify Parquet dump on
+Spotify's own paths — before Spotify is considered at all.
+
+riff runs on loopback, so those calls take **no rate limiter slot, no cooldown
+and no cache entry**. Catalog lookups are the bulk of what we ask Spotify for,
+so serving them locally leaves the quota to the requests that genuinely need it.
+
+Spotify is reached only when riff produces no results — an empty search, an
+unknown id, a batch that resolved nothing — and that fallback still goes through
+the full rate-limited, cached path. riff being down or slow is not an error
+either: it falls back the same way.
+
+Routed to riff (GET only):
+
+```text
+/search                     /albums
+/artists                    /albums/{id}
+/artists/{id}               /albums/{id}/tracks
+/artists/{id}/albums        /tracks
+/artists/{id}/top-tracks    /tracks/{id}
+```
+
+Everything else — `/me/*`, the player, playlists, recommendations,
+related-artists, and every non-GET — goes straight to Spotify. The list is
+explicit rather than a prefix match, so a path riff cannot answer does not spend
+a round trip finding that out.
+
+`X-Source: riff | spotify` on every response says who answered, so it is visible
+at a glance whether a request cost Spotify quota.
+
+Two caveats worth knowing:
+
+- riff mirrors a dump, so it lags Spotify. A brand-new release misses and falls
+  back — which is the intended behavior, not a failure.
+- `market=` is ignored by riff, so a market-filtered request answered locally is
+  not filtered. Callers can read `available_markets` off the response.
+
+Set `RIFF_URL=""` to turn all of this off and send everything to Spotify.
+
 ## Behavior
 
+- **riff first** for catalog reads (see above), unrate-limited and uncached.
 - **Rate limiting**: one shared token-bucket limiter for all upstream calls
   (default 5 req/s, burst 10). On a Spotify `429`, the proxy enters a cooldown
   honoring `Retry-After` (capped at 5 minutes) and stops hitting Spotify.
@@ -27,7 +70,8 @@ untouched.
 - **Auth**: forwards the caller's `Authorization` header. Catalog requests
   without one fall back to a client-credentials app token when
   `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` are set.
-- `X-Cache: HIT | MISS | STALE` response header for debugging.
+- `X-Cache: HIT | MISS | STALE` and `X-Source: riff | spotify` response headers
+  for debugging.
 
 ## Run
 
@@ -37,13 +81,15 @@ bun run spotify-proxy   # or: cd spotify && go run main.go
 
 ## Environment
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `SPOTIFY_PROXY_PORT` (or `PORT`) | `8091` | Listen port |
-| `SPOTIFY_PROXY_RPS` | `5` | Sustained upstream requests per second |
-| `SPOTIFY_PROXY_BURST` | `10` | Burst size for the limiter |
-| `SPOTIFY_PROXY_MAX_WAIT` | `20` | Seconds a request may spend queued (limiter slot or short cooldown) before it is answered `429` |
-| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | — | Optional app credentials for catalog requests without a forwarded token |
+| Variable                                      | Default                    | Description                                                                                     |
+| --------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `RIFF_URL`                                    | `http://127.0.0.1:8092/v1` | Local riff instance for catalog reads. Empty string disables riff entirely                      |
+| `RIFF_TIMEOUT`                                | `10` (seconds)             | How long a riff lookup may take before it is treated as a miss and Spotify is tried             |
+| `SPOTIFY_PROXY_PORT` (or `PORT`)              | `8091`                     | Listen port                                                                                     |
+| `SPOTIFY_PROXY_RPS`                           | `5`                        | Sustained upstream requests per second (Spotify only; riff is not limited)                      |
+| `SPOTIFY_PROXY_BURST`                         | `10`                       | Burst size for the limiter                                                                      |
+| `SPOTIFY_PROXY_MAX_WAIT`                      | `20`                       | Seconds a request may spend queued (limiter slot or short cooldown) before it is answered `429` |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | —                          | Optional app credentials for catalog requests without a forwarded token                         |
 
 ### Queueing
 

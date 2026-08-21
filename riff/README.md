@@ -18,10 +18,15 @@ lookups, which is the overwhelming majority of what Rocksky asks Spotify for.
 **Catalog only** — `/me`, player and playlists are not here and never will be,
 because the dump does not contain them.
 
+Most callers do not talk to riff directly: **the proxy already routes `search`,
+`artists`, `albums` and `tracks` here by default**, unrate-limited, and only
+falls back to Spotify when riff returns no results. So pointing a component at
+`spotify/` gets it riff for free.
+
 ## Endpoints
 
-| Endpoint                          | Notes                                                |
-| --------------------------------- | ---------------------------------------------------- |
+| Endpoint                          | Notes                                                 |
+| --------------------------------- | ----------------------------------------------------- |
 | `GET /`                           | ASCII banner, description, endpoint list (plain text) |
 | `GET /health`                     | `{"status":"ok"}`                                     |
 | `GET /v1/search`                  | `?q=&type=artist,album,track&limit=&offset=`          |
@@ -79,16 +84,16 @@ cargo run --release --bin riff                 # serves them on :8092
 
 Every option takes a flag **or** an environment variable:
 
-| Flag                 | Env                       | Default           | Description                                |
-| -------------------- | ------------------------- | ----------------- | ------------------------------------------ |
-| `-p, --port`         | `RIFF_PORT`               | `8092`            | Listen port                                |
-| `-H, --host`         | `RIFF_HOST`               | `127.0.0.1`       | Bind address                               |
-| `-d, --data-dir`     | `RIFF_DATA_DIR`           | `testdata`        | Directory of catalog parquet files         |
-| `--db-path`          | `RIFF_DB_PATH`            | —                 | Persistent DuckDB file instead of in-memory |
-| `--pool-size`        | `RIFF_POOL_SIZE`          | CPU count (min 4) | DuckDB connections                         |
-| `--rate-limit-rps`   | `RIFF_RATE_LIMIT_RPS`     | `50`              | Sustained req/s per remote IP              |
-| `--rate-limit-burst` | `RIFF_RATE_LIMIT_BURST`   | `200`             | Burst per remote IP                        |
-| `--trust-proxy`      | `RIFF_TRUST_PROXY`        | `false`           | Read the client IP from `X-Forwarded-For`  |
+| Flag                 | Env                     | Default           | Description                                 |
+| -------------------- | ----------------------- | ----------------- | ------------------------------------------- |
+| `-p, --port`         | `RIFF_PORT`             | `8092`            | Listen port                                 |
+| `-H, --host`         | `RIFF_HOST`             | `127.0.0.1`       | Bind address                                |
+| `-d, --data-dir`     | `RIFF_DATA_DIR`         | `testdata`        | Directory of catalog parquet files          |
+| `--db-path`          | `RIFF_DB_PATH`          | —                 | Persistent DuckDB file instead of in-memory |
+| `--pool-size`        | `RIFF_POOL_SIZE`        | CPU count (min 4) | DuckDB connections                          |
+| `--rate-limit-rps`   | `RIFF_RATE_LIMIT_RPS`   | `50`              | Sustained req/s per remote IP               |
+| `--rate-limit-burst` | `RIFF_RATE_LIMIT_BURST` | `200`             | Burst per remote IP                         |
+| `--trust-proxy`      | `RIFF_TRUST_PROXY`      | `false`           | Read the client IP from `X-Forwarded-For`   |
 
 ### Rate limits
 
@@ -158,8 +163,8 @@ track_audio_features.parquet          -- every column is VARCHAR, including the 
     acousticness, instrumentalness, liveness, valence
 ```
 
-| File                           | Effect when absent                        |
-| ------------------------------ | ----------------------------------------- |
+| File                           | Effect when absent                         |
+| ------------------------------ | ------------------------------------------ |
 | `artist_genres.parquet`        | `artist.genres` is `[]`                    |
 | `artist_images.parquet`        | `artist.images` is `[]`                    |
 | `album_images.parquet`         | `album.images` is `[]`                     |

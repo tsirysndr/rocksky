@@ -111,6 +111,13 @@ func (s *Server) proxyHandler(c echo.Context) error {
 	if result.RetryAfter != "" {
 		c.Response().Header().Set("Retry-After", result.RetryAfter)
 	}
+	// X-Source: riff means the answer came from the local Parquet catalog and
+	// cost no Spotify quota; spotify means it did.
+	source := result.Source
+	if source == "" {
+		source = spotify.SourceSpotify
+	}
+	c.Response().Header().Set("X-Source", source)
 	switch {
 	case result.Stale:
 		c.Response().Header().Set("X-Cache", "STALE")

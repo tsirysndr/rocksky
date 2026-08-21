@@ -18,6 +18,10 @@ func newTestService(upstream string, opts ...Option) *SpotifyService {
 	base := []Option{
 		WithBaseURL(upstream),
 		WithLimiter(rate.NewLimiter(rate.Inf, 0)),
+		// These tests exercise the Spotify path. Without this they would reach
+		// for riff on loopback first and pass or fail depending on whether the
+		// developer happens to have it running. riff has its own tests.
+		WithRiffURL(""),
 	}
 	return NewSpotifyService(append(base, opts...)...)
 }
