@@ -1,0 +1,7 @@
+/target
+
+# testdata/*.parquet is generated, not tracked — the repo-wide .gitignore
+# excludes *.parquet, and these are reproduced byte-for-byte by
+# `cargo run --bin riff-fixtures`. Starting without them fails with a message
+# naming that command.
+/testdata

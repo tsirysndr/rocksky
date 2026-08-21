@@ -2,6 +2,8 @@
 members = ["crates/*"]
 resolver = "2"
 
+exclude = ["riff"]
+
 [workspace.package]
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app"]
 edition = "2021"
