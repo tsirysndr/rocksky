@@ -12,7 +12,7 @@ untouched.
 
 ## Catalog reads go to riff first
 
-`search`, `artists`, `albums` and `tracks` are answered by
+`search`, `artists`, `albums`, `tracks` and `audio-features` are answered by
 [riff](../riff) — the local service that serves our Spotify Parquet dump on
 Spotify's own paths — before Spotify is considered at all.
 
@@ -28,11 +28,11 @@ either: it falls back the same way.
 Routed to riff (GET only):
 
 ```text
-/search                     /albums
-/artists                    /albums/{id}
-/artists/{id}               /albums/{id}/tracks
-/artists/{id}/albums        /tracks
-/artists/{id}/top-tracks    /tracks/{id}
+/search                     /albums                 /tracks
+/artists                    /albums/{id}            /tracks/{id}
+/artists/{id}               /albums/{id}/tracks     /audio-features
+/artists/{id}/albums                                /audio-features/{id}
+/artists/{id}/top-tracks
 ```
 
 Everything else — `/me/*`, the player, playlists, recommendations,

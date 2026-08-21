@@ -1,0 +1,36 @@
+[Unit]
+Description=Rocksky riff Service (Spotify catalog API served from Parquet)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+# riff is its own cargo workspace (excluded from the root one), so its binary
+# lives under riff/target, not the shared target/.
+#   cd /root/github/rocksky/riff && cargo build --release
+ExecStart=/bin/bash -ic 'exec doppler run -- ./riff/target/release/riff'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-riff
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+# Loopback only, on purpose: the only caller is the Spotify proxy on the same
+# host, and riff exposes the whole catalog with no auth of its own.
+Environment=RIFF_HOST=127.0.0.1
+Environment=RIFF_PORT=8092
+
+# Where the Parquet dump lives. riff refuses to start if a required file is
+# missing, and says which one. Override in /etc/default/rocksky-riff rather than
+# editing this unit.
+Environment=RIFF_DATA_DIR=/root/spotify-dump
+EnvironmentFile=-/etc/default/rocksky-riff
+
+[Install]
+WantedBy=multi-user.target

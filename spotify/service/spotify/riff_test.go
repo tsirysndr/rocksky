@@ -250,6 +250,51 @@ func TestRiffIsSkippedForUserScopedAndWrites(t *testing.T) {
 	}
 }
 
+func TestRiffAnswersAudioFeatures(t *testing.T) {
+	s, _, spotifyHits := riffAndSpotify(t,
+		`{"id":"abc","danceability":0.51,"energy":0.8,"tempo":128.03,"type":"audio_features"}`,
+		http.StatusOK)
+
+	res, err := s.Proxy(context.Background(), http.MethodGet, "/audio-features/abc", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("proxy failed: %v", err)
+	}
+	if res.Source != SourceRiff {
+		t.Fatalf("expected riff to answer, got %q", res.Source)
+	}
+	if spotifyHits.Load() != 0 {
+		t.Fatalf("spotify must not be touched, got %d hits", spotifyHits.Load())
+	}
+}
+
+func TestRiffAudioFeaturesBatchWithSomeAnalysisIsServed(t *testing.T) {
+	// null entries are normal here — Spotify has no analysis for plenty of
+	// tracks either — so one resolved entry is a result.
+	s, _, spotifyHits := riffAndSpotify(t, `{"audio_features":[{"id":"a"},null]}`, http.StatusOK)
+
+	res, err := s.Proxy(context.Background(), http.MethodGet, "/audio-features?ids=a,b", "Bearer user-token", nil)
+	if err != nil {
+		t.Fatalf("proxy failed: %v", err)
+	}
+	if res.Source != SourceRiff {
+		t.Fatalf("expected riff to answer, got %q", res.Source)
+	}
+	if spotifyHits.Load() != 0 {
+		t.Fatalf("spotify must not be touched, got %d hits", spotifyHits.Load())
+	}
+}
+
+func TestRiffAudioFeaturesWithNoAnalysisFallsBack(t *testing.T) {
+	s, _, spotifyHits := riffAndSpotify(t, `{"audio_features":[null,null]}`, http.StatusOK)
+
+	if _, err := s.Proxy(context.Background(), http.MethodGet, "/audio-features?ids=a,b", "Bearer user-token", nil); err != nil {
+		t.Fatalf("proxy failed: %v", err)
+	}
+	if spotifyHits.Load() != 1 {
+		t.Fatalf("expected 1 spotify fallback, got %d", spotifyHits.Load())
+	}
+}
+
 func TestRiffCanServe(t *testing.T) {
 	served := []string{
 		"/search",
@@ -265,6 +310,9 @@ func TestRiffCanServe(t *testing.T) {
 		"/albums/abc/tracks",
 		"/tracks",
 		"/tracks/abc",
+		"/audio-features",
+		"/audio-features?ids=a,b",
+		"/audio-features/abc",
 	}
 	for _, p := range served {
 		if !riffCanServe(p) {
@@ -278,7 +326,8 @@ func TestRiffCanServe(t *testing.T) {
 		"/artists/abc/related-artists",
 		"/albums/abc/something-else",
 		"/tracks/abc/nested",
-		"/audio-features/abc", // riff implements it; not routed here yet
+		"/audio-features/abc/nested",
+		"/audio-analysis/abc", // riff does not implement audio analysis
 		"/recommendations",
 		"/playlists/abc",
 		"/browse/new-releases",

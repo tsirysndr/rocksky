@@ -1,7 +1,10 @@
 [Unit]
 Description=Rocksky Spotify Proxy Service
-After=network.target
+After=network.target rocksky-riff.service
 Wants=network-online.target
+# Catalog reads are served by riff; Wants (not Requires) because the proxy
+# falls back to Spotify on its own when riff is down.
+Wants=rocksky-riff.service
 
 [Service]
 Type=simple

@@ -100,6 +100,13 @@ func riffCanServe(path string) bool {
 	case "tracks":
 		// /tracks, /tracks/{id}
 		return len(seg) <= 2
+	case "audio-features":
+		// /audio-features, /audio-features/{id}
+		//
+		// Worth routing even though the dump's coverage is patchy: a track riff
+		// has no analysis for answers 404 and falls back, and Spotify itself
+		// returns null for plenty of tracks anyway.
+		return len(seg) <= 2
 	}
 	return false
 }

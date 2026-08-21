@@ -19,9 +19,9 @@ lookups, which is the overwhelming majority of what Rocksky asks Spotify for.
 because the dump does not contain them.
 
 Most callers do not talk to riff directly: **the proxy already routes `search`,
-`artists`, `albums` and `tracks` here by default**, unrate-limited, and only
-falls back to Spotify when riff returns no results. So pointing a component at
-`spotify/` gets it riff for free.
+`artists`, `albums`, `tracks` and `audio-features` here by default**,
+unrate-limited, and only falls back to Spotify when riff returns no results. So
+pointing a component at `spotify/` gets it riff for free.
 
 ## Endpoints
 
@@ -234,6 +234,29 @@ handles in parallel.
 
 Queries run inside `web::block` so a long scan occupies a blocking thread rather
 than parking an actix worker.
+
+## Deployment
+
+`systemd/rocksky-riff.service` runs it on the server. riff is its own cargo
+workspace, so its binary is under `riff/target`, not the shared `target/`:
+
+```sh
+cd /root/github/rocksky/riff && cargo build --release
+sudo cp systemd/rocksky-riff.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now rocksky-riff
+```
+
+The unit binds **loopback only** (`RIFF_HOST=127.0.0.1`) on purpose: the only
+caller is the Spotify proxy on the same host, and riff serves the whole catalog
+with no auth of its own. It reads the dump from `RIFF_DATA_DIR=/root/spotify-dump`;
+override that in `/etc/default/rocksky-riff` rather than editing the unit.
+
+`rocksky-spotify-proxy.service` is ordered after it with `Wants=`, not
+`Requires=` — the proxy falls back to Spotify by itself when riff is down, so
+riff must never be able to keep the proxy from starting.
+
+The first build compiles DuckDB's bundled C++ amalgamation and takes a while;
+subsequent ones do not.
 
 ## Testing
 
