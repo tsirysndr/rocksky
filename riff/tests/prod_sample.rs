@@ -125,14 +125,8 @@ async fn every_sample_track_is_findable_by_title_and_artist() {
         tracks.len()
     );
 
-    // Titles with an embedded double quote cannot survive a quote-delimited
-    // grammar — `track:"Thieves like Us - 12" Extended"` closes at the inner
-    // quote for riff and for Spotify alike. Those miss and fall back to
-    // Spotify; see `a_title_with_an_embedded_quote_misses_cleanly`.
-    let searchable: Vec<_> = tracks.iter().filter(|(t, _, _)| !t.contains('"')).collect();
-
     // Cap the loop: the point is the query shape, not exhaustiveness.
-    for (title, artist, id) in searchable.iter().take(40) {
+    for (title, artist, id) in tracks.iter().take(40) {
         let uri = format!(
             "/v1/search?type=track&q=track:%22{}%22%20artist:%22{}%22",
             urlencode(title),
@@ -282,17 +276,16 @@ async fn the_sample_serves_materialized() {
     assert_eq!(body["tracks"]["items"][0]["name"], "Before You Snap");
 }
 
-/// A title with an embedded double quote breaks the quoted phrase — for any
-/// quote-delimited grammar, Spotify's included. What matters is that it fails
-/// as a miss (empty results, 200) that the proxy converts into a Spotify
-/// fallback, never as an error.
+/// Titles with embedded double quotes must parse as one phrase and therefore
+/// HIT — this class used to shred into slow free-text queries and time out
+/// (every search timeout in the 2026-08-22 backfill was this shape).
 #[actix_web::test]
-async fn a_title_with_an_embedded_quote_misses_cleanly() {
+async fn a_title_with_an_embedded_quote_is_found() {
     let quoted: Vec<(String, String, String)> = sample_tracks()
         .into_iter()
         .filter(|(t, _, _)| t.contains('"'))
         .collect();
-    let Some((title, artist, _)) = quoted.first() else {
+    let Some((title, artist, id)) = quoted.first() else {
         return; // slice has no such title; nothing to assert
     };
     let uri = format!(
@@ -302,4 +295,10 @@ async fn a_title_with_an_embedded_quote_misses_cleanly() {
     );
     let (status, body) = get(&uri).await;
     assert_eq!(status, StatusCode::OK, "{body}");
+    let found = body["tracks"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|t| t["id"] == id.as_str());
+    assert!(found, "quoted title should now be an exact hit: {title}");
 }

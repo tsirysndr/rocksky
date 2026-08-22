@@ -74,13 +74,25 @@ pub fn parse(q: &str) -> SearchQuery {
         let value: String = if i < chars.len() && chars[i] == '"' {
             i += 1;
             let vs = i;
-            while i < chars.len() && chars[i] != '"' {
-                i += 1;
+            // Titles legitimately contain double quotes — `Team - From "Marvel
+            // Rising: Heart of Iron"` — and closing at the first one shreds the
+            // phrase into free-text terms, which is both wrong and the one slow
+            // query shape riff has (measured as the source of every search
+            // timeout in the 2026-08-22 backfill). A quote only closes the
+            // phrase when what follows reads as the end of the query, another
+            // `field:`, or a new phrase; otherwise it is part of the value.
+            let mut end = None;
+            let mut j = i;
+            while j < chars.len() {
+                if chars[j] == '"' && quote_closes(&chars[j + 1..]) {
+                    end = Some(j);
+                    break;
+                }
+                j += 1;
             }
-            let v = chars[vs..i].iter().collect();
-            if i < chars.len() {
-                i += 1; // closing quote
-            }
+            let e = end.unwrap_or(chars.len());
+            let v = chars[vs..e].iter().collect();
+            i = (e + 1).min(chars.len());
             v
         } else {
             let vs = if field.is_some() { i } else { start };
@@ -113,6 +125,33 @@ pub fn parse(q: &str) -> SearchQuery {
     }
 
     out
+}
+
+/// Does a `"` at this position close the current phrase? Yes when the rest of
+/// the input reads as *after* a phrase: nothing left, another `field:"..."`
+/// filter, a new quoted phrase, or bare words with no quotes at all. A quote
+/// followed by anything else — `"Marvel` inside a title, `12"` in a record
+/// size — is content.
+fn quote_closes(rest: &[char]) -> bool {
+    if rest.is_empty() {
+        return true;
+    }
+    if !rest[0].is_whitespace() {
+        return false;
+    }
+    let trimmed: String = rest.iter().skip_while(|c| c.is_whitespace()).collect();
+    if trimmed.is_empty() || trimmed.starts_with('"') {
+        return true;
+    }
+    // `field:` ahead — the phrase is over.
+    if trimmed
+        .split_once(':')
+        .is_some_and(|(f, _)| !f.is_empty() && f.chars().all(|c| c.is_alphanumeric() || c == '_'))
+    {
+        return true;
+    }
+    // No quotes anywhere later: bare free-text terms follow.
+    !trimmed.contains('"')
 }
 
 fn parse_year(v: &str) -> Option<(i32, i32)> {
@@ -435,5 +474,38 @@ mod tests {
     fn unterminated_quote_still_yields_the_term() {
         let q = parse(r#"track:"unclosed"#);
         assert_eq!(q.track, vec!["unclosed"]);
+    }
+
+    /// Titles legitimately contain double quotes; the phrase must not close at
+    /// them. This exact shape caused every search timeout in the 2026-08-22
+    /// metadata backfill.
+    #[test]
+    fn embedded_quotes_stay_inside_the_phrase() {
+        let q = parse(r#"track:"Team - From "Marvel Rising: Heart of Iron"" artist:"Tova""#);
+        assert_eq!(
+            q.track,
+            vec![r#"Team - From "Marvel Rising: Heart of Iron""#]
+        );
+        assert_eq!(q.artist, vec!["Tova"]);
+        assert!(q.free.is_empty());
+
+        let q = parse(r#"track:"Thieves like Us - 12" Extended" artist:"New Order""#);
+        assert_eq!(q.track, vec![r#"Thieves like Us - 12" Extended"#]);
+        assert_eq!(q.artist, vec!["New Order"]);
+
+        // A quoted value holding a colon after a quote is still one phrase.
+        let q = parse(r#"track:""Help" - Live: London" artist:"X""#);
+        assert_eq!(q.track, vec![r#""Help" - Live: London"#]);
+        assert_eq!(q.artist, vec!["X"]);
+    }
+
+    /// The permissive closing rule must not break the ordinary shapes.
+    #[test]
+    fn plain_phrases_still_close_normally() {
+        let q = parse(r#""get lucky" daft punk"#);
+        assert_eq!(q.free, vec!["get lucky", "daft", "punk"]);
+
+        let q = parse(r#""a" "b""#);
+        assert_eq!(q.free, vec!["a", "b"]);
     }
 }
