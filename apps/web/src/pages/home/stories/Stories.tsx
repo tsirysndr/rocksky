@@ -108,6 +108,12 @@ const LikeButton = styled.button`
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
+  /* Fixed width, mirrored by an equal spacer on the row's left, so the
+     500px title block stays truly centered above the artist. */
+  width: 32px;
+  flex-shrink: 0;
+  padding: 0;
   /* Lines up with TrackTitle's top margin. */
   margin-top: 25px;
 `;
@@ -510,6 +516,8 @@ function Stories() {
                   )}
                   {currentlyPlaying?.trackUri && (
                     <div className="flex flex-row items-center">
+                      {/* Balances the 32px like button so the title stays centered. */}
+                      <div className="w-[32px] flex-shrink-0" />
                       <Link
                         to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
                       >
