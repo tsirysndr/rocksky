@@ -539,7 +539,11 @@ pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
     // it needs a small pool and a large page cache, not the reverse.
     let memory_limit = std::env::var("RIFF_MEMORY_LIMIT").unwrap_or_else(|_| "2GB".to_string());
     conn.execute_batch(&format!(
-        "SET memory_limit = '{}'",
+        // The object cache keeps parquet footers parsed across queries. A
+        // hydration request touches half a dozen parquet relations, and the 23G
+        // tracks file carries 2000+ row groups of metadata — re-parsing that per
+        // subquery is pure overhead.
+        "SET memory_limit = '{}'; SET enable_object_cache = true;",
         memory_limit.replace('\'', "")
     ))
     .map_err(|e| format!("could not apply RIFF_MEMORY_LIMIT={memory_limit}: {e}"))?;
