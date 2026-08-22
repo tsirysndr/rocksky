@@ -3,7 +3,7 @@ import {
   createAccessToken,
   deleteAccessToken,
   getAccessTokens,
-} from "../api/access-tokens";
+} from "../api/AccessTokens.gen";
 
 export const useAccessTokensQuery = (offset?: number, size?: number) =>
   useQuery({

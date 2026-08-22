@@ -5,7 +5,7 @@ import _ from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
-import { playerAtom } from "../../atoms/player";
+import { playerAtom } from "../../atoms/Player.gen";
 import {
   activeDeviceIdAtom,
   deviceCommandAtom,
@@ -15,7 +15,7 @@ import {
 } from "../../atoms/devices";
 import { playerControlsAtom } from "../../atoms/playerControls";
 import { queueAtom, queueIndexAtom, queuePanelOpenAtom } from "../../atoms/queue";
-import { fullscreenPlayerAtom } from "../../atoms/fullscreenPlayer";
+import { fullscreenPlayerAtom } from "../../atoms/FullscreenPlayer.gen";
 import { profileAtom } from "../../atoms/profile";
 import { shuffleAtom, repeatModeAtom, type RepeatMode } from "../../atoms/playback";
 import { API_URL } from "../../consts";
@@ -25,7 +25,7 @@ import StickyPlayer from "./StrickyPlayer";
 import FullscreenPlayer from "../FullscreenPlayer/FullscreenPlayer";
 import { QueuePanel } from "../QueuePanel/QueuePanel";
 import { useQueryClient } from "@tanstack/react-query";
-import { feedGeneratorUriAtom } from "../../atoms/feed";
+import { feedGeneratorUriAtom } from "../../atoms/Feed.gen";
 import { InsertMode } from "rockbox-wasm";
 import {
   RemoteController,

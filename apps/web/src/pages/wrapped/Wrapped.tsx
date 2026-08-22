@@ -15,7 +15,10 @@ import { profileAtom } from "../../atoms/profile";
 import { themeAtom } from "../../atoms/theme";
 import { useWrappedQuery } from "../../hooks/useWrapped";
 import Main from "../../layouts/Main";
-import type { WrappedArtist, WrappedTrack } from "../../api/wrapped";
+import type {
+  wrappedArtist as WrappedArtist,
+  wrappedTrack as WrappedTrack,
+} from "../../api/Wrapped.gen";
 import { IconDownload, IconMusic, IconUser, IconCalendar, IconClock, IconFlame, IconSparkles, IconMicrophone2 } from "@tabler/icons-react";
 import { API_URL } from "../../consts";
 

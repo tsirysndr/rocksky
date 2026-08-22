@@ -1,7 +1,7 @@
 import { client } from ".";
-import { Album } from "../types/album";
-import { Artist } from "../types/artist";
-import { Track } from "../types/track";
+import type { t as Album } from "../types/Album.gen";
+import type { t as Artist } from "../types/Artist.gen";
+import type { t as Track } from "../types/Track.gen";
 
 export const getSongByUri = async (uri: string) => {
   if (uri.includes("app.rocksky.scrobble")) {

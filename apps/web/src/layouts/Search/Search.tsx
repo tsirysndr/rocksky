@@ -5,7 +5,7 @@ import { useSetAtom } from "jotai";
 import {
   searchModalOpenAtom,
   searchModalScopeAtom,
-} from "../../atoms/searchModal";
+} from "../../atoms/SearchModal.gen";
 
 // "/" affordance shown at the trailing edge — press "/" anywhere to open the
 // command palette (see components/KeyboardShortcuts).

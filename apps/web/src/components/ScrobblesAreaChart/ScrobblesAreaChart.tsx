@@ -57,7 +57,9 @@ function ScrobblesAreaChart() {
   const { data: genreCharts } = useGenreChartQuery(genre!);
 
   useEffect(() => {
-    setData(genreCharts);
+    // genreCharts is undefined while the query is loading; the old untyped
+    // API let that flow into state — coalesce to [] to keep state non-null.
+    setData(genreCharts ?? []);
   }, [genreCharts]);
 
   useEffect(() => {

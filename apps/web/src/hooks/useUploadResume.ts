@@ -1,7 +1,7 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { nowPlayingAtom } from "../atoms/nowpaying";
-import { playerAtom } from "../atoms/player";
+import { playerAtom } from "../atoms/Player.gen";
 import { queueAtom, queueIndexAtom } from "../atoms/queue";
 import { uploadResumeAtom } from "../atoms/resume";
 import { registerTracks } from "../lib/audio/rockbox-engine";

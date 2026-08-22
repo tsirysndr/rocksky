@@ -9,7 +9,7 @@ import {
   getFollows,
   followAccount,
   unfollowAccount,
-} from "../api/graph";
+} from "../api/Graph.gen";
 
 export const useFollowsQuery = (
   actor: string,

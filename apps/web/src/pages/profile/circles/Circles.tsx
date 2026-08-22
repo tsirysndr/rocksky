@@ -4,7 +4,7 @@ import {
   useProfileByDidQuery,
 } from "../../../hooks/useProfile";
 import { Link, useParams } from "@tanstack/react-router";
-import { Neighbour } from "../../../types/neighbour";
+import type { t as Neighbour } from "../../../types/Neighbour.gen";
 import { Avatar } from "baseui/avatar";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
 import { Button } from "baseui/button";

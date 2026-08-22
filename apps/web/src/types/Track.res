@@ -1,0 +1,20 @@
+@genType
+type t = {
+  id: string,
+  uri: string,
+  uniqueListeners: float,
+  playCount: float,
+  title: string,
+  artist: string,
+  artistUri: string,
+  album: string,
+  albumUri: string,
+  albumArt: string,
+  albumArtist: string,
+  copyrightMessage: string,
+  discNumber: float,
+  duration: float,
+  sha256: string,
+  track_number: float,
+  created_at: string,
+}

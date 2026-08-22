@@ -7,7 +7,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { FC, useEffect, useState } from "react";
-import { File } from "../../types/file";
+import type { t as File } from "../../types/File.gen";
 
 const TableRow = styled.tr`
   height: 48px;
