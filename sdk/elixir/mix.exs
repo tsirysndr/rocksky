@@ -37,7 +37,7 @@ defmodule Rocksky.MixProject do
 
   defp rocksky_erl_dep do
     case System.get_env("ROCKSKY_ERL_PATH") do
-      nil -> "~> 0.7"
+      nil -> "~> 0.8"
       path -> [path: path]
     end
   end
