@@ -271,11 +271,30 @@ function TopTracks(props: TopTracksProps) {
             Table: {
               style: {
                 backgroundColor: "var(--color-background)",
+                // Fixed layout so a long nowrap title clips with an ellipsis
+                // instead of inflating the table and forcing horizontal scroll.
+                tableLayout: "fixed",
+                width: "100%",
               },
             },
           }}
         >
-          <TableBuilderColumn header="Name">
+          <TableBuilderColumn
+            header="Name"
+            overrides={{
+              // width 100% + maxWidth 0: the cell takes all space the fixed
+              // Scrobbles column leaves, but its content can never widen it —
+              // so the title truncates instead of running under the bar.
+              TableBodyCell: {
+                style: {
+                  verticalAlign: "center",
+                  width: "100%",
+                  maxWidth: 0,
+                  overflow: "hidden",
+                },
+              },
+            }}
+          >
             {(row: Row) => (
               <div className="flex flex-row items-center">
                 <div>
@@ -315,7 +334,7 @@ function TopTracks(props: TopTracksProps) {
                     )}
                   </div>
                 )}
-                <div className="flex flex-col min-w-0">
+                <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
                   <Link
                     to={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
                     className="!text-[var(--color-text)] truncate"
@@ -339,7 +358,18 @@ function TopTracks(props: TopTracksProps) {
               </div>
             )}
           </TableBuilderColumn>
-          <TableBuilderColumn header="Scrobbles">
+          <TableBuilderColumn
+            header="Scrobbles"
+            overrides={{
+              // Per-column override replaces the table-level TableBodyCell
+              // style, so verticalAlign is duplicated. Head row is hidden, so
+              // under fixed layout this body-cell width sizes the column; the
+              // Name column takes the remainder and its title can ellipsize.
+              TableBodyCell: {
+                style: { verticalAlign: "center", width: "290px" },
+              },
+            }}
+          >
             {(row: Row, index?: number) => (
               <div className="relative w-[250px] mt-[-20px]">
                 <div

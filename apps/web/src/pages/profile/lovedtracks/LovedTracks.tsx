@@ -153,11 +153,30 @@ function LovedTracks() {
           Table: {
             style: {
               backgroundColor: "var(--color-background)",
+              // Fixed layout so a long nowrap title clips with an ellipsis
+              // instead of inflating the table and forcing horizontal scroll.
+              tableLayout: "fixed",
+              width: "100%",
             },
           },
         }}
       >
-        <TableBuilderColumn header="Name">
+        <TableBuilderColumn
+          header="Name"
+          overrides={{
+            // width 100% + maxWidth 0: the cell takes the space the fixed
+            // Date column leaves, but content can never widen it — titles
+            // truncate instead of overflowing the cell.
+            TableBodyCell: {
+              style: {
+                verticalAlign: "center",
+                width: "100%",
+                maxWidth: 0,
+                overflow: "hidden",
+              },
+            },
+          }}
+        >
           {(row: Row) => (
             <div className="flex flex-row items-center">
               {row.albumUri && (
@@ -192,7 +211,7 @@ function LovedTracks() {
               )}
               <div
                 style={{ display: "flex", flexDirection: "column" }}
-                className="flex flex-col min-w-0"
+                className="flex flex-col min-w-0 flex-1 overflow-hidden"
               >
                 {row.uri && (
                   <Link
@@ -220,7 +239,17 @@ function LovedTracks() {
             </div>
           )}
         </TableBuilderColumn>
-        <TableBuilderColumn header="Date">
+        <TableBuilderColumn
+          header="Date"
+          overrides={{
+            // Per-column override replaces the table-level TableBodyCell
+            // style (verticalAlign duplicated). Fixed width so the Name
+            // column takes the remainder and its title can ellipsize.
+            TableBodyCell: {
+              style: { verticalAlign: "center", width: "160px" },
+            },
+          }}
+        >
           {(row: Row) => (
             <StatefulTooltip
               content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}

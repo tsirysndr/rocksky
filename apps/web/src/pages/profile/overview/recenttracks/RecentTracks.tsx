@@ -244,11 +244,33 @@ function RecentTracks(props: RecentTracksProps) {
             Table: {
               style: {
                 backgroundColor: "var(--color-background)",
+                // Fixed layout so a long nowrap title clips with an ellipsis
+                // instead of inflating the table and forcing horizontal
+                // scroll (auto layout sizes columns to the text's
+                // min-content width). baseui's table has min-width: 100% but
+                // no width, which fixed layout needs explicitly.
+                tableLayout: "fixed",
+                width: "100%",
               },
             },
           }}
         >
-          <TableBuilderColumn header="Title">
+          <TableBuilderColumn
+            header="Title"
+            overrides={{
+              // width 100% + maxWidth 0: the cell takes the space the fixed
+              // columns leave, but content can never widen it — titles
+              // truncate instead of overflowing the cell.
+              TableBodyCell: {
+                style: {
+                  verticalAlign: "center",
+                  width: "100%",
+                  maxWidth: 0,
+                  overflow: "hidden",
+                },
+              },
+            }}
+          >
             {(row: Row) => (
               <div className="flex flex-row items-center">
                 <Link
@@ -267,7 +289,7 @@ function RecentTracks(props: RecentTracksProps) {
                     </div>
                   )}
                 </Link>
-                <div className="min-w-0 truncate">
+                <div className="min-w-0 flex-1 truncate">
                   <Link
                     to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                     className="!text-[var(--color-text)]"
@@ -278,7 +300,18 @@ function RecentTracks(props: RecentTracksProps) {
               </div>
             )}
           </TableBuilderColumn>
-          <TableBuilderColumn header="Artist">
+          <TableBuilderColumn
+            header="Artist"
+            overrides={{
+              // Per-column overrides REPLACE the table-level TableBodyCell
+              // style, so verticalAlign is duplicated here. The head row is
+              // hidden, so under fixed layout these body-cell widths size the
+              // columns; the Title column takes the remainder.
+              TableBodyCell: {
+                style: { verticalAlign: "center", width: "28%" },
+              },
+            }}
+          >
             {(row: Row) => (
               <div className="flex min-w-0">
                 <Link
@@ -291,7 +324,14 @@ function RecentTracks(props: RecentTracksProps) {
               </div>
             )}
           </TableBuilderColumn>
-          <TableBuilderColumn header="Date">
+          <TableBuilderColumn
+            header="Date"
+            overrides={{
+              TableBodyCell: {
+                style: { verticalAlign: "center", width: "160px" },
+              },
+            }}
+          >
             {(row: Row) => (
               <StatefulTooltip
                 content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
