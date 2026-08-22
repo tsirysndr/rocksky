@@ -24,6 +24,12 @@ struct Cli {
     /// DuckDB file to write the lookup tables into.
     #[arg(long, env = "RIFF_DB_PATH")]
     db: PathBuf,
+
+    /// Only build lookup tables that do not exist yet — for picking up newly
+    /// added lookups without redoing the expensive sorts. A dump refresh needs
+    /// a full rebuild: delete the db file instead.
+    #[arg(long)]
+    missing_only: bool,
 }
 
 fn main() {
@@ -36,7 +42,9 @@ fn main() {
         cli.db.display()
     );
 
-    if let Err(e) = riff::db::materialize(&cli.data_dir, &cli.db, |line| println!("{line}")) {
+    if let Err(e) = riff::db::materialize(&cli.data_dir, &cli.db, cli.missing_only, |line| {
+        println!("{line}")
+    }) {
         eprintln!("riff-materialize: {e}");
         std::process::exit(1);
     }

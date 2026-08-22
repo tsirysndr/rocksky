@@ -812,7 +812,7 @@ async fn a_rate_limited_response_is_spotify_shaped() {
 async fn a_materialized_db_serves_the_same_answers() {
     let db_dir = tempfile::tempdir().unwrap();
     let db_path = db_dir.path().join("riff.duckdb");
-    db::materialize(data_dir(), &db_path, |_| {}).expect("materialize");
+    db::materialize(data_dir(), &db_path, false, |_| {}).expect("materialize");
 
     let mut cfg = settings(data_dir().to_path_buf());
     cfg.db_path = Some(db_path);
@@ -871,8 +871,8 @@ async fn a_materialized_db_serves_the_same_answers() {
 async fn materializing_twice_is_idempotent() {
     let db_dir = tempfile::tempdir().unwrap();
     let db_path = db_dir.path().join("riff.duckdb");
-    db::materialize(data_dir(), &db_path, |_| {}).expect("first run");
-    db::materialize(data_dir(), &db_path, |_| {}).expect("second run");
+    db::materialize(data_dir(), &db_path, false, |_| {}).expect("first run");
+    db::materialize(data_dir(), &db_path, false, |_| {}).expect("second run");
 
     let mut cfg = settings(data_dir().to_path_buf());
     cfg.db_path = Some(db_path);

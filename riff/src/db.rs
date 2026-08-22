@@ -378,6 +378,47 @@ const LOOKUPS: &[LookupSpec] = &[
         order_by: "track_id",
         shadows_base: true,
     },
+    // Full native copies of the base relations. The parquet files are already
+    // sorted by these keys, so no real sorting happens — but native tables carry
+    // their statistics inside the database and skip parquet's per-query footer
+    // parsing, which measured as most of a hydration request's latency. Disk
+    // pays ~25G to take read_parquet out of the serving path entirely.
+    LookupSpec {
+        name: "artists",
+        select: "SELECT * FROM artists",
+        order_by: "row_id",
+        shadows_base: true,
+    },
+    LookupSpec {
+        name: "albums",
+        select: "SELECT * FROM albums",
+        order_by: "row_id",
+        shadows_base: true,
+    },
+    LookupSpec {
+        name: "tracks",
+        select: "SELECT * FROM tracks",
+        order_by: "row_id",
+        shadows_base: true,
+    },
+    LookupSpec {
+        name: "track_artists",
+        select: "SELECT track_rowid, artist_rowid, index_in_track FROM track_artists",
+        order_by: "track_rowid, COALESCE(index_in_track, 0)",
+        shadows_base: true,
+    },
+    LookupSpec {
+        name: "artist_images",
+        select: "SELECT artist_rowid, width, height, url FROM artist_images",
+        order_by: "artist_rowid, COALESCE(width, 0) DESC",
+        shadows_base: true,
+    },
+    LookupSpec {
+        name: "available_markets",
+        select: "SELECT * FROM available_markets",
+        order_by: "row_id",
+        shadows_base: true,
+    },
 ];
 
 /// Names of BASE TABLEs already present in the attached database. When a
@@ -592,6 +633,7 @@ run riff-materialize for production data)"
 pub fn materialize(
     data_dir: &Path,
     db_path: &Path,
+    only_missing: bool,
     mut progress: impl FnMut(&str),
 ) -> Result<(), String> {
     let conn = duckdb::Connection::open(db_path)
@@ -613,6 +655,11 @@ pub fn materialize(
         progress(&line);
     }
 
+    // On a dump refresh, rebuild everything (delete the db file first). After a
+    // schema upgrade that only ADDS lookups, --missing-only skips the ones that
+    // already exist instead of redoing the 40-minute sorts.
+    let skip = |name: &str| only_missing && tables.contains(name);
+
     // A staging pass so the 23G tracks relation is decoded once, not once per
     // derived table.
     let steps: &[(&str, String)] = &[(
@@ -622,11 +669,24 @@ pub fn materialize(
              FROM tracks"
             .to_string(),
     )];
-    for (name, select) in steps {
-        run_ctas(&conn, name, select, None, &mut progress)?;
+    let need_stage = LOOKUPS.iter().any(|l| {
+        !skip(l.name)
+            && matches!(
+                l.name,
+                "track_ids" | "track_names" | "track_isrcs" | "track_artists_by_artist"
+            )
+    });
+    if need_stage {
+        for (name, select) in steps {
+            run_ctas(&conn, name, select, None, &mut progress)?;
+        }
     }
 
     for lookup in LOOKUPS {
+        if skip(lookup.name) {
+            progress(&format!("  {:<24} (exists — skipped)", lookup.name));
+            continue;
+        }
         // stage-aware sources: the three track maps read the staging table
         // instead of going back to the parquet.
         let select = match lookup.name {
@@ -653,6 +713,8 @@ pub fn materialize(
         }
     }
 
+    conn.execute_batch("DROP TABLE IF EXISTS stage_tracks")
+        .map_err(err)?;
     conn.execute_batch(
         "DROP TABLE IF EXISTS riff_meta; \
          CREATE TABLE riff_meta AS SELECT 1 AS schema_version",

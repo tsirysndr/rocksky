@@ -258,7 +258,7 @@ async fn artist_pages_render_from_real_rows() {
 async fn the_sample_serves_materialized() {
     let db_dir = tempfile::tempdir().unwrap();
     let db_path = db_dir.path().join("riff.duckdb");
-    db::materialize(&sample_dir(), &db_path, |_| {}).expect("materialize sample");
+    db::materialize(&sample_dir(), &db_path, false, |_| {}).expect("materialize sample");
 
     let mut cfg = settings();
     cfg.db_path = Some(db_path);
