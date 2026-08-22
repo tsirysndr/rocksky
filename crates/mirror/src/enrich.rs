@@ -34,8 +34,8 @@ const SPOTIFY_DEFAULT_BASE_URL: &str = "https://api.spotify.com/v1";
 const LASTFM_ENDPOINT: &str = "https://ws.audioscrobbler.com/2.0/";
 
 fn spotify_search_url() -> String {
-    let base = std::env::var("SPOTIFY_API_URL")
-        .unwrap_or_else(|_| SPOTIFY_DEFAULT_BASE_URL.to_string());
+    let base =
+        std::env::var("SPOTIFY_API_URL").unwrap_or_else(|_| SPOTIFY_DEFAULT_BASE_URL.to_string());
     format!("{}/search", base)
 }
 
