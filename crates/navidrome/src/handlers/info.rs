@@ -74,6 +74,9 @@ pub async fn handle_get_now_playing(
                         "minutesAgo": e.minutes_ago,
                         "playerId": 1,
                     });
+                    if let Some(sr) = e.sample_rate {
+                        s["samplingRate"] = json!(sr);
+                    }
                     if e.album_art.is_some() {
                         s["coverArt"] = json!(format!("al-{}", e.xata_id));
                     }

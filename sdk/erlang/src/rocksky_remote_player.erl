@@ -42,8 +42,10 @@ next_command(Player) ->
 
 %% Advertise the currently-playing track. `Track` is a map with camelCase binary
 %% keys: <<"title">>, <<"artist">>, and optional <<"album">>, <<"albumArtist">>,
-%% <<"albumArt">>, <<"durationMs">>, <<"elapsedMs">>, <<"isPlaying">>. Call it
-%% whenever the track changes and periodically with a fresh <<"elapsedMs">>.
+%% <<"albumArt">>, <<"durationMs">>, <<"elapsedMs">>, <<"isPlaying">>,
+%% <<"codec">> (audio codec/container, e.g. <<"mp3">>, <<"flac">>),
+%% <<"sampleRate">> (Hz, e.g. 44100). Call it whenever the track changes and
+%% periodically with a fresh <<"elapsedMs">>.
 set_now_playing(Player, Track) when is_map(Track) ->
     unwrap(rocksky_nif:remote_player_set_now_playing(
         Player, iolist_to_binary(json:encode(Track)))).

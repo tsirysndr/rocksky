@@ -34,8 +34,10 @@ connect(Token, Name, Url) ->
 
 %% Block until the next update, returned as a decoded event map with a
 %% <<"type">> key (devices | device_registered | device_unregistered |
-%% primary_changed | now_playing | status | queue). Returns `undefined` once the
-%% controller is disconnected.
+%% primary_changed | now_playing | status | queue). A now_playing event carries
+%% the track under <<"track">> (camelCase binary keys, including the optional
+%% <<"codec">> and <<"sampleRate">> audio info when the player advertised
+%% them). Returns `undefined` once the controller is disconnected.
 next_event(Controller) ->
     case unwrap(rocksky_nif:remote_controller_next_event(Controller)) of
         {ok, null} -> undefined;

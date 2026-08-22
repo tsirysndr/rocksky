@@ -18,6 +18,7 @@ pub struct StarredTrack {
     pub r2_key: String,
     pub mime_type: String,
     pub file_size: i32,
+    pub sample_rate: Option<i32>,
     pub album_id: Option<String>,
     pub artist_id: Option<String>,
     pub starred_at: DateTime<Utc>,
@@ -42,6 +43,7 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for StarredTrack {
             r2_key: row.try_get("r2_key")?,
             mime_type: row.try_get("mime_type")?,
             file_size: row.try_get("file_size")?,
+            sample_rate: row.try_get("sample_rate").unwrap_or(None),
             album_id: row.try_get("album_id")?,
             artist_id: row.try_get("artist_id")?,
             starred_at: row.try_get("starred_at")?,
@@ -71,6 +73,7 @@ pub async fn get_starred_tracks(
             user_uploads.r2_key,
             user_uploads.mime_type,
             user_uploads.file_size,
+            user_uploads.sample_rate,
             (SELECT at2.album_id FROM album_tracks at2 WHERE at2.track_id = tracks.xata_id LIMIT 1) AS album_id,
             (SELECT at3.artist_id FROM artist_tracks at3 WHERE at3.track_id = tracks.xata_id LIMIT 1) AS artist_id,
             loved_tracks.xata_createdat AS starred_at

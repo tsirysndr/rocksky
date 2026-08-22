@@ -616,6 +616,8 @@ struct NowPlayingJson {
     duration_ms: u64,
     elapsed_ms: u64,
     is_playing: bool,
+    codec: Option<String>,
+    sample_rate: Option<u32>,
 }
 
 #[cfg(feature = "remote-player")]
@@ -630,6 +632,8 @@ impl Default for NowPlayingJson {
             duration_ms: 0,
             elapsed_ms: 0,
             is_playing: true,
+            codec: None,
+            sample_rate: None,
         }
     }
 }
@@ -749,7 +753,7 @@ pub unsafe extern "C" fn rocksky_remote_player_next_command(
 
 /// Advertise the currently-playing track. `track_json` is a camelCase now-playing
 /// object (`title`, `artist`, `album`, `albumArtist`, `albumArt`, `durationMs`,
-/// `elapsedMs`, `isPlaying`).
+/// `elapsedMs`, `isPlaying`, and optionally `codec`, `sampleRate`).
 ///
 /// # Safety
 /// `handle` must be live; `track_json` a valid C string.
@@ -774,6 +778,8 @@ pub unsafe extern "C" fn rocksky_remote_player_set_now_playing(
                 duration_ms: t.duration_ms,
                 elapsed_ms: t.elapsed_ms,
                 is_playing: t.is_playing,
+                codec: t.codec,
+                sample_rate: t.sample_rate,
             });
             respond(Ok(true))
         }
@@ -909,6 +915,8 @@ fn now_playing_to_json(t: &rocksky_sdk::RemoteNowPlaying) -> serde_json::Value {
         "durationMs": t.duration_ms,
         "elapsedMs": t.elapsed_ms,
         "isPlaying": t.is_playing,
+        "codec": t.codec,
+        "sampleRate": t.sample_rate,
     })
 }
 

@@ -1507,6 +1507,13 @@ pub struct RemoteNowPlaying {
     pub elapsed_ms: u64,
     #[uniffi(default = true)]
     pub is_playing: bool,
+    /// Audio codec / container of the playing file (e.g. "mp3", "flac"), when
+    /// the player knows it.
+    #[uniffi(default = None)]
+    pub codec: Option<String>,
+    /// Audio sample rate in Hz (e.g. 44100), when the player knows it.
+    #[uniffi(default = None)]
+    pub sample_rate: Option<u32>,
 }
 
 /// Transport status advertised to controllers.
@@ -1583,6 +1590,8 @@ impl From<RemoteNowPlaying> for rocksky_sdk::RemoteNowPlaying {
             duration_ms: v.duration_ms,
             elapsed_ms: v.elapsed_ms,
             is_playing: v.is_playing,
+            codec: v.codec,
+            sample_rate: v.sample_rate,
         }
     }
 }
@@ -1782,6 +1791,8 @@ impl From<rocksky_sdk::RemoteNowPlaying> for RemoteNowPlaying {
             duration_ms: v.duration_ms,
             elapsed_ms: v.elapsed_ms,
             is_playing: v.is_playing,
+            codec: v.codec,
+            sample_rate: v.sample_rate,
         }
     }
 }

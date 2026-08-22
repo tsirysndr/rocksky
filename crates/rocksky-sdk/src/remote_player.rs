@@ -86,6 +86,11 @@ pub struct RemoteNowPlaying {
     /// Current position, ms.
     pub elapsed_ms: u64,
     pub is_playing: bool,
+    /// Audio codec / container of the playing file (e.g. "mp3", "flac"), when
+    /// the player knows it. Shown as a format badge by controller UIs.
+    pub codec: Option<String>,
+    /// Audio sample rate in Hz (e.g. 44100), when the player knows it.
+    pub sample_rate: Option<u32>,
 }
 
 /// Transport state.
@@ -353,19 +358,28 @@ where
     S: SinkExt<Message> + Unpin,
 {
     let data = match msg {
-        OutMsg::Track(t) => json!({
-            "type": "track",
-            "title": t.title,
-            "artist": t.artist,
-            "album": t.album,
-            "album_artist": if t.album_artist.is_empty() { &t.artist } else { &t.album_artist },
-            "length": t.duration_ms,
-            "elapsed": t.elapsed_ms,
-            "duration_ms": t.duration_ms,
-            "album_art": t.album_art,
-            "is_playing": t.is_playing,
-            "device_name": config.name,
-        }),
+        OutMsg::Track(t) => {
+            let mut data = json!({
+                "type": "track",
+                "title": t.title,
+                "artist": t.artist,
+                "album": t.album,
+                "album_artist": if t.album_artist.is_empty() { &t.artist } else { &t.album_artist },
+                "length": t.duration_ms,
+                "elapsed": t.elapsed_ms,
+                "duration_ms": t.duration_ms,
+                "album_art": t.album_art,
+                "is_playing": t.is_playing,
+                "device_name": config.name,
+            });
+            if let Some(codec) = &t.codec {
+                data["codec"] = json!(codec);
+            }
+            if let Some(sample_rate) = t.sample_rate {
+                data["sample_rate"] = json!(sample_rate);
+            }
+            data
+        }
         OutMsg::Status(s) => json!({ "type": "status", "status": s }),
         OutMsg::Queue(items, index) => json!({
             "type": "queue",

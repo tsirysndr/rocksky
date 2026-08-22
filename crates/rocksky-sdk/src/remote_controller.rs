@@ -487,6 +487,11 @@ fn track_from_value(v: &Value) -> RemoteNowPlaying {
             .get("is_playing")
             .and_then(|x| x.as_bool())
             .unwrap_or(false),
+        codec: v.get("codec").and_then(|x| x.as_str()).map(str::to_string),
+        sample_rate: v
+            .get("sample_rate")
+            .and_then(|x| x.as_u64())
+            .map(|n| n as u32),
     }
 }
 

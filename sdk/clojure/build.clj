@@ -13,7 +13,7 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib         'app.rocksky/sdk)
-(def version     "0.8.1-SNAPSHOT")
+(def version     "0.9.0-SNAPSHOT")
 (def class-dir   "target/classes")
 (def basis       (delay (b/create-basis {:project "deps.edn"})))
 (def jar-file    (format "target/%s-%s.jar" (name lib) version))

@@ -40,6 +40,9 @@ pub async fn handle_get_starred2(
                         "created": t.xata_createdat.to_rfc3339(),
                         "path": path,
                     });
+                    if let Some(sr) = t.sample_rate {
+                        s["samplingRate"] = json!(sr);
+                    }
                     if let Some(tn) = t.track_number {
                         s["track"] = json!(tn);
                     }

@@ -35,6 +35,10 @@ pub struct TrackWithUpload {
     pub r2_key: String,
     pub mime_type: String,
     pub file_size: i32,
+    // Audio sample rate in Hz, probed at upload time. `default` so queries
+    // that don't select the column still map (older code paths → None).
+    #[sqlx(default)]
+    pub sample_rate: Option<i32>,
     pub album_id: Option<String>,
     pub artist_id: Option<String>,
     // BYO storage provider fields (NULL for managed Rocksky storage)

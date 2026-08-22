@@ -278,6 +278,8 @@ type trackJSON struct {
 	Length      int64  `json:"length"`
 	Elapsed     int64  `json:"elapsed"`
 	IsPlaying   bool   `json:"is_playing"`
+	Codec       string `json:"codec"`
+	SampleRate  int    `json:"sample_rate"`
 }
 
 func (t trackJSON) toNowPlaying() RemoteNowPlaying {
@@ -288,6 +290,7 @@ func (t trackJSON) toNowPlaying() RemoteNowPlaying {
 	return RemoteNowPlaying{
 		Title: t.Title, Artist: t.Artist, Album: t.Album, AlbumArtist: t.AlbumArtist,
 		AlbumArt: t.AlbumArt, DurationMs: dur, ElapsedMs: t.Elapsed, IsPlaying: t.IsPlaying,
+		Codec: t.Codec, SampleRate: t.SampleRate,
 	}
 }
 

@@ -22,6 +22,8 @@ type RemoteNowPlaying struct {
 	DurationMs  int64 // total track length
 	ElapsedMs   int64 // current position
 	IsPlaying   bool
+	Codec       string // audio codec/container (e.g. "mp3", "flac"), optional
+	SampleRate  int    // sample rate in Hz (e.g. 44100), optional
 }
 
 // RemoteQueueItem is one queue entry. Provide UploadID (Rocksky uploads) or
@@ -213,7 +215,7 @@ func (p *RemotePlayer) SetNowPlaying(t RemoteNowPlaying) {
 	p.mu.Lock()
 	p.lastTrack = &t
 	p.mu.Unlock()
-	p.sendData(map[string]any{
+	data := map[string]any{
 		"type":         "track",
 		"title":        t.Title,
 		"artist":       t.Artist,
@@ -225,7 +227,14 @@ func (p *RemotePlayer) SetNowPlaying(t RemoteNowPlaying) {
 		"album_art":    t.AlbumArt,
 		"is_playing":   t.IsPlaying,
 		"device_name":  p.opts.Name,
-	})
+	}
+	if t.Codec != "" {
+		data["codec"] = t.Codec
+	}
+	if t.SampleRate != 0 {
+		data["sample_rate"] = t.SampleRate
+	}
+	p.sendData(data)
 }
 
 // SetStatus advertises transport state: "playing", "paused", or "stopped".

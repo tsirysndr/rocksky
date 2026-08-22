@@ -49,9 +49,10 @@ defmodule Rocksky.RemotePlayer do
   @doc """
   Advertise the currently-playing track. `track` is a map with camelCase string
   keys: `"title"`, `"artist"`, and optional `"album"`, `"albumArtist"`,
-  `"albumArt"`, `"durationMs"`, `"elapsedMs"`, `"isPlaying"`. Call it whenever
-  the track changes, and periodically with a fresh `"elapsedMs"` so controllers
-  show smooth progress.
+  `"albumArt"`, `"durationMs"`, `"elapsedMs"`, `"isPlaying"`, `"codec"`
+  (audio codec/container, e.g. `"mp3"`, `"flac"`), `"sampleRate"` (Hz, e.g.
+  `44100`). Call it whenever the track changes, and periodically with a fresh
+  `"elapsedMs"` so controllers show smooth progress.
   """
   def set_now_playing(handle, track) when is_map(track),
     do: :rocksky_remote_player.set_now_playing(handle, track)

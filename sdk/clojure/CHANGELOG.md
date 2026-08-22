@@ -5,6 +5,13 @@ project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+- Remote-player protocol: now-playing maps accept optional audio info —
+  `:codec` (audio codec/container, e.g. "mp3", "flac") and `:sampleRate`
+  (sample rate in Hz, e.g. 44100). A player includes them in the `track`
+  payload when set (`codec` / `sample_rate` on the wire, omitted otherwise); a
+  controller's `:now-playing` event exposes them on the `"track"` map.
+
 ## [0.3.0] - 2026-06-07
 
 ### Added

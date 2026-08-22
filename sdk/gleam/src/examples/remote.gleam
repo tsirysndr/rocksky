@@ -33,6 +33,8 @@ pub fn main() {
         duration_ms: 214_000,
         elapsed_ms: 0,
         is_playing: True,
+        codec: Some("flac"),
+        sample_rate: Some(44_100),
       ),
     )
   let _ =

@@ -25,7 +25,7 @@
 import gleam/dynamic.{type Dynamic}
 import gleam/dynamic/decode
 import gleam/json
-import gleam/option.{type Option}
+import gleam/option.{type Option, None}
 
 /// The default remote-control WebSocket endpoint (used when no URL is given).
 pub const default_remote_ws = "wss://api.rocksky.app/ws"
@@ -39,7 +39,9 @@ pub opaque type RemotePlayer {
 // ---- shared value types --------------------------------------------------
 
 /// Playback state you advertise with [set_now_playing](#set_now_playing), and
-/// the shape carried by controller now-playing events.
+/// the shape carried by controller now-playing events. `codec` (e.g. `"mp3"`,
+/// `"flac"`) and `sample_rate` (Hz, e.g. `44100`) are optional audio info,
+/// set when the player knows them.
 pub type NowPlaying {
   NowPlaying(
     title: String,
@@ -50,6 +52,8 @@ pub type NowPlaying {
     duration_ms: Int,
     elapsed_ms: Int,
     is_playing: Bool,
+    codec: Option(String),
+    sample_rate: Option(Int),
   )
 }
 
@@ -252,6 +256,8 @@ fn now_playing_to_json(t: NowPlaying) -> json.Json {
     #("durationMs", json.int(t.duration_ms)),
     #("elapsedMs", json.int(t.elapsed_ms)),
     #("isPlaying", json.bool(t.is_playing)),
+    #("codec", json.nullable(t.codec, json.string)),
+    #("sampleRate", json.nullable(t.sample_rate, json.int)),
   ])
 }
 
@@ -290,6 +296,16 @@ pub fn now_playing_decoder() -> decode.Decoder(NowPlaying) {
   use duration_ms <- decode.optional_field("durationMs", 0, decode.int)
   use elapsed_ms <- decode.optional_field("elapsedMs", 0, decode.int)
   use is_playing <- decode.optional_field("isPlaying", True, decode.bool)
+  use codec <- decode.optional_field(
+    "codec",
+    None,
+    decode.optional(decode.string),
+  )
+  use sample_rate <- decode.optional_field(
+    "sampleRate",
+    None,
+    decode.optional(decode.int),
+  )
   decode.success(NowPlaying(
     title,
     artist,
@@ -299,6 +315,8 @@ pub fn now_playing_decoder() -> decode.Decoder(NowPlaying) {
     duration_ms,
     elapsed_ms,
     is_playing,
+    codec,
+    sample_rate,
   ))
 }
 

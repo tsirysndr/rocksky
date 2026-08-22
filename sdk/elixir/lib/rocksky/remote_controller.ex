@@ -92,8 +92,10 @@ defmodule Rocksky.RemoteController do
   @doc """
   Block until the next update, returned as a decoded event map with a `"type"`
   key (`"devices"`, `"device_registered"`, `"device_unregistered"`,
-  `"primary_changed"`, `"now_playing"`, `"status"`, `"queue"`). Returns `nil`
-  once the controller is disconnected.
+  `"primary_changed"`, `"now_playing"`, `"status"`, `"queue"`). A
+  `"now_playing"` event carries the track under `"track"` (camelCase string
+  keys, including the optional `"codec"` and `"sampleRate"` audio info when the
+  player advertised them). Returns `nil` once the controller is disconnected.
   """
   def next_event(handle) do
     case :rocksky_remote_controller.next_event(handle) do

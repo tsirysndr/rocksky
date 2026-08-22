@@ -10,11 +10,11 @@ packages = [
   { name = "gleam_json", version = "3.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_json", source = "hex", outer_checksum = "44FDAA8847BE8FC48CA7A1C089706BD54BADCC4C45B237A992EDDF9F2CDB2836" },
   { name = "gleam_stdlib", version = "1.0.3", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "1F543AFBA5D33DA493E6087F4E4C4F20D899411343512686C98A8ABB2963CF22" },
   { name = "gleeunit", version = "1.10.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleeunit", source = "hex", outer_checksum = "254B697FE72EEAD7BF82E941723918E421317813AC49923EE76A18C788C61E72" },
-  { name = "rocksky_erl", version = "0.5.1", build_tools = ["rebar3"], requirements = [], otp_app = "rocksky_erl", source = "hex", outer_checksum = "32ACFE473775812BF0A0115B0AC6305B42E1C0A01A8BE873A819BDC9D9878DC6" },
+  { name = "rocksky_erl", version = "0.6.0", build_tools = ["rebar3"], requirements = [], otp_app = "rocksky_erl", source = "hex", outer_checksum = "E9377A250AA1976BAE4755F69B52FDF35FD300F5E15ED6F26CFC6EF4043DAA93" },
 ]
 
 [requirements]
 gleam_json = { version = ">= 3.1.0 and < 4.0.0" }
 gleam_stdlib = { version = ">= 0.71.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.2.0 and < 2.0.0" }
-rocksky_erl = { version = ">= 0.5.0 and < 1.0.0" }
+rocksky_erl = { version = ">= 0.6.0 and < 1.0.0" }

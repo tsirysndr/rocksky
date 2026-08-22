@@ -18,6 +18,7 @@ pub struct NowPlayingEntry {
     pub r2_key: String,
     pub mime_type: String,
     pub file_size: i32,
+    pub sample_rate: Option<i32>,
     pub handle: String,
     pub minutes_ago: i64,
 }
@@ -41,6 +42,7 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for NowPlayingEntry {
             r2_key: row.try_get("r2_key")?,
             mime_type: row.try_get("mime_type")?,
             file_size: row.try_get("file_size")?,
+            sample_rate: row.try_get("sample_rate").unwrap_or(None),
             handle: row.try_get("handle")?,
             minutes_ago: row.try_get("minutes_ago")?,
         })
@@ -70,6 +72,7 @@ pub async fn get_now_playing(
             user_uploads.r2_key,
             user_uploads.mime_type,
             user_uploads.file_size,
+            user_uploads.sample_rate,
             users.handle,
             EXTRACT(EPOCH FROM (NOW() - scrobbles.timestamp))::bigint / 60 AS minutes_ago
         FROM scrobbles

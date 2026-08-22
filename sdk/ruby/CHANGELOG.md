@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0
+
+- Remote-player protocol: now-playing records accept optional audio info —
+  `codec` (audio codec/container, e.g. "mp3", "flac") and `sampleRate` (sample
+  rate in Hz, e.g. 44100). A player includes them in the `track` payload when
+  set (`codec` / `sample_rate` on the wire, omitted otherwise); a controller's
+  `:now_playing` event exposes them on the `:track` hash.
+
 ## 0.9.1
 
 - Fix a segfault when tearing down a `RemotePlayer` / `RemoteController`.

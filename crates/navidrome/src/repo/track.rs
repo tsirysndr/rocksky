@@ -20,6 +20,7 @@ pub const TRACK_SELECT: &str = r#"
         user_uploads.r2_key,
         user_uploads.mime_type,
         user_uploads.file_size,
+        user_uploads.sample_rate,
         alb.album_id,
         art.artist_id,
         usp.xata_id AS storage_provider_id,

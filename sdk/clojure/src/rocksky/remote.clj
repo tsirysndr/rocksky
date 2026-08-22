@@ -141,7 +141,10 @@
 
 (defn set-now-playing
   "Advertise the current track. `track` is a map with camelCase keys: :title,
-  :artist, :album, :albumArtist, :albumArt, :durationMs, :elapsedMs, :isPlaying."
+  :artist, :album, :albumArtist, :albumArt, :durationMs, :elapsedMs, :isPlaying,
+  plus optional audio info :codec (audio codec/container, e.g. \"mp3\", \"flac\")
+  and :sampleRate (sample rate in Hz, e.g. 44100), included in the track payload
+  when set and omitted otherwise."
   [^RemotePlayer player track]
   (with-open [^Arena a (Arena/ofConfined)]
     (unwrap (.invokeWithArguments ^MethodHandle @h-p-nowplaying
@@ -295,7 +298,9 @@
 (defn- dispatch-event
   "Route one parsed event to the handler keyed by its `type`
   (:devices :device-registered :device-unregistered :primary-changed
-  :now-playing :status :queue). The handler receives the whole event map."
+  :now-playing :status :queue). The handler receives the whole event map. A
+  :now-playing event's \"track\" map includes optional \"codec\" / \"sampleRate\"
+  audio info when the player advertised it."
   [handlers ev]
   (let [k (keyword (str/replace (str (get ev "type")) "_" "-"))]
     (when-let [h (get handlers k)]
