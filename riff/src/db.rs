@@ -539,14 +539,26 @@ pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
     // it needs a small pool and a large page cache, not the reverse.
     let memory_limit = std::env::var("RIFF_MEMORY_LIMIT").unwrap_or_else(|_| "2GB".to_string());
     conn.execute_batch(&format!(
-        // The object cache keeps parquet footers parsed across queries. A
-        // hydration request touches half a dozen parquet relations, and the 23G
-        // tracks file carries 2000+ row groups of metadata — re-parsing that per
-        // subquery is pure overhead.
-        "SET memory_limit = '{}'; SET enable_object_cache = true;",
+        "SET memory_limit = '{}'",
         memory_limit.replace('\'', "")
     ))
     .map_err(|e| format!("could not apply RIFF_MEMORY_LIMIT={memory_limit}: {e}"))?;
+
+    // Cache parsed parquet footers across queries. A hydration request runs
+    // ~8 sequential subqueries, and re-parsing the 23G tracks file's 2000+
+    // row groups of metadata per subquery cost 50-200ms each — measured, it
+    // was most of a request's latency. The setting's name has moved between
+    // engine generations, so try both and require only one to stick.
+    let footer_cache = [
+        "SET parquet_metadata_cache = true",
+        "SET enable_object_cache = true",
+    ]
+    .iter()
+    .filter(|sql| conn.execute_batch(sql).is_ok())
+    .count();
+    if footer_cache == 0 {
+        return Err("neither parquet_metadata_cache nor enable_object_cache is available".into());
+    }
 
     let tables = base_tables(&conn)?;
     let mut report = register_relations(&conn, &cfg.data_dir, &tables)?;
