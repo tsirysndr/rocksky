@@ -482,25 +482,23 @@ pub fn album_track_rowids(
     limit: u32,
     offset: u32,
 ) -> ApiResult<(Vec<i64>, i64)> {
-    let mut stmt = conn.prepare(
-        "SELECT row_id FROM tracks WHERE album_rowid = ? \
+    // Everything here is inlined rather than bound: the row id is a trusted
+    // i64 and the page bounds are server-computed. Bound parameters — LIMIT and
+    // OFFSET especially — kept the engine from planning these as pruned scans,
+    // which on the 256M-row tracks relation meant a full scan per album page.
+    let mut stmt = conn.prepare(&format!(
+        "SELECT row_id FROM tracks WHERE album_rowid = {album_rowid} \
          ORDER BY COALESCE(disc_number, 1), COALESCE(track_number, 0), row_id \
-         LIMIT ? OFFSET ?",
-    )?;
+         LIMIT {limit} OFFSET {offset}"
+    ))?;
     let rowids: Vec<i64> = stmt
-        .query_map(
-            params_from_iter([
-                Value::BigInt(album_rowid),
-                Value::BigInt(limit as i64),
-                Value::BigInt(offset as i64),
-            ]),
-            |r| r.get(0),
-        )?
+        .query_map([], |r| r.get(0))?
         .collect::<Result<_, _>>()?;
 
-    let mut count = conn.prepare("SELECT COUNT(*) FROM tracks WHERE album_rowid = ?")?;
-    let total: i64 =
-        count.query_row(params_from_iter([Value::BigInt(album_rowid)]), |r| r.get(0))?;
+    let mut count = conn.prepare(&format!(
+        "SELECT COUNT(*) FROM tracks WHERE album_rowid = {album_rowid}"
+    ))?;
+    let total: i64 = count.query_row([], |r| r.get(0))?;
     Ok((rowids, total))
 }
 
@@ -772,21 +770,21 @@ pub fn artist_album_rowids(
         )
     };
 
-    let from = format!("FROM artist_albums_expanded aa WHERE aa.artist_rowid = ?{filter}");
+    // artist_rowid and the page bounds are inlined (trusted values); bound
+    // parameters here defeated scan pruning. include_groups values stay bound —
+    // they are caller strings.
+    let from =
+        format!("FROM artist_albums_expanded aa WHERE aa.artist_rowid = {artist_rowid}{filter}");
 
     let sql = format!(
         "SELECT aa.album_rowid, {group_expr} AS album_group {from} \
-         ORDER BY aa.release_date DESC NULLS LAST, aa.album_rowid LIMIT ? OFFSET ?"
+         ORDER BY aa.release_date DESC NULLS LAST, aa.album_rowid LIMIT {limit} OFFSET {offset}"
     );
-    let mut params: Vec<Value> = vec![Value::BigInt(artist_rowid)];
-    params.extend(text_params(include_groups));
-    let mut page_params = params.clone();
-    page_params.push(Value::BigInt(limit as i64));
-    page_params.push(Value::BigInt(offset as i64));
+    let params: Vec<Value> = text_params(include_groups).collect();
 
     let mut stmt = conn.prepare(&sql)?;
     let rows: Vec<(i64, String)> = stmt
-        .query_map(params_from_iter(page_params), |r| {
+        .query_map(params_from_iter(params.clone()), |r| {
             Ok((r.get(0)?, r.get(1)?))
         })?
         .collect::<Result<_, _>>()?;
@@ -799,19 +797,13 @@ pub fn artist_album_rowids(
 pub fn artist_top_track_rowids(conn: &PooledConn, artist_rowid: i64) -> ApiResult<Vec<i64>> {
     // `track_artists_by_artist` is sorted by artist and carries popularity, so
     // ranking an artist's tracks never touches the 23G tracks relation.
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare(&format!(
         "SELECT track_rowid FROM track_artists_by_artist \
-         WHERE artist_rowid = ? \
-         ORDER BY COALESCE(popularity, 0) DESC, track_rowid LIMIT ?",
-    )?;
+         WHERE artist_rowid = {artist_rowid} \
+         ORDER BY COALESCE(popularity, 0) DESC, track_rowid LIMIT {TOP_TRACKS}"
+    ))?;
     Ok(stmt
-        .query_map(
-            params_from_iter([
-                Value::BigInt(artist_rowid),
-                Value::BigInt(TOP_TRACKS as i64),
-            ]),
-            |r| r.get(0),
-        )?
+        .query_map([], |r| r.get(0))?
         .collect::<Result<_, _>>()?)
 }
 
@@ -830,14 +822,15 @@ fn run(
     limit: u32,
     offset: u32,
 ) -> ApiResult<(Vec<i64>, i64)> {
+    // The page bounds are inlined: a parameterized LIMIT kept the engine from
+    // planning a Top-N over the pruned scan. Search terms remain bound
+    // parameters — they are user input.
     let sql = format!(
-        "SELECT {id_col} FROM {from} WHERE {} {} LIMIT ? OFFSET ?",
+        "SELECT {id_col} FROM {from} WHERE {} {} LIMIT {limit} OFFSET {offset}",
         built.where_sql, built.order_sql
     );
     let mut params = built.where_params.clone();
     params.extend(built.order_params.iter().cloned());
-    params.push(Value::BigInt(limit as i64));
-    params.push(Value::BigInt(offset as i64));
 
     let mut stmt = conn.prepare(&sql)?;
     let rowids: Vec<i64> = stmt
