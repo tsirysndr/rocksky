@@ -132,7 +132,7 @@ const Link = styled(DefaultLink)`
 // stream URL coming from a rockbox playlist track — those have no in-app
 // route to link to, and the old code crashed trying to .split("at://")[1]
 // + .replace(...) on `undefined`).
-function atUriToPath(uri: string | undefined): string | null {
+export function atUriToPath(uri: string | undefined): string | null {
   if (!uri) return null;
   const rest = uri.split("at://")[1];
   if (!rest) return null;

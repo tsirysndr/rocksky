@@ -1,7 +1,8 @@
 import styled from "@emotion/styled";
 import { IconMusic, IconX } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import type { StickyPlayerProps } from "../StickyPlayer/StrickyPlayer";
-import StickyPlayer from "../StickyPlayer/StrickyPlayer";
+import StickyPlayer, { atUriToPath } from "../StickyPlayer/StrickyPlayer";
 
 const Overlay = styled.div`
   position: fixed;
@@ -54,9 +55,8 @@ const CloseButton = styled.button`
 const BigCover = styled.img`
   position: relative;
   z-index: 1;
-  width: min(420px, 50vh);
-  height: min(420px, 50vh);
-  border-radius: 16px;
+  width: min(560px, 65vh);
+  height: min(560px, 65vh);
   object-fit: cover;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
 `;
@@ -64,33 +64,12 @@ const BigCover = styled.img`
 const NoCover = styled.div`
   position: relative;
   z-index: 1;
-  width: min(420px, 50vh);
-  height: min(420px, 50vh);
-  border-radius: 16px;
+  width: min(560px, 65vh);
+  height: min(560px, 65vh);
   background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const TrackInfo = styled.div`
-  position: relative;
-  z-index: 1;
-  text-align: center;
-`;
-
-const Title = styled.div`
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 4px;
-`;
-
-const Artist = styled.div`
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: RockfordSansLight;
-  font-weight: 600;
 `;
 
 const BottomBar = styled.div`
@@ -132,7 +111,19 @@ function FullscreenPlayer({
   onVolumeChange,
   onToggleMute,
 }: FullscreenPlayerProps) {
+  const navigate = useNavigate();
+
   if (!nowPlaying) return null;
+
+  const albumPath = atUriToPath(nowPlaying.albumUri);
+  // Close the overlay before navigating — it's a fixed, z-index 100 layer
+  // that would otherwise cover the album page.
+  const openAlbum = albumPath
+    ? () => {
+        onClose();
+        navigate({ to: albumPath });
+      }
+    : undefined;
 
   return (
     <Overlay>
@@ -149,17 +140,16 @@ function FullscreenPlayer({
       </CloseButton>
 
       {nowPlaying.albumArt ? (
-        <BigCover src={nowPlaying.albumArt} />
+        <BigCover
+          src={nowPlaying.albumArt}
+          onClick={openAlbum}
+          style={{ cursor: openAlbum ? "pointer" : undefined }}
+        />
       ) : (
         <NoCover>
           <IconMusic size={64} color="rgba(255,255,255,0.4)" />
         </NoCover>
       )}
-
-      <TrackInfo>
-        <Title>{nowPlaying.title}</Title>
-        <Artist>{nowPlaying.artist}</Artist>
-      </TrackInfo>
 
       <BottomBar>
         <StickyPlayer
