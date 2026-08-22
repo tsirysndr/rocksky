@@ -1,12 +1,12 @@
 {
   "repo": "tsirysndr/rocksky",
-  "tag": "bindings-v0.6.0",
+  "tag": "bindings-v0.7.0",
   "checksums": {
-    "aarch64-apple-darwin": "e2de89af96e1330427898524254ddb57728453947b607c4dd29fb8ed7c513b27",
-    "aarch64-linux-gnu": "37b8f5ec3812cb15f7eeb75beb44ffe857cca95c11064d1e781eaff6edf7c14d",
-    "x86_64-apple-darwin": "7a550b51fc75e1e4d7c5393423f2920dda980ea8f026c9bde8edd926d18d3795",
-    "x86_64-linux-gnu": "683e9c14579041c77fa69b53f73b43a44432719c608d7af74f950c9263c5c53b",
-    "x86_64-unknown-freebsd": "4ecf5a61000b46111aef2c66e241c97e712c8ef6af386a01afddfe2c05136893",
-    "x86_64-unknown-netbsd": "0c619e60f6cf95c42bbe61adb26be8550024c8cbea08be6de9fb3127db627900"
+    "aarch64-apple-darwin": "e9a772586564269dccf8448d46162b85fe5290307b818b3a4fc26ff634c2ab57",
+    "aarch64-linux-gnu": "fbfc5d12a8c532f437577f1c2e36c794760e78bb66749af33eef17d14a60cafc",
+    "x86_64-apple-darwin": "81e5628ea2f269ac8efefce85fa5eae093b1d49848aba580da9f267a36f85115",
+    "x86_64-linux-gnu": "3d3de1e3b691416676dd1c09879b14944a5c85d1d8911650113e6ee7783326e2",
+    "x86_64-unknown-freebsd": "b0ad8071e2a6baf1096d4f82221c440e56bf9426e435244ade8687f08edabf69",
+    "x86_64-unknown-netbsd": "08e9ff48d6273e63d6ebdc5eb3882777bc9bd227bc9126478a98c5041e2f1f05"
   }
 }

@@ -31,7 +31,9 @@ Repository = "https://github.com/tsirysndr/rocksky"
 Issues = "https://github.com/tsirysndr/rocksky/issues"
 
 [build-system]
-requires = ["hatchling"]
+# Pinned: newer hatchling emits Metadata-Version 2.5, which twine/PyPI
+# reject ("'2.5' is not a valid metadata version"). 1.27.x emits 2.4.
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
