@@ -91,15 +91,16 @@ const MiniPlayer = styled.div<{ embedded?: boolean }>`
 `;
 
 const Cover = styled.img`
-  width: 54px;
-  height: 54px;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
   border-radius: 5px;
 `;
 
 const CoverWrapper = styled.div`
   position: relative;
-  width: 54px;
-  height: 54px;
+  width: 64px;
+  height: 64px;
   margin-right: 16px;
   flex-shrink: 0;
   cursor: pointer;
@@ -305,12 +306,12 @@ function StickyPlayer(props: StickyPlayerProps) {
                 const albumPath = atUriToPath(nowPlaying?.albumUri);
                 const fallback = nowPlaying?.albumArt
                   ? <Cover src={nowPlaying.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                  : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>;
+                  : <div className="w-[64px] h-[64px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>;
                 return albumPath ? (
                   <Link to={albumPath} onClick={(e) => e.stopPropagation()}>
                     {nowPlaying?.albumArt
                       ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                      : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
+                      : <div className="w-[64px] h-[64px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
                   </Link>
                 ) : fallback;
               })()}
@@ -320,18 +321,38 @@ function StickyPlayer(props: StickyPlayerProps) {
             </CoverWrapper>
           )}
           <div className="flex-1 min-w-0 overflow-hidden">
-            <ScrollingText key={`title-${nowPlaying?.songUri}`}>
-              {(() => {
-                const songPath = atUriToPath(nowPlaying?.songUri);
-                return songPath ? (
-                  <Link to={songPath} style={{ fontWeight: 600 }}>
-                    {nowPlaying?.title}
-                  </Link>
-                ) : (
-                  <span style={{ fontWeight: 600 }}>{nowPlaying?.title}</span>
-                );
-              })()}
-            </ScrollingText>
+            {/* Title row: marquee + heart, so the like button sits exactly on
+                the title line instead of floating mid-bar. */}
+            <div className="flex flex-row items-center">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <ScrollingText key={`title-${nowPlaying?.songUri}`}>
+                  {(() => {
+                    const songPath = atUriToPath(nowPlaying?.songUri);
+                    return songPath ? (
+                      <Link to={songPath} style={{ fontWeight: 600 }}>
+                        {nowPlaying?.title}
+                      </Link>
+                    ) : (
+                      <span style={{ fontWeight: 600 }}>{nowPlaying?.title}</span>
+                    );
+                  })()}
+                </ScrollingText>
+              </div>
+              <div className="ml-[8px] flex-shrink-0 flex items-center">
+                <LikeButton
+                  onClick={() => {
+                    if (nowPlaying?.liked) {
+                      onDislike(nowPlaying!.songUri);
+                      return;
+                    }
+                    onLike(nowPlaying!.songUri);
+                  }}
+                >
+                  {nowPlaying?.liked && <Heart color="var(--color-primary)" />}
+                  {!nowPlaying?.liked && <HeartOutline color={embedded ? "#fff" : "var(--color-text)"} />}
+                </LikeButton>
+              </div>
+            </div>
             <ScrollingText key={`artist-${nowPlaying?.artistUri}`}>
               {(() => {
                 const artistPath = atUriToPath(nowPlaying?.artistUri);
@@ -388,20 +409,6 @@ function StickyPlayer(props: StickyPlayerProps) {
                 })()}
               </ScrollingText>
             )}
-          </div>
-          <div className="mt-[-14px] ml-[16px] flex-shrink-0">
-            <LikeButton
-              onClick={() => {
-                if (nowPlaying?.liked) {
-                  onDislike(nowPlaying!.songUri);
-                  return;
-                }
-                onLike(nowPlaying!.songUri);
-              }}
-            >
-              {nowPlaying?.liked && <Heart color="var(--color-primary)" />}
-              {!nowPlaying?.liked && <HeartOutline color={embedded ? "#fff" : "var(--color-text)"} />}
-            </LikeButton>
           </div>
           </LeftSection>
           <div className="ml-[16px]">
