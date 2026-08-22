@@ -25,6 +25,27 @@ pub const MAX_SEARCH_WINDOW: u32 = 1000;
 /// Spotify returns at most 10 entries from `/artists/{id}/top-tracks`.
 const TOP_TRACKS: usize = 10;
 
+/// Threshold above which a statement is logged with its SQL. Every query in
+/// the serving path is supposed to be a pruned point lookup; anything slower
+/// than this is a plan regression worth seeing in the journal.
+const SLOW_QUERY_MS: u128 = 250;
+
+/// Wraps statement execution with a wall-clock check so slow plans name
+/// themselves in production logs instead of hiding inside request totals.
+fn timed<T>(sql: &str, f: impl FnOnce() -> ApiResult<T>) -> ApiResult<T> {
+    let started = std::time::Instant::now();
+    let out = f();
+    let elapsed = started.elapsed();
+    if elapsed.as_millis() >= SLOW_QUERY_MS {
+        log::warn!(
+            "slow query ({} ms): {}",
+            elapsed.as_millis(),
+            sql.split_whitespace().collect::<Vec<_>>().join(" ")
+        );
+    }
+    out
+}
+
 fn placeholders(n: usize) -> String {
     let mut s = String::with_capacity(n * 2);
     for i in 0..n {
@@ -326,7 +347,7 @@ fn album_cores(conn: &PooledConn, rowids: &[i64]) -> ApiResult<Vec<AlbumCore>> {
          FROM albums WHERE row_id IN ({})",
         inline(rowids)
     );
-    let mut stmt = conn.prepare(&sql)?;
+    let mut stmt = timed(&sql, || Ok(conn.prepare(&sql)?))?;
     let rows = stmt.query_map([], |r| {
         Ok(AlbumCore {
             row_id: r.get(0)?,
@@ -529,7 +550,7 @@ fn track_cores(conn: &PooledConn, rowids: &[i64]) -> ApiResult<Vec<TrackCore>> {
          FROM tracks WHERE row_id IN ({})",
         inline(rowids)
     );
-    let mut stmt = conn.prepare(&sql)?;
+    let mut stmt = timed(&sql, || Ok(conn.prepare(&sql)?))?;
     let rows = stmt.query_map([], |r| {
         Ok(TrackCore {
             row_id: r.get(0)?,
@@ -832,17 +853,21 @@ fn run(
     let mut params = built.where_params.clone();
     params.extend(built.order_params.iter().cloned());
 
-    let mut stmt = conn.prepare(&sql)?;
-    let rowids: Vec<i64> = stmt
-        .query_map(params_from_iter(params), |r| r.get(0))?
-        .collect::<Result<_, _>>()?;
+    let rowids: Vec<i64> = timed(&sql, || {
+        let mut stmt = conn.prepare(&sql)?;
+        Ok(stmt
+            .query_map(params_from_iter(params), |r| r.get(0))?
+            .collect::<Result<Vec<_>, _>>()?)
+    })?;
 
     let count_sql = format!(
         "SELECT COUNT(*) FROM (SELECT {id_col} FROM {from} WHERE {} LIMIT {MAX_SEARCH_WINDOW}) s",
         built.where_sql
     );
-    let mut count = conn.prepare(&count_sql)?;
-    let total: i64 = count.query_row(params_from_iter(built.where_params.clone()), |r| r.get(0))?;
+    let total: i64 = timed(&count_sql, || {
+        let mut count = conn.prepare(&count_sql)?;
+        Ok(count.query_row(params_from_iter(built.where_params.clone()), |r| r.get(0))?)
+    })?;
 
     Ok((rowids, total))
 }
