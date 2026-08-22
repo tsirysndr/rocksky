@@ -4,9 +4,10 @@
  *
  * Walks, in parallel (the tables are disjoint and riff absorbs the combined
  * rate):
- *   - tracks  where duration = 0, album_art IS NULL, or album_art still points
- *             at https://cdn.rocksky.app
+ *   - tracks  where duration = 0, album_art IS NULL, or album_art points at
+ *             cdn.rocksky.app or cdn.bsky.app
  *   - albums  where album_art IS NULL or album_art points at cdn.rocksky.app
+ *             or cdn.bsky.app
  *   - artists where picture IS NULL
  *
  * Each row resolves to a Spotify object — by the stored spotify_link id when
@@ -15,7 +16,7 @@
  * `- Remastered 2011` stripped) because the dump and our rows disagree exactly
  * there. Every field riff can answer is filled without overwriting existing
  * values; the one deliberate overwrite is album art still pointing at
- * cdn.rocksky.app, replaced with Spotify's CDN URL.
+ * cdn.rocksky.app or cdn.bsky.app, replaced with Spotify's CDN URL.
  *
  *   tracks:  duration, album_art, isrc, track_number, disc_number, spotify_link
  *   albums:  album_art, release_date, year, spotify_link
@@ -55,8 +56,20 @@ const ONLY = (process.env.BACKFILL_ONLY ?? "all").toLowerCase();
 const DRY_RUN = process.env.BACKFILL_DRY_RUN === "1";
 const QUIET = process.env.BACKFILL_QUIET === "1";
 
-/** Album art still hosted by us; to be replaced by Spotify's CDN URL. */
-const ROCKSKY_CDN_PREFIX = "https://cdn.rocksky.app";
+/**
+ * Art hosted on CDNs we want to move off of, replaced by Spotify's CDN URL
+ * whenever riff has one: our own uploads and Bluesky-hosted blobs.
+ */
+const REPLACEABLE_ART_PREFIXES = [
+  "https://cdn.rocksky.app",
+  "https://cdn.bsky.app",
+];
+
+function isReplaceableArt(url: string | null): boolean {
+  return (
+    url !== null && REPLACEABLE_ART_PREFIXES.some((p) => url.startsWith(p))
+  );
+}
 
 type Outcome = "updated" | "missed" | "clean";
 
@@ -137,7 +150,7 @@ async function riff<T>(path: string, s: WalkStats): Promise<T | null> {
  */
 function bestImage(images: RiffImage[] | undefined): string | null {
   const url = images?.[0]?.url;
-  return url && !url.startsWith(ROCKSKY_CDN_PREFIX) ? url : null;
+  return url && !isReplaceableArt(url) ? url : null;
 }
 
 function spotifyIdFromLink(link: string | null, kind: string): string | null {
@@ -279,7 +292,7 @@ async function findArtist(
 
 /** Should this album-art value be (re)written? */
 function artNeedsFill(current: string | null): boolean {
-  return current === null || current.startsWith(ROCKSKY_CDN_PREFIX);
+  return current === null || isReplaceableArt(current);
 }
 
 /**
@@ -334,7 +347,7 @@ async function fillTrack(row: {
     patch.duration = hit.duration_ms;
   if (artNeedsFill(row.albumArt) && art) {
     patch.albumArt = art;
-    if (row.albumArt?.startsWith(ROCKSKY_CDN_PREFIX)) s.artReplaced += 1;
+    if (isReplaceableArt(row.albumArt)) s.artReplaced += 1;
   }
   if (row.trackNumber === null && hit.track_number > 0)
     patch.trackNumber = hit.track_number;
@@ -376,7 +389,7 @@ async function fillAlbum(row: {
   const patch: Record<string, unknown> = {};
   if (artNeedsFill(row.albumArt) && art) {
     patch.albumArt = art;
-    if (row.albumArt?.startsWith(ROCKSKY_CDN_PREFIX)) s.artReplaced += 1;
+    if (isReplaceableArt(row.albumArt)) s.artReplaced += 1;
   }
   if (row.releaseDate === null && hit.release_date)
     patch.releaseDate = hit.release_date;
@@ -524,7 +537,9 @@ async function main() {
                 or(
                   eq(tables.tracks.duration, 0),
                   isNull(tables.tracks.albumArt),
-                  like(tables.tracks.albumArt, `${ROCKSKY_CDN_PREFIX}%`),
+                  ...REPLACEABLE_ART_PREFIXES.map((p) =>
+                    like(tables.tracks.albumArt, `${p}%`),
+                  ),
                 ),
               ),
             )
@@ -556,7 +571,9 @@ async function main() {
                 gt(tables.albums.id, cursor),
                 or(
                   isNull(tables.albums.albumArt),
-                  like(tables.albums.albumArt, `${ROCKSKY_CDN_PREFIX}%`),
+                  ...REPLACEABLE_ART_PREFIXES.map((p) =>
+                    like(tables.albums.albumArt, `${p}%`),
+                  ),
                 ),
               ),
             )
@@ -599,7 +616,7 @@ async function main() {
   for (const [label, s] of Object.entries(stats)) {
     consola.success(
       `${label}: ${s.scanned} scanned, ${chalk.green(s.updated)} updated ` +
-        `(${s.artReplaced} cdn.rocksky.app art URLs replaced), ` +
+        `(${s.artReplaced} rocksky/bsky art URLs replaced), ` +
         `${s.missed} missed, ${s.clean} already complete, ${s.errors} errors`,
     );
   }
