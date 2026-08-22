@@ -237,6 +237,31 @@ fn split_markets(raw: &str) -> Vec<String> {
         .collect()
 }
 
+/// (row_id -> (id, name)) for a batch of artists. One pruned single-table scan.
+fn artist_names_by_rowid(
+    conn: &PooledConn,
+    artist_rowids: &[i64],
+) -> ApiResult<HashMap<i64, (String, String)>> {
+    if artist_rowids.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let sql = format!(
+        "SELECT row_id, id, name FROM artists WHERE row_id IN ({})",
+        inline(artist_rowids)
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map([], |r| {
+        Ok((
+            r.get::<_, i64>(0)?,
+            (
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?.unwrap_or_default(),
+            ),
+        ))
+    })?;
+    Ok(rows.collect::<Result<_, _>>()?)
+}
+
 fn album_artists(
     conn: &PooledConn,
     album_rowids: &[i64],
@@ -245,23 +270,38 @@ fn album_artists(
     if album_rowids.is_empty() {
         return Ok(HashMap::new());
     }
+    // Two single-table lookups instead of a join. A JOIN against the artists
+    // relation made the engine hash-build over 15M rows per request — measured
+    // at seconds per call in production — while each side alone is a pruned
+    // millisecond scan. Serving-path rule: one relation per query.
+    //
     // `is_appears_on` marks a compilation credit; those artists are not the
     // album's own artists and must not show up in `album.artists[]`.
     let sql = format!(
-        "SELECT aa.album_rowid, ar.id, ar.name \
-         FROM artist_albums_by_album aa JOIN artists ar ON ar.row_id = aa.artist_rowid \
-         WHERE aa.album_rowid IN ({}) AND COALESCE(aa.is_appears_on, 0) = 0 \
-         ORDER BY aa.album_rowid, COALESCE(aa.index_in_album, 0)",
+        "SELECT album_rowid, artist_rowid FROM artist_albums_by_album \
+         WHERE album_rowid IN ({}) AND COALESCE(is_appears_on, 0) = 0 \
+         ORDER BY album_rowid, COALESCE(index_in_album, 0)",
         inline(album_rowids)
     );
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map([], |r| {
-        Ok((
-            r.get::<_, i64>(0)?,
-            SimplifiedArtist::new(r.get::<_, String>(1)?, r.get::<_, String>(2)?),
-        ))
-    })?;
-    Ok(group(rows.collect::<Result<Vec<_>, _>>()?))
+    let pairs: Vec<(i64, i64)> = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<Result<_, _>>()?;
+
+    let mut artist_ids: Vec<i64> = pairs.iter().map(|(_, a)| *a).collect();
+    artist_ids.sort_unstable();
+    artist_ids.dedup();
+    let names = artist_names_by_rowid(conn, &artist_ids)?;
+
+    let mut out: HashMap<i64, Vec<SimplifiedArtist>> = HashMap::new();
+    for (album, artist) in pairs {
+        if let Some((id, name)) = names.get(&artist) {
+            out.entry(album)
+                .or_default()
+                .push(SimplifiedArtist::new(id.clone(), name.clone()));
+        }
+    }
+    Ok(out)
 }
 
 fn track_artists(
@@ -272,21 +312,32 @@ fn track_artists(
     if track_rowids.is_empty() {
         return Ok(HashMap::new());
     }
+    // Two single-table lookups instead of a join — see album_artists for why.
     let sql = format!(
-        "SELECT ta.track_rowid, ar.id, ar.name \
-         FROM track_artists ta JOIN artists ar ON ar.row_id = ta.artist_rowid \
-         WHERE ta.track_rowid IN ({}) \
-         ORDER BY ta.track_rowid, COALESCE(ta.index_in_track, 0)",
+        "SELECT track_rowid, artist_rowid FROM track_artists \
+         WHERE track_rowid IN ({}) \
+         ORDER BY track_rowid, COALESCE(index_in_track, 0)",
         inline(track_rowids)
     );
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map([], |r| {
-        Ok((
-            r.get::<_, i64>(0)?,
-            SimplifiedArtist::new(r.get::<_, String>(1)?, r.get::<_, String>(2)?),
-        ))
-    })?;
-    Ok(group(rows.collect::<Result<Vec<_>, _>>()?))
+    let pairs: Vec<(i64, i64)> = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<Result<_, _>>()?;
+
+    let mut artist_ids: Vec<i64> = pairs.iter().map(|(_, a)| *a).collect();
+    artist_ids.sort_unstable();
+    artist_ids.dedup();
+    let names = artist_names_by_rowid(conn, &artist_ids)?;
+
+    let mut out: HashMap<i64, Vec<SimplifiedArtist>> = HashMap::new();
+    for (track, artist) in pairs {
+        if let Some((id, name)) = names.get(&artist) {
+            out.entry(track)
+                .or_default()
+                .push(SimplifiedArtist::new(id.clone(), name.clone()));
+        }
+    }
+    Ok(out)
 }
 
 // ----------------------------------------------------------------- artists
