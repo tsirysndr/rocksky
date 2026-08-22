@@ -73,7 +73,12 @@ const TrackTitle = styled.div`
   font-weight: bold;
   margin-top: 25px;
   color: #fff;
-  width: 500px;
+  /* Content-width (capped) so the heart sits right after the text instead
+     of at the far edge of a fixed 500px block; long titles ellipsize. */
+  max-width: 500px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: center;
   text-decoration: none;
 `;
