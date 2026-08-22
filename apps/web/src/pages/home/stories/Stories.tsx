@@ -17,6 +17,10 @@ import {
 import { useAtomValue } from "jotai";
 import { feedAtom, feedGeneratorUriAtom } from "../../../atoms/feed";
 import { followingFeedAtom } from "../../../atoms/followingFeed";
+import Heart from "../../../components/Icons/Heart";
+import HeartOutline from "../../../components/Icons/HeartOutline";
+import SignInModal from "../../../components/SignInModal";
+import useLike from "../../../hooks/useLike";
 import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
@@ -98,6 +102,16 @@ const Link = styled(DefaultLink)`
   text-decoration: none;
 `;
 
+const LikeButton = styled.button`
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  /* Lines up with TrackTitle's top margin. */
+  margin-top: 25px;
+`;
+
 function Stories() {
   const [isOpen, setIsOpen] = useState(false);
   const activeCategory = useAtomValue(feedAtom);
@@ -129,7 +143,41 @@ function Stories() {
     createdAt: string;
     trackId: string;
     trackUri: string;
+    liked?: boolean;
+    likesCount?: number;
   } | null>(null);
+  // Optimistic like state per story track URI, layered over the server value.
+  const [likedOverrides, setLikedOverrides] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const { like, unlike } = useLike();
+
+  const storyLiked = currentlyPlaying?.trackUri
+    ? (likedOverrides[currentlyPlaying.trackUri] ??
+      currentlyPlaying.liked ??
+      false)
+    : false;
+
+  const handleLike = async () => {
+    const uri = currentlyPlaying?.trackUri;
+    if (!uri) return;
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    const next = !storyLiked;
+    setLikedOverrides((prev) => ({ ...prev, [uri]: next }));
+    try {
+      if (next) {
+        await like(uri);
+      } else {
+        await unlike(uri);
+      }
+    } catch {
+      setLikedOverrides((prev) => ({ ...prev, [uri]: !next }));
+    }
+  };
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [showLeftChevron, setShowLeftChevron] = useState(false);
@@ -461,11 +509,20 @@ function Stories() {
                     </Link>
                   )}
                   {currentlyPlaying?.trackUri && (
-                    <Link
-                      to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                    >
-                      <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
-                    </Link>
+                    <div className="flex flex-row items-center">
+                      <Link
+                        to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                      >
+                        <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
+                      </Link>
+                      <LikeButton onClick={handleLike}>
+                        {storyLiked ? (
+                          <Heart color="var(--color-primary)" />
+                        ) : (
+                          <HeartOutline color="#fff" />
+                        )}
+                      </LikeButton>
+                    </div>
                   )}
                   {!currentlyPlaying?.trackUri && (
                     currentlyPlaying?.albumArt
@@ -495,6 +552,12 @@ function Stories() {
               </Link>
             </ModalBody>
           </Modal>
+
+          <SignInModal
+            isOpen={isSignInOpen}
+            onClose={() => setIsSignInOpen(false)}
+            like
+          />
         </>
       )}
     </Container>

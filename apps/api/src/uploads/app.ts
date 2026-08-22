@@ -441,6 +441,7 @@ app.post("/track", async (c) => {
       fileSize: buf.length,
       originalFilename: file.name,
       storageProviderId,
+      sampleRate: format.sampleRate ?? null,
     })
     .returning();
 

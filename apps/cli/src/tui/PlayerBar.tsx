@@ -68,6 +68,18 @@ export function PlayerBar() {
   const buffering =
     status.state === "playing" && (pos === 0 || pr.stalls >= 1);
 
+  // Audio format info probed by the decoder (e.g. "MP3 · 44.1kHz").
+  const codec = status.metadata?.codec;
+  const sampleRate = status.metadata?.sample_rate;
+  const audioInfo = [
+    codec ? codec.toUpperCase() : null,
+    sampleRate && sampleRate > 0
+      ? `${Number.isInteger(sampleRate / 1000) ? sampleRate / 1000 : (sampleRate / 1000).toFixed(1)}kHz`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const filled = dur > 0 ? Math.round((pos / dur) * BAR_WIDTH) : 0;
   const bar =
     "█".repeat(Math.min(filled, BAR_WIDTH)) +
@@ -110,6 +122,7 @@ export function PlayerBar() {
       <Text>
         <Text color={TEAL}>{bar}</Text>
         <Text dimColor>{`  ${fmtDuration(pos)} / ${fmtDuration(dur)}`}</Text>
+        {audioInfo ? <Text color={VIOLET}>{`   ${audioInfo}`}</Text> : null}
         <Text dimColor>{`   vol ${vol}%`}</Text>
         <Text dimColor>{`   [${status.index != null ? status.index + 1 : "-"}/${status.queue_len}]`}</Text>
         {modes ? <Text color={TEAL}>{`   ${modes}`}</Text> : null}

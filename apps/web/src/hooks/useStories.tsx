@@ -14,6 +14,8 @@ export type Stories = {
   createdAt: string;
   trackId: string;
   trackUri: string;
+  liked?: boolean;
+  likesCount?: number;
 }[];
 
 export type StoriesFilter = {
@@ -31,7 +33,9 @@ export const useStoriesQuery = (filter: StoriesFilter = {}) =>
           feed: filter.feed,
           following: filter.following,
         },
-        headers: filter.following
+        // Always authenticate when a token exists — the server uses the viewer
+        // identity to fill each story's `liked` state (and `following` needs it).
+        headers: localStorage.getItem("token")
           ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
           : undefined,
       }),

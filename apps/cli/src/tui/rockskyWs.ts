@@ -130,6 +130,9 @@ export function startRockskyRemote(
       durationMs,
       elapsedMs,
       isPlaying: status.state === "playing",
+      // Decoder-probed audio info, shown as neon badges in the miniplayers.
+      codec: status.metadata?.codec || undefined,
+      sampleRate: status.metadata?.sample_rate || undefined,
     });
   };
 

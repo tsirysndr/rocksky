@@ -332,6 +332,8 @@ function trackFromJson(d: Json): RemoteNowPlaying {
     durationMs: d.duration_ms ?? d.length,
     elapsedMs: d.elapsed,
     isPlaying: d.is_playing,
+    codec: d.codec,
+    sampleRate: d.sample_rate,
     // Server-enriched fields (present on the broadcast a controller receives).
     songUri: d.song_uri,
     albumUri: d.album_uri,

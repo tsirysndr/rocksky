@@ -2,7 +2,7 @@ import type { HandlerAuth } from "@atproto/xrpc-server";
 import axios from "axios";
 import type { Context } from "context";
 import { consola } from "consola";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { StoriesView } from "lexicon/types/app/rocksky/feed/defs";
@@ -12,6 +12,7 @@ import albums from "schema/albums";
 import artists from "schema/artists";
 import feeds from "schema/feeds";
 import follows from "schema/follows";
+import lovedTracks from "schema/loved-tracks";
 import scrobbles from "schema/scrobbles";
 import tracks from "schema/tracks";
 import users from "schema/users";
@@ -121,7 +122,7 @@ const retrieve = ({
           ? sql`WHERE ${sql.join(innerFilters, sql` AND `)}`
           : sql``;
 
-      return ctx.db
+      const rows = await ctx.db
         .select(baseSelect)
         .from(scrobbles)
         .leftJoin(artists, eq(scrobbles.artistId, artists.id))
@@ -139,6 +140,35 @@ const retrieve = ({
         .orderBy(desc(scrobbles.timestamp))
         .limit(size)
         .execute();
+
+      // Like state per story, same shape as getFeed: total count + whether the
+      // viewer (did) liked the track. Skipped entirely for anonymous requests
+      // with no rows.
+      const trackIds = rows.map((r) => r.trackId).filter(Boolean);
+      const likesMap = new Map<string, { count: number; liked: boolean }>();
+      if (trackIds.length > 0) {
+        const likes = await ctx.db
+          .select()
+          .from(lovedTracks)
+          .leftJoin(users, eq(lovedTracks.userId, users.id))
+          .where(inArray(lovedTracks.trackId, trackIds))
+          .execute();
+        for (const trackId of trackIds) {
+          const trackLikes = likes.filter(
+            (l) => l.loved_tracks.trackId === trackId,
+          );
+          likesMap.set(trackId, {
+            count: trackLikes.length,
+            liked: trackLikes.some((l) => l.users?.did === did),
+          });
+        }
+      }
+
+      return rows.map((row) => ({
+        ...row,
+        likesCount: likesMap.get(row.trackId)?.count ?? 0,
+        liked: likesMap.get(row.trackId)?.liked ?? false,
+      }));
     },
     catch: (error) =>
       new Error(`Failed to retrieve now playing songs: ${error}`),
@@ -191,6 +221,8 @@ const presentation = ({
       trackId: record.trackId,
       trackUri: record.trackUri,
       uri: record.uri,
+      liked: record.liked,
+      likesCount: record.likesCount,
     })),
   }));
 };
@@ -211,4 +243,6 @@ type NowPlayingRecord = {
   artistUri: string;
   albumUri: string;
   timestamp: Date;
+  likesCount: number;
+  liked: boolean;
 };

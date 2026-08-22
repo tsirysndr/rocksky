@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { Link as DefaultLink, useNavigate } from "@tanstack/react-router";
-import { IconAdjustmentsHorizontal, IconArrowsShuffle, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsShuffle, IconDisc, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
 import type { RepeatMode } from "../../atoms/playback";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
@@ -129,6 +129,65 @@ const Link = styled(DefaultLink)`
   }
 `;
 
+// Neon chips for the probed audio format (e.g. MP3) and sample rate (e.g.
+// 44.1kHz). Fixed neon colors on purpose — they read as "signal lights" in
+// both themes and match the always-dark fullscreen bar.
+const NeonBadge = styled.span<{ neon: string }>`
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: ${({ neon }) => neon};
+  border: 1px solid ${({ neon }) => neon};
+  text-shadow: 0 0 6px ${({ neon }) => neon};
+  box-shadow:
+    0 0 6px -2px ${({ neon }) => neon},
+    inset 0 0 6px -4px ${({ neon }) => neon};
+`;
+
+const Badges = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+`;
+
+// "MPEG 1 Layer 3" / "mp3" → "MP3", "FLAC" stays "FLAC", unknown strings are
+// just uppercased (trimmed so an exotic codec name can't blow up the badge).
+function formatCodec(codec?: string): string | null {
+  if (!codec) return null;
+  const c = codec.toLowerCase();
+  const map: [string, string][] = [
+    ["layer 3", "MP3"],
+    ["mp3", "MP3"],
+    ["flac", "FLAC"],
+    ["alac", "ALAC"],
+    ["aac", "AAC"],
+    ["m4a", "AAC"],
+    ["opus", "OPUS"],
+    ["vorbis", "OGG"],
+    ["ogg", "OGG"],
+    ["wave", "WAV"],
+    ["wav", "WAV"],
+    ["pcm", "WAV"],
+    ["aiff", "AIFF"],
+  ];
+  for (const [needle, label] of map) if (c.includes(needle)) return label;
+  return codec.toUpperCase().slice(0, 8);
+}
+
+// 44100 → "44.1kHz", 48000 → "48kHz", 96000 → "96kHz".
+function formatSampleRate(hz?: number): string | null {
+  if (!hz || hz <= 0) return null;
+  const khz = hz / 1000;
+  const label = Number.isInteger(khz) ? `${khz}` : khz.toFixed(1);
+  return `${label}kHz`;
+}
+
 // Build a router path from an atproto URI like
 //   at://did:plc:xxx/app.rocksky.song/abc
 // Returns null when `uri` is missing OR isn't an at:// URI (e.g. an HTTPS
@@ -149,11 +208,14 @@ export type StickyPlayerProps = {
     artistUri: string;
     songUri: string;
     albumUri: string;
+    album?: string;
     duration: number;
     progress: number;
     albumArt?: string;
     liked: boolean;
     sha256: string;
+    codec?: string;
+    sampleRate?: number;
   } | null;
   onPlay: () => void;
   onPause: () => void;
@@ -297,6 +359,35 @@ function StickyPlayer(props: StickyPlayerProps) {
                 );
               })()}
             </ScrollingText>
+            {nowPlaying?.album && (
+              <ScrollingText key={`album-${nowPlaying?.albumUri || nowPlaying?.album}`}>
+                {(() => {
+                  const albumPath = atUriToPath(nowPlaying?.albumUri);
+                  const linkClass = embedded
+                    ? "!text-[rgba(255,255,255,0.55)]"
+                    : "!text-[var(--color-text-muted)]";
+                  const mutedClass = embedded
+                    ? "text-[rgba(255,255,255,0.55)]"
+                    : "text-[var(--color-text-muted)]";
+                  const inner = (
+                    <span
+                      className="inline-flex items-center gap-[4px] text-[12px]"
+                      style={{ fontFamily: "RockfordSansLight", fontWeight: 600 }}
+                    >
+                      <IconDisc size={13} className="shrink-0" />
+                      {nowPlaying?.album}
+                    </span>
+                  );
+                  return albumPath ? (
+                    <Link to={albumPath} className={linkClass}>
+                      {inner}
+                    </Link>
+                  ) : (
+                    <span className={mutedClass}>{inner}</span>
+                  );
+                })()}
+              </ScrollingText>
+            )}
           </div>
           <div className="mt-[-14px] ml-[16px] flex-shrink-0">
             <LikeButton
@@ -379,6 +470,17 @@ function StickyPlayer(props: StickyPlayerProps) {
             </LabelSmall>
           </div>
           <RightActions>
+            {(() => {
+              const codecLabel = formatCodec(nowPlaying?.codec);
+              const rateLabel = formatSampleRate(nowPlaying?.sampleRate);
+              if (!codecLabel && !rateLabel) return null;
+              return (
+                <Badges>
+                  {codecLabel && <NeonBadge neon="#00f1f3">{codecLabel}</NeonBadge>}
+                  {rateLabel && <NeonBadge neon="#ff2876">{rateLabel}</NeonBadge>}
+                </Badges>
+              );
+            })()}
             <Button
               ref={speakerRef}
               onClick={onSpeaker}

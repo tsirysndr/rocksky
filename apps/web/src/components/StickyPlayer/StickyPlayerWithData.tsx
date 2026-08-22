@@ -139,12 +139,15 @@ function toRemoteNowPlaying(
     artistUri: track.artistUri ?? "",
     songUri,
     albumUri: track.albumUri ?? "",
+    album: track.album,
     duration: track.durationMs ?? 0,
     progress,
     albumArt: track.albumArt,
     isPlaying,
     sha256: track.sha256 ?? "",
     liked: liked[songUri] !== undefined ? liked[songUri] : !!track.liked,
+    codec: track.codec,
+    sampleRate: track.sampleRate,
   };
 }
 
@@ -284,6 +287,7 @@ function StickyPlayerWithData() {
         artistUri: data.artistUri,
         songUri: data.songUri,
         albumUri: data.albumUri,
+        album: _.get(data, "item.album.name"),
         duration: data.item.duration_ms,
         progress: data.progress_ms,
         albumArt: _.get(data, "item.album.images.0.url"),

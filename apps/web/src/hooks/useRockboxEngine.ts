@@ -53,7 +53,14 @@ export function useRockboxEngine() {
     const onTrack = (e: {
       index: number;
       url: string;
-      metadata: { title?: string; artist?: string; duration_ms?: number } | null;
+      metadata: {
+        title?: string;
+        artist?: string;
+        album?: string;
+        duration_ms?: number;
+        codec?: string;
+        sample_rate?: number;
+      } | null;
     }) => {
       const known = trackForUrl(e.url);
       const md = e.metadata;
@@ -63,12 +70,17 @@ export function useRockboxEngine() {
         artistUri: "",
         songUri: known?.songUri ?? "",
         albumUri: "",
+        album: known?.album ?? md?.album ?? undefined,
         duration: known?.duration ?? md?.duration_ms ?? prev?.duration ?? 0,
         progress: 0,
         albumArt: known?.albumArt ?? prev?.albumArt ?? undefined,
         isPlaying: true,
         sha256: known?.sha256 ?? "",
         liked: prev?.liked ?? false,
+        // The engine probes the real stream, so these are authoritative for
+        // uploaded audio (codec name + sample rate in Hz).
+        codec: md?.codec ?? undefined,
+        sampleRate: md?.sample_rate ?? undefined,
       }));
       // NB: don't set the queue index here — the `track` event reports the
       // index captured when the track started loading, which can be stale if

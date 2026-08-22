@@ -18,6 +18,9 @@ const userUploads = pgTable(
     mimeType: text("mime_type").notNull(),
     fileSize: integer("file_size").notNull(),
     originalFilename: text("original_filename").notNull(),
+    /* Audio sample rate in Hz (e.g. 44100), probed from the file at upload
+       time. Nullable: rows uploaded before the column existed. */
+    sampleRate: integer("sample_rate"),
     storageProviderId: text("storage_provider_id").references(
       () => userStorageProviders.id,
     ),

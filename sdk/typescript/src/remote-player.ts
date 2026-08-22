@@ -36,6 +36,11 @@ export interface RemoteNowPlaying {
   /** Current position, ms. */
   elapsedMs?: number;
   isPlaying?: boolean;
+  /** Audio codec / container of the playing file (e.g. "mp3", "flac"),
+   *  when the player knows it. Shown as a format badge by controller UIs. */
+  codec?: string;
+  /** Audio sample rate in Hz (e.g. 44100), when the player knows it. */
+  sampleRate?: number;
   // The following are filled in by the server on the broadcast a controller
   // receives (a player leaves them unset — the server resolves them from the
   // library). They let a controller UI deep-link and show like state.
@@ -186,6 +191,8 @@ export class RemotePlayer {
         duration_ms: track.durationMs ?? 0,
         album_art: track.albumArt,
         is_playing: track.isPlaying ?? true,
+        codec: track.codec,
+        sample_rate: track.sampleRate,
         device_name: this.opts.name,
       },
     });

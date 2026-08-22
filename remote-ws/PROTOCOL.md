@@ -140,9 +140,14 @@ seconds so controllers can reconcile elapsed time.
   "duration_ms": 214000,   // = length (either is accepted)
   "album_art": "https://…",
   "is_playing": true,
+  "codec": "flac",         // optional: audio codec/container, when the player knows it
+  "sample_rate": 44100,    // optional: audio sample rate in Hz
   "device_name": "My Player"   // optional; lets clients label the source even
 }                              // before the server's device_name is known
 ```
+
+`codec` and `sample_rate` are passed through verbatim on the broadcast;
+controller UIs (the web/mobile miniplayers) render them as audio-format badges.
 
 Fields the server fills in on the broadcast (you don't send them): `album_art`
 (canonical, from the library), `song_uri`, `album_uri`, `artist_uri`, `liked`,

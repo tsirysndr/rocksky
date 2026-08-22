@@ -8,12 +8,15 @@ export type RemoteNowPlaying = {
   artistUri: string;
   songUri: string;
   albumUri: string;
+  album?: string;
   duration: number;
   progress: number;
   albumArt?: string;
   isPlaying: boolean;
   liked: boolean;
   sha256: string;
+  codec?: string;
+  sampleRate?: number;
 };
 
 export type RemoteDevice = {
