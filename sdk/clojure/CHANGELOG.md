@@ -3,7 +3,7 @@
 All notable changes to the Rocksky Clojure SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [0.10.0] - 2026-08-22
 
 ### Added
 - `rocksky.rsql` — pure RSQL filter builder shared with every Rocksky SDK:

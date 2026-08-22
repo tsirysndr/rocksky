@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.0
 
 - Added `Rocksky::Filter`, a fluent RSQL builder (`eq`, `ne`, `gt`, `ge`,
   `lt`, `le`, `is_in`, `is_out`, `is_null`, `is_not_null`, combined with

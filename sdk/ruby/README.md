@@ -14,7 +14,7 @@ gem install rocksky
 Or in a Gemfile:
 
 ```ruby
-gem "rocksky", "~> 0.7"
+gem "rocksky", "~> 0.11"
 ```
 
 The gem is pure-Ruby; the native library is fetched from the GitHub release on

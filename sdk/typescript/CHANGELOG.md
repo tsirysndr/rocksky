@@ -4,7 +4,10 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
-## Unreleased
+## [0.13.0] - 2026-08-22
+
+A **backwards-compatible** release — the new `filter` parameter is a trailing
+optional on all four affected methods.
 
 ### Added
 

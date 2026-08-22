@@ -123,7 +123,11 @@ impl Filter {
         }
     }
 
-    fn list(field: &str, op: &str, values: impl IntoIterator<Item = impl Into<FilterValue>>) -> Self {
+    fn list(
+        field: &str,
+        op: &str,
+        values: impl IntoIterator<Item = impl Into<FilterValue>>,
+    ) -> Self {
         let rendered: Vec<String> = values.into_iter().map(|v| render(&v.into())).collect();
         assert!(
             !rendered.is_empty(),
@@ -244,7 +248,10 @@ mod tests {
 
     #[test]
     fn eq_bare_and_quoted() {
-        assert_eq!(Filter::eq("artist", "Radiohead").build(), "artist==Radiohead");
+        assert_eq!(
+            Filter::eq("artist", "Radiohead").build(),
+            "artist==Radiohead"
+        );
         assert_eq!(
             Filter::eq("artist", "Daft Punk").build(),
             "artist==\"Daft Punk\""
@@ -271,7 +278,10 @@ mod tests {
     #[test]
     fn ordered_comparisons() {
         assert_eq!(Filter::ne("artist", "Eminem").build(), "artist!=Eminem");
-        assert_eq!(Filter::gt("duration", 200_000).build(), "duration=gt=200000");
+        assert_eq!(
+            Filter::gt("duration", 200_000).build(),
+            "duration=gt=200000"
+        );
         assert_eq!(Filter::ge("year", 2000).build(), "year=ge=2000");
         assert_eq!(Filter::lt("trackNumber", 5).build(), "trackNumber=lt=5");
         assert_eq!(Filter::le("year", 1999).build(), "year=le=1999");

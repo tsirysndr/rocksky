@@ -12,7 +12,7 @@ same engine behind every Rocksky SDK.
 deps.edn:
 
 ```clojure
-app.rocksky/sdk {:mvn/version "0.8.1-SNAPSHOT"}
+app.rocksky/sdk {:mvn/version "0.10.0-SNAPSHOT"}
 ```
 
 The jar is native-free; the library is fetched from the GitHub release on first

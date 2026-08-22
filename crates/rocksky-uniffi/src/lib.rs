@@ -851,10 +851,12 @@ impl AppView {
         filter: Option<String>,
     ) -> Result<Vec<ArtistView>, RockskyError> {
         let out = RT
-            .block_on(
-                self.inner
-                    .catalog_artists(limit, offset, genre.as_deref(), filter.as_deref()),
-            )
+            .block_on(self.inner.catalog_artists(
+                limit,
+                offset,
+                genre.as_deref(),
+                filter.as_deref(),
+            ))
             .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
