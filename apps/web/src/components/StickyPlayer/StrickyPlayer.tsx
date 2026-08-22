@@ -5,6 +5,7 @@ import type { RepeatMode } from "../../atoms/playback";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
 import { useRef, type RefObject } from "react";
+import ScrollingText from "../ScrollingText/ScrollingText";
 import { useTimeFormat } from "../../hooks/useFormat";
 import Heart from "../Icons/Heart";
 import HeartOutline from "../Icons/HeartOutline";
@@ -17,6 +18,7 @@ import Speaker from "../Icons/Speaker";
 import {
   Button,
   Controls,
+  LeftSection,
   LikeButton,
   MainWrapper,
   NextButton,
@@ -53,9 +55,10 @@ const MiniPlayerWrapper = styled.div<{ embedded?: boolean }>`
 const MiniPlayer = styled.div<{ embedded?: boolean }>`
   ${({ embedded }) => embedded ? `
     /* Frosted glass over the fullscreen backdrop: mostly transparent so the
-       blurred album art clearly shows through (the fullscreen player is
-       always dark, hence the white hairline). */
-    background: color-mix(in srgb, var(--color-background) 40%, transparent);
+       blurred album art clearly shows through. The fullscreen player is
+       ALWAYS dark, so pin a dark glass tint — never the theme background
+       variable, which is white in light theme. */
+    background: rgba(19, 8, 37, 0.45);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -84,7 +87,7 @@ const MiniPlayer = styled.div<{ embedded?: boolean }>`
   display: flex;
   flex-direction: row;
   align-items: center;
-  color: var(--color-text);
+  color: ${({ embedded }) => (embedded ? "#fff" : "var(--color-text)")};
 `;
 
 const Cover = styled.img`
@@ -233,6 +236,7 @@ function StickyPlayer(props: StickyPlayerProps) {
     <Container embedded={embedded}>
       <MiniPlayerWrapper embedded={embedded}>
         <MiniPlayer embedded={embedded}>
+          <LeftSection>
           {!fullscreenOpen && (
             <CoverWrapper onClick={onOpenFullscreen}>
               {(() => {
@@ -253,29 +257,20 @@ function StickyPlayer(props: StickyPlayerProps) {
               </FullscreenOverlay>
             </CoverWrapper>
           )}
-          <div className="max-w-[310px] overflow-hidden">
-            <div className="max-w-[310px] text-ellipsis overflow-hidden">
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <ScrollingText key={`title-${nowPlaying?.songUri}`}>
               {(() => {
                 const songPath = atUriToPath(nowPlaying?.songUri);
                 return songPath ? (
-                  <Link
-                    to={songPath}
-                    style={{ fontWeight: 600 }}
-                    className="text-ellipsis text-nowrap"
-                  >
+                  <Link to={songPath} style={{ fontWeight: 600 }}>
                     {nowPlaying?.title}
                   </Link>
                 ) : (
-                  <div
-                    style={{ fontWeight: 600 }}
-                    className="text-ellipsis text-nowrap"
-                  >
-                    {nowPlaying?.title}
-                  </div>
+                  <span style={{ fontWeight: 600 }}>{nowPlaying?.title}</span>
                 );
               })()}
-            </div>
-            <div className="max-w-[310px] overflow-hidden text-ellipsis">
+            </ScrollingText>
+            <ScrollingText key={`artist-${nowPlaying?.artistUri}`}>
               {(() => {
                 const artistPath = atUriToPath(nowPlaying?.artistUri);
                 return artistPath ? (
@@ -285,25 +280,25 @@ function StickyPlayer(props: StickyPlayerProps) {
                       fontFamily: "RockfordSansLight",
                       fontWeight: 600,
                     }}
-                    className="!text-[var(--color-text-muted)] text-ellipsis text-nowrap"
+                    className={embedded ? "!text-[rgba(255,255,255,0.7)]" : "!text-[var(--color-text-muted)]"}
                   >
                     {nowPlaying?.artist}
                   </Link>
                 ) : (
-                  <div
+                  <span
                     style={{
                       fontFamily: "RockfordSansLight",
                       fontWeight: 600,
                     }}
-                    className="text-[var(--color-text-muted)] text-ellipsis text-nowrap"
+                    className={embedded ? "text-[rgba(255,255,255,0.7)]" : "text-[var(--color-text-muted)]"}
                   >
                     {nowPlaying?.artist}
-                  </div>
+                  </span>
                 );
               })()}
-            </div>
+            </ScrollingText>
           </div>
-          <div className="mt-[-14px] ml-[16px]">
+          <div className="mt-[-14px] ml-[16px] flex-shrink-0">
             <LikeButton
               onClick={() => {
                 if (nowPlaying?.liked) {
@@ -317,6 +312,7 @@ function StickyPlayer(props: StickyPlayerProps) {
               {!nowPlaying?.liked && <HeartOutline color={embedded ? "#fff" : "var(--color-text)"} />}
             </LikeButton>
           </div>
+          </LeftSection>
           <div className="ml-[16px]">
             <div className="h-[45px] min-w-[43px]"></div>
             <LabelSmall style={{ color: embedded ? "rgba(255,255,255,0.8)" : undefined, fontFamily: "var(--font-mono)" }} className={embedded ? "min-w-[43px]" : "!text-[var(--color-text)] min-w-[43px]"}>
@@ -337,14 +333,14 @@ function StickyPlayer(props: StickyPlayerProps) {
                 <Previous color={embedded ? "#fff" : "var(--color-text)"} />
               </PreviousButton>
               {!isPlaying && (
-                <PlayButton onClick={onPlay}>
+                <PlayButton onClick={onPlay} style={embedded ? { backgroundColor: "rgba(255,255,255,0.15)" } : undefined}>
                   <div className="mt-[5px] mr-[3px]">
                     <Play color={embedded ? "#fff" : "var(--color-text)"} small />
                   </div>
                 </PlayButton>
               )}
               {isPlaying && (
-                <PlayButton onClick={onPause}>
+                <PlayButton onClick={onPause} style={embedded ? { backgroundColor: "rgba(255,255,255,0.15)" } : undefined}>
                   <Pause color={embedded ? "#fff" : "var(--color-text)"} small />
                 </PlayButton>
               )}

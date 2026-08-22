@@ -156,6 +156,8 @@ function Weekly() {
               Table: {
                 style: {
                   backgroundColor: "var(--color-background)",
+                  tableLayout: "fixed",
+                  width: "100%",
                 },
               },
             }}
@@ -188,10 +190,10 @@ function Weekly() {
                       </div>
                     )}
                   </a>
-                  <div>
+                  <div className="min-w-0">
                     <a
                       href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
-                      className="no-underline !text-[var(--color-text)]"
+                      className="no-underline !text-[var(--color-text)] block truncate"
                     >
                       {row.name}
                     </a>
@@ -199,14 +201,38 @@ function Weekly() {
                 </div>
               )}
             </TableBuilderColumn>
-            <TableBuilderColumn header="LISTENERS">
+            <TableBuilderColumn
+              header="LISTENERS"
+              overrides={{
+                TableHeadCell: {
+                  style: {
+                    backgroundColor: "var(--color-background) !important",
+                    color: "var(--color-text) !important",
+                    opacity: "85%",
+                    width: "160px",
+                  },
+                },
+              }}
+            >
               {(row: ArtistRow) => (
                 <div className="flex flex-row items-center" style={{ fontFamily: "var(--font-mono)" }}>
                   {numeral(row.uniqueListeners).format("0,0")}
                 </div>
               )}
             </TableBuilderColumn>
-            <TableBuilderColumn header="SCROBBLES">
+            <TableBuilderColumn
+              header="SCROBBLES"
+              overrides={{
+                TableHeadCell: {
+                  style: {
+                    backgroundColor: "var(--color-background) !important",
+                    color: "var(--color-text) !important",
+                    opacity: "85%",
+                    width: "160px",
+                  },
+                },
+              }}
+            >
               {(row: ArtistRow) => (
                 <div className="flex flex-row items-center" style={{ fontFamily: "var(--font-mono)" }}>
                   {numeral(row.scrobbles).format("0,0")}

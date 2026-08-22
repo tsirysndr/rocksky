@@ -38,7 +38,21 @@ const TABLE_OVERRIDES = {
     },
   },
   TableEmptyMessage: { style: { backgroundColor: "var(--color-background)" } },
-  Table: { style: { backgroundColor: "var(--color-background)" } },
+  Table: {
+    style: {
+      backgroundColor: "var(--color-background)",
+      tableLayout: "fixed",
+      width: "100%",
+    },
+  },
+};
+
+// With table-layout: fixed, column widths come from the first rendered row
+// (the head row is display: none), so pin the Source column via its body cells.
+// Per-column overrides replace the table-level ones, so verticalAlign is
+// duplicated here.
+const SOURCE_COLUMN_OVERRIDES = {
+  TableBodyCell: { style: { verticalAlign: "middle", width: "150px" } },
 };
 
 function sourceLabel(source?: string): { text: string; color: string } {
@@ -265,28 +279,29 @@ function Recommendations() {
                             <IconMusic size={20} className="opacity-20" />
                           </div>
                         )}
-                        <div className="flex flex-col">
+                        <div className="flex flex-col min-w-0">
                           {href ? (
                             <Link
                               to={href as any}
-                              className="!text-[var(--color-text)]"
+                              className="!text-[var(--color-text)] truncate"
                             >
                               {row.title}
                             </Link>
                           ) : (
-                            <span style={{ color: "var(--color-text)" }}>
+                            <span className="truncate" style={{ color: "var(--color-text)" }}>
                               {row.title}
                             </span>
                           )}
                           {artistHref ? (
                             <Link
                               to={artistHref as any}
-                              className="!text-[var(--color-text-muted)]"
+                              className="!text-[var(--color-text-muted)] truncate"
                             >
                               {row.artist}
                             </Link>
                           ) : (
                             <span
+                              className="truncate"
                               style={{ color: "var(--color-text-muted)" }}
                             >
                               {row.artist}
@@ -297,7 +312,7 @@ function Recommendations() {
                     );
                   }}
                 </TableBuilderColumn>
-                <TableBuilderColumn header="Source">
+                <TableBuilderColumn header="Source" overrides={SOURCE_COLUMN_OVERRIDES}>
                   {(row: TrackRow) => <SourceBadge source={row.source} />}
                 </TableBuilderColumn>
               </TableBuilder>
@@ -336,16 +351,16 @@ function Recommendations() {
                             <span className="text-xl opacity-20">♬</span>
                           </div>
                         )}
-                        <div className="flex flex-col">
+                        <div className="flex flex-col min-w-0">
                           {href ? (
                             <Link
                               to={href as any}
-                              className="!text-[var(--color-text)]"
+                              className="!text-[var(--color-text)] truncate"
                             >
                               {row.name}
                             </Link>
                           ) : (
-                            <span style={{ color: "var(--color-text)" }}>
+                            <span className="truncate" style={{ color: "var(--color-text)" }}>
                               {row.name}
                             </span>
                           )}
@@ -361,7 +376,7 @@ function Recommendations() {
                     );
                   }}
                 </TableBuilderColumn>
-                <TableBuilderColumn header="Source">
+                <TableBuilderColumn header="Source" overrides={SOURCE_COLUMN_OVERRIDES}>
                   {(row: ArtistRow) => <SourceBadge source={row.source} />}
                 </TableBuilderColumn>
               </TableBuilder>
@@ -403,16 +418,16 @@ function Recommendations() {
                             <span className="text-xl opacity-20">💿</span>
                           </div>
                         )}
-                        <div className="flex flex-col">
+                        <div className="flex flex-col min-w-0">
                           {href ? (
                             <Link
                               to={href as any}
-                              className="!text-[var(--color-text)]"
+                              className="!text-[var(--color-text)] truncate"
                             >
                               {row.title}
                             </Link>
                           ) : (
-                            <span style={{ color: "var(--color-text)" }}>
+                            <span className="truncate" style={{ color: "var(--color-text)" }}>
                               {row.title}
                             </span>
                           )}
@@ -420,12 +435,13 @@ function Recommendations() {
                             {artistHref ? (
                               <Link
                                 to={artistHref as any}
-                                className="!text-[var(--color-text-muted)]"
+                                className="!text-[var(--color-text-muted)] truncate"
                               >
                                 {row.artist}
                               </Link>
                             ) : (
                               <span
+                                className="truncate"
                                 style={{ color: "var(--color-text-muted)" }}
                               >
                                 {row.artist}
@@ -444,7 +460,7 @@ function Recommendations() {
                     );
                   }}
                 </TableBuilderColumn>
-                <TableBuilderColumn header="Source">
+                <TableBuilderColumn header="Source" overrides={SOURCE_COLUMN_OVERRIDES}>
                   {(row: AlbumRow) => <SourceBadge source={row.source} />}
                 </TableBuilderColumn>
               </TableBuilder>

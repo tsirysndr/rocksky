@@ -126,6 +126,8 @@ function Realtime() {
                 Table: {
                   style: {
                     backgroundColor: "var(--color-background)",
+                    tableLayout: "fixed",
+                    width: "100%",
                   },
                 },
               }}
@@ -172,12 +174,12 @@ function Realtime() {
                         )}
                       </div>
                     )}
-                    <div className="flex flex-col">
+                    <div className="flex flex-col min-w-0">
                       <Link
                         to={
                           `/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}` as string
                         }
-                        className="!text-[var(--color-text)] no-underline"
+                        className="!text-[var(--color-text)] no-underline truncate"
                       >
                         {row.title}
                       </Link>
@@ -186,13 +188,13 @@ function Realtime() {
                           to={
                             `/${row.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}` as string
                           }
-                          className="!text-[var(--color-text-muted)] no-underline"
+                          className="!text-[var(--color-text-muted)] no-underline truncate"
                         >
                           {row.albumArtist}
                         </Link>
                       )}
                       {!row.artistUri && (
-                        <div className="!text-[var(--color-text-muted)]">
+                        <div className="!text-[var(--color-text-muted)] truncate">
                           {row.albumArtist}
                         </div>
                       )}
@@ -284,6 +286,8 @@ function Realtime() {
                 Table: {
                   style: {
                     backgroundColor: "var(--color-background)",
+                    tableLayout: "fixed",
+                    width: "100%",
                   },
                 },
               }}
@@ -315,10 +319,10 @@ function Realtime() {
                         </div>
                       )}
                     </a>
-                    <div>
+                    <div className="min-w-0">
                       <a
                         href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
-                        className="no-underline !text-[var(--color-text)]"
+                        className="no-underline !text-[var(--color-text)] block truncate"
                       >
                         {row.name}
                       </a>

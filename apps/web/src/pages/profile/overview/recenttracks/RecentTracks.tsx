@@ -267,7 +267,7 @@ function RecentTracks(props: RecentTracksProps) {
                     </div>
                   )}
                 </Link>
-                <div>
+                <div className="min-w-0 truncate">
                   <Link
                     to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                     className="!text-[var(--color-text)]"
@@ -280,13 +280,15 @@ function RecentTracks(props: RecentTracksProps) {
           </TableBuilderColumn>
           <TableBuilderColumn header="Artist">
             {(row: Row) => (
-              <Link
-                to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                style={{ fontFamily: "RockfordSansLight" }}
-                className="!text-[var(--color-text)]"
-              >
-                {row.albumArtist}
-              </Link>
+              <div className="flex min-w-0">
+                <Link
+                  to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                  style={{ fontFamily: "RockfordSansLight" }}
+                  className="!text-[var(--color-text)] min-w-0 truncate"
+                >
+                  {row.albumArtist}
+                </Link>
+              </div>
             )}
           </TableBuilderColumn>
           <TableBuilderColumn header="Date">

@@ -153,9 +153,19 @@ function PopularSongs(props: PopularSongsProps) {
               },
             }}
           >
-            <TableBuilderColumn header="Name">
+            <TableBuilderColumn
+              header="Name"
+              overrides={{
+                TableBodyCell: {
+                  style: {
+                    width: "100%",
+                    maxWidth: 0,
+                  },
+                },
+              }}
+            >
               {(row: Row) => (
-                <div className="flex flex-row items-center">
+                <div className="flex flex-row items-center min-w-0">
                   <div>
                     <div className="mr-[20px] text-[var(--color-text)]">
                       {row.index + 1}
@@ -191,23 +201,23 @@ function PopularSongs(props: PopularSongsProps) {
                       )}
                     </div>
                   )}
-                  <div className="flex flex-col">
+                  <div className="flex flex-col min-w-0">
                     <Link
                       to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                      className="!text-[var(--color-text)]"
+                      className="!text-[var(--color-text)] block truncate"
                     >
                       {row.title}
                     </Link>
                     {row.artistUri && (
                       <Link
                         to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                        className="!text-[var(--color-text-muted)]"
+                        className="!text-[var(--color-text-muted)] block truncate"
                       >
                         {row.albumArtist}
                       </Link>
                     )}
                     {!row.artistUri && (
-                      <div className="!text-[var(--color-text-muted)]">
+                      <div className="!text-[var(--color-text-muted)] truncate">
                         {row.albumArtist}
                       </div>
                     )}

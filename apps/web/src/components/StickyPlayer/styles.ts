@@ -13,6 +13,11 @@ export const PlayButton = styled.button`
   cursor: pointer;
   margin-left: 5px;
   margin-right: 5px;
+
+  /* Same glass circle as the fullscreen player's embedded bar. */
+  .dark & {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
 `;
 
 export const PreviousButton = styled.button`
@@ -76,14 +81,25 @@ export const Button = styled.button<{ disabled?: boolean }>`
 `;
 
 export const MainWrapper = styled.div`
-  flex: 1;
+  width: clamp(220px, 30vw, 380px);
   margin-left: 10px;
   margin-right: 10px;
 `;
 
-export const RightActions = styled.div`
+/* Left and right columns share the same flex-basis so the controls +
+   progress bar group in between stays exactly centered regardless of how
+   long the track title or how many right-side actions there are. */
+export const LeftSection = styled.div`
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+`;
+
+export const RightActions = styled.div`
+  flex: 1 1 0;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
 `;
 

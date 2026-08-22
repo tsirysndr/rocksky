@@ -192,27 +192,27 @@ function LovedTracks() {
               )}
               <div
                 style={{ display: "flex", flexDirection: "column" }}
-                className="flex flex-col"
+                className="flex flex-col min-w-0"
               >
                 {row.uri && (
                   <Link
                     to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                    className="!text-[var(--color-text)]"
+                    className="!text-[var(--color-text)] truncate"
                   >
                     {row.title}
                   </Link>
                 )}
-                {!row.uri && <div>{row.title}</div>}
+                {!row.uri && <div className="truncate">{row.title}</div>}
                 {row.artistUri && (
                   <Link
                     to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                    className="text-[var(--color-text-muted)]"
+                    className="text-[var(--color-text-muted)] truncate"
                   >
                     {row.albumArtist}
                   </Link>
                 )}
                 {!row.artistUri && (
-                  <div className="!text-[var(--color-text-muted)]">
+                  <div className="!text-[var(--color-text-muted)] truncate">
                     {row.albumArtist}
                   </div>
                 )}

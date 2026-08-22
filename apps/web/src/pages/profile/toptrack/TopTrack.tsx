@@ -1,5 +1,6 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { IconMusic } from "@tabler/icons-react";
+import ScrollingText from "../../../components/ScrollingText/ScrollingText";
 import { useTracksQuery } from "../../../hooks/useLibrary";
 import { getLastDays } from "../../../lib/date";
 
@@ -22,27 +23,31 @@ function TopTrack() {
               >
                 TOP TRACK
               </h4>
-              <Link
-                to={(data[0] || allTimeTopTracks[0])?.uri
-                  ?.split("at:/")[1]
-                  ?.replace("app.rocksky.", "")}
-                className="!text-[var(--color-text)] no-underline hover:underline"
-              >
-                <b className="text-[18px] truncate max-w-[500px]">
-                  {(data[0] || allTimeTopTracks[0])?.title}
-                </b>
-              </Link>
+              <ScrollingText className="max-w-[500px]">
+                <Link
+                  to={(data[0] || allTimeTopTracks[0])?.uri
+                    ?.split("at:/")[1]
+                    ?.replace("app.rocksky.", "")}
+                  className="!text-[var(--color-text)] no-underline hover:underline"
+                >
+                  <b className="text-[18px]">
+                    {(data[0] || allTimeTopTracks[0])?.title}
+                  </b>
+                </Link>
+              </ScrollingText>
 
-              <Link
-                to={(data[0] || allTimeTopTracks[0])?.artistUri
-                  ?.split("at:/")[1]
-                  ?.replace("app.rocksky.", "")}
-                className="text-[var(--color-text)] no-underline hover:underline"
-              >
-                <span className="opacity-90 text-[18px] truncate max-w-[500px]">
-                  {(data[0] || allTimeTopTracks[0])?.albumArtist}
-                </span>
-              </Link>
+              <ScrollingText className="max-w-[500px]">
+                <Link
+                  to={(data[0] || allTimeTopTracks[0])?.artistUri
+                    ?.split("at:/")[1]
+                    ?.replace("app.rocksky.", "")}
+                  className="text-[var(--color-text)] no-underline hover:underline"
+                >
+                  <span className="opacity-90 text-[18px]">
+                    {(data[0] || allTimeTopTracks[0])?.albumArtist}
+                  </span>
+                </Link>
+              </ScrollingText>
             </div>
             <Link
               to={(data[0] || allTimeTopTracks[0])?.albumUri

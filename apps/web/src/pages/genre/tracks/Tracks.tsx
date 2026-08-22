@@ -149,9 +149,19 @@ function Tracks() {
               },
             }}
           >
-            <TableBuilderColumn header="Name">
+            <TableBuilderColumn
+              header="Name"
+              overrides={{
+                TableBodyCell: {
+                  style: {
+                    width: "100%",
+                    maxWidth: 0,
+                  },
+                },
+              }}
+            >
               {(row: Row) => (
-                <div className="flex flex-row items-center">
+                <div className="flex flex-row items-center min-w-0">
                   <div>
                     <div className="text-[var(--color-text)] mr-[20px]">
                       {row.index + 1}
@@ -189,23 +199,23 @@ function Tracks() {
                       )}
                     </div>
                   )}
-                  <div className="flex flex-col">
+                  <div className="flex flex-col min-w-0">
                     <Link
                       to={uriToPath(row.uri)}
-                      className="!text-[var(--color-text)] no-underline"
+                      className="!text-[var(--color-text)] no-underline block truncate"
                     >
                       {row.title}
                     </Link>
                     {row.artistUri && (
                       <Link
                         to={uriToPath(row.artistUri)}
-                        className="!text-[var(--color-text-muted)] no-underline"
+                        className="!text-[var(--color-text-muted)] no-underline block truncate"
                       >
                         {row.albumArtist}
                       </Link>
                     )}
                     {!row.artistUri && (
-                      <div className="!text-[var(--color-text-muted)]">
+                      <div className="!text-[var(--color-text-muted)] truncate">
                         {row.albumArtist}
                       </div>
                     )}

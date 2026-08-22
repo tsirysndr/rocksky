@@ -315,23 +315,23 @@ function TopTracks(props: TopTracksProps) {
                     )}
                   </div>
                 )}
-                <div className="flex flex-col">
+                <div className="flex flex-col min-w-0">
                   <Link
                     to={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
-                    className="!text-[var(--color-text)]"
+                    className="!text-[var(--color-text)] truncate"
                   >
                     {row.title}
                   </Link>
                   {row.artistUri && (
                     <Link
                       to={`/${row.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
-                      className="!text-[var(--color-text-muted)]"
+                      className="!text-[var(--color-text-muted)] truncate"
                     >
                       {row.albumArtist}
                     </Link>
                   )}
                   {!row.artistUri && (
-                    <div className="!text-[var(--color-text-muted)]">
+                    <div className="!text-[var(--color-text-muted)] truncate">
                       {row.albumArtist}
                     </div>
                   )}

@@ -331,24 +331,25 @@ const Album = () => {
                   TableBodyCell: {
                     style: {
                       width: "100%",
+                      maxWidth: 0,
                     },
                   },
                 }}
               >
                 {(row: Row) => (
-                  <div className="flex flex-row items-center">
-                    <div>
+                  <div className="flex flex-row items-center min-w-0">
+                    <div className="min-w-0">
                       <div>
                         {row.uri && (
                           <Link
                             to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
-                            className="!text-[var(--color-text)]"
+                            className="!text-[var(--color-text)] block truncate"
                           >
                             {row.title}
                           </Link>
                         )}
                         {!row.uri && (
-                          <div className="!text-[var(--color-text)]">
+                          <div className="!text-[var(--color-text)] truncate">
                             {row.title}
                           </div>
                         )}
@@ -357,13 +358,13 @@ const Album = () => {
                         {row.artistUri && (
                           <Link
                             to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                            className="!text-[var(--color-text-muted)]"
+                            className="!text-[var(--color-text-muted)] block truncate"
                           >
                             {row.albumArtist}
                           </Link>
                         )}
                         {!row.artistUri && (
-                          <div className="!text-[var(--color-text-muted)]">
+                          <div className="!text-[var(--color-text-muted)] truncate">
                             {row.albumArtist}
                           </div>
                         )}
@@ -436,24 +437,25 @@ const Album = () => {
                         TableBodyCell: {
                           style: {
                             width: "100%",
+                            maxWidth: 0,
                           },
                         },
                       }}
                     >
                       {(row: Row) => (
-                        <div className="flex flex-row items-center flex-1 w-full">
-                          <div>
+                        <div className="flex flex-row items-center flex-1 w-full min-w-0">
+                          <div className="min-w-0">
                             <div>
                               {row.uri && (
                                 <Link
                                   to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
-                                  className="!text-[var(--color-text)]"
+                                  className="!text-[var(--color-text)] block truncate"
                                 >
                                   {row.title}
                                 </Link>
                               )}
                               {!row.uri && (
-                                <div className="!text-[var(--color-text)]">
+                                <div className="!text-[var(--color-text)] truncate">
                                   {row.title}
                                 </div>
                               )}
@@ -462,13 +464,13 @@ const Album = () => {
                               {row.artistUri && (
                                 <Link
                                   to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                                  className="!text-[var(--color-text-muted)]"
+                                  className="!text-[var(--color-text-muted)] block truncate"
                                 >
                                   {row.albumArtist}
                                 </Link>
                               )}
                               {!row.artistUri && (
-                                <div className="!text-[var(--color-text-muted)]">
+                                <div className="!text-[var(--color-text-muted)] truncate">
                                   {row.albumArtist}
                                 </div>
                               )}
