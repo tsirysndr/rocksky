@@ -399,90 +399,107 @@ async function main() {
     process.exit(1);
   }
 
+  // The three walks run concurrently: they touch disjoint tables, riff
+  // absorbs the combined request rate, and an operator watching
+  // `SELECT COUNT(*)` on albums or artists sees movement immediately instead
+  // of after a 31K-row tracks walk.
+  const walks: Promise<void>[] = [];
+
   if (ONLY === "all" || ONLY === "tracks") {
-    await walk(
-      "tracks",
-      (cursor) =>
-        ctx.db
-          .select({
-            id: tables.tracks.id,
-            title: tables.tracks.title,
-            artist: tables.tracks.artist,
-            albumArt: tables.tracks.albumArt,
-            duration: tables.tracks.duration,
-            trackNumber: tables.tracks.trackNumber,
-            discNumber: tables.tracks.discNumber,
-            isrc: tables.tracks.isrc,
-            spotifyLink: tables.tracks.spotifyLink,
-          })
-          .from(tables.tracks)
-          .where(
-            and(
-              gt(tables.tracks.id, cursor),
-              or(
-                eq(tables.tracks.duration, 0),
-                isNull(tables.tracks.albumArt),
-                like(tables.tracks.albumArt, `${ROCKSKY_CDN_PREFIX}%`),
+    walks.push(
+      walk(
+        "tracks",
+        (cursor) =>
+          ctx.db
+            .select({
+              id: tables.tracks.id,
+              title: tables.tracks.title,
+              artist: tables.tracks.artist,
+              albumArt: tables.tracks.albumArt,
+              duration: tables.tracks.duration,
+              trackNumber: tables.tracks.trackNumber,
+              discNumber: tables.tracks.discNumber,
+              isrc: tables.tracks.isrc,
+              spotifyLink: tables.tracks.spotifyLink,
+            })
+            .from(tables.tracks)
+            .where(
+              and(
+                gt(tables.tracks.id, cursor),
+                or(
+                  eq(tables.tracks.duration, 0),
+                  isNull(tables.tracks.albumArt),
+                  like(tables.tracks.albumArt, `${ROCKSKY_CDN_PREFIX}%`),
+                ),
               ),
-            ),
-          )
-          .orderBy(tables.tracks.id)
-          .limit(PAGE_SIZE),
-      fillTrack,
+            )
+            .orderBy(tables.tracks.id)
+            .limit(PAGE_SIZE),
+        fillTrack,
+      ),
     );
   }
 
   if (ONLY === "all" || ONLY === "albums") {
-    await walk(
-      "albums",
-      (cursor) =>
-        ctx.db
-          .select({
-            id: tables.albums.id,
-            title: tables.albums.title,
-            artist: tables.albums.artist,
-            albumArt: tables.albums.albumArt,
-            releaseDate: tables.albums.releaseDate,
-            year: tables.albums.year,
-            spotifyLink: tables.albums.spotifyLink,
-          })
-          .from(tables.albums)
-          .where(
-            and(
-              gt(tables.albums.id, cursor),
-              or(
-                isNull(tables.albums.albumArt),
-                like(tables.albums.albumArt, `${ROCKSKY_CDN_PREFIX}%`),
+    walks.push(
+      walk(
+        "albums",
+        (cursor) =>
+          ctx.db
+            .select({
+              id: tables.albums.id,
+              title: tables.albums.title,
+              artist: tables.albums.artist,
+              albumArt: tables.albums.albumArt,
+              releaseDate: tables.albums.releaseDate,
+              year: tables.albums.year,
+              spotifyLink: tables.albums.spotifyLink,
+            })
+            .from(tables.albums)
+            .where(
+              and(
+                gt(tables.albums.id, cursor),
+                or(
+                  isNull(tables.albums.albumArt),
+                  like(tables.albums.albumArt, `${ROCKSKY_CDN_PREFIX}%`),
+                ),
               ),
-            ),
-          )
-          .orderBy(tables.albums.id)
-          .limit(PAGE_SIZE),
-      fillAlbum,
+            )
+            .orderBy(tables.albums.id)
+            .limit(PAGE_SIZE),
+        fillAlbum,
+      ),
     );
   }
 
   if (ONLY === "all" || ONLY === "artists") {
-    await walk(
-      "artists",
-      (cursor) =>
-        ctx.db
-          .select({
-            id: tables.artists.id,
-            name: tables.artists.name,
-            picture: tables.artists.picture,
-            genres: tables.artists.genres,
-            spotifyLink: tables.artists.spotifyLink,
-          })
-          .from(tables.artists)
-          .where(
-            and(gt(tables.artists.id, cursor), isNull(tables.artists.picture)),
-          )
-          .orderBy(tables.artists.id)
-          .limit(PAGE_SIZE),
-      fillArtist,
+    walks.push(
+      walk(
+        "artists",
+        (cursor) =>
+          ctx.db
+            .select({
+              id: tables.artists.id,
+              name: tables.artists.name,
+              picture: tables.artists.picture,
+              genres: tables.artists.genres,
+              spotifyLink: tables.artists.spotifyLink,
+            })
+            .from(tables.artists)
+            .where(
+              and(
+                gt(tables.artists.id, cursor),
+                isNull(tables.artists.picture),
+              ),
+            )
+            .orderBy(tables.artists.id)
+            .limit(PAGE_SIZE),
+        fillArtist,
+      ),
     );
   }
+
+  await Promise.all(walks);
 
   consola.success(
     `done: ${stats.scanned} scanned, ${chalk.green(stats.updated)} updated ` +
