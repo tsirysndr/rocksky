@@ -16,6 +16,24 @@ const Overlay = styled.div`
   background: linear-gradient(160deg, #130825 0%, #1c0a38 28%, #2d0860 55%, #4800a8 80%, #6200d4 100%);
 `;
 
+/* The fullscreen player is always dark (hardcoded white text below), so the
+   backdrop pins the dark background colour rather than the theme variable. */
+const Backdrop = styled.div`
+  position: absolute;
+  inset: 0;
+  background-color: #130825;
+`;
+
+const BackdropArt = styled.div`
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(64px) saturate(140%);
+  transform: scale(1.2);
+  opacity: 0.35;
+`;
+
 const CloseButton = styled.button`
   position: absolute;
   top: 24px;
@@ -31,6 +49,8 @@ const CloseButton = styled.button`
 `;
 
 const BigCover = styled.img`
+  position: relative;
+  z-index: 1;
   width: 420px;
   height: 420px;
   border-radius: 16px;
@@ -39,6 +59,8 @@ const BigCover = styled.img`
 `;
 
 const NoCover = styled.div`
+  position: relative;
+  z-index: 1;
   width: 420px;
   height: 420px;
   border-radius: 16px;
@@ -49,6 +71,8 @@ const NoCover = styled.div`
 `;
 
 const TrackInfo = styled.div`
+  position: relative;
+  z-index: 1;
   text-align: center;
 `;
 
@@ -107,6 +131,14 @@ function FullscreenPlayer({
 
   return (
     <Overlay>
+      {nowPlaying.albumArt && (
+        <Backdrop aria-hidden>
+          <BackdropArt
+            style={{ backgroundImage: `url(${nowPlaying.albumArt})` }}
+          />
+        </Backdrop>
+      )}
+
       <CloseButton onClick={onClose}>
         <IconX size={28} />
       </CloseButton>

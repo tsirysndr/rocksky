@@ -532,6 +532,18 @@ pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
         .get()
         .map_err(|e| format!("could not open a DuckDB connection: {e}"))?;
 
+    // Bound the buffer pool well below the machine. DuckDB defaults to 80% of
+    // RAM, which on the 15G production host meant riff grew to 12G RSS, starved
+    // the OS page cache of the 90G parquet+db working set — making every query
+    // disk-bound and slow — and was then OOM-killed. Serving is point lookups;
+    // it needs a small pool and a large page cache, not the reverse.
+    let memory_limit = std::env::var("RIFF_MEMORY_LIMIT").unwrap_or_else(|_| "2GB".to_string());
+    conn.execute_batch(&format!(
+        "SET memory_limit = '{}'",
+        memory_limit.replace('\'', "")
+    ))
+    .map_err(|e| format!("could not apply RIFF_MEMORY_LIMIT={memory_limit}: {e}"))?;
+
     let tables = base_tables(&conn)?;
     let mut report = register_relations(&conn, &cfg.data_dir, &tables)?;
     if tables.contains("riff_meta") {

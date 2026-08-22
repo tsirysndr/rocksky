@@ -148,6 +148,20 @@ body {
   --color-avatar-background: #8d2dffed;
 }
 
+/* While the now-playing album-art backdrop is up (.art-bg on #root, see
+   components/NowPlayingBackground), the opaque page shell goes translucent so
+   the fixed art layer shows through, and the fixed navbar switches to a
+   frosted-glass fill so content scrolling under it stays legible. */
+#root.art-bg #app-container {
+  background-color: transparent;
+}
+
+#root.art-bg #main-navbar {
+  background-color: color-mix(in srgb, var(--color-background) 70%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
 ::placeholder {
   color: var(--color-text-muted) !important;
 }

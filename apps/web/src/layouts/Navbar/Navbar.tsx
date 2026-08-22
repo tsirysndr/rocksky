@@ -142,7 +142,10 @@ function Navbar() {
   };
 
   return (
-    <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
+    <Container
+      id="main-navbar"
+      className="bg-[var(--color-background)] text-[var(--color-text)]"
+    >
       <div className="flex">
         <Link to="/" style={{ textDecoration: "none" }}>
           <img
