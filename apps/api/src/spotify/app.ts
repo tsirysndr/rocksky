@@ -667,15 +667,12 @@ app.post("/previous", async (c) => {
     access_token: string;
   };
 
-  const response = await fetch(
-    `${env.SPOTIFY_API_URL}/me/player/previous`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
+  const response = await fetch(`${env.SPOTIFY_API_URL}/me/player/previous`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
     },
-  );
+  });
 
   if (response.status === 403) {
     c.status(403);

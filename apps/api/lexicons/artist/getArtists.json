@@ -25,6 +25,11 @@
           "genre": {
             "type": "string",
             "description": "The genre to filter artists by"
+          },
+          "filter": {
+            "type": "string",
+            "description": "RSQL filter expression, e.g. `name==Daft*;genres=in=(house,electro)`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, genres, bornIn, born, died, sha256, uri, createdAt",
+            "maxLength": 2048
           }
         }
       },

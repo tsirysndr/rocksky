@@ -22,6 +22,8 @@ export interface QueryParams {
   isrc?: string;
   /** Filter songs by Spotify track ID (resolved internally to the Spotify track URL) */
   spotifyId?: string;
+  /** RSQL filter expression, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, createdAt */
+  filter?: string;
 }
 
 export type InputSchema = undefined;

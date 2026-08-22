@@ -1,12 +1,24 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { and, count, desc, inArray, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtists";
 import { deepCamelCaseKeys } from "lib";
+import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
 import tables from "schema";
+
+const FILTER_FIELDS: RsqlFieldMap = {
+  name: tables.artists.name,
+  genres: { column: tables.artists.genres, type: "string[]" },
+  bornIn: tables.artists.bornIn,
+  born: { column: tables.artists.born, type: "date" },
+  died: { column: tables.artists.died, type: "date" },
+  sha256: tables.artists.sha256,
+  uri: tables.artists.uri,
+  createdAt: { column: tables.artists.createdAt, type: "date" },
+};
 
 export default function (server: Server, ctx: Context) {
   const cache = Cache.make({
@@ -34,6 +46,9 @@ export default function (server: Server, ctx: Context) {
 
   server.app.rocksky.artist.getArtists({
     handler: async ({ params }) => {
+      // Validate the filter up front so malformed expressions surface as a
+      // 400 instead of being swallowed by the catchAll below.
+      compileRsqlFilterParam(params.filter, FILTER_FIELDS);
       const result = await Effect.runPromise(getArtists(params));
       return {
         encoding: "application/json",
@@ -67,6 +82,10 @@ const retrieve = ({
         filters.push(
           sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`,
         );
+      }
+      const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
+      if (filterWhere) {
+        filters.push(filterWhere);
       }
 
       let artistIds: string[];

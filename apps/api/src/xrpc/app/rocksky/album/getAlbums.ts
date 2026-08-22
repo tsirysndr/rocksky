@@ -1,12 +1,24 @@
-import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, inArray, sql } from "drizzle-orm";
+import type { Context } from "context";
+import { count, desc, eq, inArray, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { AlbumViewBasic } from "lexicon/types/app/rocksky/album/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbums";
 import { deepCamelCaseKeys } from "lib";
+import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
 import tables from "schema";
+
+const FILTER_FIELDS: RsqlFieldMap = {
+  title: tables.albums.title,
+  artist: tables.albums.artist,
+  year: { column: tables.albums.year, type: "number" },
+  releaseDate: tables.albums.releaseDate,
+  sha256: tables.albums.sha256,
+  uri: tables.albums.uri,
+  artistUri: tables.albums.artistUri,
+  createdAt: { column: tables.albums.createdAt, type: "date" },
+};
 
 export default function (server: Server, ctx: Context) {
   const cache = Cache.make({
@@ -34,6 +46,9 @@ export default function (server: Server, ctx: Context) {
 
   server.app.rocksky.album.getAlbums({
     handler: async ({ params }) => {
+      // Validate the filter up front so malformed expressions surface as a
+      // 400 instead of being swallowed by the catchAll below.
+      compileRsqlFilterParam(params.filter, FILTER_FIELDS);
       const result = await Effect.runPromise(getAlbums(params));
       return {
         encoding: "application/json",
@@ -54,13 +69,26 @@ const retrieve = ({
     try: async () => {
       const limit = params.limit ?? 100;
       const offset = params.offset ?? 0;
+      const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
 
-      const topAlbumsQuery = await ctx.db
+      let topAlbumsQb = ctx.db
         .select({
           albumId: tables.scrobbles.albumId,
           play_count: count(tables.scrobbles.id).as("play_count"),
         })
         .from(tables.scrobbles)
+        .$dynamic();
+
+      if (filterWhere) {
+        topAlbumsQb = topAlbumsQb
+          .innerJoin(
+            tables.albums,
+            eq(tables.scrobbles.albumId, tables.albums.id),
+          )
+          .where(filterWhere);
+      }
+
+      const topAlbumsQuery = await topAlbumsQb
         .groupBy(tables.scrobbles.albumId)
         .orderBy(desc(sql`count(${tables.scrobbles.id})`))
         .limit(limit)

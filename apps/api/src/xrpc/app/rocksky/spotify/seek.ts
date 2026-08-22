@@ -147,15 +147,12 @@ const handleSeek = ({
 }) => {
   return Effect.tryPromise({
     try: () =>
-      fetch(
-        `${env.SPOTIFY_API_URL}/me/player/seek?position_ms=${position}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+      fetch(`${env.SPOTIFY_API_URL}/me/player/seek?position_ms=${position}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
         },
-      ).then((res) => res.status),
+      }).then((res) => res.status),
     catch: (error) => new Error(`Failed to handle next action: ${error}`),
   });
 };

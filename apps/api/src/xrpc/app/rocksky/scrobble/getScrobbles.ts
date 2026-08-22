@@ -1,11 +1,12 @@
-import type { Context } from "context";
 import { consola } from "consola";
-import { desc, eq, inArray } from "drizzle-orm";
+import type { Context } from "context";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobbles";
 import { getScrobblesVersion } from "lib/feedCache";
+import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
 import * as R from "ramda";
 import tables from "schema";
 import type { SelectArtist } from "schema/artists";
@@ -16,9 +17,31 @@ import type { SelectUser } from "schema/users";
 const SCROBBLES_CACHE_TTL = 30;
 
 const cacheKey = (params: QueryParams, version: number) =>
-  `scrobbles:getScrobbles:v1:${version}:${params.did ?? "anon"}:${
+  `scrobbles:getScrobbles:v2:${version}:${params.did ?? "anon"}:${
     params.following ? "1" : "0"
-  }:${params.limit ?? ""}:${params.offset ?? ""}`;
+  }:${params.limit ?? ""}:${params.offset ?? ""}:${params.filter ?? ""}`;
+
+const FILTER_FIELDS: RsqlFieldMap = {
+  uri: tables.scrobbles.uri,
+  date: { column: tables.scrobbles.timestamp, type: "date" },
+  timestamp: { column: tables.scrobbles.timestamp, type: "date" },
+  title: tables.tracks.title,
+  artist: tables.tracks.artist,
+  album: tables.tracks.album,
+  "track.title": tables.tracks.title,
+  "track.artist": tables.tracks.artist,
+  "track.album": tables.tracks.album,
+  "track.albumArtist": tables.tracks.albumArtist,
+  "track.genre": tables.tracks.genre,
+  "track.duration": { column: tables.tracks.duration, type: "number" },
+  "track.isrc": tables.tracks.isrc,
+  "track.mbId": tables.tracks.mbId,
+  "user.did": tables.users.did,
+  "user.handle": tables.users.handle,
+  "user.displayName": tables.users.displayName,
+  "artist.name": tables.artists.name,
+  "artist.genres": { column: tables.artists.genres, type: "string[]" },
+};
 
 type ScrobblesResponse = { scrobbles: ScrobbleViewBasic[] };
 
@@ -66,6 +89,9 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.scrobble.getScrobbles({
     handler: async ({ params }) => {
+      // Validate the filter up front so malformed expressions surface as a
+      // 400 instead of being swallowed by the catchAll below.
+      compileRsqlFilterParam(params.filter, FILTER_FIELDS);
       const result = await Effect.runPromise(getScrobbles(params));
       return {
         encoding: "application/json",
@@ -127,9 +153,12 @@ const fetchScrobbles = async (
     .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
     .leftJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id));
 
-  const query = filterUserIds
-    ? baseQuery.where(inArray(tables.scrobbles.userId, filterUserIds))
-    : baseQuery;
+  const where = and(
+    filterUserIds ? inArray(tables.scrobbles.userId, filterUserIds) : undefined,
+    compileRsqlFilterParam(params.filter, FILTER_FIELDS),
+  );
+
+  const query = where ? baseQuery.where(where) : baseQuery;
 
   return query
     .orderBy(desc(tables.scrobbles.timestamp))

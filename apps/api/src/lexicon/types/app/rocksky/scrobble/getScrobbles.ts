@@ -18,6 +18,8 @@ export interface QueryParams {
   limit?: number;
   /** The offset for pagination */
   offset?: number;
+  /** RSQL filter expression, e.g. `track.artist=="Daft Punk";date=ge=2025-01-01`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: uri, date, timestamp, title, artist, album, track.title, track.artist, track.album, track.albumArtist, track.genre, track.duration, track.isrc, track.mbId, user.did, user.handle, user.displayName, artist.name, artist.genres */
+  filter?: string;
 }
 
 export type InputSchema = undefined;

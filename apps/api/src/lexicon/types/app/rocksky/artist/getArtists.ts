@@ -18,6 +18,8 @@ export interface QueryParams {
   names?: string;
   /** The genre to filter artists by */
   genre?: string;
+  /** RSQL filter expression, e.g. `name==Daft*;genres=in=(house,electro)`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, genres, bornIn, born, died, sha256, uri, createdAt */
+  filter?: string;
 }
 
 export type InputSchema = undefined;

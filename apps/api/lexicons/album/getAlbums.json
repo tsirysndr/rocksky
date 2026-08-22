@@ -21,6 +21,11 @@
           "genre": {
             "type": "string",
             "description": "The genre to filter artists by"
+          },
+          "filter": {
+            "type": "string",
+            "description": "RSQL filter expression, e.g. `artist==\"Daft Punk\";year=ge=2000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, year, releaseDate, sha256, uri, artistUri, createdAt",
+            "maxLength": 2048
           }
         }
       },

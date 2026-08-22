@@ -1,12 +1,33 @@
-import type { Context } from "context";
 import { consola } from "consola";
-import { type SQL, count, desc, eq, inArray, or, sql } from "drizzle-orm";
+import type { Context } from "context";
+import { and, count, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/getSongs";
 import { deepCamelCaseKeys } from "lib";
+import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
 import tables from "schema";
+
+const FILTER_FIELDS: RsqlFieldMap = {
+  title: tables.tracks.title,
+  artist: tables.tracks.artist,
+  album: tables.tracks.album,
+  albumArtist: tables.tracks.albumArtist,
+  genre: tables.tracks.genre,
+  composer: tables.tracks.composer,
+  label: tables.tracks.label,
+  duration: { column: tables.tracks.duration, type: "number" },
+  trackNumber: { column: tables.tracks.trackNumber, type: "number" },
+  discNumber: { column: tables.tracks.discNumber, type: "number" },
+  mbId: tables.tracks.mbId,
+  isrc: tables.tracks.isrc,
+  sha256: tables.tracks.sha256,
+  uri: tables.tracks.uri,
+  albumUri: tables.tracks.albumUri,
+  artistUri: tables.tracks.artistUri,
+  createdAt: { column: tables.tracks.createdAt, type: "date" },
+};
 
 export default function (server: Server, ctx: Context) {
   const cache = Cache.make({
@@ -34,6 +55,9 @@ export default function (server: Server, ctx: Context) {
 
   server.app.rocksky.song.getSongs({
     handler: async ({ params }) => {
+      // Validate the filter up front so malformed expressions surface as a
+      // 400 instead of being swallowed by the catchAll below.
+      compileRsqlFilterParam(params.filter, FILTER_FIELDS);
       const result = await Effect.runPromise(getSongs(params));
       return {
         encoding: "application/json",
@@ -54,6 +78,7 @@ const retrieve = ({
     try: async () => {
       const limit = params.limit ?? 100;
       const offset = params.offset ?? 0;
+      const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
 
       // Direct lookup by mbid/isrc/spotifyId — short-circuits the top-tracks aggregation
       const mbid = params.mbid?.trim();
@@ -95,7 +120,7 @@ const retrieve = ({
             createdAt: tables.tracks.createdAt,
           })
           .from(tables.tracks)
-          .where(directWhere)
+          .where(and(directWhere, filterWhere))
           .limit(limit)
           .offset(offset)
           .execute();
@@ -144,9 +169,12 @@ const retrieve = ({
           eq(tables.tracks.albumArtist, tables.artists.name),
         )
         .where(
-          params.genre
-            ? sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`
-            : undefined,
+          and(
+            params.genre
+              ? sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`
+              : undefined,
+            filterWhere,
+          ),
         )
         .groupBy(tables.scrobbles.trackId)
         .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))

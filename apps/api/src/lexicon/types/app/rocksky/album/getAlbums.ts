@@ -16,6 +16,8 @@ export interface QueryParams {
   offset?: number;
   /** The genre to filter artists by */
   genre?: string;
+  /** RSQL filter expression, e.g. `artist=="Daft Punk";year=ge=2000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, year, releaseDate, sha256, uri, artistUri, createdAt */
+  filter?: string;
 }
 
 export type InputSchema = undefined;

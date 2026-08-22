@@ -6,6 +6,7 @@
   "module": "dist/index.js",
   "scripts": {
     "lexgen": "tsx ./scripts/lexgen.ts",
+    "test": "bun test",
     "dev": "concurrently 'tsx --watch ./src/index.ts' 'tsx --watch ./src/server.ts'",
     "tsx:index": "tsx src/index.ts",
     "prod": "node --enable-source-maps dist/index.js",
@@ -58,6 +59,8 @@
     "@opentelemetry/sdk-node": "^0.200.0",
     "@opentelemetry/semantic-conventions": "^1.32.0",
     "@pyroscope/nodejs": "^0.4.5",
+    "@rsql/ast": "^1.6.0",
+    "@rsql/parser": "^1.6.0",
     "@types/prompts": "^2.4.9",
     "assert": "^2.1.0",
     "axios": "^1.7.9",

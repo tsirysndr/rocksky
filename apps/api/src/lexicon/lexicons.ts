@@ -1040,6 +1040,12 @@ export const schemaDict = {
               type: "string",
               description: "The genre to filter artists by",
             },
+            filter: {
+              type: "string",
+              description:
+                'RSQL filter expression, e.g. `artist=="Daft Punk";year=ge=2000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, year, releaseDate, sha256, uri, artistUri, createdAt',
+              maxLength: 2048,
+            },
           },
         },
         output: {
@@ -1730,6 +1736,12 @@ export const schemaDict = {
             genre: {
               type: "string",
               description: "The genre to filter artists by",
+            },
+            filter: {
+              type: "string",
+              description:
+                "RSQL filter expression, e.g. `name==Daft*;genres=in=(house,electro)`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, genres, bornIn, born, died, sha256, uri, createdAt",
+              maxLength: 2048,
             },
           },
         },
@@ -6578,6 +6590,12 @@ export const schemaDict = {
               description: "The offset for pagination",
               minimum: 0,
             },
+            filter: {
+              type: "string",
+              description:
+                'RSQL filter expression, e.g. `track.artist=="Daft Punk";date=ge=2025-01-01`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: uri, date, timestamp, title, artist, album, track.title, track.artist, track.album, track.albumArtist, track.genre, track.duration, track.isrc, track.mbId, user.did, user.handle, user.displayName, artist.name, artist.genres',
+              maxLength: 2048,
+            },
           },
         },
         output: {
@@ -7848,6 +7866,12 @@ export const schemaDict = {
               type: "string",
               description:
                 "Filter songs by Spotify track ID (resolved internally to the Spotify track URL)",
+            },
+            filter: {
+              type: "string",
+              description:
+                'RSQL filter expression, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, createdAt',
+              maxLength: 2048,
             },
           },
         },
