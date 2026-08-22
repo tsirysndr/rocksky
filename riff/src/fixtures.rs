@@ -257,9 +257,12 @@ const EXPORTS: &[(&str, &str)] = &[
                 external_id_isrc, popularity, available_markets_rowid, disc_number, duration_ms, explicit \
          FROM tracks ORDER BY row_id",
     ),
+    // Production ships (track_rowid, artist_rowid) with no ordering column, so
+    // the fixture does too. The ORDER BY is what carries the ordering instead:
+    // credits are written primary-first, and riff reads them back in file order.
     (
         "track_artists",
-        "SELECT track_rowid, artist_rowid, index_in_track FROM track_artists \
+        "SELECT track_rowid, artist_rowid FROM track_artists \
          ORDER BY track_rowid, index_in_track",
     ),
     (

@@ -152,7 +152,7 @@ album_images.parquet
     album_rowid, width, height, url
 
 track_artists.parquet
-    track_rowid, artist_rowid, index_in_track
+    track_rowid, artist_rowid            -- plus an optional index_in_track
 
 available_markets.parquet
     rowid, markets
@@ -186,6 +186,13 @@ So both relations riff can do without are in fact present:
 - **`track_artists.parquet`** means featured and per-track credits are accurate.
   The album-artist derivation described above is a safety net for a partial dump,
   not the normal path.
+
+  It is `(track_rowid, artist_rowid)` with **no ordering column**. Order still
+  matters — callers read `track.artists[0]` as the primary artist — so riff falls
+  back to the file's own row order, made explicit with `file_row_number` rather
+  than left to scan order, which SQL does not promise. Credits therefore have to
+  be written primary-first. If an `index_in_track` column ever appears, riff uses
+  it instead, with no other change.
 - **`available_markets.parquet`** populates `available_markets` on albums and
   tracks. riff expects `(rowid, markets)` with `markets` a comma-separated list
   of ISO-3166-1 alpha-2 codes. The column list is validated at startup, so if the
