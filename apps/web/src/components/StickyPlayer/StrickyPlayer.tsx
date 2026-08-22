@@ -134,10 +134,18 @@ const Link = styled(DefaultLink)`
 // 44.1kHz). Fixed neon colors on purpose — they read as "signal lights" in
 // both themes and match the always-dark fullscreen bar.
 const NeonBadge = styled.span<{ neon: string }>`
+  /* inline-flex + centering + a shared min-width so both chips (e.g. "MP3"
+     and "44.1kHz") render as uniform, center-aligned badges. No
+     letter-spacing: it adds trailing space after the last glyph, which
+     skews the text off-center inside the chip. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  box-sizing: border-box;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.5px;
   line-height: 1;
   padding: 3px 6px;
   border-radius: 4px;
@@ -154,7 +162,10 @@ const Badges = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-right: 12px;
+  /* 8px + the icon buttons' ~7px internal inset ≈ the same visual gap as
+     between two adjacent icon buttons, so the whole right cluster
+     (badges · device · EQ · queue) reads as evenly spaced. */
+  margin-right: 8px;
 `;
 
 // "MPEG 1 Layer 3" / "mp3" → "MP3", "FLAC" stays "FLAC", unknown strings are
@@ -279,6 +290,13 @@ function StickyPlayer(props: StickyPlayerProps) {
   const progressbarRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useTimeFormat();
 
+  // In the fullscreen player the overlay sits above the whole app, so a
+  // title/artist/album link would navigate invisibly underneath it. Close the
+  // overlay on click and let the Link perform the navigation.
+  const exitFullscreenOnNavigate = fullscreenOpen
+    ? () => onExitFullscreen?.()
+    : undefined;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSeek = (e: any) => {
     if (progressbarRef.current) {
@@ -329,7 +347,11 @@ function StickyPlayer(props: StickyPlayerProps) {
                   {(() => {
                     const songPath = atUriToPath(nowPlaying?.songUri);
                     return songPath ? (
-                      <Link to={songPath} style={{ fontWeight: 600 }}>
+                      <Link
+                        to={songPath}
+                        style={{ fontWeight: 600 }}
+                        onClick={exitFullscreenOnNavigate}
+                      >
                         {nowPlaying?.title}
                       </Link>
                     ) : (
@@ -364,6 +386,7 @@ function StickyPlayer(props: StickyPlayerProps) {
                       fontWeight: 600,
                     }}
                     className={embedded ? "!text-[rgba(255,255,255,0.7)]" : "!text-[var(--color-text-muted)]"}
+                    onClick={exitFullscreenOnNavigate}
                   >
                     {nowPlaying?.artist}
                   </Link>
@@ -400,7 +423,11 @@ function StickyPlayer(props: StickyPlayerProps) {
                     </span>
                   );
                   return albumPath ? (
-                    <Link to={albumPath} className={linkClass}>
+                    <Link
+                      to={albumPath}
+                      className={linkClass}
+                      onClick={exitFullscreenOnNavigate}
+                    >
                       {inner}
                     </Link>
                   ) : (
@@ -531,7 +558,7 @@ function StickyPlayer(props: StickyPlayerProps) {
               style={{
                 backgroundColor: "transparent",
                 color: embedded ? "#fff" : "var(--color-text)",
-                padding: "0 8px",
+                padding: 0,
               }}
             >
               <IconAdjustmentsHorizontal

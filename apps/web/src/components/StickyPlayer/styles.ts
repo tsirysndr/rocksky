@@ -56,7 +56,7 @@ export const Button = styled.button<{ disabled?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
+  width: 36px;
   cursor: pointer;
   border: none;
   background-color: transparent;
