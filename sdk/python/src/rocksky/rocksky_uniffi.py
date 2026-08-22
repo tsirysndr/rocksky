@@ -6876,7 +6876,18 @@ class RemoteNowPlaying:
     """
 
     is_playing: "bool"
-    def __init__(self, *, title: "str", artist: "str", album: "str", album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, elapsed_ms: "int" = _DEFAULT, is_playing: "bool" = _DEFAULT):
+    codec: "typing.Optional[str]"
+    """
+    Audio codec / container of the playing file (e.g. "mp3", "flac"), when
+    the player knows it.
+    """
+
+    sample_rate: "typing.Optional[int]"
+    """
+    Audio sample rate in Hz (e.g. 44100), when the player knows it.
+    """
+
+    def __init__(self, *, title: "str", artist: "str", album: "str", album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, elapsed_ms: "int" = _DEFAULT, is_playing: "bool" = _DEFAULT, codec: "typing.Optional[str]" = _DEFAULT, sample_rate: "typing.Optional[int]" = _DEFAULT):
         self.title = title
         self.artist = artist
         self.album = album
@@ -6900,9 +6911,17 @@ class RemoteNowPlaying:
             self.is_playing = True
         else:
             self.is_playing = is_playing
+        if codec is _DEFAULT:
+            self.codec = None
+        else:
+            self.codec = codec
+        if sample_rate is _DEFAULT:
+            self.sample_rate = None
+        else:
+            self.sample_rate = sample_rate
 
     def __str__(self):
-        return "RemoteNowPlaying(title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, elapsed_ms={}, is_playing={})".format(self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.elapsed_ms, self.is_playing)
+        return "RemoteNowPlaying(title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, elapsed_ms={}, is_playing={}, codec={}, sample_rate={})".format(self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.elapsed_ms, self.is_playing, self.codec, self.sample_rate)
 
     def __eq__(self, other):
         if self.title != other.title:
@@ -6921,6 +6940,10 @@ class RemoteNowPlaying:
             return False
         if self.is_playing != other.is_playing:
             return False
+        if self.codec != other.codec:
+            return False
+        if self.sample_rate != other.sample_rate:
+            return False
         return True
 
 class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
@@ -6935,6 +6958,8 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
             duration_ms=_UniffiConverterUInt64.read(buf),
             elapsed_ms=_UniffiConverterUInt64.read(buf),
             is_playing=_UniffiConverterBool.read(buf),
+            codec=_UniffiConverterOptionalString.read(buf),
+            sample_rate=_UniffiConverterOptionalUInt32.read(buf),
         )
 
     @staticmethod
@@ -6947,6 +6972,8 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
         _UniffiConverterUInt64.check_lower(value.duration_ms)
         _UniffiConverterUInt64.check_lower(value.elapsed_ms)
         _UniffiConverterBool.check_lower(value.is_playing)
+        _UniffiConverterOptionalString.check_lower(value.codec)
+        _UniffiConverterOptionalUInt32.check_lower(value.sample_rate)
 
     @staticmethod
     def write(value, buf):
@@ -6958,6 +6985,8 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
         _UniffiConverterUInt64.write(value.duration_ms, buf)
         _UniffiConverterUInt64.write(value.elapsed_ms, buf)
         _UniffiConverterBool.write(value.is_playing, buf)
+        _UniffiConverterOptionalString.write(value.codec, buf)
+        _UniffiConverterOptionalUInt32.write(value.sample_rate, buf)
 
 
 class RemoteQueueItem:
