@@ -832,9 +832,13 @@ impl AppView {
         limit: u32,
         offset: u32,
         genre: Option<String>,
+        filter: Option<String>,
     ) -> Result<Vec<AlbumView>, RockskyError> {
         let out = RT
-            .block_on(self.inner.catalog_albums(limit, offset, genre.as_deref()))
+            .block_on(
+                self.inner
+                    .catalog_albums(limit, offset, genre.as_deref(), filter.as_deref()),
+            )
             .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
@@ -844,9 +848,13 @@ impl AppView {
         limit: u32,
         offset: u32,
         genre: Option<String>,
+        filter: Option<String>,
     ) -> Result<Vec<ArtistView>, RockskyError> {
         let out = RT
-            .block_on(self.inner.catalog_artists(limit, offset, genre.as_deref()))
+            .block_on(
+                self.inner
+                    .catalog_artists(limit, offset, genre.as_deref(), filter.as_deref()),
+            )
             .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
@@ -856,9 +864,13 @@ impl AppView {
         limit: u32,
         offset: u32,
         genre: Option<String>,
+        filter: Option<String>,
     ) -> Result<Vec<SongView>, RockskyError> {
         let out = RT
-            .block_on(self.inner.catalog_songs(limit, offset, genre.as_deref()))
+            .block_on(
+                self.inner
+                    .catalog_songs(limit, offset, genre.as_deref(), filter.as_deref()),
+            )
             .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
@@ -891,12 +903,16 @@ impl AppView {
         following: bool,
         limit: u32,
         offset: u32,
+        filter: Option<String>,
     ) -> Result<Vec<ScrobbleView>, RockskyError> {
         let out = RT
-            .block_on(
-                self.inner
-                    .scrobble_feed(did.as_deref(), following, limit, offset),
-            )
+            .block_on(self.inner.scrobble_feed(
+                did.as_deref(),
+                following,
+                limit,
+                offset,
+                filter.as_deref(),
+            ))
             .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }

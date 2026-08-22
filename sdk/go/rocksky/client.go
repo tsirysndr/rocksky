@@ -193,27 +193,33 @@ func (c *Client) LovedSongs(ctx context.Context, actor string, limit, offset int
 	return out.Tracks, err
 }
 
-// CatalogAlbums returns the album catalog, optionally filtered by genre.
-func (c *Client) CatalogAlbums(ctx context.Context, limit, offset int, genre string) ([]gen.AlbumViewBasic, error) {
+// CatalogAlbums returns the album catalog, optionally filtered by genre and an
+// RSQL filter built with [Filter] ("" for none), e.g.
+// Eq("artist", "Daft Punk").And(Ge("year", 2000)).Build().
+func (c *Client) CatalogAlbums(ctx context.Context, limit, offset int, genre string, filter string) ([]gen.AlbumViewBasic, error) {
 	var out albumsOut
 	err := c.query(ctx, "app.rocksky.album.getAlbums",
-		map[string]any{"limit": limit, "offset": offset, "genre": genre}, &out)
+		map[string]any{"limit": limit, "offset": offset, "genre": genre, "filter": filter}, &out)
 	return out.Albums, err
 }
 
-// CatalogArtists returns the artist catalog, optionally filtered by genre.
-func (c *Client) CatalogArtists(ctx context.Context, limit, offset int, genre string) ([]gen.ArtistViewBasic, error) {
+// CatalogArtists returns the artist catalog, optionally filtered by genre and
+// an RSQL filter built with [Filter] ("" for none), e.g.
+// Eq("name", "Daft*").Build().
+func (c *Client) CatalogArtists(ctx context.Context, limit, offset int, genre string, filter string) ([]gen.ArtistViewBasic, error) {
 	var out artistsOut
 	err := c.query(ctx, "app.rocksky.artist.getArtists",
-		map[string]any{"limit": limit, "offset": offset, "genre": genre}, &out)
+		map[string]any{"limit": limit, "offset": offset, "genre": genre, "filter": filter}, &out)
 	return out.Artists, err
 }
 
-// CatalogSongs returns the song catalog, optionally filtered by genre.
-func (c *Client) CatalogSongs(ctx context.Context, limit, offset int, genre string) ([]gen.SongViewBasic, error) {
+// CatalogSongs returns the song catalog, optionally filtered by genre and an
+// RSQL filter built with [Filter] ("" for none), e.g.
+// Eq("artist", "Daft Punk").And(Gt("duration", 200000)).Build().
+func (c *Client) CatalogSongs(ctx context.Context, limit, offset int, genre string, filter string) ([]gen.SongViewBasic, error) {
 	var out tracksOut
 	err := c.query(ctx, "app.rocksky.song.getSongs",
-		map[string]any{"limit": limit, "offset": offset, "genre": genre}, &out)
+		map[string]any{"limit": limit, "offset": offset, "genre": genre, "filter": filter}, &out)
 	return out.Tracks, err
 }
 
@@ -240,11 +246,13 @@ func (c *Client) ArtistTracks(ctx context.Context, uri string, limit, offset int
 }
 
 // ScrobbleFeed returns a social/global scrobbles feed. Pass did to scope to an
-// actor and following=true for their follow graph.
-func (c *Client) ScrobbleFeed(ctx context.Context, did string, following bool, limit, offset int) ([]gen.ScrobbleViewBasic, error) {
+// actor and following=true for their follow graph. filter is an optional RSQL
+// expression built with [Filter] ("" for none), e.g.
+// Eq("track.artist", "Daft Punk").Build().
+func (c *Client) ScrobbleFeed(ctx context.Context, did string, following bool, limit, offset int, filter string) ([]gen.ScrobbleViewBasic, error) {
 	var out scrobblesOut
 	err := c.query(ctx, "app.rocksky.scrobble.getScrobbles",
-		map[string]any{"did": did, "following": following, "limit": limit, "offset": offset}, &out)
+		map[string]any{"did": did, "following": following, "limit": limit, "offset": offset, "filter": filter}, &out)
 	return out.Scrobbles, err
 }
 

@@ -64,6 +64,33 @@ queries), each → `{ok, Data}`.
 **Match** — `rocksky:match_song(Title, Artist)` resolves a bare title + artist
 into full canonical metadata.
 
+### Filtering
+
+`rocksky_filter` builds RSQL expressions for the catalog and scrobble-feed
+queries — `catalog_songs`, `catalog_artists`, `catalog_albums` and
+`scrobble_feed` (each `/2` with `Limit, Offset`, or `/3` with an `Opts` map:
+`genre`, `filter`, `base`; the feed also takes `did` and `following => true`).
+Fields are atoms (quoted for dotted selectors, e.g. `'track.artist'`) or
+binaries; string values are quoted/escaped automatically and `*` wildcards pass
+through unquoted.
+
+```erlang
+F = rocksky_filter:or_(
+        rocksky_filter:and_(
+            rocksky_filter:eq(artist, <<"Daft Punk">>),
+            rocksky_filter:gt(duration, 200000)),
+        rocksky_filter:in(genre, [<<"house">>, <<"electro">>])),
+%% artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+{ok, Songs} = rocksky:catalog_songs(50, 0, #{filter => F}),
+{ok, Feed}  = rocksky:scrobble_feed(50, 0,
+                  #{did => Did, following => true,
+                    filter => rocksky_filter:eq('track.artist', <<"Radiohead">>)}).
+```
+
+Operators: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `in`, `out`, `is_null`,
+`is_not_null`; combine with `and_` (`;`) / `or_` (`,`) and render with
+`build/1` (which also accepts an already-built binary).
+
 ### Writes
 
 `rocksky:agent_login(Session, Id, Pw)` (also `/5` with `AppView`, `DedupPath`),

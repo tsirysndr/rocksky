@@ -539,11 +539,11 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_audio_settings() != 63854:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_albums() != 30604:
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_albums() != 45438:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_artists() != 10804:
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_artists() != 2357:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs() != 43625:
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs() != 26959:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility() != 36558:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -589,7 +589,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble() != 50029:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble_feed() != 49267:
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble_feed() != 17987:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles() != 50953:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -1141,6 +1141,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_albums.argtypes = (
     ctypes.c_uint32,
     ctypes.c_uint32,
     _UniffiRustBuffer,
+    _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_albums.restype = _UniffiRustBuffer
@@ -1149,6 +1150,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_artists.argtypes = (
     ctypes.c_uint32,
     ctypes.c_uint32,
     _UniffiRustBuffer,
+    _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_artists.restype = _UniffiRustBuffer
@@ -1156,6 +1158,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_songs.argtypes = (
     ctypes.c_void_p,
     ctypes.c_uint32,
     ctypes.c_uint32,
+    _UniffiRustBuffer,
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
@@ -1316,6 +1319,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed.argtypes = (
     ctypes.c_int8,
     ctypes.c_uint32,
     ctypes.c_uint32,
+    _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed.restype = _UniffiRustBuffer
@@ -3254,11 +3258,11 @@ class AppViewProtocol(typing.Protocol):
         raise NotImplementedError
     def audio_settings(self, actor: "str"):
         raise NotImplementedError
-    def catalog_albums(self, limit: "int",offset: "int",genre: "typing.Optional[str]"):
+    def catalog_albums(self, limit: "int",offset: "int",genre: "typing.Optional[str]",filter: "typing.Optional[str]"):
         raise NotImplementedError
-    def catalog_artists(self, limit: "int",offset: "int",genre: "typing.Optional[str]"):
+    def catalog_artists(self, limit: "int",offset: "int",genre: "typing.Optional[str]",filter: "typing.Optional[str]"):
         raise NotImplementedError
-    def catalog_songs(self, limit: "int",offset: "int",genre: "typing.Optional[str]"):
+    def catalog_songs(self, limit: "int",offset: "int",genre: "typing.Optional[str]",filter: "typing.Optional[str]"):
         raise NotImplementedError
     def compatibility(self, actor: "str"):
         raise NotImplementedError
@@ -3318,7 +3322,7 @@ class AppViewProtocol(typing.Protocol):
         raise NotImplementedError
     def scrobble(self, uri: "str"):
         raise NotImplementedError
-    def scrobble_feed(self, did: "typing.Optional[str]",following: "bool",limit: "int",offset: "int"):
+    def scrobble_feed(self, did: "typing.Optional[str]",following: "bool",limit: "int",offset: "int",filter: "typing.Optional[str]"):
         raise NotImplementedError
     def scrobbles(self, actor: "str",limit: "int",offset: "int"):
         raise NotImplementedError
@@ -3664,54 +3668,63 @@ class AppView:
 
 
 
-    def catalog_albums(self, limit: "int",offset: "int",genre: "typing.Optional[str]") -> "typing.List[AlbumView]":
+    def catalog_albums(self, limit: "int",offset: "int",genre: "typing.Optional[str]",filter: "typing.Optional[str]") -> "typing.List[AlbumView]":
         _UniffiConverterUInt32.check_lower(limit)
         
         _UniffiConverterUInt32.check_lower(offset)
         
         _UniffiConverterOptionalString.check_lower(genre)
+        
+        _UniffiConverterOptionalString.check_lower(filter)
         
         return _UniffiConverterSequenceTypeAlbumView.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_albums,self._uniffi_clone_pointer(),
         _UniffiConverterUInt32.lower(limit),
         _UniffiConverterUInt32.lower(offset),
-        _UniffiConverterOptionalString.lower(genre))
+        _UniffiConverterOptionalString.lower(genre),
+        _UniffiConverterOptionalString.lower(filter))
         )
 
 
 
 
 
-    def catalog_artists(self, limit: "int",offset: "int",genre: "typing.Optional[str]") -> "typing.List[ArtistView]":
+    def catalog_artists(self, limit: "int",offset: "int",genre: "typing.Optional[str]",filter: "typing.Optional[str]") -> "typing.List[ArtistView]":
         _UniffiConverterUInt32.check_lower(limit)
         
         _UniffiConverterUInt32.check_lower(offset)
         
         _UniffiConverterOptionalString.check_lower(genre)
+        
+        _UniffiConverterOptionalString.check_lower(filter)
         
         return _UniffiConverterSequenceTypeArtistView.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_artists,self._uniffi_clone_pointer(),
         _UniffiConverterUInt32.lower(limit),
         _UniffiConverterUInt32.lower(offset),
-        _UniffiConverterOptionalString.lower(genre))
+        _UniffiConverterOptionalString.lower(genre),
+        _UniffiConverterOptionalString.lower(filter))
         )
 
 
 
 
 
-    def catalog_songs(self, limit: "int",offset: "int",genre: "typing.Optional[str]") -> "typing.List[SongView]":
+    def catalog_songs(self, limit: "int",offset: "int",genre: "typing.Optional[str]",filter: "typing.Optional[str]") -> "typing.List[SongView]":
         _UniffiConverterUInt32.check_lower(limit)
         
         _UniffiConverterUInt32.check_lower(offset)
         
         _UniffiConverterOptionalString.check_lower(genre)
         
+        _UniffiConverterOptionalString.check_lower(filter)
+        
         return _UniffiConverterSequenceTypeSongView.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_songs,self._uniffi_clone_pointer(),
         _UniffiConverterUInt32.lower(limit),
         _UniffiConverterUInt32.lower(offset),
-        _UniffiConverterOptionalString.lower(genre))
+        _UniffiConverterOptionalString.lower(genre),
+        _UniffiConverterOptionalString.lower(filter))
         )
 
 
@@ -4050,7 +4063,7 @@ class AppView:
 
 
 
-    def scrobble_feed(self, did: "typing.Optional[str]",following: "bool",limit: "int",offset: "int") -> "typing.List[ScrobbleView]":
+    def scrobble_feed(self, did: "typing.Optional[str]",following: "bool",limit: "int",offset: "int",filter: "typing.Optional[str]") -> "typing.List[ScrobbleView]":
         _UniffiConverterOptionalString.check_lower(did)
         
         _UniffiConverterBool.check_lower(following)
@@ -4059,12 +4072,15 @@ class AppView:
         
         _UniffiConverterUInt32.check_lower(offset)
         
+        _UniffiConverterOptionalString.check_lower(filter)
+        
         return _UniffiConverterSequenceTypeScrobbleView.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed,self._uniffi_clone_pointer(),
         _UniffiConverterOptionalString.lower(did),
         _UniffiConverterBool.lower(following),
         _UniffiConverterUInt32.lower(limit),
-        _UniffiConverterUInt32.lower(offset))
+        _UniffiConverterUInt32.lower(offset),
+        _UniffiConverterOptionalString.lower(filter))
         )
 
 

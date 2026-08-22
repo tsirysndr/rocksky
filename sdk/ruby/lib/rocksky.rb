@@ -127,6 +127,51 @@ module Rocksky
     unwrap(C.rocksky_global_stats(base.to_s))
   end
 
+  # ---- catalog + feed reads with RSQL filtering ----
+  #
+  # +filter:+ accepts a Rocksky::Filter (see rocksky/filter.rb) or a raw RSQL
+  # String. Fields are Symbols, e.g. Rocksky::Filter.eq(:artist, "Daft Punk").
+
+  # The song catalog (app.rocksky.song.getSongs), optionally narrowed by
+  # +genre:+ and/or an RSQL +filter:+. Returns { "tracks" => [...] }.
+  def self.catalog_songs(limit: 50, offset: 0, genre: nil, filter: nil, base: nil)
+    get("app.rocksky.song.getSongs", catalog_params(limit, offset, genre, filter), base: base)
+  end
+
+  # The artist catalog (app.rocksky.artist.getArtists). Returns
+  # { "artists" => [...] }.
+  def self.catalog_artists(limit: 50, offset: 0, genre: nil, filter: nil, base: nil)
+    get("app.rocksky.artist.getArtists", catalog_params(limit, offset, genre, filter), base: base)
+  end
+
+  # The album catalog (app.rocksky.album.getAlbums). Returns
+  # { "albums" => [...] }.
+  def self.catalog_albums(limit: 50, offset: 0, genre: nil, filter: nil, base: nil)
+    get("app.rocksky.album.getAlbums", catalog_params(limit, offset, genre, filter), base: base)
+  end
+
+  # A social/global scrobbles feed (app.rocksky.scrobble.getScrobbles). Pass
+  # +did:+ to scope to an actor and +following: true+ for their follow graph.
+  # +filter:+ reaches the joined track/user/artist via dotted fields, e.g.
+  # Rocksky::Filter.eq(:"track.artist", "Daft Punk"). Returns
+  # { "scrobbles" => [...] }.
+  def self.scrobble_feed(did: nil, following: false, limit: 50, offset: 0, filter: nil, base: nil)
+    params = { limit: limit, offset: offset }
+    params[:did] = did unless did.nil?
+    params[:following] = following if following
+    params[:filter] = filter.to_s unless filter.nil?
+    get("app.rocksky.scrobble.getScrobbles", params, base: base)
+  end
+
+  # Shared param assembly for the three catalog reads (omit-nil idiom).
+  def self.catalog_params(limit, offset, genre, filter)
+    params = { limit: limit, offset: offset }
+    params[:genre] = genre unless genre.nil?
+    params[:filter] = filter.to_s unless filter.nil?
+    params
+  end
+  private_class_method :catalog_params
+
   # Universal read escape hatch — call any app.rocksky.* query by nsid. +params+
   # is a hash of string params; the whole read-query catalog is reachable here.
   #
@@ -301,5 +346,6 @@ module Rocksky
   end
 end
 
+require_relative "rocksky/filter"
 require_relative "rocksky/library"
 require_relative "rocksky/remote"

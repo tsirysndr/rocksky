@@ -10,6 +10,7 @@
 //// shape); decode with `gleam/dynamic`.
 
 import gleam/dynamic.{type Dynamic}
+import gleam/json
 import gleam/option.{type Option}
 
 /// An opaque authenticated-agent handle (a NIF resource freed by the BEAM GC).
@@ -38,7 +39,12 @@ pub fn profile_at(actor: String, endpoint: String) -> Dynamic {
 }
 
 @external(erlang, "rocksky", "scrobbles")
-fn scrobbles_ffi(actor: String, limit: Int, offset: Int, base: String) -> Dynamic
+fn scrobbles_ffi(
+  actor: String,
+  limit: Int,
+  offset: Int,
+  base: String,
+) -> Dynamic
 
 /// An actor's scrobbles, newest first.
 pub fn scrobbles(actor: String, limit: Int, offset: Int) -> Dynamic {
@@ -46,7 +52,12 @@ pub fn scrobbles(actor: String, limit: Int, offset: Int) -> Dynamic {
 }
 
 /// [scrobbles](#scrobbles) against a custom AppView endpoint.
-pub fn scrobbles_at(actor: String, limit: Int, offset: Int, endpoint: String) -> Dynamic {
+pub fn scrobbles_at(
+  actor: String,
+  limit: Int,
+  offset: Int,
+  endpoint: String,
+) -> Dynamic {
   scrobbles_ffi(actor, limit, offset, endpoint)
 }
 
@@ -79,7 +90,12 @@ pub fn global_stats_at(endpoint: String) -> Dynamic {
 // ---- universal read + typed date windows --------------------------------
 
 @external(erlang, "rocksky", "get_raw")
-fn get_ffi(base: String, nsid: String, params_json: String, token: String) -> Dynamic
+fn get_ffi(
+  base: String,
+  nsid: String,
+  params_json: String,
+  token: String,
+) -> Dynamic
 
 /// Call any `app.rocksky.*` read query by nsid. `params_json` is a JSON object
 /// of string params (`"{\"uri\":\"at://…\"}"`) — the whole read-query catalog is
@@ -96,6 +112,185 @@ pub fn get_authed(nsid: String, params_json: String, token: String) -> Dynamic {
 /// [get](#get) against a custom AppView endpoint.
 pub fn get_at(nsid: String, params_json: String, endpoint: String) -> Dynamic {
   get_ffi(endpoint, nsid, params_json, "")
+}
+
+// ---- catalog + scrobble feed (RSQL-filterable) ---------------------------
+//
+// `filter` is a raw RSQL expression string — build it with `rocksky/filter`
+// and finish with `filter.build` (e.g.
+// `filter.eq(filter.Artist, "Radiohead") |> filter.build |> option.Some`).
+// `None` params are omitted from the query.
+
+fn catalog_params(
+  limit: Int,
+  offset: Int,
+  genre: Option(String),
+  filter: Option(String),
+) -> String {
+  let params = [#("limit", json.int(limit)), #("offset", json.int(offset))]
+  let params = case genre {
+    option.Some(g) -> [#("genre", json.string(g)), ..params]
+    option.None -> params
+  }
+  let params = case filter {
+    option.Some(f) -> [#("filter", json.string(f)), ..params]
+    option.None -> params
+  }
+  json.to_string(json.object(params))
+}
+
+/// The song catalog (`app.rocksky.song.getSongs`), optionally filtered by
+/// `genre` and/or an RSQL `filter` expression.
+pub fn catalog_songs(
+  limit: Int,
+  offset: Int,
+  genre: Option(String),
+  filter: Option(String),
+) -> Dynamic {
+  get_ffi(
+    "",
+    "app.rocksky.song.getSongs",
+    catalog_params(limit, offset, genre, filter),
+    "",
+  )
+}
+
+/// [catalog_songs](#catalog_songs) against a custom AppView endpoint.
+pub fn catalog_songs_at(
+  limit: Int,
+  offset: Int,
+  genre: Option(String),
+  filter: Option(String),
+  endpoint: String,
+) -> Dynamic {
+  get_ffi(
+    endpoint,
+    "app.rocksky.song.getSongs",
+    catalog_params(limit, offset, genre, filter),
+    "",
+  )
+}
+
+/// The artist catalog (`app.rocksky.artist.getArtists`), optionally filtered
+/// by `genre` and/or an RSQL `filter` expression.
+pub fn catalog_artists(
+  limit: Int,
+  offset: Int,
+  genre: Option(String),
+  filter: Option(String),
+) -> Dynamic {
+  get_ffi(
+    "",
+    "app.rocksky.artist.getArtists",
+    catalog_params(limit, offset, genre, filter),
+    "",
+  )
+}
+
+/// [catalog_artists](#catalog_artists) against a custom AppView endpoint.
+pub fn catalog_artists_at(
+  limit: Int,
+  offset: Int,
+  genre: Option(String),
+  filter: Option(String),
+  endpoint: String,
+) -> Dynamic {
+  get_ffi(
+    endpoint,
+    "app.rocksky.artist.getArtists",
+    catalog_params(limit, offset, genre, filter),
+    "",
+  )
+}
+
+/// The album catalog (`app.rocksky.album.getAlbums`), optionally filtered by
+/// `genre` and/or an RSQL `filter` expression.
+pub fn catalog_albums(
+  limit: Int,
+  offset: Int,
+  genre: Option(String),
+  filter: Option(String),
+) -> Dynamic {
+  get_ffi(
+    "",
+    "app.rocksky.album.getAlbums",
+    catalog_params(limit, offset, genre, filter),
+    "",
+  )
+}
+
+/// [catalog_albums](#catalog_albums) against a custom AppView endpoint.
+pub fn catalog_albums_at(
+  limit: Int,
+  offset: Int,
+  genre: Option(String),
+  filter: Option(String),
+  endpoint: String,
+) -> Dynamic {
+  get_ffi(
+    endpoint,
+    "app.rocksky.album.getAlbums",
+    catalog_params(limit, offset, genre, filter),
+    "",
+  )
+}
+
+fn feed_params(
+  did: Option(String),
+  following: Bool,
+  limit: Int,
+  offset: Int,
+  filter: Option(String),
+) -> String {
+  let params = [#("limit", json.int(limit)), #("offset", json.int(offset))]
+  let params = case did {
+    option.Some(d) -> [#("did", json.string(d)), ..params]
+    option.None -> params
+  }
+  let params = case following {
+    True -> [#("following", json.bool(True)), ..params]
+    False -> params
+  }
+  let params = case filter {
+    option.Some(f) -> [#("filter", json.string(f)), ..params]
+    option.None -> params
+  }
+  json.to_string(json.object(params))
+}
+
+/// The global scrobble feed (`app.rocksky.scrobble.getScrobbles`), optionally
+/// scoped to one `did`, to accounts they follow (`following`), and/or an RSQL
+/// `filter` expression.
+pub fn scrobble_feed(
+  did: Option(String),
+  following: Bool,
+  limit: Int,
+  offset: Int,
+  filter: Option(String),
+) -> Dynamic {
+  get_ffi(
+    "",
+    "app.rocksky.scrobble.getScrobbles",
+    feed_params(did, following, limit, offset, filter),
+    "",
+  )
+}
+
+/// [scrobble_feed](#scrobble_feed) against a custom AppView endpoint.
+pub fn scrobble_feed_at(
+  did: Option(String),
+  following: Bool,
+  limit: Int,
+  offset: Int,
+  filter: Option(String),
+  endpoint: String,
+) -> Dynamic {
+  get_ffi(
+    endpoint,
+    "app.rocksky.scrobble.getScrobbles",
+    feed_params(did, following, limit, offset, filter),
+    "",
+  )
 }
 
 // ---- notifications (auth-gated; `token` required) ------------------------
@@ -162,7 +357,11 @@ fn top_tracks_interval_ffi(
 ) -> Dynamic
 
 /// Platform-wide top tracks chart over a typed [Interval](#Interval).
-pub fn top_tracks_interval(limit: Int, offset: Int, interval: Interval) -> Dynamic {
+pub fn top_tracks_interval(
+  limit: Int,
+  offset: Int,
+  interval: Interval,
+) -> Dynamic {
   let #(u, n, s, e) = interval_parts(interval)
   top_tracks_interval_ffi("", limit, offset, u, n, s, e)
 }
@@ -190,7 +389,11 @@ fn top_artists_interval_ffi(
 ) -> Dynamic
 
 /// Platform-wide top artists chart over a typed [Interval](#Interval).
-pub fn top_artists_interval(limit: Int, offset: Int, interval: Interval) -> Dynamic {
+pub fn top_artists_interval(
+  limit: Int,
+  offset: Int,
+  interval: Interval,
+) -> Dynamic {
   let #(u, n, s, e) = interval_parts(interval)
   top_artists_interval_ffi("", limit, offset, u, n, s, e)
 }
@@ -235,7 +438,11 @@ fn agent_login_ffi(
 ) -> Agent
 
 /// Log in with an app password, persisting the session at `session_path`.
-pub fn login(session_path: String, identifier: String, password: String) -> Agent {
+pub fn login(
+  session_path: String,
+  identifier: String,
+  password: String,
+) -> Agent {
   agent_login_ffi(session_path, identifier, password, "")
 }
 

@@ -83,6 +83,31 @@ Rocksky.top_artists_interval(limit: 5, interval: :all)
 **Match** — `Rocksky.match_song(title, artist, mb_id: nil, isrc: nil)` resolves a
 bare title + artist into full canonical metadata.
 
+### Filtering
+
+`Rocksky::Filter` builds RSQL expressions for the `filter:` kwarg of
+`catalog_songs`, `catalog_artists`, `catalog_albums` and `scrobble_feed`
+(each also takes `limit:`, `offset:` and — catalogs only — `genre:`). Fields
+are Symbols; dotted selectors on the scrobble feed reach the joined
+track/user/artist (`:"track.artist"`, `:"user.handle"`, …).
+
+```ruby
+filter = Rocksky::Filter.eq(:artist, "Daft Punk")
+                        .and(Rocksky::Filter.gt(:duration, 200_000))
+                        .or(Rocksky::Filter.is_in(:genre, %w[house electro]))
+filter.to_s # => artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+
+Rocksky.catalog_songs(limit: 20, filter: filter)
+Rocksky.scrobble_feed(filter: Rocksky::Filter.eq(:"track.artist", "Daft Punk"))
+```
+
+Constructors: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `is_in`, `is_out` (aliases
+`in`/`out`), `is_null`, `is_not_null`. Combine with `#and` (`;`) and `#or`
+(`,`); an OR operand inside an AND is parenthesized automatically. String
+values are quoted/escaped when they contain reserved characters, and `*`
+wildcards pass through unquoted (`Filter.eq(:artist, "Daft*")`). A raw RSQL
+String is accepted anywhere a `Filter` is.
+
 ### Writes — `Rocksky::Agent`
 
 `Agent.login(session_path, identifier, password, appview:, dedup_path:)` → an

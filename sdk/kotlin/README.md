@@ -62,6 +62,26 @@ are `UInt`.
 `LastYears`, `Range(start, end)` (RFC-3339 bounds). `topTracks` / `topArtists`
 are the all-time shorthands.
 
+**Filtering**: the catalog reads (`catalogSongs`, `catalogArtists`,
+`catalogAlbums`) and `scrobbleFeed` take an optional RSQL `filter` string; build
+it with the fluent `Filter` class (quoting/escaping is automatic, `*` is a
+wildcard):
+
+```kotlin
+val filter = Filter.eq("artist", "Daft Punk")
+    .and(Filter.gt("duration", 200_000))
+    .or(Filter.isIn("genre", listOf("house", "electro")))
+
+av.catalogSongs(50u, 0u, null, filter.build())
+// artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+```
+
+Constructors: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `isIn`, `isOut`, `isNull`,
+`isNotNull`; combine with `and` / `or` (`and` parenthesizes an `or` operand to
+keep RSQL precedence). See the `Filter` KDoc for the filterable fields of each
+endpoint (scrobbles support dotted selectors like `track.artist`, `user.handle`,
+`artist.genres`).
+
 **Match**: `matchSong(title, artist, mbId, isrc)` resolves a bare title+artist
 into full canonical metadata (returns a JSON string).
 

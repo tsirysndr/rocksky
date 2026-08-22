@@ -243,6 +243,8 @@ type ArtistGetArtistsParams struct {
 	Names string `json:"names,omitempty"`
 	// The genre to filter artists by
 	Genre string `json:"genre,omitempty"`
+	// RSQL filter expression, e.g. `name==Daft*;genres=in=(house,electro)`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, genres, bornIn, born, died, sha256, uri, createdAt
+	Filter string `json:"filter,omitempty"`
 }
 
 type ArtistListenerViewBasic struct {
@@ -844,6 +846,8 @@ type GetAlbumsParams struct {
 	Offset int `json:"offset,omitempty"`
 	// The genre to filter artists by
 	Genre string `json:"genre,omitempty"`
+	// RSQL filter expression, e.g. `artist=="Daft Punk";year=ge=2000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, year, releaseDate, sha256, uri, artistUri, createdAt
+	Filter string `json:"filter,omitempty"`
 }
 
 type GetAlbumTracksOutput struct {
@@ -1218,6 +1222,8 @@ type GetScrobblesParams struct {
 	Limit int `json:"limit,omitempty"`
 	// The offset for pagination
 	Offset int `json:"offset,omitempty"`
+	// RSQL filter expression, e.g. `track.artist=="Daft Punk";date=ge=2025-01-01`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: uri, date, timestamp, title, artist, album, track.title, track.artist, track.album, track.albumArtist, track.genre, track.duration, track.isrc, track.mbId, user.did, user.handle, user.displayName, artist.name, artist.genres
+	Filter string `json:"filter,omitempty"`
 }
 
 type GetShoutRepliesOutput struct {
@@ -1285,6 +1291,8 @@ type GetSongsParams struct {
 	ISRC string `json:"isrc,omitempty"`
 	// Filter songs by Spotify track ID (resolved internally to the Spotify track URL)
 	SpotifyID string `json:"spotifyId,omitempty"`
+	// RSQL filter expression, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, createdAt
+	Filter string `json:"filter,omitempty"`
 }
 
 type GetStarredOutput struct {
@@ -1584,6 +1592,18 @@ type NotificationActor struct {
 	Avatar string `json:"avatar,omitempty"`
 }
 
+// NotificationSubjectView The song, album, or scrobble a notification relates to, for rich display.
+type NotificationSubjectView struct {
+	// The at-uri of the subject.
+	URI string `json:"uri,omitempty"`
+	// The title of the track or album.
+	Title string `json:"title,omitempty"`
+	// The artist of the track or album.
+	Artist string `json:"artist,omitempty"`
+	// The album art image URL.
+	AlbumArt string `json:"albumArt,omitempty"`
+}
+
 type NotificationView struct {
 	// The unique identifier of the notification.
 	ID string `json:"id,omitempty"`
@@ -1600,6 +1620,7 @@ type NotificationView struct {
 	// The content of the related shout, if any.
 	ShoutContent string `json:"shoutContent,omitempty"`
 	Actor *NotificationActor `json:"actor,omitempty"`
+	Subject *NotificationSubjectView `json:"subject,omitempty"`
 }
 
 type PingOutput struct {

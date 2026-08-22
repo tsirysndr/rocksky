@@ -11,6 +11,8 @@
 -export([profile/1, profile/2, scrobbles/2, scrobbles/4, top_tracks/0,
          top_tracks/2, top_tracks/3, global_stats/0, global_stats/1,
          get/2, get/3, get/4, get_raw/4,
+         catalog_songs/2, catalog_songs/3, catalog_artists/2, catalog_artists/3,
+         catalog_albums/2, catalog_albums/3, scrobble_feed/2, scrobble_feed/3,
          library_get/4, library_post/4, library_get_raw/4, library_post_raw/4,
          match_song/2, match_song/5,
          top_tracks_interval/3, top_tracks_interval/4, top_tracks_interval_raw/7,
@@ -66,6 +68,54 @@ get(Nsid, Params, Base, Token) ->
 %% Flat form for cross-language callers passing a pre-encoded JSON params object.
 get_raw(Base, Nsid, ParamsJson, Token) ->
     unwrap(rocksky_nif:get(b(Base), b(Nsid), b(ParamsJson), b(Token))).
+
+%% ---- catalog + scrobble feed (optionally RSQL-filtered) ----
+%%
+%% `Opts` is a map that may contain `genre` (binary), `filter` (a rocksky_filter
+%% node or an already-built RSQL binary — see rocksky_filter) and `base` (AppView
+%% URL override). Absent/empty options are omitted from the query.
+
+%% The song catalog (app.rocksky.song.getSongs).
+catalog_songs(Limit, Offset) -> catalog_songs(Limit, Offset, #{}).
+catalog_songs(Limit, Offset, Opts) ->
+    catalog_query(<<"app.rocksky.song.getSongs">>, Limit, Offset, Opts).
+
+%% The artist catalog (app.rocksky.artist.getArtists).
+catalog_artists(Limit, Offset) -> catalog_artists(Limit, Offset, #{}).
+catalog_artists(Limit, Offset, Opts) ->
+    catalog_query(<<"app.rocksky.artist.getArtists">>, Limit, Offset, Opts).
+
+%% The album catalog (app.rocksky.album.getAlbums).
+catalog_albums(Limit, Offset) -> catalog_albums(Limit, Offset, #{}).
+catalog_albums(Limit, Offset, Opts) ->
+    catalog_query(<<"app.rocksky.album.getAlbums">>, Limit, Offset, Opts).
+
+%% The scrobble feed (app.rocksky.scrobble.getScrobbles). `Opts` may contain
+%% `did` (scope to one user), `following => true` (the did's network feed),
+%% `filter` (rocksky_filter node or RSQL binary) and `base`.
+scrobble_feed(Limit, Offset) -> scrobble_feed(Limit, Offset, #{}).
+scrobble_feed(Limit, Offset, Opts) ->
+    P0 = #{<<"limit">> => Limit, <<"offset">> => Offset},
+    P1 = put_ne(P0, <<"did">>, maps:get(did, Opts, undefined)),
+    P2 = case maps:get(following, Opts, false) of
+             true -> P1#{<<"following">> => true};
+             _ -> P1
+         end,
+    get(<<"app.rocksky.scrobble.getScrobbles">>, put_filter(P2, Opts),
+        maps:get(base, Opts, <<>>)).
+
+catalog_query(Nsid, Limit, Offset, Opts) ->
+    P0 = #{<<"limit">> => Limit, <<"offset">> => Offset},
+    P1 = put_ne(P0, <<"genre">>, maps:get(genre, Opts, undefined)),
+    get(Nsid, put_filter(P1, Opts), maps:get(base, Opts, <<>>)).
+
+%% Put <<"filter">> when Opts carries one, run through rocksky_filter:build/1
+%% (accepts a filter node or an already-built binary; empty binaries omitted).
+put_filter(M, Opts) ->
+    case maps:get(filter, Opts, undefined) of
+        undefined -> M;
+        Filter -> put_ne(M, <<"filter">>, rocksky_filter:build(Filter))
+    end.
 
 %% ---- notifications (auth-gated; `Token` required) ----
 

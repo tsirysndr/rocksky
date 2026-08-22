@@ -193,6 +193,31 @@ async fn run(av: rocksky_sdk::AppView) -> rocksky_sdk::Result<()> {
 }
 ```
 
+### RSQL filtering
+
+`catalog_songs`, `catalog_artists`, `catalog_albums`, and `scrobble_feed` take an
+optional RSQL `filter` expression — build one fluently with `Filter`:
+
+```rust
+async fn run(av: rocksky_sdk::AppView) -> rocksky_sdk::Result<()> {
+  use rocksky_sdk::Filter;
+
+  let filter = Filter::eq("artist", "Daft Punk")
+      .and(Filter::gt("duration", 200_000))
+      .or(Filter::is_in("genre", ["house", "electro"]));
+  // artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+  let songs = av.catalog_songs(50, 0, None, Some(&filter.build())).await?;
+  let _ = songs;
+  Ok(())
+}
+```
+
+Operators: `eq` (supports `*` wildcards), `ne`, `gt`, `ge`, `lt`, `le`, `is_in`,
+`is_out`, `is_null`, `is_not_null`, combined with `.and()` / `.or()` (parentheses
+inserted automatically). Scrobbles support dotted selectors such as
+`track.artist` and `user.handle`; see the `filter` module docs for the
+per-endpoint field lists.
+
 ### `match_song` & the escape hatch
 
 `match_song(title, artist, mb_id, isrc)` resolves a bare title + artist into full

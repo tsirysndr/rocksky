@@ -23,6 +23,9 @@ use serde::{Deserialize, Serialize};
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct GetSongs<S: BosStr = DefaultStr> {
+    /// (max length: 2048)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub genre: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -104,6 +107,7 @@ pub struct GetSongsBuilder<St: get_songs_state::State, S: BosStr = DefaultStr> {
     _fields: (
         Option<S>,
         Option<S>,
+        Option<S>,
         Option<i64>,
         Option<S>,
         Option<i64>,
@@ -131,7 +135,7 @@ impl GetSongsBuilder<get_songs_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         GetSongsBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -142,21 +146,34 @@ impl<S: BosStr> GetSongsBuilder<get_songs_state::Empty, S> {
     pub fn builder() -> Self {
         GetSongsBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
 }
 
 impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
+    /// Set the `filter` field (optional)
+    pub fn filter(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.0 = value.into();
+        self
+    }
+    /// Set the `filter` field to an Option value (optional)
+    pub fn maybe_filter(mut self, value: Option<S>) -> Self {
+        self._fields.0 = value;
+        self
+    }
+}
+
+impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
     /// Set the `genre` field (optional)
     pub fn genre(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.0 = value.into();
+        self._fields.1 = value.into();
         self
     }
     /// Set the `genre` field to an Option value (optional)
     pub fn maybe_genre(mut self, value: Option<S>) -> Self {
-        self._fields.0 = value;
+        self._fields.1 = value;
         self
     }
 }
@@ -164,12 +181,12 @@ impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
 impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
     /// Set the `isrc` field (optional)
     pub fn isrc(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.1 = value.into();
+        self._fields.2 = value.into();
         self
     }
     /// Set the `isrc` field to an Option value (optional)
     pub fn maybe_isrc(mut self, value: Option<S>) -> Self {
-        self._fields.1 = value;
+        self._fields.2 = value;
         self
     }
 }
@@ -177,12 +194,12 @@ impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
 impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
     /// Set the `limit` field (optional)
     pub fn limit(mut self, value: impl Into<Option<i64>>) -> Self {
-        self._fields.2 = value.into();
+        self._fields.3 = value.into();
         self
     }
     /// Set the `limit` field to an Option value (optional)
     pub fn maybe_limit(mut self, value: Option<i64>) -> Self {
-        self._fields.2 = value;
+        self._fields.3 = value;
         self
     }
 }
@@ -190,12 +207,12 @@ impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
 impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
     /// Set the `mbid` field (optional)
     pub fn mbid(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.3 = value.into();
+        self._fields.4 = value.into();
         self
     }
     /// Set the `mbid` field to an Option value (optional)
     pub fn maybe_mbid(mut self, value: Option<S>) -> Self {
-        self._fields.3 = value;
+        self._fields.4 = value;
         self
     }
 }
@@ -203,12 +220,12 @@ impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
 impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
     /// Set the `offset` field (optional)
     pub fn offset(mut self, value: impl Into<Option<i64>>) -> Self {
-        self._fields.4 = value.into();
+        self._fields.5 = value.into();
         self
     }
     /// Set the `offset` field to an Option value (optional)
     pub fn maybe_offset(mut self, value: Option<i64>) -> Self {
-        self._fields.4 = value;
+        self._fields.5 = value;
         self
     }
 }
@@ -216,12 +233,12 @@ impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
 impl<St: get_songs_state::State, S: BosStr> GetSongsBuilder<St, S> {
     /// Set the `spotifyId` field (optional)
     pub fn spotify_id(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.5 = value.into();
+        self._fields.6 = value.into();
         self
     }
     /// Set the `spotifyId` field to an Option value (optional)
     pub fn maybe_spotify_id(mut self, value: Option<S>) -> Self {
-        self._fields.5 = value;
+        self._fields.6 = value;
         self
     }
 }
@@ -233,12 +250,13 @@ where
     /// Build the final struct.
     pub fn build(self) -> GetSongs<S> {
         GetSongs {
-            genre: self._fields.0,
-            isrc: self._fields.1,
-            limit: self._fields.2,
-            mbid: self._fields.3,
-            offset: self._fields.4,
-            spotify_id: self._fields.5,
+            filter: self._fields.0,
+            genre: self._fields.1,
+            isrc: self._fields.2,
+            limit: self._fields.3,
+            mbid: self._fields.4,
+            offset: self._fields.5,
+            spotify_id: self._fields.6,
         }
     }
 }

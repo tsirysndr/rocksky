@@ -18,10 +18,6 @@ use jacquard_common::{BosStr, DefaultStr, FromStaticStr};
 use jacquard_derive::IntoStatic;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
-#[serde(rename_all = "camelCase")]
-pub struct DescribeFeedGenerator;
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
 #[serde(
     rename_all = "camelCase",
@@ -38,6 +34,12 @@ pub struct DescribeFeedGeneratorOutput<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
+/** Request marker for the `app.rocksky.feed.describeFeedGenerator` query.
+
+This endpoint has no request parameters or input body; send this marker with `jacquard::Client`.*/
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Copy)]
+pub struct DescribeFeedGenerator;
 /** Response marker for the `app.rocksky.feed.describeFeedGenerator` query.
 
 Implements `jacquard_common::xrpc::XrpcResp`; successful bodies decode as `Self::Output<S>`, which is `DescribeFeedGeneratorOutput<S>` for this endpoint.*/
@@ -57,7 +59,7 @@ impl jacquard_common::xrpc::XrpcRequest for DescribeFeedGenerator {
 
 /** Endpoint marker for the `app.rocksky.feed.describeFeedGenerator` query.
 
-Path: `/xrpc/app.rocksky.feed.describeFeedGenerator`. The request payload type is `DescribeFeedGenerator`; send that request with `jacquard::Client` or use this marker through lower-level `XrpcEndpoint` APIs.*/
+Path: `/xrpc/app.rocksky.feed.describeFeedGenerator`. The request payload type is `DescribeFeedGenerator`; use this marker with lower-level `XrpcEndpoint` APIs when you need endpoint metadata.*/
 pub struct DescribeFeedGeneratorRequest;
 impl jacquard_common::xrpc::XrpcEndpoint for DescribeFeedGeneratorRequest {
     const PATH: &'static str = "/xrpc/app.rocksky.feed.describeFeedGenerator";

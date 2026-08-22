@@ -286,19 +286,21 @@ fn top_artists_interval(
     }
 }
 
+// The catalog/feed NIFs keep their published arities; RSQL filtering from the
+// BEAM SDKs goes through the generic `get` NIF instead.
 #[rustler::nif(schedule = "DirtyIo")]
 fn catalog_albums(base: String, limit: u32, offset: u32, genre: String) -> String {
-    envelope(RT.block_on(appview(&base).catalog_albums(limit, offset, opt(&genre))))
+    envelope(RT.block_on(appview(&base).catalog_albums(limit, offset, opt(&genre), None)))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn catalog_artists(base: String, limit: u32, offset: u32, genre: String) -> String {
-    envelope(RT.block_on(appview(&base).catalog_artists(limit, offset, opt(&genre))))
+    envelope(RT.block_on(appview(&base).catalog_artists(limit, offset, opt(&genre), None)))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn catalog_songs(base: String, limit: u32, offset: u32, genre: String) -> String {
-    envelope(RT.block_on(appview(&base).catalog_songs(limit, offset, opt(&genre))))
+    envelope(RT.block_on(appview(&base).catalog_songs(limit, offset, opt(&genre), None)))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
@@ -318,7 +320,7 @@ fn artist_tracks(base: String, uri: String, limit: u32, offset: u32) -> String {
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn scrobble_feed(base: String, did: String, following: bool, limit: u32, offset: u32) -> String {
-    envelope(RT.block_on(appview(&base).scrobble_feed(opt(&did), following, limit, offset)))
+    envelope(RT.block_on(appview(&base).scrobble_feed(opt(&did), following, limit, offset, None)))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]

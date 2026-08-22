@@ -4,6 +4,30 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## Unreleased
+
+### Added
+
+- **RSQL filtering** — `catalogSongs`, `catalogArtists`, `catalogAlbums`, and
+  `scrobbleFeed` take a new trailing `filter` param (an RSQL string or a
+  `Filter`). The fluent `Filter` builder covers `eq` (with `*` wildcards), `ne`,
+  `gt`/`ge`/`lt`/`le`, `in`/`out`, `isNull`/`isNotNull`, chained with
+  `.and()`/`.or()` (parentheses inserted automatically), plus the
+  `SongFields`/`AlbumFields`/`ArtistFields`/`ScrobbleFields` selector constants.
+
+## [0.12.0] - 2026-08-22
+
+A **backwards-compatible** minor bump: audio-format metadata on the remote
+player protocol.
+
+### Added
+
+- **`RemoteNowPlaying.codec`** and **`RemoteNowPlaying.sampleRate`** — optional
+  audio-format fields (e.g. `"flac"`, `44100`) carried over the remote-player
+  WebSocket. A `RemotePlayer` reports them from its now-playing state
+  (`codec`/`sample_rate` on the wire) and a `RemoteController` surfaces them to
+  UIs — used for the miniplayer's codec + sample-rate badges.
+
 ## [0.11.0] - 2026-07-30
 
 A **backwards-compatible** release for existing code — it *adds* rate-limiting

@@ -74,6 +74,37 @@ echo client.top_tracks_interval(5, 0, client.LastDays(7))
 **Match** — `match_song(title, artist)` resolves a bare title + artist into full
 canonical metadata.
 
+### Filtering
+
+The catalog and feed reads — `catalog_songs`, `catalog_artists`,
+`catalog_albums` (each `(limit, offset, genre, filter)`) and
+`scrobble_feed(did, following, limit, offset, filter)`, plus `*_at` variants —
+take an optional RSQL `filter` expression. Build it with `rocksky/filter`:
+fields are a typed `Field` custom type (`filter.Artist`, `filter.Duration`,
+dotted scrobble selectors like `filter.TrackArtist`/`filter.UserDid`, and a
+`CustomField("…")` escape hatch for anything else), the filter value is always
+the first argument of `and`/`or` so expressions chain with `|>`, and
+`filter.build` renders the string. Values are quoted/escaped automatically
+(`*` wildcards stay bare); `in_list`/`out_list` panic on an empty list.
+
+```gleam
+import gleam/option.{None, Some}
+import rocksky/client
+import rocksky/filter
+
+let rsql =
+  filter.eq(filter.Artist, "Daft Punk")
+  |> filter.and(filter.gt(filter.Duration, 200_000))
+  |> filter.or(filter.in_list(filter.Genre, ["house", "electro"]))
+  |> filter.build
+// artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+
+echo client.catalog_songs(50, 0, None, Some(rsql))
+```
+
+Comparisons: `eq`/`ne` (String), `eq_int`/`ne_int`, `eq_bool`/`ne_bool`,
+`gt`/`ge`/`lt`/`le` (Int), `in_list`/`out_list`, `is_null`/`is_not_null`.
+
 ### Writes
 
 `login(session_path, identifier, password)` → an opaque `Agent`. Then

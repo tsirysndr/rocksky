@@ -165,6 +165,8 @@ struct ListSongsParams {
     isrc: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     spotify_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    filter: Option<String>,
 }
 
 #[derive(Debug)]
@@ -196,6 +198,11 @@ impl<'a> ListSongs<'a> {
     }
     pub fn spotify_id(mut self, spotify_id: impl Into<String>) -> Self {
         self.params.spotify_id = Some(spotify_id.into());
+        self
+    }
+    /// RSQL filter expression — pass a [`crate::Filter`] or a raw string.
+    pub fn filter(mut self, filter: impl Into<String>) -> Self {
+        self.params.filter = Some(filter.into());
         self
     }
     pub async fn send(self) -> Result<Vec<SongBasic>> {

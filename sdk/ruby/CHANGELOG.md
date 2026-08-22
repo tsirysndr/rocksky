@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Added `Rocksky::Filter`, a fluent RSQL builder (`eq`, `ne`, `gt`, `ge`,
+  `lt`, `le`, `is_in`, `is_out`, `is_null`, `is_not_null`, combined with
+  `#and` / `#or`). Fields are Symbols (`:artist`, `:"track.artist"`); values
+  are quoted/escaped automatically, `*` wildcards stay bare.
+- Added filterable reads: `Rocksky.catalog_songs`, `catalog_artists`,
+  `catalog_albums` (`limit:`, `offset:`, `genre:`, `filter:`) and
+  `Rocksky.scrobble_feed` (`did:`, `following:`, `limit:`, `offset:`,
+  `filter:`). `filter:` takes a `Rocksky::Filter` or a raw RSQL String.
+
 ## 0.10.0
 
 - Remote-player protocol: now-playing records accept optional audio info —

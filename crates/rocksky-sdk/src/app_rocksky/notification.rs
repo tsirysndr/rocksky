@@ -78,6 +78,8 @@ pub struct NotificationView<S: BosStr = DefaultStr> {
     ///The id of the related shout, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shout_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<notification::SubjectView<S>>,
     ///The at-uri of the subject the notification relates to.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subject_uri: Option<S>,
@@ -182,6 +184,29 @@ where
     }
 }
 
+/// The song, album, or scrobble a notification relates to, for rich display.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct SubjectView<S: BosStr = DefaultStr> {
+    ///The album art image URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<UriValue<S>>,
+    ///The artist of the track or album.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist: Option<S>,
+    ///The title of the track or album.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<S>,
+    ///The at-uri of the subject.
+    pub uri: S,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
 impl<S: BosStr> LexiconSchema for NotificationActor<S> {
     fn nsid() -> &'static str {
         "app.rocksky.notification.defs"
@@ -203,6 +228,21 @@ impl<S: BosStr> LexiconSchema for NotificationView<S> {
     }
     fn def_name() -> &'static str {
         "notificationView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_notification_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for SubjectView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.notification.defs"
+    }
+    fn def_name() -> &'static str {
+        "subjectView"
     }
     fn lexicon_doc() -> LexiconDoc<'static> {
         lexicon_doc_app_rocksky_notification_defs()
@@ -349,6 +389,15 @@ fn lexicon_doc_app_rocksky_notification_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("subject"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.notification.defs#subjectView",
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("subjectUri"),
                             LexObjectProperty::String(LexString {
                                 description: Some(
@@ -367,6 +416,54 @@ fn lexicon_doc_app_rocksky_notification_defs() -> LexiconDoc<'static> {
                                         "The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment.",
                                     ),
                                 ),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("subjectView"),
+                LexUserType::Object(LexObject {
+                    description: Some(CowStr::new_static(
+                        "The song, album, or scrobble a notification relates to, for rich display.",
+                    )),
+                    required: Some(vec![SmolStr::new_static("uri")]),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("albumArt"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The album art image URL.")),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("artist"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The artist of the track or album.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("title"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The title of the track or album.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uri"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The at-uri of the subject.")),
                                 ..Default::default()
                             }),
                         );
@@ -465,6 +562,7 @@ pub struct NotificationViewBuilder<St: notification_view_state::State, S: BosStr
         Option<bool>,
         Option<S>,
         Option<S>,
+        Option<notification::SubjectView<S>>,
         Option<S>,
         Option<NotificationViewType<S>>,
     ),
@@ -490,7 +588,7 @@ impl NotificationViewBuilder<notification_view_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         NotificationViewBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -501,7 +599,7 @@ impl<S: BosStr> NotificationViewBuilder<notification_view_state::Empty, S> {
     pub fn builder() -> Self {
         NotificationViewBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -604,14 +702,27 @@ impl<St: notification_view_state::State, S: BosStr> NotificationViewBuilder<St, 
 }
 
 impl<St: notification_view_state::State, S: BosStr> NotificationViewBuilder<St, S> {
+    /// Set the `subject` field (optional)
+    pub fn subject(mut self, value: impl Into<Option<notification::SubjectView<S>>>) -> Self {
+        self._fields.6 = value.into();
+        self
+    }
+    /// Set the `subject` field to an Option value (optional)
+    pub fn maybe_subject(mut self, value: Option<notification::SubjectView<S>>) -> Self {
+        self._fields.6 = value;
+        self
+    }
+}
+
+impl<St: notification_view_state::State, S: BosStr> NotificationViewBuilder<St, S> {
     /// Set the `subjectUri` field (optional)
     pub fn subject_uri(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.6 = value.into();
+        self._fields.7 = value.into();
         self
     }
     /// Set the `subjectUri` field to an Option value (optional)
     pub fn maybe_subject_uri(mut self, value: Option<S>) -> Self {
-        self._fields.6 = value;
+        self._fields.7 = value;
         self
     }
 }
@@ -626,7 +737,7 @@ where
         mut self,
         value: impl Into<NotificationViewType<S>>,
     ) -> NotificationViewBuilder<notification_view_state::SetType<St>, S> {
-        self._fields.7 = Option::Some(value.into());
+        self._fields.8 = Option::Some(value.into());
         NotificationViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -652,8 +763,9 @@ where
             read: self._fields.3.unwrap(),
             shout_content: self._fields.4,
             shout_id: self._fields.5,
-            subject_uri: self._fields.6,
-            r#type: self._fields.7.unwrap(),
+            subject: self._fields.6,
+            subject_uri: self._fields.7,
+            r#type: self._fields.8.unwrap(),
             extra_data: Default::default(),
         }
     }
@@ -666,8 +778,9 @@ where
             read: self._fields.3.unwrap(),
             shout_content: self._fields.4,
             shout_id: self._fields.5,
-            subject_uri: self._fields.6,
-            r#type: self._fields.7.unwrap(),
+            subject: self._fields.6,
+            subject_uri: self._fields.7,
+            r#type: self._fields.8.unwrap(),
             extra_data: Some(extra_data),
         }
     }

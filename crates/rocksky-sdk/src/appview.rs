@@ -360,12 +360,15 @@ impl AppView {
 
     // ---- catalog (typed) -------------------------------------------------
 
-    /// The album catalog, optionally filtered by `genre` (`app.rocksky.album.getAlbums`).
+    /// The album catalog (`app.rocksky.album.getAlbums`), optionally filtered by
+    /// `genre` and/or an RSQL `filter` expression (build one with
+    /// [`Filter`](crate::filter::Filter)).
     pub async fn catalog_albums(
         &self,
         limit: u32,
         offset: u32,
         genre: Option<&str>,
+        filter: Option<&str>,
     ) -> Result<Vec<AlbumView>> {
         let out: AlbumsOutput = self
             .query(
@@ -374,18 +377,22 @@ impl AppView {
                     ("limit", limit.to_string()),
                     ("offset", offset.to_string()),
                     ("genre", genre.unwrap_or_default().to_string()),
+                    ("filter", filter.unwrap_or_default().to_string()),
                 ],
             )
             .await?;
         Ok(out.albums)
     }
 
-    /// The artist catalog, optionally filtered by `genre` (`app.rocksky.artist.getArtists`).
+    /// The artist catalog (`app.rocksky.artist.getArtists`), optionally filtered by
+    /// `genre` and/or an RSQL `filter` expression (build one with
+    /// [`Filter`](crate::filter::Filter)).
     pub async fn catalog_artists(
         &self,
         limit: u32,
         offset: u32,
         genre: Option<&str>,
+        filter: Option<&str>,
     ) -> Result<Vec<ArtistView>> {
         let out: ArtistsOutput = self
             .query(
@@ -394,18 +401,22 @@ impl AppView {
                     ("limit", limit.to_string()),
                     ("offset", offset.to_string()),
                     ("genre", genre.unwrap_or_default().to_string()),
+                    ("filter", filter.unwrap_or_default().to_string()),
                 ],
             )
             .await?;
         Ok(out.artists)
     }
 
-    /// The song catalog, optionally filtered by `genre` (`app.rocksky.song.getSongs`).
+    /// The song catalog (`app.rocksky.song.getSongs`), optionally filtered by
+    /// `genre` and/or an RSQL `filter` expression (build one with
+    /// [`Filter`](crate::filter::Filter)).
     pub async fn catalog_songs(
         &self,
         limit: u32,
         offset: u32,
         genre: Option<&str>,
+        filter: Option<&str>,
     ) -> Result<Vec<SongView>> {
         let out: TracksOutput = self
             .query(
@@ -414,6 +425,7 @@ impl AppView {
                     ("limit", limit.to_string()),
                     ("offset", offset.to_string()),
                     ("genre", genre.unwrap_or_default().to_string()),
+                    ("filter", filter.unwrap_or_default().to_string()),
                 ],
             )
             .await?;
@@ -459,12 +471,15 @@ impl AppView {
 
     /// A social/global scrobbles feed (`app.rocksky.scrobble.getScrobbles`). Pass
     /// `did` to scope to an actor and `following = true` for their follow graph.
+    /// `filter` takes an RSQL expression (build one with
+    /// [`Filter`](crate::filter::Filter)).
     pub async fn scrobble_feed(
         &self,
         did: Option<&str>,
         following: bool,
         limit: u32,
         offset: u32,
+        filter: Option<&str>,
     ) -> Result<Vec<ScrobbleView>> {
         let out: ScrobblesOutput = self
             .query(
@@ -474,6 +489,7 @@ impl AppView {
                     ("following", following.to_string()),
                     ("limit", limit.to_string()),
                     ("offset", offset.to_string()),
+                    ("filter", filter.unwrap_or_default().to_string()),
                 ],
             )
             .await?;

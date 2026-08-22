@@ -204,6 +204,9 @@ pub struct TrackView<S: BosStr = DefaultStr> {
     ///Music service source, e.g. 'spotify' or 'listenbrainz'.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<S>,
+    ///The track's position within its album, if known (>= 1).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -364,6 +367,15 @@ impl<S: BosStr> LexiconSchema for TrackView<S> {
                     path: ValidationPath::from_field("source"),
                     max: 64usize,
                     actual: <str>::len(value.as_ref()),
+                });
+            }
+        }
+        if let Some(ref value) = self.track_number {
+            if *value < 1i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("track_number"),
+                    min: 1i64,
+                    actual: *value,
                 });
             }
         }
@@ -797,6 +809,13 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                                     "Music service source, e.g. 'spotify' or 'listenbrainz'.",
                                 )),
                                 max_length: Some(64usize),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(1i64),
                                 ..Default::default()
                             }),
                         );

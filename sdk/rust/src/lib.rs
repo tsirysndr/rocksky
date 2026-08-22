@@ -48,6 +48,7 @@
 
 pub mod client;
 pub mod error;
+pub mod filter;
 pub mod generated;
 pub mod http;
 pub mod models;
@@ -55,5 +56,6 @@ pub mod resources;
 
 pub use client::{Client, ClientBuilder};
 pub use error::{Error, Result};
+pub use filter::Filter;
 pub use models::*;
 pub use resources::graph::FollowList;

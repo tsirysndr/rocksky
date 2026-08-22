@@ -69,6 +69,7 @@ pub mod auth;
 pub mod dedup;
 pub mod error;
 pub mod facets;
+pub mod filter;
 #[cfg(feature = "jetstream")]
 pub mod jetstream;
 pub mod library;
@@ -91,6 +92,7 @@ pub use auth::Profile;
 #[cfg(feature = "dedup")]
 pub use dedup::{IndexStats, RepoIndex};
 pub use error::{Result, SdkError};
+pub use filter::{Filter, FilterValue};
 #[cfg(feature = "jetstream")]
 pub use jetstream::JetstreamConfig;
 pub use library::Library;

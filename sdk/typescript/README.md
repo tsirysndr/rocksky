@@ -45,6 +45,29 @@ methods cover the rest: `album`, `artist`, `song`, `feed`, `playlists`,
 Every named method is sugar over the universal escape hatch **`rk.get(nsid,
 params)`**, which calls ANY read query by nsid and returns `unknown`.
 
+**Filtering**: `catalogSongs`, `catalogArtists`, `catalogAlbums`, and
+`scrobbleFeed` take an optional RSQL `filter` (string or `Filter`) — build one
+fluently, with the per-endpoint field constants for discoverability:
+
+```ts
+import { Filter, RockskyClient, ScrobbleFields, SongFields } from "@rocksky/sdk";
+
+const rk = new RockskyClient();
+const filter = Filter.eq(SongFields.artist, "Daft Punk")
+  .and(Filter.gt(SongFields.duration, 200_000))
+  .or(Filter.in(SongFields.genre, ["house", "electro"]));
+const songs = await rk.catalogSongs(50, 0, undefined, filter);
+// filter sent: artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+
+// scrobbles support dotted selectors into the joined track/user/artist:
+await rk.scrobbleFeed(undefined, false, 50, 0,
+  Filter.eq(ScrobbleFields.trackArtist, "Daft Punk").and(Filter.ge(ScrobbleFields.date, "2025-01-01")));
+```
+
+Operators: `eq` (supports `*` wildcards), `ne`, `gt`, `ge`, `lt`, `le`, `in`,
+`out`, `isNull`, `isNotNull`, chained with `.and()` / `.or()` (parentheses
+inserted automatically per RSQL precedence).
+
 **Typed date-window charts**: `topTracksInterval(limit, offset, interval)` and
 `topArtistsInterval(...)` take a `DateInterval` built with the `Interval`
 factories — `Interval.allTime()`, `Interval.lastDays(n)`, `Interval.lastWeeks(n)`,

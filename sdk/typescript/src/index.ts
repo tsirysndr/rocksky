@@ -41,6 +41,14 @@ export {
   type RemoteDevice,
   type RemoteStatus,
 } from "./remote-controller.js";
+export {
+  Filter,
+  SongFields,
+  AlbumFields,
+  ArtistFields,
+  ScrobbleFields,
+  type FilterValue,
+} from "./filter.js";
 export { songHash, albumHash, artistHash } from "./hash.js";
 export { RockskyError } from "./errors.js";
 export type * from "./generated/types.js";

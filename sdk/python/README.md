@@ -69,6 +69,27 @@ Pass a base URL to target a custom AppView; pass `token` to send
 `DateInterval.LAST_YEARS(years=n)`, `DateInterval.RANGE(start=..., end=...)`
 (RFC-3339 bounds). `top_tracks` / `top_artists` are the all-time shorthands.
 
+**Filtering**: `catalog_songs`, `catalog_artists`, `catalog_albums`, and
+`scrobble_feed` take an optional RSQL `filter` — build one fluently with
+`Filter`:
+
+```python
+from rocksky import AppView, Filter
+
+flt = (
+    Filter.eq("artist", "Daft Punk")
+    .and_(Filter.gt("duration", 200_000))
+    .or_(Filter.is_in("genre", ["house", "electro"]))
+)
+songs = AppView().catalog_songs(50, 0, None, flt.build())
+# filter sent: artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+```
+
+Operators: `eq` (supports `*` wildcards), `ne`, `gt`, `ge`, `lt`, `le`,
+`is_in`, `is_out`, `is_null`, `is_not_null`, combined with `.and_()` / `.or_()`
+(parentheses inserted automatically). Scrobbles support dotted selectors like
+`track.artist` and `user.handle`.
+
 **Match**: `match_song(title, artist, mb_id, isrc)` resolves a bare title+artist
 into full canonical metadata (returns a JSON string).
 

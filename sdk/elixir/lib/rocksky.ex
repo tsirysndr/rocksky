@@ -44,6 +44,60 @@ defmodule Rocksky do
     do: :rocksky.get(to_bin(nsid), params, to_bin(base), to_bin(token))
 
   @doc """
+  Songs catalog (`app.rocksky.song.getSongs`) with optional `genre` and RSQL
+  `filter` — a `Rocksky.Filter` or a raw RSQL binary.
+
+      Rocksky.catalog_songs(50, 0, nil, Rocksky.Filter.eq(:artist, "Daft Punk"))
+  """
+  def catalog_songs(limit \\ 50, offset \\ 0, genre \\ nil, filter \\ nil, base \\ ""),
+    do: get("app.rocksky.song.getSongs", catalog_params(limit, offset, genre, filter), base)
+
+  @doc "Artists catalog (`app.rocksky.artist.getArtists`) — see `catalog_songs/5`."
+  def catalog_artists(limit \\ 50, offset \\ 0, genre \\ nil, filter \\ nil, base \\ ""),
+    do: get("app.rocksky.artist.getArtists", catalog_params(limit, offset, genre, filter), base)
+
+  @doc "Albums catalog (`app.rocksky.album.getAlbums`) — see `catalog_songs/5`."
+  def catalog_albums(limit \\ 50, offset \\ 0, genre \\ nil, filter \\ nil, base \\ ""),
+    do: get("app.rocksky.album.getAlbums", catalog_params(limit, offset, genre, filter), base)
+
+  @doc """
+  Scrobble feed (`app.rocksky.scrobble.getScrobbles`) — the whole platform, one
+  actor (`did`), or the accounts an actor follows (`did` + `following: true`).
+  `filter` is a `Rocksky.Filter` (dotted selectors like `:"track.artist"` reach
+  the joined track/user/artist) or a raw RSQL binary.
+
+      Rocksky.scrobble_feed(nil, false, 50, 0, Rocksky.Filter.eq(:"track.artist", "Daft Punk"))
+  """
+  def scrobble_feed(
+        did \\ nil,
+        following \\ false,
+        limit \\ 50,
+        offset \\ 0,
+        filter \\ nil,
+        base \\ ""
+      ) do
+    params =
+      %{"limit" => limit, "offset" => offset}
+      |> put_param("did", did)
+      |> put_param("following", if(following, do: true))
+      |> put_param("filter", filter_param(filter))
+
+    get("app.rocksky.scrobble.getScrobbles", params, base)
+  end
+
+  defp catalog_params(limit, offset, genre, filter) do
+    %{"limit" => limit, "offset" => offset}
+    |> put_param("genre", genre)
+    |> put_param("filter", filter_param(filter))
+  end
+
+  defp put_param(params, _key, nil), do: params
+  defp put_param(params, key, value), do: Map.put(params, key, value)
+
+  defp filter_param(nil), do: nil
+  defp filter_param(filter), do: Rocksky.Filter.build(filter)
+
+  @doc """
   The authenticated viewer's unread-notification count (`token` required).
   Returns `%{"count" => n}`.
   """

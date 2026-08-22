@@ -954,6 +954,7 @@ impl RockskyAgent {
             duration_ms: track.duration_ms,
             source: track.source.clone().map(Into::into),
             recording_mb_id: track.recording_mb_id.clone().map(Into::into),
+            track_number: None,
             extra_data: None,
         };
         let record = ActorStatus::new()

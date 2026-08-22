@@ -243,6 +243,8 @@ export interface ArtistGetArtistsParams {
   names?: string;
   /** The genre to filter artists by */
   genre?: string;
+  /** RSQL filter expression, e.g. `name==Daft*;genres=in=(house,electro)`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, genres, bornIn, born, died, sha256, uri, createdAt */
+  filter?: string;
 }
 
 export interface ArtistListenerViewBasic {
@@ -847,6 +849,8 @@ export interface GetAlbumsParams {
   offset?: number;
   /** The genre to filter artists by */
   genre?: string;
+  /** RSQL filter expression, e.g. `artist=="Daft Punk";year=ge=2000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, year, releaseDate, sha256, uri, artistUri, createdAt */
+  filter?: string;
 }
 
 export interface GetAlbumTracksOutput {
@@ -1243,6 +1247,8 @@ export interface GetScrobblesParams {
   limit?: number;
   /** The offset for pagination */
   offset?: number;
+  /** RSQL filter expression, e.g. `track.artist=="Daft Punk";date=ge=2025-01-01`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: uri, date, timestamp, title, artist, album, track.title, track.artist, track.album, track.albumArtist, track.genre, track.duration, track.isrc, track.mbId, user.did, user.handle, user.displayName, artist.name, artist.genres */
+  filter?: string;
 }
 
 export interface GetShoutRepliesOutput {
@@ -1312,6 +1318,8 @@ export interface GetSongsParams {
   isrc?: string;
   /** Filter songs by Spotify track ID (resolved internally to the Spotify track URL) */
   spotifyId?: string;
+  /** RSQL filter expression, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, createdAt */
+  filter?: string;
 }
 
 export interface GetStarredOutput {
@@ -1626,6 +1634,18 @@ export interface NotificationActor {
   avatar?: Uri;
 }
 
+/** The song, album, or scrobble a notification relates to, for rich display. */
+export interface NotificationSubjectView {
+  /** The at-uri of the subject. */
+  uri: string;
+  /** The title of the track or album. */
+  title?: string;
+  /** The artist of the track or album. */
+  artist?: string;
+  /** The album art image URL. */
+  albumArt?: Uri;
+}
+
 export interface NotificationView {
   /** The unique identifier of the notification. */
   id: string;
@@ -1642,6 +1662,7 @@ export interface NotificationView {
   /** The content of the related shout, if any. */
   shoutContent?: string;
   actor?: NotificationActor;
+  subject?: NotificationSubjectView;
 }
 
 export interface PingOutput {

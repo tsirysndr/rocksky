@@ -14,6 +14,7 @@ Build a Rocksky-controllable player or a remote UI with the ``RemotePlayer`` /
 
 import typing
 
+from .filter import Filter, FilterValue  # noqa: F401
 from .rocksky_uniffi import *  # noqa: F401,F403
 from .rocksky_uniffi import AppView as _AppView
 

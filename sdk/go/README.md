@@ -56,6 +56,23 @@ the universal escape hatch — calls any read query by nsid and returns raw
 artist, mbID, isrc)` resolves a bare title + artist into full canonical metadata.
 Attach a bearer token for auth-gated queries with `NewClient("").WithToken(token)`.
 
+**Filtering**: `CatalogSongs`, `CatalogAlbums`, `CatalogArtists`, and
+`ScrobbleFeed` take a trailing RSQL `filter` string (`""` for none). Build it
+fluently with the immutable `Filter` type — constructors `Eq`, `Ne`, `Gt`, `Ge`,
+`Lt`, `Le`, `In`, `Out`, `IsNull`, `IsNotNull`; combine with `.And` (`;`) and
+`.Or` (`,`):
+
+```go
+f := rocksky.Eq("artist", "Daft Punk").
+    And(rocksky.Gt("duration", 200000)).
+    Or(rocksky.In("genre", "house", "electro"))
+songs, _ := c.CatalogSongs(ctx, 50, 0, "", f.Build())
+// filter: artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+```
+
+Strings are quoted/escaped automatically when needed; `*` stays bare so
+`Eq("artist", "Daft*")` is a wildcard match.
+
 **Date-window charts**: `TopTracksInterval` / `TopArtistsInterval` take a typed
 `DateInterval`, built with `rocksky.AllTime()`, `rocksky.LastDays(n)`,
 `LastWeeks`, `LastMonths`, `LastYears`, or `rocksky.Range(start, end)`. Plain

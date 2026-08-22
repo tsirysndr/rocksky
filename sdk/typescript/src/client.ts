@@ -1,6 +1,7 @@
 import { Client, simpleFetchHandler } from "@atcute/client";
 
 import { RockskyError } from "./errors.js";
+import type { Filter } from "./filter.js";
 import { RockskyLibrary } from "./library.js";
 import type {
   ActorProfileViewBasic,
@@ -229,32 +230,53 @@ export class RockskyClient {
     return out.artists ?? [];
   }
 
-  /** The album catalog, optionally filtered by `genre`. */
-  async catalogAlbums(limit = 50, offset = 0, genre?: string): Promise<AlbumViewBasic[]> {
+  /** The album catalog, optionally filtered by `genre` and/or an RSQL
+   * {@link Filter} expression (see {@link AlbumFields}). */
+  async catalogAlbums(
+    limit = 50,
+    offset = 0,
+    genre?: string,
+    filter?: string | Filter,
+  ): Promise<AlbumViewBasic[]> {
     const out = await this.query<{ albums?: AlbumViewBasic[] }>("app.rocksky.album.getAlbums", {
       limit,
       offset,
       genre,
+      filter: filter?.toString(),
     });
     return out.albums ?? [];
   }
 
-  /** The artist catalog, optionally filtered by `genre`. */
-  async catalogArtists(limit = 50, offset = 0, genre?: string): Promise<ArtistViewBasic[]> {
+  /** The artist catalog, optionally filtered by `genre` and/or an RSQL
+   * {@link Filter} expression (see {@link ArtistFields}). */
+  async catalogArtists(
+    limit = 50,
+    offset = 0,
+    genre?: string,
+    filter?: string | Filter,
+  ): Promise<ArtistViewBasic[]> {
     const out = await this.query<{ artists?: ArtistViewBasic[] }>("app.rocksky.artist.getArtists", {
       limit,
       offset,
       genre,
+      filter: filter?.toString(),
     });
     return out.artists ?? [];
   }
 
-  /** The song catalog, optionally filtered by `genre`. */
-  async catalogSongs(limit = 50, offset = 0, genre?: string): Promise<SongViewBasic[]> {
+  /** The song catalog, optionally filtered by `genre` and/or an RSQL
+   * {@link Filter} expression (see {@link SongFields}). */
+  async catalogSongs(
+    limit = 50,
+    offset = 0,
+    genre?: string,
+    filter?: string | Filter,
+  ): Promise<SongViewBasic[]> {
     const out = await this.query<{ tracks?: SongViewBasic[] }>("app.rocksky.song.getSongs", {
       limit,
       offset,
       genre,
+      filter: filter?.toString(),
     });
     return out.tracks ?? [];
   }
@@ -282,13 +304,21 @@ export class RockskyClient {
   }
 
   /** A social/global scrobbles feed. Pass `did` to scope to an actor and
-   * `following = true` for their follow graph. */
-  async scrobbleFeed(did?: string, following = false, limit = 50, offset = 0): Promise<ScrobbleViewBasic[]> {
+   * `following = true` for their follow graph. `filter` takes an RSQL
+   * {@link Filter} expression (see {@link ScrobbleFields}). */
+  async scrobbleFeed(
+    did?: string,
+    following = false,
+    limit = 50,
+    offset = 0,
+    filter?: string | Filter,
+  ): Promise<ScrobbleViewBasic[]> {
     const out = await this.query<{ scrobbles?: ScrobbleViewBasic[] }>("app.rocksky.scrobble.getScrobbles", {
       did,
       following,
       limit,
       offset,
+      filter: filter?.toString(),
     });
     return out.scrobbles ?? [];
   }

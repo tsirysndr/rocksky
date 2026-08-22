@@ -103,6 +103,8 @@ struct ListArtistsParams {
     names: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     genre: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    filter: Option<String>,
 }
 
 #[derive(Debug)]
@@ -130,6 +132,11 @@ impl<'a> ListArtists<'a> {
     }
     pub fn genre(mut self, genre: impl Into<String>) -> Self {
         self.params.genre = Some(genre.into());
+        self
+    }
+    /// RSQL filter expression — pass a [`crate::Filter`] or a raw string.
+    pub fn filter(mut self, filter: impl Into<String>) -> Self {
+        self.params.filter = Some(filter.into());
         self
     }
     pub async fn send(self) -> Result<Vec<ArtistBasic>> {

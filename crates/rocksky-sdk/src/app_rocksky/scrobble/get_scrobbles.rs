@@ -14,7 +14,7 @@ use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
 use jacquard_common::types::ident::AtIdentifier;
 use jacquard_common::types::value::Data;
-use jacquard_common::{BosStr, DefaultStr, FromStaticStr};
+use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
 use jacquard_derive::IntoStatic;
 use serde::{Deserialize, Serialize};
 
@@ -26,6 +26,9 @@ use serde::{Deserialize, Serialize};
 pub struct GetScrobbles<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub did: Option<AtIdentifier<S>>,
+    /// (max length: 2048)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub following: Option<bool>,
     /// (min: 1)
@@ -100,6 +103,7 @@ pub struct GetScrobblesBuilder<St: get_scrobbles_state::State, S: BosStr = Defau
     _state: PhantomData<fn() -> St>,
     _fields: (
         Option<AtIdentifier<S>>,
+        Option<S>,
         Option<bool>,
         Option<i64>,
         Option<i64>,
@@ -126,7 +130,7 @@ impl GetScrobblesBuilder<get_scrobbles_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         GetScrobblesBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -137,7 +141,7 @@ impl<S: BosStr> GetScrobblesBuilder<get_scrobbles_state::Empty, S> {
     pub fn builder() -> Self {
         GetScrobblesBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -157,14 +161,27 @@ impl<St: get_scrobbles_state::State, S: BosStr> GetScrobblesBuilder<St, S> {
 }
 
 impl<St: get_scrobbles_state::State, S: BosStr> GetScrobblesBuilder<St, S> {
+    /// Set the `filter` field (optional)
+    pub fn filter(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.1 = value.into();
+        self
+    }
+    /// Set the `filter` field to an Option value (optional)
+    pub fn maybe_filter(mut self, value: Option<S>) -> Self {
+        self._fields.1 = value;
+        self
+    }
+}
+
+impl<St: get_scrobbles_state::State, S: BosStr> GetScrobblesBuilder<St, S> {
     /// Set the `following` field (optional)
     pub fn following(mut self, value: impl Into<Option<bool>>) -> Self {
-        self._fields.1 = value.into();
+        self._fields.2 = value.into();
         self
     }
     /// Set the `following` field to an Option value (optional)
     pub fn maybe_following(mut self, value: Option<bool>) -> Self {
-        self._fields.1 = value;
+        self._fields.2 = value;
         self
     }
 }
@@ -172,12 +189,12 @@ impl<St: get_scrobbles_state::State, S: BosStr> GetScrobblesBuilder<St, S> {
 impl<St: get_scrobbles_state::State, S: BosStr> GetScrobblesBuilder<St, S> {
     /// Set the `limit` field (optional)
     pub fn limit(mut self, value: impl Into<Option<i64>>) -> Self {
-        self._fields.2 = value.into();
+        self._fields.3 = value.into();
         self
     }
     /// Set the `limit` field to an Option value (optional)
     pub fn maybe_limit(mut self, value: Option<i64>) -> Self {
-        self._fields.2 = value;
+        self._fields.3 = value;
         self
     }
 }
@@ -185,12 +202,12 @@ impl<St: get_scrobbles_state::State, S: BosStr> GetScrobblesBuilder<St, S> {
 impl<St: get_scrobbles_state::State, S: BosStr> GetScrobblesBuilder<St, S> {
     /// Set the `offset` field (optional)
     pub fn offset(mut self, value: impl Into<Option<i64>>) -> Self {
-        self._fields.3 = value.into();
+        self._fields.4 = value.into();
         self
     }
     /// Set the `offset` field to an Option value (optional)
     pub fn maybe_offset(mut self, value: Option<i64>) -> Self {
-        self._fields.3 = value;
+        self._fields.4 = value;
         self
     }
 }
@@ -203,9 +220,10 @@ where
     pub fn build(self) -> GetScrobbles<S> {
         GetScrobbles {
             did: self._fields.0,
-            following: self._fields.1,
-            limit: self._fields.2,
-            offset: self._fields.3,
+            filter: self._fields.1,
+            following: self._fields.2,
+            limit: self._fields.3,
+            offset: self._fields.4,
         }
     }
 }

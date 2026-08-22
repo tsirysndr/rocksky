@@ -118,6 +118,28 @@ let top = client.charts().top_tracks()
     .send().await?;
 ```
 
+## Filtering
+
+The catalog and scrobble list builders (`song().list()`, `album().list()`,
+`artist().list()`, `scrobble().list()`) accept an RSQL `filter` built with the
+fluent `Filter` type (or any raw string):
+
+```rust
+use rocksky::Filter;
+
+let filter = Filter::eq("artist", "Daft Punk")
+    .and(Filter::gt("duration", 200_000))
+    .or(Filter::is_in("genre", ["house", "electro"]));
+// artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+
+let songs = client.song().list().limit(50).filter(filter).send().await?;
+```
+
+Operators: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `is_in`, `is_out`, `is_null`,
+`is_not_null`, combined with `.and(…)` / `.or(…)`. String values are quoted
+and escaped automatically; `*` is a wildcard (`Filter::eq("artist", "Daft*")`).
+Scrobbles support dotted selectors like `track.artist` and `user.handle`.
+
 ## Resources
 
 | Namespace | Accessor | Methods (selected) |

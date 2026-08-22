@@ -68,6 +68,8 @@ struct ListScrobblesParams {
     limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     offset: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    filter: Option<String>,
 }
 
 #[derive(Debug)]
@@ -93,6 +95,12 @@ impl<'a> ListScrobbles<'a> {
     }
     pub fn offset(mut self, offset: u32) -> Self {
         self.params.offset = Some(offset);
+        self
+    }
+    /// RSQL filter expression — pass a [`crate::Filter`] or a raw string.
+    /// Does not require auth on its own.
+    pub fn filter(mut self, filter: impl Into<String>) -> Self {
+        self.params.filter = Some(filter.into());
         self
     }
     pub async fn send(self) -> Result<Vec<Scrobble>> {

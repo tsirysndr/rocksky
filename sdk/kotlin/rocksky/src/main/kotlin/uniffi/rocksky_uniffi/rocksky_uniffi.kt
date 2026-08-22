@@ -1115,11 +1115,11 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_audio_settings(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_rocksky_uniffi_fn_method_appview_catalog_albums(`ptr`: Pointer,`limit`: Int,`offset`: Int,`genre`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_method_appview_catalog_albums(`ptr`: Pointer,`limit`: Int,`offset`: Int,`genre`: RustBuffer.ByValue,`filter`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_rocksky_uniffi_fn_method_appview_catalog_artists(`ptr`: Pointer,`limit`: Int,`offset`: Int,`genre`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_method_appview_catalog_artists(`ptr`: Pointer,`limit`: Int,`offset`: Int,`genre`: RustBuffer.ByValue,`filter`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_rocksky_uniffi_fn_method_appview_catalog_songs(`ptr`: Pointer,`limit`: Int,`offset`: Int,`genre`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_method_appview_catalog_songs(`ptr`: Pointer,`limit`: Int,`offset`: Int,`genre`: RustBuffer.ByValue,`filter`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_compatibility(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1165,7 +1165,7 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_scrobble(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed(`ptr`: Pointer,`did`: RustBuffer.ByValue,`following`: Byte,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed(`ptr`: Pointer,`did`: RustBuffer.ByValue,`following`: Byte,`limit`: Int,`offset`: Int,`filter`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_scrobbles(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1877,13 +1877,13 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_audio_settings() != 63854.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_albums() != 30604.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_albums() != 45438.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_artists() != 10804.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_artists() != 2357.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs() != 43625.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs() != 26959.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility() != 36558.toShort()) {
@@ -1952,7 +1952,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble() != 50029.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble_feed() != 49267.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble_feed() != 17987.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles() != 50953.toShort()) {
@@ -3238,11 +3238,11 @@ public interface AppViewInterface {
     
     fun `audioSettings`(`actor`: kotlin.String): kotlin.String
     
-    fun `catalogAlbums`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?): List<AlbumView>
+    fun `catalogAlbums`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?, `filter`: kotlin.String?): List<AlbumView>
     
-    fun `catalogArtists`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?): List<ArtistView>
+    fun `catalogArtists`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?, `filter`: kotlin.String?): List<ArtistView>
     
-    fun `catalogSongs`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?): List<SongView>
+    fun `catalogSongs`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?, `filter`: kotlin.String?): List<SongView>
     
     fun `compatibility`(`actor`: kotlin.String): kotlin.String
     
@@ -3299,7 +3299,7 @@ public interface AppViewInterface {
     
     fun `scrobble`(`uri`: kotlin.String): ScrobbleView
     
-    fun `scrobbleFeed`(`did`: kotlin.String?, `following`: kotlin.Boolean, `limit`: kotlin.UInt, `offset`: kotlin.UInt): List<ScrobbleView>
+    fun `scrobbleFeed`(`did`: kotlin.String?, `following`: kotlin.Boolean, `limit`: kotlin.UInt, `offset`: kotlin.UInt, `filter`: kotlin.String?): List<ScrobbleView>
     
     fun `scrobbles`(`actor`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): List<ScrobbleView>
     
@@ -3658,12 +3658,12 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
-    @Throws(RockskyException::class)override fun `catalogAlbums`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?): List<AlbumView> {
+    @Throws(RockskyException::class)override fun `catalogAlbums`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?, `filter`: kotlin.String?): List<AlbumView> {
             return FfiConverterSequenceTypeAlbumView.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_catalog_albums(
-        it, FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),FfiConverterOptionalString.lower(`genre`),_status)
+        it, FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),FfiConverterOptionalString.lower(`genre`),FfiConverterOptionalString.lower(`filter`),_status)
 }
     }
     )
@@ -3671,12 +3671,12 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
-    @Throws(RockskyException::class)override fun `catalogArtists`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?): List<ArtistView> {
+    @Throws(RockskyException::class)override fun `catalogArtists`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?, `filter`: kotlin.String?): List<ArtistView> {
             return FfiConverterSequenceTypeArtistView.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_catalog_artists(
-        it, FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),FfiConverterOptionalString.lower(`genre`),_status)
+        it, FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),FfiConverterOptionalString.lower(`genre`),FfiConverterOptionalString.lower(`filter`),_status)
 }
     }
     )
@@ -3684,12 +3684,12 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
-    @Throws(RockskyException::class)override fun `catalogSongs`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?): List<SongView> {
+    @Throws(RockskyException::class)override fun `catalogSongs`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?, `filter`: kotlin.String?): List<SongView> {
             return FfiConverterSequenceTypeSongView.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_catalog_songs(
-        it, FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),FfiConverterOptionalString.lower(`genre`),_status)
+        it, FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),FfiConverterOptionalString.lower(`genre`),FfiConverterOptionalString.lower(`filter`),_status)
 }
     }
     )
@@ -3994,12 +3994,12 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
-    @Throws(RockskyException::class)override fun `scrobbleFeed`(`did`: kotlin.String?, `following`: kotlin.Boolean, `limit`: kotlin.UInt, `offset`: kotlin.UInt): List<ScrobbleView> {
+    @Throws(RockskyException::class)override fun `scrobbleFeed`(`did`: kotlin.String?, `following`: kotlin.Boolean, `limit`: kotlin.UInt, `offset`: kotlin.UInt, `filter`: kotlin.String?): List<ScrobbleView> {
             return FfiConverterSequenceTypeScrobbleView.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed(
-        it, FfiConverterOptionalString.lower(`did`),FfiConverterBoolean.lower(`following`),FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),_status)
+        it, FfiConverterOptionalString.lower(`did`),FfiConverterBoolean.lower(`following`),FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),FfiConverterOptionalString.lower(`filter`),_status)
 }
     }
     )
@@ -6830,7 +6830,16 @@ data class RemoteNowPlaying (
      * Current position, ms.
      */
     var `elapsedMs`: kotlin.ULong = 0uL, 
-    var `isPlaying`: kotlin.Boolean = true
+    var `isPlaying`: kotlin.Boolean = true, 
+    /**
+     * Audio codec / container of the playing file (e.g. "mp3", "flac"), when
+     * the player knows it.
+     */
+    var `codec`: kotlin.String? = null, 
+    /**
+     * Audio sample rate in Hz (e.g. 44100), when the player knows it.
+     */
+    var `sampleRate`: kotlin.UInt? = null
 ) {
     
     companion object
@@ -6850,6 +6859,8 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterULong.read(buf),
             FfiConverterULong.read(buf),
             FfiConverterBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalUInt.read(buf),
         )
     }
 
@@ -6861,7 +6872,9 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterString.allocationSize(value.`albumArt`) +
             FfiConverterULong.allocationSize(value.`durationMs`) +
             FfiConverterULong.allocationSize(value.`elapsedMs`) +
-            FfiConverterBoolean.allocationSize(value.`isPlaying`)
+            FfiConverterBoolean.allocationSize(value.`isPlaying`) +
+            FfiConverterOptionalString.allocationSize(value.`codec`) +
+            FfiConverterOptionalUInt.allocationSize(value.`sampleRate`)
     )
 
     override fun write(value: RemoteNowPlaying, buf: ByteBuffer) {
@@ -6873,6 +6886,8 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterULong.write(value.`durationMs`, buf)
             FfiConverterULong.write(value.`elapsedMs`, buf)
             FfiConverterBoolean.write(value.`isPlaying`, buf)
+            FfiConverterOptionalString.write(value.`codec`, buf)
+            FfiConverterOptionalUInt.write(value.`sampleRate`, buf)
     }
 }
 

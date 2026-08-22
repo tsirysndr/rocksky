@@ -72,6 +72,31 @@ Named reads: `(profile actor)`, `(scrobbles actor limit)`,
 `(query nsid params base token)` sends `token` as `Authorization: Bearer` for
 auth-gated queries.
 
+**Catalog + feed with RSQL filtering** — `(catalog-songs opts)`,
+`(catalog-artists opts)`, `(catalog-albums opts)` and `(scrobble-feed opts)`
+wrap the four filterable queries. `opts` takes `:limit` (default 50),
+`:offset` (default 0), `:filter`, `:base` — plus `:genre` on the catalogs and
+`:did` / `:following` on the feed. `:filter` is an expression built with
+`rocksky.rsql` (or a raw RSQL string); fields are keywords or strings, dotted
+selectors like `:track.artist` reach the joined entities, and string values
+are quoted/escaped automatically (`*` wildcards stay bare).
+
+```clojure
+(require '[rocksky.rsql :as rsql])
+
+(catalog-songs {:limit 10
+                :filter (-> (rsql/eq :artist "Daft Punk")
+                            (rsql/and (rsql/gt :duration 200000)))})
+;; filter=artist=="Daft Punk";duration=gt=200000
+
+(scrobble-feed {:filter (rsql/in :track.genre ["house" "electro"])})
+```
+
+Constructors: `eq` `ne` `gt` `ge` `lt` `le` `in` `out` `is-null`
+`is-not-null`; combine with `rsql/and` (`;`) and `rsql/or` (`,`) — `or`
+operands are parenthesized inside an `and` automatically. `rocksky.rsql` is
+pure Clojure (no native lib), so it loads anywhere.
+
 **Typed date-window charts** — `(top-tracks-interval limit offset interval)` and
 `(top-artists-interval limit offset interval)`. `interval` is `:all` or one of
 `[:days n]` / `[:weeks n]` / `[:months n]` / `[:years n]` / `[:range start end]`.

@@ -69,6 +69,32 @@ catalog by NSID: `get(nsid, params \\ %{}, base \\ "", token \\ "")` → `{:ok, 
 Pass a bearer `token` (4th arg) for auth-gated queries — sent as
 `Authorization: Bearer`.
 
+**Filtering** — the catalog and scrobble-feed queries take an RSQL `filter`,
+built with the pipe-friendly `Rocksky.Filter` (fields are atoms;
+`and`/`or`/`in` are reserved in Elixir, hence `and_`/`or_`/`is_in`/`is_out`):
+
+```elixir
+alias Rocksky.Filter
+
+filter =
+  Filter.eq(:artist, "Daft Punk")
+  |> Filter.and_(Filter.gt(:duration, 200_000))
+  |> Filter.or_(Filter.is_in(:genre, ["house", "electro"]))
+
+{:ok, songs} = Rocksky.catalog_songs(50, 0, nil, filter)
+# filter=artist=="Daft Punk";duration=gt=200000,genre=in=(house,electro)
+
+# Scrobble feed: dotted atoms reach the joined track/user/artist.
+{:ok, feed} = Rocksky.scrobble_feed(nil, false, 50, 0, Filter.eq(:"track.artist", "Daft Punk"))
+```
+
+`catalog_songs/5`, `catalog_artists/5`, `catalog_albums/5`
+(`limit, offset, genre, filter, base`) and
+`scrobble_feed/6` (`did, following, limit, offset, filter, base`) all accept a
+`Rocksky.Filter` or a raw RSQL binary. String values are quoted and escaped
+automatically; `*` wildcards stay bare for case-insensitive matching
+(`Filter.eq(:artist, "Daft*")`).
+
 **Typed date-window charts** — `top_tracks_interval(limit, offset, interval)` and
 `top_artists_interval(limit, offset, interval)`, where `interval` is `:all` |
 `{:days, n}` | `{:weeks, n}` | `{:months, n}` | `{:years, n}` |

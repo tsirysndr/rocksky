@@ -6,6 +6,17 @@ project adheres to [Semantic Versioning](https://semver.org).
 ## [Unreleased]
 
 ### Added
+- `rocksky.rsql` — pure RSQL filter builder shared with every Rocksky SDK:
+  `eq` `ne` `gt` `ge` `lt` `le` `in` `out` `is-null` `is-not-null`, combined
+  with `rsql/and` (`;`) / `rsql/or` (`,`, parenthesized inside an `and`).
+  Fields are keywords or strings (`:track.artist` → `track.artist`); string
+  values are quoted/escaped automatically, `*` wildcards stay bare;
+  `(build f)` also passes raw RSQL strings through.
+- `rocksky.core` catalog/feed wrappers over the `query` escape hatch:
+  `catalog-songs`, `catalog-artists`, `catalog-albums` and `scrobble-feed`,
+  each taking `:limit` (default 50), `:offset` (default 0), `:filter` (an
+  rsql node or string) and `:base` — plus `:genre` on the catalogs and
+  `:did` / `:following` on the feed.
 - Remote-player protocol: now-playing maps accept optional audio info —
   `:codec` (audio codec/container, e.g. "mp3", "flac") and `:sampleRate`
   (sample rate in Hz, e.g. 44100). A player includes them in the `track`

@@ -61,7 +61,10 @@ defmodule Rocksky.MixProject do
     [
       main: "Rocksky",
       source_ref: "v#{@version}",
-      extras: ["README.md"]
+      extras: ["README.md"],
+      groups_for_modules: [
+        Filtering: [Rocksky.Filter]
+      ]
     ]
   end
 end

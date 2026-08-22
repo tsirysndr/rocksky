@@ -7,7 +7,8 @@
   Rocksky SDK. This is the write + dedup side; `rocksky.client` is the read/HTTP
   side. Requires JDK 22+ (run with --enable-native-access=ALL-UNNAMED)."
   (:require [cheshire.core :as json]
-            [rocksky.native :as native])
+            [rocksky.native :as native]
+            [rocksky.rsql :as rsql])
   (:import [java.lang.foreign Arena Linker FunctionDescriptor SymbolLookup
             ValueLayout MemoryLayout MemorySegment Linker$Option]
            [java.lang.invoke MethodHandle]))
@@ -130,6 +131,61 @@
                                                   (.allocateFrom a (str nsid))
                                                   (.allocateFrom a (json/generate-string params))
                                                   (.allocateFrom a (str (or token "")))]))))))
+
+;; ---- catalog + scrobble feed (RSQL-filterable) --------------------------
+;;
+;; `:filter` accepts an rocksky.rsql node (from rsql/eq, rsql/and, …) or an
+;; already-built RSQL string.
+
+(defn- catalog-params
+  "{\"limit\" .. \"offset\" ..} plus the optional string params, absent keys
+  omitted. `filter` runs through rocksky.rsql/build."
+  [{:keys [limit offset filter] :as opts} extra-keys]
+  (into {"limit" (or limit 50) "offset" (or offset 0)}
+        (concat
+         (for [k extra-keys
+               :let [v (get opts k)]
+               :when (some? v)]
+           [(name k) v])
+         (when filter [["filter" (rsql/build filter)]]))))
+
+(defn catalog-songs
+  "Browse the song catalog (app.rocksky.song.getSongs). `opts` may contain
+  :limit (default 50), :offset (default 0), :genre, :filter (an rsql node or
+  RSQL string) and :base.
+
+    (catalog-songs {:limit 10 :filter (rsql/eq :artist \"Daft Punk\")})"
+  ([] (catalog-songs {}))
+  ([{:keys [base] :as opts}]
+   (query "app.rocksky.song.getSongs" (catalog-params opts [:genre]) base)))
+
+(defn catalog-artists
+  "Browse the artist catalog (app.rocksky.artist.getArtists). `opts` may
+  contain :limit (default 50), :offset (default 0), :genre, :filter (an rsql
+  node or RSQL string) and :base."
+  ([] (catalog-artists {}))
+  ([{:keys [base] :as opts}]
+   (query "app.rocksky.artist.getArtists" (catalog-params opts [:genre]) base)))
+
+(defn catalog-albums
+  "Browse the album catalog (app.rocksky.album.getAlbums). `opts` may contain
+  :limit (default 50), :offset (default 0), :genre, :filter (an rsql node or
+  RSQL string) and :base."
+  ([] (catalog-albums {}))
+  ([{:keys [base] :as opts}]
+   (query "app.rocksky.album.getAlbums" (catalog-params opts [:genre]) base)))
+
+(defn scrobble-feed
+  "The global scrobble feed (app.rocksky.scrobble.getScrobbles). `opts` may
+  contain :did (narrow to one user), :following (boolean), :limit (default
+  50), :offset (default 0), :filter (an rsql node or RSQL string — dotted
+  selectors like :track.artist reach the joined entities) and :base.
+
+    (scrobble-feed {:filter (rsql/eq :track.artist \"Daft Punk\")})"
+  ([] (scrobble-feed {}))
+  ([{:keys [base] :as opts}]
+   (query "app.rocksky.scrobble.getScrobbles"
+          (catalog-params opts [:did :following]) base)))
 
 (defn library-get
   "Authenticated app.rocksky.library.* query escape hatch. `token` is required —
