@@ -274,7 +274,7 @@ const EXPORTS: &[(&str, &str)] = &[
     ),
     (
         "available_markets",
-        "SELECT row_id AS rowid, markets FROM available_markets ORDER BY row_id",
+        "SELECT row_id AS rowid, markets AS available_markets FROM available_markets ORDER BY row_id",
     ),
 ];
 

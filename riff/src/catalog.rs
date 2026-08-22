@@ -148,16 +148,24 @@ fn markets(conn: &PooledConn, market_rowids: &[i64]) -> ApiResult<HashMap<i64, V
     let mut out = HashMap::new();
     for row in rows {
         let (id, raw) = row?;
-        let list = raw
-            .unwrap_or_default()
-            .split(',')
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string)
-            .collect();
-        out.insert(id, list);
+        out.insert(id, split_markets(raw.as_deref().unwrap_or_default()));
     }
     Ok(out)
+}
+
+/// Splits the `available_markets` cell into ISO-3166-1 alpha-2 codes.
+///
+/// The column is a `VARCHAR` whose internal encoding is not pinned down by the
+/// dump's schema, so this accepts the plausible spellings rather than betting on
+/// one: `US,CA`, `US CA`, `["US","CA"]`. Separators and JSON punctuation are
+/// stripped; anything left non-empty is a market. Guessing a single format and
+/// being wrong would yield one bogus market per row instead of a visible error.
+fn split_markets(raw: &str) -> Vec<String> {
+    raw.split(|c: char| c == ',' || c == ';' || c.is_whitespace())
+        .map(|s| s.trim_matches(|c: char| matches!(c, '"' | '\'' | '[' | ']' | '{' | '}')))
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 fn album_artists(
@@ -885,4 +893,32 @@ pub fn require_row_id(conn: &PooledConn, table: &str, id: &str) -> ApiResult<i64
     row_ids(conn, table, &[id.to_string()])?
         .remove(id)
         .ok_or_else(|| ApiError::NotFound("non existing id".into()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn splits_comma_separated_markets() {
+        assert_eq!(split_markets("US,CA,GB"), vec!["US", "CA", "GB"]);
+        assert_eq!(split_markets("US, CA , GB"), vec!["US", "CA", "GB"]);
+    }
+
+    /// The dump's schema pins the column as VARCHAR but not its encoding, so
+    /// the other plausible spellings must not silently become one bogus market.
+    #[test]
+    fn splits_the_other_plausible_encodings() {
+        assert_eq!(split_markets("US CA GB"), vec!["US", "CA", "GB"]);
+        assert_eq!(split_markets(r#"["US","CA"]"#), vec!["US", "CA"]);
+        assert_eq!(split_markets("['US', 'CA']"), vec!["US", "CA"]);
+    }
+
+    #[test]
+    fn empty_and_ragged_input_yields_no_markets() {
+        assert!(split_markets("").is_empty());
+        assert!(split_markets("   ").is_empty());
+        assert!(split_markets(",,").is_empty());
+        assert!(split_markets("[]").is_empty());
+    }
 }

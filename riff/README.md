@@ -155,7 +155,7 @@ track_artists.parquet
     track_rowid, artist_rowid            -- plus an optional index_in_track
 
 available_markets.parquet
-    rowid, markets
+    rowid, available_markets            -- projected internally as `markets`
 
 track_audio_features.parquet          -- every column is VARCHAR, including the numeric ones
     rowid, track_id, fetched_at, null_response, duration_ms, time_signature,
@@ -194,11 +194,14 @@ So both relations riff can do without are in fact present:
   be written primary-first. If an `index_in_track` column ever appears, riff uses
   it instead, with no other change.
 - **`available_markets.parquet`** populates `available_markets` on albums and
-  tracks. riff expects `(rowid, markets)` with `markets` a comma-separated list
-  of ISO-3166-1 alpha-2 codes. The column list is validated at startup, so if the
-  real file is shaped differently riff refuses to start and names the file rather
-  than quietly serving `[]` — correct that one `TableSpec` in `src/db.rs` and
-  nothing else changes, since everything downstream keys off row ids.
+  tracks. It is `(rowid, available_markets)`, the column carrying a `VARCHAR` of
+  ISO-3166-1 alpha-2 codes; riff projects it as `markets` internally so the view
+  is not `available_markets.available_markets`.
+
+  The dump's schema pins the column as `VARCHAR` but not its *encoding*, so the
+  parser accepts the plausible spellings — `US,CA`, `US CA`, `["US","CA"]` —
+  rather than betting on one. Betting wrong would yield a single bogus market per
+  row instead of a visible failure.
 
 `market=` is accepted and ignored on every endpoint. Filtering is left to the
 caller, which can read `available_markets` off the response.

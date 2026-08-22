@@ -224,7 +224,9 @@ const TABLES: &[TableSpec] = &[
     // Kept optional so a partial dump still starts.
     TableSpec {
         name: "available_markets",
-        projection: "rowid AS row_id, markets",
+        // Upstream calls the column `available_markets`, same as the table;
+        // riff projects it as `markets` so the view is not `available_markets.available_markets`.
+        projection: "rowid AS row_id, available_markets AS markets",
         empty: "NULL::BIGINT AS row_id, NULL::VARCHAR AS markets",
         optional_columns: &[],
         read_options: "",
