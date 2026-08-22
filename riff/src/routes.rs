@@ -113,8 +113,9 @@ SEARCH
       /v1/search?type=track&q=track:"Blue Monday" artist:"New Order"
 
   Recognized: track:  artist:  album:  genre:  isrc:  upc:  year:  (year takes
-  2019 or 1990-1999). Bare words match a title, a credited artist or an album.
-  Results rank exact-title matches first, then popularity.
+  2019 or 1990-1999). Matching is EXACT (case-insensitive) — substring search
+  over a 256M-row catalog is a full scan, and fuzzy lookups are what the
+  Spotify fallback in the proxy is for. Results rank by popularity.
 
 LIMITS
 

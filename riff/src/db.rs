@@ -95,7 +95,7 @@ fn has_column(present: &[String], name: &str) -> bool {
 }
 
 /// The column names a parquet file actually carries.
-fn parquet_columns(conn: &PooledConn, file: &Path) -> Result<Vec<String>, String> {
+fn parquet_columns(conn: &duckdb::Connection, file: &Path) -> Result<Vec<String>, String> {
     let sql = format!(
         "SELECT column_name FROM (DESCRIBE SELECT * FROM read_parquet({}))",
         quote(file)
@@ -252,50 +252,182 @@ pub struct Settings {
     pub data_dir: PathBuf,
     pub db_path: Option<PathBuf>,
     pub pool_size: u32,
+    /// How long a request may wait for a pooled connection before failing.
+    ///
+    /// Kept short on purpose. When every connection is busy, riff is overloaded
+    /// and the right answer is an immediate 500 the proxy turns into a Spotify
+    /// fallback — not 30 seconds of queueing that turns one slow query into a
+    /// wall of timeouts (which is exactly how the first production deploy
+    /// died).
+    pub pool_timeout: std::time::Duration,
+}
+
+/// The derived lookup relations that make point queries cheap.
+///
+/// The big parquet files are sorted by `rowid` (verified against the production
+/// footers), so hydration by row id already prunes to a couple of row groups.
+/// What the dump has *no* order for is everything else riff looks things up by:
+/// Spotify id, lowercased name, ISRC, artist-side foreign keys. Each entry here
+/// is that relation, expressed once — in parquet mode it is registered as a view
+/// (a scan, fine for fixtures), and `materialize` turns the same SELECT into a
+/// table sorted by `order_by` so zone maps make it an index-grade lookup.
+///
+/// `track_audio_features`, `album_images` and `artist_genres` reappear here
+/// because their parquet files are not sorted by their lookup key; the
+/// materialized copies shadow the base views of the same name.
+struct LookupSpec {
+    name: &'static str,
+    select: &'static str,
+    order_by: &'static str,
+    /// A sorted replacement for a base relation of the same name. In parquet
+    /// mode the base view *is* the relation and no lookup view is created —
+    /// a view selecting from itself would recurse; the entry only matters to
+    /// the materializer, which swaps a sorted table in under the name.
+    shadows_base: bool,
+}
+
+const LOOKUPS: &[LookupSpec] = &[
+    LookupSpec {
+        name: "track_ids",
+        select: "SELECT id, row_id FROM tracks",
+        order_by: "id",
+        shadows_base: false,
+    },
+    LookupSpec {
+        name: "artist_ids",
+        select: "SELECT id, row_id FROM artists",
+        order_by: "id",
+        shadows_base: false,
+    },
+    LookupSpec {
+        name: "album_ids",
+        select: "SELECT id, row_id FROM albums",
+        order_by: "id",
+        shadows_base: false,
+    },
+    // popularity rides along so search can rank without touching the 23G
+    // tracks relation at all.
+    LookupSpec {
+        name: "track_names",
+        select: "SELECT lower(name) AS name_key, row_id, popularity FROM tracks",
+        order_by: "name_key",
+        shadows_base: false,
+    },
+    LookupSpec {
+        name: "artist_names",
+        select: "SELECT lower(name) AS name_key, row_id, popularity FROM artists",
+        order_by: "name_key",
+        shadows_base: false,
+    },
+    LookupSpec {
+        name: "album_names",
+        select: "SELECT lower(name) AS name_key, row_id, popularity FROM albums",
+        order_by: "name_key",
+        shadows_base: false,
+    },
+    LookupSpec {
+        name: "track_isrcs",
+        select: "SELECT upper(external_id_isrc) AS isrc_key, row_id FROM tracks \
+                 WHERE external_id_isrc IS NOT NULL",
+        order_by: "isrc_key",
+        shadows_base: false,
+    },
+    // track_artists.parquet is sorted by track_rowid, which serves per-track
+    // credits; top-tracks needs the artist-side order, with popularity along so
+    // ranking never touches the tracks relation.
+    LookupSpec {
+        name: "track_artists_by_artist",
+        select: "SELECT ta.artist_rowid, ta.track_rowid, t.popularity \
+                 FROM track_artists ta JOIN tracks t ON t.row_id = ta.track_rowid",
+        order_by: "artist_rowid",
+        shadows_base: false,
+    },
+    // /artists/{id}/albums filters on album_type and orders by release_date;
+    // carrying both here means the listing never joins the albums relation.
+    LookupSpec {
+        name: "artist_albums_expanded",
+        select: "SELECT aa.artist_rowid, aa.album_rowid, aa.is_appears_on, \
+                        aa.is_implicit_appears_on, aa.index_in_album, \
+                        al.album_type, al.release_date \
+                 FROM artist_albums aa JOIN albums al ON al.row_id = aa.album_rowid",
+        order_by: "artist_rowid",
+        shadows_base: false,
+    },
+    LookupSpec {
+        name: "artist_albums_by_album",
+        select: "SELECT artist_rowid, album_rowid, is_appears_on, \
+                        is_implicit_appears_on, index_in_album FROM artist_albums",
+        order_by: "album_rowid, COALESCE(index_in_album, 0)",
+        shadows_base: false,
+    },
+    LookupSpec {
+        name: "album_images",
+        select: "SELECT album_rowid, width, height, url FROM album_images",
+        order_by: "album_rowid, COALESCE(width, 0) DESC",
+        shadows_base: true,
+    },
+    LookupSpec {
+        name: "artist_genres",
+        select: "SELECT artist_rowid, genre FROM artist_genres",
+        order_by: "artist_rowid, genre",
+        shadows_base: true,
+    },
+    LookupSpec {
+        name: "track_audio_features",
+        select: "SELECT * FROM track_audio_features",
+        order_by: "track_id",
+        shadows_base: true,
+    },
+];
+
+/// Names of BASE TABLEs already present in the attached database. When a
+/// materialized table exists under a relation's name, the view of the same name
+/// must not be created over it — the table *is* the relation.
+fn base_tables(conn: &duckdb::Connection) -> Result<std::collections::HashSet<String>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT table_name FROM information_schema.tables \
+             WHERE table_type = 'BASE TABLE' AND table_schema = 'main'",
+        )
+        .map_err(err)?;
+    let rows = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(err)?;
+    rows.collect::<Result<_, _>>().map_err(err)
 }
 
 fn quote(path: &Path) -> String {
     format!("'{}'", path.to_string_lossy().replace('\'', "''"))
 }
 
-/// Opens the database and registers one view per relation. Returns the pool
-/// plus a human-readable report of what was found, for the startup log.
-pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
-    let manager = match &cfg.db_path {
-        // A persistent file lets an operator materialize + index the hot
-        // relations once (see README) instead of rescanning parquet per query.
-        Some(p) => DuckdbConnectionManager::file(p),
-        None => DuckdbConnectionManager::memory(),
-    }
-    .map_err(err)?;
-
-    let pool = r2d2::Pool::builder()
-        .max_size(cfg.pool_size)
-        .build(manager)
-        .map_err(|e| format!("could not build the DuckDB pool: {e}"))?;
-
-    let conn = pool
-        .get()
-        .map_err(|e| format!("could not open a DuckDB connection: {e}"))?;
-
+/// Registers the parquet-backed relations on a connection: one view per file,
+/// schema-checked, with the `track_artists` fallback when its file is absent.
+/// Relation names already present as base tables (materialized) are left alone.
+fn register_relations(
+    conn: &duckdb::Connection,
+    data_dir: &Path,
+    tables: &std::collections::HashSet<String>,
+) -> Result<Vec<String>, String> {
     let mut report = Vec::new();
     let mut has_track_artists_file = false;
 
     for spec in TABLES {
-        let file = cfg.data_dir.join(format!("{}.parquet", spec.name));
+        if tables.contains(spec.name) {
+            report.push(format!("  {:<24} (materialized table)", spec.name));
+            continue;
+        }
+
+        let file = data_dir.join(format!("{}.parquet", spec.name));
         // `track_artists_file` is the view name, not the file name.
         let file = if spec.name == "track_artists_file" {
-            cfg.data_dir.join("track_artists.parquet")
+            data_dir.join("track_artists.parquet")
         } else {
             file
         };
 
         if file.exists() {
-            let present = parquet_columns(&conn, &file)?;
+            let present = parquet_columns(conn, &file)?;
             let projection = spec.projection(&present);
 
-            // A view is created even when the relation is materialized into the
-            // persistent database, so `CREATE OR REPLACE` keeps restarts idempotent.
+            // `CREATE OR REPLACE` keeps restarts idempotent.
             let sql = format!(
                 "CREATE OR REPLACE VIEW {} AS SELECT {} FROM read_parquet({}{})",
                 spec.name,
@@ -318,13 +450,13 @@ pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
             let missing = spec.missing_optional(&present);
             if !missing.is_empty() {
                 report.push(format!(
-                    "  {:<22} {} (without {})",
+                    "  {:<24} {} (without {})",
                     spec.name,
                     file.display(),
                     missing.join(", ")
                 ));
             } else {
-                report.push(format!("  {:<22} {}", spec.name, file.display()));
+                report.push(format!("  {:<24} {}", spec.name, file.display()));
             }
 
             if spec.name == "track_artists_file" {
@@ -341,25 +473,216 @@ pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
                 spec.name, spec.empty
             ))
             .map_err(err)?;
-            report.push(format!("  {:<22} (absent — serving empty)", spec.name));
+            report.push(format!("  {:<24} (absent — serving empty)", spec.name));
         }
     }
 
-    let track_artists = if has_track_artists_file {
-        "SELECT track_rowid, artist_rowid, index_in_track FROM track_artists_file".to_string()
+    if !tables.contains("track_artists") {
+        let track_artists = if has_track_artists_file {
+            "SELECT track_rowid, artist_rowid, index_in_track FROM track_artists_file".to_string()
+        } else {
+            report.push(
+                "  track_artists            derived from artist_albums (no track_artists.parquet)"
+                    .into(),
+            );
+            TRACK_ARTISTS_FALLBACK.to_string()
+        };
+        conn.execute_batch(&format!(
+            "CREATE OR REPLACE VIEW track_artists AS {track_artists}"
+        ))
+        .map_err(err)?;
+    }
+
+    // The lookup relations, as views. Anything the materializer has already
+    // turned into a sorted table keeps the table.
+    for lookup in LOOKUPS {
+        if tables.contains(lookup.name) || lookup.shadows_base {
+            continue;
+        }
+        conn.execute_batch(&format!(
+            "CREATE OR REPLACE VIEW {} AS {}",
+            lookup.name, lookup.select
+        ))
+        .map_err(|e| format!("could not register lookup view {}: {e}", lookup.name))?;
+    }
+
+    Ok(report)
+}
+
+/// Opens the database and registers every relation. Returns the pool plus a
+/// human-readable report of what was found, for the startup log.
+pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
+    let manager = match &cfg.db_path {
+        // A persistent file carries the sorted lookup tables written by
+        // `riff-materialize`; without them every search and id lookup is a full
+        // scan of the parquet, which cannot be served interactively at the
+        // production sizes (23G tracks, 14G audio features).
+        Some(p) => DuckdbConnectionManager::file(p),
+        None => DuckdbConnectionManager::memory(),
+    }
+    .map_err(err)?;
+
+    let pool = r2d2::Pool::builder()
+        .max_size(cfg.pool_size)
+        .connection_timeout(cfg.pool_timeout)
+        .build(manager)
+        .map_err(|e| format!("could not build the DuckDB pool: {e}"))?;
+
+    let conn = pool
+        .get()
+        .map_err(|e| format!("could not open a DuckDB connection: {e}"))?;
+
+    let tables = base_tables(&conn)?;
+    let mut report = register_relations(&conn, &cfg.data_dir, &tables)?;
+    if tables.contains("riff_meta") {
+        report.push(format!(
+            "  ({} lookup tables materialized in {})",
+            LOOKUPS.iter().filter(|l| tables.contains(l.name)).count(),
+            cfg.db_path
+                .as_deref()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default()
+        ));
     } else {
         report.push(
-            "  track_artists          derived from artist_albums (no track_artists.parquet)".into(),
+            "  (no materialized lookups — searches and id lookups scan the parquet; \
+run riff-materialize for production data)"
+                .into(),
         );
-        TRACK_ARTISTS_FALLBACK.to_string()
-    };
-    conn.execute_batch(&format!(
-        "CREATE OR REPLACE VIEW track_artists AS {track_artists}"
-    ))
-    .map_err(err)?;
+    }
 
     drop(conn);
     Ok((Catalog { pool }, report))
+}
+
+/// Builds the sorted lookup tables into `db_path`. One-off, rerunnable; each
+/// table is built under a scratch name and swapped in, so a crash mid-build
+/// never leaves a half-written relation behind.
+///
+/// `progress` receives one line per step, for the CLI to print as it goes —
+/// the big tables take minutes each and silence reads as a hang.
+pub fn materialize(
+    data_dir: &Path,
+    db_path: &Path,
+    mut progress: impl FnMut(&str),
+) -> Result<(), String> {
+    let conn = duckdb::Connection::open(db_path)
+        .map_err(|e| format!("could not open {}: {e}", db_path.display()))?;
+
+    // Spill next to the database, on the same volume — the external sorts over
+    // the 23G/14G relations need real scratch space, and /tmp may be small.
+    let tmp = db_path.with_extension("duckdb.tmp");
+    let memory_limit = std::env::var("RIFF_MEMORY_LIMIT").unwrap_or_else(|_| "8GB".to_string());
+    conn.execute_batch(&format!(
+        "SET temp_directory = {}; SET memory_limit = '{}'; SET preserve_insertion_order = true;",
+        quote(&tmp),
+        memory_limit.replace('\'', "")
+    ))
+    .map_err(err)?;
+
+    let tables = base_tables(&conn)?;
+    for line in register_relations(&conn, data_dir, &tables)? {
+        progress(&line);
+    }
+
+    // A staging pass so the 23G tracks relation is decoded once, not once per
+    // derived table.
+    let steps: &[(&str, String)] = &[(
+        "stage_tracks",
+        "SELECT row_id, id, lower(name) AS name_key, popularity, \
+                    upper(external_id_isrc) AS isrc_key \
+             FROM tracks"
+            .to_string(),
+    )];
+    for (name, select) in steps {
+        run_ctas(&conn, name, select, None, &mut progress)?;
+    }
+
+    for lookup in LOOKUPS {
+        // stage-aware sources: the three track maps read the staging table
+        // instead of going back to the parquet.
+        let select = match lookup.name {
+            "track_ids" => "SELECT id, row_id FROM stage_tracks".to_string(),
+            "track_names" => "SELECT name_key, row_id, popularity FROM stage_tracks".to_string(),
+            "track_isrcs" => {
+                "SELECT isrc_key, row_id FROM stage_tracks WHERE isrc_key IS NOT NULL".to_string()
+            }
+            "track_artists_by_artist" => "SELECT ta.artist_rowid, ta.track_rowid, t.popularity \
+                 FROM track_artists ta JOIN stage_tracks t ON t.row_id = ta.track_rowid"
+                .to_string(),
+            _ => lookup.select.to_string(),
+        };
+        run_ctas(
+            &conn,
+            lookup.name,
+            &select,
+            Some(lookup.order_by),
+            &mut progress,
+        )?;
+        if lookup.name == "track_artists_by_artist" {
+            conn.execute_batch("DROP TABLE IF EXISTS stage_tracks")
+                .map_err(err)?;
+        }
+    }
+
+    conn.execute_batch(
+        "DROP TABLE IF EXISTS riff_meta; \
+         CREATE TABLE riff_meta AS SELECT 1 AS schema_version",
+    )
+    .map_err(err)?;
+    let _ = std::fs::remove_dir_all(&tmp);
+    progress("done — riff_meta written; point riff at this file with --db-path");
+    Ok(())
+}
+
+/// `DROP`-safe create-and-swap of one sorted table.
+fn run_ctas(
+    conn: &duckdb::Connection,
+    name: &str,
+    select: &str,
+    order_by: Option<&str>,
+    progress: &mut impl FnMut(&str),
+) -> Result<(), String> {
+    let started = std::time::Instant::now();
+    let order = order_by
+        .map(|o| format!(" ORDER BY {o}"))
+        .unwrap_or_default();
+    // Build under a scratch name, then swap: the source of some tables is the
+    // same-named parquet view, which cannot be dropped before it is read.
+    conn.execute_batch(&format!(
+        "DROP TABLE IF EXISTS {name}__new; \
+         CREATE TABLE {name}__new AS {select}{order};"
+    ))
+    .map_err(|e| format!("materializing {name} failed: {e}"))?;
+    // `DROP VIEW IF EXISTS` errors when the name is a table (and vice versa),
+    // so look up what the name currently is — a view on the first run, the
+    // previous table on a rebuild — and drop that.
+    let existing: Option<String> = conn
+        .query_row(
+            "SELECT table_type FROM information_schema.tables \
+             WHERE table_schema = 'main' AND table_name = ?",
+            [name],
+            |r| r.get(0),
+        )
+        .ok();
+    let drop = match existing.as_deref() {
+        Some("VIEW") => format!("DROP VIEW {name};"),
+        Some(_) => format!("DROP TABLE {name};"),
+        None => String::new(),
+    };
+    conn.execute_batch(&format!("{drop} ALTER TABLE {name}__new RENAME TO {name};"))
+        .map_err(|e| format!("swapping {name} in failed: {e}"))?;
+
+    let rows: i64 = conn
+        .query_row(&format!("SELECT COUNT(*) FROM {name}"), [], |r| r.get(0))
+        .map_err(err)?;
+    progress(&format!(
+        "  {:<24} {:>12} rows  {:>6.1}s",
+        name,
+        rows,
+        started.elapsed().as_secs_f64()
+    ));
+    Ok(())
 }
 
 fn err<E: std::fmt::Display>(e: E) -> String {

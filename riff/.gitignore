@@ -5,3 +5,7 @@
 # `cargo run --bin riff-fixtures`. Starting without them fails with a message
 # naming that command.
 /testdata
+
+# The production sample slice IS committed — 128K of real catalog rows that
+# keep the e2e tests honest about prod's actual schemas and encodings.
+!/tests/prod-sample/*.parquet

@@ -39,6 +39,13 @@ struct Cli {
     #[arg(long, env = "RIFF_POOL_SIZE")]
     pool_size: Option<u32>,
 
+    /// Seconds a request may wait for a pooled DuckDB connection before riff
+    /// answers 500. Short on purpose: when the pool is exhausted riff is
+    /// overloaded, and shedding immediately lets the proxy fall back to
+    /// Spotify instead of queueing every caller into a timeout.
+    #[arg(long, env = "RIFF_POOL_TIMEOUT", default_value_t = 5)]
+    pool_timeout: u64,
+
     /// Sustained requests per second allowed per remote IP. Loopback is never
     /// rate limited, whatever this is set to.
     #[arg(long, env = "RIFF_RATE_LIMIT_RPS", default_value_t = 50.0)]
@@ -75,6 +82,7 @@ async fn main() -> std::io::Result<()> {
         data_dir: cli.data_dir.clone(),
         db_path: cli.db_path.clone(),
         pool_size,
+        pool_timeout: std::time::Duration::from_secs(cli.pool_timeout),
     };
 
     let (catalog, report) = db::open(&settings).map_err(|e| {

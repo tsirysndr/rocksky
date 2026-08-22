@@ -64,12 +64,21 @@ fn group<K: std::hash::Hash + Eq, V>(pairs: Vec<(K, V)>) -> HashMap<K, Vec<V>> {
 
 /// Maps Spotify ids onto row ids. Ids absent from the catalog are simply absent
 /// from the map; callers turn that into a `null` entry or a 404.
+/// Goes through the `*_ids` maps, not the base relations: the parquet files are
+/// sorted by rowid, so an id lookup there is a full scan of the id column. The
+/// maps are sorted by id, which zone maps turn into a point lookup.
 fn row_ids(conn: &PooledConn, table: &str, ids: &[String]) -> ApiResult<HashMap<String, i64>> {
     if ids.is_empty() {
         return Ok(HashMap::new());
     }
+    let map = match table {
+        "tracks" => "track_ids",
+        "artists" => "artist_ids",
+        "albums" => "album_ids",
+        other => other,
+    };
     let sql = format!(
-        "SELECT id, row_id FROM {table} WHERE id IN ({})",
+        "SELECT id, row_id FROM {map} WHERE id IN ({})",
         placeholders(ids.len())
     );
     let mut stmt = conn.prepare(&sql)?;
@@ -179,7 +188,7 @@ fn album_artists(
     // album's own artists and must not show up in `album.artists[]`.
     let sql = format!(
         "SELECT aa.album_rowid, ar.id, ar.name \
-         FROM artist_albums aa JOIN artists ar ON ar.row_id = aa.artist_rowid \
+         FROM artist_albums_by_album aa JOIN artists ar ON ar.row_id = aa.artist_rowid \
          WHERE aa.album_rowid IN ({}) AND COALESCE(aa.is_appears_on, 0) = 0 \
          ORDER BY aa.album_rowid, COALESCE(aa.index_in_album, 0)",
         inline(album_rowids)
@@ -748,8 +757,11 @@ pub fn artist_album_rowids(
     // Spotify's `album_group` is the *relationship*, not the album's own type:
     // an album the artist merely appears on is grouped `appears_on` regardless
     // of whether it is itself an album or a compilation.
+    // `artist_albums_expanded` carries album_type and release_date precisely so
+    // this listing never joins the albums relation — sorted by artist_rowid, the
+    // whole page is one pruned scan.
     let group_expr = "CASE WHEN COALESCE(aa.is_appears_on, 0) <> 0 THEN 'appears_on' \
-                      ELSE COALESCE(al.album_type, 'album') END";
+                      ELSE COALESCE(aa.album_type, 'album') END";
 
     let filter = if include_groups.is_empty() {
         String::new()
@@ -760,14 +772,11 @@ pub fn artist_album_rowids(
         )
     };
 
-    let from = format!(
-        "FROM artist_albums aa JOIN albums al ON al.row_id = aa.album_rowid \
-         WHERE aa.artist_rowid = ?{filter}"
-    );
+    let from = format!("FROM artist_albums_expanded aa WHERE aa.artist_rowid = ?{filter}");
 
     let sql = format!(
-        "SELECT al.row_id, {group_expr} AS album_group {from} \
-         ORDER BY al.release_date DESC NULLS LAST, al.row_id LIMIT ? OFFSET ?"
+        "SELECT aa.album_rowid, {group_expr} AS album_group {from} \
+         ORDER BY aa.release_date DESC NULLS LAST, aa.album_rowid LIMIT ? OFFSET ?"
     );
     let mut params: Vec<Value> = vec![Value::BigInt(artist_rowid)];
     params.extend(text_params(include_groups));
@@ -788,10 +797,12 @@ pub fn artist_album_rowids(
 }
 
 pub fn artist_top_track_rowids(conn: &PooledConn, artist_rowid: i64) -> ApiResult<Vec<i64>> {
+    // `track_artists_by_artist` is sorted by artist and carries popularity, so
+    // ranking an artist's tracks never touches the 23G tracks relation.
     let mut stmt = conn.prepare(
-        "SELECT t.row_id FROM track_artists ta JOIN tracks t ON t.row_id = ta.track_rowid \
-         WHERE ta.artist_rowid = ? \
-         ORDER BY COALESCE(t.popularity, 0) DESC, t.row_id LIMIT ?",
+        "SELECT track_rowid FROM track_artists_by_artist \
+         WHERE artist_rowid = ? \
+         ORDER BY COALESCE(popularity, 0) DESC, track_rowid LIMIT ?",
     )?;
     Ok(stmt
         .query_map(
@@ -850,7 +861,7 @@ pub fn search_tracks(
     offset: u32,
 ) -> ApiResult<(Vec<Track>, i64)> {
     let built = search::tracks(q);
-    let (rowids, total) = run(conn, "t.row_id", "tracks t", &built, limit, offset)?;
+    let (rowids, total) = run(conn, "t.row_id", "track_names t", &built, limit, offset)?;
     let mut loaded = tracks(conn, &rowids)?;
     Ok((
         rowids.iter().filter_map(|r| loaded.remove(r)).collect(),
@@ -865,7 +876,7 @@ pub fn search_artists(
     offset: u32,
 ) -> ApiResult<(Vec<Artist>, i64)> {
     let built = search::artists(q);
-    let (rowids, total) = run(conn, "a.row_id", "artists a", &built, limit, offset)?;
+    let (rowids, total) = run(conn, "a.row_id", "artist_names a", &built, limit, offset)?;
     let mut loaded = artists(conn, &rowids)?;
     Ok((
         rowids.iter().filter_map(|r| loaded.remove(r)).collect(),
@@ -880,7 +891,7 @@ pub fn search_albums(
     offset: u32,
 ) -> ApiResult<(Vec<SimplifiedAlbum>, i64)> {
     let built = search::albums(q);
-    let (rowids, total) = run(conn, "al.row_id", "albums al", &built, limit, offset)?;
+    let (rowids, total) = run(conn, "al.row_id", "album_names al", &built, limit, offset)?;
     let mut loaded = simplified_albums(conn, &rowids)?;
     Ok((
         rowids.iter().filter_map(|r| loaded.remove(r)).collect(),

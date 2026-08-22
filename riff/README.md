@@ -64,13 +64,22 @@ searches — `apps/api`'s `matchSong` sends:
 
 Recognized filters: `track:` `artist:` `album:` `genre:` `isrc:` `upc:` `year:`
 (`year:2019` or `year:1990-1999`). Values may be quoted or bare. Bare words with
-no filter match a title, a credited artist, or an album. Repeated `artist:`
-filters are OR'd — `matchSong` sends every artist it knows about, and a track row
-that only carries the primary artist would fail an AND.
+no filter match a title, a credited artist, or an album — as complete names.
+Repeated `artist:` filters are OR'd — `matchSong` sends every artist it knows
+about, and a track row that only carries the primary artist would fail an AND.
 
-Results rank exact (case-insensitive) title matches first, then popularity.
-`tag:new` / `tag:hipster` have no equivalent in the dump and are dropped rather
-than matched literally.
+**Matching is exact (case-insensitive), not substring.** This is the load-bearing
+decision: substring `ILIKE` over the 256M-row tracks relation is a full 23G scan
+per query, which is precisely how the first production deploy died — each search
+held a pooled connection for minutes, the pool starved, and every request timed
+out. Exact match hits the sorted `*_names` lookup tables, where zone maps prune
+it to a few row groups. The fuzzy cases riff loses are exactly the ones the
+Spotify proxy falls back on: a riff miss costs one Spotify call; a riff scan
+cost the whole service. (`genre:` keeps substring matching — that relation is
+tiny.)
+
+Results rank by popularity. `tag:new` / `tag:hipster` have no equivalent in the
+dump and are dropped rather than matched literally.
 
 Paging stops at 1000 items, as on Spotify, and `total` is capped there — see
 [Performance](#performance).
@@ -208,42 +217,41 @@ caller, which can read `available_markets` off the response.
 
 ## Performance
 
-`track_audio_features` is ~255M rows. Parquet has no index, so a lookup by
-`track_id` prunes only by row-group min/max statistics — if the file is not
-sorted by `track_id`, that is a full scan per request. Two ways out:
+The dump is large (23G tracks, 14G audio features) and parquet has no indexes —
+only per-row-group min/max statistics ("zone maps"), which prune a scan **only
+when the file is sorted by the queried column**. The production files are sorted
+by `rowid`, so riff splits its access paths in two:
 
-- Sort the parquet by `track_id` when producing it, so zone maps actually prune.
-- Or materialize into a persistent DuckDB file once and point `--db-path` at it:
+- **Hydration reads the parquet directly.** Fetching rows by `row_id IN (...)`
+  prunes to a couple of row groups; no copy needed.
+- **Everything else goes through materialized lookup tables** — sorted copies
+  built once per dump refresh by `riff-materialize`:
 
-  ```sql
-  ATTACH 'riff.duckdb' AS riff;
-  CREATE TABLE riff.track_audio_features AS
-    SELECT * FROM read_parquet('track_audio_features.parquet');
-  CREATE INDEX taf_track_id ON riff.track_audio_features (track_id);
+  ```sh
+  riff-materialize --data-dir /root/spotify-dump --db /root/riff.duckdb
+  riff --data-dir /root/spotify-dump --db-path /root/riff.duckdb
   ```
 
-  riff creates its views with `CREATE OR REPLACE`, so a materialized table of the
-  same name is picked up on restart.
+  That builds `track_ids` / `artist_ids` / `album_ids` (id → row id, sorted by
+  id), `*_names` (lowercased name → row id + popularity, what search runs on),
+  `track_isrcs`, `track_artists_by_artist` and `artist_albums_expanded` (the
+  artist-side orderings, carrying popularity / album_type / release_date so the
+  hot endpoints never join a big relation), plus sorted copies of
+  `track_audio_features`, `album_images` and `artist_genres` whose files are not
+  sorted by their lookup key. ~35G on disk, tens of minutes to build, rerunnable
+  (tables are built under a scratch name and swapped in).
 
-Search `total` is capped at 1000 for the same reason: an exact `COUNT(*)` over
-the tracks parquet is a full scan on every query, to produce a number no client
-can page into anyway.
+Without the materialized file riff still starts — the same relations exist as
+views over the parquet — and the startup log says so. That mode is for fixtures
+and tests; on production data every search and id lookup would be a full scan.
 
-### Concurrency
+Search `total` is capped at 1000: an exact `COUNT(*)` per query buys a number no
+client can page into anyway.
 
-DuckDB reads concurrently and riff leans on that: connections to one database run
-in parallel under MVCC, and an individual scan is itself multi-threaded across
-cores. Concurrent readers are the workload it is built for.
-
-What the Rust binding adds is a type constraint, not an engine limit: a
-`duckdb::Connection` is `Send` but not `Sync`, so a single handle cannot be driven
-by two threads at once. The r2d2 pool hands each in-flight request its own handle
-— `try_clone` opens a new connection onto the same shared database, so views
-registered once at startup are visible to all of them — and DuckDB executes those
-handles in parallel.
-
-Queries run inside `web::block` so a long scan occupies a blocking thread rather
-than parking an actix worker.
+Each in-flight request holds one pooled DuckDB connection, and waits at most
+`--pool-timeout` (default 5s) for one. Short on purpose: an exhausted pool means
+riff is overloaded, and shedding immediately lets the proxy fall back to Spotify
+instead of queueing every caller into a timeout.
 
 ## Deployment
 
@@ -281,8 +289,16 @@ cargo test --release
 - `src/fixtures.rs` — the generated files match prod's column names and types,
   and generation is byte-for-byte deterministic.
 - `tests/e2e.rs` — the real routes over real DuckDB over real Parquet. Nothing is
-  mocked. Also covers the degraded paths: a missing `track_artists.parquet`, a
-  missing optional relation, a missing required one, and a schema drift.
+  mocked. Also covers the degraded paths (missing files, schema drift) and the
+  materialized mode end to end, including rebuild idempotence.
+- `tests/prod_sample.rs` — the same routes over `tests/prod-sample/`, a 128K
+  committed slice of the **actual production dump** (four artists, their albums
+  and tracks, and everything those rows reference). It carries the real quirks
+  the synthetic fixtures imitate — all-VARCHAR audio features, the market-list
+  encoding, `track_artists` without an ordering column — and its assertions are
+  discovered from the slice, so re-extracting a different slice does not rewrite
+  the suite. One named test pins the exact search that caused the 2026-08-22
+  outage.
 
 CI (`.github/workflows/riff.yml`) additionally runs fmt, clippy and a smoke test
 against the actual binary over a real socket.

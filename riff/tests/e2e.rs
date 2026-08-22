@@ -47,6 +47,7 @@ fn settings(dir: PathBuf) -> db::Settings {
         data_dir: dir,
         db_path: None,
         pool_size: 4,
+        pool_timeout: std::time::Duration::from_secs(5),
     }
 }
 
@@ -520,20 +521,34 @@ async fn search_ranks_an_exact_title_first() {
 
 #[actix_web::test]
 async fn free_text_matches_title_artist_or_album() {
-    let by_artist = get_ok("/v1/search?type=track&q=Nightbus").await;
+    // Free text matches exactly (case-insensitive): a full artist name finds
+    // that artist's tracks.
+    let by_artist = get_ok("/v1/search?type=track&q=%22nightbus%20choir%22").await;
     let items = by_artist["tracks"]["items"].as_array().unwrap();
     assert!(
         !items.is_empty(),
-        "a bare artist name should match that artist's tracks"
+        "a full artist name should match that artist's tracks"
     );
     for t in items {
         assert_eq!(names(&t["artists"]), vec!["Nightbus Choir"]);
     }
 }
 
+/// Search is exact-match by design: substring matching over the production
+/// tracks relation is a 23G scan per query, which is the outage this replaced.
+/// A fuzzy query returns nothing here — and the Spotify proxy treats an empty
+/// riff result as "fall back to Spotify", whose fuzzy search is better anyway.
+#[actix_web::test]
+async fn partial_names_do_not_match() {
+    let body = get_ok("/v1/search?type=track,artist,album&q=Nightbus").await;
+    assert_eq!(body["tracks"]["items"].as_array().unwrap().len(), 0);
+    assert_eq!(body["artists"]["items"].as_array().unwrap().len(), 0);
+    assert_eq!(body["albums"]["items"].as_array().unwrap().len(), 0);
+}
+
 #[actix_web::test]
 async fn search_returns_only_the_requested_types() {
-    let body = get_ok("/v1/search?type=artist&q=Kova").await;
+    let body = get_ok("/v1/search?type=artist&q=%22kova%20lune%22").await;
     assert!(body.get("artists").is_some());
     assert!(body.get("tracks").is_none());
     assert!(body.get("albums").is_none());
@@ -542,17 +557,12 @@ async fn search_returns_only_the_requested_types() {
 
 #[actix_web::test]
 async fn search_can_return_several_types_at_once() {
-    let body = get_ok("/v1/search?type=artist,album&q=Neon").await;
+    let body = get_ok("/v1/search?type=artist,album&q=%22Neon%20Tide%22").await;
     assert!(body.get("artists").is_some());
     assert!(body.get("albums").is_some());
     assert!(body.get("tracks").is_none());
-    assert_eq!(
-        names(&body["albums"]["items"])
-            .into_iter()
-            .filter(|n| n.starts_with("Neon Tide"))
-            .count(),
-        2
-    );
+    // Exact match: the album named exactly "Neon Tide", not the remix EP.
+    assert_eq!(names(&body["albums"]["items"]), vec!["Neon Tide"]);
 }
 
 #[actix_web::test]
@@ -606,7 +616,7 @@ async fn search_refuses_to_page_past_the_window() {
 
 #[actix_web::test]
 async fn search_terms_with_like_wildcards_are_literal() {
-    // '%' must not turn into "match everything".
+    // '%' compares as the literal character under exact matching.
     let body = get_ok("/v1/search?type=track&q=track:%22%25%22").await;
     assert_eq!(body["tracks"]["items"].as_array().unwrap().len(), 0);
     assert_eq!(body["tracks"]["total"], 0);
@@ -614,10 +624,10 @@ async fn search_terms_with_like_wildcards_are_literal() {
 
 #[actix_web::test]
 async fn search_paging_reports_a_next_link() {
-    let body = get_ok("/v1/search?type=track&q=the&limit=1").await;
-    if body["tracks"]["total"].as_i64().unwrap() > 1 {
-        assert!(body["tracks"]["next"].is_string());
-    }
+    // "Vega" is an exact track title on Salt & Static and on the sampler.
+    let body = get_ok("/v1/search?type=track&q=track:%22Vega%22&limit=1").await;
+    assert!(body["tracks"]["total"].as_i64().unwrap() > 1);
+    assert!(body["tracks"]["next"].is_string());
     assert!(body["tracks"]["previous"].is_null());
     assert!(body["tracks"]["href"]
         .as_str()
@@ -792,4 +802,79 @@ async fn a_rate_limited_response_is_spotify_shaped() {
     );
     let body: Value = serde_json::from_slice(&test::read_body(res).await).unwrap();
     assert_eq!(body["error"]["status"], 429);
+}
+
+// --------------------------------------------------------- materialized mode
+
+/// The production path: lookup tables materialized into a DuckDB file, base
+/// relations still parquet. Every answer must be identical to parquet mode.
+#[actix_web::test]
+async fn a_materialized_db_serves_the_same_answers() {
+    let db_dir = tempfile::tempdir().unwrap();
+    let db_path = db_dir.path().join("riff.duckdb");
+    db::materialize(data_dir(), &db_path, |_| {}).expect("materialize");
+
+    let mut cfg = settings(data_dir().to_path_buf());
+    cfg.db_path = Some(db_path);
+    let (catalog, report) = db::open(&cfg).expect("open materialized");
+    assert!(
+        report.iter().any(|l| l.contains("materialized")),
+        "startup report should say lookups are materialized: {report:?}"
+    );
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(catalog))
+            .configure(routes::configure),
+    )
+    .await;
+    let get = |uri: &'static str| {
+        let app = &app;
+        async move {
+            let res = test::call_service(app, test::TestRequest::get().uri(uri).to_request()).await;
+            let status = res.status();
+            let body: Value = serde_json::from_slice(&test::read_body(res).await).unwrap();
+            (status, body)
+        }
+    };
+
+    // Search through the materialized name map.
+    let (status, body) =
+        get("/v1/search?type=track&q=track:%22Neon%20Tide%22%20artist:%22Kova%20Lune%22").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["tracks"]["items"][0]["name"], "Neon Tide");
+
+    // Id lookup through the materialized id map.
+    let (status, t) = get("/v1/tracks/rifftrk000000000000014").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(names(&t["artists"]), vec!["Kova Lune", "Marisol Vega"]);
+
+    // Audio features through the sorted copy, numbers restored.
+    let (status, f) = get("/v1/audio-features/rifftrk000000000000010").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(f["danceability"].is_number());
+
+    // Artist albums through artist_albums_expanded.
+    let (status, page) = get("/v1/artists/riffart000000000000001/albums").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(page["total"], 3);
+
+    // Top tracks through track_artists_by_artist.
+    let (status, top) = get("/v1/artists/riffart000000000000004/top-tracks").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!top["tracks"].as_array().unwrap().is_empty());
+}
+
+/// Rerunning the materializer must swap tables in place, not fail on the
+/// leftovers of the previous run.
+#[actix_web::test]
+async fn materializing_twice_is_idempotent() {
+    let db_dir = tempfile::tempdir().unwrap();
+    let db_path = db_dir.path().join("riff.duckdb");
+    db::materialize(data_dir(), &db_path, |_| {}).expect("first run");
+    db::materialize(data_dir(), &db_path, |_| {}).expect("second run");
+
+    let mut cfg = settings(data_dir().to_path_buf());
+    cfg.db_path = Some(db_path);
+    db::open(&cfg).expect("open after rebuild");
 }

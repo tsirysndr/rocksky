@@ -37,14 +37,6 @@ impl SearchQuery {
             && self.upc.is_none()
             && self.year.is_none()
     }
-
-    /// The term used for the "exact title match sorts first" boost.
-    fn primary(&self) -> Option<&str> {
-        self.track
-            .first()
-            .or_else(|| self.free.first())
-            .map(String::as_str)
-    }
 }
 
 /// Splits a Spotify query string into field filters and loose terms.
@@ -148,11 +140,6 @@ pub fn contains(term: &str) -> Value {
     Value::Text(p)
 }
 
-pub struct Predicate {
-    pub sql: String,
-    pub params: Vec<Value>,
-}
-
 pub struct Built {
     pub where_sql: String,
     pub where_params: Vec<Value>,
@@ -168,106 +155,103 @@ fn and(parts: Vec<String>) -> String {
     }
 }
 
-/// Sorts an exact (case-insensitive) title match ahead of everything else, then
-/// falls back to popularity. Without the boost, searching a common title
-/// returns whatever the scan happened to hit first.
-fn order_by(primary: Option<&str>, name_col: &str, pop_col: &str) -> (String, Vec<Value>) {
-    match primary {
-        Some(term) => (
-            format!("ORDER BY (lower({name_col}) = lower(?)) DESC, COALESCE({pop_col}, 0) DESC"),
-            vec![Value::Text(term.to_string())],
-        ),
-        None => (format!("ORDER BY COALESCE({pop_col}, 0) DESC"), Vec::new()),
-    }
+/// A search term as a `name_key` parameter: the maps store `lower(name)`, so
+/// the term is lowered (and trimmed) on the way in and compared with plain `=`.
+///
+/// Equality is the deliberate semantic. Substring `ILIKE` over the 256M-row
+/// tracks relation is a full 23G scan per query — that is the outage of
+/// 2026-08-22, where every search held a pooled connection for minutes and the
+/// pool starved. Exact match hits the sorted `*_names` maps, where zone maps
+/// prune it to a handful of row groups. The fuzzy cases riff loses are exactly
+/// the ones the Spotify proxy falls back on: a riff miss costs one Spotify
+/// call, a riff scan cost the whole service.
+fn name_key(term: &str) -> Value {
+    Value::Text(term.trim().to_lowercase())
 }
 
-/// `EXISTS` over the artists credited on a track. Multiple `artist:` filters are
-/// OR'd: `matchSong` sends every credited artist it knows about, and a track
-/// whose row only carries the primary artist would fail an AND.
-fn track_artist_exists(filters: &[String]) -> Option<Predicate> {
-    if filters.is_empty() {
-        return None;
-    }
-    let ors = vec![format!("ar.name ILIKE ? ESCAPE '{ESC}'"); filters.len()].join(" OR ");
-    Some(Predicate {
-        sql: format!(
-            "EXISTS (SELECT 1 FROM track_artists ta JOIN artists ar ON ar.row_id = ta.artist_rowid \
-             WHERE ta.track_rowid = t.row_id AND ({ors}))"
-        ),
-        params: filters.iter().map(|f| contains(f)).collect(),
-    })
+/// `ORDER BY` for a search over one of the `*_names` maps: all surviving rows
+/// matched the name exactly, so popularity is the only rank that is left.
+/// `row_id` breaks ties so paging is stable.
+fn order_by(alias: &str) -> (String, Vec<Value>) {
+    (
+        format!("ORDER BY COALESCE({alias}.popularity, 0) DESC, {alias}.row_id"),
+        Vec::new(),
+    )
 }
 
-fn album_artist_exists(filters: &[String], album_col: &str) -> Option<Predicate> {
-    if filters.is_empty() {
-        return None;
-    }
-    let ors = vec![format!("ar.name ILIKE ? ESCAPE '{ESC}'"); filters.len()].join(" OR ");
-    Some(Predicate {
-        sql: format!(
-            "EXISTS (SELECT 1 FROM artist_albums aa JOIN artists ar ON ar.row_id = aa.artist_rowid \
-             WHERE aa.album_rowid = {album_col} AND ({ors}))"
-        ),
-        params: filters.iter().map(|f| contains(f)).collect(),
-    })
+/// Semijoin from track rows to an artist-name list:
+/// track -> track_artists_by_artist -> artist_names, every hop against a
+/// relation sorted by the column being probed.
+fn tracks_by_artist_names(n: usize) -> String {
+    format!(
+        "t.row_id IN (SELECT ta.track_rowid FROM track_artists_by_artist ta \
+         WHERE ta.artist_rowid IN (SELECT row_id FROM artist_names WHERE name_key IN ({})))",
+        vec!["?"; n].join(",")
+    )
 }
 
-fn year_between(year: Option<(i32, i32)>, release_col: &str) -> Option<Predicate> {
-    let (from, to) = year?;
-    Some(Predicate {
-        sql: format!("TRY_CAST(substr({release_col}, 1, 4) AS INTEGER) BETWEEN ? AND ?"),
-        params: vec![Value::Int(from), Value::Int(to)],
-    })
+fn tracks_by_album_names(n: usize) -> String {
+    format!(
+        "t.row_id IN (SELECT tr.row_id FROM tracks tr \
+         WHERE tr.album_rowid IN (SELECT row_id FROM album_names WHERE name_key IN ({})))",
+        vec!["?"; n].join(",")
+    )
 }
 
-/// Predicates over `tracks t`.
+fn albums_by_artist_names(n: usize) -> String {
+    format!(
+        "al.row_id IN (SELECT aa.album_rowid FROM artist_albums_expanded aa \
+         WHERE aa.artist_rowid IN (SELECT row_id FROM artist_names WHERE name_key IN ({})))",
+        vec!["?"; n].join(",")
+    )
+}
+
+/// Predicates over `track_names t`.
 pub fn tracks(q: &SearchQuery) -> Built {
     let mut sql = Vec::new();
     let mut params = Vec::new();
 
     for term in &q.track {
-        sql.push(format!("t.name ILIKE ? ESCAPE '{ESC}'"));
-        params.push(contains(term));
+        sql.push("t.name_key = ?".to_string());
+        params.push(name_key(term));
     }
 
-    // A loose term may land on the title, a credited artist, or the album.
+    // A loose term may be the title, a credited artist, or the album.
     for term in &q.free {
         sql.push(format!(
-            "(t.name ILIKE ? ESCAPE '{ESC}' \
-             OR EXISTS (SELECT 1 FROM track_artists ta JOIN artists ar ON ar.row_id = ta.artist_rowid \
-                        WHERE ta.track_rowid = t.row_id AND ar.name ILIKE ? ESCAPE '{ESC}') \
-             OR EXISTS (SELECT 1 FROM albums al WHERE al.row_id = t.album_rowid \
-                        AND al.name ILIKE ? ESCAPE '{ESC}'))"
+            "(t.name_key = ? OR {} OR {})",
+            tracks_by_artist_names(1),
+            tracks_by_album_names(1)
         ));
-        params.extend([contains(term), contains(term), contains(term)]);
+        params.extend([name_key(term), name_key(term), name_key(term)]);
     }
 
-    if let Some(p) = track_artist_exists(&q.artist) {
-        sql.push(p.sql);
-        params.extend(p.params);
+    if !q.artist.is_empty() {
+        sql.push(tracks_by_artist_names(q.artist.len()));
+        params.extend(q.artist.iter().map(|t| name_key(t)));
     }
 
     for term in &q.album {
-        sql.push(format!(
-            "EXISTS (SELECT 1 FROM albums al WHERE al.row_id = t.album_rowid AND al.name ILIKE ? ESCAPE '{ESC}')"
-        ));
-        params.push(contains(term));
+        sql.push(tracks_by_album_names(1));
+        params.push(name_key(term));
     }
 
     if let Some(isrc) = &q.isrc {
-        sql.push("upper(t.external_id_isrc) = upper(?)".to_string());
+        sql.push("t.row_id IN (SELECT row_id FROM track_isrcs WHERE isrc_key = upper(?))".into());
         params.push(Value::Text(isrc.clone()));
     }
 
-    if let Some(p) = year_between(q.year, "al.release_date") {
-        sql.push(format!(
-            "EXISTS (SELECT 1 FROM albums al WHERE al.row_id = t.album_rowid AND {})",
-            p.sql
-        ));
-        params.extend(p.params);
+    if let Some((from, to)) = q.year {
+        sql.push(
+            "t.row_id IN (SELECT tr.row_id FROM tracks tr WHERE tr.album_rowid IN \
+             (SELECT al2.row_id FROM albums al2 \
+              WHERE TRY_CAST(substr(al2.release_date, 1, 4) AS INTEGER) BETWEEN ? AND ?))"
+                .into(),
+        );
+        params.extend([Value::Int(from), Value::Int(to)]);
     }
 
-    let (order_sql, order_params) = order_by(q.primary(), "t.name", "t.popularity");
+    let (order_sql, order_params) = order_by("t");
     Built {
         where_sql: and(sql),
         where_params: params,
@@ -276,30 +260,28 @@ pub fn tracks(q: &SearchQuery) -> Built {
     }
 }
 
-/// Predicates over `artists a`.
+/// Predicates over `artist_names a`.
 pub fn artists(q: &SearchQuery) -> Built {
     let mut sql = Vec::new();
     let mut params = Vec::new();
 
     for term in q.artist.iter().chain(q.free.iter()).chain(q.track.iter()) {
-        sql.push(format!("a.name ILIKE ? ESCAPE '{ESC}'"));
-        params.push(contains(term));
+        sql.push("a.name_key = ?".to_string());
+        params.push(name_key(term));
     }
 
+    // Genres are short labels on a small relation, so this keeps substring
+    // matching — `genre:rock` finding "indie rock" is the useful behavior and
+    // costs nothing at this size.
     for term in &q.genre {
-        sql.push(format!(
-            "EXISTS (SELECT 1 FROM artist_genres ag WHERE ag.artist_rowid = a.row_id \
-             AND ag.genre ILIKE ? ESCAPE '{ESC}')"
-        ));
+        sql.push(
+            "a.row_id IN (SELECT artist_rowid FROM artist_genres WHERE genre ILIKE ? ESCAPE '!')"
+                .to_string(),
+        );
         params.push(contains(term));
     }
 
-    let primary = q
-        .artist
-        .first()
-        .or_else(|| q.free.first())
-        .map(String::as_str);
-    let (order_sql, order_params) = order_by(primary, "a.name", "a.popularity");
+    let (order_sql, order_params) = order_by("a");
     Built {
         where_sql: and(sql),
         where_params: params,
@@ -308,46 +290,47 @@ pub fn artists(q: &SearchQuery) -> Built {
     }
 }
 
-/// Predicates over `albums al`.
+/// Predicates over `album_names al`.
 pub fn albums(q: &SearchQuery) -> Built {
     let mut sql = Vec::new();
     let mut params = Vec::new();
 
     for term in &q.album {
-        sql.push(format!("al.name ILIKE ? ESCAPE '{ESC}'"));
-        params.push(contains(term));
+        sql.push("al.name_key = ?".to_string());
+        params.push(name_key(term));
     }
 
     for term in &q.free {
         sql.push(format!(
-            "(al.name ILIKE ? ESCAPE '{ESC}' \
-             OR EXISTS (SELECT 1 FROM artist_albums aa JOIN artists ar ON ar.row_id = aa.artist_rowid \
-                        WHERE aa.album_rowid = al.row_id AND ar.name ILIKE ? ESCAPE '{ESC}'))"
+            "(al.name_key = ? OR {})",
+            albums_by_artist_names(1)
         ));
-        params.extend([contains(term), contains(term)]);
+        params.extend([name_key(term), name_key(term)]);
     }
 
-    if let Some(p) = album_artist_exists(&q.artist, "al.row_id") {
-        sql.push(p.sql);
-        params.extend(p.params);
+    if !q.artist.is_empty() {
+        sql.push(albums_by_artist_names(q.artist.len()));
+        params.extend(q.artist.iter().map(|t| name_key(t)));
     }
 
     if let Some(upc) = &q.upc {
-        sql.push("upper(al.external_id_upc) = upper(?)".to_string());
+        sql.push(
+            "al.row_id IN (SELECT row_id FROM albums WHERE upper(external_id_upc) = upper(?))"
+                .into(),
+        );
         params.push(Value::Text(upc.clone()));
     }
 
-    if let Some(p) = year_between(q.year, "al.release_date") {
-        sql.push(p.sql);
-        params.extend(p.params);
+    if let Some((from, to)) = q.year {
+        sql.push(
+            "al.row_id IN (SELECT row_id FROM albums \
+             WHERE TRY_CAST(substr(release_date, 1, 4) AS INTEGER) BETWEEN ? AND ?)"
+                .into(),
+        );
+        params.extend([Value::Int(from), Value::Int(to)]);
     }
 
-    let primary = q
-        .album
-        .first()
-        .or_else(|| q.free.first())
-        .map(String::as_str);
-    let (order_sql, order_params) = order_by(primary, "al.name", "al.popularity");
+    let (order_sql, order_params) = order_by("al");
     Built {
         where_sql: and(sql),
         where_params: params,
@@ -410,6 +393,21 @@ mod tests {
     #[test]
     fn escapes_like_wildcards_in_terms() {
         assert_eq!(contains("50%_off"), Value::Text("%50!%!_off%".into()));
+    }
+
+    #[test]
+    fn name_keys_are_lowered_and_trimmed() {
+        assert_eq!(
+            name_key("  Blue Monday "),
+            Value::Text("blue monday".into())
+        );
+    }
+
+    /// Wildcards carry no meaning under equality — a literal "%" can only match
+    /// a track actually named "%".
+    #[test]
+    fn name_keys_keep_wildcards_literal() {
+        assert_eq!(name_key("100%"), Value::Text("100%".into()));
     }
 
     #[test]
