@@ -3,7 +3,6 @@ import { useAtomValue } from "jotai";
 import * as React from "react";
 import { themeAtom } from "../atoms/theme";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
-import NowPlayingBackground from "../components/NowPlayingBackground";
 import StickyPlayer from "../components/StickyPlayer";
 import SearchModal from "../layouts/Search/SearchModal";
 import LibrarySearchModal from "../layouts/Search/LibrarySearchModal";
@@ -43,7 +42,6 @@ function RootComponent() {
 
   return (
     <React.Fragment>
-      <NowPlayingBackground />
       <Outlet />
       <StickyPlayer />
       <KeyboardShortcuts />

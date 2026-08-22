@@ -52,11 +52,13 @@ const MiniPlayerWrapper = styled.div<{ embedded?: boolean }>`
 
 const MiniPlayer = styled.div<{ embedded?: boolean }>`
   ${({ embedded }) => embedded ? `
-    /* Frosted-glass tint of the theme background (adapts to light and dark),
-       rather than a hardcoded dark purple. */
-    background: color-mix(in srgb, var(--color-background) 70%, transparent);
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    /* Frosted glass over the fullscreen backdrop: mostly transparent so the
+       blurred album art clearly shows through (the fullscreen player is
+       always dark, hence the white hairline). */
+    background: color-mix(in srgb, var(--color-background) 40%, transparent);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     width: 1120px;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
@@ -169,6 +171,7 @@ export type StickyPlayerProps = {
   queuePanelOpen?: boolean;
   fullscreenOpen?: boolean;
   onOpenFullscreen?: () => void;
+  onExitFullscreen?: () => void;
   embedded?: boolean;
   isUploadPlayer?: boolean;
   shuffle?: boolean;
@@ -199,6 +202,7 @@ function StickyPlayer(props: StickyPlayerProps) {
     showQueueButton,
     fullscreenOpen,
     onOpenFullscreen,
+    onExitFullscreen,
     embedded,
     isUploadPlayer,
     shuffle,
@@ -410,7 +414,13 @@ function StickyPlayer(props: StickyPlayerProps) {
               </div>
             )}
             <Button
-              onClick={() => navigate({ to: "/settings/audio" })}
+              onClick={() => {
+                // In the fullscreen player, close the overlay first or the
+                // settings page opens hidden underneath it.
+                onExitFullscreen?.();
+                navigate({ to: "/settings/audio" });
+              }}
+              disabled={!showQueueButton || fullscreenOpen}
               title="Audio settings"
               aria-label="Audio settings"
               style={{

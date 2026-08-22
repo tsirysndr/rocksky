@@ -223,6 +223,9 @@ function StickyPlayerWithData() {
   // Player selector
   const [playerSelectorOpen, setPlayerSelectorOpen] = useState(false);
   const speakerRef = useRef<HTMLButtonElement>(null);
+  // The fullscreen player renders its own copy of the speaker button; the
+  // device-select popup anchors to whichever one is currently on screen.
+  const fullscreenSpeakerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     nowPlayingRef.current = nowPlaying;
@@ -829,6 +832,8 @@ function StickyPlayerWithData() {
           onPause={onPause}
           onPrevious={onPrevious}
           onNext={onNext}
+          onSpeaker={() => setPlayerSelectorOpen((o) => !o)}
+          speakerRef={fullscreenSpeakerRef}
           onSeek={onSeek}
           isPlaying={nowPlaying.isPlaying}
           onLike={onLike}
@@ -850,7 +855,10 @@ function StickyPlayerWithData() {
       )}
 
       {playerSelectorOpen && (() => {
-        const rect = speakerRef.current?.getBoundingClientRect();
+        const anchor = fullscreenOpen
+          ? fullscreenSpeakerRef.current
+          : speakerRef.current;
+        const rect = anchor?.getBoundingClientRect();
         const left = rect ? rect.left + rect.width / 2 : 100;
         const bottom = rect ? window.innerHeight - rect.top + 8 : 140;
         return createPortal(

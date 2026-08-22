@@ -13,6 +13,9 @@ const Overlay = styled.div`
   justify-content: center;
   gap: 32px;
   overflow: hidden;
+  /* Keep the centered cover + track info clear of the absolutely-positioned
+     bottom player bar. */
+  padding-bottom: 140px;
   background: linear-gradient(160deg, #130825 0%, #1c0a38 28%, #2d0860 55%, #4800a8 80%, #6200d4 100%);
 `;
 
@@ -51,8 +54,8 @@ const CloseButton = styled.button`
 const BigCover = styled.img`
   position: relative;
   z-index: 1;
-  width: 420px;
-  height: 420px;
+  width: min(420px, 50vh);
+  height: min(420px, 50vh);
   border-radius: 16px;
   object-fit: cover;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
@@ -61,8 +64,8 @@ const BigCover = styled.img`
 const NoCover = styled.div`
   position: relative;
   z-index: 1;
-  width: 420px;
-  height: 420px;
+  width: min(420px, 50vh);
+  height: min(420px, 50vh);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.08);
   display: flex;
@@ -98,7 +101,7 @@ const BottomBar = styled.div`
   z-index: 2;
 `;
 
-type FullscreenPlayerProps = Omit<StickyPlayerProps, "onSpeaker" | "onPlaylist" | "embedded" | "fullscreenOpen" | "onOpenFullscreen"> & {
+type FullscreenPlayerProps = Omit<StickyPlayerProps, "onPlaylist" | "embedded" | "fullscreenOpen" | "onOpenFullscreen" | "onExitFullscreen"> & {
   onClose: () => void;
   onPlaylist: () => void;
 };
@@ -109,6 +112,8 @@ function FullscreenPlayer({
   onPause,
   onPrevious,
   onNext,
+  onSpeaker,
+  speakerRef,
   onSeek,
   onLike,
   onDislike,
@@ -163,8 +168,10 @@ function FullscreenPlayer({
           onPause={onPause}
           onPrevious={onPrevious}
           onNext={onNext}
-          onSpeaker={() => {}}
+          onSpeaker={onSpeaker}
+          speakerRef={speakerRef}
           onPlaylist={onPlaylist}
+          onExitFullscreen={onClose}
           volume={volume}
           muted={muted}
           onVolumeChange={onVolumeChange}
