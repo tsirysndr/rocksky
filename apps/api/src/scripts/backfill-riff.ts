@@ -212,6 +212,30 @@ function artNeedsFill(current: string | null): boolean {
   return current === null || current.startsWith(ROCKSKY_CDN_PREFIX);
 }
 
+/**
+ * Runs an update; when it trips a unique constraint on spotify_link, retries
+ * without the link. The catalog holds duplicate rows for the same real album
+ * or track, all resolving to one Spotify object — only the first duplicate can
+ * hold the (unique) link, but every duplicate should still get its art,
+ * duration and dates.
+ */
+async function applyPatch(
+  patch: Record<string, unknown>,
+  update: (p: Record<string, unknown>) => Promise<unknown>,
+): Promise<void> {
+  try {
+    await update(patch);
+  } catch (e) {
+    const message = String((e as Error).cause ?? e);
+    const uniqueLink =
+      "spotifyLink" in patch &&
+      (message.includes("spotify_link") || message.includes("23505"));
+    if (!uniqueLink) throw e;
+    const { spotifyLink: _dropped, ...rest } = patch;
+    if (Object.keys(rest).length > 0) await update(rest);
+  }
+}
+
 async function fillTrack(row: {
   id: string;
   title: string;
@@ -254,10 +278,9 @@ async function fillTrack(row: {
     );
     return;
   }
-  await ctx.db
-    .update(tables.tracks)
-    .set(patch)
-    .where(eq(tables.tracks.id, row.id));
+  await applyPatch(patch, (p) =>
+    ctx.db.update(tables.tracks).set(p).where(eq(tables.tracks.id, row.id)),
+  );
 }
 
 async function fillAlbum(row: {
@@ -298,10 +321,9 @@ async function fillAlbum(row: {
     );
     return;
   }
-  await ctx.db
-    .update(tables.albums)
-    .set(patch)
-    .where(eq(tables.albums.id, row.id));
+  await applyPatch(patch, (p) =>
+    ctx.db.update(tables.albums).set(p).where(eq(tables.albums.id, row.id)),
+  );
 }
 
 async function fillArtist(row: {
@@ -336,10 +358,9 @@ async function fillArtist(row: {
     );
     return;
   }
-  await ctx.db
-    .update(tables.artists)
-    .set(patch)
-    .where(eq(tables.artists.id, row.id));
+  await applyPatch(patch, (p) =>
+    ctx.db.update(tables.artists).set(p).where(eq(tables.artists.id, row.id)),
+  );
 }
 
 // ------------------------------------------------------------------- walkers
