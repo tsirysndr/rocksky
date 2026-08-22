@@ -25,10 +25,45 @@ pub const MAX_SEARCH_WINDOW: u32 = 1000;
 /// Spotify returns at most 10 entries from `/artists/{id}/top-tracks`.
 const TOP_TRACKS: usize = 10;
 
-/// Threshold above which a statement is logged with its SQL. Every query in
-/// the serving path is supposed to be a pruned point lookup; anything slower
-/// than this is a plan regression worth seeing in the journal.
-const SLOW_QUERY_MS: u128 = 250;
+/// Threshold above which a statement or catalog function is logged. Every
+/// query in the serving path is supposed to be a pruned point lookup; anything
+/// slower is a plan regression worth seeing in the journal. Override with
+/// RIFF_SLOW_QUERY_MS.
+fn slow_query_ms() -> u128 {
+    static MS: std::sync::OnceLock<u128> = std::sync::OnceLock::new();
+    *MS.get_or_init(|| {
+        std::env::var("RIFF_SLOW_QUERY_MS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(250)
+    })
+}
+
+/// Logs how long a catalog function held its connection, on drop, when over
+/// the threshold — so the journal names the slow stage of a request rather
+/// than one opaque total.
+struct QTimer {
+    name: &'static str,
+    started: std::time::Instant,
+}
+
+impl QTimer {
+    fn new(name: &'static str) -> Self {
+        Self {
+            name,
+            started: std::time::Instant::now(),
+        }
+    }
+}
+
+impl Drop for QTimer {
+    fn drop(&mut self) {
+        let ms = self.started.elapsed().as_millis();
+        if ms >= slow_query_ms() {
+            log::warn!("slow stage {}: {} ms", self.name, ms);
+        }
+    }
+}
 
 /// Wraps statement execution with a wall-clock check so slow plans name
 /// themselves in production logs instead of hiding inside request totals.
@@ -36,7 +71,7 @@ fn timed<T>(sql: &str, f: impl FnOnce() -> ApiResult<T>) -> ApiResult<T> {
     let started = std::time::Instant::now();
     let out = f();
     let elapsed = started.elapsed();
-    if elapsed.as_millis() >= SLOW_QUERY_MS {
+    if elapsed.as_millis() >= slow_query_ms() {
         log::warn!(
             "slow query ({} ms): {}",
             elapsed.as_millis(),
@@ -89,6 +124,7 @@ fn group<K: std::hash::Hash + Eq, V>(pairs: Vec<(K, V)>) -> HashMap<K, Vec<V>> {
 /// sorted by rowid, so an id lookup there is a full scan of the id column. The
 /// maps are sorted by id, which zone maps turn into a point lookup.
 fn row_ids(conn: &PooledConn, table: &str, ids: &[String]) -> ApiResult<HashMap<String, i64>> {
+    let _t = QTimer::new("row_ids");
     if ids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -122,6 +158,7 @@ fn images(
     key: &str,
     rowids: &[i64],
 ) -> ApiResult<HashMap<i64, Vec<Image>>> {
+    let _t = QTimer::new("images");
     if rowids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -147,6 +184,7 @@ fn images(
 }
 
 fn genres(conn: &PooledConn, artist_rowids: &[i64]) -> ApiResult<HashMap<i64, Vec<String>>> {
+    let _t = QTimer::new("genres");
     if artist_rowids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -164,6 +202,7 @@ fn genres(conn: &PooledConn, artist_rowids: &[i64]) -> ApiResult<HashMap<i64, Ve
 /// row id from both albums and tracks, so a batch of 50 tracks usually costs one
 /// lookup of a handful of rows.
 fn markets(conn: &PooledConn, market_rowids: &[i64]) -> ApiResult<HashMap<i64, Vec<String>>> {
+    let _t = QTimer::new("markets");
     if market_rowids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -202,6 +241,7 @@ fn album_artists(
     conn: &PooledConn,
     album_rowids: &[i64],
 ) -> ApiResult<HashMap<i64, Vec<SimplifiedArtist>>> {
+    let _t = QTimer::new("album_artists");
     if album_rowids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -228,6 +268,7 @@ fn track_artists(
     conn: &PooledConn,
     track_rowids: &[i64],
 ) -> ApiResult<HashMap<i64, Vec<SimplifiedArtist>>> {
+    let _t = QTimer::new("track_artists");
     if track_rowids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -259,6 +300,7 @@ struct ArtistCore {
 }
 
 pub fn artists(conn: &PooledConn, rowids: &[i64]) -> ApiResult<HashMap<i64, Artist>> {
+    let _t = QTimer::new("artists");
     if rowids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -338,6 +380,7 @@ struct AlbumCore {
 }
 
 fn album_cores(conn: &PooledConn, rowids: &[i64]) -> ApiResult<Vec<AlbumCore>> {
+    let _t = QTimer::new("album_cores");
     if rowids.is_empty() {
         return Ok(Vec::new());
     }
@@ -367,6 +410,7 @@ fn build_simplified_albums(
     conn: &PooledConn,
     cores: Vec<AlbumCore>,
 ) -> ApiResult<HashMap<i64, SimplifiedAlbum>> {
+    let _t = QTimer::new("build_simplified_albums");
     let rowids: Vec<i64> = cores.iter().map(|c| c.row_id).collect();
     let mut artists_by_album = album_artists(conn, &rowids)?;
     let mut imgs = images(conn, "album_images", "album_rowid", &rowids)?;
@@ -416,6 +460,7 @@ pub fn simplified_albums(
 }
 
 pub fn albums_by_ids(conn: &PooledConn, ids: &[String]) -> ApiResult<Vec<Option<Album>>> {
+    let _t = QTimer::new("albums_by_ids");
     let map = row_ids(conn, "albums", ids)?;
     let rowids: Vec<i64> = map.values().copied().collect();
     if rowids.is_empty() {
@@ -503,6 +548,7 @@ pub fn album_track_rowids(
     limit: u32,
     offset: u32,
 ) -> ApiResult<(Vec<i64>, i64)> {
+    let _t = QTimer::new("album_track_rowids");
     // Everything here is inlined rather than bound: the row id is a trusted
     // i64 and the page bounds are server-computed. Bound parameters — LIMIT and
     // OFFSET especially — kept the engine from planning these as pruned scans,
@@ -541,6 +587,7 @@ struct TrackCore {
 }
 
 fn track_cores(conn: &PooledConn, rowids: &[i64]) -> ApiResult<Vec<TrackCore>> {
+    let _t = QTimer::new("track_cores");
     if rowids.is_empty() {
         return Ok(Vec::new());
     }
@@ -604,6 +651,7 @@ pub fn simplified_tracks(
     conn: &PooledConn,
     rowids: &[i64],
 ) -> ApiResult<HashMap<i64, SimplifiedTrack>> {
+    let _t = QTimer::new("simplified_tracks");
     let cores = track_cores(conn, rowids)?;
     let mut arts = track_artists(conn, rowids)?;
     let market_map = market_map_for(conn, &cores)?;
@@ -622,6 +670,7 @@ pub fn simplified_tracks(
 }
 
 pub fn tracks(conn: &PooledConn, rowids: &[i64]) -> ApiResult<HashMap<i64, Track>> {
+    let _t = QTimer::new("tracks");
     let cores = track_cores(conn, rowids)?;
     if cores.is_empty() {
         return Ok(HashMap::new());
@@ -699,6 +748,7 @@ fn empty_album() -> SimplifiedAlbum {
 /// shape is restored here with `TRY_CAST`: one malformed cell becomes a null
 /// field rather than failing the whole request.
 pub fn audio_features(conn: &PooledConn, ids: &[String]) -> ApiResult<Vec<Option<AudioFeatures>>> {
+    let _t = QTimer::new("audio_features");
     if ids.is_empty() {
         return Ok(Vec::new());
     }
@@ -773,6 +823,7 @@ pub fn artist_album_rowids(
     limit: u32,
     offset: u32,
 ) -> ApiResult<(Vec<(i64, String)>, i64)> {
+    let _t = QTimer::new("artist_album_rowids");
     // Spotify's `album_group` is the *relationship*, not the album's own type:
     // an album the artist merely appears on is grouped `appears_on` regardless
     // of whether it is itself an album or a compilation.
@@ -816,6 +867,7 @@ pub fn artist_album_rowids(
 }
 
 pub fn artist_top_track_rowids(conn: &PooledConn, artist_rowid: i64) -> ApiResult<Vec<i64>> {
+    let _t = QTimer::new("artist_top_track_rowids");
     // `track_artists_by_artist` is sorted by artist and carries popularity, so
     // ranking an artist's tracks never touches the 23G tracks relation.
     let mut stmt = conn.prepare(&format!(
