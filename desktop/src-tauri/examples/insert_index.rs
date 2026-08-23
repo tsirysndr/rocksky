@@ -15,7 +15,11 @@ fn probe(label: &str, f: impl Fn(&Player)) {
         std::thread::sleep(Duration::from_secs(1));
         let s = player.status();
         if s.state != PlaybackState::Stopped && s.duration.as_secs() > 0 {
-            println!("{label}: t={i}s index={:?} dur={}s (target dur=9s)", s.index, s.duration.as_secs());
+            println!(
+                "{label}: t={i}s index={:?} dur={}s (target dur=9s)",
+                s.index,
+                s.duration.as_secs()
+            );
             return;
         }
     }

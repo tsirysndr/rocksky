@@ -24,7 +24,9 @@ fn main() {
             "t={i}s state={:?} index={:?} queue={:?} dur={:?}",
             s.state,
             s.index,
-            q.iter().map(|p| p.file_name().unwrap().to_string_lossy().into_owned()).collect::<Vec<_>>(),
+            q.iter()
+                .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+                .collect::<Vec<_>>(),
             s.duration.as_secs(),
         );
     }

@@ -9,9 +9,7 @@ use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rockbox_playback::{
-    EqBand, InsertPosition, PlaybackState, Player, RepeatMode, Status,
-};
+use rockbox_playback::{EqBand, InsertPosition, PlaybackState, Player, RepeatMode, Status};
 
 use crate::dsp::{self, CompressorOpts, CrossfadeOpts, DspState, SurroundOpts};
 
@@ -211,12 +209,21 @@ fn insert_position(mode: u8, index: usize) -> InsertPosition {
 fn apply(player: &Player, dsp: &mut DspState, cmd: EngineCmd) {
     match cmd {
         EngineCmd::Open(paths) => {
-            tracing::debug!(count = paths.len(), first = paths.first().map(String::as_str), "engine: open");
+            tracing::debug!(
+                count = paths.len(),
+                first = paths.first().map(String::as_str),
+                "engine: open"
+            );
             player.set_queue(paths.iter().map(String::as_str));
             player.play();
         }
         EngineCmd::SetQueue { paths, autoplay } => {
-            tracing::debug!(count = paths.len(), autoplay, first = paths.first().map(String::as_str), "engine: set_queue");
+            tracing::debug!(
+                count = paths.len(),
+                autoplay,
+                first = paths.first().map(String::as_str),
+                "engine: set_queue"
+            );
             player.set_queue(paths.iter().map(String::as_str));
             if autoplay {
                 player.play();
@@ -235,9 +242,7 @@ fn apply(player: &Player, dsp: &mut DspState, cmd: EngineCmd) {
             player.play();
         }
         EngineCmd::Append(paths) => player.insert_tracks_last(paths.iter().map(String::as_str)),
-        EngineCmd::InsertNext(paths) => {
-            player.insert_tracks_next(paths.iter().map(String::as_str))
-        }
+        EngineCmd::InsertNext(paths) => player.insert_tracks_next(paths.iter().map(String::as_str)),
         EngineCmd::Insert { paths, mode, index } => {
             tracing::debug!(count = paths.len(), mode, index, "engine: insert");
             player.insert_tracks(

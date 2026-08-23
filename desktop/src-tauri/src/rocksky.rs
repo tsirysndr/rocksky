@@ -27,7 +27,10 @@ pub async fn rocksky_profile(
     actor: String,
     api_url: Option<String>,
 ) -> Result<ProfileView, String> {
-    appview(api_url).profile(&actor).await.map_err(|e| e.to_string())
+    appview(api_url)
+        .profile(&actor)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Full-text search across songs, artists, albums, and profiles.
@@ -36,7 +39,10 @@ pub async fn rocksky_search(
     query: String,
     api_url: Option<String>,
 ) -> Result<SearchResults, String> {
-    appview(api_url).search(&query).await.map_err(|e| e.to_string())
+    appview(api_url)
+        .search(&query)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Submit a scrobble natively through the Rust SDK.
