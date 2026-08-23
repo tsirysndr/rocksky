@@ -166,3 +166,46 @@ button {
   font-family: RockfordSansMedium;
   color: inherit;
 }
+
+
+/* ── Audio sliders ──────────────────────────────────────────────────────────
+   WKWebView's native range rendering ignores accent-color and draws a track
+   that's invisible on the dark theme. Style every range input's track + thumb
+   explicitly (solid rgba fallback first — color-mix may be unsupported). */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(150, 150, 172, 0.6);
+  background: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-primary);
+  margin-top: -4.5px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(150, 150, 172, 0.6);
+  background: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}

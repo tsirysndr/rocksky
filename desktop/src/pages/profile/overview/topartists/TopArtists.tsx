@@ -1,0 +1,350 @@
+import { css } from "@emotion/react";
+import styled from "@emotion/styled";
+import { Link, useParams } from "@tanstack/react-router";
+import { Pagination } from "baseui/pagination";
+import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { HeadingSmall, HeadingXSmall, LabelSmall } from "baseui/typography";
+import { useAtomValue, useSetAtom } from "jotai";
+import numeral from "numeral";
+import { useEffect, useMemo, useState } from "react";
+import { themeAtom } from "../../../../atoms/theme";
+import { topArtistsAtom } from "../../../../atoms/topArtists";
+import { useTopArtistsRange } from "../../../../atoms/range";
+import { userAtom } from "../../../../atoms/user";
+import Artist from "../../../../components/Icons/Artist";
+import { useArtistsQuery } from "../../../../hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
+import { useProfileKey } from "../../../../hooks/useProfileKey";
+import styles from "./styles";
+import { IconChevronDown } from "@tabler/icons-react";
+import { getRangeDates } from "../../../../lib/date";
+import LastDaysMenu from "../../../../components/LastDaysMenu";
+import ContentLoader from "react-content-loader";
+import { ALL_TIME, LAST_7_DAYS, LAST_DAYS_LABELS } from "../../../../consts";
+
+const Group = styled.div<{ mb?: number }>`
+  display: flex;
+  flex-direction: row;
+  margin-top: 20px;
+  margin-bottom: 50px;
+  ${({ mb }) =>
+    mb &&
+    css`
+      margin-bottom: ${mb}px;
+    `}
+`;
+
+type Row = {
+  id: string;
+  name: string;
+  picture: string;
+  uri: string;
+  scrobbles: number;
+  index: number;
+};
+interface TopArtistsProps {
+  showTitle?: boolean;
+  offset?: number;
+  size?: number;
+  showPagination?: boolean;
+  withDateRange?: boolean;
+}
+
+function TopArtists(props: TopArtistsProps) {
+  const { showTitle = true, size = 30, showPagination, withDateRange } = props;
+  const profileKey = useProfileKey();
+  const [topArtistsRange, setTopArtistsRange] = useTopArtistsRange(profileKey);
+  const range = useMemo(
+    () => (withDateRange ? getRangeDates(topArtistsRange) : []),
+    [withDateRange, topArtistsRange],
+  );
+  const setTopArtists = useSetAtom(topArtistsAtom);
+  const topArtists = useAtomValue(topArtistsAtom);
+  const { darkMode } = useAtomValue(themeAtom);
+  const { did } = useParams({ strict: false });
+  const profileStats = useProfileStatsByDidQuery(did!);
+  const [currentPage, setCurrentPage] = useState(1);
+  const artistsResult = useArtistsQuery(
+    did!,
+    (currentPage - 1) * size,
+    size,
+    ...range,
+  );
+  const user = useAtomValue(userAtom);
+  const pages = useMemo(() => {
+    if (!did || !profileStats.data || !props.size) {
+      return 1;
+    }
+    return Math.ceil((profileStats.data.artists ?? 0) / props.size) || 1;
+  }, [profileStats.data, did, props.size]);
+
+  const onSelectLastDays = (id: string) => {
+    setTopArtistsRange(id);
+  };
+
+  useEffect(() => {
+    if (artistsResult.isLoading || artistsResult.isError) {
+      return;
+    }
+
+    if (!artistsResult.data || !did) {
+      return;
+    }
+
+    setTopArtists(
+      artistsResult.data.map((artist) => ({
+        id: artist.id ?? "",
+        name: artist.name ?? "",
+        picture: artist.picture,
+        uri: artist.uri ?? "",
+        scrobbles: artist.scrobbles ?? null,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artistsResult.data, artistsResult.isLoading, artistsResult.isError, did]);
+
+  useEffect(() => {
+    if (artistsResult.isLoading || artistsResult.isError) {
+      return;
+    }
+
+    if (
+      withDateRange &&
+      topArtistsRange === LAST_7_DAYS &&
+      artistsResult?.data?.length === 0
+    ) {
+      setTopArtistsRange(ALL_TIME);
+    }
+  }, [
+    artistsResult.isLoading,
+    artistsResult.isError,
+    topArtistsRange,
+    artistsResult.data,
+    withDateRange,
+    setTopArtistsRange,
+  ]);
+
+  const maxScrobbles = topArtists.length > 0 ? topArtists[0].scrobbles || 1 : 0;
+
+  return (
+    <>
+      {showTitle && (
+        <div className="flex flex-row justify-between items-center">
+          <HeadingSmall
+            marginBottom={"15px"}
+            className="!text-[var(--color-text)]"
+          >
+            Top Artists
+          </HeadingSmall>
+          <LastDaysMenu onSelect={onSelectLastDays}>
+            <button className="mt-[40px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+              {topArtistsRange && (
+                <span>{LAST_DAYS_LABELS[topArtistsRange]}</span>
+              )}
+              <IconChevronDown
+                size={16}
+                className="ml-[4px] h-[18px] mb-[-5px]"
+              />
+            </button>
+          </LastDaysMenu>
+        </div>
+      )}
+
+      {props.showPagination && (
+        <Group mb={20}>
+          <div className="mr-[20px]">
+            <LabelSmall className="!text-[var(--color-text-muted)]">
+              ARTISTS SCROBBLED
+            </LabelSmall>
+            <HeadingXSmall
+              margin={0}
+              className="!text-[var(--color-text)]"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              {did ? numeral(profileStats.data?.artists).format("0,0") : ""}
+            </HeadingXSmall>
+          </div>
+        </Group>
+      )}
+
+      {artistsResult.isLoading && (
+        <ContentLoader
+          width="100%"
+          height={500}
+          viewBox="0 0 700 500"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
+        >
+          {/* Row 1 */}
+          <rect x="0" y="20" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="30" r="30" />
+          <rect x="130" y="20" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="20" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 2 */}
+          <rect x="0" y="100" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="110" r="30" />
+          <rect x="130" y="100" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="100" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 3 */}
+          <rect x="0" y="180" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="190" r="30" />
+          <rect x="130" y="180" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="180" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 4 */}
+          <rect x="0" y="260" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="270" r="30" />
+          <rect x="130" y="260" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="260" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 5 */}
+          <rect x="0" y="340" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="350" r="30" />
+          <rect x="130" y="340" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="340" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 6 */}
+          <rect x="0" y="420" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="430" r="30" />
+          <rect x="130" y="420" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="420" rx="3" ry="3" width="150" height="15" />
+        </ContentLoader>
+      )}
+
+      {!artistsResult.isLoading && (
+        <TableBuilder
+          data={topArtists.map((x, index) => ({
+            id: x.id,
+            name: x.name,
+            picture: x.picture,
+            uri: x.uri,
+            scrobbles: x.scrobbles,
+            index,
+          }))}
+          emptyMessage={`@${user?.handle} has not listened to any artists yet.`}
+          divider="clean"
+          overrides={{
+            TableHeadRow: {
+              style: {
+                display: "none",
+              },
+            },
+            TableBodyCell: {
+              style: {
+                verticalAlign: "middle",
+              },
+            },
+            TableBodyRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                ":hover": {
+                  backgroundColor: "var(--color-menu-hover)",
+                },
+              },
+            },
+            TableEmptyMessage: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            Table: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+          }}
+        >
+          <TableBuilderColumn header="Name">
+            {(row: Row) => (
+              <div className="flex flex-row items-center">
+                <div>
+                  <div className="mr-[20px] text-[var(--color-text)]">
+                    {props.showPagination
+                      ? (currentPage - 1) * props.size! + row.index + 1
+                      : row.index + 1}
+                  </div>
+                </div>
+                <Link
+                  to="/$did/artist/$rkey"
+                  params={{
+                    did: row.uri?.split("at://")[1]?.split("/")[0] || "",
+                    rkey: row.uri?.split("/").pop() || "",
+                  }}
+                >
+                  {!!row.picture && (
+                    <img
+                      src={row.picture}
+                      alt={row.name}
+                      className="w-[60px] h-[60px] rounded-full mr-[20px]"
+                      key={row.id}
+                    />
+                  )}
+                  {!row.picture && (
+                    <div className="w-[60px] h-[60px] rounded-full bg-[#00f1f3] flex justify-center items-center mr-[20px]">
+                      <div className="h-[30px] w-[30px]">
+                        <Artist color="#020618" />
+                      </div>
+                    </div>
+                  )}
+                </Link>
+                <div>
+                  <Link
+                    to="/$did/artist/$rkey"
+                    params={{
+                      did: row.uri?.split("at://")[1]?.split("/")[0] || "",
+                      rkey: row.uri?.split("/").pop() || "",
+                    }}
+                    className="no-underline !text-[var(--color-text)]"
+                  >
+                    {row.name}
+                  </Link>
+                </div>
+              </div>
+            )}
+          </TableBuilderColumn>
+          <TableBuilderColumn header="Scrobbles">
+            {(row: Row, index?: number) => (
+              <div className="relative w-[250px] mt-[-20px]">
+                <div
+                  className={`absolute w-full top-[10px] left-[10px] z-[1] ${
+                    darkMode && (row.scrobbles / maxScrobbles) * 100 < 10
+                      ? "!text-[#fff]"
+                      : "!text-[#000]"
+                  }`}
+                >
+                  <span style={{ fontFamily: "var(--font-mono)" }}>
+                    {numeral(row.scrobbles).format("0,0")}
+                  </span>
+                  {" "}
+                  {index == 0 && " scrobbles"}
+                </div>
+                <span
+                  style={{
+                    position: "absolute",
+                    height: 40,
+                    width: `${(row.scrobbles / maxScrobbles) * 100}%`,
+                    backgroundColor: "var(--color-bar)",
+                  }}
+                ></span>
+              </div>
+            )}
+          </TableBuilderColumn>
+        </TableBuilder>
+      )}
+      {showPagination && !artistsResult.isLoading && (
+        <Pagination
+          numPages={pages}
+          currentPage={currentPage}
+          onPageChange={({ nextPage }) => {
+            setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
+          }}
+          overrides={styles.pagination}
+        />
+      )}
+    </>
+  );
+}
+
+export default TopArtists;

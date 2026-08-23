@@ -32,8 +32,8 @@
     "mb": "cd musicbrainz && go run main.go",
     "deezer": "cd deezer && go run main.go",
     "spotify-proxy": "cd spotify && go run main.go",
-  "riff": "cd riff && cargo run --release",
-  "riff:fixtures": "cd riff && cargo run --release --bin riff-fixtures",
+    "riff": "cd riff && cargo run --release",
+    "riff:fixtures": "cd riff && cargo run --release --bin riff-fixtures",
     "spotify": "cd apps/api && bun run spotify",
     "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src",
     "cron": "tools/cron.ts"
@@ -43,10 +43,15 @@
     "apps/web",
     "apps/web-mobile",
     "sdk/typescript",
+    "desktop",
     "apps/app-proxy",
     "apps/doc",
     "apps/spotify-proxy",
     "apps/uploads",
     "apps/xata-proxy"
-  ]
+  ],
+  "overrides": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
 }

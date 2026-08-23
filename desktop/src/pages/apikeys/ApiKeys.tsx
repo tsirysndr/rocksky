@@ -1,0 +1,492 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "@styled-icons/evaicons-solid";
+import { Copy, Trash } from "@styled-icons/ionicons-outline";
+import { useNavigate } from "@tanstack/react-router";
+import { Button } from "baseui/button";
+import { Input } from "baseui/input";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "baseui/modal";
+import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { Textarea } from "baseui/textarea";
+import { StatefulTooltip } from "baseui/tooltip";
+import { HeadingMedium } from "baseui/typography";
+import copy from "copy-to-clipboard";
+import { useState } from "react";
+import ContentLoader from "react-content-loader";
+import { Controller, useForm } from "react-hook-form";
+import z from "zod";
+import {
+  useApikeysQuery,
+  useCreateApikeyMutation,
+  useDeleteApikeyMutation,
+  useUpdateApikeyMutation,
+} from "../../hooks/useApikey";
+import { IconHelpCircle } from "@tabler/icons-react";
+import Main from "../../layouts/Main";
+import { ApiKey } from "../../types/apikey";
+import { Code, Header, HelpNote } from "./styles";
+
+const schema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+});
+
+function ApiKeysSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 90 + 40}
+      viewBox={`0 0 1000 ${rows * 90 + 40}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {/* header */}
+      <rect x="0" y="0" rx="3" ry="3" width="80" height="12" />
+      <rect x="220" y="0" rx="3" ry="3" width="60" height="12" />
+      <rect x="560" y="0" rx="3" ry="3" width="100" height="12" />
+      <rect x="900" y="0" rx="3" ry="3" width="60" height="12" />
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = 40 + i * 90;
+        return (
+          <g key={i}>
+            <rect x="0" y={y + 28} rx="3" ry="3" width="140" height="14" />
+            <rect x="220" y={y + 18} rx="4" ry="4" width="260" height="16" />
+            <rect x="220" y={y + 46} rx="4" ry="4" width="260" height="16" />
+            <rect x="560" y={y + 28} rx="3" ry="3" width="240" height="12" />
+            <rect x="880" y={y + 22} rx="14" ry="14" width="60" height="28" />
+            <circle cx="970" cy={y + 36} r="12" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
+
+function ApiKeys() {
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const jwt = localStorage.getItem("token");
+  const [enabled, setEnabled] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const {
+    control,
+    formState: { errors },
+    clearErrors,
+    reset,
+    getValues,
+  } = useForm({
+    resolver: zodResolver(schema),
+    mode: "onBlur",
+  });
+  const { mutate: createApiKey } = useCreateApikeyMutation();
+  let apiKeys = useApikeysQuery();
+  const { mutate: updateApiKey } = useUpdateApikeyMutation();
+  const { mutate: deleteApiKey } = useDeleteApikeyMutation();
+
+  const onCreate = async () => {
+    if (errors.name) {
+      return;
+    }
+
+    const values = getValues();
+
+    await createApiKey(
+      { name: values.name, description: values.description },
+      {
+        onSuccess: async () => {
+          apiKeys = await apiKeys.refetch();
+        },
+      },
+    );
+
+    setIsOpen(false);
+    clearErrors();
+    reset();
+  };
+
+  const onDisable = async (id: string) => {
+    setEnabled((prev) => ({
+      ...prev,
+      [id]: false,
+    }));
+    await updateApiKey(
+      { id, enabled: false },
+      {
+        onSuccess: async () => {
+          apiKeys = await apiKeys.refetch();
+        },
+      },
+    );
+  };
+
+  const onEnable = async (id: string) => {
+    setEnabled((prev) => ({
+      ...prev,
+      [id]: true,
+    }));
+    await updateApiKey(
+      { id, enabled: true },
+      {
+        onSuccess: async () => {
+          apiKeys = await apiKeys.refetch();
+        },
+      },
+    );
+  };
+
+  const onDelete = async (id: string) => {
+    await deleteApiKey(id, {
+      onSuccess: async () => {
+        apiKeys = await apiKeys.refetch();
+      },
+    });
+  };
+
+  if (!jwt) {
+    navigate({ to: "/" });
+  }
+
+  return (
+    <Main withRightPane={false}>
+      <div className="mt-[70px] mb-[150px]">
+        <Header>
+          <HeadingMedium
+            marginTop={"0px"}
+            marginBottom={"20px"}
+            className="!text-[var(--color-text)]"
+          >
+            API Applications
+          </HeadingMedium>
+          <Button
+            startEnhancer={() => (
+              <Plus
+                size={24}
+                style={{
+                  color: "white",
+                }}
+              />
+            )}
+            onClick={() => {
+              setIsOpen(true);
+            }}
+            overrides={{
+              BaseButton: {
+                style: {
+                  backgroundColor: "var(--color-primary)",
+                  ":hover": {
+                    backgroundColor: "var(--color-primary)",
+                    opacity: 0.8,
+                  },
+                  ":focus": {
+                    backgroundColor: "var(--color-primary)",
+                    opacity: 0.8,
+                  },
+                  height: "50px",
+                },
+              },
+            }}
+          >
+            New API Key
+          </Button>
+        </Header>
+        <HelpNote>
+          <IconHelpCircle size={16} />
+          <span>
+            Need help using your API Application keys?{" "}
+            <a
+              href="https://docs.rocksky.app/integrations"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Read the integrations guide
+            </a>
+            .
+          </span>
+        </HelpNote>
+        {apiKeys.isLoading && !apiKeys.data && <ApiKeysSkeleton />}
+        <TableBuilder
+          data={apiKeys.data}
+          emptyMessage="No API keys found"
+          overrides={{
+            TableBody: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            TableHeadRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            Table: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            TableHeadCell: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                color: "var(--color-text)",
+              },
+            },
+            TableBodyRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                ":hover": {
+                  backgroundColor: "var(--color-menu-hover)",
+                },
+              },
+            },
+          }}
+        >
+          <TableBuilderColumn header="Name">
+            {(row: ApiKey) => (
+              <div className="flex flex-row items-center">{row.name}</div>
+            )}
+          </TableBuilderColumn>
+          <TableBuilderColumn
+            header="Keys"
+            overrides={{
+              TableBodyCell: {
+                style: {
+                  width: "300px",
+                },
+              },
+            }}
+          >
+            {(row: ApiKey) => (
+              <div className="w-[300px]">
+                <div>API Key:</div>
+                <Code>{row.apiKey}</Code>
+                <StatefulTooltip content="Copy API Key">
+                  <Copy
+                    onClick={() => copy(row.apiKey)}
+                    size={18}
+                    color="var(--color-text)"
+                    className="ml-[5px] cursor-pointer"
+                  />
+                </StatefulTooltip>
+                <div style={{ marginTop: "5px" }}>Shared Secret:</div>
+                <Code>{row.sharedSecret}</Code>
+                <StatefulTooltip content="Copy Shared Secret">
+                  <Copy
+                    onClick={() => copy(row.sharedSecret)}
+                    size={18}
+                    color="var(--color-text)"
+                    className="ml-[5px] cursor-pointer"
+                  />
+                </StatefulTooltip>
+              </div>
+            )}
+          </TableBuilderColumn>
+          <TableBuilderColumn header="Description">
+            {(row: ApiKey) => <div>{row.description}</div>}
+          </TableBuilderColumn>
+          <TableBuilderColumn
+            header="Action"
+            overrides={{
+              TableBodyCell: {
+                style: {
+                  width: "150px",
+                },
+              },
+            }}
+          >
+            {(row: ApiKey) => (
+              <div className="w-[150px]">
+                {(enabled[row.id] || row.enabled) && (
+                  <Button
+                    kind="secondary"
+                    onClick={() => onDisable(row.id)}
+                    overrides={{
+                      BaseButton: {
+                        style: {
+                          backgroundColor: "var(--color-default-button)",
+                          color: "var(--color-text)",
+                          ":hover": {
+                            backgroundColor:
+                              "var(--color-default-button) !important",
+                            opacity: 0.8,
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    Disable
+                  </Button>
+                )}
+                {!enabled[row.id] && !row.enabled && (
+                  <Button
+                    kind="secondary"
+                    onClick={() => onEnable(row.id)}
+                    overrides={{
+                      BaseButton: {
+                        style: {
+                          backgroundColor: "var(--color-default-button)",
+                          color: "var(--color-text)",
+                          ":hover": {
+                            backgroundColor:
+                              "var(--color-default-button) !important",
+                            opacity: 0.8,
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    Enable
+                  </Button>
+                )}
+                <Trash
+                  onClick={() => onDelete(row.id)}
+                  size={20}
+                  color="var(--color-text)"
+                  className="ml-[10px] mt-[-3px] cursor-pointer"
+                />
+              </div>
+            )}
+          </TableBuilderColumn>
+        </TableBuilder>
+      </div>
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        overrides={{
+          Root: {
+            style: {
+              zIndex: 50,
+            },
+          },
+          Dialog: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Close: {
+            style: {
+              color: "var(--color-text)",
+              ":hover": {
+                color: "var(--color-text)",
+                opacity: 0.8,
+              },
+            },
+          },
+        }}
+      >
+        <ModalHeader className="!text-[var(--color-text)]">
+          Create a new API key
+        </ModalHeader>
+        <ModalBody>
+          <Controller
+            name="name"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                placeholder="Name"
+                clearOnEscape
+                error={!!errors.name}
+                overrides={{
+                  Root: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      borderColor: "var(--color-input-background)",
+                    },
+                  },
+                  StartEnhancer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  InputContainer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  Input: {
+                    style: {
+                      color: "var(--color-text)",
+                      caretColor: "var(--color-text)",
+                    },
+                  },
+                }}
+              />
+            )}
+          />
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                placeholder="Description (Optional)"
+                clearOnEscape
+                error={!!errors.description}
+                overrides={{
+                  Root: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      borderColor: "var(--color-input-background)",
+                      marginTop: "20px",
+                    },
+                  },
+                  InputContainer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  Input: {
+                    style: {
+                      color: "var(--color-text)",
+                      caretColor: "var(--color-text)",
+                    },
+                  },
+                }}
+              />
+            )}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            kind="tertiary"
+            onClick={() => setIsOpen(false)}
+            overrides={{
+              BaseButton: {
+                style: {
+                  marginRight: "10px",
+                  backgroundColor: "var(--color-background) !important",
+                  color: "var(--color-text) !important",
+                  ":hover": {
+                    backgroundColor: "var(--color-background)",
+                  },
+                },
+              },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={onCreate}
+            shape="pill"
+            overrides={{
+              BaseButton: {
+                style: {
+                  backgroundColor: "var(--color-purple) !important",
+                  color: "var(--color-button-text) !important",
+                  ":hover": {
+                    backgroundColor: "var(--color-purple)",
+                    color: "var(--color-button-text) !important",
+                  },
+                },
+              },
+            }}
+          >
+            Create
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </Main>
+  );
+}
+
+export default ApiKeys;

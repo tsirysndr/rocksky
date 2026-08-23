@@ -1,0 +1,281 @@
+import styled from "@emotion/styled";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
+import { Pagination } from "baseui/pagination";
+import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { StatefulTooltip } from "baseui/tooltip";
+import { HeadingSmall } from "baseui/typography";
+import dayjs from "dayjs";
+import { useAtomValue, useSetAtom } from "jotai";
+import numeral from "numeral";
+import { useEffect, useMemo, useState } from "react";
+import ContentLoader from "react-content-loader";
+import { lovedTracksAtom } from "../../../atoms/lovedTracks";
+import { userAtom } from "../../../atoms/user";
+import { useLovedTracksQuery } from "../../../hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "../../../hooks/useProfile";
+import styles from "./styles";
+
+type Row = {
+  id: string;
+  title: string;
+  artist: string;
+  albumArtist: string;
+  albumArt: string;
+  albumUri?: string;
+  artistUri?: string;
+  uri: string;
+  scrobbles: number;
+  index: number;
+  date: string;
+};
+
+function LovedTracksSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 80}
+      viewBox={`0 0 700 ${rows * 80}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 80;
+        return (
+          <g key={i}>
+            <rect x="0" y={y + 10} rx="5" ry="5" width="60" height="60" />
+            <rect x="80" y={y + 22} rx="3" ry="3" width="240" height="14" />
+            <rect x="80" y={y + 46} rx="3" ry="3" width="160" height="11" />
+            <rect x="580" y={y + 32} rx="3" ry="3" width="110" height="12" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
+
+const Link = styled(DefaultLink)`
+  color: inherit;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+function LovedTracks() {
+  const size = 50;
+  const { did } = useParams({ strict: false });
+  const lovedTracks = useAtomValue(lovedTracksAtom);
+  const setLovedTracks = useSetAtom(lovedTracksAtom);
+  const [currentPage, setCurrentPage] = useState(1);
+  const lovedTracksResult = useLovedTracksQuery(
+    did!,
+    (currentPage - 1) * size,
+    size,
+  );
+  const user = useAtomValue(userAtom);
+  const profileStats = useProfileStatsByDidQuery(did!);
+  const pages = useMemo(() => {
+    if (!did || !profileStats.data) {
+      return 1;
+    }
+    return Math.ceil((profileStats.data.lovedTracks ?? 0) / size) || 1;
+  }, [profileStats.data, did]);
+
+  useEffect(() => {
+    if (lovedTracksResult.isLoading || lovedTracksResult.isError) {
+      return;
+    }
+
+    if (!lovedTracksResult.data || !did) {
+      return;
+    }
+
+    setLovedTracks(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lovedTracksResult.data.map((item: any) => ({
+        ...item,
+        date: item.createdAt,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    lovedTracksResult.data,
+    lovedTracksResult.isLoading,
+    lovedTracksResult.isError,
+    did,
+  ]);
+
+  return (
+    <>
+      {did && (
+        <HeadingSmall className="!text-[var(--color-text)]">
+          Loved Tracks (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(profileStats.data?.lovedTracks).format("0,0")}</span>)
+        </HeadingSmall>
+      )}
+      {(lovedTracksResult.isPending || lovedTracksResult.isFetching) &&
+        lovedTracks.length === 0 && <LovedTracksSkeleton />}
+      <TableBuilder
+        data={lovedTracks.map((x, index) => ({
+          id: x.id,
+          title: x.title,
+          artist: x.artist,
+          albumArtist: x.albumArtist,
+          albumArt: x.albumArt,
+          uri: x.uri,
+          scrobbles: x.scrobbles,
+          albumUri: x.albumUri,
+          artistUri: x.artistUri,
+          date: x.date,
+          index,
+        }))}
+        emptyMessage={`@${user?.handle} has not loved any tracks yet.`}
+        divider="clean"
+        overrides={{
+          TableHeadRow: {
+            style: {
+              display: "none",
+            },
+          },
+          TableBodyCell: {
+            style: {
+              verticalAlign: "center",
+            },
+          },
+          TableBodyRow: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              ":hover": {
+                backgroundColor: "var(--color-menu-hover)",
+              },
+            },
+          },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              // Fixed layout so a long nowrap title clips with an ellipsis
+              // instead of inflating the table and forcing horizontal scroll.
+              tableLayout: "fixed",
+              width: "100%",
+            },
+          },
+        }}
+      >
+        <TableBuilderColumn
+          header="Name"
+          overrides={{
+            // width 100% + maxWidth 0: the cell takes the space the fixed
+            // Date column leaves, but content can never widen it — titles
+            // truncate instead of overflowing the cell.
+            TableBodyCell: {
+              style: {
+                verticalAlign: "center",
+                width: "100%",
+                maxWidth: 0,
+                overflow: "hidden",
+              },
+            },
+          }}
+        >
+          {(row: Row) => (
+            <div className="flex flex-row items-center">
+              {row.albumUri && (
+                <Link
+                  to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
+                  {!!row.albumArt && (
+                    <img
+                      src={row.albumArt}
+                      alt={row.title}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                    />
+                  )}
+                  {!row.albumArt && (
+                    <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] bg-[rgba(243, 243, 243, 0.725)]" />
+                  )}
+                </Link>
+              )}
+              {!row.albumUri && (
+                <div>
+                  {!!row.albumArt && (
+                    <img
+                      src={row.albumArt}
+                      alt={row.title}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                    />
+                  )}
+                  {!row.albumArt && (
+                    <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] bg-[rgba(243, 243, 243, 0.725)]" />
+                  )}
+                </div>
+              )}
+              <div
+                style={{ display: "flex", flexDirection: "column" }}
+                className="flex flex-col min-w-0 flex-1 overflow-hidden"
+              >
+                {row.uri && (
+                  <Link
+                    to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    className="!text-[var(--color-text)] truncate"
+                  >
+                    {row.title}
+                  </Link>
+                )}
+                {!row.uri && <div className="truncate">{row.title}</div>}
+                {row.artistUri && (
+                  <Link
+                    to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    className="text-[var(--color-text-muted)] truncate"
+                  >
+                    {row.albumArtist}
+                  </Link>
+                )}
+                {!row.artistUri && (
+                  <div className="!text-[var(--color-text-muted)] truncate">
+                    {row.albumArtist}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </TableBuilderColumn>
+        <TableBuilderColumn
+          header="Date"
+          overrides={{
+            // Per-column override replaces the table-level TableBodyCell
+            // style (verticalAlign duplicated). Fixed width so the Name
+            // column takes the remainder and its title can ellipsize.
+            TableBodyCell: {
+              style: { verticalAlign: "center", width: "160px" },
+            },
+          }}
+        >
+          {(row: Row) => (
+            <StatefulTooltip
+              content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
+              returnFocus
+              autoFocus
+            >
+              <div
+                className="w-[120px] text-[var(--color-text-muted)]"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {dayjs(row.date).fromNow()}
+              </div>
+            </StatefulTooltip>
+          )}
+        </TableBuilderColumn>
+      </TableBuilder>
+      <Pagination
+        numPages={pages}
+        currentPage={currentPage}
+        onPageChange={({ nextPage }) => {
+          setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
+        }}
+        overrides={styles.pagination}
+      />
+    </>
+  );
+}
+
+export default LovedTracks;

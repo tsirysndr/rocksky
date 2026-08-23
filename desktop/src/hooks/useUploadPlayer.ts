@@ -1,0 +1,165 @@
+import { useAtomValue, useSetAtom } from "jotai";
+import { useCallback } from "react";
+import { InsertMode } from "rockbox-wasm";
+import { deviceCommandAtom } from "../atoms/devices";
+import { nowPlayingAtom } from "../atoms/nowpaying";
+import { playerAtom } from "../atoms/player";
+import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
+import { ensureStreamToken } from "../api/uploads";
+import {
+  ensureRockboxReady,
+  registerTracks,
+  streamUrlFor,
+} from "../lib/audio/rockbox-engine";
+
+// A QueueTrack → the descriptor the CLI's `enqueue` command expects. Library
+// tracks come from Navidrome, where QueueTrack.uploadId is the Subsonic song id
+// (= the CLI's trackId), so the remote player streams them via Navidrome.
+function toDescriptor(t: QueueTrack) {
+  return {
+    trackId: t.uploadId,
+    title: t.title,
+    artist: t.artist,
+    album: t.album,
+    album_artist: t.albumArtist,
+    album_art: t.albumArt,
+    duration: t.duration,
+    song_uri: t.songUri || undefined,
+  };
+}
+
+// useUploadPlayer — orchestrates the in-browser rockbox-wasm queue.
+//
+// Playback runs entirely in the browser now (decoders + DSP in wasm). There is
+// no remote rockbox server and no HLS: these actions drive the local
+// RockboxPlayer's queue directly. The queue atoms are kept in sync by the
+// engine's `queue`/`status` events (see useRockboxEngine); we don't poll.
+//
+// The wasm queue holds URLs only, so before enqueuing we register each track in
+// the metadata registry (uploadId → QueueTrack) so the UI can map queue/track
+// URLs back to rich metadata.
+
+function trackToNowPlaying(track: QueueTrack, isPlaying = true) {
+  return {
+    title: track.title,
+    artist: track.artist,
+    artistUri: "",
+    songUri: track.songUri ?? "",
+    albumUri: "",
+    duration: track.duration,
+    progress: 0,
+    albumArt: track.albumArt ?? undefined,
+    isPlaying,
+    sha256: track.sha256,
+    liked: false,
+  };
+}
+
+export function useUploadPlayer() {
+  const queue = useAtomValue(queueAtom);
+  const queueIndex = useAtomValue(queueIndexAtom);
+  const setNowPlaying = useSetAtom(nowPlayingAtom);
+  const setPlayer = useSetAtom(playerAtom);
+  // When a remote device is the active player, these actions are relayed to it
+  // instead of driving the local wasm engine.
+  const deviceCommand = useAtomValue(deviceCommandAtom);
+
+  const playNow = useCallback(
+    async (tracks: QueueTrack[], startIndex = 0) => {
+      if (!tracks.length) return;
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: tracks.map(toDescriptor),
+          mode: "now",
+          startIndex,
+        });
+        return;
+      }
+      // Optimistic now-playing so the sticky player reacts instantly; the
+      // engine's track/status events reconcile the rest.
+      setNowPlaying(trackToNowPlaying(tracks[startIndex]));
+      setPlayer("rockbox");
+
+      // Boot the engine FIRST, synchronously within the click's user gesture.
+      // Creating the AudioContext after an awaited network call (the stream
+      // token) lands outside the gesture, and Chrome then rejects the worklet
+      // load with "Unable to load a worklet's module".
+      const p = await ensureRockboxReady();
+      await ensureStreamToken();
+
+      registerTracks(tracks);
+      const urls = tracks.map(streamUrlFor);
+      // Start ONLY the chosen track so playback begins as fast as possible —
+      // the engine downloads/decodes just this one file.
+      p.setQueue([urls[startIndex]], true);
+      // Then fill the rest of the queue in the background. These are URL
+      // strings only: the engine fetches each subsequent track lazily when it's
+      // reached, so nothing else downloads up front. insert() renumbers the
+      // current index and never restarts the playing track, so the album keeps
+      // its natural order with the chosen track current.
+      const after = urls.slice(startIndex + 1);
+      const before = urls.slice(0, startIndex);
+      if (after.length) p.insert(after, InsertMode.PlayLast);
+      if (before.length) p.insert(before, InsertMode.Prepend);
+    },
+    [setNowPlaying, setPlayer, deviceCommand],
+  );
+
+  const playNext = useCallback(async (track: QueueTrack) => {
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "next" });
+      return;
+    }
+    const p = await ensureRockboxReady();
+    await ensureStreamToken();
+    registerTracks([track]);
+    p.insert(streamUrlFor(track), InsertMode.PlayNext);
+  }, [deviceCommand]);
+
+  const playNextAll = useCallback(async (tracks: QueueTrack[]) => {
+    if (!tracks.length) return;
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "next" });
+      return;
+    }
+    const p = await ensureRockboxReady();
+    await ensureStreamToken();
+    registerTracks(tracks);
+    // insert() with an array keeps the batch's order directly after the
+    // current track (Rockbox's PlayNext), so no manual reversal is needed.
+    p.insert(tracks.map(streamUrlFor), InsertMode.PlayNext);
+  }, [deviceCommand]);
+
+  const playLast = useCallback(async (track: QueueTrack) => {
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "last" });
+      return;
+    }
+    const p = await ensureRockboxReady();
+    await ensureStreamToken();
+    registerTracks([track]);
+    p.insert(streamUrlFor(track), InsertMode.PlayLast);
+  }, [deviceCommand]);
+
+  const playLastAll = useCallback(async (tracks: QueueTrack[]) => {
+    if (!tracks.length) return;
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "last" });
+      return;
+    }
+    const p = await ensureRockboxReady();
+    await ensureStreamToken();
+    registerTracks(tracks);
+    p.insert(tracks.map(streamUrlFor), InsertMode.PlayLast);
+  }, [deviceCommand]);
+
+  return {
+    queue,
+    queueIndex,
+    playNow,
+    playNext,
+    playNextAll,
+    playLast,
+    playLastAll,
+  };
+}

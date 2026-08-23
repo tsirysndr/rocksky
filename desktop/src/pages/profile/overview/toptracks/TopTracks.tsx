@@ -1,0 +1,414 @@
+import { css } from "@emotion/react";
+import styled from "@emotion/styled";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
+import { Pagination } from "baseui/pagination";
+import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { HeadingSmall, HeadingXSmall, LabelSmall } from "baseui/typography";
+import { useAtomValue, useSetAtom } from "jotai";
+import numeral from "numeral";
+import { useEffect, useMemo, useState } from "react";
+import { themeAtom } from "../../../../atoms/theme";
+import { topTracksAtom } from "../../../../atoms/topTracks";
+import { useTopTracksRange } from "../../../../atoms/range";
+import { userAtom } from "../../../../atoms/user";
+import { useTracksQuery } from "../../../../hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
+import { useProfileKey } from "../../../../hooks/useProfileKey";
+import styles from "./styles";
+import { IconChevronDown } from "@tabler/icons-react";
+import { getRangeDates } from "../../../../lib/date";
+import { LAST_7_DAYS, LAST_DAYS_LABELS, ALL_TIME } from "../../../../consts";
+import LastDaysMenu from "../../../../components/LastDaysMenu";
+import ContentLoader from "react-content-loader";
+
+type Row = {
+  id: string;
+  title: string;
+  artist: string;
+  albumArtist: string;
+  albumArt: string;
+  albumUri?: string;
+  artistUri?: string;
+  uri: string;
+  scrobbles: number;
+  index: number;
+};
+
+const Link = styled(DefaultLink)`
+  color: inherit;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const Group = styled.div<{ mb?: number }>`
+  display: flex;
+  flex-direction: row;
+  margin-top: 20px;
+  margin-bottom: 50px;
+  ${({ mb }) =>
+    mb &&
+    css`
+      margin-bottom: ${mb}px;
+    `}
+`;
+interface TopTracksProps {
+  showTitle?: boolean;
+  offset?: number;
+  size?: number;
+  showPagination?: boolean;
+  withDateRange?: boolean;
+}
+
+function TopTracks(props: TopTracksProps) {
+  props = {
+    showTitle: true,
+    size: 20,
+    showPagination: false,
+    ...props,
+  };
+
+  const withDateRange = props.withDateRange;
+  const profileKey = useProfileKey();
+  const [topTracksRange, setTopTracksRange] = useTopTracksRange(profileKey);
+  const range = useMemo(
+    () => (withDateRange ? getRangeDates(topTracksRange) : []),
+    [withDateRange, topTracksRange],
+  );
+  const setTopTracks = useSetAtom(topTracksAtom);
+  const topTracks = useAtomValue(topTracksAtom);
+  const { darkMode } = useAtomValue(themeAtom);
+  const { did } = useParams({ strict: false });
+  const profileStats = useProfileStatsByDidQuery(did!);
+  const [currentPage, setCurrentPage] = useState(1);
+  const tracksResult = useTracksQuery(
+    did!,
+    (currentPage - 1) * props.size!,
+    props.size!,
+    ...range,
+  );
+  const user = useAtomValue(userAtom);
+  const pages = useMemo(() => {
+    if (!did || !profileStats.data || !props.size) {
+      return 1;
+    }
+    return Math.ceil((profileStats.data.tracks ?? 0) / props.size) || 1;
+  }, [profileStats.data, did, props.size]);
+
+  useEffect(() => {
+    if (tracksResult.isLoading || tracksResult.isError) {
+      return;
+    }
+
+    if (!tracksResult.data || !did) {
+      return;
+    }
+
+    setTopTracks(tracksResult.data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracksResult.data, tracksResult.isLoading, tracksResult.isError, did]);
+
+  useEffect(() => {
+    if (tracksResult.isLoading || tracksResult.isError) {
+      return;
+    }
+
+    if (
+      withDateRange &&
+      topTracksRange === LAST_7_DAYS &&
+      tracksResult.data?.length === 0
+    ) {
+      setTopTracksRange(ALL_TIME);
+    }
+  }, [
+    tracksResult.isLoading,
+    tracksResult.isError,
+    topTracksRange,
+    tracksResult.data,
+    withDateRange,
+    setTopTracksRange,
+  ]);
+  const onSelectLastDays = (id: string) => {
+    setTopTracksRange(id);
+  };
+
+  const maxScrobbles = topTracks.length > 0 ? topTracks[0].scrobbles || 1 : 0;
+
+  return (
+    <div>
+      {props.showTitle && (
+        <div className="flex flex-row justify-between items-center">
+          <HeadingSmall
+            marginBottom={"15px"}
+            className="!text-[var(--color-text)]"
+          >
+            Top Tracks
+          </HeadingSmall>
+          <LastDaysMenu onSelect={onSelectLastDays}>
+            <button className="mt-[40px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+              {topTracksRange && (
+                <span>{LAST_DAYS_LABELS[topTracksRange]}</span>
+              )}
+              <IconChevronDown
+                size={16}
+                className="ml-[4px] h-[18px] mb-[-5px]"
+              />
+            </button>
+          </LastDaysMenu>
+        </div>
+      )}
+
+      {props.showPagination && (
+        <Group mb={20}>
+          <div className="mr-[20px]">
+            <LabelSmall className="!text-[var(--color-text-muted)]">
+              TRACKS SCROBBLED
+            </LabelSmall>
+            <HeadingXSmall
+              margin={0}
+              className="!text-[var(--color-text)]"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              {did ? numeral(profileStats.data?.tracks).format("0,0") : ""}
+            </HeadingXSmall>
+          </div>
+        </Group>
+      )}
+
+      {tracksResult.isLoading && (
+        <ContentLoader
+          width="100%"
+          height={500}
+          viewBox="0 0 700 500"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
+        >
+          {/* Row 1 */}
+          <rect x="0" y="10" rx="3" ry="3" width="30" height="15" />
+          <rect x="50" y="5" rx="4" ry="4" width="60" height="60" />
+          <rect x="130" y="15" rx="3" ry="3" width="200" height="15" />
+          <rect x="130" y="40" rx="3" ry="3" width="150" height="12" />
+          <rect x="500" y="20" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 2 */}
+          <rect x="0" y="90" rx="3" ry="3" width="30" height="15" />
+          <rect x="50" y="85" rx="4" ry="4" width="60" height="60" />
+          <rect x="130" y="95" rx="3" ry="3" width="200" height="15" />
+          <rect x="130" y="120" rx="3" ry="3" width="150" height="12" />
+          <rect x="500" y="100" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 3 */}
+          <rect x="0" y="170" rx="3" ry="3" width="30" height="15" />
+          <rect x="50" y="165" rx="4" ry="4" width="60" height="60" />
+          <rect x="130" y="175" rx="3" ry="3" width="200" height="15" />
+          <rect x="130" y="200" rx="3" ry="3" width="150" height="12" />
+          <rect x="500" y="180" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 4 */}
+          <rect x="0" y="250" rx="3" ry="3" width="30" height="15" />
+          <rect x="50" y="245" rx="4" ry="4" width="60" height="60" />
+          <rect x="130" y="255" rx="3" ry="3" width="200" height="15" />
+          <rect x="130" y="280" rx="3" ry="3" width="150" height="12" />
+          <rect x="500" y="260" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 5 */}
+          <rect x="0" y="330" rx="3" ry="3" width="30" height="15" />
+          <rect x="50" y="325" rx="4" ry="4" width="60" height="60" />
+          <rect x="130" y="335" rx="3" ry="3" width="200" height="15" />
+          <rect x="130" y="360" rx="3" ry="3" width="150" height="12" />
+          <rect x="500" y="340" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 6 */}
+          <rect x="0" y="410" rx="3" ry="3" width="30" height="15" />
+          <rect x="50" y="405" rx="4" ry="4" width="60" height="60" />
+          <rect x="130" y="415" rx="3" ry="3" width="200" height="15" />
+          <rect x="130" y="440" rx="3" ry="3" width="150" height="12" />
+          <rect x="500" y="420" rx="3" ry="3" width="150" height="15" />
+        </ContentLoader>
+      )}
+
+      {!tracksResult.isLoading && (
+        <TableBuilder
+          data={topTracks.map((x, index) => ({
+            id: x.id,
+            title: x.title,
+            artist: x.artist,
+            albumArtist: x.albumArtist,
+            albumArt: x.albumArt,
+            uri: x.uri,
+            scrobbles: x.scrobbles,
+            albumUri: x.albumUri,
+            artistUri: x.artistUri,
+            index,
+          }))}
+          emptyMessage={`@${user?.handle} has not listened to any tracks yet.`}
+          divider="clean"
+          overrides={{
+            TableHeadRow: {
+              style: {
+                display: "none",
+              },
+            },
+            TableBodyCell: {
+              style: {
+                verticalAlign: "center",
+              },
+            },
+            TableBodyRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                ":hover": {
+                  backgroundColor: "var(--color-menu-hover)",
+                },
+              },
+            },
+            TableEmptyMessage: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            Table: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                // Fixed layout so a long nowrap title clips with an ellipsis
+                // instead of inflating the table and forcing horizontal scroll.
+                tableLayout: "fixed",
+                width: "100%",
+              },
+            },
+          }}
+        >
+          <TableBuilderColumn
+            header="Name"
+            overrides={{
+              // width 100% + maxWidth 0: the cell takes all space the fixed
+              // Scrobbles column leaves, but its content can never widen it —
+              // so the title truncates instead of running under the bar.
+              TableBodyCell: {
+                style: {
+                  verticalAlign: "center",
+                  width: "100%",
+                  maxWidth: 0,
+                  overflow: "hidden",
+                },
+              },
+            }}
+          >
+            {(row: Row) => (
+              <div className="flex flex-row items-center">
+                <div>
+                  <div className="text-[var(--color-text)] mr-[20px]">
+                    {(currentPage - 1) * props.size! + row.index + 1}
+                  </div>
+                </div>
+                {row.albumUri && (
+                  <Link
+                    to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                  >
+                    {!!row.albumArt && (
+                      <img
+                        src={row.albumArt}
+                        alt={row.title}
+                        className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                        key={row.id}
+                      />
+                    )}
+                    {!row.albumArt && (
+                      <div className="w-[60px] h-[60px] rounded-[5px] bg-[rgba(243, 243, 243, 0.725)]" />
+                    )}
+                  </Link>
+                )}
+                {!row.albumUri && (
+                  <div>
+                    {!!row.albumArt && (
+                      <img
+                        src={row.albumArt}
+                        alt={row.title}
+                        className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                        key={row.id}
+                      />
+                    )}
+                    {!row.albumArt && (
+                      <div className="w-[60px] h-[60px] rounded-[5px] bg-[rgba(243, 243, 243, 0.725)]" />
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+                  <Link
+                    to={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                    className="!text-[var(--color-text)] truncate"
+                  >
+                    {row.title}
+                  </Link>
+                  {row.artistUri && (
+                    <Link
+                      to={`/${row.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                      className="!text-[var(--color-text-muted)] truncate"
+                    >
+                      {row.albumArtist}
+                    </Link>
+                  )}
+                  {!row.artistUri && (
+                    <div className="!text-[var(--color-text-muted)] truncate">
+                      {row.albumArtist}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </TableBuilderColumn>
+          <TableBuilderColumn
+            header="Scrobbles"
+            overrides={{
+              // Per-column override replaces the table-level TableBodyCell
+              // style, so verticalAlign is duplicated. Head row is hidden, so
+              // under fixed layout this body-cell width sizes the column; the
+              // Name column takes the remainder and its title can ellipsize.
+              TableBodyCell: {
+                style: { verticalAlign: "center", width: "290px" },
+              },
+            }}
+          >
+            {(row: Row, index?: number) => (
+              <div className="relative w-[250px] mt-[-20px]">
+                <div
+                  className={`absolute w-full top-[10px] left-[10px] z-[1] ${
+                    darkMode && (row.scrobbles / maxScrobbles) * 100 < 10
+                      ? "!text-[#fff]"
+                      : "!text-[#000]"
+                  }`}
+                >
+                  <span style={{ fontFamily: "var(--font-mono)" }}>
+                    {numeral(row.scrobbles).format("0,0")}
+                  </span>
+                  {" "}
+                  {index == 0 && " scrobbles"}
+                </div>
+                <span
+                  style={{
+                    width: `${(row.scrobbles / maxScrobbles) * 100}%`,
+                    backgroundColor: "var(--color-bar)",
+                  }}
+                  className="absolute h-[40px]"
+                ></span>
+              </div>
+            )}
+          </TableBuilderColumn>
+        </TableBuilder>
+      )}
+      {props.showPagination && !tracksResult.isLoading && (
+        <Pagination
+          numPages={pages}
+          currentPage={currentPage}
+          onPageChange={({ nextPage }) => {
+            setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
+          }}
+          overrides={styles.pagination}
+        />
+      )}
+    </div>
+  );
+}
+
+export default TopTracks;

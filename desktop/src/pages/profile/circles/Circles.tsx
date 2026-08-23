@@ -1,0 +1,275 @@
+import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
+import {
+  useActorNeighboursQuery,
+  useProfileByDidQuery,
+} from "../../../hooks/useProfile";
+import { Link, useParams } from "@tanstack/react-router";
+import { Neighbour } from "../../../types/neighbour";
+import { Avatar } from "baseui/avatar";
+import { IconCheck, IconPlus } from "@tabler/icons-react";
+import { Button } from "baseui/button";
+import { useAtom } from "jotai";
+import { followsAtom } from "../../../atoms/follows";
+import {
+  useFollowAccountMutation,
+  useFollowsQuery,
+  useUnfollowAccountMutation,
+} from "../../../hooks/useGraph";
+import { useEffect, useState } from "react";
+import ContentLoader from "react-content-loader";
+import SignInModal from "../../../components/SignInModal";
+import { useProfileActiveTab } from "../../../atoms/tab";
+import scrollToTop from "../../../lib/scrollToTop";
+
+function CircleRowSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 100}
+      viewBox={`0 0 700 ${rows * 100}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 100;
+        return (
+          <g key={i}>
+            <circle cx="30" cy={y + 30} r="30" />
+            <rect x="75" y={y + 10} rx="3" ry="3" width="180" height="14" />
+            <rect x="75" y={y + 34} rx="3" ry="3" width="120" height="10" />
+            <rect x="75" y={y + 60} rx="3" ry="3" width="320" height="10" />
+            <rect x="580" y={y + 28} rx="16" ry="16" width="110" height="32" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
+
+function Circles() {
+  const [, setActiveKey] = useProfileActiveTab();
+  const [follows, setFollows] = useAtom(followsAtom);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const { did } = useParams({ strict: false });
+  const profile = useProfileByDidQuery(did!);
+  const { data, isPending, isFetching } = useActorNeighboursQuery(did!);
+  const { mutate: followAccount } = useFollowAccountMutation();
+  const { mutate: unfollowAccount } = useUnfollowAccountMutation();
+
+  const allCircles = data?.neighbours ?? [];
+
+  const { data: followsData } = useFollowsQuery(
+    localStorage.getItem("did")!,
+    allCircles.length,
+    allCircles
+      .map((circle) => circle.did)
+      .filter((x) => x !== localStorage.getItem("did")),
+  );
+
+  const onFollow = (followerDid: string) => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => new Set(prev).add(followerDid));
+    followAccount(followerDid);
+  };
+
+  const onUnfollow = (followerDid: string) => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(followerDid);
+      return newSet;
+    });
+    unfollowAccount(followerDid);
+  };
+
+  useEffect(() => {
+    if (!followsData) return;
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      followsData.follows.forEach((follow) => {
+        if (follow.did) {
+          newSet.add(follow.did);
+        }
+      });
+      return newSet;
+    });
+  }, [followsData, setFollows]);
+
+  return (
+    <>
+      <HeadingSmall className="!text-[var(--color-text)] mb-[15px]">
+        Circles
+      </HeadingSmall>
+      <p>
+        People on Rocksky with similar music taste to @{profile.data?.handle}
+      </p>
+      {(isPending ||
+        (isFetching && (data?.neighbours?.length ?? 0) === 0)) && (
+        <div className="mt-[40px]">
+          <CircleRowSkeleton />
+        </div>
+      )}
+      {!isPending && !isFetching && data?.neighbours.length === 0 && (
+        <div className="mt-[40px] text-center py-[60px]">
+          <LabelMedium className="!text-[var(--color-text-muted)]">
+            No circles found yet. Check back later!
+          </LabelMedium>
+        </div>
+      )}
+      {!isPending && (data?.neighbours || []).length > 0 && (
+        <div className="mt-[40px]">
+          {data?.neighbours.map((neighbour: Neighbour) => (
+            <div
+              key={neighbour.did}
+              className="flex items-start justify-between gap-2 mb-[40px]"
+            >
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/profile/${neighbour.handle}` as string}
+                  className="no-underline mt-[10px]"
+                  onClick={() => {
+                    setActiveKey(0, neighbour.did);
+                    scrollToTop();
+                  }}
+                >
+                  <Avatar
+                    src={neighbour.avatar}
+                    name={neighbour.displayName}
+                    size={"60px"}
+                  />
+                </Link>
+                <div className="ml-[16px]">
+                  <div className="flex ">
+                    <Link
+                      to={`/profile/${neighbour.handle}` as string}
+                      className="no-underline"
+                      onClick={() => {
+                        setActiveKey(0, neighbour.did);
+                        scrollToTop();
+                      }}
+                    >
+                      <LabelMedium
+                        marginTop={"0px"}
+                        className="!text-[var(--color-text)] mr-[5px]"
+                      >
+                        {neighbour.displayName}
+                      </LabelMedium>
+                    </Link>
+                    <Link
+                      to={`/profile/${neighbour.handle}` as string}
+                      className="no-underline text-[var(--color-primary)]"
+                      onClick={() => {
+                        setActiveKey(0, neighbour.did);
+                        scrollToTop();
+                      }}
+                    >
+                      <LabelSmall
+                        className="!text-[var(--color-text-muted)]  mt-[3px] mb-[5px]"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
+                        @{neighbour.handle}
+                      </LabelSmall>
+                    </Link>
+                  </div>
+                  <p className="mt-[0px] mb-[0px] text-[14px]">
+                    {localStorage.getItem("did") === profile.data?.did
+                      ? "You"
+                      : "They"}{" "}
+                    both listen to{" "}
+                    {neighbour.topSharedArtistsDetails.map((artist, index) => (
+                      <div key={artist.id} className="inline">
+                        <Link
+                          to={
+                            `/${artist.uri.split("at://")[1].replace("app.rocksky.", "")}` as string
+                          }
+                          className="no-underline"
+                        >
+                          <span className="mt-[0px] mb-[0px] text-[14px] !text-[var(--color-primary)]">
+                            {artist.name}
+                          </span>
+                        </Link>
+                        {index !==
+                          neighbour.topSharedArtistsDetails.length - 1 &&
+                          (index ===
+                          neighbour.topSharedArtistsDetails.length - 2
+                            ? " and "
+                            : ", ")}
+                      </div>
+                    ))}
+                  </p>
+                </div>
+              </div>
+              {(neighbour.did !== localStorage.getItem("did") ||
+                !localStorage.getItem("did")) && (
+                <div className="ml-[10px] mt-[10px]">
+                  {!follows.has(neighbour.did) && (
+                    <Button
+                      shape="pill"
+                      size="mini"
+                      startEnhancer={<IconPlus size={16} />}
+                      onClick={() => onFollow(neighbour.did)}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            minWidth: "90px",
+                            backgroundColor: "#ff2876",
+                            ":hover": {
+                              backgroundColor: "#ff2876",
+                            },
+                            ":focus": {
+                              backgroundColor: "#ff2876",
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      Follow
+                    </Button>
+                  )}
+                  {follows.has(neighbour.did) && (
+                    <Button
+                      shape="pill"
+                      size="mini"
+                      startEnhancer={<IconCheck size={16} />}
+                      onClick={() => onUnfollow(neighbour.did)}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            backgroundColor: "var(--color-default-button)",
+                            color: "var(--color-text)",
+                            ":hover": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
+                            ":focus": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      Following
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        follow
+      />
+    </>
+  );
+}
+
+export default Circles;

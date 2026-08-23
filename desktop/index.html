@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#130825" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Rocksky" />
+    <title>Rocksky</title>
+    <script>
+      // Dev aid: a blank window hides startup crashes — surface the first
+      // uncaught error in-page when React never mounted.
+      window.addEventListener("error", (e) => {
+        const root = document.getElementById("root");
+        if (root && !root.childElementCount) {
+          root.innerHTML = "<pre style='color:#ff5f87;padding:24px;white-space:pre-wrap;font-size:12px'>" +
+            (e.error && e.error.stack ? e.error.stack : e.message) + "</pre>";
+        }
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        const root = document.getElementById("root");
+        if (root && !root.childElementCount) {
+          root.innerHTML = "<pre style='color:#ffb86b;padding:24px;white-space:pre-wrap;font-size:12px'>unhandledrejection: " +
+            (e.reason && e.reason.stack ? e.reason.stack : String(e.reason)) + "</pre>";
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

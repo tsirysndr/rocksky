@@ -1,0 +1,92 @@
+mod cache;
+mod dsp;
+mod engine;
+mod login;
+mod media;
+mod player;
+mod remote;
+mod rocksky;
+mod state;
+
+use tauri::Manager;
+
+use cache::MediaCache;
+use engine::Engine;
+use state::AppState;
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info,rocksky_desktop_lib=debug".into()),
+        )
+        .init();
+
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            let engine = Engine::start()?;
+            app.manage(AppState::new(engine));
+
+            let cache_dir = app.path().app_cache_dir()?;
+            let config_dir = app.path().app_config_dir()?;
+            app.manage(MediaCache::new(cache_dir, config_dir));
+
+            // OS media session (macOS Now Playing, Linux MPRIS) — must run on
+            // the main thread; non-fatal when the platform has none.
+            media::init(app.handle());
+
+            // Browser-login token handoff (the CLI's localhost:6996 contract).
+            login::start(app.handle());
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            player::player_open,
+            player::player_set_queue,
+            player::player_insert,
+            player::player_queue_paths,
+            player::player_set_eq_enabled,
+            player::player_set_eq_band,
+            player::player_set_eq_precut,
+            player::player_set_tone,
+            player::player_set_tone_cutoffs,
+            player::player_set_crossfade,
+            player::player_set_channel_mode,
+            player::player_set_stereo_width,
+            player::player_set_replaygain,
+            player::player_set_crossfeed,
+            player::player_set_pbe,
+            player::player_set_compressor,
+            player::player_set_surround,
+            player::player_enqueue,
+            player::player_play,
+            player::player_pause,
+            player::player_toggle,
+            player::player_stop,
+            player::player_next,
+            player::player_previous,
+            player::player_seek,
+            player::player_skip_to,
+            player::player_remove,
+            player::player_clear_queue,
+            player::player_set_volume,
+            player::player_set_shuffle,
+            player::player_set_repeat,
+            player::player_status,
+            player::player_queue,
+            remote::remote_connect,
+            remote::remote_disconnect,
+            remote::remote_status,
+            cache::cache_get_config,
+            cache::cache_set_config,
+            cache::cache_stats,
+            cache::cache_clear,
+            rocksky::rocksky_feed,
+            rocksky::rocksky_profile,
+            rocksky::rocksky_search,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}

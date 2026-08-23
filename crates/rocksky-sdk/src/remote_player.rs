@@ -168,6 +168,7 @@ pub struct RemotePlayer {
     out_tx: mpsc::UnboundedSender<OutMsg>,
     cmd_rx: Mutex<mpsc::UnboundedReceiver<RemoteCommand>>,
     stop_tx: watch::Sender<bool>,
+    device_id: std::sync::Arc<std::sync::Mutex<Option<String>>>,
 }
 
 impl RemotePlayer {
@@ -177,14 +178,24 @@ impl RemotePlayer {
         let (out_tx, out_rx) = mpsc::unbounded_channel();
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
         let (stop_tx, stop_rx) = watch::channel(false);
+        let device_id = std::sync::Arc::new(std::sync::Mutex::new(None));
 
-        tokio::spawn(background(config, out_rx, cmd_tx, stop_rx));
+        tokio::spawn(background(config, out_rx, cmd_tx, stop_rx, device_id.clone()));
 
         Self {
             out_tx,
             cmd_rx: Mutex::new(cmd_rx),
             stop_tx,
+            device_id,
         }
+    }
+
+    /// The device id the server assigned at registration — `None` until the
+    /// `registered` ack arrives (and again briefly after a reconnect). Useful
+    /// for a client that both registers a player and lists devices, so it can
+    /// recognize (e.g. hide) itself.
+    pub fn device_id(&self) -> Option<String> {
+        self.device_id.lock().unwrap().clone()
     }
 
     /// Await the next command from a controller. Returns `None` once the player
@@ -228,6 +239,7 @@ async fn background(
     mut out_rx: mpsc::UnboundedReceiver<OutMsg>,
     cmd_tx: mpsc::UnboundedSender<RemoteCommand>,
     mut stop_rx: watch::Receiver<bool>,
+    shared_device_id: std::sync::Arc<std::sync::Mutex<Option<String>>>,
 ) {
     // Last state, re-advertised after every (re)connect so controllers resync.
     let mut last = LastState::default();
@@ -239,7 +251,7 @@ async fn background(
 
         tokio::select! {
             _ = stop_rx.changed() => return,
-            _ = session(&config, &mut out_rx, &cmd_tx, &mut last) => {}
+            _ = session(&config, &mut out_rx, &cmd_tx, &mut last, &shared_device_id) => {}
         }
 
         // Reconnect backoff (cancellable).
@@ -264,6 +276,7 @@ async fn session(
     out_rx: &mut mpsc::UnboundedReceiver<OutMsg>,
     cmd_tx: &mpsc::UnboundedSender<RemoteCommand>,
     last: &mut LastState,
+    shared_device_id: &std::sync::Mutex<Option<String>>,
 ) {
     let (ws, _) = match connect_async(&config.url).await {
         Ok(ok) => ok,
@@ -307,6 +320,7 @@ async fn session(
                         match handle_frame(text.as_str(), cmd_tx) {
                             Frame::Registered(id) => {
                                 device_id = id;
+                                *shared_device_id.lock().unwrap() = Some(device_id.clone());
                                 // Re-advertise last state on (re)register.
                                 if let Some(t) = &last.track {
                                     let _ = send_out(&mut write, config, &device_id, &OutMsg::Track(t.clone())).await;

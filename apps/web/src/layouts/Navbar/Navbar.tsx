@@ -145,13 +145,6 @@ function Navbar() {
     <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
       <div className="flex">
         <Link to="/" style={{ textDecoration: "none" }}>
-          <img
-            src="/favicon.png"
-            alt="Rocksky"
-            className="max-h-[25px] max-w-[30px] mr-[5px] mt-[28px]"
-          />
-        </Link>
-        <Link to="/" style={{ textDecoration: "none" }}>
           <h2 className="text-[var(--color-text)] text-[26px] font-bold">
             Rocksky
           </h2>

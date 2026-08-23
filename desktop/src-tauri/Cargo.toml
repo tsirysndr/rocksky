@@ -1,0 +1,37 @@
+# Standalone workspace: the Tauri dependency tree (wry/tao/objc2) conflicts
+# with the root workspace's pgrx extension pins, so this app resolves its own
+# lockfile. rocksky-sdk still comes from the local path (same version as
+# crates.io).
+[workspace]
+
+[package]
+name = "rocksky-desktop"
+version = "0.1.0"
+description = "Rocksky desktop player — Tauri app over rocksky-sdk and the rockbox-playback engine"
+authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
+edition = "2021"
+
+[lib]
+# The `_lib` suffix keeps the lib name distinct from the bin on Windows.
+name = "rocksky_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rocksky-sdk = { version = "0.9.0", path = "../../crates/rocksky-sdk", features = ["remote-player"] }
+rockbox-playback = "0.5"
+rockbox-metadata = "0.1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+# OS media-session integration: macOS Now Playing + media keys, Linux MPRIS
+# (the media controls shown in notifications/applets).
+souvlaki = "0.8"

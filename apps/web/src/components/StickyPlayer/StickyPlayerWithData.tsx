@@ -24,7 +24,8 @@ import useSpotify from "../../hooks/useSpotify";
 import StickyPlayer from "./StrickyPlayer";
 import FullscreenPlayer from "../FullscreenPlayer/FullscreenPlayer";
 import { QueuePanel } from "../QueuePanel/QueuePanel";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { rocksky } from "../../lib/rocksky";
 import { feedGeneratorUriAtom } from "../../atoms/feed";
 import { InsertMode } from "rockbox-wasm";
 import {
@@ -182,6 +183,23 @@ function StickyPlayerWithData() {
   const queryClient = useQueryClient();
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
+  // Initial heart state for local/upload playback: the engine only knows the
+  // file, not whether the viewer loved the song. Fetch the loved set once
+  // (sha256-keyed) and seed nowPlaying.liked from it; explicit heart clicks
+  // (the `liked` map above) always win.
+  const { data: lovedSha256s } = useQuery({
+    queryKey: ["lovedSha256s"],
+    queryFn: async () => {
+      const did = localStorage.getItem("did");
+      if (!did) return new Set<string>();
+      const songs = await rocksky().lovedSongs(did, 500, 0);
+      return new Set(
+        songs.map((s) => s.sha256).filter((x): x is string => !!x),
+      );
+    },
+    enabled: !!localStorage.getItem("did"),
+    staleTime: 5 * 60_000,
+  });
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const lastFetchedRef = useRef(0);
   const nowPlayingInterval = useRef<number | null>(null);
@@ -643,6 +661,19 @@ function StickyPlayerWithData() {
     return () => setPlayerControls(null);
   }, [hasNowPlaying, setPlayerControls]);
 
+  useEffect(() => {
+    if (!lovedSha256s) return;
+    if (player !== "rockbox") return;
+    setNowPlaying((prev) => {
+      if (!prev?.sha256) return prev;
+      // A manual heart click on this song wins over the fetched snapshot.
+      if (prev.songUri && liked[prev.songUri] !== undefined) return prev;
+      const isLoved = lovedSha256s.has(prev.sha256);
+      return prev.liked === isLoved ? prev : { ...prev, liked: isLoved };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lovedSha256s, player, nowPlaying?.sha256]);
+
   // ── Like / dislike ────────────────────────────────────────────────────────
 
   const onLike = async (uri: string) => {
@@ -886,7 +917,7 @@ function StickyPlayerWithData() {
                 }}
               >
                 <PlayerDot active={isRockbox} />
-                Rockbox
+                This Device
               </PlayerSelectorItem>
               {/* One entry per connected player device. Several can be playing
                   at once — selecting one shows/controls it and makes it the
@@ -898,8 +929,8 @@ function StickyPlayerWithData() {
                     key={dev.deviceId}
                     active={isActive}
                     onClick={() => {
-                      // Silence the local engine before handing off to the device.
-                      if (player === "rockbox") getRockboxPlayer().pause();
+                      // Devices play independently — switching which one the
+                      // miniplayer shows/controls must not pause local playback.
                       selectDevice(dev.deviceId);
                       setPlayerSelectorOpen(false);
                     }}

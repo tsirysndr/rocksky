@@ -1,0 +1,283 @@
+import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
+import { useProfileByDidQuery } from "../../../hooks/useProfile";
+import { Link, useParams } from "@tanstack/react-router";
+import {
+  useFollowAccountMutation,
+  useFollowsInfiniteQuery,
+  useFollowsQuery,
+  useUnfollowAccountMutation,
+} from "../../../hooks/useGraph";
+import { Avatar } from "baseui/avatar";
+import { useAtom } from "jotai";
+import { useProfileActiveTab } from "../../../atoms/tab";
+import { followsAtom } from "../../../atoms/follows";
+import { Button } from "baseui/button";
+import { IconCheck, IconPlus } from "@tabler/icons-react";
+import SignInModal from "../../../components/SignInModal";
+import { useState, useEffect, useRef } from "react";
+import ContentLoader from "react-content-loader";
+import numeral from "numeral";
+import scrollToTop from "../../../lib/scrollToTop";
+
+function PersonRowSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 80}
+      viewBox={`0 0 700 ${rows * 80}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 80;
+        return (
+          <g key={i}>
+            <circle cx="30" cy={y + 30} r="30" />
+            <rect x="75" y={y + 14} rx="3" ry="3" width="180" height="14" />
+            <rect x="75" y={y + 38} rx="3" ry="3" width="120" height="10" />
+            <rect x="580" y={y + 18} rx="16" ry="16" width="110" height="32" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
+
+function Follows() {
+  const [, setActiveKey] = useProfileActiveTab();
+  const [follows, setFollows] = useAtom(followsAtom);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const { did } = useParams({ strict: false });
+  const profile = useProfileByDidQuery(did!);
+  const {
+    data,
+    isPending,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFollowsInfiniteQuery(profile.data?.did!, 20);
+  const { mutate: followAccount } = useFollowAccountMutation();
+  const { mutate: unfollowAccount } = useUnfollowAccountMutation();
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Flatten all pages into a single array
+  const allFollows = data?.pages.flatMap((page) => page.follows) ?? [];
+
+  const { data: followsData } = useFollowsQuery(
+    localStorage.getItem("did")!,
+    allFollows.length,
+    allFollows
+      .map((follow) => follow.did)
+      .filter((x): x is string => !!x)
+      .filter((x) => x !== localStorage.getItem("did")),
+  );
+
+  useEffect(() => {
+    if (!followsData) return;
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      followsData.follows.forEach((follow) => {
+        if (follow.did) {
+          newSet.add(follow.did);
+        }
+      });
+      return newSet;
+    });
+  }, [followsData, setFollows]);
+
+  const onFollow = (followDid: string) => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => new Set(prev).add(followDid));
+    followAccount(followDid);
+  };
+
+  const onUnfollow = (followDid: string) => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(followDid);
+      return newSet;
+    });
+    unfollowAccount(followDid);
+  };
+
+  const count = data?.pages?.flatMap((page) => page.count)[0];
+
+  return (
+    <>
+      <HeadingSmall className="!text-[var(--color-text)]">
+        Following{(count ?? 0) > 0 ? <> (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span>)</> : ""}
+      </HeadingSmall>
+
+      {(isPending || (isFetching && allFollows.length === 0)) && (
+        <PersonRowSkeleton />
+      )}
+
+      {allFollows.length === 0 && data && (
+        <div className="text-center py-8">
+          <LabelMedium className="!text-[var(--color-text)] opacity-60">
+            Not following anyone yet
+          </LabelMedium>
+        </div>
+      )}
+
+      {allFollows.length > 0 && (
+        <div>
+          {allFollows.map((follow: any) => (
+            <div
+              key={follow.did}
+              className="flex items-start justify-between gap-2 mb-[20px]"
+            >
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/profile/${follow.handle}` as any}
+                  className="no-underline"
+                  onClick={() => {
+                    setActiveKey(0, follow.did);
+                    scrollToTop();
+                  }}
+                >
+                  <Avatar
+                    src={follow.avatar}
+                    name={follow.displayName}
+                    size={"60px"}
+                  />
+                </Link>
+                <div className="ml-[16px]">
+                  <Link
+                    to={`/profile/${follow.handle}` as string}
+                    className="no-underline"
+                    onClick={() => {
+                      setActiveKey(0, follow.did);
+                      scrollToTop();
+                    }}
+                  >
+                    <LabelMedium
+                      marginTop={"10px"}
+                      className="!text-[var(--color-text)]"
+                    >
+                      {follow.displayName}
+                    </LabelMedium>
+                  </Link>
+                  <Link
+                    to={`/profile/${follow.handle}` as string}
+                    className="no-underline text-[var(--color-primary)]"
+                    onClick={() => {
+                      setActiveKey(0, follow.did);
+                      scrollToTop();
+                    }}
+                  >
+                    <LabelSmall
+                      className="!text-[var(--color-primary)] mt-[3px] mb-[25px]"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
+                      @{follow.handle}
+                    </LabelSmall>
+                  </Link>
+                </div>
+              </div>
+              {(follow.did !== localStorage.getItem("did") ||
+                !localStorage.getItem("did")) && (
+                <div className="ml-auto mt-[10px]">
+                  {!follows.has(follow.did) && (
+                    <Button
+                      shape="pill"
+                      size="mini"
+                      startEnhancer={<IconPlus size={16} />}
+                      onClick={() => onFollow(follow.did)}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            minWidth: "90px",
+                            backgroundColor: "#ff2876",
+                            ":hover": {
+                              backgroundColor: "#ff2876",
+                            },
+                            ":focus": {
+                              backgroundColor: "#ff2876",
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      Follow
+                    </Button>
+                  )}
+                  {follows.has(follow.did) && (
+                    <Button
+                      shape="pill"
+                      size="mini"
+                      startEnhancer={<IconCheck size={16} />}
+                      onClick={() => onUnfollow(follow.did)}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            backgroundColor: "var(--color-default-button)",
+                            color: "var(--color-text)",
+                            ":hover": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
+                            ":focus": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      Following
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Infinite scroll trigger */}
+          <div ref={loadMoreRef} className="h-[20px] w-full" />
+
+          {isFetchingNextPage && (
+            <div className="text-center py-4">
+              <LabelSmall className="!text-[var(--color-text)]">
+                Loading more...
+              </LabelSmall>
+            </div>
+          )}
+        </div>
+      )}
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        follow
+      />
+    </>
+  );
+}
+
+export default Follows;
