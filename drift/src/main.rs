@@ -97,9 +97,21 @@ async fn main() -> std::io::Result<()> {
     // and left to the background loop to retry rather than crashing the
     // service — and if the database file already holds a previous snapshot,
     // it keeps being served in the meantime.
-    match refresh::refresh(&cfg, &db_url, &store) {
-        Ok(_) => {}
-        Err(e) => log::error!("initial refresh failed (will retry on the interval): {e}"),
+    //
+    // On a dedicated thread, not inline: the sync `postgres` client drives its
+    // own runtime via block_on, which panics on this thread — actix_web::main
+    // is already inside one. (The other call sites are safe: the interval loop
+    // is a plain thread and the endpoint goes through web::block.)
+    {
+        let cfg = cfg.clone();
+        let db_url = db_url.clone();
+        let store = Arc::clone(&store);
+        let outcome = thread::spawn(move || refresh::refresh(&cfg, &db_url, &store))
+            .join()
+            .unwrap_or_else(|_| Err("initial refresh thread panicked".into()));
+        if let Err(e) = outcome {
+            log::error!("initial refresh failed (will retry on the interval): {e}");
+        }
     }
 
     {
