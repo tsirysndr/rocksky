@@ -1,19 +1,24 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
-import { Link as DefaultLink, useParams } from "@tanstack/react-router";
+import { IconArrowLeft, IconPlus, IconTrash } from "@tabler/icons-react";
+import {
+  Link as DefaultLink,
+  useParams,
+  useRouter,
+} from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingMedium, LabelMedium } from "baseui/typography";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ContentLoader from "react-content-loader";
 import Disc from "../../components/Icons/Disc";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   addSongsTargetAtom,
   createPlaylistModalOpenAtom,
+  pendingPlaylistTracksAtom,
 } from "../../atoms/createPlaylist";
 import { profileAtom } from "../../atoms/profile";
 import usePlaylists, {
@@ -26,6 +31,24 @@ const Group = styled.div`
   display: flex;
   flex-direction: row;
   margin-top: 20px;
+`;
+
+const BackButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-default-button);
+  color: var(--color-text);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-menu-hover);
+  }
 `;
 
 const AddSongsButton = styled.button`
@@ -141,8 +164,20 @@ function Playlist() {
   const uri = `${did}/app.rocksky.playlist/${rkey}`;
   const profile = useAtomValue(profileAtom);
   const removeTrack = useRemoveTrackFromPlaylistMutation();
+  const router = useRouter();
   const setAddSongsTarget = useSetAtom(addSongsTargetAtom);
   const openPlaylistModal = useSetAtom(createPlaylistModalOpenAtom);
+  const [pending, setPending] = useAtom(pendingPlaylistTracksAtom);
+  const playlistUri = playlist?.curatedBy?.did
+    ? `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`
+    : "";
+  const tracks = useMemo(() => {
+    const rows = playlist?.tracks ?? [];
+    const have = new Set(rows.map((t) => t.uri));
+    const extra = (pending[playlistUri] ?? []).filter((t) => !have.has(t.uri));
+    return [...rows, ...extra];
+  }, [playlist, pending, playlistUri]);
+
   const isOwner = !!profile?.did && profile.did === playlist?.curatedBy?.did;
 
   const onRemoveTrack = async (songUri: string) => {
@@ -158,23 +193,41 @@ function Playlist() {
         ? { ...prev, tracks: prev.tracks.filter((t) => t.uri !== songUri) }
         : prev,
     );
+    setPending((prev) => ({
+      ...prev,
+      [playlistUri]: (prev[playlistUri] ?? []).filter((t) => t.uri !== songUri),
+    }));
   };
 
-  useEffect(() => {
-    if (!did || !rkey) {
-      return;
-    }
-    const fetchPlaylist = async () => {
-      const data = await getPlaylist(did, rkey);
-      setPlaylist(data);
-    };
-    fetchPlaylist();
-
+  const refetch = useCallback(async () => {
+    if (!did || !rkey) return;
+    setPlaylist(await getPlaylist(did, rkey));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did, rkey]);
+
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
+
+  // Refetch when the add-songs modal closes. It races jetstream — the record
+  // may not be ingested yet — so pendingTracks below covers the gap until a
+  // later load returns the real rows.
+  const modalOpen = useAtomValue(createPlaylistModalOpenAtom);
+  const wasOpen = useRef(modalOpen);
+  useEffect(() => {
+    if (wasOpen.current && !modalOpen) void refetch();
+    wasOpen.current = modalOpen;
+  }, [modalOpen, refetch]);
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
+        <BackButton
+          aria-label="Go back"
+          title="Go back"
+          onClick={() => router.history.back()}
+        >
+          <IconArrowLeft size={20} />
+        </BackButton>
         {!playlist && (
           <ContentLoader
             backgroundColor="var(--color-skeleton-background)"
@@ -208,8 +261,8 @@ function Playlist() {
                 </HeadingMedium>
                 <div className="mt-[10px]">
                   <LabelMedium className="!text-[var(--color-text-muted)]">
-                    {playlist.tracks.length} Track
-                    {playlist.tracks.length > 1 ? "s" : ""}
+                    {tracks.length} Track
+                    {tracks.length > 1 ? "s" : ""}
                   </LabelMedium>
                 </div>
                 <div className="mt-[40px]">
@@ -262,7 +315,7 @@ function Playlist() {
             </Group>
 
             <TableBuilder
-              data={playlist.tracks.map((x, index) => ({
+              data={tracks.map((x, index) => ({
                 id: x.id,
                 index,
                 trackNumber: x.trackNumber,

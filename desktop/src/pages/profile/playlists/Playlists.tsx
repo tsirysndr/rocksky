@@ -1,10 +1,10 @@
 import styled from "@emotion/styled";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import {
-	IconPencil,
-	IconPlus,
-	IconSearch,
-	IconTrash,
+  IconPencil,
+  IconPlus,
+  IconSearch,
+  IconTrash,
 } from "@tabler/icons-react";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
@@ -15,21 +15,21 @@ import { useEffect, useMemo, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { playlistNameFilter } from "../../../api/playlists";
 import {
-	createPlaylistModalOpenAtom,
-	editingPlaylistAtom,
+  createPlaylistModalOpenAtom,
+  editingPlaylistAtom,
 } from "../../../atoms/createPlaylist";
 import { playlistsAtom } from "../../../atoms/playlists";
 import { profileAtom } from "../../../atoms/profile";
 import SongCover from "../../../components/SongCover";
 import {
-	usePlaylistsQuery,
-	useRemovePlaylistMutation,
+  usePlaylistsQuery,
+  useRemovePlaylistMutation,
 } from "../../../hooks/usePlaylists";
 
 const itemProps: BlockProps = {
-	display: "flex",
-	alignItems: "flex-start",
-	flexDirection: "column",
+  display: "flex",
+  alignItems: "flex-start",
+  flexDirection: "column",
 };
 
 const Link = styled(DefaultLink)`
@@ -167,204 +167,204 @@ const EmptyState = styled.div`
 `;
 
 function PlaylistCardSkeleton() {
-	return (
-		<ContentLoader
-			speed={1.6}
-			width={240}
-			height={300}
-			viewBox="0 0 240 300"
-			backgroundColor="var(--color-skeleton-background)"
-			foregroundColor="var(--color-skeleton-foreground)"
-		>
-			<rect x="0" y="0" rx="8" ry="8" width="240" height="240" />
-			<rect x="0" y="256" rx="3" ry="3" width="170" height="15" />
-			<rect x="0" y="282" rx="3" ry="3" width="85" height="11" />
-		</ContentLoader>
-	);
+  return (
+    <ContentLoader
+      speed={1.6}
+      width={240}
+      height={300}
+      viewBox="0 0 240 300"
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      <rect x="0" y="0" rx="8" ry="8" width="240" height="240" />
+      <rect x="0" y="256" rx="3" ry="3" width="170" height="15" />
+      <rect x="0" y="282" rx="3" ry="3" width="85" height="11" />
+    </ContentLoader>
+  );
 }
 
 function Playlists() {
-	const { did } = useParams({ strict: false });
-	const playlists = useAtomValue(playlistsAtom);
-	const setPlaylists = useSetAtom(playlistsAtom);
-	const openCreate = useSetAtom(createPlaylistModalOpenAtom);
-	const setEditing = useSetAtom(editingPlaylistAtom);
-	const removePlaylist = useRemovePlaylistMutation();
-	const loggedInProfile = useAtomValue(profileAtom);
-	const [term, setTerm] = useState("");
-	const [filter, setFilter] = useState<string | undefined>(undefined);
+  const { did } = useParams({ strict: false });
+  const playlists = useAtomValue(playlistsAtom);
+  const setPlaylists = useSetAtom(playlistsAtom);
+  const openCreate = useSetAtom(createPlaylistModalOpenAtom);
+  const setEditing = useSetAtom(editingPlaylistAtom);
+  const removePlaylist = useRemovePlaylistMutation();
+  const loggedInProfile = useAtomValue(profileAtom);
+  const [term, setTerm] = useState("");
+  const [filter, setFilter] = useState<string | undefined>(undefined);
 
-	const isOwnProfile =
-		!!did && (did === loggedInProfile?.did || did === loggedInProfile?.handle);
+  const isOwnProfile =
+    !!did && (did === loggedInProfile?.did || did === loggedInProfile?.handle);
 
-	const playlistsData = usePlaylistsQuery(did!, filter);
+  const playlistsData = usePlaylistsQuery(did!, filter);
 
-	const applyFilter = useMemo(
-		() =>
-			_.debounce((value: string) => setFilter(playlistNameFilter(value)), 250),
-		[],
-	);
+  const applyFilter = useMemo(
+    () =>
+      _.debounce((value: string) => setFilter(playlistNameFilter(value)), 250),
+    [],
+  );
 
-	useEffect(() => {
-		applyFilter(term);
-		return () => applyFilter.cancel();
-	}, [term, applyFilter]);
+  useEffect(() => {
+    applyFilter(term);
+    return () => applyFilter.cancel();
+  }, [term, applyFilter]);
 
-	useEffect(() => {
-		if (playlistsData.isPending || playlistsData.isError) {
-			return;
-		}
+  useEffect(() => {
+    if (playlistsData.isPending || playlistsData.isError) {
+      return;
+    }
 
-		if (!playlistsData.data || !did) {
-			return;
-		}
+    if (!playlistsData.data || !did) {
+      return;
+    }
 
-		setPlaylists(playlistsData.data);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [playlistsData.data, playlistsData.isPending, playlistsData.isError, did]);
+    setPlaylists(playlistsData.data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playlistsData.data, playlistsData.isPending, playlistsData.isError, did]);
 
-	const onEdit = (playlist: {
-		uri?: string;
-		name: string;
-		description?: string;
-	}) => {
-		if (!playlist.uri) return;
-		setEditing({
-			uri: playlist.uri,
-			name: playlist.name,
-			description: playlist.description,
-		});
-		openCreate(true);
-	};
+  const onEdit = (playlist: {
+    uri?: string;
+    name: string;
+    description?: string;
+  }) => {
+    if (!playlist.uri) return;
+    setEditing({
+      uri: playlist.uri,
+      name: playlist.name,
+      description: playlist.description,
+    });
+    openCreate(true);
+  };
 
-	const onDelete = async (playlist: { uri?: string; name: string }) => {
-		if (!playlist.uri) return;
-		if (
-			!window.confirm(
-				`Delete “${playlist.name}”? This removes the playlist and everything you added to it.`,
-			)
-		) {
-			return;
-		}
-		await removePlaylist.mutateAsync(playlist.uri);
-	};
+  const onDelete = async (playlist: { uri?: string; name: string }) => {
+    if (!playlist.uri) return;
+    if (
+      !window.confirm(
+        `Delete “${playlist.name}”? This removes the playlist and everything you added to it.`,
+      )
+    ) {
+      return;
+    }
+    await removePlaylist.mutateAsync(playlist.uri);
+  };
 
-	const isEmpty = !playlistsData.isPending && playlists.length === 0;
-	const isFiltered = !!filter;
+  const isEmpty = !playlistsData.isPending && playlists.length === 0;
+  const isFiltered = !!filter;
 
-	return (
-		<>
-			<Toolbar>
-				<HeadingSmall
-					className="!text-[var(--color-text)]"
-					margin={0}
-					flex="0 0 auto"
-				>
-					Playlists
-				</HeadingSmall>
-				<FilterField>
-					<IconSearch size={16} color="var(--color-text-muted)" />
-					<input
-						value={term}
-						placeholder="Filter playlists…"
-						onChange={(e) => setTerm(e.target.value)}
-					/>
-				</FilterField>
-				{isOwnProfile && !isEmpty && (
-					<CreateButton onClick={() => openCreate(true)}>
-						<IconPlus size={16} /> Create Playlist
-					</CreateButton>
-				)}
-			</Toolbar>
+  return (
+    <>
+      <Toolbar>
+        <HeadingSmall
+          className="!text-[var(--color-text)]"
+          margin={0}
+          flex="0 0 auto"
+        >
+          Playlists
+        </HeadingSmall>
+        <FilterField>
+          <IconSearch size={16} color="var(--color-text-muted)" />
+          <input
+            value={term}
+            placeholder="Filter playlists…"
+            onChange={(e) => setTerm(e.target.value)}
+          />
+        </FilterField>
+        {isOwnProfile && !isEmpty && (
+          <CreateButton onClick={() => openCreate(true)}>
+            <IconPlus size={16} /> Create Playlist
+          </CreateButton>
+        )}
+      </Toolbar>
 
-			{playlistsData.isPending && playlists.length === 0 && (
-				<FlexGrid
-					flexGridColumnCount={[1, 2, 3]}
-					flexGridColumnGap="scale800"
-					flexGridRowGap="scale800"
-				>
-					{Array.from({ length: 6 }).map((_, i) => (
-						<FlexGridItem {...itemProps} key={i}>
-							<PlaylistCardSkeleton />
-						</FlexGridItem>
-					))}
-				</FlexGrid>
-			)}
+      {playlistsData.isPending && playlists.length === 0 && (
+        <FlexGrid
+          flexGridColumnCount={[1, 2, 3]}
+          flexGridColumnGap="scale800"
+          flexGridRowGap="scale800"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <FlexGridItem {...itemProps} key={i}>
+              <PlaylistCardSkeleton />
+            </FlexGridItem>
+          ))}
+        </FlexGrid>
+      )}
 
-			{isEmpty && isFiltered && (
-				<EmptyState>No playlists match “{term}”.</EmptyState>
-			)}
+      {isEmpty && isFiltered && (
+        <EmptyState>No playlists match “{term}”.</EmptyState>
+      )}
 
-			{isEmpty && !isFiltered && (
-				<EmptyState>
-					{isOwnProfile ? (
-						<>
-							<span>No playlists yet, create one</span>
-							<CreateButton onClick={() => openCreate(true)}>
-								<IconPlus size={16} /> Create Playlist
-							</CreateButton>
-						</>
-					) : (
-						<span>No playlists found</span>
-					)}
-				</EmptyState>
-			)}
+      {isEmpty && !isFiltered && (
+        <EmptyState>
+          {isOwnProfile ? (
+            <>
+              <span>No playlists yet, create one</span>
+              <CreateButton onClick={() => openCreate(true)}>
+                <IconPlus size={16} /> Create Playlist
+              </CreateButton>
+            </>
+          ) : (
+            <span>No playlists found</span>
+          )}
+        </EmptyState>
+      )}
 
-			{playlists.length > 0 && (
-				<Grid>
-					<FlexGrid
-						flexGridColumnCount={[1, 2, 3]}
-						flexGridColumnGap="scale800"
-						flexGridRowGap="scale800"
-					>
-						{playlists.map((playlist) => {
-							const href = `/${playlist.uri?.split("at://")[1].replace("app.rocksky.", "")}`;
-							return (
-								<FlexGridItem {...itemProps} key={playlist.id}>
-									<Card>
-										<Link to={href}>
-											<SongCover cover={playlist.picture} />
-										</Link>
-										{isOwnProfile && playlist.uri && (
-											<Actions data-playlist-actions>
-												<IconButton
-													aria-label={`Edit ${playlist.name}`}
-													title="Edit"
-													onClick={() => onEdit(playlist)}
-												>
-													<IconPencil size={16} />
-												</IconButton>
-												<IconButton
-													aria-label={`Delete ${playlist.name}`}
-													title="Delete"
-													disabled={removePlaylist.isPending}
-													onClick={() => void onDelete(playlist)}
-												>
-													<IconTrash size={16} />
-												</IconButton>
-											</Actions>
-										)}
-									</Card>
-									<Link to={href}>
-										<LabelMedium className="!text-[var(--color-text)]">
-											{playlist.name}
-										</LabelMedium>
-									</Link>
-									<LabelSmall
-										className="!text-[var(--color-text-muted)]"
-										marginTop={"3px"}
-									>
-										{playlist.trackCount} Track
-										{playlist.trackCount > 1 ? "s" : ""}
-									</LabelSmall>
-								</FlexGridItem>
-							);
-						})}
-					</FlexGrid>
-				</Grid>
-			)}
-		</>
-	);
+      {playlists.length > 0 && (
+        <Grid>
+          <FlexGrid
+            flexGridColumnCount={[1, 2, 3]}
+            flexGridColumnGap="scale800"
+            flexGridRowGap="scale800"
+          >
+            {playlists.map((playlist) => {
+              const href = `/${playlist.uri?.split("at://")[1].replace("app.rocksky.", "")}`;
+              return (
+                <FlexGridItem {...itemProps} key={playlist.id}>
+                  <Card>
+                    <Link to={href}>
+                      <SongCover cover={playlist.picture} />
+                    </Link>
+                    {isOwnProfile && playlist.uri && (
+                      <Actions data-playlist-actions>
+                        <IconButton
+                          aria-label={`Edit ${playlist.name}`}
+                          title="Edit"
+                          onClick={() => onEdit(playlist)}
+                        >
+                          <IconPencil size={16} />
+                        </IconButton>
+                        <IconButton
+                          aria-label={`Delete ${playlist.name}`}
+                          title="Delete"
+                          disabled={removePlaylist.isPending}
+                          onClick={() => void onDelete(playlist)}
+                        >
+                          <IconTrash size={16} />
+                        </IconButton>
+                      </Actions>
+                    )}
+                  </Card>
+                  <Link to={href}>
+                    <LabelMedium className="!text-[var(--color-text)]">
+                      {playlist.name}
+                    </LabelMedium>
+                  </Link>
+                  <LabelSmall
+                    className="!text-[var(--color-text-muted)]"
+                    marginTop={"3px"}
+                  >
+                    {playlist.trackCount} Track
+                    {playlist.trackCount > 1 ? "s" : ""}
+                  </LabelSmall>
+                </FlexGridItem>
+              );
+            })}
+          </FlexGrid>
+        </Grid>
+      )}
+    </>
+  );
 }
 
 export default Playlists;

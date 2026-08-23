@@ -4,7 +4,7 @@ import styled from "@emotion/styled";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -13,6 +13,7 @@ import {
   addSongsTargetAtom,
   createPlaylistModalOpenAtom,
   editingPlaylistAtom,
+  pendingPlaylistTracksAtom,
 } from "../../atoms/createPlaylist";
 import {
   useAddSongsToPlaylistMutation,
@@ -488,6 +489,7 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
   const [pending, setPending] = useState<string | null>(null);
   const { mutate, data, reset } = useSearchMutation();
   const addSongs = useAddSongsToPlaylistMutation();
+  const setPendingTracks = useSetAtom(pendingPlaylistTracksAtom);
   const inputRef = useRef<HTMLInputElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -536,6 +538,28 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
     try {
       await addSongs.mutateAsync({ uri: playlist.uri, songs: [track.uri] });
       setAdded((prev) => new Set(prev).add(track.uri));
+      // The AppView won't have the row until jetstream ingests the commit, so
+      // hand the playlist page something to show right away.
+      setPendingTracks((prev) => ({
+        ...prev,
+        [playlist.uri]: [
+          ...(prev[playlist.uri] ?? []),
+          {
+            id: track.id,
+            title: track.title,
+            artist: track.artist,
+            albumArtist: track.albumArtist ?? track.artist,
+            album: track.album ?? "",
+            albumArt: track.albumArt ?? "",
+            uri: track.uri,
+            duration: 0,
+            trackNumber: 0,
+            discNumber: 0,
+            albumUri: "",
+            artistUri: "",
+          },
+        ],
+      }));
     } finally {
       setPending(null);
     }
