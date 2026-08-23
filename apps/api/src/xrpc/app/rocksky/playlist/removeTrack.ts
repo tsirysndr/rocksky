@@ -3,30 +3,26 @@ import { consola } from "consola";
 import type { Context } from "context";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { QueryParams } from "lexicon/types/app/rocksky/playlist/removePlaylist";
+import type { QueryParams } from "lexicon/types/app/rocksky/playlist/removeTrack";
 import { createAgent } from "lib/agent";
-import { removePlaylist as deletePlaylistRecords } from "playlists/playlists.service";
+import { removeTrackFromPlaylist } from "playlists/playlists.service";
 
 export default function (server: Server, ctx: Context) {
-  const removePlaylist = (params: QueryParams, auth: HandlerAuth) =>
+  const removeTrack = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
       { params, ctx, did: auth.credentials?.did },
       remove,
-      Effect.timeout("60 seconds"),
+      Effect.timeout("30 seconds"),
     );
 
-  server.app.rocksky.playlist.removePlaylist({
+  server.app.rocksky.playlist.removeTrack({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
-      await Effect.runPromise(removePlaylist(params, auth));
+      await Effect.runPromise(removeTrack(params, auth));
     },
   });
 }
 
-/**
- * Deletes the playlist record and the caller's own entry records. The rows go
- * away when jetstream sees the deletions — this handler never touches Postgres.
- */
 const remove = ({
   params,
   ctx,
@@ -45,8 +41,15 @@ const remove = ({
       if (!agent) {
         throw new Error("Unauthorized");
       }
-      await deletePlaylistRecords(ctx, agent, did, params.uri);
-      consola.info(`Playlist record deleted: ${params.uri}`);
+      await removeTrackFromPlaylist(
+        ctx,
+        agent,
+        did,
+        params.uri,
+        params.songUri,
+      );
+      consola.info(`Removed ${params.songUri} from ${params.uri}`);
     },
-    catch: (error) => new Error(`Failed to remove playlist: ${error}`),
+    catch: (error) =>
+      new Error(`Failed to remove track from playlist: ${error}`),
   });

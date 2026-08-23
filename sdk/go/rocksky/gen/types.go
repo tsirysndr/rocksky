@@ -126,6 +126,18 @@ type AddItemsToQueueParams struct {
 	Shuffle bool `json:"shuffle,omitempty"`
 }
 
+type AddSongsOutput struct {
+	// AT-URIs of the created app.rocksky.playlist.song records
+	Uris []string `json:"uris,omitempty"`
+}
+
+type AddSongsParams struct {
+	// The URI of the playlist to add the songs to
+	URI string `json:"uri,omitempty"`
+	// AT-URIs of the app.rocksky.song records to add
+	Songs []string `json:"songs,omitempty"`
+}
+
 type AlbumGetAlbumParams struct {
 	// The URI of the album to retrieve.
 	URI string `json:"uri,omitempty"`
@@ -754,10 +766,12 @@ type GetActorPlaylistsOutput struct {
 type GetActorPlaylistsParams struct {
 	// The DID or handle of the actor
 	DID string `json:"did,omitempty"`
-	// The maximum number of albums to return
+	// The maximum number of playlists to return
 	Limit int `json:"limit,omitempty"`
 	// The offset for pagination
 	Offset int `json:"offset,omitempty"`
+	// RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.
+	Filter string `json:"filter,omitempty"`
 }
 
 type GetActorScrobblesOutput struct {
@@ -1679,16 +1693,27 @@ type PlayFileParams struct {
 	FileID string `json:"fileId,omitempty"`
 }
 
+type PlaylistCreatePlaylistOutput struct {
+	// The AT-URI of the created app.rocksky.playlist record.
+	URI string `json:"uri,omitempty"`
+	// The CID of the created app.rocksky.playlist record.
+	CID string `json:"cid,omitempty"`
+}
+
 type PlaylistCreatePlaylistParams struct {
 	// The name of the playlist
 	Name string `json:"name,omitempty"`
 	// A brief description of the playlist
 	Description string `json:"description,omitempty"`
+	// The URL of the cover image for the playlist
+	PictureURL string `json:"pictureUrl,omitempty"`
 }
 
 type PlaylistGetPlaylistParams struct {
 	// The URI of the playlist to retrieve.
 	URI string `json:"uri,omitempty"`
+	// RSQL filter expression applied to the playlist's tracks, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, addedAt
+	Filter string `json:"filter,omitempty"`
 }
 
 type PlaylistGetPlaylistsOutput struct {
@@ -1700,15 +1725,8 @@ type PlaylistGetPlaylistsParams struct {
 	Limit int `json:"limit,omitempty"`
 	// The offset for pagination, used to skip a number of playlists.
 	Offset int `json:"offset,omitempty"`
-}
-
-type PlaylistItemRecord struct {
-	Subject *StrongRef `json:"subject,omitempty"`
-	// The date the playlist was created.
-	CreatedAt string `json:"createdAt,omitempty"`
-	Track *SongViewBasic `json:"track,omitempty"`
-	// The order of the item in the playlist.
-	Order int `json:"order,omitempty"`
+	// RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt, curatorDid, curatorHandle, curatorName. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.
+	Filter string `json:"filter,omitempty"`
 }
 
 type PlaylistRecord struct {
@@ -1722,6 +1740,8 @@ type PlaylistRecord struct {
 	PictureURL string `json:"pictureUrl,omitempty"`
 	// The date the playlist was created.
 	CreatedAt string `json:"createdAt,omitempty"`
+	// DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here.
+	Collaborators []string `json:"collaborators,omitempty"`
 	// The Spotify link of the playlist.
 	SpotifyLink string `json:"spotifyLink,omitempty"`
 	// The Tidal link of the playlist.
@@ -1730,6 +1750,27 @@ type PlaylistRecord struct {
 	YoutubeLink string `json:"youtubeLink,omitempty"`
 	// The Apple Music link of the playlist.
 	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+}
+
+type PlaylistSongRecord struct {
+	// Strong reference (AT-URI + CID) to the parent app.rocksky.playlist record.
+	Playlist *StrongRef `json:"playlist,omitempty"`
+	// Strong reference (AT-URI + CID) to the app.rocksky.song record this entry points at.
+	Song *StrongRef `json:"song,omitempty"`
+	// The title of the song.
+	Title string `json:"title,omitempty"`
+	// The artist of the song.
+	Artist string `json:"artist,omitempty"`
+	// The album the song belongs to.
+	Album string `json:"album,omitempty"`
+	// The album artist of the song.
+	AlbumArtist string `json:"albumArtist,omitempty"`
+	// The duration of the song in milliseconds.
+	Duration int `json:"duration,omitempty"`
+	// The URL of the album art of the song.
+	AlbumArtURL string `json:"albumArtUrl,omitempty"`
+	// The date and time the song was added to the playlist.
+	AddedAt string `json:"addedAt,omitempty"`
 }
 
 // PlaylistViewBasic Basic view of a playlist, including its metadata
@@ -1885,8 +1926,8 @@ type RemoveShoutParams struct {
 type RemoveTrackParams struct {
 	// The URI of the playlist to remove the track from
 	URI string `json:"uri,omitempty"`
-	// The position of the track to remove in the playlist
-	Position int `json:"position,omitempty"`
+	// The URI of the app.rocksky.song record to remove from the playlist
+	SongURI string `json:"songUri,omitempty"`
 }
 
 type ReplyShoutInput struct {

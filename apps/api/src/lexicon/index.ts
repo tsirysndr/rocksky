@@ -117,6 +117,7 @@ import type * as AppRockskyPlayerPlayDirectory from "./types/app/rocksky/player/
 import type * as AppRockskyPlayerPlayFile from "./types/app/rocksky/player/playFile";
 import type * as AppRockskyPlayerPrevious from "./types/app/rocksky/player/previous";
 import type * as AppRockskyPlayerSeek from "./types/app/rocksky/player/seek";
+import type * as AppRockskyPlaylistAddSongs from "./types/app/rocksky/playlist/addSongs";
 import type * as AppRockskyPlaylistCreatePlaylist from "./types/app/rocksky/playlist/createPlaylist";
 import type * as AppRockskyPlaylistGetPlaylist from "./types/app/rocksky/playlist/getPlaylist";
 import type * as AppRockskyPlaylistGetPlaylists from "./types/app/rocksky/playlist/getPlaylists";
@@ -1544,6 +1545,17 @@ export class AppRockskyPlaylistNS {
 
   constructor(server: Server) {
     this._server = server;
+  }
+
+  addSongs<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistAddSongs.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistAddSongs.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.playlist.addSongs"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
   }
 
   createPlaylist<AV extends AuthVerifier>(

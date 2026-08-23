@@ -3,34 +3,39 @@ import { consola } from "consola";
 import type { Context } from "context";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { QueryParams } from "lexicon/types/app/rocksky/playlist/createPlaylist";
-import tables from "schema";
+import type {
+  OutputSchema,
+  QueryParams,
+} from "lexicon/types/app/rocksky/playlist/createPlaylist";
+import { createAgent } from "lib/agent";
+import { createPlaylist as publishPlaylist } from "playlists/playlists.service";
 
 export default function (server: Server, ctx: Context) {
-  const createPlaylist = (params, auth: HandlerAuth) =>
+  const createPlaylist = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
-      {
-        params,
-        ctx,
-        did: auth.credentials?.did,
-      },
+      { params, ctx, did: auth.credentials?.did },
       create,
-      Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
-      Effect.catchAll((err) => {
-        consola.error(err);
-        return Effect.succeed({});
-      }),
+      Effect.timeout("30 seconds"),
     );
+
   server.app.rocksky.playlist.createPlaylist({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
       const result = await Effect.runPromise(createPlaylist(params, auth));
+      return {
+        encoding: "application/json",
+        body: result,
+      };
     },
   });
 }
 
+/**
+ * Creates the playlist as an `app.rocksky.playlist` record on the caller's PDS
+ * and returns its AT-URI. The `playlists` row follows once jetstream sees the
+ * commit — nothing here writes to Postgres, which is what keeps the repo the
+ * only thing that can put a playlist in the database.
+ */
 const create = ({
   params,
   ctx,
@@ -39,17 +44,23 @@ const create = ({
   params: QueryParams;
   ctx: Context;
   did?: string;
-}) =>
+}): Effect.Effect<OutputSchema, Error> =>
   Effect.tryPromise({
     try: async () => {
-      await ctx.db.select().from(tables.playlists).execute();
+      if (!did) {
+        throw new Error("User is not authenticated");
+      }
+      const agent = await createAgent(ctx.oauthClient, did);
+      if (!agent) {
+        throw new Error("Unauthorized");
+      }
+      const created = await publishPlaylist(agent, {
+        name: params.name,
+        description: params.description,
+        pictureUrl: params.pictureUrl,
+      });
+      consola.info(`Playlist record created: ${created.uri}`);
+      return created;
     },
-    catch: (err) => {
-      consola.error(err);
-      return {};
-    },
+    catch: (error) => new Error(`Failed to create playlist: ${error}`),
   });
-
-const presentation = (): Effect.Effect<{}, never> => {
-  return Effect.sync(() => ({}));
-};

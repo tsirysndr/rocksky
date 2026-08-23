@@ -7,7 +7,15 @@ const playlists = pgTable("playlists", {
   name: text("name").notNull(),
   picture: text("picture"),
   description: text("description"),
+  // Rows only ever come from a jetstream commit, so every playlist has the
+  // AT-URI and CID of the record it was built from. A CHECK constraint enforces
+  // uri IS NOT NULL for anything written from now on.
   uri: text("uri").unique(),
+  cid: text("cid"),
+  // DIDs the owner has granted write access, mirrored from the record. The
+  // ingest side uses this to decide whether a foreign app.rocksky.playlist.song
+  // record may attach itself to this playlist.
+  collaborators: text("collaborators").array(),
   spotifyLink: text("spotify_link"),
   tidalLink: text("tidal_link"),
   appleMusicLink: text("apple_music_link"),

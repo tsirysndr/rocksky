@@ -1,23 +1,24 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.playlist.removeTrack"
 defs = new Mapping<String, Procedure> {
   ["main"] {
     type = "procedure"
-    description = "Remove a track from a playlist"
-    parameters {
-      type = "params"
-      required = List("uri", "position")
+    description =
+      "Remove a track from a playlist. Deletes the app.rocksky.playlist.song record that put it there, which only the repo that added it can do."
+    parameters = new Params {
+      required = List("uri", "songUri")
       properties {
         ["uri"] = new StringType {
           type = "string"
           description = "The URI of the playlist to remove the track from"
           format = "at-uri"
         }
-        ["position"] = new IntegerType {
-          type = "integer"
-          description = "The position of the track to remove in the playlist"
+        ["songUri"] = new StringType {
+          type = "string"
+          description = "The URI of the app.rocksky.song record to remove from the playlist"
+          format = "at-uri"
         }
       }
     }

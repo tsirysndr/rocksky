@@ -15,6 +15,7 @@ export const SCOPES = [
   "repo:app.rocksky.graph.follow",
   "repo:app.rocksky.like",
   "repo:app.rocksky.playlist",
+  "repo:app.rocksky.playlist.song",
   "repo:app.rocksky.scrobble",
   "repo:app.rocksky.shout",
   "repo:app.rocksky.song",

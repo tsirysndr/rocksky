@@ -20,13 +20,15 @@ fn user_id_cache() -> &'static RwLock<HashMap<String, String>> {
 }
 
 use crate::{
+    playlist,
     profile::did_to_profile,
     subscriber::{
-        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, SCROBBLE_NSID, SONG_NSID,
+        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, PLAYLIST_NSID,
+        PLAYLIST_SONG_NSID, SCROBBLE_NSID, SONG_NSID,
     },
     types::{
-        AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, ScrobbleRecord,
-        SongRecord,
+        AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, PlaylistRecord,
+        PlaylistSongRecord, ScrobbleRecord, SongRecord,
     },
     webhook::discord::{
         self,
@@ -55,6 +57,8 @@ pub async fn save_scrobble(
         SONG_NSID,
         FEED_GENERATOR_NSID,
         FOLLOW_NSID,
+        PLAYLIST_NSID,
+        PLAYLIST_SONG_NSID,
     ]
     .contains(&commit.collection.as_str())
     {
@@ -246,6 +250,42 @@ pub async fn save_scrobble(
                 publish_user(&nc, &pool, &user_id).await?;
                 publish_user(&nc, &pool, &subject_user_id).await?;
             }
+
+            if commit.collection == PLAYLIST_NSID || commit.collection == PLAYLIST_SONG_NSID {
+                save_playlist_commit(
+                    &pool,
+                    &nc,
+                    did,
+                    &commit.collection,
+                    &commit.rkey,
+                    commit.cid.as_deref(),
+                    record,
+                )
+                .await?;
+            }
+        }
+        // Playlists are the only collection whose records are edited in place —
+        // renaming one, or re-adding a song, republishes the same AT-URI. The
+        // rest are append-only, so an update event on them is nothing to act on.
+        "update" => {
+            if commit.collection == PLAYLIST_NSID || commit.collection == PLAYLIST_SONG_NSID {
+                let Some(record) = commit.record.clone() else {
+                    tracing::warn!(collection = %commit.collection, "Update commit carried no record");
+                    return Ok(());
+                };
+                save_playlist_commit(
+                    &pool,
+                    &nc,
+                    did,
+                    &commit.collection,
+                    &commit.rkey,
+                    commit.cid.as_deref(),
+                    record,
+                )
+                .await?;
+            } else {
+                tracing::warn!(operation = %commit.operation, collection = %commit.collection, "Update operation not implemented for this collection");
+            }
         }
         "delete" => {
             if commit.collection == SCROBBLE_NSID {
@@ -260,6 +300,14 @@ pub async fn save_scrobble(
                         tracing::error!(error = %e, operation = %commit.operation, collection = %commit.collection, "Failed to delete scrobble");
                     }
                 }
+            } else if commit.collection == PLAYLIST_NSID {
+                let uri = playlist::playlist_uri(did, &commit.rkey);
+                playlist::delete_playlist(&pool, &uri).await?;
+                nc.publish("rocksky.delete.playlist", uri.into()).await?;
+                nc.flush().await?;
+            } else if commit.collection == PLAYLIST_SONG_NSID {
+                let uri = playlist::playlist_song_uri(did, &commit.rkey);
+                playlist::delete_playlist_song(&pool, &uri).await?;
             } else {
                 tracing::warn!(operation = %commit.operation, collection = %commit.collection, "Delete operation not implemented for this collection");
             }
@@ -269,6 +317,26 @@ pub async fn save_scrobble(
         }
     }
     Ok(())
+}
+
+/// Create and update are the same write for playlist records: both carry the
+/// full record, and both upsert on the record's AT-URI.
+async fn save_playlist_commit(
+    pool: &Pool<Postgres>,
+    nc: &async_nats::Client,
+    did: &str,
+    collection: &str,
+    rkey: &str,
+    cid: Option<&str>,
+    record: serde_json::Value,
+) -> Result<(), Error> {
+    if collection == PLAYLIST_NSID {
+        let playlist_record: PlaylistRecord = serde_json::from_value(record)?;
+        playlist::save_playlist(pool, nc, did, rkey, cid, playlist_record).await
+    } else {
+        let song_record: PlaylistSongRecord = serde_json::from_value(record)?;
+        playlist::save_playlist_song(pool, nc, did, rkey, cid, song_record).await
+    }
 }
 
 pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error> {

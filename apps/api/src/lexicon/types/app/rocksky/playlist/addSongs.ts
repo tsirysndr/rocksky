@@ -7,21 +7,19 @@ import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyPlaylistDefs from "./defs";
 
 export interface QueryParams {
-  /** The maximum number of playlists to return. */
-  limit?: number;
-  /** The offset for pagination, used to skip a number of playlists. */
-  offset?: number;
-  /** RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt, curatorDid, curatorHandle, curatorName. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track. */
-  filter?: string;
+  /** The URI of the playlist to add the songs to */
+  uri: string;
+  /** AT-URIs of the app.rocksky.song records to add */
+  songs: string[];
 }
 
 export type InputSchema = undefined;
 
 export interface OutputSchema {
-  playlists?: AppRockskyPlaylistDefs.PlaylistViewBasic[];
+  /** AT-URIs of the created app.rocksky.playlist.song records */
+  uris: string[];
   [k: string]: unknown;
 }
 

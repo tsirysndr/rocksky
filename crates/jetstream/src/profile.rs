@@ -2,7 +2,9 @@ use anyhow::Error;
 
 use crate::types::{Profile, ProfileResponse};
 
-pub async fn did_to_profile(did: &str) -> Result<Profile, Error> {
+/// Resolves a DID to its DID document, via plc.directory or the domain's
+/// well-known for `did:web`.
+async fn did_document(did: &str) -> Result<serde_json::Value, Error> {
     let client = reqwest::Client::new();
     let mut url = format!("https://plc.directory/{}", did);
 
@@ -15,13 +17,30 @@ pub async fn did_to_profile(did: &str) -> Result<Profile, Error> {
         url = format!("https://{}/.well-known/did.json", domain);
     }
 
-    let response = client
+    Ok(client
         .get(url)
         .header("Accept", "application/json")
         .send()
         .await?
         .json::<serde_json::Value>()
-        .await?;
+        .await?)
+}
+
+/// The DID's PDS service endpoint, e.g. `https://shiitake.us-east.host.bsky.network`.
+pub async fn did_to_pds(did: &str) -> Result<String, Error> {
+    let doc = did_document(did).await?;
+    let endpoint = doc["service"][0]["serviceEndpoint"]
+        .as_str()
+        .unwrap_or("")
+        .to_string();
+    if endpoint.is_empty() {
+        return Err(Error::msg("Invalid did"));
+    }
+    Ok(endpoint)
+}
+
+pub async fn did_to_profile(did: &str) -> Result<Profile, Error> {
+    let response = did_document(did).await?;
 
     let handle = response["alsoKnownAs"][0]
         .as_str()

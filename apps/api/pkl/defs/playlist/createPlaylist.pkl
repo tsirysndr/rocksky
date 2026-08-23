@@ -18,6 +18,29 @@ defs = new Mapping<String, Procedure> {
           type = "string"
           description = "A brief description of the playlist"
         }
+        ["pictureUrl"] = new StringType {
+          type = "string"
+          description = "The URL of the cover image for the playlist"
+          format = "uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("uri", "cid")
+        properties {
+          ["uri"] = new StringType {
+            type = "string"
+            description = "The AT-URI of the created app.rocksky.playlist record."
+            format = "at-uri"
+          }
+          ["cid"] = new StringType {
+            type = "string"
+            description = "The CID of the created app.rocksky.playlist record."
+          }
+        }
       }
     }
   }

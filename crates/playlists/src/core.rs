@@ -21,20 +21,8 @@ const ROCKSKY_API: &str = "https://api.rocksky.app";
 
 pub fn create_tables(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
     let conn = conn.lock().unwrap();
-    conn.execute_batch(r#"
-    CREATE TABLE IF NOT EXISTS playlists (
-      id TEXT PRIMARY KEY,
-      name TEXT,
-      description TEXT,
-      picture TEXT,
-      spotify_link TEXT,
-      tidal_link TEXT,
-      apple_music_link TEXT,
-      xata_createdat TIMESTAMP,
-      xata_updatedat TIMESTAMP,
-      uri TEXT,
-      created_by TEXT
-    );
+    conn.execute_batch(
+        r#"
     CREATE TABLE IF NOT EXISTS tracks (
         id VARCHAR PRIMARY KEY,
         title VARCHAR,
@@ -68,26 +56,8 @@ pub fn create_tables(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
         handle VARCHAR,
         avatar VARCHAR,
     );
-     CREATE TABLE IF NOT EXISTS playlist_tracks (
-        id VARCHAR PRIMARY KEY,
-        playlist_id VARCHAR,
-        track_id VARCHAR,
-        added_by VARCHAR,
-        created_at TIMESTAMP,
-        FOREIGN KEY (playlist_id) REFERENCES playlists(id),
-        FOREIGN KEY (track_id) REFERENCES tracks(id),
-    );
-    CREATE TABLE IF NOT EXISTS user_playlists (
-        id VARCHAR PRIMARY KEY,
-        user_id VARCHAR,
-        playlist_id VARCHAR,
-        created_at TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (playlist_id) REFERENCES playlists(id),
-    );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS user_playlists_unique_index ON user_playlists (user_id, playlist_id);
-  "#)?;
+  "#,
+    )?;
     Ok(())
 }
 
@@ -176,151 +146,77 @@ pub async fn find_spotify_users(
     Ok(user_tokens)
 }
 
+/// Imports a user's Spotify playlists by handing them to the API to publish as
+/// `app.rocksky.playlist` / `app.rocksky.playlist.song` records on the user's
+/// PDS. Nothing here writes to Postgres: the rows appear only once jetstream
+/// sees the resulting commits, which keeps the AT-Proto repo the single source
+/// of truth for playlists.
 pub async fn save_playlists(
-    pool: &Pool<Postgres>,
-    conn: Arc<Mutex<Connection>>,
     nc: Arc<Mutex<async_nats::Client>>,
     playlists: Vec<types::playlist::Playlist>,
-    user_id: &str,
     did: &str,
 ) -> Result<(), Error> {
     let token = generate_token(did)?;
     for playlist in playlists {
         println!(
-            "Saving playlist: {} - {} tracks",
+            "Importing playlist: {} - {} tracks",
             playlist.name.bright_green(),
             playlist.tracks.total
         );
 
-        sqlx::query(
-            r#"
-      INSERT INTO playlists (name, description, picture, spotify_link, created_by)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (spotify_link) DO UPDATE set
-      name = EXCLUDED.name,
-      description = EXCLUDED.description,
-      picture = EXCLUDED.picture,
-      spotify_link = EXCLUDED.spotify_link,
-      created_by = EXCLUDED.created_by
-    "#,
-        )
-        .bind(playlist.name)
-        .bind(playlist.description)
-        .bind(playlist.images.first().map(|i| i.url.clone()))
-        .bind(&playlist.external_urls.spotify)
-        .bind(user_id)
-        .execute(pool)
-        .await?;
+        let mut songs = vec![];
+        let mut i = 1;
+        for item in playlist.tracks.items.unwrap_or_default() {
+            println!(
+                "Saving track: {} - {}/{}",
+                item.track.name.bright_green(),
+                i,
+                playlist.tracks.total
+            );
+            i += 1;
 
-        let new_playlist: Vec<xata::playlist::Playlist> =
-            sqlx::query_as(r#"SELECT * FROM playlists WHERE spotify_link = $1"#)
-                .bind(&playlist.external_urls.spotify)
-                .fetch_all(pool)
-                .await?;
+            let Some(track) = save_track(item.track, &token).await? else {
+                println!("Failed to save track");
+                continue;
+            };
 
-        let new_playlist = new_playlist.first().unwrap();
+            // A playlist entry carries a strongRef to the song record, so a
+            // track that was never published to a PDS has nothing to point at.
+            let Some(uri) = track.uri.clone() else {
+                println!(
+                    "Skipping {}: no song record to reference yet",
+                    track.title.yellow()
+                );
+                continue;
+            };
+
+            songs.push(json!({
+              "uri": uri,
+              "title": track.title,
+              "artist": track.artist,
+              "album": track.album,
+              "albumArtist": track.album_artist,
+              "duration": track.duration,
+              "albumArtUrl": track.album_art,
+            }));
+        }
 
         let nc = nc.lock().unwrap();
         nc.publish(
-            "rocksky.playlist",
+            "rocksky.playlist.import",
             serde_json::to_string(&json!({
-              "id": new_playlist.xata_id.clone(),
               "did": did,
+              "name": playlist.name,
+              "description": playlist.description,
+              "pictureUrl": playlist.images.first().map(|i| i.url.clone()),
+              "spotifyLink": playlist.external_urls.spotify,
+              "songs": songs,
             }))
             .unwrap()
             .into(),
         )
         .await?;
         drop(nc);
-
-        let mut tracks_to_save: Vec<(String, String)> = vec![];
-        let mut i = 1;
-        for track in playlist.tracks.items.unwrap_or_default() {
-            println!(
-                "Saving track: {} - {}/{}",
-                track.track.name.bright_green(),
-                i,
-                playlist.tracks.total
-            );
-            i += 1;
-            match save_track(track.track, &token).await? {
-                Some(track) => {
-                    println!("Saved track: {}", track.xata_id.bright_green());
-                    tracks_to_save.push((new_playlist.xata_id.clone(), track.xata_id.clone()));
-                }
-                None => {
-                    println!("Failed to save track");
-                }
-            };
-        }
-
-        // delete all tracks from playlist
-        sqlx::query(
-            r#"
-      DELETE FROM playlist_tracks WHERE playlist_id = $1
-    "#,
-        )
-        .bind(&new_playlist.xata_id)
-        .execute(pool)
-        .await?;
-
-        // save tracks to playlist
-        for (playlist_id, track_id) in tracks_to_save {
-            sqlx::query(
-                r#"
-        INSERT INTO playlist_tracks (playlist_id, track_id)
-        VALUES ($1, $2)
-        ON CONFLICT DO NOTHING
-      "#,
-            )
-            .bind(&playlist_id)
-            .bind(&track_id)
-            .execute(pool)
-            .await?;
-        }
-
-        sqlx::query(
-            r#"
-      INSERT INTO user_playlists (user_id, playlist_id)
-      VALUES ($1, $2)
-      ON CONFLICT (user_id, playlist_id) DO NOTHING
-    "#,
-        )
-        .bind(user_id)
-        .bind(&new_playlist.xata_id)
-        .execute(pool)
-        .await?;
-
-        let user_playlist: Vec<xata::user_playlist::UserPlaylist> =
-            sqlx::query_as("SELECT * FROM user_playlists WHERE user_id = $1 AND playlist_id = $2")
-                .bind(user_id)
-                .bind(&new_playlist.xata_id)
-                .fetch_all(pool)
-                .await?;
-        let user_playlist = user_playlist.first().unwrap();
-
-        let conn = conn.lock().unwrap();
-        conn.execute("INSERT INTO playlists (id, name, description, picture, spotify_link, uri, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
-      params![
-        &new_playlist.xata_id,
-        &new_playlist.name,
-        new_playlist.description,
-        new_playlist.picture,
-        new_playlist.spotify_link,
-        new_playlist.uri,
-        user_id
-      ]
-    )?;
-
-        conn.execute(
-      "INSERT INTO user_playlists (id, user_id, playlist_id, created_at) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
-      params![
-        &user_playlist.xata_id,
-        user_id,
-        &new_playlist.xata_id,
-        chrono::Utc::now()
-      ]
-    )?;
     }
     Ok(())
 }

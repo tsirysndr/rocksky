@@ -2,7 +2,12 @@ import { describe, expect, it } from "bun:test";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import tables from "schema";
-import { compileRsqlFilter, type RsqlFieldMap, RsqlFilterError } from "./rsql";
+import {
+  compileRsqlFilter,
+  type RsqlFieldMap,
+  RsqlFilterError,
+  rsqlSelectors,
+} from "./rsql";
 
 const FIELDS: RsqlFieldMap = {
   title: tables.tracks.title,
@@ -129,5 +134,25 @@ describe("compileRsqlFilter", () => {
   it("rejects malformed expressions", () => {
     expect(() => compile("title==")).toThrow(RsqlFilterError);
     expect(() => compile("title")).toThrow(RsqlFilterError);
+  });
+});
+
+describe("rsqlSelectors", () => {
+  it("collects the selectors of a compound expression", () => {
+    expect(
+      rsqlSelectors('name=="Road trip";track.artist=="Daft Punk"').sort(),
+    ).toEqual(["name", "track.artist"]);
+  });
+
+  it("deduplicates repeated selectors", () => {
+    expect(rsqlSelectors("track.artist==Air,track.artist==Phoenix")).toEqual([
+      "track.artist",
+    ]);
+  });
+
+  it("returns nothing for an absent or unparseable filter", () => {
+    expect(rsqlSelectors(undefined)).toEqual([]);
+    expect(rsqlSelectors("  ")).toEqual([]);
+    expect(rsqlSelectors("title==")).toEqual([]);
   });
 });

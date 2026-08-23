@@ -15,6 +15,11 @@ defs = new Mapping<String, Query> {
           format = "at-uri"
           description = "The URI of the playlist to retrieve."
         }
+        ["filter"] = new StringType {
+          type = "string"
+          description = "RSQL filter expression applied to the playlist's tracks, e.g. `artist==\"Daft Punk\";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, addedAt"
+          maxLength = 2048
+        }
       }
     }
     output {

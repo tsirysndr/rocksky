@@ -15,13 +15,18 @@ defs = new Mapping<String, Query> {
         }
          ["limit"] = new IntegerType {
           type = "integer"
-          description = "The maximum number of albums to return"
+          description = "The maximum number of playlists to return"
           minimum = 1
         }
         ["offset"] = new IntegerType {
           type = "integer"
           description = "The offset for pagination"
           minimum = 0
+        }
+        ["filter"] = new StringType {
+          type = "string"
+          description = "RSQL filter expression, e.g. `name==\"Road trip*\";track.artist==\"Daft Punk\"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track."
+          maxLength = 2048
         }
       }
     }

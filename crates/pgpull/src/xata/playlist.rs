@@ -15,5 +15,7 @@ pub struct Playlist {
     #[serde(with = "chrono::serde::ts_seconds")]
     pub xata_updatedat: DateTime<Utc>,
     pub uri: Option<String>,
+    pub cid: Option<String>,
+    pub collaborators: Option<Vec<String>>,
     pub created_by: String,
 }

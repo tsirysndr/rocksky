@@ -1,12 +1,44 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { eq, or, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorPlaylists";
 import type { PlaylistViewBasic } from "lexicon/types/app/rocksky/playlist/defs";
+import {
+  compileRsqlFilterParam,
+  type RsqlFieldMap,
+  rsqlSelectors,
+} from "lib/rsql";
 import tables from "schema";
 import type { SelectPlaylist } from "schema/playlists";
+
+const PLAYLIST_FIELDS: RsqlFieldMap = {
+  name: tables.playlists.name,
+  title: tables.playlists.name,
+  description: tables.playlists.description,
+  uri: tables.playlists.uri,
+  spotifyLink: tables.playlists.spotifyLink,
+  tidalLink: tables.playlists.tidalLink,
+  appleMusicLink: tables.playlists.appleMusicLink,
+  createdAt: { column: tables.playlists.createdAt, type: "date" },
+  updatedAt: { column: tables.playlists.updatedAt, type: "date" },
+};
+
+// See getPlaylists: `track.*` selectors match the playlist's contents, so
+// `track.artist=="Daft Punk"` returns the actor's playlists containing a track
+// by Daft Punk.
+const TRACK_FIELDS: RsqlFieldMap = {
+  "track.title": tables.tracks.title,
+  "track.artist": tables.tracks.artist,
+  "track.album": tables.tracks.album,
+  "track.albumArtist": tables.tracks.albumArtist,
+};
+
+const FILTER_FIELDS: RsqlFieldMap = { ...PLAYLIST_FIELDS, ...TRACK_FIELDS };
+
+const filtersOnTracks = (filter: string | undefined) =>
+  rsqlSelectors(filter).some((selector) => selector in TRACK_FIELDS);
 
 export default function (server: Server, ctx: Context) {
   const getActorPlaylists = (params: QueryParams) =>
@@ -23,6 +55,9 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.actor.getActorPlaylists({
     handler: async ({ params }) => {
+      // Validate the filter up front so malformed expressions surface as a
+      // 400 instead of being swallowed by the catchAll below.
+      compileRsqlFilterParam(params.filter, FILTER_FIELDS);
       const result = await Effect.runPromise(getActorPlaylists(params));
       return {
         encoding: "application/json",
@@ -40,40 +75,66 @@ const retrieve = ({
   ctx: Context;
 }): Effect.Effect<Playlist[], Error> => {
   return Effect.tryPromise({
-    try: () =>
-      ctx.db
-        .select({
-          users: tables.users,
-          playlists: tables.playlists,
-          trackCount: sql<number>`
+    try: async () => {
+      const projection = {
+        users: tables.users,
+        playlists: tables.playlists,
+        trackCount: sql<number>`
           (SELECT COUNT(*)
            FROM ${tables.playlistTracks}
            WHERE ${tables.playlistTracks.playlistId} = ${tables.playlists.id}
           )`.as("trackCount"),
-        })
-        .from(tables.playlists)
-        .leftJoin(tables.users, eq(tables.playlists.createdBy, tables.users.id))
-        .where(
-          or(
-            eq(tables.users.did, params.did),
-            eq(tables.users.handle, params.did),
-          ),
-        )
-        .offset(params.offset)
-        .limit(params.limit)
-        .execute()
-        .then((rows) =>
-          rows.map((row) => ({
-            ...row.playlists,
-            trackCount: row.trackCount,
-            title: row.playlists.name,
-            coverImageUrl: row.playlists.picture,
-            curatorDId: row.users.did,
-            curatorName: row.users.displayName,
-            curatorAvatarUrl: row.users.avatar,
-            curatorHandle: row.users.handle,
-          })),
+      };
+      const where = and(
+        or(
+          eq(tables.users.did, params.did),
+          eq(tables.users.handle, params.did),
         ),
+        compileRsqlFilterParam(params.filter, FILTER_FIELDS),
+      );
+      const base = () =>
+        ctx.db
+          .select(projection)
+          .from(tables.playlists)
+          .leftJoin(
+            tables.users,
+            eq(tables.playlists.createdBy, tables.users.id),
+          );
+
+      // Joining the contents fans a playlist out to one row per matching
+      // track; GROUP BY folds it back. Only done when the filter asks for it.
+      const rows = filtersOnTracks(params.filter)
+        ? await base()
+            .innerJoin(
+              tables.playlistTracks,
+              eq(tables.playlistTracks.playlistId, tables.playlists.id),
+            )
+            .innerJoin(
+              tables.tracks,
+              eq(tables.playlistTracks.trackId, tables.tracks.id),
+            )
+            .where(where)
+            .groupBy(tables.playlists.id, tables.users.id)
+            .offset(params.offset)
+            .limit(params.limit)
+            .execute()
+        : await base()
+            .where(where)
+            .offset(params.offset)
+            .limit(params.limit)
+            .execute();
+
+      return rows.map((row) => ({
+        ...row.playlists,
+        trackCount: row.trackCount,
+        title: row.playlists.name,
+        coverImageUrl: row.playlists.picture,
+        curatorDId: row.users.did,
+        curatorName: row.users.displayName,
+        curatorAvatarUrl: row.users.avatar,
+        curatorHandle: row.users.handle,
+      }));
+    },
     catch: (error) => new Error(`Failed to retrieve user playlists: ${error}`),
   });
 };

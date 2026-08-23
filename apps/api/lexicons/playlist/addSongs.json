@@ -1,0 +1,51 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.addSongs",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Add songs to a playlist. Publishes one app.rocksky.playlist.song record per song to the caller's repo; the caller must own the playlist or be listed in its collaborators.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri",
+          "songs"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the playlist to add the songs to",
+            "format": "at-uri"
+          },
+          "songs": {
+            "type": "array",
+            "description": "AT-URIs of the app.rocksky.song records to add",
+            "items": {
+              "type": "string",
+              "format": "at-uri"
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "uris"
+          ],
+          "properties": {
+            "uris": {
+              "type": "array",
+              "description": "AT-URIs of the created app.rocksky.playlist.song records",
+              "items": {
+                "type": "string",
+                "format": "at-uri"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

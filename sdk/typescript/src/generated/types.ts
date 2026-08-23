@@ -126,6 +126,18 @@ export interface AddItemsToQueueParams {
   shuffle?: boolean;
 }
 
+export interface AddSongsOutput {
+  /** AT-URIs of the created app.rocksky.playlist.song records */
+  uris: AtUri[];
+}
+
+export interface AddSongsParams {
+  /** The URI of the playlist to add the songs to */
+  uri: AtUri;
+  /** AT-URIs of the app.rocksky.song records to add */
+  songs: AtUri[];
+}
+
 export interface AlbumGetAlbumParams {
   /** The URI of the album to retrieve. */
   uri: AtUri;
@@ -755,10 +767,12 @@ export interface GetActorPlaylistsOutput {
 export interface GetActorPlaylistsParams {
   /** The DID or handle of the actor */
   did: AtIdentifier;
-  /** The maximum number of albums to return */
+  /** The maximum number of playlists to return */
   limit?: number;
   /** The offset for pagination */
   offset?: number;
+  /** RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track. */
+  filter?: string;
 }
 
 export interface GetActorScrobblesOutput {
@@ -1723,16 +1737,27 @@ export interface PlayFileParams {
   fileId: string;
 }
 
+export interface PlaylistCreatePlaylistOutput {
+  /** The AT-URI of the created app.rocksky.playlist record. */
+  uri: AtUri;
+  /** The CID of the created app.rocksky.playlist record. */
+  cid: string;
+}
+
 export interface PlaylistCreatePlaylistParams {
   /** The name of the playlist */
   name: string;
   /** A brief description of the playlist */
   description?: string;
+  /** The URL of the cover image for the playlist */
+  pictureUrl?: Uri;
 }
 
 export interface PlaylistGetPlaylistParams {
   /** The URI of the playlist to retrieve. */
   uri: AtUri;
+  /** RSQL filter expression applied to the playlist's tracks, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, addedAt */
+  filter?: string;
 }
 
 export interface PlaylistGetPlaylistsOutput {
@@ -1744,15 +1769,8 @@ export interface PlaylistGetPlaylistsParams {
   limit?: number;
   /** The offset for pagination, used to skip a number of playlists. */
   offset?: number;
-}
-
-export interface PlaylistItemRecord {
-  subject: StrongRef;
-  /** The date the playlist was created. */
-  createdAt: DateTime;
-  track: SongViewBasic;
-  /** The order of the item in the playlist. */
-  order: number;
+  /** RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt, curatorDid, curatorHandle, curatorName. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track. */
+  filter?: string;
 }
 
 export interface PlaylistRecord {
@@ -1766,6 +1784,8 @@ export interface PlaylistRecord {
   pictureUrl?: Uri;
   /** The date the playlist was created. */
   createdAt: DateTime;
+  /** DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here. */
+  collaborators?: Did[];
   /** The Spotify link of the playlist. */
   spotifyLink?: string;
   /** The Tidal link of the playlist. */
@@ -1774,6 +1794,27 @@ export interface PlaylistRecord {
   youtubeLink?: string;
   /** The Apple Music link of the playlist. */
   appleMusicLink?: string;
+}
+
+export interface PlaylistSongRecord {
+  /** Strong reference (AT-URI + CID) to the parent app.rocksky.playlist record. */
+  playlist: StrongRef;
+  /** Strong reference (AT-URI + CID) to the app.rocksky.song record this entry points at. */
+  song: StrongRef;
+  /** The title of the song. */
+  title: string;
+  /** The artist of the song. */
+  artist: string;
+  /** The album the song belongs to. */
+  album: string;
+  /** The album artist of the song. */
+  albumArtist: string;
+  /** The duration of the song in milliseconds. */
+  duration: number;
+  /** The URL of the album art of the song. */
+  albumArtUrl?: Uri;
+  /** The date and time the song was added to the playlist. */
+  addedAt: DateTime;
 }
 
 /** Basic view of a playlist, including its metadata */
@@ -1929,8 +1970,8 @@ export interface RemoveShoutParams {
 export interface RemoveTrackParams {
   /** The URI of the playlist to remove the track from */
   uri: AtUri;
-  /** The position of the track to remove in the playlist */
-  position: number;
+  /** The URI of the app.rocksky.song record to remove from the playlist */
+  songUri: AtUri;
 }
 
 export interface ReplyShoutInput {
@@ -2856,7 +2897,8 @@ export interface Endpoints {
   "app.rocksky.player.playFile": void;
   "app.rocksky.player.previous": void;
   "app.rocksky.player.seek": void;
-  "app.rocksky.playlist.createPlaylist": void;
+  "app.rocksky.playlist.addSongs": AddSongsOutput;
+  "app.rocksky.playlist.createPlaylist": PlaylistCreatePlaylistOutput;
   "app.rocksky.playlist.getPlaylist": PlaylistViewDetailed;
   "app.rocksky.playlist.getPlaylists": PlaylistGetPlaylistsOutput;
   "app.rocksky.playlist.insertDirectory": void;

@@ -15,6 +15,11 @@
           "offset": {
             "type": "integer",
             "description": "The offset for pagination, used to skip a number of playlists."
+          },
+          "filter": {
+            "type": "string",
+            "description": "RSQL filter expression, e.g. `name==\"Road trip*\";track.artist==\"Daft Punk\"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt, curatorDid, curatorHandle, curatorName. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.",
+            "maxLength": 2048
           }
         }
       },

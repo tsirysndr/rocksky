@@ -6,6 +6,7 @@
 // Any manual changes will be overwritten on the next regeneration.
 
 //! Generated bindings for the `app.rocksky.playlist` Lexicon namespace/module.
+pub mod add_songs;
 pub mod create_playlist;
 pub mod get_playlist;
 pub mod get_playlists;
@@ -13,6 +14,7 @@ pub mod insert_directory;
 pub mod insert_files;
 pub mod remove_playlist;
 pub mod remove_track;
+pub mod song;
 pub mod start_playlist;
 
 #[allow(unused_imports)]
@@ -28,7 +30,7 @@ use jacquard_common::deps::smol_str::SmolStr;
 use jacquard_common::types::blob::BlobRef;
 use jacquard_common::types::collection::{Collection, RecordError};
 use jacquard_common::types::ident::AtIdentifier;
-use jacquard_common::types::string::{AtUri, Cid, Datetime, UriValue};
+use jacquard_common::types::string::{AtUri, Cid, Datetime, Did, UriValue};
 use jacquard_common::types::uri::{RecordUri, UriError};
 use jacquard_common::types::value::Data;
 use jacquard_common::xrpc::XrpcResp;
@@ -53,6 +55,9 @@ pub struct Playlist<S: BosStr = DefaultStr> {
     ///The Apple Music link of the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apple_music_link: Option<S>,
+    ///DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collaborators: Option<Vec<Did<S>>>,
     ///The date the playlist was created.
     pub created_at: Datetime,
     ///The playlist description.
@@ -393,6 +398,7 @@ pub struct PlaylistBuilder<St: playlist_state::State, S: BosStr = DefaultStr> {
     _state: PhantomData<fn() -> St>,
     _fields: (
         Option<S>,
+        Option<Vec<Did<S>>>,
         Option<Datetime>,
         Option<S>,
         Option<S>,
@@ -424,7 +430,7 @@ impl PlaylistBuilder<playlist_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         PlaylistBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -435,7 +441,7 @@ impl<S: BosStr> PlaylistBuilder<playlist_state::Empty, S> {
     pub fn builder() -> Self {
         PlaylistBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -454,6 +460,19 @@ impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
     }
 }
 
+impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
+    /// Set the `collaborators` field (optional)
+    pub fn collaborators(mut self, value: impl Into<Option<Vec<Did<S>>>>) -> Self {
+        self._fields.1 = value.into();
+        self
+    }
+    /// Set the `collaborators` field to an Option value (optional)
+    pub fn maybe_collaborators(mut self, value: Option<Vec<Did<S>>>) -> Self {
+        self._fields.1 = value;
+        self
+    }
+}
+
 impl<St, S: BosStr> PlaylistBuilder<St, S>
 where
     St: playlist_state::State,
@@ -464,7 +483,7 @@ where
         mut self,
         value: impl Into<Datetime>,
     ) -> PlaylistBuilder<playlist_state::SetCreatedAt<St>, S> {
-        self._fields.1 = Option::Some(value.into());
+        self._fields.2 = Option::Some(value.into());
         PlaylistBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -476,12 +495,12 @@ where
 impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
     /// Set the `description` field (optional)
     pub fn description(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.2 = value.into();
+        self._fields.3 = value.into();
         self
     }
     /// Set the `description` field to an Option value (optional)
     pub fn maybe_description(mut self, value: Option<S>) -> Self {
-        self._fields.2 = value;
+        self._fields.3 = value;
         self
     }
 }
@@ -493,7 +512,7 @@ where
 {
     /// Set the `name` field (required)
     pub fn name(mut self, value: impl Into<S>) -> PlaylistBuilder<playlist_state::SetName<St>, S> {
-        self._fields.3 = Option::Some(value.into());
+        self._fields.4 = Option::Some(value.into());
         PlaylistBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -505,12 +524,12 @@ where
 impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
     /// Set the `picture` field (optional)
     pub fn picture(mut self, value: impl Into<Option<BlobRef<S>>>) -> Self {
-        self._fields.4 = value.into();
+        self._fields.5 = value.into();
         self
     }
     /// Set the `picture` field to an Option value (optional)
     pub fn maybe_picture(mut self, value: Option<BlobRef<S>>) -> Self {
-        self._fields.4 = value;
+        self._fields.5 = value;
         self
     }
 }
@@ -518,12 +537,12 @@ impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
 impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
     /// Set the `pictureUrl` field (optional)
     pub fn picture_url(mut self, value: impl Into<Option<UriValue<S>>>) -> Self {
-        self._fields.5 = value.into();
+        self._fields.6 = value.into();
         self
     }
     /// Set the `pictureUrl` field to an Option value (optional)
     pub fn maybe_picture_url(mut self, value: Option<UriValue<S>>) -> Self {
-        self._fields.5 = value;
+        self._fields.6 = value;
         self
     }
 }
@@ -531,12 +550,12 @@ impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
 impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
     /// Set the `spotifyLink` field (optional)
     pub fn spotify_link(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.6 = value.into();
+        self._fields.7 = value.into();
         self
     }
     /// Set the `spotifyLink` field to an Option value (optional)
     pub fn maybe_spotify_link(mut self, value: Option<S>) -> Self {
-        self._fields.6 = value;
+        self._fields.7 = value;
         self
     }
 }
@@ -544,12 +563,12 @@ impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
 impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
     /// Set the `tidalLink` field (optional)
     pub fn tidal_link(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.7 = value.into();
+        self._fields.8 = value.into();
         self
     }
     /// Set the `tidalLink` field to an Option value (optional)
     pub fn maybe_tidal_link(mut self, value: Option<S>) -> Self {
-        self._fields.7 = value;
+        self._fields.8 = value;
         self
     }
 }
@@ -557,12 +576,12 @@ impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
 impl<St: playlist_state::State, S: BosStr> PlaylistBuilder<St, S> {
     /// Set the `youtubeLink` field (optional)
     pub fn youtube_link(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.8 = value.into();
+        self._fields.9 = value.into();
         self
     }
     /// Set the `youtubeLink` field to an Option value (optional)
     pub fn maybe_youtube_link(mut self, value: Option<S>) -> Self {
-        self._fields.8 = value;
+        self._fields.9 = value;
         self
     }
 }
@@ -577,14 +596,15 @@ where
     pub fn build(self) -> Playlist<S> {
         Playlist {
             apple_music_link: self._fields.0,
-            created_at: self._fields.1.unwrap(),
-            description: self._fields.2,
-            name: self._fields.3.unwrap(),
-            picture: self._fields.4,
-            picture_url: self._fields.5,
-            spotify_link: self._fields.6,
-            tidal_link: self._fields.7,
-            youtube_link: self._fields.8,
+            collaborators: self._fields.1,
+            created_at: self._fields.2.unwrap(),
+            description: self._fields.3,
+            name: self._fields.4.unwrap(),
+            picture: self._fields.5,
+            picture_url: self._fields.6,
+            spotify_link: self._fields.7,
+            tidal_link: self._fields.8,
+            youtube_link: self._fields.9,
             extra_data: Default::default(),
         }
     }
@@ -592,14 +612,15 @@ where
     pub fn build_with_data(self, extra_data: BTreeMap<SmolStr, Data<S>>) -> Playlist<S> {
         Playlist {
             apple_music_link: self._fields.0,
-            created_at: self._fields.1.unwrap(),
-            description: self._fields.2,
-            name: self._fields.3.unwrap(),
-            picture: self._fields.4,
-            picture_url: self._fields.5,
-            spotify_link: self._fields.6,
-            tidal_link: self._fields.7,
-            youtube_link: self._fields.8,
+            collaborators: self._fields.1,
+            created_at: self._fields.2.unwrap(),
+            description: self._fields.3,
+            name: self._fields.4.unwrap(),
+            picture: self._fields.5,
+            picture_url: self._fields.6,
+            spotify_link: self._fields.7,
+            tidal_link: self._fields.8,
+            youtube_link: self._fields.9,
             extra_data: Some(extra_data),
         }
     }
@@ -618,31 +639,50 @@ fn lexicon_doc_app_rocksky_playlist() -> LexiconDoc<'static> {
             map.insert(
                 SmolStr::new_static("main"),
                 LexUserType::Record(LexRecord {
-                    description: Some(CowStr::new_static("A declaration of a playlist.")),
+                    description: Some(
+                        CowStr::new_static("A declaration of a playlist."),
+                    ),
                     key: Some(CowStr::new_static("tid")),
                     record: LexRecordRecord::Object(LexObject {
-                        required: Some(vec![
-                            SmolStr::new_static("name"),
-                            SmolStr::new_static("createdAt"),
-                        ]),
+                        required: Some(
+                            vec![
+                                SmolStr::new_static("name"),
+                                SmolStr::new_static("createdAt")
+                            ],
+                        ),
                         properties: {
                             #[allow(unused_mut)]
                             let mut map = BTreeMap::new();
                             map.insert(
                                 SmolStr::new_static("appleMusicLink"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The Apple Music link of the playlist.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The Apple Music link of the playlist."),
+                                    ),
+                                    ..Default::default()
+                                }),
+                            );
+                            map.insert(
+                                SmolStr::new_static("collaborators"),
+                                LexObjectProperty::Array(LexArray {
+                                    description: Some(
+                                        CowStr::new_static(
+                                            "DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here.",
+                                        ),
+                                    ),
+                                    items: LexArrayItem::String(LexString {
+                                        format: Some(LexStringFormat::Did),
+                                        ..Default::default()
+                                    }),
                                     ..Default::default()
                                 }),
                             );
                             map.insert(
                                 SmolStr::new_static("createdAt"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The date the playlist was created.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The date the playlist was created."),
+                                    ),
                                     format: Some(LexStringFormat::Datetime),
                                     ..Default::default()
                                 }),
@@ -650,9 +690,9 @@ fn lexicon_doc_app_rocksky_playlist() -> LexiconDoc<'static> {
                             map.insert(
                                 SmolStr::new_static("description"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The playlist description.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The playlist description."),
+                                    ),
                                     min_length: Some(1usize),
                                     max_length: Some(256usize),
                                     ..Default::default()
@@ -661,9 +701,9 @@ fn lexicon_doc_app_rocksky_playlist() -> LexiconDoc<'static> {
                             map.insert(
                                 SmolStr::new_static("name"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The name of the playlist.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The name of the playlist."),
+                                    ),
                                     min_length: Some(1usize),
                                     max_length: Some(512usize),
                                     ..Default::default()
@@ -671,16 +711,14 @@ fn lexicon_doc_app_rocksky_playlist() -> LexiconDoc<'static> {
                             );
                             map.insert(
                                 SmolStr::new_static("picture"),
-                                LexObjectProperty::Blob(LexBlob {
-                                    ..Default::default()
-                                }),
+                                LexObjectProperty::Blob(LexBlob { ..Default::default() }),
                             );
                             map.insert(
                                 SmolStr::new_static("pictureUrl"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The URL of the picture of the artist.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The URL of the picture of the artist."),
+                                    ),
                                     format: Some(LexStringFormat::Uri),
                                     ..Default::default()
                                 }),
@@ -688,27 +726,27 @@ fn lexicon_doc_app_rocksky_playlist() -> LexiconDoc<'static> {
                             map.insert(
                                 SmolStr::new_static("spotifyLink"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The Spotify link of the playlist.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The Spotify link of the playlist."),
+                                    ),
                                     ..Default::default()
                                 }),
                             );
                             map.insert(
                                 SmolStr::new_static("tidalLink"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The Tidal link of the playlist.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The Tidal link of the playlist."),
+                                    ),
                                     ..Default::default()
                                 }),
                             );
                             map.insert(
                                 SmolStr::new_static("youtubeLink"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The YouTube link of the playlist.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The YouTube link of the playlist."),
+                                    ),
                                     ..Default::default()
                                 }),
                             );

@@ -37,13 +37,6 @@ pub async fn start() -> Result<(), Error> {
 
     load_users(conn.clone(), &pool).await?;
 
-    sqlx::query(r#"
-      CREATE UNIQUE INDEX IF NOT EXISTS user_playlists_unique_index ON user_playlists (user_id, playlist_id)
-    "#)
-      .execute(&pool)
-      .await?;
-    let conn = conn.clone();
-
     let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
     let nc = connect(&addr).await?;
     let nc = Arc::new(Mutex::new(nc));
@@ -52,11 +45,10 @@ pub async fn start() -> Result<(), Error> {
     for user in users {
         let token = user.1.clone();
         let did = user.2.clone();
-        let user_id = user.3.clone();
         let client_id = user.4.clone();
         let client_secret = user.5.clone();
         let playlists = get_user_playlists(token, client_id, client_secret).await?;
-        save_playlists(&pool, conn.clone(), nc.clone(), playlists, &user_id, &did).await?;
+        save_playlists(nc.clone(), playlists, &did).await?;
     }
 
     println!("Done!");

@@ -63,13 +63,24 @@ function nsidParentNs(nsid: string): string {
   return segs.length >= 2 ? pascal(segs[segs.length - 2]) : "";
 }
 
+// Disambiguating prefix for a def whose bare name is claimed by more than one
+// lexicon. The second-to-last segment only carries information when it is a
+// real sub-namespace (`app.rocksky.playlist.song` → "Playlist"); on a top-level
+// NSID it is the authority (`app.rocksky.song` → "rocksky"), which says
+// nothing, so those keep the bare name and the deeper NSID is the one that
+// gets qualified.
+function defQualifier(nsid: string): string {
+  return nsid.split(".").length >= 4 ? nsidParentNs(nsid) : "";
+}
+
 function typeNameFor(
   nsid: string,
   defName: string,
   kind: "record" | "object" | "params",
   mainSuffix?: string,
+  qualifier = "",
 ): string {
-  const ns = nsidNs(nsid);
+  const ns = qualifier + nsidNs(nsid);
   if (defName === "main") {
     if (kind === "record") return ns + "Record";
     if (kind === "params") return ns + (mainSuffix ?? "Params");
@@ -217,6 +228,38 @@ function buildRegistry(): Registry {
     return producers && producers.size > 1 ? nsidParentNs(nsid) + stem : stem;
   };
 
+  // Record and object defs have the same hazard: `app.rocksky.playlist.song`
+  // and `app.rocksky.song` both reduce to "Song", so both want `SongRecord`.
+  // Pre-scan the unqualified names and qualify the ones that clash.
+  const defProducers = new Map<string, Set<string>>();
+  for (const f of files) {
+    let doc: any;
+    try {
+      doc = JSON.parse(readFileSync(f, "utf8"));
+    } catch {
+      continue;
+    }
+    const nsid: string = doc.id;
+    if (!nsid) continue;
+    for (const [defName, def] of Object.entries<any>(doc.defs ?? {})) {
+      if (def.type !== "record" && def.type !== "object") continue;
+      const name = typeNameFor(nsid, defName, def.type);
+      let set = defProducers.get(name);
+      if (!set) defProducers.set(name, (set = new Set()));
+      set.add(nsid);
+    }
+  }
+  const defTypeName = (
+    nsid: string,
+    def: string,
+    kind: "record" | "object",
+  ): string => {
+    const bare = typeNameFor(nsid, def, kind);
+    const producers = defProducers.get(bare);
+    if (!producers || producers.size <= 1) return bare;
+    return typeNameFor(nsid, def, kind, undefined, defQualifier(nsid));
+  };
+
   const hoist = (name: string, t: NamedType) => {
     if (!types.find((x) => x.name === name)) types.push(t);
   };
@@ -240,7 +283,7 @@ function buildRegistry(): Registry {
       const baseCtx = { nsid, refs, refMap };
       switch (def.type) {
         case "record": {
-          const name = typeNameFor(nsid, defName, "record");
+          const name = defTypeName(nsid, defName, "record");
           recordDef(nsid, defName, name);
           const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
           const t = buildNamedType(name, def.record ?? {}, ctx);
@@ -248,7 +291,7 @@ function buildRegistry(): Registry {
           break;
         }
         case "object": {
-          const name = typeNameFor(nsid, defName, "object");
+          const name = defTypeName(nsid, defName, "object");
           recordDef(nsid, defName, name);
           const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
           const t = buildNamedType(name, def, ctx);
@@ -311,9 +354,25 @@ function buildRegistry(): Registry {
     if (ep.output) ep.output = resolveTypeRef(ep.output, refMap);
   }
 
+  // Two types may legitimately arrive under one name (the same inline object
+  // hoisted from several call sites). Two *different* shapes under one name is
+  // a naming bug, and keeping the first silently drops the other — which is how
+  // app.rocksky.playlist.song once clobbered app.rocksky.song's SongRecord.
   const seen = new Map<string, NamedType>();
   for (const t of types) {
-    if (!seen.has(t.name)) seen.set(t.name, t);
+    const prev = seen.get(t.name);
+    if (!prev) {
+      seen.set(t.name, t);
+      continue;
+    }
+    const sig = (x: NamedType) =>
+      JSON.stringify(x.fields.map((f) => [f.name, f.required, f.type]));
+    if (sig(prev) !== sig(t)) {
+      throw new Error(
+        `Type name collision: "${t.name}" is produced by two lexicons with different shapes. ` +
+          `Qualify one of them in typeNameFor/defQualifier.`,
+      );
+    }
   }
   const deduped = Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
   const sortedEndpoints = endpoints.slice().sort((a, b) => a.nsid.localeCompare(b.nsid));

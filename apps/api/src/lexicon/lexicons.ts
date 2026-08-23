@@ -484,13 +484,19 @@ export const schemaDict = {
             },
             limit: {
               type: "integer",
-              description: "The maximum number of albums to return",
+              description: "The maximum number of playlists to return",
               minimum: 1,
             },
             offset: {
               type: "integer",
               description: "The offset for pagination",
               minimum: 0,
+            },
+            filter: {
+              type: "string",
+              description:
+                'RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist\'s contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.',
+              maxLength: 2048,
             },
           },
         },
@@ -5330,6 +5336,54 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyPlaylistAddSongs: {
+    lexicon: 1,
+    id: "app.rocksky.playlist.addSongs",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Add songs to a playlist. Publishes one app.rocksky.playlist.song record per song to the caller's repo; the caller must own the playlist or be listed in its collaborators.",
+        parameters: {
+          type: "params",
+          required: ["uri", "songs"],
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the playlist to add the songs to",
+              format: "at-uri",
+            },
+            songs: {
+              type: "array",
+              description: "AT-URIs of the app.rocksky.song records to add",
+              items: {
+                type: "string",
+                format: "at-uri",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["uris"],
+            properties: {
+              uris: {
+                type: "array",
+                description:
+                  "AT-URIs of the created app.rocksky.playlist.song records",
+                items: {
+                  type: "string",
+                  format: "at-uri",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyPlaylistCreatePlaylist: {
     lexicon: 1,
     id: "app.rocksky.playlist.createPlaylist",
@@ -5348,6 +5402,31 @@ export const schemaDict = {
             description: {
               type: "string",
               description: "A brief description of the playlist",
+            },
+            pictureUrl: {
+              type: "string",
+              description: "The URL of the cover image for the playlist",
+              format: "uri",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["uri", "cid"],
+            properties: {
+              uri: {
+                type: "string",
+                description:
+                  "The AT-URI of the created app.rocksky.playlist record.",
+                format: "at-uri",
+              },
+              cid: {
+                type: "string",
+                description:
+                  "The CID of the created app.rocksky.playlist record.",
+              },
             },
           },
         },
@@ -5494,6 +5573,12 @@ export const schemaDict = {
               description: "The URI of the playlist to retrieve.",
               format: "at-uri",
             },
+            filter: {
+              type: "string",
+              description:
+                'RSQL filter expression applied to the playlist\'s tracks, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, addedAt',
+              maxLength: 2048,
+            },
           },
         },
         output: {
@@ -5524,6 +5609,12 @@ export const schemaDict = {
               type: "integer",
               description:
                 "The offset for pagination, used to skip a number of playlists.",
+            },
+            filter: {
+              type: "string",
+              description:
+                'RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt, curatorDid, curatorHandle, curatorName. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist\'s contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.',
+              maxLength: 2048,
             },
           },
         },
@@ -5648,6 +5739,15 @@ export const schemaDict = {
               description: "The date the playlist was created.",
               format: "datetime",
             },
+            collaborators: {
+              type: "array",
+              description:
+                "DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here.",
+              items: {
+                type: "string",
+                format: "did",
+              },
+            },
             spotifyLink: {
               type: "string",
               description: "The Spotify link of the playlist.",
@@ -5663,42 +5763,6 @@ export const schemaDict = {
             appleMusicLink: {
               type: "string",
               description: "The Apple Music link of the playlist.",
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyPlaylistItem: {
-    lexicon: 1,
-    id: "app.rocksky.playlistItem",
-    defs: {
-      main: {
-        type: "record",
-        description:
-          "A playlist item represents a single entry in a playlist, containing metadata and references to media content.",
-        key: "tid",
-        record: {
-          type: "object",
-          required: ["createdAt", "track", "order", "subject"],
-          properties: {
-            subject: {
-              type: "ref",
-              ref: "lex:com.atproto.repo.strongRef",
-            },
-            createdAt: {
-              type: "string",
-              description: "The date the playlist was created.",
-              format: "datetime",
-            },
-            track: {
-              type: "ref",
-              ref: "lex:app.rocksky.song.defs#songViewBasic",
-            },
-            order: {
-              type: "integer",
-              description: "The order of the item in the playlist.",
-              minimum: 0,
             },
           },
         },
@@ -5732,20 +5796,101 @@ export const schemaDict = {
     defs: {
       main: {
         type: "procedure",
-        description: "Remove a track from a playlist",
+        description:
+          "Remove a track from a playlist. Deletes the app.rocksky.playlist.song record that put it there, which only the repo that added it can do.",
         parameters: {
           type: "params",
-          required: ["uri", "position"],
+          required: ["uri", "songUri"],
           properties: {
             uri: {
               type: "string",
               description: "The URI of the playlist to remove the track from",
               format: "at-uri",
             },
-            position: {
-              type: "integer",
+            songUri: {
+              type: "string",
               description:
-                "The position of the track to remove in the playlist",
+                "The URI of the app.rocksky.song record to remove from the playlist",
+              format: "at-uri",
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlaylistSong: {
+    lexicon: 1,
+    id: "app.rocksky.playlist.song",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "A song entry in a playlist. Holds a strong reference to the playlist it belongs to, a strong reference to the song record itself, and a denormalized copy of the song metadata so the entry can be rendered without dereferencing the song.",
+        key: "tid",
+        record: {
+          type: "object",
+          required: [
+            "playlist",
+            "song",
+            "title",
+            "artist",
+            "album",
+            "albumArtist",
+            "duration",
+            "addedAt",
+          ],
+          properties: {
+            playlist: {
+              type: "ref",
+              description:
+                "Strong reference (AT-URI + CID) to the parent app.rocksky.playlist record.",
+              ref: "lex:com.atproto.repo.strongRef",
+            },
+            song: {
+              type: "ref",
+              description:
+                "Strong reference (AT-URI + CID) to the app.rocksky.song record this entry points at.",
+              ref: "lex:com.atproto.repo.strongRef",
+            },
+            title: {
+              type: "string",
+              description: "The title of the song.",
+              minLength: 1,
+              maxLength: 512,
+            },
+            artist: {
+              type: "string",
+              description: "The artist of the song.",
+              minLength: 1,
+              maxLength: 256,
+            },
+            album: {
+              type: "string",
+              description: "The album the song belongs to.",
+              minLength: 1,
+              maxLength: 256,
+            },
+            albumArtist: {
+              type: "string",
+              description: "The album artist of the song.",
+              minLength: 1,
+              maxLength: 256,
+            },
+            duration: {
+              type: "integer",
+              description: "The duration of the song in milliseconds.",
+              minimum: 1,
+            },
+            albumArtUrl: {
+              type: "string",
+              description: "The URL of the album art of the song.",
+              format: "uri",
+            },
+            addedAt: {
+              type: "string",
+              description:
+                "The date and time the song was added to the playlist.",
+              format: "datetime",
             },
           },
         },
@@ -9680,6 +9825,7 @@ export const ids = {
   AppRockskyPlayerPlayFile: "app.rocksky.player.playFile",
   AppRockskyPlayerPrevious: "app.rocksky.player.previous",
   AppRockskyPlayerSeek: "app.rocksky.player.seek",
+  AppRockskyPlaylistAddSongs: "app.rocksky.playlist.addSongs",
   AppRockskyPlaylistCreatePlaylist: "app.rocksky.playlist.createPlaylist",
   AppRockskyPlaylistDefs: "app.rocksky.playlist.defs",
   AppRockskyPlaylistGetPlaylist: "app.rocksky.playlist.getPlaylist",
@@ -9687,9 +9833,9 @@ export const ids = {
   AppRockskyPlaylistInsertDirectory: "app.rocksky.playlist.insertDirectory",
   AppRockskyPlaylistInsertFiles: "app.rocksky.playlist.insertFiles",
   AppRockskyPlaylist: "app.rocksky.playlist",
-  AppRockskyPlaylistItem: "app.rocksky.playlistItem",
   AppRockskyPlaylistRemovePlaylist: "app.rocksky.playlist.removePlaylist",
   AppRockskyPlaylistRemoveTrack: "app.rocksky.playlist.removeTrack",
+  AppRockskyPlaylistSong: "app.rocksky.playlist.song",
   AppRockskyPlaylistStartPlaylist: "app.rocksky.playlist.startPlaylist",
   AppRockskyRadioDefs: "app.rocksky.radio.defs",
   AppRockskyRadio: "app.rocksky.radio",

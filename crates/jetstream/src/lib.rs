@@ -5,6 +5,7 @@ use tokio::sync::Mutex;
 
 use crate::webhook_worker::{start_worker, AppState};
 
+pub mod playlist;
 pub mod profile;
 pub mod repo;
 pub mod subscriber;

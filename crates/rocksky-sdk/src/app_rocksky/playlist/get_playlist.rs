@@ -14,7 +14,7 @@ use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
 use jacquard_common::types::string::AtUri;
 use jacquard_common::types::value::Data;
-use jacquard_common::{BosStr, DefaultStr, FromStaticStr};
+use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
 use jacquard_derive::IntoStatic;
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +24,9 @@ use serde::{Deserialize, Serialize};
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct GetPlaylist<S: BosStr = DefaultStr> {
+    /// (max length: 2048)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<S>,
     pub uri: AtUri<S>,
 }
 
@@ -102,7 +105,7 @@ pub mod get_playlist_state {
 /// Builder for constructing an instance of this type.
 pub struct GetPlaylistBuilder<St: get_playlist_state::State, S: BosStr = DefaultStr> {
     _state: PhantomData<fn() -> St>,
-    _fields: (Option<AtUri<S>>,),
+    _fields: (Option<S>, Option<AtUri<S>>),
     _type: PhantomData<fn() -> S>,
 }
 
@@ -125,7 +128,7 @@ impl GetPlaylistBuilder<get_playlist_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         GetPlaylistBuilder {
             _state: PhantomData,
-            _fields: (None,),
+            _fields: (None, None),
             _type: PhantomData,
         }
     }
@@ -136,9 +139,22 @@ impl<S: BosStr> GetPlaylistBuilder<get_playlist_state::Empty, S> {
     pub fn builder() -> Self {
         GetPlaylistBuilder {
             _state: PhantomData,
-            _fields: (None,),
+            _fields: (None, None),
             _type: PhantomData,
         }
+    }
+}
+
+impl<St: get_playlist_state::State, S: BosStr> GetPlaylistBuilder<St, S> {
+    /// Set the `filter` field (optional)
+    pub fn filter(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.0 = value.into();
+        self
+    }
+    /// Set the `filter` field to an Option value (optional)
+    pub fn maybe_filter(mut self, value: Option<S>) -> Self {
+        self._fields.0 = value;
+        self
     }
 }
 
@@ -152,7 +168,7 @@ where
         mut self,
         value: impl Into<AtUri<S>>,
     ) -> GetPlaylistBuilder<get_playlist_state::SetUri<St>, S> {
-        self._fields.0 = Option::Some(value.into());
+        self._fields.1 = Option::Some(value.into());
         GetPlaylistBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -169,7 +185,8 @@ where
     /// Build the final struct.
     pub fn build(self) -> GetPlaylist<S> {
         GetPlaylist {
-            uri: self._fields.0.unwrap(),
+            filter: self._fields.0,
+            uri: self._fields.1.unwrap(),
         }
     }
 }

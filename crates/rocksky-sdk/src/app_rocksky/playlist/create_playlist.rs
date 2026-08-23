@@ -11,6 +11,7 @@ use alloc::collections::BTreeMap;
 #[allow(unused_imports)]
 use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
+use jacquard_common::types::string::{AtUri, UriValue};
 use jacquard_common::types::value::Data;
 use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
 use jacquard_derive::IntoStatic;
@@ -25,6 +26,22 @@ pub struct CreatePlaylistParams<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<S>,
     pub name: S,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture_url: Option<UriValue<S>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct CreatePlaylistOutput<S: BosStr = DefaultStr> {
+    ///The CID of the created app.rocksky.playlist record.
+    pub cid: S,
+    ///The AT-URI of the created app.rocksky.playlist record.
+    pub uri: AtUri<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
 /** Request marker for the `app.rocksky.playlist.createPlaylist` procedure.
@@ -35,12 +52,12 @@ This endpoint has no request parameters or input body; send this marker with `ja
 pub struct CreatePlaylist;
 /** Response marker for the `app.rocksky.playlist.createPlaylist` procedure.
 
-Implements `jacquard_common::xrpc::XrpcResp`; successful bodies decode as `Self::Output<S>`, which is `()` for this endpoint.*/
+Implements `jacquard_common::xrpc::XrpcResp`; successful bodies decode as `Self::Output<S>`, which is `CreatePlaylistOutput<S>` for this endpoint.*/
 pub struct CreatePlaylistResponse;
 impl jacquard_common::xrpc::XrpcResp for CreatePlaylistResponse {
     const NSID: &'static str = "app.rocksky.playlist.createPlaylist";
     const ENCODING: &'static str = "application/json";
-    type Output<S: BosStr> = ();
+    type Output<S: BosStr> = CreatePlaylistOutput<S>;
     type Err = jacquard_common::xrpc::GenericError;
 }
 
@@ -101,7 +118,7 @@ pub struct CreatePlaylistParamsBuilder<
     S: BosStr = DefaultStr,
 > {
     _state: PhantomData<fn() -> St>,
-    _fields: (Option<S>, Option<S>),
+    _fields: (Option<S>, Option<S>, Option<UriValue<S>>),
     _type: PhantomData<fn() -> S>,
 }
 
@@ -124,7 +141,7 @@ impl CreatePlaylistParamsBuilder<create_playlist_params_state::Empty, DefaultStr
     pub fn new() -> Self {
         CreatePlaylistParamsBuilder {
             _state: PhantomData,
-            _fields: (None, None),
+            _fields: (None, None, None),
             _type: PhantomData,
         }
     }
@@ -135,7 +152,7 @@ impl<S: BosStr> CreatePlaylistParamsBuilder<create_playlist_params_state::Empty,
     pub fn builder() -> Self {
         CreatePlaylistParamsBuilder {
             _state: PhantomData,
-            _fields: (None, None),
+            _fields: (None, None, None),
             _type: PhantomData,
         }
     }
@@ -173,6 +190,19 @@ where
     }
 }
 
+impl<St: create_playlist_params_state::State, S: BosStr> CreatePlaylistParamsBuilder<St, S> {
+    /// Set the `pictureUrl` field (optional)
+    pub fn picture_url(mut self, value: impl Into<Option<UriValue<S>>>) -> Self {
+        self._fields.2 = value.into();
+        self
+    }
+    /// Set the `pictureUrl` field to an Option value (optional)
+    pub fn maybe_picture_url(mut self, value: Option<UriValue<S>>) -> Self {
+        self._fields.2 = value;
+        self
+    }
+}
+
 impl<St, S: BosStr> CreatePlaylistParamsBuilder<St, S>
 where
     St: create_playlist_params_state::State,
@@ -183,6 +213,7 @@ where
         CreatePlaylistParams {
             description: self._fields.0,
             name: self._fields.1.unwrap(),
+            picture_url: self._fields.2,
         }
     }
 }

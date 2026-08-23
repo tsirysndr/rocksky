@@ -96,6 +96,37 @@ export function compileRsqlFilterParam(
   }
 }
 
+/**
+ * The selectors an RSQL expression references, so a handler can decide what a
+ * filter needs before it builds the query — e.g. only joining `playlist_tracks`
+ * when the caller actually filtered on track fields. Returns `[]` for an absent
+ * or unparseable filter; reporting bad syntax is `compileRsqlFilter`'s job.
+ */
+export function rsqlSelectors(filter: string | undefined): string[] {
+  if (!filter?.trim()) {
+    return [];
+  }
+  let ast: ExpressionNode;
+  try {
+    ast = parse(filter);
+  } catch {
+    return [];
+  }
+  const selectors = new Set<string>();
+  const walk = (node: ExpressionNode) => {
+    if (isLogicNode(node)) {
+      walk(node.left);
+      walk(node.right);
+      return;
+    }
+    if (isComparisonNode(node)) {
+      selectors.add(getSelector(node));
+    }
+  };
+  walk(ast);
+  return [...selectors];
+}
+
 const compileNode = (node: ExpressionNode, fields: RsqlFieldMap): SQL => {
   if (isLogicNode(node)) {
     const left = compileNode(node.left, fields);

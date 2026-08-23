@@ -57,8 +57,10 @@ pub async fn insert_playlist(pool: &Pool<Postgres>, playlist: &Playlist) -> Resu
         xata_createdat,
         xata_updatedat,
         uri,
+        cid,
+        collaborators,
         created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       ON CONFLICT (xata_id) DO NOTHING"#,
     )
     .bind(&playlist.xata_id)
@@ -71,6 +73,8 @@ pub async fn insert_playlist(pool: &Pool<Postgres>, playlist: &Playlist) -> Resu
     .bind(playlist.xata_createdat)
     .bind(playlist.xata_updatedat)
     .bind(&playlist.uri)
+    .bind(&playlist.cid)
+    .bind(playlist.collaborators.as_deref())
     .bind(&playlist.created_by)
     .execute(pool)
     .await?;
@@ -82,17 +86,27 @@ pub async fn insert_playlist_track(
     playlist_track: &PlaylistTrack,
 ) -> Result<(), Error> {
     sqlx::query(
+        // uri has to be copied across: it is the AT-URI of the record the row
+        // mirrors, and playlist_tracks_uri_not_null rejects a row without one.
         r#"INSERT INTO playlist_tracks (
         xata_id,
         playlist_id,
         track_id,
+        uri,
+        cid,
+        added_by,
+        added_at,
         xata_createdat
-    ) VALUES ($1, $2, $3, $4)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (xata_id) DO NOTHING"#,
     )
     .bind(&playlist_track.xata_id)
     .bind(&playlist_track.playlist_id)
     .bind(&playlist_track.track_id)
+    .bind(&playlist_track.uri)
+    .bind(&playlist_track.cid)
+    .bind(&playlist_track.added_by)
+    .bind(playlist_track.added_at)
     .bind(playlist_track.xata_createdat)
     .execute(pool)
     .await?;

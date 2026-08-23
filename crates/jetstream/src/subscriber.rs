@@ -28,6 +28,7 @@ pub const ARTIST_NSID: &str = "app.rocksky.artist";
 pub const ALBUM_NSID: &str = "app.rocksky.album";
 pub const SONG_NSID: &str = "app.rocksky.song";
 pub const PLAYLIST_NSID: &str = "app.rocksky.playlist";
+pub const PLAYLIST_SONG_NSID: &str = "app.rocksky.playlist.song";
 pub const LIKE_NSID: &str = "app.rocksky.like";
 pub const SHOUT_NSID: &str = "app.rocksky.shout";
 pub const FEED_GENERATOR_NSID: &str = "app.rocksky.feed.generator";

@@ -17,6 +17,8 @@ export interface Record {
   pictureUrl?: string;
   /** The date the playlist was created. */
   createdAt: string;
+  /** DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here. */
+  collaborators?: string[];
   /** The Spotify link of the playlist. */
   spotifyLink?: string;
   /** The Tidal link of the playlist. */

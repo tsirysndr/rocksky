@@ -255,3 +255,51 @@ pub struct FollowRecord {
     pub subject: String,
     pub created_at: String,
 }
+
+/// `com.atproto.repo.strongRef` — an AT-URI plus the CID of the exact record
+/// revision it pointed at.
+#[derive(Debug, Deserialize, Clone)]
+pub struct StrongRef {
+    pub uri: String,
+    pub cid: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistRecord {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture: Option<ImageBlob>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture_url: Option<String>,
+    /// DIDs the owner allows to add songs. Authoritative because it lives in
+    /// the owner's own repo — see `playlist::authorize_entry`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collaborators: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistSongRecord {
+    pub playlist: StrongRef,
+    pub song: StrongRef,
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub album_artist: String,
+    pub duration: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art_url: Option<String>,
+    pub added_at: String,
+}

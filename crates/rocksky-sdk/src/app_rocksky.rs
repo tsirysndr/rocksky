@@ -19,7 +19,6 @@ pub mod mirror;
 pub mod notification;
 pub mod player;
 pub mod playlist;
-pub mod playlist_item;
 pub mod radio;
 pub mod rockbox;
 pub mod scrobble;

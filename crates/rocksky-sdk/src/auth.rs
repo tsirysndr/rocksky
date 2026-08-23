@@ -85,6 +85,8 @@ pub(crate) fn rocksky_scopes() -> Result<jacquard::oauth::scopes::Scopes<smol_st
         .map_err(auth_err)?
         .repo_collection("app.rocksky.playlist")
         .map_err(auth_err)?
+        .repo_collection("app.rocksky.playlist.song")
+        .map_err(auth_err)?
         .repo_collection("app.rocksky.feed.generator")
         .map_err(auth_err)?
         .repo_collection("app.rocksky.actor.status")

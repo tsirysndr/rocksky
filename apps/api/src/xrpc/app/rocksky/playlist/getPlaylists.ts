@@ -5,13 +5,52 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { PlaylistViewBasic } from "lexicon/types/app/rocksky/playlist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/playlist/getPlaylists";
+import {
+  compileRsqlFilterParam,
+  type RsqlFieldMap,
+  rsqlSelectors,
+} from "lib/rsql";
 import * as R from "ramda";
 import tables from "schema";
 import type { SelectPlaylist } from "schema/playlists";
 import type { SelectUser } from "schema/users";
 
+// `title` and the `curator*` fields are the names the playlistViewBasic output
+// uses; they map back onto the columns those view fields are built from.
+const PLAYLIST_FIELDS: RsqlFieldMap = {
+  name: tables.playlists.name,
+  title: tables.playlists.name,
+  description: tables.playlists.description,
+  uri: tables.playlists.uri,
+  spotifyLink: tables.playlists.spotifyLink,
+  tidalLink: tables.playlists.tidalLink,
+  appleMusicLink: tables.playlists.appleMusicLink,
+  createdAt: { column: tables.playlists.createdAt, type: "date" },
+  updatedAt: { column: tables.playlists.updatedAt, type: "date" },
+  curatorDid: tables.users.did,
+  curatorHandle: tables.users.handle,
+  curatorName: tables.users.displayName,
+};
+
+// `track.*` selectors match against the playlist's contents rather than the
+// playlist itself: `track.artist=="Daft Punk"` means "playlists containing a
+// track by Daft Punk". Several track predicates in one `;` group have to be
+// satisfied by the *same* track, which is what you want from
+// `track.artist=="Daft Punk";track.album=="Discovery"`.
+const TRACK_FIELDS: RsqlFieldMap = {
+  "track.title": tables.tracks.title,
+  "track.artist": tables.tracks.artist,
+  "track.album": tables.tracks.album,
+  "track.albumArtist": tables.tracks.albumArtist,
+};
+
+const FILTER_FIELDS: RsqlFieldMap = { ...PLAYLIST_FIELDS, ...TRACK_FIELDS };
+
+const filtersOnTracks = (filter: string | undefined) =>
+  rsqlSelectors(filter).some((selector) => selector in TRACK_FIELDS);
+
 export default function (server: Server, ctx: Context) {
-  const getPlaylists = (params) =>
+  const getPlaylists = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,
@@ -25,6 +64,9 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.playlist.getPlaylists({
     handler: async ({ params }) => {
+      // Validate the filter up front so malformed expressions surface as a
+      // 400 instead of being swallowed by the catchAll below.
+      compileRsqlFilterParam(params.filter, FILTER_FIELDS);
       const result = await Effect.runPromise(getPlaylists(params));
       return {
         encoding: "application/json",
@@ -42,30 +84,66 @@ const retrieve = ({
   ctx: Context;
 }): Effect.Effect<Playlists, Error> => {
   return Effect.tryPromise({
-    try: async () =>
-      ctx.db
-        .select({
-          playlists: tables.playlists,
-          users: tables.users,
-          trackCount: sql<number>`
+    try: async () => {
+      const projection = {
+        playlists: tables.playlists,
+        users: tables.users,
+        trackCount: sql<number>`
           (SELECT COUNT(*)
             FROM ${tables.playlistTracks}
             WHERE ${tables.playlistTracks.playlistId} = ${tables.playlists.id}
           )`.as("trackCount"),
-        })
-        .from(tables.userPlaylists)
-        .leftJoin(
-          tables.playlists,
-          eq(tables.userPlaylists.playlistId, tables.playlists.id),
-        )
-        .leftJoin(
-          tables.users,
-          eq(tables.userPlaylists.userId, tables.users.id),
-        )
+      };
+      const base = () =>
+        ctx.db
+          .select(projection)
+          .from(tables.userPlaylists)
+          .leftJoin(
+            tables.playlists,
+            eq(tables.userPlaylists.playlistId, tables.playlists.id),
+          )
+          .leftJoin(
+            tables.users,
+            eq(tables.userPlaylists.userId, tables.users.id),
+          );
+
+      const where = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
+      const limit = params.limit || 20;
+      const offset = params.offset || 0;
+
+      // Filtering on track fields needs the contents joined in, which fans a
+      // playlist out to one row per matching track — GROUP BY folds it back to
+      // one row per playlist. The join is skipped entirely when the filter
+      // doesn't mention tracks, so the common case pays nothing for it.
+      if (filtersOnTracks(params.filter)) {
+        return base()
+          .innerJoin(
+            tables.playlistTracks,
+            eq(tables.playlistTracks.playlistId, tables.playlists.id),
+          )
+          .innerJoin(
+            tables.tracks,
+            eq(tables.playlistTracks.trackId, tables.tracks.id),
+          )
+          .where(where)
+          .groupBy(
+            tables.playlists.id,
+            tables.users.id,
+            tables.userPlaylists.id,
+          )
+          .orderBy(desc(tables.playlists.createdAt))
+          .limit(limit)
+          .offset(offset)
+          .execute();
+      }
+
+      const query = base();
+      return (where ? query.where(where) : query)
         .orderBy(desc(tables.playlists.createdAt))
-        .limit(params.limit || 20)
-        .offset(params.offset || 0)
-        .execute(),
+        .limit(limit)
+        .offset(offset)
+        .execute();
+    },
     catch: (error) => new Error(`Failed to retrieve playlists: ${error}`),
   });
 };
