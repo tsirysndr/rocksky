@@ -11,6 +11,8 @@ import type {
   ArtistViewBasic,
   ArtistViewDetailed,
   ChartsView,
+  CreateScrobbleInput,
+  FollowAccountOutput,
   FeedGeneratorsView,
   FeedRecommendationsView,
   FeedRecommendedAlbumsView,
@@ -37,10 +39,13 @@ import type {
   GetTrackShoutsOutput,
   GetUnreadCountOutput,
   ListNotificationsOutput,
+  MirrorSourceView,
   PlayerCurrentlyPlayingViewDetailed,
   PlayerPlaybackQueueViewDetailed,
   PlaylistGetPlaylistsOutput,
   PlaylistViewDetailed,
+  PutAudioSettingsInput,
+  PutMirrorSourceInput,
   RockboxSettingsView,
   ScrobbleViewBasic,
   SongViewBasic,
@@ -48,6 +53,7 @@ import type {
   StatsGlobalStatsView,
   StatsView,
   StatsWrappedView,
+  UnfollowAccountOutput,
   UpdateSeenOutput,
 } from "./generated/types.js";
 
@@ -136,7 +142,7 @@ export class RockskyClient {
       if (v !== undefined && v !== "") clean[k] = v;
     }
     const res = await this.rpc.get(nsid as never, { params: clean } as never);
-    if (!res.ok) throw new RockskyError(res.data);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
     return res.data as T;
   }
 
@@ -159,6 +165,24 @@ export class RockskyClient {
    * method here is sugar over this — use it for queries without a wrapper. */
   get(nsid: string, params: Record<string, unknown> = {}): Promise<unknown> {
     return this.query(nsid, params);
+  }
+
+  /** Call any AppView procedure by nsid. `params` ride the query string (some
+   * procedures take their arguments there), `body` is the JSON input — omitted
+   * entirely when `undefined`. Escape hatch for procedures without a wrapper. */
+  async post<T = unknown>(
+    nsid: string,
+    opts: { params?: Record<string, unknown>; body?: unknown } = {},
+  ): Promise<T> {
+    const clean: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(opts.params ?? {})) {
+      if (v !== undefined && v !== "") clean[k] = v;
+    }
+    const call: Record<string, unknown> = { params: clean };
+    if (opts.body !== undefined) call.input = opts.body;
+    const res = await this.rpc.post(nsid as never, call as never);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
+    return res.data as T;
   }
 
   /** An actor's most-played songs. */
@@ -539,7 +563,34 @@ export class RockskyClient {
     const res = await this.rpc.post("app.rocksky.notification.updateSeen" as never, {
       input: (ids && ids.length ? { ids } : {}) as never,
     } as never);
-    if (!res.ok) throw new RockskyError(res.data);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
     return res.data as UpdateSeenOutput;
+  }
+
+  /** Follow an account by DID or handle (`app.rocksky.graph.followAccount`). Auth required. */
+  followAccount(account: string): Promise<FollowAccountOutput> {
+    return this.post("app.rocksky.graph.followAccount", { params: { account } });
+  }
+
+  /** Unfollow an account by DID or handle (`app.rocksky.graph.unfollowAccount`). Auth required. */
+  unfollowAccount(account: string): Promise<UnfollowAccountOutput> {
+    return this.post("app.rocksky.graph.unfollowAccount", { params: { account } });
+  }
+
+  /** Submit a scrobble through the AppView (`app.rocksky.scrobble.createScrobble`).
+   * Auth required. For direct-to-PDS scrobbling use {@link Agent} instead. */
+  createScrobble(input: CreateScrobbleInput): Promise<ScrobbleViewBasic> {
+    return this.post("app.rocksky.scrobble.createScrobble", { body: input });
+  }
+
+  /** Create or update a mirror source (`app.rocksky.mirror.putMirrorSource`). Auth required. */
+  putMirrorSource(input: PutMirrorSourceInput): Promise<MirrorSourceView> {
+    return this.post("app.rocksky.mirror.putMirrorSource", { body: input });
+  }
+
+  /** Patch the viewer's Rockbox audio settings (`app.rocksky.rockbox.putAudioSettings`).
+   * Auth required. */
+  putAudioSettings(input: PutAudioSettingsInput): Promise<RockboxSettingsView> {
+    return this.post("app.rocksky.rockbox.putAudioSettings", { body: input });
   }
 }

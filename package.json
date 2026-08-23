@@ -42,6 +42,7 @@
     "apps/api",
     "apps/web",
     "apps/web-mobile",
+    "sdk/typescript",
     "apps/app-proxy",
     "apps/doc",
     "apps/spotify-proxy",

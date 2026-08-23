@@ -20,7 +20,7 @@ export class RockskyLibrary {
       if (v !== undefined && v !== "") clean[k] = v;
     }
     const res = await this.rpc.get(nsid as never, { params: clean } as never);
-    if (!res.ok) throw new RockskyError(res.data);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
     return res.data as T;
   }
 
@@ -30,7 +30,7 @@ export class RockskyLibrary {
       if (v !== undefined && v !== "") clean[k] = v;
     }
     const res = await this.rpc.post(nsid as never, { input: clean } as never);
-    if (!res.ok) throw new RockskyError(res.data);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
     return res.data as T;
   }
 

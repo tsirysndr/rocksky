@@ -4,6 +4,29 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.14.0] - 2026-08-23
+
+**Browser-ready release.** The main entry no longer pulls in Node-only code, so
+`RockskyClient` can be bundled for the browser.
+
+### Changed (breaking)
+
+- **`RockskyIndex` / `totalIndexed` moved to `@rocksky/sdk/dedup`** — the dedup
+  index depends on `classic-level` (a native Node addon), which kept the whole
+  root entry out of browser bundles. `IndexStats`/`RockskyIndex` remain
+  importable from the root as types.
+- **`songHash`/`albumHash`/`artistHash` now digest via `@noble/hashes`**
+  (pure JS) instead of `node:crypto` — same output, browser-safe.
+
+### Added
+
+- **`RockskyClient.post(nsid, { params?, body? })`** — generic escape hatch for
+  XRPC procedures, mirroring `get`.
+- **Typed procedures**: `followAccount`, `unfollowAccount`, `createScrobble`,
+  `putMirrorSource`, `putAudioSettings`.
+- **`RockskyError.status`** — the HTTP status of the failed response, alongside
+  the existing `kind` (XRPC error code).
+
 ## [0.13.0] - 2026-08-22
 
 A **backwards-compatible** release — the new `filter` parameter is a trailing

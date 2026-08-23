@@ -23,7 +23,9 @@ export {
   type RateLimitOptions,
   type RateLimitState,
 } from "./agent.js";
-export { RockskyIndex, totalIndexed, type IndexStats } from "./dedup.js";
+// The dedup index (classic-level, Node-only) lives on the `@rocksky/sdk/dedup`
+// subpath so this root entry stays browser-safe.
+export type { IndexStats, RockskyIndex } from "./dedup.js";
 export { runJetstream, DEFAULT_JETSTREAM_SERVERS, type JetstreamOptions } from "./jetstream.js";
 export {
   RemotePlayer,

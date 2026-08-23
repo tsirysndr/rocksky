@@ -1,9 +1,11 @@
-import { createHash } from "node:crypto";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 
 // Lowercase-hex SHA-256 of s.toLowerCase() — the lowercasing is applied to the
 // whole string (not per field), matching Rocksky's server and every other SDK.
+// Pure-JS digest (@noble/hashes) so this module stays browser-safe.
 function sha256Lower(s: string): string {
-  return createHash("sha256").update(s.toLowerCase()).digest("hex");
+  return bytesToHex(sha256(new TextEncoder().encode(s.toLowerCase())));
 }
 
 /** Identity hash of a song: sha256(lower("{title} - {artist} - {album}")). */

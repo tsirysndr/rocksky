@@ -109,10 +109,12 @@ SHA-256, identical to the server and every other Rocksky SDK.
 ## Duplicate prevention + real-time sync
 
 An optional local index (embedded [classic-level](https://github.com/Level/classic-level)
-LevelDB) prevents duplicate writes and stays live off the firehose:
+LevelDB) prevents duplicate writes and stays live off the firehose. It is
+Node-only, so it lives on its own subpath — the main `@rocksky/sdk` entry stays
+browser-safe:
 
 ```ts
-import { RockskyIndex } from "@rocksky/sdk";
+import { RockskyIndex } from "@rocksky/sdk/dedup";
 
 const idx = new RockskyIndex("./dedup");
 await idx.open();

@@ -1,9 +1,8 @@
-// Browser-safe entry: the remote-control player + controller only.
+// Lightweight entry: the remote-control player + controller only.
 //
-// The main entry (`@rocksky/sdk`) bundles the dedup index (classic-level) and
-// the identity hashes (node:crypto), which are Node-only. The remote player /
-// controller are pure WebSocket + JSON with zero Node dependencies, so this
-// subpath (`@rocksky/sdk/remote`) is safe to import from a browser bundle.
+// Since 0.14.0 the main entry (`@rocksky/sdk`) is browser-safe too — the
+// dedup index (classic-level, Node-only) moved to `@rocksky/sdk/dedup`. This
+// subpath remains for consumers that only need the remote player/controller.
 
 export {
   RemotePlayer,

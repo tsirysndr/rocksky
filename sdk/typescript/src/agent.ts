@@ -325,7 +325,7 @@ export class Agent {
     const res = await this.rpc.post("com.atproto.repo.createRecord" as never, {
       input: { repo: this.did, collection, record: { ...record, $type: collection } },
     } as never);
-    if (!res.ok) throw new RockskyError(res.data);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
     return (res.data as { uri: string }).uri;
   }
 
@@ -334,7 +334,7 @@ export class Agent {
     const res = await this.rpc.post("com.atproto.repo.putRecord" as never, {
       input: { repo: this.did, collection, rkey, record: { ...record, $type: collection } },
     } as never);
-    if (!res.ok) throw new RockskyError(res.data);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
     return (res.data as { uri: string }).uri;
   }
 
@@ -344,7 +344,7 @@ export class Agent {
     const res = await this.rpc.post("com.atproto.repo.deleteRecord" as never, {
       input: { repo: this.did, collection, rkey },
     } as never);
-    if (!res.ok) throw new RockskyError(res.data);
+    if (!res.ok) throw new RockskyError(res.data, res.status);
   }
 
   /**
