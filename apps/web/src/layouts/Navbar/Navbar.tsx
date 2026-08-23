@@ -221,6 +221,14 @@ function Navbar() {
                 width: "282px",
               },
             },
+            // Inner sits on top of Body and defaults to the baseui light
+            // theme's background, so without this the menu stays white in dark
+            // mode no matter what Body is set to.
+            Inner: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
           }}
           content={({ close }) => (
             <div className="border-[var(--color-border)] border-[1px] pt-[20px] pb-[20px] bg-[var(--color-background)] rounded-[6px]">

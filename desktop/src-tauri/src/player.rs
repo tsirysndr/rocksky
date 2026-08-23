@@ -57,7 +57,14 @@ pub fn snapshot(state: &AppState) -> StatusDto {
             Some(m.sample_rate),
             Some(m.bitrate),
         ),
-        None => (String::new(), String::new(), String::new(), None, None, None),
+        None => (
+            String::new(),
+            String::new(),
+            String::new(),
+            None,
+            None,
+            None,
+        ),
     };
     StatusDto {
         state: match s.state {
@@ -86,6 +93,15 @@ pub fn snapshot(state: &AppState) -> StatusDto {
 /// show tags instead of bare paths.
 pub fn local_queue_item(path: &str) -> RemoteQueueItem {
     let mut item = RemoteQueueItem::default();
+    // Only local files carry readable tags. For an HTTP stream URL, file_stem()
+    // returns the last path segment — literally "stream?token=…" — which then
+    // shows up as the track title on any controller watching this device. Leave
+    // it blank instead; the frontend fills real metadata via
+    // player_set_queue_meta, which knows what it enqueued.
+    if path.starts_with("http://") || path.starts_with("https://") {
+        item.upload_id = upload_id_from_url(path).unwrap_or_default();
+        return item;
+    }
     match rockbox_metadata::read(path) {
         Ok(m) => {
             item.title = if m.title.is_empty() {
@@ -102,6 +118,14 @@ pub fn local_queue_item(path: &str) -> RemoteQueueItem {
         Err(_) => item.title = file_stem(path),
     }
     item
+}
+
+/// The uploadId embedded in a stream URL, so a URL-only queue entry still has a
+/// stable identity for the cache and for controller-side lookups.
+fn upload_id_from_url(url: &str) -> Option<String> {
+    let after = url.split("/uploads/").nth(1)?;
+    let id = after.split('/').next()?;
+    (!id.is_empty()).then(|| id.to_string())
 }
 
 fn file_stem(path: &str) -> String {
@@ -144,6 +168,50 @@ pub fn player_insert(state: State<'_, AppState>, paths: Vec<String>, mode: u8, i
 #[tauri::command]
 pub fn player_queue_paths(state: State<'_, AppState>) -> Vec<String> {
     state.engine.snapshot().queue
+}
+
+/// The frontend's view of a queue entry. `RemoteQueueItem` in the SDK is
+/// serialize-only, so commands take this and convert.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct QueueMetaDto {
+    pub upload_id: String,
+    pub track_id: String,
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub album_artist: String,
+    pub album_art: String,
+    pub duration_ms: u64,
+    pub song_uri: String,
+    pub album_uri: String,
+    pub track_number: i32,
+}
+
+impl From<QueueMetaDto> for RemoteQueueItem {
+    fn from(d: QueueMetaDto) -> Self {
+        RemoteQueueItem {
+            upload_id: d.upload_id,
+            track_id: d.track_id,
+            title: d.title,
+            artist: d.artist,
+            album: d.album,
+            album_artist: d.album_artist,
+            album_art: d.album_art,
+            duration_ms: d.duration_ms,
+            song_uri: d.song_uri,
+            album_uri: d.album_uri,
+            track_number: d.track_number,
+        }
+    }
+}
+
+/// Replace the queue metadata with what the frontend actually enqueued. The
+/// shim holds the rich QueueTrack for every URL it queued, so this is the only
+/// source of real titles for streamed (non-file) entries.
+#[tauri::command]
+pub fn player_set_queue_meta(state: State<'_, AppState>, items: Vec<QueueMetaDto>) {
+    *state.queue_meta.lock().unwrap() = items.into_iter().map(Into::into).collect();
 }
 
 #[tauri::command]
@@ -281,11 +349,7 @@ pub fn player_set_tone_cutoffs(state: State<'_, AppState>, bass_hz: i32, treble_
 }
 
 #[tauri::command]
-pub fn player_set_crossfade(
-    state: State<'_, AppState>,
-    mode: u8,
-    opts: crate::dsp::CrossfadeOpts,
-) {
+pub fn player_set_crossfade(state: State<'_, AppState>, mode: u8, opts: crate::dsp::CrossfadeOpts) {
     state.engine.send(EngineCmd::SetCrossfade { mode, opts });
 }
 
@@ -300,12 +364,7 @@ pub fn player_set_stereo_width(state: State<'_, AppState>, percent: i32) {
 }
 
 #[tauri::command]
-pub fn player_set_replaygain(
-    state: State<'_, AppState>,
-    mode: u8,
-    noclip: bool,
-    preamp_db: f32,
-) {
+pub fn player_set_replaygain(state: State<'_, AppState>, mode: u8, noclip: bool, preamp_db: f32) {
     state.engine.send(EngineCmd::SetReplaygain {
         mode,
         noclip,

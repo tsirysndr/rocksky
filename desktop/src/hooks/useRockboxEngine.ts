@@ -1,4 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
+import { setQueueMetaResolver } from "../lib/tauri-rockbox";
 import { useEffect } from "react";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
@@ -35,6 +36,25 @@ function urlToQueueTrack(url: string): QueueTrack {
     streamUrl: url,
   };
 }
+
+// The native engine only sees URLs and can't read tags off an HTTP stream, so
+// without this a streamed entry reaches remote controllers titled
+// "stream?token=…". Hand it the registry we already keep.
+setQueueMetaResolver((url: string) => {
+  const t = trackForUrl(url);
+  if (!t) return undefined;
+  return {
+    uploadId: t.uploadId,
+    title: t.title,
+    artist: t.artist,
+    album: t.album,
+    albumArtist: t.albumArtist,
+    albumArt: t.albumArt,
+    durationMs: t.duration,
+    songUri: t.songUri,
+    trackNumber: t.trackNumber ?? 0,
+  };
+});
 
 export function useRockboxEngine() {
   const player = useAtomValue(playerAtom);

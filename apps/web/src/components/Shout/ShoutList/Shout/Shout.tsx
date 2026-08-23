@@ -300,6 +300,12 @@ function Shout(props: ShoutProps) {
                       style: {
                         zIndex: 2,
                         boxShadow: "none",
+                        backgroundColor: "var(--color-background)",
+                      },
+                    },
+                    Inner: {
+                      style: {
+                        backgroundColor: "var(--color-background)",
                       },
                     },
                   }}

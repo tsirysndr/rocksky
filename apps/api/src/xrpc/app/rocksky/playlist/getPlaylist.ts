@@ -69,8 +69,12 @@ const retrieve = ({
   ctx: Context;
 }): Effect.Effect<[Playlist, SelectTrack[]], Error> => {
   return Effect.tryPromise({
-    try: async () =>
-      Promise.all([
+    try: async () => {
+      // Clients build the URI from whatever identifies the actor in the route,
+      // which is often a handle — `at://alice.example/...` never matches the
+      // stored `at://did:plc:.../...`. Canonicalise to the owner's DID first.
+      const uri = await canonicalUri(ctx, params.uri);
+      const [playlist, tracks] = await Promise.all([
         ctx.db
           .select({
             playlists: tables.playlists,
@@ -90,7 +94,7 @@ const retrieve = ({
             tables.users,
             eq(tables.userPlaylists.userId, tables.users.id),
           )
-          .where(eq(tables.playlists.uri, params.uri))
+          .where(eq(tables.playlists.uri, uri))
           .execute()
           .then(([row]) => row),
         ctx.db
@@ -106,7 +110,7 @@ const retrieve = ({
           )
           .where(
             and(
-              eq(tables.playlists.uri, params.uri),
+              eq(tables.playlists.uri, uri),
               compileRsqlFilterParam(params.filter, FILTER_FIELDS),
             ),
           )
@@ -119,9 +123,34 @@ const retrieve = ({
           )
           .execute()
           .then((rows) => rows.map((row) => row.tracks)),
-      ]),
+      ]);
+
+      // presentation() reads playlist.playlists.* inside an Effect.sync, so a
+      // miss would throw there as a defect — which catchAll does not catch, and
+      // the request 500s. Fail here instead, as a typed error catchAll handles.
+      if (!playlist?.playlists) {
+        throw new Error(`Playlist not found: ${uri}`);
+      }
+      return [playlist, tracks] as [Playlist, SelectTrack[]];
+    },
     catch: (error) => new Error(`Failed to retrieve playlist: ${error}`),
   });
+};
+
+// Rewrites at://<handle>/... to at://<did>/... when the authority is a handle
+// we know. Returns the input untouched when it is already a DID or unknown.
+const canonicalUri = async (ctx: Context, uri: string): Promise<string> => {
+  const [authority, collection, rkey] = uri.replace(/^at:\/\//, "").split("/");
+  if (!authority || authority.startsWith("did:") || !rkey) {
+    return uri;
+  }
+  const user = await ctx.db
+    .select({ did: tables.users.did })
+    .from(tables.users)
+    .where(eq(tables.users.handle, authority))
+    .limit(1)
+    .then((rows) => rows[0]);
+  return user ? `at://${user.did}/${collection}/${rkey}` : uri;
 };
 
 const presentation = ([playlist, tracks]: [

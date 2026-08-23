@@ -2,6 +2,7 @@ import { Outlet, createRootRoute } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import * as React from "react";
 import { themeAtom } from "../atoms/theme";
+import CreatePlaylistModal from "../components/CreatePlaylistModal";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
 import StickyPlayer from "../components/StickyPlayer";
 import SearchModal from "../layouts/Search/SearchModal";
@@ -15,15 +16,24 @@ function RootComponent() {
   const { darkMode } = useAtomValue(themeAtom);
 
   React.useEffect(() => {
+    // Also on <html>: baseui mounts popovers/menus/modals into a Layer that can
+    // land on document.body, outside #root. With the class only on #root those
+    // resolve the light :root variables and stay light whatever the app theme
+    // is. The variables are declared on :root, so classing <html> covers the
+    // whole document, portals included.
     const root = document.getElementById("root");
-    if (darkMode) root!.classList.add("dark");
-    else root!.classList.remove("dark");
+    for (const el of [document.documentElement, root]) {
+      if (darkMode) el?.classList.add("dark");
+      else el?.classList.remove("dark");
+    }
 
     // Keep the PWA window / mobile browser chrome the same colour as the app's
     // background for the active theme (light #ffffff, dark #130825 — see
     // --color-background in index.css).
     const bg = darkMode ? "#130825" : "#ffffff";
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    let meta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"]',
+    );
     if (!meta) {
       meta = document.createElement("meta");
       meta.name = "theme-color";
@@ -47,6 +57,7 @@ function RootComponent() {
       <KeyboardShortcuts />
       <SearchModal />
       <LibrarySearchModal />
+      <CreatePlaylistModal />
     </React.Fragment>
   );
 }

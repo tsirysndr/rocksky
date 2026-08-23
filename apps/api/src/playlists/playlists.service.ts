@@ -25,11 +25,7 @@ function rkeyOf(uri: string): string {
   return uri.split("/").pop();
 }
 
-/**
- * A strongRef must carry the CID of the exact revision it points at, and only
- * the record's own PDS knows it — the song, or the playlist, may live in
- * another user's repo.
- */
+// A strongRef needs the CID of the exact revision, which only that record's PDS knows.
 async function recordRef(uri: string, collection: string) {
   const repo = atUriRepo(uri);
   const pds = await extractPdsFromDid(repo);
@@ -73,12 +69,53 @@ export async function createPlaylist(
   return { uri: res.data.uri, cid: res.data.cid };
 }
 
-/**
- * Publishes one `app.rocksky.playlist.song` record per song. The ingest side
- * re-checks that the caller may write to this playlist — this check is here so
- * an unauthorized caller gets a 403 instead of a record that is silently
- * dropped on the way back in.
- */
+// Rewrites the record in place on its own rkey, so the AT-URI is stable and the
+// ingest upsert updates the existing row. Fields left undefined keep their
+// current value — this is a patch, not a replace.
+export async function updatePlaylist(
+  agent: Agent,
+  did: string,
+  playlistUri: string,
+  patch: { name?: string; description?: string; pictureUrl?: string },
+): Promise<{ uri: string; cid: string }> {
+  if (atUriRepo(playlistUri) !== did) {
+    throw new InvalidRequestError(
+      "Only the playlist owner can edit it",
+      "Forbidden",
+    );
+  }
+
+  const rkey = rkeyOf(playlistUri);
+  const existing = await agent.com.atproto.repo.getRecord({
+    repo: agent.assertDid,
+    collection: PLAYLIST_COLLECTION,
+    rkey,
+  });
+  const current = existing.data.value as Record<string, unknown>;
+
+  const record = {
+    ...current,
+    $type: PLAYLIST_COLLECTION,
+    name: patch.name ?? current.name,
+    description: patch.description ?? current.description,
+    pictureUrl: patch.pictureUrl ?? current.pictureUrl,
+  };
+
+  if (!Playlist.validateRecord(record).success) {
+    throw new InvalidRequestError("Invalid playlist record", "InvalidRecord");
+  }
+
+  const res = await agent.com.atproto.repo.putRecord({
+    repo: agent.assertDid,
+    collection: PLAYLIST_COLLECTION,
+    rkey,
+    record,
+    validate: false,
+  });
+  return { uri: res.data.uri, cid: res.data.cid };
+}
+
+// Ingest re-checks this; checking here turns a silently-dropped record into a 403.
 export async function addSongsToPlaylist(
   ctx: Context,
   agent: Agent,
@@ -86,21 +123,25 @@ export async function addSongsToPlaylist(
   playlistUri: string,
   songUris: string[],
 ): Promise<string[]> {
-  const playlist = await ctx.db
-    .select()
-    .from(tables.playlists)
-    .where(eq(tables.playlists.uri, playlistUri))
-    .limit(1)
-    .then((rows) => rows[0]);
+  // Ownership is decidable from the URI alone, so the owner needs no row — which
+  // matters right after createPlaylist, before jetstream has produced one.
+  if (atUriRepo(playlistUri) !== did) {
+    const playlist = await ctx.db
+      .select()
+      .from(tables.playlists)
+      .where(eq(tables.playlists.uri, playlistUri))
+      .limit(1)
+      .then((rows) => rows[0]);
 
-  if (!playlist) {
-    throw new InvalidRequestError("Playlist not found", "NotFound");
-  }
-  if (!(await canWriteToPlaylist(ctx, playlist, did))) {
-    throw new InvalidRequestError(
-      "You are not the owner or a collaborator of this playlist",
-      "Forbidden",
-    );
+    if (!playlist) {
+      throw new InvalidRequestError("Playlist not found", "NotFound");
+    }
+    if (!(playlist.collaborators ?? []).includes(did)) {
+      throw new InvalidRequestError(
+        "You are not the owner or a collaborator of this playlist",
+        "Forbidden",
+      );
+    }
   }
 
   const playlistRef = await recordRef(playlistUri, PLAYLIST_COLLECTION);
@@ -151,11 +192,8 @@ export async function addSongsToPlaylist(
   return created;
 }
 
-/**
- * Deleting the playlist record is what removes the playlist; the entries other
- * repos contributed live in *their* repos, so we can only delete our own. The
- * ingest drops the orphaned rows when it sees the playlist go.
- */
+// Entries other repos contributed live in their repos; ingest drops those rows
+// when it sees the playlist go.
 export async function removePlaylist(
   ctx: Context,
   agent: Agent,
@@ -210,9 +248,7 @@ export async function removeTrackFromPlaylist(
     )
     .execute();
 
-  // An entry can only be retracted by the repo that published it, so a
-  // collaborator removing someone else's addition is not something we can do
-  // on their behalf.
+  // An entry can only be retracted by the repo that published it.
   const own = entries
     .map((e) => e.uri)
     .filter((uri) => uri && atUriRepo(uri) === did);
@@ -251,15 +287,4 @@ async function ownEntryUris(
     .execute();
 
   return rows.map((r) => r.uri).filter((uri) => uri && atUriRepo(uri) === did);
-}
-
-async function canWriteToPlaylist(
-  ctx: Context,
-  playlist: { uri: string | null; collaborators: string[] | null },
-  did: string,
-): Promise<boolean> {
-  if (playlist.uri && atUriRepo(playlist.uri) === did) {
-    return true;
-  }
-  return (playlist.collaborators ?? []).includes(did);
 }

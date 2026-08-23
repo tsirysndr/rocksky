@@ -292,6 +292,12 @@ function Handle(props: HandleProps) {
           Body: {
             style: {
               zIndex: 60,
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Inner: {
+            style: {
+              backgroundColor: "var(--color-background)",
             },
           },
         }}

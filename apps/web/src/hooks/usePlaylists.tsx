@@ -1,19 +1,81 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { getPlaylists } from "../api/playlists";
+import {
+  addSongsToPlaylist,
+  createPlaylist,
+  getPlaylist,
+  getPlaylists,
+  removePlaylist,
+  removeTrackFromPlaylist,
+  updatePlaylist,
+} from "../api/playlists";
 import { API_URL } from "../consts";
 
-export const usePlaylistsQuery = (did: string) =>
+// did + filter must be in the key; without them every profile shared one entry.
+export const usePlaylistsQuery = (did: string, filter?: string) =>
   useQuery({
-    queryKey: ["playlists"],
-    queryFn: () => getPlaylists(did),
+    queryKey: ["playlists", did, filter ?? null],
+    queryFn: () => getPlaylists(did, filter),
   });
 
 export const usePlaylistQuery = (did: string, rkey: string) =>
   useQuery({
     queryKey: ["playlist", did, rkey],
-    queryFn: () => getPlaylists(did),
+    queryFn: () => getPlaylist(did, rkey),
   });
+
+export const useCreatePlaylistMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createPlaylist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+    },
+  });
+};
+
+export const useAddSongsToPlaylistMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: addSongsToPlaylist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      queryClient.invalidateQueries({ queryKey: ["playlist"] });
+    },
+  });
+};
+
+export const useUpdatePlaylistMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updatePlaylist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      queryClient.invalidateQueries({ queryKey: ["playlist"] });
+    },
+  });
+};
+
+export const useRemovePlaylistMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: removePlaylist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+    },
+  });
+};
+
+export const useRemoveTrackFromPlaylistMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: removeTrackFromPlaylist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlist"] });
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+    },
+  });
+};
 
 const usePlaylists = () => {
   const getPlaylists = async (

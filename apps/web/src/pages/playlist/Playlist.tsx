@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
+import { IconTrash } from "@tabler/icons-react";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
@@ -9,13 +10,48 @@ import ContentLoader from "react-content-loader";
 import Disc from "../../components/Icons/Disc";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
-import usePlaylists, { usePlaylistQuery } from "../../hooks/usePlaylists";
+import { useAtomValue } from "jotai";
+import { profileAtom } from "../../atoms/profile";
+import usePlaylists, {
+  usePlaylistQuery,
+  useRemoveTrackFromPlaylistMutation,
+} from "../../hooks/usePlaylists";
 import Main from "../../layouts/Main";
 
 const Group = styled.div`
   display: flex;
   flex-direction: row;
   margin-top: 20px;
+`;
+
+const RowAction = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+
+  tr:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--color-primary);
+    background: var(--color-default-button);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
 `;
 
 const Link = styled(DefaultLink)`
@@ -80,6 +116,24 @@ function Playlist() {
   usePlaylistQuery(did!, rkey!);
   const { getPlaylist } = usePlaylists();
   const uri = `${did}/app.rocksky.playlist/${rkey}`;
+  const profile = useAtomValue(profileAtom);
+  const removeTrack = useRemoveTrackFromPlaylistMutation();
+  const isOwner = !!profile?.did && profile.did === playlist?.curatedBy?.did;
+
+  const onRemoveTrack = async (songUri: string) => {
+    if (!playlist?.curatedBy?.did || !rkey) return;
+    await removeTrack.mutateAsync({
+      uri: `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`,
+      songUri,
+    });
+    // The row only disappears from the AppView once jetstream ingests the
+    // delete commit, so drop it locally rather than refetching into a stale list.
+    setPlaylist((prev) =>
+      prev
+        ? { ...prev, tracks: prev.tracks.filter((t) => t.uri !== songUri) }
+        : prev,
+    );
+  };
 
   useEffect(() => {
     if (!did || !rkey) {
@@ -290,6 +344,25 @@ function Playlist() {
                   </div>
                 )}
               </TableBuilderColumn>
+              {isOwner && (
+                <TableBuilderColumn
+                  header=""
+                  overrides={{
+                    TableBodyCell: { style: { width: "48px" } },
+                  }}
+                >
+                  {(row: Row) => (
+                    <RowAction
+                      aria-label={`Remove ${row.title} from this playlist`}
+                      title="Remove from playlist"
+                      disabled={removeTrack.isPending}
+                      onClick={() => void onRemoveTrack(row.uri)}
+                    >
+                      <IconTrash size={16} />
+                    </RowAction>
+                  )}
+                </TableBuilderColumn>
+              )}
             </TableBuilder>
           </>
         )}

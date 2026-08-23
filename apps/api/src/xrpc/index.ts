@@ -75,6 +75,7 @@ import insertDirectory from "./app/rocksky/playlist/insertDirectory";
 import insertFiles from "./app/rocksky/playlist/insertFiles";
 import removePlaylist from "./app/rocksky/playlist/removePlaylist";
 import removeTrack from "./app/rocksky/playlist/removeTrack";
+import updatePlaylist from "./app/rocksky/playlist/updatePlaylist";
 import startPlaylist from "./app/rocksky/playlist/startPlaylist";
 import createScrobble from "./app/rocksky/scrobble/createScrobble";
 import getScrobble from "./app/rocksky/scrobble/getScrobble";
@@ -181,6 +182,7 @@ export default function (server: Server, ctx: Context) {
   insertFiles(server, ctx);
   removePlaylist(server, ctx);
   removeTrack(server, ctx);
+  updatePlaylist(server, ctx);
   startPlaylist(server, ctx);
   getFeedGenerators(server, ctx);
   getFeedGenerator(server, ctx);

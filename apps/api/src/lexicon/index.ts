@@ -126,6 +126,7 @@ import type * as AppRockskyPlaylistInsertFiles from "./types/app/rocksky/playlis
 import type * as AppRockskyPlaylistRemovePlaylist from "./types/app/rocksky/playlist/removePlaylist";
 import type * as AppRockskyPlaylistRemoveTrack from "./types/app/rocksky/playlist/removeTrack";
 import type * as AppRockskyPlaylistStartPlaylist from "./types/app/rocksky/playlist/startPlaylist";
+import type * as AppRockskyPlaylistUpdatePlaylist from "./types/app/rocksky/playlist/updatePlaylist";
 import type * as AppRockskyRockboxGetAudioSettings from "./types/app/rocksky/rockbox/getAudioSettings";
 import type * as AppRockskyRockboxPutAudioSettings from "./types/app/rocksky/rockbox/putAudioSettings";
 import type * as AppRockskyScrobbleCreateScrobble from "./types/app/rocksky/scrobble/createScrobble";
@@ -1643,6 +1644,17 @@ export class AppRockskyPlaylistNS {
     >,
   ) {
     const nsid = "app.rocksky.playlist.startPlaylist"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  updatePlaylist<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistUpdatePlaylist.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistUpdatePlaylist.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.playlist.updatePlaylist"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

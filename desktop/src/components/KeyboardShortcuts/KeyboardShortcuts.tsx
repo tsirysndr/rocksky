@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Modal, ModalBody, ModalHeader } from "baseui/modal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
+import { createPlaylistModalOpenAtom } from "../../atoms/createPlaylist";
 import { playerControlsAtom } from "../../atoms/playerControls";
 import { profileAtom } from "../../atoms/profile";
 import {
@@ -44,6 +45,7 @@ const GROUPS: Group[] = [
       { keys: ["Esc"], label: "Close dialog / search" },
       { keys: ["t"], label: "Toggle light / dark theme" },
       { keys: ["e"], label: "Equalizer (audio settings)" },
+      { keys: ["c"], label: "Create a playlist" },
     ],
   },
   {
@@ -178,6 +180,9 @@ function KeyboardShortcuts() {
   const [searchOpen, setSearchOpen] = useAtom(searchModalOpenAtom);
   const setSearchScope = useSetAtom(searchModalScopeAtom);
   const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
+  const [createPlaylistOpen, setCreatePlaylistOpen] = useAtom(
+    createPlaylistModalOpenAtom,
+  );
 
   // The keydown listener is installed once; read the latest values through a
   // ref so it never closes over stale state.
@@ -193,6 +198,8 @@ function KeyboardShortcuts() {
     setSearchOpen,
     setSearchScope,
     setLibrarySearchOpen,
+    createPlaylistOpen,
+    setCreatePlaylistOpen,
   });
   stateRef.current = {
     navigate,
@@ -206,6 +213,8 @@ function KeyboardShortcuts() {
     setSearchOpen,
     setSearchScope,
     setLibrarySearchOpen,
+    createPlaylistOpen,
+    setCreatePlaylistOpen,
   };
 
   useEffect(() => {
@@ -226,6 +235,7 @@ function KeyboardShortcuts() {
       if (e.key === "Escape") {
         if (s.helpOpen) s.setHelpOpen(false);
         if (s.searchOpen) s.setSearchOpen(false);
+        if (s.createPlaylistOpen) s.setCreatePlaylistOpen(false);
         s.setLibrarySearchOpen(false);
         pendingGoAt = 0;
         return;
@@ -276,6 +286,12 @@ function KeyboardShortcuts() {
           if (s.profile?.handle) {
             e.preventDefault();
             s.setLibrarySearchOpen(true);
+          }
+          break;
+        case "c":
+          if (s.profile?.handle) {
+            e.preventDefault();
+            s.setCreatePlaylistOpen(true);
           }
           break;
         case "?":

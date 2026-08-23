@@ -5,6 +5,55 @@
 
 import { invoke } from "@tauri-apps/api/core";
 
+// ── Queue metadata bridge ──────────────────────────────────────────────────
+//
+// The native side only receives URLs and cannot read tags off an HTTP stream,
+// so a streamed entry ends up titled "stream?token=…" — which is what remote
+// controllers then display for this device. The app installs a resolver here
+// (it already keeps a URL → track registry) so real metadata ships alongside
+// the URLs. No resolver installed → unchanged behaviour.
+
+export interface QueueMeta {
+  uploadId?: string;
+  trackId?: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+  albumArtist?: string;
+  albumArt?: string | null;
+  durationMs?: number;
+  songUri?: string;
+  albumUri?: string;
+  trackNumber?: number | null;
+}
+
+let queueMetaResolver: ((url: string) => QueueMeta | undefined) | null = null;
+
+export function setQueueMetaResolver(
+  fn: ((url: string) => QueueMeta | undefined) | null,
+): void {
+  queueMetaResolver = fn;
+}
+
+function metaFor(urls: string[]): Record<string, unknown>[] {
+  return urls.map((url) => {
+    const t = queueMetaResolver?.(url);
+    return {
+      uploadId: t?.uploadId ?? "",
+      trackId: t?.trackId ?? "",
+      title: t?.title ?? "",
+      artist: t?.artist ?? "",
+      album: t?.album ?? "",
+      albumArtist: t?.albumArtist ?? "",
+      albumArt: t?.albumArt ?? "",
+      durationMs: t?.durationMs ?? 0,
+      songUri: t?.songUri ?? "",
+      albumUri: t?.albumUri ?? "",
+      trackNumber: t?.trackNumber ?? 0,
+    };
+  });
+}
+
 // ── Options ────────────────────────────────────────────────────────────────
 
 export interface RockboxPlayerOptions {
@@ -345,6 +394,9 @@ export class RockboxPlayer {
 
   setQueue(urls: string[], autoplay = false): void {
     this.call("player_set_queue", { paths: urls, autoplay });
+    if (queueMetaResolver) {
+      this.call("player_set_queue_meta", { items: metaFor(urls) });
+    }
     // The web UI relies on prompt queue feedback — reflect it immediately.
     // The first queued URL is the cued track: report it as current from the
     // start (the engine reports index null until decode begins, and inserts

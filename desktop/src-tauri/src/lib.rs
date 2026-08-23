@@ -54,6 +54,7 @@ pub fn run() {
             media::media_set_now_playing,
             player::player_open,
             player::player_set_queue,
+            player::player_set_queue_meta,
             player::player_insert,
             player::player_queue_paths,
             player::player_set_eq_enabled,

@@ -5927,6 +5927,64 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyPlaylistUpdatePlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.playlist.updatePlaylist",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Update a playlist's metadata. Rewrites the app.rocksky.playlist record in place; only the owner may do so.",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the playlist to update",
+              format: "at-uri",
+            },
+            name: {
+              type: "string",
+              description: "The new name of the playlist",
+              minLength: 1,
+              maxLength: 512,
+            },
+            description: {
+              type: "string",
+              description: "The new description of the playlist",
+              maxLength: 256,
+            },
+            pictureUrl: {
+              type: "string",
+              description: "The new cover image URL for the playlist",
+              format: "uri",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["uri", "cid"],
+            properties: {
+              uri: {
+                type: "string",
+                description:
+                  "The AT-URI of the updated app.rocksky.playlist record.",
+                format: "at-uri",
+              },
+              cid: {
+                type: "string",
+                description:
+                  "The CID of the updated app.rocksky.playlist record.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyRadioDefs: {
     lexicon: 1,
     id: "app.rocksky.radio.defs",
@@ -9837,6 +9895,7 @@ export const ids = {
   AppRockskyPlaylistRemoveTrack: "app.rocksky.playlist.removeTrack",
   AppRockskyPlaylistSong: "app.rocksky.playlist.song",
   AppRockskyPlaylistStartPlaylist: "app.rocksky.playlist.startPlaylist",
+  AppRockskyPlaylistUpdatePlaylist: "app.rocksky.playlist.updatePlaylist",
   AppRockskyRadioDefs: "app.rocksky.radio.defs",
   AppRockskyRadio: "app.rocksky.radio",
   AppRockskyRockboxAudioSettings: "app.rocksky.rockbox.audio.settings",
