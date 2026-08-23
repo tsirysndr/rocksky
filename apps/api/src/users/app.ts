@@ -488,49 +488,11 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
       eq(tables.playlistTracks.trackId, tables.tracks.id),
     )
     .where(eq(tables.playlists.uri, uri))
-    .groupBy(
-      tables.playlistTracks.id,
-      tables.playlistTracks.playlistId,
-      tables.playlistTracks.trackId,
-      tables.playlistTracks.createdAt,
-      tables.tracks.id,
-      tables.tracks.title,
-      tables.tracks.artist,
-      tables.tracks.albumArtist,
-      tables.tracks.albumArt,
-      tables.tracks.album,
-      tables.tracks.trackNumber,
-      tables.tracks.duration,
-      tables.tracks.mbId,
-      tables.tracks.youtubeLink,
-      tables.tracks.spotifyLink,
-      tables.tracks.appleMusicLink,
-      tables.tracks.tidalLink,
-      tables.tracks.sha256,
-      tables.tracks.discNumber,
-      tables.tracks.lyrics,
-      tables.tracks.composer,
-      tables.tracks.genre,
-      tables.tracks.copyrightMessage,
-      tables.tracks.uri,
-      tables.tracks.albumUri,
-      tables.tracks.artistUri,
-      tables.tracks.createdAt,
-      tables.tracks.updatedAt,
-      tables.tracks.label,
-      tables.tracks.xataVersion,
-      tables.playlists.updatedAt,
-      tables.playlists.id,
-      tables.playlists.createdAt,
-      tables.playlists.name,
-      tables.playlists.description,
-      tables.playlists.uri,
-      tables.playlists.createdBy,
-      tables.playlists.picture,
-      tables.playlists.spotifyLink,
-      tables.playlists.tidalLink,
-      tables.playlists.appleMusicLink,
-    )
+    // Dropped a GROUP BY that listed all 41 selected columns by hand. There are
+    // no aggregates and each entry joins one playlist and one track, so it
+    // de-duplicated nothing — and since these tables have no PRIMARY KEY (Xata
+    // uses unique indexes), Postgres can't infer functional dependency, so every
+    // column added to the schema later broke the query.
     .orderBy(asc(tables.playlistTracks.createdAt))
     .execute();
 

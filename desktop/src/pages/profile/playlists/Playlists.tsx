@@ -54,7 +54,7 @@ const Toolbar = styled.div`
   > * {
     display: flex;
     align-items: center;
-    min-height: 40px;
+    min-height: 32px;
   }
 `;
 
@@ -65,8 +65,8 @@ const FilterField = styled.div`
   flex: 1;
   min-width: 200px;
   max-width: 320px;
-  padding: 8px 12px;
-  border-radius: 9px;
+  padding: 4px 10px;
+  border-radius: 8px;
   border: 1px solid rgba(128, 128, 128, 0.25);
   background: var(--color-input-background);
 
@@ -92,7 +92,7 @@ const CreateButton = styled.button`
   flex-shrink: 0;
   font-family: RockfordSansMedium;
   font-size: 14px;
-  padding: 8px 4px;
+  padding: 4px 4px;
   border: none;
   background: transparent;
   color: var(--color-primary);
