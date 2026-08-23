@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
+  addSongsTargetAtom,
   createPlaylistModalOpenAtom,
   editingPlaylistAtom,
 } from "../../atoms/createPlaylist";
@@ -171,7 +172,7 @@ const SearchRow = styled.div`
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
-  padding: 16px 22px;
+  padding: 16px 18px;
   border-bottom: 1px solid rgba(128, 128, 128, 0.18);
 `;
 
@@ -189,11 +190,26 @@ const QueryInput = styled.input`
   }
 `;
 
+// Same treatment as the global palette's section headings, so the playlist
+// being added to reads as the heading for the results below it.
+const ContextLabel = styled.div`
+  flex-shrink: 0;
+  font-family: RockfordSansBold;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 12px 18px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 const Results = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 12px;
+  padding: 6px;
 `;
 
 const Row = styled.div<{ active: boolean }>`
@@ -280,16 +296,30 @@ const Empty = styled.div`
   font-size: 14px;
 `;
 
-const Footer = styled.div`
+const Footer = styled.div<{ hints?: boolean }>`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: ${({ hints }) => (hints ? "flex-start" : "space-between")};
   gap: 16px;
   flex-shrink: 0;
-  padding: 14px 22px;
+  padding: ${({ hints }) => (hints ? "9px 16px" : "14px 22px")};
   border-top: 1px solid rgba(128, 128, 128, 0.18);
   color: var(--color-text-muted);
   font-size: 12px;
+`;
+
+const FootHint = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 6px;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 5px;
+  }
 `;
 
 const FooterActions = styled.div`
@@ -451,13 +481,7 @@ function DetailsStep({
   );
 }
 
-function SongsStep({
-  playlist,
-  onDone,
-}: {
-  playlist: { uri: string; name: string };
-  onDone: () => void;
-}) {
+function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [added, setAdded] = useState<Set<string>>(new Set());
@@ -537,18 +561,6 @@ function SongsStep({
 
   return (
     <>
-      <Header>
-        <div>
-          <Title>{playlist.name}</Title>
-          <Subtitle>
-            {added.size === 0
-              ? "Search for songs to add."
-              : `${added.size} song${added.size > 1 ? "s" : ""} added.`}
-          </Subtitle>
-        </div>
-        <EscHint>esc</EscHint>
-      </Header>
-
       <SearchRow>
         <SearchIcon size={22} color="var(--color-text-muted)" />
         <QueryInput
@@ -558,7 +570,10 @@ function SongsStep({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
         />
+        <EscHint>esc</EscHint>
       </SearchRow>
+
+      <ContextLabel>Adding to {playlist.name}</ContextLabel>
 
       {tracks.length > 0 && (
         <Results>
@@ -615,13 +630,17 @@ function SongsStep({
         </Empty>
       )}
 
-      <Footer>
-        <span>New playlists can take a moment to appear on your profile.</span>
-        <FooterActions>
-          <Button kind="primary" onClick={onDone}>
-            Done
-          </Button>
-        </FooterActions>
+      <Footer hints>
+        <FootHint>
+          <kbd>↑</kbd>
+          <kbd>↓</kbd> navigate
+        </FootHint>
+        <FootHint>
+          <kbd>↵</kbd> add
+        </FootHint>
+        <FootHint>
+          <kbd>esc</kbd> close
+        </FootHint>
       </Footer>
     </>
   );
@@ -630,6 +649,7 @@ function SongsStep({
 function CreatePlaylistModal() {
   const [open, setOpen] = useAtom(createPlaylistModalOpenAtom);
   const [editing, setEditing] = useAtom(editingPlaylistAtom);
+  const [addSongsTarget, setAddSongsTarget] = useAtom(addSongsTargetAtom);
   const [playlist, setPlaylist] = useState<{
     uri: string;
     name: string;
@@ -640,6 +660,7 @@ function CreatePlaylistModal() {
     if (!open) {
       setPlaylist(null);
       setEditing(null);
+      setAddSongsTarget(null);
       return;
     }
     const prev = document.body.style.overflow;
@@ -647,17 +668,19 @@ function CreatePlaylistModal() {
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open, setEditing]);
+  }, [open, setEditing, setAddSongsTarget]);
 
   if (!open) return null;
 
   const close = () => setOpen(false);
+  // A target means the playlist already exists — skip the details step.
+  const songsFor = playlist ?? addSongsTarget;
 
   return (
     <Overlay onClick={close}>
       <Panel onClick={(e) => e.stopPropagation()}>
-        {playlist ? (
-          <SongsStep playlist={playlist} onDone={close} />
+        {songsFor ? (
+          <SongsStep playlist={songsFor} />
         ) : (
           <DetailsStep
             editing={editing}

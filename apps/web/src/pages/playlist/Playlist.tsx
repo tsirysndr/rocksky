@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
-import { IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
@@ -10,7 +10,11 @@ import ContentLoader from "react-content-loader";
 import Disc from "../../components/Icons/Disc";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import {
+  addSongsTargetAtom,
+  createPlaylistModalOpenAtom,
+} from "../../atoms/createPlaylist";
 import { profileAtom } from "../../atoms/profile";
 import usePlaylists, {
   usePlaylistQuery,
@@ -22,6 +26,25 @@ const Group = styled.div`
   display: flex;
   flex-direction: row;
   margin-top: 20px;
+`;
+
+const AddSongsButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-family: RockfordSansMedium;
+  font-size: 14px;
+  padding: 8px 4px;
+  margin-right: 20px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const RowAction = styled.button`
@@ -118,6 +141,8 @@ function Playlist() {
   const uri = `${did}/app.rocksky.playlist/${rkey}`;
   const profile = useAtomValue(profileAtom);
   const removeTrack = useRemoveTrackFromPlaylistMutation();
+  const setAddSongsTarget = useSetAtom(addSongsTargetAtom);
+  const openPlaylistModal = useSetAtom(createPlaylistModalOpenAtom);
   const isOwner = !!profile?.did && profile.did === playlist?.curatedBy?.did;
 
   const onRemoveTrack = async (songUri: string) => {
@@ -193,6 +218,19 @@ function Playlist() {
                   </LabelMedium>
                 </div>
                 <div className="flex items-center justify-end flex-1 mr-[10px]">
+                  {isOwner && (
+                    <AddSongsButton
+                      onClick={() => {
+                        setAddSongsTarget({
+                          uri: `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`,
+                          name: playlist.name,
+                        });
+                        openPlaylistModal(true);
+                      }}
+                    >
+                      <IconPlus size={16} /> Add songs
+                    </AddSongsButton>
+                  )}
                   <a
                     href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                     target="_blank"

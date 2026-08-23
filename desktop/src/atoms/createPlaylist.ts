@@ -12,3 +12,11 @@ export const editingPlaylistAtom = atom<{
   name: string;
   description?: string;
 } | null>(null);
+
+/**
+ * Set alongside the open atom to skip straight to the track search for a
+ * playlist that already exists ("Add songs" on the playlist page).
+ */
+export const addSongsTargetAtom = atom<{ uri: string; name: string } | null>(
+  null,
+);
