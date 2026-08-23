@@ -52,7 +52,11 @@ pub fn refresh(cfg: &Config, db_url: &str, store: &Store) -> Result<(usize, usiz
         .map_err(|e| e.to_string())?
         .as_secs_f64();
 
-    let mut pg = postgres::Client::connect(db_url, postgres::NoTls)
+    // TLS via the system trust store; sslmode in the URL decides whether it is
+    // actually used, so plain local Postgres keeps working too.
+    let tls = native_tls::TlsConnector::new()
+        .map_err(|e| format!("tls connector failed: {e}"))?;
+    let mut pg = postgres::Client::connect(db_url, postgres_native_tls::MakeTlsConnector::new(tls))
         .map_err(|e| format!("postgres connect failed: {e}"))?;
     let conn = store.conn()?;
 
