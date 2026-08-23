@@ -180,7 +180,13 @@ impl RemotePlayer {
         let (stop_tx, stop_rx) = watch::channel(false);
         let device_id = std::sync::Arc::new(std::sync::Mutex::new(None));
 
-        tokio::spawn(background(config, out_rx, cmd_tx, stop_rx, device_id.clone()));
+        tokio::spawn(background(
+            config,
+            out_rx,
+            cmd_tx,
+            stop_rx,
+            device_id.clone(),
+        ));
 
         Self {
             out_tx,
