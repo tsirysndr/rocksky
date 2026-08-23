@@ -44,8 +44,6 @@ pub enum EngineCmd {
     Next,
     Previous,
     Seek(Duration),
-    /// Relative seek in ms (media-key style ±10 s), clamped to the track.
-    SeekBy(i64),
     SkipTo(usize),
     Remove(usize),
     ClearQueue,
@@ -192,12 +190,6 @@ impl Engine {
         let _ = self.tx.lock().unwrap().send(cmd);
     }
 
-    /// A cloned command sender for callbacks that outlive a `State` borrow
-    /// (e.g. OS media-session event handlers).
-    pub fn sender(&self) -> Sender<EngineCmd> {
-        self.tx.lock().unwrap().clone()
-    }
-
     pub fn snapshot(&self) -> Snapshot {
         self.snapshot.lock().unwrap().clone()
     }
@@ -260,13 +252,6 @@ fn apply(player: &Player, dsp: &mut DspState, cmd: EngineCmd) {
         EngineCmd::Next => player.next(),
         EngineCmd::Previous => player.previous(),
         EngineCmd::Seek(pos) => player.seek(pos),
-        EngineCmd::SeekBy(delta_ms) => {
-            let status = player.status();
-            let current = status.position.as_millis() as i64;
-            let target = (current + delta_ms)
-                .clamp(0, status.duration.as_millis() as i64);
-            player.seek(Duration::from_millis(target as u64));
-        }
         EngineCmd::SkipTo(index) => player.skip_to(index),
         EngineCmd::Remove(index) => player.remove(index),
         EngineCmd::ClearQueue => player.clear_queue(),

@@ -44,7 +44,7 @@ import {
   streamUrlFor,
 } from "../../lib/audio/rockbox-engine";
 import { ensureStreamToken } from "../../api/uploads";
-import { SILENT_AUDIO_DATA_URI } from "../../lib/audio/silence";
+import { onMediaControl, pushNowPlaying } from "../../lib/native-media";
 import { useRockboxEngine } from "../../hooks/useRockboxEngine";
 import { useAudioSettingsPublisher } from "../../hooks/useAudioSettings";
 import { useUploadResume } from "../../hooks/useUploadResume";
@@ -287,11 +287,6 @@ function StickyPlayerWithData() {
   const isSelfDevice = (id?: string | null, name?: string | null) =>
     (!!id && id === selfDeviceIdRef.current) ||
     (!!name && !!selfNameRef.current && name === selfNameRef.current);
-  // Hidden silent <audio> that plays while the wasm engine plays, so the
-  // browser surfaces the Media Session / OS media controls (Web Audio alone
-  // doesn't trigger them).
-  const silentRef = useRef<HTMLAudioElement>(null);
-
   // The in-browser rockbox queue (mirrored from the wasm engine's events).
   const [queue, setQueue] = useAtom(queueAtom);
   const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
@@ -848,126 +843,130 @@ function StickyPlayerWithData() {
     await queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] });
   };
 
-  // ── Media Session API — lock-screen / OS media controls ───────────────────
-  // Mirrors the sticky player: title, artist, album + artwork, live play/pause
-  // state, a scrubbable position, and every transport action.
+  // ── OS media controls ─────────────────────────────────────────────────────
+  // The native side owns them (src-tauri/src/media.rs → souvlaki: macOS Now
+  // Playing / media keys, Linux MPRIS). The webview deliberately has NO Media
+  // Session and NO <audio> element: a media element in the webview registers a
+  // second Now Playing session with the OS, which is why macOS listed Rocksky
+  // twice in Control Center / notifications. Playback here is Tauri IPC only
+  // (rockbox-wasm is aliased to lib/tauri-rockbox), so nothing in the page
+  // needs one.
 
-  // Album for the OS metadata: from the active remote device's current queue
-  // track when a device is the source, else the local engine's queue.
   const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
+  // Album for the OS metadata: whatever the track itself carries (Spotify and
+  // uploads both fill it), falling back to the current queue entry — the
+  // active remote device's when a device is the source, else the local one.
   const album =
-    player === "device"
+    nowPlaying?.album ||
+    (player === "device"
       ? (activeDevice?.queue[activeDevice.queueIndex]?.album ?? "")
-      : queue[queueIndex]?.album;
+      : (queue[queueIndex]?.album ?? ""));
 
-  // Metadata (track identity + artwork).
+  // Belt and braces: tear down anything that could still be holding a webview
+  // media session (a stale session surviving a dev hot-reload, or a media
+  // element mounted by some other view), so the OS only ever sees the native
+  // one.
   useEffect(() => {
-    // Desktop: the native side owns the OS media session (see src-tauri/
-    // src/media.rs) — a second webview session would fight it for the OS
-    // controls.
-    if (isTauri()) return;
-    if (!("mediaSession" in navigator) || !nowPlaying) return;
-    const art = nowPlaying.albumArt;
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: nowPlaying.title,
-      artist: nowPlaying.artist,
-      album: album ?? "",
-      artwork: art
-        ? [
-            { src: art, sizes: "96x96" },
-            { src: art, sizes: "256x256" },
-            { src: art, sizes: "512x512" },
-          ]
-        : [],
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt, album]);
-
-  // Transport action handlers (re-bound when the active engine changes so the
-  // right backend is driven).
-  useEffect(() => {
-    // Desktop: the native side owns the OS media session (see src-tauri/
-    // src/media.rs) — a second webview session would fight it for the OS
-    // controls.
-    if (isTauri()) return;
     if (!("mediaSession" in navigator)) return;
-    const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
-    // Drive the silent anchor SYNCHRONOUSLY here (this runs inside the media-key
-    // user gesture) so resume works — the deferred sync effect can't call
-    // play() in-gesture and would be blocked by the autoplay policy.
-    set("play", () => { silentRef.current?.play().catch(() => {}); onPlay(); });
-    set("pause", () => { silentRef.current?.pause(); onPause(); });
-    set("previoustrack", onPrevious);
-    set("nexttrack", onNext);
-    try {
-      set("seekto", (d) => {
-        if (typeof d.seekTime === "number") onSeek(Math.floor(d.seekTime * 1000));
-      });
-      set("seekbackward", (d) =>
-        onSeek(Math.max(0, (nowPlayingRef.current?.progress ?? 0) - (d.seekOffset ?? 10) * 1000)),
-      );
-      set("seekforward", (d) =>
-        onSeek((nowPlayingRef.current?.progress ?? 0) + (d.seekOffset ?? 10) * 1000),
-      );
-    } catch {
-      // older browsers may not support these actions
+    const ms = navigator.mediaSession;
+    ms.metadata = null;
+    ms.playbackState = "none";
+    for (const action of [
+      "play",
+      "pause",
+      "stop",
+      "previoustrack",
+      "nexttrack",
+      "seekto",
+      "seekbackward",
+      "seekforward",
+    ] as const) {
+      try {
+        ms.setActionHandler(action, null);
+      } catch {
+        // action unsupported by this webview — nothing to clear
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player]);
+  }, []);
 
-  // Live play/pause state.
+  // Push exactly what the miniplayer renders. Every source (local engine,
+  // remote device, Spotify) lands in `nowPlaying`, so mirroring that atom is
+  // what keeps the OS controls in step with the UI — deriving them natively
+  // from the local engine (as this used to) leaves them stale the moment
+  // something else is the source.
   useEffect(() => {
-    // Desktop: the native side owns the OS media session (see src-tauri/
-    // src/media.rs) — a second webview session would fight it for the OS
-    // controls.
-    if (isTauri()) return;
-    if (!("mediaSession" in navigator)) return;
-    navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
-  }, [nowPlaying?.isPlaying]);
+    pushNowPlaying(
+      nowPlaying
+        ? {
+            title: nowPlaying.title ?? "",
+            artist: nowPlaying.artist ?? "",
+            album,
+            albumArt: nowPlaying.albumArt || null,
+            duration: Math.max(0, Math.round(nowPlaying.duration ?? 0)),
+            position: Math.max(0, Math.round(nowPlaying.progress ?? 0)),
+            isPlaying: !!nowPlaying.isPlaying,
+          }
+        : null,
+    );
+  }, [
+    nowPlaying,
+    nowPlaying?.title,
+    nowPlaying?.artist,
+    nowPlaying?.albumArt,
+    nowPlaying?.duration,
+    nowPlaying?.progress,
+    nowPlaying?.isPlaying,
+    album,
+  ]);
 
-  // Keep the silent Media Session anchor playing whenever a source that relies on
-  // it is playing — the local wasm engine ("rockbox") OR a remote device
-  // ("device"). A live media element is what lets the OS surface the media
-  // controls; without it they never appear for the remote player.
-  useEffect(() => {
-    const el = silentRef.current;
-    if (!el) return;
-    // Native media session on desktop — no silent element needed to make the
-    // OS show controls.
-    if (isTauri()) {
-      el.pause();
-      return;
-    }
-    if (
-      (player === "rockbox" || player === "device") &&
-      nowPlaying?.isPlaying
-    ) {
-      el.play().catch(() => {});
-    } else {
-      el.pause();
-    }
-  }, [player, nowPlaying?.isPlaying]);
+  // Clear the OS controls when the player goes away, so nothing lingers in
+  // Control Center after a quit or a reload.
+  useEffect(() => () => pushNowPlaying(null), []);
 
-  // Scrubber position (units: mediaSession wants seconds; nowPlaying is ms).
-  useEffect(() => {
-    // Desktop: the native side owns the OS media session (see src-tauri/
-    // src/media.rs) — a second webview session would fight it for the OS
-    // controls.
-    if (isTauri()) return;
-    if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
-    const dur = nowPlaying?.duration ?? 0;
-    const pos = nowPlaying?.progress ?? 0;
-    if (dur <= 0) return;
-    try {
-      navigator.mediaSession.setPositionState({
-        duration: dur / 1000,
-        position: Math.min(pos, dur) / 1000,
-        playbackRate: 1,
-      });
-    } catch {
-      // invalid values (e.g. position > duration mid-transition) — ignore
-    }
-  }, [nowPlaying?.progress, nowPlaying?.duration]);
+  // OS transport actions (media keys, Control Center, MPRIS) run through the
+  // same handlers as the miniplayer's own buttons, so they always drive
+  // whichever backend is currently the source. `transportRef` (the keyboard
+  // bridge above) keeps the listener from capturing the handlers — and the
+  // `player` they close over — at mount.
+  useEffect(
+    () =>
+      onMediaControl(({ action, position }) => {
+        const transport = transportRef.current;
+        const np = nowPlayingRef.current;
+        switch (action) {
+          case "play":
+            transport.onPlay();
+            break;
+          case "pause":
+          // The OS "stop" button is a pause here: there is no stopped state in
+          // the miniplayer to fall back to.
+          case "stop":
+            transport.onPause();
+            break;
+          case "toggle":
+            if (np?.isPlaying) transport.onPause();
+            else transport.onPlay();
+            break;
+          case "next":
+            transport.onNext();
+            break;
+          case "previous":
+            transport.onPrevious();
+            break;
+          case "seek":
+            if (position != null) transport.onSeek(Math.max(0, position));
+            break;
+          case "seekBy": {
+            if (position == null) break;
+            const target = (np?.progress ?? 0) + position;
+            const max = np?.duration ?? 0;
+            transport.onSeek(Math.min(Math.max(0, target), max || target));
+            break;
+          }
+        }
+      }),
+    [],
+  );
 
   if (!nowPlaying) return <></>;
 
@@ -977,9 +976,6 @@ function StickyPlayerWithData() {
 
   return (
     <>
-      {/* Silent Media Session anchor for the Web Audio (engine) playback path. */}
-      <audio ref={silentRef} src={SILENT_AUDIO_DATA_URI} loop preload="auto" />
-
       {queuePanelOpen && isRockbox && (
         <>
           <QueueOverlay onClick={() => setQueuePanelOpen(false)} />

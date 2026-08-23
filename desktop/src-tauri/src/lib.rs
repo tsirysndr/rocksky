@@ -51,6 +51,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_log,
+            media::media_set_now_playing,
             player::player_open,
             player::player_set_queue,
             player::player_insert,
