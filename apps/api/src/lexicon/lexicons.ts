@@ -5343,7 +5343,7 @@ export const schemaDict = {
       main: {
         type: "procedure",
         description:
-          "Add songs to a playlist. Publishes one app.rocksky.playlist.song record per song to the caller's repo; the caller must own the playlist or be listed in its collaborators.",
+          "Add songs to a playlist. Publishes one app.rocksky.playlist.song record per song to the caller's repo; only the playlist owner may do so.",
         parameters: {
           type: "params",
           required: ["uri", "songs"],
@@ -5738,15 +5738,6 @@ export const schemaDict = {
               type: "string",
               description: "The date the playlist was created.",
               format: "datetime",
-            },
-            collaborators: {
-              type: "array",
-              description:
-                "DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here.",
-              items: {
-                type: "string",
-                format: "did",
-              },
             },
             spotifyLink: {
               type: "string",

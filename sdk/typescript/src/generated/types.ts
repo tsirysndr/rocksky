@@ -1579,6 +1579,23 @@ export interface LibrarySearchParams {
   songOffset?: number;
 }
 
+export interface LibraryUpdatePlaylistInput {
+  /** The playlist id to update. */
+  playlistId: string;
+  /** New playlist name. */
+  name?: string;
+  /** New playlist comment. */
+  comment?: string;
+  /** A song id to add to the playlist. */
+  songIdToAdd?: string;
+  /** A track index to remove from the playlist. */
+  songIndexToRemove?: number;
+}
+
+export interface LibraryUpdatePlaylistOutput {
+
+}
+
 export interface LikeRecord {
   /** The date when the like was created. */
   createdAt: DateTime;
@@ -1784,8 +1801,6 @@ export interface PlaylistRecord {
   pictureUrl?: Uri;
   /** The date the playlist was created. */
   createdAt: DateTime;
-  /** DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here. */
-  collaborators?: Did[];
   /** The Spotify link of the playlist. */
   spotifyLink?: string;
   /** The Tidal link of the playlist. */
@@ -1815,6 +1830,24 @@ export interface PlaylistSongRecord {
   albumArtUrl?: Uri;
   /** The date and time the song was added to the playlist. */
   addedAt: DateTime;
+}
+
+export interface PlaylistUpdatePlaylistOutput {
+  /** The AT-URI of the updated app.rocksky.playlist record. */
+  uri: AtUri;
+  /** The CID of the updated app.rocksky.playlist record. */
+  cid: string;
+}
+
+export interface PlaylistUpdatePlaylistParams {
+  /** The URI of the playlist to update */
+  uri: AtUri;
+  /** The new name of the playlist */
+  name?: string;
+  /** The new description of the playlist */
+  description?: string;
+  /** The new cover image URL for the playlist */
+  pictureUrl?: Uri;
 }
 
 /** Basic view of a playlist, including its metadata */
@@ -2755,23 +2788,6 @@ export interface UpdateNowPlayingOutput {
 
 }
 
-export interface UpdatePlaylistInput {
-  /** The playlist id to update. */
-  playlistId: string;
-  /** New playlist name. */
-  name?: string;
-  /** New playlist comment. */
-  comment?: string;
-  /** A song id to add to the playlist. */
-  songIdToAdd?: string;
-  /** A track index to remove from the playlist. */
-  songIndexToRemove?: number;
-}
-
-export interface UpdatePlaylistOutput {
-
-}
-
 export interface UpdateSeenInput {
   /** The ids of the notifications to mark as viewed. Omit to mark all. */
   ids?: string[];
@@ -2876,7 +2892,7 @@ export interface Endpoints {
   "app.rocksky.library.startScan": StartScanOutput;
   "app.rocksky.library.unstar": UnstarOutput;
   "app.rocksky.library.updateNowPlaying": UpdateNowPlayingOutput;
-  "app.rocksky.library.updatePlaylist": UpdatePlaylistOutput;
+  "app.rocksky.library.updatePlaylist": LibraryUpdatePlaylistOutput;
   "app.rocksky.like.dislikeShout": ShoutView;
   "app.rocksky.like.dislikeSong": SongViewDetailed;
   "app.rocksky.like.likeShout": ShoutView;
@@ -2906,6 +2922,7 @@ export interface Endpoints {
   "app.rocksky.playlist.removePlaylist": void;
   "app.rocksky.playlist.removeTrack": void;
   "app.rocksky.playlist.startPlaylist": void;
+  "app.rocksky.playlist.updatePlaylist": PlaylistUpdatePlaylistOutput;
   "app.rocksky.rockbox.getAudioSettings": RockboxSettingsView;
   "app.rocksky.rockbox.putAudioSettings": RockboxSettingsView;
   "app.rocksky.scrobble.createScrobble": ScrobbleViewBasic;

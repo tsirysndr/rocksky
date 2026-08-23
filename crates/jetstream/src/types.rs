@@ -274,10 +274,6 @@ pub struct PlaylistRecord {
     pub picture: Option<ImageBlob>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture_url: Option<String>,
-    /// DIDs the owner allows to add songs. Authoritative because it lives in
-    /// the owner's own repo — see `playlist::authorize_entry`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub collaborators: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spotify_link: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

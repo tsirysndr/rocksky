@@ -19,8 +19,7 @@ const playlistTracks = pgTable(
     // cannot exist without a record behind it.
     uri: text("uri").unique(),
     cid: text("cid"),
-    // The repo that authored the entry — the playlist owner, or one of its
-    // declared collaborators.
+    // The repo that authored the entry — always the playlist owner today.
     addedBy: text("added_by").references(() => users.id),
     // `addedAt` from the record, which is what the playlist is ordered by.
     // Distinct from createdAt, which is when we happened to ingest it.

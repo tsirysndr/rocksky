@@ -4,7 +4,7 @@
   "defs": {
     "main": {
       "type": "procedure",
-      "description": "Add songs to a playlist. Publishes one app.rocksky.playlist.song record per song to the caller's repo; the caller must own the playlist or be listed in its collaborators.",
+      "description": "Add songs to a playlist. Publishes one app.rocksky.playlist.song record per song to the caller's repo; only the playlist owner may do so.",
       "parameters": {
         "type": "params",
         "required": [

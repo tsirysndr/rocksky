@@ -37,7 +37,6 @@ fn parse_timestamp(value: &str) -> DateTime<Utc> {
 struct PlaylistRow {
     id: String,
     owner_did: String,
-    collaborators: Vec<String>,
 }
 
 /// Upserts a playlist keyed on its AT-URI, and links it to its owner.
@@ -63,15 +62,14 @@ pub async fn save_playlist(
     let playlist_id: String = sqlx::query_scalar(
         r#"
     INSERT INTO playlists (
-      name, description, picture, uri, cid, collaborators,
+      name, description, picture, uri, cid,
       spotify_link, tidal_link, apple_music_link, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     ON CONFLICT (uri) DO UPDATE SET
       name = EXCLUDED.name,
       description = EXCLUDED.description,
       picture = EXCLUDED.picture,
       cid = EXCLUDED.cid,
-      collaborators = EXCLUDED.collaborators,
       spotify_link = EXCLUDED.spotify_link,
       tidal_link = EXCLUDED.tidal_link,
       apple_music_link = EXCLUDED.apple_music_link,
@@ -84,7 +82,6 @@ pub async fn save_playlist(
     .bind(&record.picture_url)
     .bind(&uri)
     .bind(cid)
-    .bind(record.collaborators.as_deref())
     .bind(&record.spotify_link)
     .bind(&record.tidal_link)
     .bind(&record.apple_music_link)
@@ -118,8 +115,8 @@ pub async fn save_playlist(
 /// materializing it from the owner's PDS if we haven't seen it yet.
 ///
 /// The fetch matters because commit ordering isn't guaranteed across repos: an
-/// entry added by a collaborator can reach us before we've ever indexed the
-/// owner's playlist, and dropping it would lose the entry permanently.
+/// entry can reach us before we've indexed the playlist it names, and dropping
+/// it would lose the entry permanently.
 async fn resolve_playlist(
     pool: &Pool<Postgres>,
     nc: &async_nats::Client,
@@ -164,9 +161,9 @@ async fn resolve_playlist(
 }
 
 async fn load_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<Option<PlaylistRow>, Error> {
-    let row: Option<(String, String, Option<Vec<String>>)> = sqlx::query_as(
+    let row: Option<(String, String)> = sqlx::query_as(
         r#"
-    SELECT playlists.xata_id, users.did, playlists.collaborators
+    SELECT playlists.xata_id, users.did
     FROM playlists
     JOIN users ON users.xata_id = playlists.created_by
     WHERE playlists.uri = $1
@@ -176,22 +173,16 @@ async fn load_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<Option<Playli
     .fetch_optional(pool)
     .await?;
 
-    Ok(row.map(|(id, owner_did, collaborators)| PlaylistRow {
-        id,
-        owner_did,
-        collaborators: collaborators.unwrap_or_default(),
-    }))
+    Ok(row.map(|(id, owner_did)| PlaylistRow { id, owner_did }))
 }
 
 /// Anyone can write an `app.rocksky.playlist.song` record into their own repo
 /// naming *any* playlist AT-URI — nothing at the PDS layer stops it. Honouring
 /// such a record blindly would let a stranger push songs into someone else's
-/// playlist, so the appview treats an entry as authoritative only when the repo
-/// that authored it either owns the playlist, or is listed in the playlist's
-/// `collaborators`. That grant lives in the owner's repo, so a would-be
-/// injector cannot forge it in their own.
+/// playlist, so the appview only accepts an entry authored by the repo that
+/// owns the playlist.
 fn authorize_entry(playlist: &PlaylistRow, author_did: &str) -> bool {
-    playlist.owner_did == author_did || playlist.collaborators.iter().any(|did| did == author_did)
+    playlist.owner_did == author_did
 }
 
 /// Upserts a playlist entry keyed on the entry record's own AT-URI.
@@ -216,7 +207,7 @@ pub async fn save_playlist_song(
             playlist = %record.playlist.uri,
             author = %did,
             owner = %playlist.owner_did,
-            "Rejected playlist entry: author is neither the playlist owner nor a collaborator"
+            "Rejected playlist entry: author does not own the playlist"
         );
         return Ok(());
     }
@@ -368,11 +359,10 @@ pub async fn delete_playlist_song(pool: &Pool<Postgres>, uri: &str) -> Result<()
 mod tests {
     use super::*;
 
-    fn playlist(owner: &str, collaborators: &[&str]) -> PlaylistRow {
+    fn playlist(owner: &str) -> PlaylistRow {
         PlaylistRow {
             id: "rec_1".to_string(),
             owner_did: owner.to_string(),
-            collaborators: collaborators.iter().map(|s| s.to_string()).collect(),
         }
     }
 
@@ -387,33 +377,14 @@ mod tests {
 
     #[test]
     fn owner_may_add_entries() {
-        assert!(authorize_entry(
-            &playlist("did:plc:owner", &[]),
-            "did:plc:owner"
-        ));
+        assert!(authorize_entry(&playlist("did:plc:owner"), "did:plc:owner"));
     }
 
     #[test]
     fn stranger_may_not_add_entries() {
         assert!(!authorize_entry(
-            &playlist("did:plc:owner", &[]),
+            &playlist("did:plc:owner"),
             "did:plc:stranger"
-        ));
-    }
-
-    #[test]
-    fn declared_collaborator_may_add_entries() {
-        assert!(authorize_entry(
-            &playlist("did:plc:owner", &["did:plc:friend"]),
-            "did:plc:friend"
-        ));
-    }
-
-    #[test]
-    fn collaborator_of_another_playlist_may_not_add_entries() {
-        assert!(!authorize_entry(
-            &playlist("did:plc:owner", &["did:plc:friend"]),
-            "did:plc:someone-else"
         ));
     }
 }

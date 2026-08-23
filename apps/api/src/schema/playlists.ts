@@ -12,9 +12,10 @@ const playlists = pgTable("playlists", {
   // uri IS NOT NULL for anything written from now on.
   uri: text("uri").unique(),
   cid: text("cid"),
-  // DIDs the owner has granted write access, mirrored from the record. The
-  // ingest side uses this to decide whether a foreign app.rocksky.playlist.song
-  // record may attach itself to this playlist.
+  // Reserved. Collaborative playlists were pulled before shipping — an entry
+  // record lives in its author's repo, so an owner cannot retract a
+  // collaborator's song, and that needs designing first. Nothing reads or
+  // writes this; kept so re-adding it needs no migration.
   collaborators: text("collaborators").array(),
   spotifyLink: text("spotify_link"),
   tidalLink: text("tidal_link"),

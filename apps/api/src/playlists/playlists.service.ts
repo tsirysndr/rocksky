@@ -123,25 +123,13 @@ export async function addSongsToPlaylist(
   playlistUri: string,
   songUris: string[],
 ): Promise<string[]> {
-  // Ownership is decidable from the URI alone, so the owner needs no row — which
+  // Ownership is decidable from the URI alone, so this needs no row — which
   // matters right after createPlaylist, before jetstream has produced one.
   if (atUriRepo(playlistUri) !== did) {
-    const playlist = await ctx.db
-      .select()
-      .from(tables.playlists)
-      .where(eq(tables.playlists.uri, playlistUri))
-      .limit(1)
-      .then((rows) => rows[0]);
-
-    if (!playlist) {
-      throw new InvalidRequestError("Playlist not found", "NotFound");
-    }
-    if (!(playlist.collaborators ?? []).includes(did)) {
-      throw new InvalidRequestError(
-        "You are not the owner or a collaborator of this playlist",
-        "Forbidden",
-      );
-    }
+    throw new InvalidRequestError(
+      "Only the playlist owner can add songs to it",
+      "Forbidden",
+    );
   }
 
   const playlistRef = await recordRef(playlistUri, PLAYLIST_COLLECTION);

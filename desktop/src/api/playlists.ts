@@ -51,7 +51,7 @@ export const createPlaylist = async (input: {
     },
   });
 
-// Caller must own the playlist or be a collaborator; the server rejects the rest.
+// Owner only; the server rejects anyone else.
 export const addSongsToPlaylist = async (input: {
   uri: string;
   songs: string[];

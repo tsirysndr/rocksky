@@ -1537,6 +1537,22 @@ type LibrarySearchParams struct {
 	SongOffset int `json:"songOffset,omitempty"`
 }
 
+type LibraryUpdatePlaylistInput struct {
+	// The playlist id to update.
+	PlaylistID string `json:"playlistId,omitempty"`
+	// New playlist name.
+	Name string `json:"name,omitempty"`
+	// New playlist comment.
+	Comment string `json:"comment,omitempty"`
+	// A song id to add to the playlist.
+	SongIDToAdd string `json:"songIdToAdd,omitempty"`
+	// A track index to remove from the playlist.
+	SongIndexToRemove int `json:"songIndexToRemove,omitempty"`
+}
+
+type LibraryUpdatePlaylistOutput struct {
+}
+
 type LikeRecord struct {
 	// The date when the like was created.
 	CreatedAt string `json:"createdAt,omitempty"`
@@ -1740,8 +1756,6 @@ type PlaylistRecord struct {
 	PictureURL string `json:"pictureUrl,omitempty"`
 	// The date the playlist was created.
 	CreatedAt string `json:"createdAt,omitempty"`
-	// DIDs allowed to add songs to this playlist besides the owner. Because this list lives in the owner's own repo it is the authoritative grant: an app.rocksky.playlist.song record is only honoured when its repo is the playlist owner or appears here.
-	Collaborators []string `json:"collaborators,omitempty"`
 	// The Spotify link of the playlist.
 	SpotifyLink string `json:"spotifyLink,omitempty"`
 	// The Tidal link of the playlist.
@@ -1771,6 +1785,24 @@ type PlaylistSongRecord struct {
 	AlbumArtURL string `json:"albumArtUrl,omitempty"`
 	// The date and time the song was added to the playlist.
 	AddedAt string `json:"addedAt,omitempty"`
+}
+
+type PlaylistUpdatePlaylistOutput struct {
+	// The AT-URI of the updated app.rocksky.playlist record.
+	URI string `json:"uri,omitempty"`
+	// The CID of the updated app.rocksky.playlist record.
+	CID string `json:"cid,omitempty"`
+}
+
+type PlaylistUpdatePlaylistParams struct {
+	// The URI of the playlist to update
+	URI string `json:"uri,omitempty"`
+	// The new name of the playlist
+	Name string `json:"name,omitempty"`
+	// The new description of the playlist
+	Description string `json:"description,omitempty"`
+	// The new cover image URL for the playlist
+	PictureURL string `json:"pictureUrl,omitempty"`
 }
 
 // PlaylistViewBasic Basic view of a playlist, including its metadata
@@ -2702,22 +2734,6 @@ type UpdateNowPlayingInput struct {
 }
 
 type UpdateNowPlayingOutput struct {
-}
-
-type UpdatePlaylistInput struct {
-	// The playlist id to update.
-	PlaylistID string `json:"playlistId,omitempty"`
-	// New playlist name.
-	Name string `json:"name,omitempty"`
-	// New playlist comment.
-	Comment string `json:"comment,omitempty"`
-	// A song id to add to the playlist.
-	SongIDToAdd string `json:"songIdToAdd,omitempty"`
-	// A track index to remove from the playlist.
-	SongIndexToRemove int `json:"songIndexToRemove,omitempty"`
-}
-
-type UpdatePlaylistOutput struct {
 }
 
 type UpdateSeenInput struct {
