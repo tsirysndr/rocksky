@@ -33,6 +33,7 @@ const STAGING_TABLES: &[&str] = &[
     "user_top_genres",
     "taste",
     "track_vec",
+    "genre_hits",
     "cf",
     "heard",
     "neighbours",
@@ -502,6 +503,7 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
     let ser_count = ((cfg.limit_per_user as f64) * cfg.serendipity_ratio).ceil() as usize;
     let main_count = cfg.limit_per_user.saturating_sub(ser_count);
     let limit = cfg.limit_per_user;
+    let cand_limit = cfg.candidate_limit.max(cfg.limit_per_user);
     // Daily salt so the serendipity picks rotate instead of freezing forever —
     // hash() is deterministic, which keeps a given day's list stable across
     // refreshes but different from yesterday's.
@@ -562,19 +564,27 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
         ),
         // Collaborative-filtering candidates: what neighbours play, weighted by
         // neighbour similarity and their decayed play counts; a neighbour's
-        // loved track is an explicit 5× endorsement.
+        // loved track is an explicit 5× endorsement. Capped per user right
+        // here — the final output keeps only the top ~limit_per_user, and an
+        // unbounded candidate set is what made the downstream scoring steps
+        // take minutes and run out of memory.
         (
             "cf",
-            "CREATE TABLE cf AS
-             SELECT n.u AS user_id, ut.track_id,
-                    sum(n.sim * ut.w * (CASE WHEN l.track_id IS NOT NULL THEN 5 ELSE 1 END)) AS cf_score,
-                    max(CASE WHEN l.track_id IS NOT NULL THEN 1 ELSE 0 END) AS loved
-             FROM neighbours n
-             JOIN user_tracks ut ON ut.user_id = n.v
-             ANTI JOIN heard h ON h.user_id = n.u AND h.track_id = ut.track_id
-             LEFT JOIN loved l ON l.user_id = n.v AND l.track_id = ut.track_id
-             GROUP BY n.u, ut.track_id;"
-                .to_string(),
+            format!(
+                "CREATE TABLE cf AS
+                 SELECT n.u AS user_id, ut.track_id,
+                        sum(n.sim * ut.w * (CASE WHEN l.track_id IS NOT NULL THEN 5 ELSE 1 END)) AS cf_score,
+                        max(CASE WHEN l.track_id IS NOT NULL THEN 1 ELSE 0 END) AS loved
+                 FROM neighbours n
+                 JOIN user_tracks ut ON ut.user_id = n.v
+                 ANTI JOIN heard h ON h.user_id = n.u AND h.track_id = ut.track_id
+                 LEFT JOIN loved l ON l.user_id = n.v AND l.track_id = ut.track_id
+                 GROUP BY n.u, ut.track_id
+                 QUALIFY row_number() OVER (
+                     PARTITION BY n.u
+                     ORDER BY sum(n.sim * ut.w * (CASE WHEN l.track_id IS NOT NULL THEN 5 ELSE 1 END)) DESC
+                 ) <= {cand_limit};"
+            ),
         ),
         // Audio-feature vectors, z-scored per dimension across the catalog.
         // Raw Spotify features are all non-negative and correlated, so raw
@@ -660,6 +670,20 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
              WHERE share >= 0.05 AND rn <= 10;"
                 .to_string(),
         ),
+        // Which artists match each user's genre profile, as one compact
+        // (user, artist) pair table. Joining candidates → artist_genres →
+        // user_top_genres directly multiplies every candidate row by
+        // genres-per-artist before aggregating it back down; this table takes
+        // that explosion once, up front, instead of per candidate.
+        (
+            "genre_hits",
+            "CREATE TABLE genre_hits AS
+             SELECT DISTINCT utg.user_id, ag.artist_uri
+             FROM user_top_genres utg
+             JOIN artist_genres ag ON ag.genre = utg.genre
+             WHERE ag.artist_uri IS NOT NULL;"
+                .to_string(),
+        ),
         // Final score. Each factor targets a known Last.fm failure mode:
         //   × content^β        — sound-alike ranking from audio features
         //   × genre gate       — soft, with a content escape hatch: a track
@@ -682,26 +706,18 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
                      LEFT JOIN taste ta ON ta.user_id = c.user_id
                      LEFT JOIN track_vec tv ON tv.track_id = c.track_id
                      WHERE lower(t.artist) <> 'various artists'
-                 ),
-                 g AS (
-                     SELECT c.user_id, c.track_id,
-                            max(CASE WHEN utg.genre IS NOT NULL THEN 1 ELSE 0 END) AS hit
-                     FROM cand c
-                     LEFT JOIN artist_genres ag ON ag.artist_uri = c.artist_uri
-                     LEFT JOIN user_top_genres utg
-                            ON utg.user_id = c.user_id AND utg.genre = ag.genre
-                     GROUP BY c.user_id, c.track_id
                  )
                  SELECT c.user_id, c.track_id, c.artist_uri,
                         c.cf_score
                             * pow(coalesce((1 + c.cs) / 2.0, 0.5), {beta})
-                            * (CASE WHEN g.hit = 1 THEN 1.0
+                            * (CASE WHEN gh.artist_uri IS NOT NULL THEN 1.0
                                     WHEN c.cs >= 0.5 THEN 0.9
                                     ELSE 0.35 END)
                             / ln(2.718281828459045 + coalesce(gp.c, 0)) AS score,
                         CASE WHEN c.loved = 1 THEN 'social' ELSE 'neighbour' END AS source
                  FROM cand c
-                 JOIN g ON g.user_id = c.user_id AND g.track_id = c.track_id
+                 LEFT JOIN genre_hits gh
+                        ON gh.user_id = c.user_id AND gh.artist_uri = c.artist_uri
                  LEFT JOIN gp ON gp.track_id = c.track_id;"
             ),
         ),
@@ -738,8 +754,7 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
                 "CREATE TABLE ser AS
                  WITH pool AS (
                      SELECT n.u AS user_id, ut.track_id,
-                            any_value(t.artist_uri) AS artist_uri,
-                            any_value(t.artist) AS artist
+                            any_value(t.artist_uri) AS artist_uri
                      FROM neighbours n
                      JOIN user_tracks ut ON ut.user_id = n.v
                      JOIN tracks t ON t.id = ut.track_id
@@ -749,19 +764,20 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
                      ANTI JOIN picks p ON p.user_id = n.u AND p.track_id = ut.track_id
                      WHERE lower(t.artist) <> 'various artists'
                      GROUP BY n.u, ut.track_id
+                     QUALIFY row_number() OVER (
+                         PARTITION BY n.u
+                         ORDER BY hash(n.u || ut.track_id || '{day}')
+                     ) <= {cand_limit}
                  ),
                  eligible AS (
-                     SELECT p.user_id, p.track_id,
-                            any_value(p.artist_uri) AS artist_uri,
-                            max(CASE WHEN utg.genre IS NOT NULL THEN 1 ELSE 0 END) AS hit,
-                            any_value(coalesce(list_cosine_similarity(ta.vec, tv.vec), -1)) AS cs
+                     SELECT p.user_id, p.track_id, p.artist_uri,
+                            (gh.artist_uri IS NOT NULL) AS hit,
+                            coalesce(list_cosine_similarity(ta.vec, tv.vec), -1) AS cs
                      FROM pool p
-                     LEFT JOIN artist_genres ag ON ag.artist_uri = p.artist_uri
-                     LEFT JOIN user_top_genres utg
-                            ON utg.user_id = p.user_id AND utg.genre = ag.genre
+                     LEFT JOIN genre_hits gh
+                            ON gh.user_id = p.user_id AND gh.artist_uri = p.artist_uri
                      LEFT JOIN taste ta ON ta.user_id = p.user_id
                      LEFT JOIN track_vec tv ON tv.track_id = p.track_id
-                     GROUP BY p.user_id, p.track_id
                  )
                  SELECT user_id, track_id, 0.0 AS score, 'serendipity' AS source,
                         row_number() OVER (
@@ -770,7 +786,7 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
                         ) AS rn
                  FROM (
                      SELECT user_id, track_id, artist_uri FROM eligible
-                     WHERE hit = 1 OR cs >= 0.3
+                     WHERE hit OR cs >= 0.3
                      QUALIFY row_number() OVER (
                          PARTITION BY user_id, coalesce(artist_uri, track_id)
                          ORDER BY hash(user_id || track_id || '{day}')
