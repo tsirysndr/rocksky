@@ -7,9 +7,6 @@ the [`rockbox-playback`](https://crates.io/crates/rockbox-playback) engine
 
 ## What it does
 
-- **Local playback** — open audio files (MP3, FLAC, Ogg, Opus, M4A/AAC, WAV,
-  WavPack, APE, …) into a Rockbox-style queue with shuffle/repeat, seek, and
-  volume.
 - **Remote control** — registers as a remotely controllable Rocksky player
   (shown as *“\<name\> (Desktop)”* in the miniplayer device picker; the name is
   configurable in Settings). Controllers can play/pause/seek, jump the queue,
