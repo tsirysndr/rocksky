@@ -30,6 +30,7 @@ import {
   type NavidromeSong,
 } from "../api/navidrome";
 import type { QueueTrack } from "../atoms/queue";
+import { songHash } from "@rocksky/sdk";
 
 const NAVIDROME_KEY_NAME = "navidrome";
 
@@ -69,7 +70,10 @@ export function songToQueueTrack(
     album: song.album,
     albumArt,
     duration: song.duration * 1000,
-    sha256: "",
+    // Navidrome has no Rocksky id — derive the canonical identity hash
+    // (sha256(lower("title - artist - album"))), the same one the server and
+    // every SDK use, so loved-song lookups and scrobble dedup line up.
+    sha256: songHash(song.title, song.artist, song.album),
     songUri: "",
     trackNumber: song.track ?? null,
     genre: song.genre ?? null,

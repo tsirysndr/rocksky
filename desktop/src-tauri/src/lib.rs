@@ -14,6 +14,13 @@ use cache::MediaCache;
 use engine::Engine;
 use state::AppState;
 
+/// Frontend diagnostics → the app log (the webview console is not visible in
+/// the dev terminal). Dev aid; harmless in release.
+#[tauri::command]
+fn app_log(msg: String) {
+    tracing::info!(target: "webview", "{msg}");
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt()
@@ -43,6 +50,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            app_log,
             player::player_open,
             player::player_set_queue,
             player::player_insert,
@@ -83,6 +91,7 @@ pub fn run() {
             cache::cache_set_config,
             cache::cache_stats,
             cache::cache_clear,
+            rocksky::scrobble_submit,
             rocksky::rocksky_feed,
             rocksky::rocksky_profile,
             rocksky::rocksky_search,

@@ -85,8 +85,8 @@ pub use agent::{
 };
 pub use appview::{
     AlbumView, AppView, ArtistView, DateInterval, FeedItem, FeedView, GlobalStats,
-    NotificationActor, NotificationList, NotificationView, ProfileView, ScrobbleView,
-    SearchResults, SongView, UnreadCount, UpdateSeenResult,
+    NotificationActor, NotificationList, NotificationView, ProfileView, ScrobbleInput,
+    ScrobbleView, SearchResults, SongView, UnreadCount, UpdateSeenResult,
 };
 pub use auth::Profile;
 #[cfg(feature = "dedup")]

@@ -29,7 +29,6 @@ import { rocksky } from "../../lib/rocksky";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../../lib/tauri";
 import { feedGeneratorUriAtom } from "../../atoms/feed";
-import { InsertMode } from "rockbox-wasm";
 import {
   RemoteController,
   type RemoteNowPlaying as SdkRemoteNowPlaying,
@@ -50,6 +49,7 @@ import { useRockboxEngine } from "../../hooks/useRockboxEngine";
 import { useAudioSettingsPublisher } from "../../hooks/useAudioSettings";
 import { useUploadResume } from "../../hooks/useUploadResume";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
+import type { SongViewBasic } from "@rocksky/sdk";
 
 // ---------------------------------------------------------------------------
 // Styled components
@@ -189,15 +189,34 @@ function StickyPlayerWithData() {
   // file, not whether the viewer loved the song. Fetch the loved set once
   // (sha256-keyed) and seed nowPlaying.liked from it; explicit heart clicks
   // (the `liked` map above) always win.
-  const { data: lovedSha256s } = useQuery({
+  const { data: lovedByHash } = useQuery({
     queryKey: ["lovedSha256s"],
     queryFn: async () => {
       const did = localStorage.getItem("did");
-      if (!did) return new Set<string>();
-      const songs = await rocksky().lovedSongs(did, 500, 0);
-      return new Set(
-        songs.map((s) => s.sha256).filter((x): x is string => !!x),
-      );
+      if (!did) return { byHash: new Map<string, string>(), uris: new Set<string>() };
+      // Page through the whole loved list — a single capped request silently
+      // truncates for anyone with a large library, and a missing entry reads
+      // as "not loved".
+      const PAGE = 1000;
+      const MAX_PAGES = 10;
+      const songs: SongViewBasic[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const batch = await rocksky()
+          .lovedSongs(did, PAGE, page * PAGE)
+          .catch(() => [] as SongViewBasic[]);
+        songs.push(...batch);
+        if (batch.length < PAGE) break;
+      }
+      // Index by sha256 AND by at:// uri: a local library file's hash comes
+      // from its own tags, which may differ from the catalog record's, so the
+      // uri (resolved via matchSong) is the more reliable key.
+      const byHash = new Map<string, string>();
+      const uris = new Set<string>();
+      for (const song of songs) {
+        if (song.sha256) byHash.set(song.sha256, song.uri ?? "");
+        if (song.uri) uris.add(song.uri);
+      }
+      return { byHash, uris };
     },
     enabled: !!localStorage.getItem("did"),
     staleTime: 5 * 60_000,
@@ -231,26 +250,43 @@ function StickyPlayerWithData() {
   // yourself over the websocket is a loop; local playback is "This Device".
   const { data: selfRemote } = useQuery({
     queryKey: ["remoteSelfDevice"],
-    queryFn: () => invoke<{ deviceId: string | null }>("remote_status"),
+    queryFn: () =>
+      invoke<{ deviceId: string | null; name: string | null }>("remote_status"),
     enabled: isTauri(),
-    refetchInterval: 15_000,
+    // Poll fast until the register ack lands: until we know which device is
+    // us, the server's `devices` snapshot can make us adopt OURSELVES as the
+    // remote source — which flips the player away from local playback and
+    // silently disables scrobbling.
+    refetchInterval: (q) => (q.state.data?.deviceId ? 15_000 : 1_000),
   });
   const selfDeviceIdRef = useRef<string | null>(null);
+  const selfNameRef = useRef<string | null>(null);
   useEffect(() => {
     const selfId = selfRemote?.deviceId ?? null;
     selfDeviceIdRef.current = selfId;
-    // Prune an entry that landed before the id was known.
-    if (selfId) {
-      setDevices((prev) => {
-        if (!prev[selfId]) return prev;
-        const next = { ...prev };
-        delete next[selfId];
-        return next;
-      });
+    selfNameRef.current = selfRemote?.name ?? null;
+    if (!selfId) return;
+    // Prune an entry that landed before the id was known…
+    setDevices((prev) => {
+      if (!prev[selfId]) return prev;
+      const next = { ...prev };
+      delete next[selfId];
+      return next;
+    });
+    // …and undo a self-adoption that already happened: hand playback back to
+    // the local engine so the miniplayer, the heart and scrobbling all work.
+    if (activeDeviceIdRef.current === selfId) {
+      setActiveDeviceId(null);
+      if (playerRef.current === "device") {
+        setPlayer(getRockboxPlayer().queue.length ? "rockbox" : null);
+      }
     }
-  }, [selfRemote?.deviceId, setDevices]);
-  const isSelfDevice = (id?: string | null) =>
-    !!id && id === selfDeviceIdRef.current;
+  }, [selfRemote?.deviceId, selfRemote?.name, setDevices, setActiveDeviceId, setPlayer]);
+  /** Is this device us? Matches on the registered id, and (before the ack
+   *  arrives) on our registered display name. */
+  const isSelfDevice = (id?: string | null, name?: string | null) =>
+    (!!id && id === selfDeviceIdRef.current) ||
+    (!!name && !!selfNameRef.current && name === selfNameRef.current);
   // Hidden silent <audio> that plays while the wasm engine plays, so the
   // browser surfaces the Media Session / OS media controls (Web Audio alone
   // doesn't trigger them).
@@ -382,8 +418,11 @@ function StickyPlayerWithData() {
   // Spotify / the local engine — it only mirrors into the miniplayer when the
   // device source is (or becomes) active.
   const adoptDevice = useCallback((id: string, map?: Record<string, RemoteDevice>) => {
-    setActiveDeviceId(id);
     const dev = (map ?? devicesRef.current)[id];
+    // Adopting our own registration would hand local playback to a loopback
+    // "remote" device (and stop scrobbling) — never do it.
+    if (isSelfDevice(id, dev?.name)) return;
+    setActiveDeviceId(id);
     if (!dev) return;
     if (playerRef.current === null || playerRef.current === "device") {
       if (dev.nowPlaying) setNowPlaying(dev.nowPlaying);
@@ -424,7 +463,7 @@ function StickyPlayerWithData() {
       .on("devices", ({ primaryDevice, devices }) => {
         const map: Record<string, RemoteDevice> = {};
         for (const d of devices) {
-          if (!d.deviceId || isSelfDevice(d.deviceId)) continue;
+          if (!d.deviceId || isSelfDevice(d.deviceId, d.name)) continue;
           map[d.deviceId] = {
             deviceId: d.deviceId,
             name: d.name || "Remote device",
@@ -440,7 +479,7 @@ function StickyPlayerWithData() {
       })
       // A player pushed a track → upsert its entry in the device map.
       .on("nowPlaying", ({ deviceId, deviceName, track }) => {
-        if (!deviceId || isSelfDevice(deviceId)) return;
+        if (!deviceId || isSelfDevice(deviceId, deviceName)) return;
         if (!track.title && !track.artist && !track.albumArtist) return;
         const name = deviceName || "Remote device";
         const prevNp = devicesRef.current[deviceId]?.nowPlaying ?? null;
@@ -485,7 +524,7 @@ function StickyPlayerWithData() {
       })
       // A player pushed its queue → mirror it (kept per-device for the panel).
       .on("queue", ({ deviceId, deviceName, index, queue }) => {
-        if (!deviceId || isSelfDevice(deviceId)) return;
+        if (!deviceId || isSelfDevice(deviceId, deviceName)) return;
         const q = Array.isArray(queue) ? queue.map(toRemoteQueueTrack) : [];
         const queueIndex = index ?? 0;
         setDevices((prev) => {
@@ -529,6 +568,42 @@ function StickyPlayerWithData() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Start playback at `idx` of the UI queue.
+   *
+   *  The engine can be empty while the UI queue is full — the queue is
+   *  restored from localStorage on load, but the audio engine only gets it
+   *  when playback actually starts (and on desktop the native engine is a
+   *  separate process that a webview reload doesn't repopulate). Rebuild it
+   *  in that case; otherwise a plain skip is enough. */
+  const startAtIndex = async (idx: number, seekMs = 0) => {
+    if (!queue.length) return;
+    const p = await ensureRockboxReady();
+    await ensureStreamToken();
+    registerTracks(queue);
+    const urls = queue.map(streamUrlFor);
+    const target = Math.min(Math.max(0, idx), urls.length - 1);
+    if (p.queue.length === urls.length) {
+      p.skipTo(target);
+    } else {
+      // Load the whole queue, then skip to the target. Cueing one track and
+      // inserting the rest around it is faster in theory, but the native
+      // engine only keeps its index pinned to the cued track once playback
+      // has actually started — the prepend usually lands first, leaving the
+      // index (and so the audio + metadata) on the first track. Skipping is
+      // deterministic and the engine still opens only the target track.
+      p.setQueue(urls, false);
+      p.skipTo(target);
+      p.play();
+    }
+    if (seekMs > 1000) {
+      const onceTrack = () => {
+        p.off("track", onceTrack);
+        try { p.seek(seekMs); } catch { /* not seekable yet */ }
+      };
+      p.on("track", onceTrack);
+    }
+  };
+
   // ── Playback controls ─────────────────────────────────────────────────────
 
   const onPlay = async () => {
@@ -543,23 +618,7 @@ function StickyPlayerWithData() {
       // the engine is empty. Rebuild the engine queue at the saved index and
       // seek to the saved elapsed time once the track is decoded.
       if (p.queue.length === 0 && queue.length > 0) {
-        await ensureStreamToken();
-        registerTracks(queue);
-        const urls = queue.map(streamUrlFor);
-        const idx = Math.min(Math.max(0, queueIndex), urls.length - 1);
-        const seekMs = nowPlaying?.progress ?? 0;
-        p.setQueue([urls[idx]], true);
-        const after = urls.slice(idx + 1);
-        const before = urls.slice(0, idx);
-        if (after.length) p.insert(after, InsertMode.PlayLast);
-        if (before.length) p.insert(before, InsertMode.Prepend);
-        if (seekMs > 1000) {
-          const onceTrack = () => {
-            p.off("track", onceTrack);
-            try { p.seek(seekMs); } catch { /* not seekable yet */ }
-          };
-          p.on("track", onceTrack);
-        }
+        await startAtIndex(queueIndex, nowPlaying?.progress ?? 0);
         setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
         return;
       }
@@ -690,31 +749,103 @@ function StickyPlayerWithData() {
   }, [hasNowPlaying, setPlayerControls]);
 
   useEffect(() => {
-    if (!lovedSha256s) return;
+    if (!lovedByHash) return;
     if (player !== "rockbox") return;
     setNowPlaying((prev) => {
-      if (!prev?.sha256) return prev;
+      if (!prev || (!prev.sha256 && !prev.songUri)) return prev;
+      const key = prev.songUri || prev.sha256;
       // A manual heart click on this song wins over the fetched snapshot.
-      if (prev.songUri && liked[prev.songUri] !== undefined) return prev;
-      const isLoved = lovedSha256s.has(prev.sha256);
-      return prev.liked === isLoved ? prev : { ...prev, liked: isLoved };
+      if (liked[key] !== undefined) return prev;
+      const isLoved =
+        (!!prev.songUri && lovedByHash.uris.has(prev.songUri)) ||
+        (!!prev.sha256 && lovedByHash.byHash.has(prev.sha256));
+      const uri =
+        prev.songUri || (prev.sha256 ? lovedByHash.byHash.get(prev.sha256) : "") || "";
+      if (prev.liked === isLoved && prev.songUri === uri) return prev;
+      return { ...prev, liked: isLoved, songUri: uri };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lovedSha256s, player, nowPlaying?.sha256]);
+  }, [lovedByHash, player, nowPlaying?.sha256, nowPlaying?.songUri]);
+
+  // Library tracks streamed from Navidrome have no at:// URIs, so the
+  // miniplayer can't link the title/artist/album (and the heart has no
+  // subject). Resolve them once per track from the canonical record.
+  const resolvedUriRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (player !== "rockbox") return;
+    const np = nowPlayingRef.current;
+    if (!np?.title || !np.artist) return;
+    if (np.songUri && np.artistUri && np.albumUri) return;
+    const key = np.sha256 || `${np.title}::${np.artist}`;
+    if (resolvedUriRef.current === key) return;
+    resolvedUriRef.current = key;
+    let cancelled = false;
+    rocksky()
+      .matchSong(np.title, np.artist)
+      .then((song) => {
+        if (cancelled || !song) return;
+        setNowPlaying((prev) => {
+          if (!prev || (prev.sha256 || `${prev.title}::${prev.artist}`) !== key) return prev;
+          return {
+            ...prev,
+            songUri: prev.songUri || song.uri || "",
+            artistUri: prev.artistUri || song.artistUri || "",
+            albumUri: prev.albumUri || song.albumUri || "",
+            albumArt: prev.albumArt || song.albumArt || undefined,
+            sha256: prev.sha256 || song.sha256 || "",
+          };
+        });
+      })
+      .catch(() => {
+        // Unresolvable (offline / not in the catalog yet) — leave as plain text.
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player, nowPlaying?.title, nowPlaying?.artist, nowPlaying?.songUri]);
 
   // ── Like / dislike ────────────────────────────────────────────────────────
 
-  const onLike = async (uri: string) => {
-    setLiked({ ...liked, [uri]: true });
-    like(uri);
-    setNowPlaying((prev) => (prev ? { ...prev, liked: true } : prev));
-    await queryClient.invalidateQueries({ queryKey: ["infiniteFeed", feedUri] });
+  /** The at:// uri for the playing track. Library entries streamed from
+   *  Navidrome carry none, so fall back to the loved-set lookup and finally
+   *  to matchSong, which resolves canonical metadata by title + artist. */
+  const resolveSongUri = async (uri: string): Promise<string> => {
+    if (uri) return uri;
+    const np = nowPlayingRef.current;
+    if (!np) return "";
+    const known = np.sha256 ? lovedByHash?.byHash.get(np.sha256) : undefined;
+    if (known) return known;
+    if (!np.title || !np.artist) return "";
+    try {
+      const song = await rocksky().matchSong(np.title, np.artist);
+      return song?.uri ?? "";
+    } catch {
+      return "";
+    }
   };
 
-  const onDislike = (uri: string) => {
-    setLiked({ ...liked, [uri]: false });
-    unlike(uri);
-    setNowPlaying((prev) => (prev ? { ...prev, liked: false } : prev));
+  const onLike = async (uri: string) => {
+    const resolved = await resolveSongUri(uri);
+    if (!resolved) return;
+    setLiked({ ...liked, [resolved]: true });
+    like(resolved);
+    setNowPlaying((prev) =>
+      prev ? { ...prev, liked: true, songUri: prev.songUri || resolved } : prev,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["infiniteFeed", feedUri] });
+    await queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] });
+  };
+
+  const onDislike = async (uri: string) => {
+    const resolved = await resolveSongUri(uri);
+    if (!resolved) return;
+    setLiked({ ...liked, [resolved]: false });
+    unlike(resolved);
+    setNowPlaying((prev) =>
+      prev ? { ...prev, liked: false, songUri: prev.songUri || resolved } : prev,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] });
   };
 
   // ── Media Session API — lock-screen / OS media controls ───────────────────
@@ -731,6 +862,10 @@ function StickyPlayerWithData() {
 
   // Metadata (track identity + artwork).
   useEffect(() => {
+    // Desktop: the native side owns the OS media session (see src-tauri/
+    // src/media.rs) — a second webview session would fight it for the OS
+    // controls.
+    if (isTauri()) return;
     if (!("mediaSession" in navigator) || !nowPlaying) return;
     const art = nowPlaying.albumArt;
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -751,6 +886,10 @@ function StickyPlayerWithData() {
   // Transport action handlers (re-bound when the active engine changes so the
   // right backend is driven).
   useEffect(() => {
+    // Desktop: the native side owns the OS media session (see src-tauri/
+    // src/media.rs) — a second webview session would fight it for the OS
+    // controls.
+    if (isTauri()) return;
     if (!("mediaSession" in navigator)) return;
     const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
     // Drive the silent anchor SYNCHRONOUSLY here (this runs inside the media-key
@@ -778,6 +917,10 @@ function StickyPlayerWithData() {
 
   // Live play/pause state.
   useEffect(() => {
+    // Desktop: the native side owns the OS media session (see src-tauri/
+    // src/media.rs) — a second webview session would fight it for the OS
+    // controls.
+    if (isTauri()) return;
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
   }, [nowPlaying?.isPlaying]);
@@ -789,6 +932,12 @@ function StickyPlayerWithData() {
   useEffect(() => {
     const el = silentRef.current;
     if (!el) return;
+    // Native media session on desktop — no silent element needed to make the
+    // OS show controls.
+    if (isTauri()) {
+      el.pause();
+      return;
+    }
     if (
       (player === "rockbox" || player === "device") &&
       nowPlaying?.isPlaying
@@ -801,6 +950,10 @@ function StickyPlayerWithData() {
 
   // Scrubber position (units: mediaSession wants seconds; nowPlaying is ms).
   useEffect(() => {
+    // Desktop: the native side owns the OS media session (see src-tauri/
+    // src/media.rs) — a second webview session would fight it for the OS
+    // controls.
+    if (isTauri()) return;
     if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
     const dur = nowPlaying?.duration ?? 0;
     const pos = nowPlaying?.progress ?? 0;
@@ -855,7 +1008,7 @@ function StickyPlayerWithData() {
                 sha256: track.sha256,
                 liked: false,
               });
-              getRockboxPlayer().skipTo(idx);
+              void startAtIndex(idx);
             }}
             onRemove={(idx) => {
               getRockboxPlayer().removeAt(idx);

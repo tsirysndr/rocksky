@@ -1,7 +1,7 @@
 //! AppView reads over the official Rust SDK (`rocksky-sdk`).
 
 use rocksky_sdk::appview::{ProfileView, ScrobbleView, SearchResults};
-use rocksky_sdk::AppView;
+use rocksky_sdk::{AppView, ScrobbleInput};
 
 use crate::remote::DEFAULT_API_URL;
 
@@ -37,4 +37,27 @@ pub async fn rocksky_search(
     api_url: Option<String>,
 ) -> Result<SearchResults, String> {
     appview(api_url).search(&query).await.map_err(|e| e.to_string())
+}
+
+/// Submit a scrobble natively through the Rust SDK.
+///
+/// The webview would have to do a cross-origin POST for this; going through
+/// the native side removes CORS/fetch from the path entirely and reuses the
+/// official SDK (which is also what the remote-player bridge uses).
+#[tauri::command]
+pub async fn scrobble_submit(
+    token: String,
+    input: ScrobbleInput,
+    api_url: Option<String>,
+) -> Result<ScrobbleView, String> {
+    if token.trim().is_empty() {
+        return Err("not signed in".into());
+    }
+    let view = appview(api_url)
+        .with_token(token)
+        .create_scrobble(&input)
+        .await
+        .map_err(|e| e.to_string())?;
+    tracing::info!(title = %input.title, artist = %input.artist, "scrobble submitted");
+    Ok(view)
 }

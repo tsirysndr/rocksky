@@ -109,8 +109,14 @@ export function useUploadResume() {
     }
     const savedTrack = r.queue[Math.min(Math.max(0, r.index), r.queue.length - 1)];
     // Re-locate the resumed track in the (possibly shrunk) repaired queue.
+    // Navidrome tracks have an empty uploadId, so match on a real identity —
+    // an empty-string compare would hit the FIRST track every time.
+    const sameTrack = (a: QueueTrack, b: QueueTrack) =>
+      (!!a.sha256 && a.sha256 === b.sha256) ||
+      (!!a.streamUrl && a.streamUrl === b.streamUrl) ||
+      (!!a.uploadId && a.uploadId === b.uploadId);
     const located = savedTrack
-      ? queue.findIndex((q) => q.uploadId === savedTrack.uploadId)
+      ? queue.findIndex((q) => sameTrack(savedTrack, q))
       : -1;
     const idx = located >= 0 ? located : Math.min(Math.max(0, r.index), queue.length - 1);
     const t = queue[idx];

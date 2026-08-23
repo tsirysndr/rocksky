@@ -112,7 +112,10 @@ const registryById = new Map<string, QueueTrack>();
  *  as a last-resort label for URLs we didn't enqueue ourselves. */
 export function uploadIdFromUrl(url: string): string | null {
   const m = url.match(/\/uploads\/([^/]+)\/stream/);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  // Navidrome/Subsonic stream URLs carry the track id as a query param.
+  const nd = url.match(/[?&]id=([^&]+)/);
+  return nd ? nd[1] : null;
 }
 
 /** The stream URL the engine should decode for a track. */
@@ -124,8 +127,13 @@ export function streamUrlFor(track: QueueTrack): string {
  *  track events can be mapped back to full metadata. */
 export function registerTracks(tracks: QueueTrack[]): void {
   tracks.forEach((t) => {
-    registry.set(streamUrlFor(t), t);
+    const url = streamUrlFor(t);
+    registry.set(url, t);
     if (t.uploadId) registryById.set(t.uploadId, t);
+    // Navidrome tracks carry no uploadId — key them by the id in their
+    // stream URL so lookups survive credential/token differences.
+    const urlId = uploadIdFromUrl(url);
+    if (urlId) registryById.set(urlId, t);
   });
 }
 

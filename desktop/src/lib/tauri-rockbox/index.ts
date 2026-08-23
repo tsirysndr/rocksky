@@ -417,6 +417,10 @@ export class RockboxPlayer {
   }
 
   skipTo(index: number): void {
+    // Anchor the pre-decode index fallback to the requested track (the engine
+    // reports a null index until it starts decoding).
+    this._cuedUrl = this.queue[index] ?? null;
+    this.state = { ...this.state, index };
     this.call("player_skip_to", { index });
   }
 

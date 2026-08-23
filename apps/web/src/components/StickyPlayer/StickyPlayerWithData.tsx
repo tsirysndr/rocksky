@@ -48,6 +48,7 @@ import { useRockboxEngine } from "../../hooks/useRockboxEngine";
 import { useAudioSettingsPublisher } from "../../hooks/useAudioSettings";
 import { useUploadResume } from "../../hooks/useUploadResume";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
+import type { SongViewBasic } from "@rocksky/sdk";
 
 // ---------------------------------------------------------------------------
 // Styled components
@@ -187,14 +188,28 @@ function StickyPlayerWithData() {
   // file, not whether the viewer loved the song. Fetch the loved set once
   // (sha256-keyed) and seed nowPlaying.liked from it; explicit heart clicks
   // (the `liked` map above) always win.
-  const { data: lovedSha256s } = useQuery({
+  const { data: lovedByHash } = useQuery({
     queryKey: ["lovedSha256s"],
     queryFn: async () => {
       const did = localStorage.getItem("did");
-      if (!did) return new Set<string>();
-      const songs = await rocksky().lovedSongs(did, 500, 0);
-      return new Set(
-        songs.map((s) => s.sha256).filter((x): x is string => !!x),
+      if (!did) return new Map<string, string>();
+      // Page through the whole loved list — a single capped request silently
+      // truncates for anyone with a large library, and a missing entry reads
+      // as "not loved".
+      const PAGE = 1000;
+      const MAX_PAGES = 10;
+      const songs: SongViewBasic[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const batch = await rocksky().lovedSongs(did, PAGE, page * PAGE);
+        songs.push(...batch);
+        if (batch.length < PAGE) break;
+      }
+      // sha256 -> at:// uri, so a track with no songUri (Navidrome library
+      // entries) can still be recognized as loved and un-loved.
+      return new Map(
+        songs
+          .filter((s) => !!s.sha256)
+          .map((s) => [s.sha256 as string, s.uri ?? ""] as const),
       );
     },
     enabled: !!localStorage.getItem("did"),
@@ -501,6 +516,40 @@ function StickyPlayerWithData() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Start playback at `idx` of the UI queue.
+   *
+   *  The engine can be empty while the UI queue is full — the queue is
+   *  restored from localStorage on load, but the audio engine only gets it
+   *  when playback actually starts (and on desktop the native engine is a
+   *  separate process that a webview reload doesn't repopulate). Rebuild it
+   *  in that case; otherwise a plain skip is enough. */
+  const startAtIndex = async (idx: number, seekMs = 0) => {
+    if (!queue.length) return;
+    const p = await ensureRockboxReady();
+    await ensureStreamToken();
+    registerTracks(queue);
+    const urls = queue.map(streamUrlFor);
+    const target = Math.min(Math.max(0, idx), urls.length - 1);
+    if (p.queue.length === urls.length) {
+      p.skipTo(target);
+    } else {
+      // Cue the chosen track first so audio starts as soon as possible, then
+      // fill the rest around it (the engine fetches those lazily).
+      p.setQueue([urls[target]], true);
+      const after = urls.slice(target + 1);
+      const before = urls.slice(0, target);
+      if (after.length) p.insert(after, InsertMode.PlayLast);
+      if (before.length) p.insert(before, InsertMode.Prepend);
+    }
+    if (seekMs > 1000) {
+      const onceTrack = () => {
+        p.off("track", onceTrack);
+        try { p.seek(seekMs); } catch { /* not seekable yet */ }
+      };
+      p.on("track", onceTrack);
+    }
+  };
+
   // ── Playback controls ─────────────────────────────────────────────────────
 
   const onPlay = async () => {
@@ -515,23 +564,7 @@ function StickyPlayerWithData() {
       // the engine is empty. Rebuild the engine queue at the saved index and
       // seek to the saved elapsed time once the track is decoded.
       if (p.queue.length === 0 && queue.length > 0) {
-        await ensureStreamToken();
-        registerTracks(queue);
-        const urls = queue.map(streamUrlFor);
-        const idx = Math.min(Math.max(0, queueIndex), urls.length - 1);
-        const seekMs = nowPlaying?.progress ?? 0;
-        p.setQueue([urls[idx]], true);
-        const after = urls.slice(idx + 1);
-        const before = urls.slice(0, idx);
-        if (after.length) p.insert(after, InsertMode.PlayLast);
-        if (before.length) p.insert(before, InsertMode.Prepend);
-        if (seekMs > 1000) {
-          const onceTrack = () => {
-            p.off("track", onceTrack);
-            try { p.seek(seekMs); } catch { /* not seekable yet */ }
-          };
-          p.on("track", onceTrack);
-        }
+        await startAtIndex(queueIndex, nowPlaying?.progress ?? 0);
         setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
         return;
       }
@@ -662,31 +695,101 @@ function StickyPlayerWithData() {
   }, [hasNowPlaying, setPlayerControls]);
 
   useEffect(() => {
-    if (!lovedSha256s) return;
+    if (!lovedByHash) return;
     if (player !== "rockbox") return;
     setNowPlaying((prev) => {
       if (!prev?.sha256) return prev;
+      const key = prev.songUri || prev.sha256;
       // A manual heart click on this song wins over the fetched snapshot.
-      if (prev.songUri && liked[prev.songUri] !== undefined) return prev;
-      const isLoved = lovedSha256s.has(prev.sha256);
-      return prev.liked === isLoved ? prev : { ...prev, liked: isLoved };
+      if (liked[key] !== undefined) return prev;
+      const isLoved = lovedByHash.has(prev.sha256);
+      // Adopt the resolved uri so the heart can act on this track.
+      const uri = prev.songUri || lovedByHash.get(prev.sha256) || "";
+      if (prev.liked === isLoved && prev.songUri === uri) return prev;
+      return { ...prev, liked: isLoved, songUri: uri };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lovedSha256s, player, nowPlaying?.sha256]);
+  }, [lovedByHash, player, nowPlaying?.sha256]);
+
+  // Library tracks streamed from Navidrome have no at:// URIs, so the
+  // miniplayer can't link the title/artist/album (and the heart has no
+  // subject). Resolve them once per track from the canonical record.
+  const resolvedUriRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (player !== "rockbox") return;
+    const np = nowPlayingRef.current;
+    if (!np?.title || !np.artist) return;
+    if (np.songUri && np.artistUri && np.albumUri) return;
+    const key = np.sha256 || `${np.title}::${np.artist}`;
+    if (resolvedUriRef.current === key) return;
+    resolvedUriRef.current = key;
+    let cancelled = false;
+    rocksky()
+      .matchSong(np.title, np.artist)
+      .then((song) => {
+        if (cancelled || !song) return;
+        setNowPlaying((prev) => {
+          if (!prev || (prev.sha256 || `${prev.title}::${prev.artist}`) !== key) return prev;
+          return {
+            ...prev,
+            songUri: prev.songUri || song.uri || "",
+            artistUri: prev.artistUri || song.artistUri || "",
+            albumUri: prev.albumUri || song.albumUri || "",
+            albumArt: prev.albumArt || song.albumArt || undefined,
+            sha256: prev.sha256 || song.sha256 || "",
+          };
+        });
+      })
+      .catch(() => {
+        // Unresolvable (offline / not in the catalog yet) — leave as plain text.
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player, nowPlaying?.title, nowPlaying?.artist, nowPlaying?.songUri]);
 
   // ── Like / dislike ────────────────────────────────────────────────────────
 
-  const onLike = async (uri: string) => {
-    setLiked({ ...liked, [uri]: true });
-    like(uri);
-    setNowPlaying((prev) => (prev ? { ...prev, liked: true } : prev));
-    await queryClient.invalidateQueries({ queryKey: ["infiniteFeed", feedUri] });
+  /** The at:// uri for the playing track. Library entries streamed from
+   *  Navidrome carry none, so fall back to the loved-set lookup and finally
+   *  to matchSong, which resolves canonical metadata by title + artist. */
+  const resolveSongUri = async (uri: string): Promise<string> => {
+    if (uri) return uri;
+    const np = nowPlayingRef.current;
+    if (!np) return "";
+    const known = np.sha256 ? lovedByHash?.get(np.sha256) : undefined;
+    if (known) return known;
+    if (!np.title || !np.artist) return "";
+    try {
+      const song = await rocksky().matchSong(np.title, np.artist);
+      return song?.uri ?? "";
+    } catch {
+      return "";
+    }
   };
 
-  const onDislike = (uri: string) => {
-    setLiked({ ...liked, [uri]: false });
-    unlike(uri);
-    setNowPlaying((prev) => (prev ? { ...prev, liked: false } : prev));
+  const onLike = async (uri: string) => {
+    const resolved = await resolveSongUri(uri);
+    if (!resolved) return;
+    setLiked({ ...liked, [resolved]: true });
+    like(resolved);
+    setNowPlaying((prev) =>
+      prev ? { ...prev, liked: true, songUri: prev.songUri || resolved } : prev,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["infiniteFeed", feedUri] });
+    await queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] });
+  };
+
+  const onDislike = async (uri: string) => {
+    const resolved = await resolveSongUri(uri);
+    if (!resolved) return;
+    setLiked({ ...liked, [resolved]: false });
+    unlike(resolved);
+    setNowPlaying((prev) =>
+      prev ? { ...prev, liked: false, songUri: prev.songUri || resolved } : prev,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] });
   };
 
   // ── Media Session API — lock-screen / OS media controls ───────────────────
@@ -827,7 +930,7 @@ function StickyPlayerWithData() {
                 sha256: track.sha256,
                 liked: false,
               });
-              getRockboxPlayer().skipTo(idx);
+              void startAtIndex(idx);
             }}
             onRemove={(idx) => {
               getRockboxPlayer().removeAt(idx);

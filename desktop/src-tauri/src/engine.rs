@@ -140,7 +140,14 @@ impl Engine {
         std::thread::Builder::new()
             .name("rockbox-engine".into())
             .spawn(move || {
-                let player = match Player::new() {
+                // Deep decode-ahead: at a track boundary the engine opens
+                // the next source (an HTTPS probe + header fetch for remote
+                // tracks) while the ring buffer keeps draining — the default
+                // 4 s cushion audibly cuts out on slow opens; 10 s doesn't.
+                let config = rockbox_playback::PlayerConfig::builder()
+                    .buffer_seconds(10.0)
+                    .build();
+                let player = match Player::with_config(config) {
                     Ok(p) => {
                         let _ = ready_tx.send(Ok(()));
                         p

@@ -496,6 +496,17 @@ impl AppView {
         Ok(out.scrobbles)
     }
 
+    /// Submit a scrobble through the AppView
+    /// (`app.rocksky.scrobble.createScrobble`). Requires an access token
+    /// ([`AppView::with_token`]); the AppView resolves/creates the artist,
+    /// album and song records for you.
+    pub async fn create_scrobble(&self, input: &ScrobbleInput) -> Result<ScrobbleView> {
+        let body = serde_json::to_value(input)
+            .map_err(|e| SdkError::Other(format!("encode scrobble: {e}")))?;
+        self.mutate("app.rocksky.scrobble.createScrobble", body)
+            .await
+    }
+
     /// A single scrobble by its at:// URI (`app.rocksky.scrobble.getScrobble`).
     pub async fn scrobble(&self, uri: &str) -> Result<ScrobbleView> {
         self.query(
@@ -1125,6 +1136,36 @@ pub struct ScrobbleView {
     pub liked: Option<bool>,
     #[serde(default)]
     pub likes_count: Option<u32>,
+}
+
+/// Input for [`AppView::create_scrobble`]. Only `title`, `artist` and
+/// `album_artist` are required; everything else enriches the record.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScrobbleInput {
+    pub title: String,
+    pub artist: String,
+    pub album_artist: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<String>,
+    /// Track length in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    /// When the play started, as a unix timestamp in seconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub year: Option<i32>,
 }
 
 /// `app.rocksky.song.defs#songViewBasic`.

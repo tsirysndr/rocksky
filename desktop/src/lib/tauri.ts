@@ -4,3 +4,11 @@
 // on this so the same source renders harmlessly in a plain browser (e.g.
 // `vite dev` opened outside the Tauri window).
 export const isTauri = () => "__TAURI_INTERNALS__" in window;
+
+/** Send a diagnostic line to the native log (visible in `tauri dev`). */
+export function dlog(msg: string): void {
+  if (!isTauri()) return;
+  import("@tauri-apps/api/core")
+    .then(({ invoke }) => invoke("app_log", { msg }))
+    .catch(() => {});
+}
