@@ -97,27 +97,30 @@ async fn main() -> std::io::Result<()> {
         running: Mutex::new(()),
     });
 
-    // First refresh before accepting traffic, so a fresh deploy never answers
-    // 503 in the happy path. A failure (e.g. Postgres briefly down) is logged
-    // and left to the background loop to retry rather than crashing the
-    // service — and if the database file already holds a previous snapshot,
-    // it keeps being served in the meantime.
+    // Kick off the first refresh in the background and start serving right
+    // away: a refresh takes a minute or two (WAN fetch + pipeline) and must
+    // not keep the port closed for that long. Until it lands, requests are
+    // answered from the previous snapshot in the database file, or 503 on a
+    // truly fresh deploy. The refresher mutex keeps it from overlapping a
+    // manual POST /v1/refresh.
     //
-    // On a dedicated thread, not inline: the fetch phase spins up its own
-    // tokio runtime via block_on, which panics on this thread —
-    // actix_web::main is already inside one. (The other call sites are safe:
-    // the interval loop is a plain thread and the endpoint goes through
-    // web::block.)
+    // A dedicated thread, not inline: the fetch phase spins up its own tokio
+    // runtime via block_on, which panics on this thread — actix_web::main is
+    // already inside one. (The other call sites are safe: the interval loop
+    // is a plain thread and the endpoint goes through web::block.)
     {
         let cfg = cfg.clone();
         let db_url = db_url.clone();
         let store = Arc::clone(&store);
-        let outcome = thread::spawn(move || refresh::refresh(&cfg, &db_url, &store))
-            .join()
-            .unwrap_or_else(|_| Err("initial refresh thread panicked".into()));
-        if let Err(e) = outcome {
-            tracing::error!("initial refresh failed (will retry on the interval): {e}");
-        }
+        let refresher = Arc::clone(&refresher);
+        thread::spawn(move || {
+            let Ok(_guard) = refresher.running.try_lock() else {
+                return;
+            };
+            if let Err(e) = refresh::refresh(&cfg, &db_url, &store) {
+                tracing::error!("initial refresh failed (will retry on the interval): {e}");
+            }
+        });
     }
 
     {
