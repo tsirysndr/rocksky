@@ -504,23 +504,44 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
     let main_count = cfg.limit_per_user.saturating_sub(ser_count);
     let limit = cfg.limit_per_user;
     let cand_limit = cfg.candidate_limit.max(cfg.limit_per_user);
+    let profile_limit = cfg.profile_limit.max(cfg.limit_per_user);
     // Daily salt so the serendipity picks rotate instead of freezing forever —
     // hash() is deterministic, which keeps a given day's list stable across
     // refreshes but different from yesterday's.
     let day = (now_epoch as i64) / 86400;
 
     let steps: Vec<(&str, String)> = vec![
-        // Recency-decayed play weights. λ = 0.02/day ≈ 35-day half-life: taste
-        // is what the user plays *now*, not their all-time histogram (Last.fm
-        // profiles famously fossilize). greatest(...,0) guards clock skew.
+        // The profile every signal derives from: each user's most-played
+        // tracks, recency-decayed (λ = 0.02/day ≈ 35-day half-life — taste is
+        // what they play *now*, not their all-time histogram), plus their
+        // loved tracks, which count like a few recent plays so an explicit
+        // endorsement stays in the profile even when rarely played. Capped at
+        // the top {profile_limit} per user: neighbours, taste vectors and CF
+        // candidates all build on this table, so bounding it here bounds the
+        // whole pipeline. greatest(...,0) guards clock skew.
         (
             "user_tracks",
             format!(
                 "CREATE TABLE user_tracks AS
-                 SELECT user_id, track_id, any_value(artist_id) AS artist_id,
-                        sum(exp(-{lambda} * greatest(({now_epoch} - ts) / 86400.0, 0))) AS w
-                 FROM scrobbles
-                 GROUP BY user_id, track_id;"
+                 WITH track_artist AS (
+                     SELECT track_id, any_value(artist_id) AS artist_id
+                     FROM scrobbles WHERE artist_id IS NOT NULL
+                     GROUP BY track_id
+                 )
+                 SELECT user_id, track_id, any_value(artist_id) AS artist_id, sum(w) AS w
+                 FROM (
+                     SELECT user_id, track_id, artist_id,
+                            exp(-{lambda} * greatest(({now_epoch} - ts) / 86400.0, 0)) AS w
+                     FROM scrobbles
+                     UNION ALL
+                     SELECT l.user_id, l.track_id, ta.artist_id, 3.0
+                     FROM loved l
+                     LEFT JOIN track_artist ta ON ta.track_id = l.track_id
+                 )
+                 GROUP BY user_id, track_id
+                 QUALIFY row_number() OVER (
+                     PARTITION BY user_id ORDER BY sum(w) DESC
+                 ) <= {profile_limit};"
             ),
         ),
         (

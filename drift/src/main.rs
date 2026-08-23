@@ -72,6 +72,12 @@ pub struct Config {
     /// candidate breadth against refresh time and memory.
     #[arg(long, env = "DRIFT_CANDIDATE_LIMIT", default_value_t = 500)]
     pub candidate_limit: usize,
+
+    /// Tracks per user the taste profile is built from: the most-played
+    /// (recency-decayed) plus loved tracks. Everything downstream —
+    /// neighbours, taste vectors, CF — derives from this set.
+    #[arg(long, env = "DRIFT_PROFILE_LIMIT", default_value_t = 500)]
+    pub profile_limit: usize,
 }
 
 #[actix_web::main]

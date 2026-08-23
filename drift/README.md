@@ -112,6 +112,9 @@ Every option takes a flag **or** an environment variable:
 | `--decay-lambda`          | `DRIFT_DECAY_LAMBDA`          | `0.02`                         | Per-day recency decay                        |
 | `--content-weight`        | `DRIFT_CONTENT_WEIGHT`        | `0.6`                          | Exponent on audio-feature similarity (0 off) |
 | `--serendipity-ratio`     | `DRIFT_SERENDIPITY_RATIO`     | `0.15`                         | Serendipity share of each response           |
+| `--memory-limit`          | `DRIFT_MEMORY_LIMIT`          | `2GB`                          | DuckDB memory ceiling (spills instead of OOM) |
+| `--candidate-limit`       | `DRIFT_CANDIDATE_LIMIT`       | `500`                          | Candidates scored per user before ranking    |
+| `--profile-limit`         | `DRIFT_PROFILE_LIMIT`         | `500`                          | Most-played + loved tracks the profile uses  |
 
 The first refresh runs before the server accepts traffic; if it fails (e.g.
 Postgres briefly down) drift still starts, answers `503` until a refresh
