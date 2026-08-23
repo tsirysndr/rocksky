@@ -65,7 +65,12 @@ pub struct Config {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
     let cfg = Config::parse();
 
     let db_url = cfg
@@ -82,7 +87,7 @@ async fn main() -> std::io::Result<()> {
         std::process::exit(1);
     }));
     if store.is_ready() {
-        log::info!(
+        tracing::info!(
             "{} already holds a snapshot — serving it while the first refresh runs",
             cfg.db_path
         );
@@ -98,10 +103,11 @@ async fn main() -> std::io::Result<()> {
     // service — and if the database file already holds a previous snapshot,
     // it keeps being served in the meantime.
     //
-    // On a dedicated thread, not inline: the sync `postgres` client drives its
-    // own runtime via block_on, which panics on this thread — actix_web::main
-    // is already inside one. (The other call sites are safe: the interval loop
-    // is a plain thread and the endpoint goes through web::block.)
+    // On a dedicated thread, not inline: the fetch phase spins up its own
+    // tokio runtime via block_on, which panics on this thread —
+    // actix_web::main is already inside one. (The other call sites are safe:
+    // the interval loop is a plain thread and the endpoint goes through
+    // web::block.)
     {
         let cfg = cfg.clone();
         let db_url = db_url.clone();
@@ -110,7 +116,7 @@ async fn main() -> std::io::Result<()> {
             .join()
             .unwrap_or_else(|_| Err("initial refresh thread panicked".into()));
         if let Err(e) = outcome {
-            log::error!("initial refresh failed (will retry on the interval): {e}");
+            tracing::error!("initial refresh failed (will retry on the interval): {e}");
         }
     }
 
@@ -121,16 +127,16 @@ async fn main() -> std::io::Result<()> {
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(cfg.refresh_interval_secs));
             let Ok(_guard) = refresher.running.try_lock() else {
-                log::info!("skipping scheduled refresh: one is already running");
+                tracing::info!("skipping scheduled refresh: one is already running");
                 continue;
             };
             if let Err(e) = refresh::refresh(&cfg, &refresher.db_url, &store) {
-                log::error!("scheduled refresh failed: {e}");
+                tracing::error!("scheduled refresh failed: {e}");
             }
         });
     }
 
-    log::info!("drift listening on {}:{}", cfg.host, cfg.port);
+    tracing::info!("drift listening on {}:{}", cfg.host, cfg.port);
     let bind = (cfg.host.clone(), cfg.port);
     HttpServer::new(move || {
         App::new()

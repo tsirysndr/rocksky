@@ -18,6 +18,7 @@
 use crate::store::Store;
 use crate::Config;
 use duckdb::params;
+use sqlx::{Connection, Row};
 use std::path::Path;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -52,21 +53,19 @@ pub fn refresh(cfg: &Config, db_url: &str, store: &Store) -> Result<(usize, usiz
         .map_err(|e| e.to_string())?
         .as_secs_f64();
 
-    // TLS via the system trust store; sslmode in the URL decides whether it is
-    // actually used, so plain local Postgres keeps working too.
-    let tls = native_tls::TlsConnector::new()
-        .map_err(|e| format!("tls connector failed: {e}"))?;
-    let mut pg = postgres::Client::connect(db_url, postgres_native_tls::MakeTlsConnector::new(tls))
-        .map_err(|e| format!("postgres connect failed: {e}"))?;
+    tracing::info!("refresh: starting");
+    let data = fetch_postgres(db_url)?;
     let conn = store.conn()?;
 
+    tracing::info!("refresh: resetting staging tables");
     drop_staging(&conn)?;
     create_staging(&conn)?;
-    sync_postgres(&mut pg, &conn)?;
+    load_duckdb(&conn, &data)?;
     register_features(&conn, &cfg.features_parquet)?;
     run_pipeline(&conn, cfg, now_epoch)?;
 
     // The swap: readers keep the old `recommendations` until this commits.
+    tracing::info!("refresh: persisting snapshot");
     conn.execute_batch("CREATE OR REPLACE TABLE recommendations AS SELECT * FROM final;")
         .map_err(|e| format!("persisting recommendations failed: {e}"))?;
 
@@ -87,12 +86,167 @@ pub fn refresh(cfg: &Config, db_url: &str, store: &Store) -> Result<(usize, usiz
     ))
     .map_err(|e| format!("persisting meta failed: {e}"))?;
 
+    tracing::info!("refresh: dropping staging + checkpoint");
     drop_staging(&conn)?;
     conn.execute_batch("CHECKPOINT;")
         .map_err(|e| format!("checkpoint failed: {e}"))?;
 
-    log::info!("refresh done: {users} users, {rows} rows, {took_ms} ms");
+    tracing::info!("refresh done: {users} users, {rows} rows, {took_ms} ms");
     Ok((users, rows, took_ms))
+}
+
+/// Everything drift needs from Postgres, fetched in one session.
+struct PgData {
+    scrobbles: Vec<(String, String, Option<String>, f64)>,
+    loved: Vec<(String, String)>,
+    users: Vec<(String, String, String, bool)>,
+    #[allow(clippy::type_complexity)]
+    tracks: Vec<(
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )>,
+    artist_genres: Vec<(String, Option<String>, Vec<String>)>,
+}
+
+/// sqlx is async (TLS is negotiated from sslmode in the URL); refresh always
+/// runs on a plain thread — never the actix runtime — so a small
+/// current-thread runtime here is safe.
+fn fetch_postgres(db_url: &str) -> Result<PgData, String> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("tokio runtime failed: {e}"))?;
+
+    rt.block_on(async {
+        let t = Instant::now();
+        tracing::info!("postgres: connecting");
+        let mut conn = sqlx::postgres::PgConnection::connect(db_url)
+            .await
+            .map_err(|e| format!("postgres connect failed: {e}"))?;
+        tracing::info!("postgres: connected in {} ms", t.elapsed().as_millis());
+
+        let t = Instant::now();
+        tracing::info!("postgres: fetching scrobbles");
+        let scrobbles: Vec<(String, String, Option<String>, f64)> = sqlx::query(
+            "SELECT user_id, track_id, artist_id, extract(epoch FROM \"timestamp\")::float8 AS ts
+             FROM scrobbles WHERE user_id IS NOT NULL AND track_id IS NOT NULL",
+        )
+        .fetch_all(&mut conn)
+        .await
+        .map_err(|e| format!("scrobbles query failed: {e}"))?
+        .into_iter()
+        .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3)))
+        .collect();
+        tracing::info!(
+            "postgres: scrobbles — {} rows in {} ms",
+            scrobbles.len(),
+            t.elapsed().as_millis()
+        );
+
+        let t = Instant::now();
+        tracing::info!("postgres: fetching loved_tracks");
+        let loved: Vec<(String, String)> =
+            sqlx::query("SELECT user_id, track_id FROM loved_tracks")
+                .fetch_all(&mut conn)
+                .await
+                .map_err(|e| format!("loved_tracks query failed: {e}"))?
+                .into_iter()
+                .map(|r| (r.get(0), r.get(1)))
+                .collect();
+        tracing::info!(
+            "postgres: loved_tracks — {} rows in {} ms",
+            loved.len(),
+            t.elapsed().as_millis()
+        );
+
+        let t = Instant::now();
+        tracing::info!("postgres: fetching users");
+        let users: Vec<(String, String, String, bool)> =
+            sqlx::query("SELECT xata_id, did, handle, is_bot FROM users")
+                .fetch_all(&mut conn)
+                .await
+                .map_err(|e| format!("users query failed: {e}"))?
+                .into_iter()
+                .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3)))
+                .collect();
+        tracing::info!(
+            "postgres: users — {} rows in {} ms",
+            users.len(),
+            t.elapsed().as_millis()
+        );
+
+        let t = Instant::now();
+        tracing::info!("postgres: fetching tracks");
+        #[allow(clippy::type_complexity)]
+        let tracks: Vec<(
+            String,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+        )> = sqlx::query(
+            "SELECT xata_id, title, artist, album, album_art, uri, artist_uri, album_uri, spotify_link
+             FROM tracks",
+        )
+        .fetch_all(&mut conn)
+        .await
+        .map_err(|e| format!("tracks query failed: {e}"))?
+        .into_iter()
+        .map(|r| {
+            (
+                r.get(0),
+                r.get(1),
+                r.get(2),
+                r.get(3),
+                r.get(4),
+                r.get(5),
+                r.get(6),
+                r.get(7),
+                r.get(8),
+            )
+        })
+        .collect();
+        tracing::info!(
+            "postgres: tracks — {} rows in {} ms",
+            tracks.len(),
+            t.elapsed().as_millis()
+        );
+
+        let t = Instant::now();
+        tracing::info!("postgres: fetching artist genres");
+        let artist_genres: Vec<(String, Option<String>, Vec<String>)> =
+            sqlx::query("SELECT xata_id, uri, genres FROM artists WHERE genres IS NOT NULL")
+                .fetch_all(&mut conn)
+                .await
+                .map_err(|e| format!("artists query failed: {e}"))?
+                .into_iter()
+                .map(|r| (r.get(0), r.get(1), r.get(2)))
+                .collect();
+        tracing::info!(
+            "postgres: artists with genres — {} rows in {} ms",
+            artist_genres.len(),
+            t.elapsed().as_millis()
+        );
+
+        Ok(PgData {
+            scrobbles,
+            loved,
+            users,
+            tracks,
+            artist_genres,
+        })
+    })
 }
 
 fn drop_staging(conn: &duckdb::Connection) -> Result<(), String> {
@@ -118,115 +272,95 @@ fn create_staging(conn: &duckdb::Connection) -> Result<(), String> {
     .map_err(|e| format!("staging schema failed: {e}"))
 }
 
-/// Copies the five relations drift needs out of Postgres. Volumes are small
-/// (hundreds of thousands of rows), so a straight row copy through an Appender
-/// beats any incremental scheme in both speed and simplicity.
-fn sync_postgres(pg: &mut postgres::Client, conn: &duckdb::Connection) -> Result<(), String> {
-    let t = Instant::now();
+/// Loads the fetched rows into the DuckDB staging tables through Appenders,
+/// with a progress line every 100k rows so long loads are visible in the
+/// journal.
+fn load_duckdb(conn: &duckdb::Connection, data: &PgData) -> Result<(), String> {
+    const TICK: usize = 100_000;
+    let t_all = Instant::now();
 
-    let rows = pg
-        .query(
-            "SELECT user_id, track_id, artist_id, extract(epoch FROM \"timestamp\")::float8
-             FROM scrobbles WHERE user_id IS NOT NULL AND track_id IS NOT NULL",
-            &[],
-        )
-        .map_err(|e| format!("scrobbles query failed: {e}"))?;
+    let t = Instant::now();
+    tracing::info!("duckdb: loading {} scrobbles", data.scrobbles.len());
     let mut app = conn
         .appender("scrobbles")
         .map_err(|e| format!("appender failed: {e}"))?;
-    let n_scrobbles = rows.len();
-    for r in rows {
-        let user_id: String = r.get(0);
-        let track_id: String = r.get(1);
-        let artist_id: Option<String> = r.get(2);
-        let ts: f64 = r.get(3);
-        app.append_row(params![user_id, track_id, artist_id, ts])
-            .map_err(|e| format!("scrobbles append failed: {e}"))?;
+    for (i, (user_id, track_id, artist_id, ts)) in data.scrobbles.iter().enumerate() {
+        app.append_row(params![
+            user_id.as_str(),
+            track_id.as_str(),
+            artist_id.as_deref(),
+            *ts
+        ])
+        .map_err(|e| format!("scrobbles append failed: {e}"))?;
+        if (i + 1) % TICK == 0 {
+            tracing::info!("duckdb: scrobbles {} / {}", i + 1, data.scrobbles.len());
+        }
     }
     drop(app);
+    tracing::info!("duckdb: scrobbles loaded in {} ms", t.elapsed().as_millis());
 
-    let rows = pg
-        .query("SELECT user_id, track_id FROM loved_tracks", &[])
-        .map_err(|e| format!("loved_tracks query failed: {e}"))?;
+    let t = Instant::now();
+    tracing::info!("duckdb: loading {} loved tracks", data.loved.len());
     let mut app = conn.appender("loved").map_err(|e| e.to_string())?;
-    let n_loved = rows.len();
-    for r in rows {
-        let user_id: String = r.get(0);
-        let track_id: String = r.get(1);
-        app.append_row(params![user_id, track_id])
+    for (user_id, track_id) in &data.loved {
+        app.append_row(params![user_id.as_str(), track_id.as_str()])
             .map_err(|e| format!("loved append failed: {e}"))?;
     }
     drop(app);
+    tracing::info!("duckdb: loved loaded in {} ms", t.elapsed().as_millis());
 
-    let rows = pg
-        .query("SELECT xata_id, did, handle, is_bot FROM users", &[])
-        .map_err(|e| format!("users query failed: {e}"))?;
+    let t = Instant::now();
+    tracing::info!("duckdb: loading {} users", data.users.len());
     let mut app = conn.appender("users").map_err(|e| e.to_string())?;
-    let n_users = rows.len();
-    for r in rows {
-        let id: String = r.get(0);
-        let did: String = r.get(1);
-        let handle: String = r.get(2);
-        let is_bot: bool = r.get(3);
-        app.append_row(params![id, did, handle, is_bot])
+    for (id, did, handle, is_bot) in &data.users {
+        app.append_row(params![id.as_str(), did.as_str(), handle.as_str(), *is_bot])
             .map_err(|e| format!("users append failed: {e}"))?;
     }
     drop(app);
+    tracing::info!("duckdb: users loaded in {} ms", t.elapsed().as_millis());
 
-    let rows = pg
-        .query(
-            "SELECT xata_id, title, artist, album, album_art, uri, artist_uri, album_uri, spotify_link
-             FROM tracks",
-            &[],
-        )
-        .map_err(|e| format!("tracks query failed: {e}"))?;
+    let t = Instant::now();
+    tracing::info!("duckdb: loading {} tracks", data.tracks.len());
     let mut app = conn.appender("tracks").map_err(|e| e.to_string())?;
-    let n_tracks = rows.len();
-    for r in rows {
-        let id: String = r.get(0);
-        let title: Option<String> = r.get(1);
-        let artist: Option<String> = r.get(2);
-        let album: Option<String> = r.get(3);
-        let album_art: Option<String> = r.get(4);
-        let uri: Option<String> = r.get(5);
-        let artist_uri: Option<String> = r.get(6);
-        let album_uri: Option<String> = r.get(7);
-        let spotify_link: Option<String> = r.get(8);
+    for (i, (id, title, artist, album, album_art, uri, artist_uri, album_uri, spotify_link)) in
+        data.tracks.iter().enumerate()
+    {
         app.append_row(params![
-            id,
-            title,
-            artist,
-            album,
-            album_art,
-            uri,
-            artist_uri,
-            album_uri,
-            spotify_link,
-            None::<String>
+            id.as_str(),
+            title.as_deref(),
+            artist.as_deref(),
+            album.as_deref(),
+            album_art.as_deref(),
+            uri.as_deref(),
+            artist_uri.as_deref(),
+            album_uri.as_deref(),
+            spotify_link.as_deref(),
+            None::<&str>
         ])
         .map_err(|e| format!("tracks append failed: {e}"))?;
+        if (i + 1) % TICK == 0 {
+            tracing::info!("duckdb: tracks {} / {}", i + 1, data.tracks.len());
+        }
     }
     drop(app);
+    tracing::info!("duckdb: tracks loaded in {} ms", t.elapsed().as_millis());
 
-    let rows = pg
-        .query(
-            "SELECT xata_id, uri, genres FROM artists WHERE genres IS NOT NULL",
-            &[],
-        )
-        .map_err(|e| format!("artists query failed: {e}"))?;
+    let t = Instant::now();
     let mut app = conn.appender("artist_genres").map_err(|e| e.to_string())?;
     let mut n_genres = 0usize;
-    for r in rows {
-        let id: String = r.get(0);
-        let uri: Option<String> = r.get(1);
-        let genres: Vec<String> = r.get(2);
+    for (id, uri, genres) in &data.artist_genres {
         for g in genres {
-            app.append_row(params![id, uri, g])
+            app.append_row(params![id.as_str(), uri.as_deref(), g.as_str()])
                 .map_err(|e| format!("artist_genres append failed: {e}"))?;
             n_genres += 1;
         }
     }
     drop(app);
+    tracing::info!(
+        "duckdb: {} artist-genre rows loaded in {} ms",
+        n_genres,
+        t.elapsed().as_millis()
+    );
 
     conn.execute_batch(
         "UPDATE tracks
@@ -235,9 +369,9 @@ fn sync_postgres(pg: &mut postgres::Client, conn: &duckdb::Connection) -> Result
     )
     .map_err(|e| format!("spotify_id extraction failed: {e}"))?;
 
-    log::info!(
-        "postgres sync: {n_scrobbles} scrobbles, {n_loved} loved, {n_users} users, {n_tracks} tracks, {n_genres} artist-genre rows in {} ms",
-        t.elapsed().as_millis()
+    tracing::info!(
+        "duckdb: staging fully loaded in {} ms",
+        t_all.elapsed().as_millis()
     );
     Ok(())
 }
@@ -248,6 +382,7 @@ fn sync_postgres(pg: &mut postgres::Client, conn: &duckdb::Connection) -> Result
 /// gracefully: the view is empty and every content term falls back to neutral.
 fn register_features(conn: &duckdb::Connection, path: &str) -> Result<(), String> {
     if Path::new(path).is_file() {
+        tracing::info!("features: registering {path}");
         let escaped = path.replace('\'', "''");
         conn.execute_batch(&format!(
             "CREATE OR REPLACE VIEW features AS
@@ -266,7 +401,7 @@ fn register_features(conn: &duckdb::Connection, path: &str) -> Result<(), String
         ))
         .map_err(|e| format!("features view failed: {e}"))
     } else {
-        log::warn!(
+        tracing::warn!(
             "features parquet not found at {path}; recommendations will run without the audio-feature signal"
         );
         conn.execute_batch(
@@ -634,11 +769,18 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
         ),
     ];
 
-    for (label, sql) in steps {
+    let total = steps.len();
+    for (i, (label, sql)) in steps.iter().enumerate() {
         let t = Instant::now();
-        conn.execute_batch(&sql)
+        tracing::info!("pipeline [{}/{}]: {label} running", i + 1, total);
+        conn.execute_batch(sql)
             .map_err(|e| format!("pipeline step `{label}` failed: {e}"))?;
-        log::info!("pipeline: {label} in {} ms", t.elapsed().as_millis());
+        tracing::info!(
+            "pipeline [{}/{}]: {label} done in {} ms",
+            i + 1,
+            total,
+            t.elapsed().as_millis()
+        );
     }
     Ok(())
 }
