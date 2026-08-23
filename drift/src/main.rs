@@ -61,6 +61,11 @@ pub struct Config {
 
     #[arg(long, env = "DRIFT_SERENDIPITY_RATIO", default_value_t = 0.15)]
     pub serendipity_ratio: f64,
+
+    /// DuckDB memory ceiling during refresh. Above it DuckDB spills to disk
+    /// instead of growing until the kernel OOM-kills the service.
+    #[arg(long, env = "DRIFT_MEMORY_LIMIT", default_value = "2GB")]
+    pub memory_limit: String,
 }
 
 #[actix_web::main]

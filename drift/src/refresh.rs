@@ -57,11 +57,20 @@ pub fn refresh(cfg: &Config, db_url: &str, store: &Store) -> Result<(usize, usiz
     let data = fetch_postgres(db_url)?;
     let conn = store.conn()?;
 
+    // A hard ceiling on DuckDB memory: without it, a heavy join (the features
+    // parquet is the full catalog dump) grows until the kernel OOM-kills the
+    // whole service. Under the cap DuckDB spills to disk instead.
+    conn.execute_batch(&format!(
+        "SET memory_limit = '{}'; SET preserve_insertion_order = false;",
+        cfg.memory_limit.replace('\'', "")
+    ))
+    .map_err(|e| format!("duckdb settings failed: {e}"))?;
+
     tracing::info!("refresh: resetting staging tables");
     drop_staging(&conn)?;
     create_staging(&conn)?;
     load_duckdb(&conn, &data)?;
-    register_features(&conn, &cfg.features_parquet)?;
+    sync_features(&conn, &cfg.features_parquet)?;
     run_pipeline(&conn, cfg, now_epoch)?;
 
     // The swap: readers keep the old `recommendations` until this commits.
@@ -117,7 +126,9 @@ struct PgData {
 
 /// sqlx is async (TLS is negotiated from sslmode in the URL); refresh always
 /// runs on a plain thread — never the actix runtime — so a small
-/// current-thread runtime here is safe.
+/// current-thread runtime here is safe. The five relations are fetched
+/// concurrently on separate connections — over a WAN link the fetch phase
+/// costs one round trip of the slowest relation, not the sum of all five.
 fn fetch_postgres(db_url: &str) -> Result<PgData, String> {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -126,119 +137,15 @@ fn fetch_postgres(db_url: &str) -> Result<PgData, String> {
 
     rt.block_on(async {
         let t = Instant::now();
-        tracing::info!("postgres: connecting");
-        let mut conn = sqlx::postgres::PgConnection::connect(db_url)
-            .await
-            .map_err(|e| format!("postgres connect failed: {e}"))?;
-        tracing::info!("postgres: connected in {} ms", t.elapsed().as_millis());
-
-        let t = Instant::now();
-        tracing::info!("postgres: fetching scrobbles");
-        let scrobbles: Vec<(String, String, Option<String>, f64)> = sqlx::query(
-            "SELECT user_id, track_id, artist_id, extract(epoch FROM \"timestamp\")::float8 AS ts
-             FROM scrobbles WHERE user_id IS NOT NULL AND track_id IS NOT NULL",
-        )
-        .fetch_all(&mut conn)
-        .await
-        .map_err(|e| format!("scrobbles query failed: {e}"))?
-        .into_iter()
-        .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3)))
-        .collect();
-        tracing::info!(
-            "postgres: scrobbles — {} rows in {} ms",
-            scrobbles.len(),
-            t.elapsed().as_millis()
-        );
-
-        let t = Instant::now();
-        tracing::info!("postgres: fetching loved_tracks");
-        let loved: Vec<(String, String)> =
-            sqlx::query("SELECT user_id, track_id FROM loved_tracks")
-                .fetch_all(&mut conn)
-                .await
-                .map_err(|e| format!("loved_tracks query failed: {e}"))?
-                .into_iter()
-                .map(|r| (r.get(0), r.get(1)))
-                .collect();
-        tracing::info!(
-            "postgres: loved_tracks — {} rows in {} ms",
-            loved.len(),
-            t.elapsed().as_millis()
-        );
-
-        let t = Instant::now();
-        tracing::info!("postgres: fetching users");
-        let users: Vec<(String, String, String, bool)> =
-            sqlx::query("SELECT xata_id, did, handle, is_bot FROM users")
-                .fetch_all(&mut conn)
-                .await
-                .map_err(|e| format!("users query failed: {e}"))?
-                .into_iter()
-                .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3)))
-                .collect();
-        tracing::info!(
-            "postgres: users — {} rows in {} ms",
-            users.len(),
-            t.elapsed().as_millis()
-        );
-
-        let t = Instant::now();
-        tracing::info!("postgres: fetching tracks");
-        #[allow(clippy::type_complexity)]
-        let tracks: Vec<(
-            String,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-        )> = sqlx::query(
-            "SELECT xata_id, title, artist, album, album_art, uri, artist_uri, album_uri, spotify_link
-             FROM tracks",
-        )
-        .fetch_all(&mut conn)
-        .await
-        .map_err(|e| format!("tracks query failed: {e}"))?
-        .into_iter()
-        .map(|r| {
-            (
-                r.get(0),
-                r.get(1),
-                r.get(2),
-                r.get(3),
-                r.get(4),
-                r.get(5),
-                r.get(6),
-                r.get(7),
-                r.get(8),
-            )
-        })
-        .collect();
-        tracing::info!(
-            "postgres: tracks — {} rows in {} ms",
-            tracks.len(),
-            t.elapsed().as_millis()
-        );
-
-        let t = Instant::now();
-        tracing::info!("postgres: fetching artist genres");
-        let artist_genres: Vec<(String, Option<String>, Vec<String>)> =
-            sqlx::query("SELECT xata_id, uri, genres FROM artists WHERE genres IS NOT NULL")
-                .fetch_all(&mut conn)
-                .await
-                .map_err(|e| format!("artists query failed: {e}"))?
-                .into_iter()
-                .map(|r| (r.get(0), r.get(1), r.get(2)))
-                .collect();
-        tracing::info!(
-            "postgres: artists with genres — {} rows in {} ms",
-            artist_genres.len(),
-            t.elapsed().as_millis()
-        );
-
+        tracing::info!("postgres: fetching 5 relations concurrently");
+        let (scrobbles, loved, users, tracks, artist_genres) = tokio::try_join!(
+            fetch_scrobbles(db_url),
+            fetch_loved(db_url),
+            fetch_users(db_url),
+            fetch_tracks(db_url),
+            fetch_artist_genres(db_url),
+        )?;
+        tracing::info!("postgres: all fetches done in {} ms", t.elapsed().as_millis());
         Ok(PgData {
             scrobbles,
             loved,
@@ -247,6 +154,140 @@ fn fetch_postgres(db_url: &str) -> Result<PgData, String> {
             artist_genres,
         })
     })
+}
+
+async fn pg_connect(db_url: &str) -> Result<sqlx::postgres::PgConnection, String> {
+    sqlx::postgres::PgConnection::connect(db_url)
+        .await
+        .map_err(|e| format!("postgres connect failed: {e}"))
+}
+
+async fn fetch_scrobbles(db_url: &str) -> Result<Vec<(String, String, Option<String>, f64)>, String> {
+    let t = Instant::now();
+    let mut conn = pg_connect(db_url).await?;
+    let rows: Vec<(String, String, Option<String>, f64)> = sqlx::query(
+        "SELECT user_id, track_id, artist_id, extract(epoch FROM \"timestamp\")::float8 AS ts
+         FROM scrobbles WHERE user_id IS NOT NULL AND track_id IS NOT NULL",
+    )
+    .fetch_all(&mut conn)
+    .await
+    .map_err(|e| format!("scrobbles query failed: {e}"))?
+    .into_iter()
+    .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3)))
+    .collect();
+    tracing::info!(
+        "postgres: scrobbles — {} rows in {} ms",
+        rows.len(),
+        t.elapsed().as_millis()
+    );
+    Ok(rows)
+}
+
+async fn fetch_loved(db_url: &str) -> Result<Vec<(String, String)>, String> {
+    let t = Instant::now();
+    let mut conn = pg_connect(db_url).await?;
+    let rows: Vec<(String, String)> = sqlx::query("SELECT user_id, track_id FROM loved_tracks")
+        .fetch_all(&mut conn)
+        .await
+        .map_err(|e| format!("loved_tracks query failed: {e}"))?
+        .into_iter()
+        .map(|r| (r.get(0), r.get(1)))
+        .collect();
+    tracing::info!(
+        "postgres: loved_tracks — {} rows in {} ms",
+        rows.len(),
+        t.elapsed().as_millis()
+    );
+    Ok(rows)
+}
+
+async fn fetch_users(db_url: &str) -> Result<Vec<(String, String, String, bool)>, String> {
+    let t = Instant::now();
+    let mut conn = pg_connect(db_url).await?;
+    let rows: Vec<(String, String, String, bool)> =
+        sqlx::query("SELECT xata_id, did, handle, is_bot FROM users")
+            .fetch_all(&mut conn)
+            .await
+            .map_err(|e| format!("users query failed: {e}"))?
+            .into_iter()
+            .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3)))
+            .collect();
+    tracing::info!(
+        "postgres: users — {} rows in {} ms",
+        rows.len(),
+        t.elapsed().as_millis()
+    );
+    Ok(rows)
+}
+
+#[allow(clippy::type_complexity)]
+async fn fetch_tracks(
+    db_url: &str,
+) -> Result<
+    Vec<(
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )>,
+    String,
+> {
+    let t = Instant::now();
+    let mut conn = pg_connect(db_url).await?;
+    let rows: Vec<_> = sqlx::query(
+        "SELECT xata_id, title, artist, album, album_art, uri, artist_uri, album_uri, spotify_link
+         FROM tracks",
+    )
+    .fetch_all(&mut conn)
+    .await
+    .map_err(|e| format!("tracks query failed: {e}"))?
+    .into_iter()
+    .map(|r| {
+        (
+            r.get(0),
+            r.get(1),
+            r.get(2),
+            r.get(3),
+            r.get(4),
+            r.get(5),
+            r.get(6),
+            r.get(7),
+            r.get(8),
+        )
+    })
+    .collect();
+    tracing::info!(
+        "postgres: tracks — {} rows in {} ms",
+        rows.len(),
+        t.elapsed().as_millis()
+    );
+    Ok(rows)
+}
+
+async fn fetch_artist_genres(
+    db_url: &str,
+) -> Result<Vec<(String, Option<String>, Vec<String>)>, String> {
+    let t = Instant::now();
+    let mut conn = pg_connect(db_url).await?;
+    let rows: Vec<(String, Option<String>, Vec<String>)> =
+        sqlx::query("SELECT xata_id, uri, genres FROM artists WHERE genres IS NOT NULL")
+            .fetch_all(&mut conn)
+            .await
+            .map_err(|e| format!("artists query failed: {e}"))?
+            .into_iter()
+            .map(|r| (r.get(0), r.get(1), r.get(2)))
+            .collect();
+    tracing::info!(
+        "postgres: artists with genres — {} rows in {} ms",
+        rows.len(),
+        t.elapsed().as_millis()
+    );
+    Ok(rows)
 }
 
 fn drop_staging(conn: &duckdb::Connection) -> Result<(), String> {
@@ -378,44 +419,80 @@ fn load_duckdb(conn: &duckdb::Connection, data: &PgData) -> Result<(), String> {
 
 /// Audio features come from riff's `track_audio_features.parquet` (keyed by
 /// Spotify track id, every column VARCHAR — `TRY_CAST` restores the numeric
-/// shape, one malformed cell becomes a null field). A missing file degrades
-/// gracefully: the view is empty and every content term falls back to neutral.
-fn register_features(conn: &duckdb::Connection, path: &str) -> Result<(), String> {
+/// shape). On production that parquet is the **full catalog dump**, far too
+/// big to join on every refresh — so features are cached in the serving
+/// database, keyed by spotify id, and the parquet is only scanned when tracks
+/// with *uncached* ids appear (a hash join against just those ids). Ids the
+/// dump doesn't know are remembered in `features_absent` so they are never
+/// searched again. Steady state: zero parquet reads per refresh.
+///
+/// A missing file degrades gracefully: the cache serves whatever it already
+/// holds, and content terms fall back to neutral for the rest.
+fn sync_features(conn: &duckdb::Connection, path: &str) -> Result<(), String> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS features_cache (
+             spotify_id VARCHAR,
+             danceability DOUBLE, energy DOUBLE, valence DOUBLE, acousticness DOUBLE,
+             instrumentalness DOUBLE, liveness DOUBLE, speechiness DOUBLE,
+             tempo DOUBLE, loudness DOUBLE);
+         CREATE TABLE IF NOT EXISTS features_absent (spotify_id VARCHAR);",
+    )
+    .map_err(|e| format!("features cache schema failed: {e}"))?;
+
     if Path::new(path).is_file() {
-        tracing::info!("features: registering {path}");
-        let escaped = path.replace('\'', "''");
-        conn.execute_batch(&format!(
-            "CREATE OR REPLACE VIEW features AS
-             SELECT track_id AS spotify_id,
-                    TRY_CAST(danceability AS DOUBLE) AS danceability,
-                    TRY_CAST(energy AS DOUBLE) AS energy,
-                    TRY_CAST(valence AS DOUBLE) AS valence,
-                    TRY_CAST(acousticness AS DOUBLE) AS acousticness,
-                    TRY_CAST(instrumentalness AS DOUBLE) AS instrumentalness,
-                    TRY_CAST(liveness AS DOUBLE) AS liveness,
-                    TRY_CAST(speechiness AS DOUBLE) AS speechiness,
-                    TRY_CAST(tempo AS DOUBLE) AS tempo,
-                    TRY_CAST(loudness AS DOUBLE) AS loudness
-             FROM read_parquet('{escaped}')
-             WHERE coalesce(null_response, '0') NOT IN ('1', 'true');"
-        ))
-        .map_err(|e| format!("features view failed: {e}"))
+        conn.execute_batch(
+            "CREATE OR REPLACE TEMP TABLE new_ids AS
+             SELECT DISTINCT t.spotify_id FROM tracks t
+             ANTI JOIN features_cache fc ON fc.spotify_id = t.spotify_id
+             ANTI JOIN features_absent fa ON fa.spotify_id = t.spotify_id
+             WHERE t.spotify_id IS NOT NULL;",
+        )
+        .map_err(|e| format!("new_ids failed: {e}"))?;
+        let new_ids: i64 = conn
+            .query_row("SELECT count(*) FROM new_ids", [], |r| r.get(0))
+            .map_err(|e| format!("counting new_ids failed: {e}"))?;
+
+        if new_ids > 0 {
+            let t = Instant::now();
+            tracing::info!("features: {new_ids} uncached spotify ids — scanning {path}");
+            let escaped = path.replace('\'', "''");
+            conn.execute_batch(&format!(
+                "INSERT INTO features_cache
+                 SELECT f.track_id,
+                        TRY_CAST(f.danceability AS DOUBLE), TRY_CAST(f.energy AS DOUBLE),
+                        TRY_CAST(f.valence AS DOUBLE), TRY_CAST(f.acousticness AS DOUBLE),
+                        TRY_CAST(f.instrumentalness AS DOUBLE), TRY_CAST(f.liveness AS DOUBLE),
+                        TRY_CAST(f.speechiness AS DOUBLE), TRY_CAST(f.tempo AS DOUBLE),
+                        TRY_CAST(f.loudness AS DOUBLE)
+                 FROM read_parquet('{escaped}') f
+                 JOIN new_ids n ON n.spotify_id = f.track_id
+                 WHERE coalesce(f.null_response, '0') NOT IN ('1', 'true')
+                 QUALIFY row_number() OVER (PARTITION BY f.track_id) = 1;
+                 INSERT INTO features_absent
+                 SELECT n.spotify_id FROM new_ids n
+                 ANTI JOIN features_cache fc ON fc.spotify_id = n.spotify_id;"
+            ))
+            .map_err(|e| format!("features cache build failed: {e}"))?;
+            let cached: i64 = conn
+                .query_row("SELECT count(*) FROM features_cache", [], |r| r.get(0))
+                .map_err(|e| e.to_string())?;
+            tracing::info!(
+                "features: cache now {cached} rows (scan took {} ms)",
+                t.elapsed().as_millis()
+            );
+        } else {
+            tracing::info!("features: cache complete — parquet scan skipped");
+        }
+        conn.execute_batch("DROP TABLE IF EXISTS new_ids;")
+            .map_err(|e| e.to_string())?;
     } else {
         tracing::warn!(
-            "features parquet not found at {path}; recommendations will run without the audio-feature signal"
+            "features parquet not found at {path}; serving whatever the cache already holds"
         );
-        conn.execute_batch(
-            "CREATE OR REPLACE VIEW features AS
-             SELECT NULL::VARCHAR AS spotify_id,
-                    NULL::DOUBLE AS danceability, NULL::DOUBLE AS energy,
-                    NULL::DOUBLE AS valence, NULL::DOUBLE AS acousticness,
-                    NULL::DOUBLE AS instrumentalness, NULL::DOUBLE AS liveness,
-                    NULL::DOUBLE AS speechiness, NULL::DOUBLE AS tempo,
-                    NULL::DOUBLE AS loudness
-             WHERE 1 = 0;",
-        )
-        .map_err(|e| format!("empty features view failed: {e}"))
     }
+
+    conn.execute_batch("CREATE OR REPLACE VIEW features AS SELECT * FROM features_cache;")
+        .map_err(|e| format!("features view failed: {e}"))
 }
 
 fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Result<(), String> {
