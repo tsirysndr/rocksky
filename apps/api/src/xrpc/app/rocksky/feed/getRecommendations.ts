@@ -15,6 +15,30 @@ const NEIGHBOUR_LIMIT = 50;
 const RESULT_LIMIT = 50;
 const SERENDIPITY_RATIO = 0.15;
 
+// When set, recommendations come from drift's precomputed snapshot (see
+// drift/README.md) — the legacy per-request pipeline below is kept only as a
+// fallback for when drift is unreachable.
+const DRIFT_URL = process.env.DRIFT_URL;
+
+const fromDrift = (
+  params: QueryParams,
+): Effect.Effect<RecommendationsView, Error> =>
+  Effect.tryPromise({
+    try: async () => {
+      const url = new URL("/v1/recommendations", DRIFT_URL);
+      url.searchParams.set("did", params.did);
+      url.searchParams.set(
+        "limit",
+        String(Math.min(params.limit ?? RESULT_LIMIT, 100)),
+      );
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (!res.ok) throw new Error(`drift responded ${res.status}`);
+      // drift emits recommendationView-shaped rows verbatim
+      return (await res.json()) as RecommendationsView;
+    },
+    catch: (err) => new Error(`drift request failed: ${err}`),
+  });
+
 // Stable string key — plain objects don't implement Effect's Equal so they
 // always miss; a serialised string gets value-equality for free.
 const cacheKey = (params: QueryParams) =>
@@ -30,7 +54,7 @@ export default function (server: Server, ctx: Context) {
         did: key.slice(0, sep),
         limit: Number(key.slice(sep + 1)),
       };
-      return pipe(
+      const legacy = pipe(
         { params, ctx },
         retrieve,
         Effect.flatMap(hydrate),
@@ -38,6 +62,15 @@ export default function (server: Server, ctx: Context) {
         Effect.retry({ times: 3 }),
         Effect.timeout("30 seconds"),
       );
+      return DRIFT_URL
+        ? pipe(
+            fromDrift(params),
+            Effect.catchAll((err) => {
+              consola.warn("drift unavailable, using legacy pipeline:", err);
+              return legacy;
+            }),
+          )
+        : legacy;
     },
   });
 

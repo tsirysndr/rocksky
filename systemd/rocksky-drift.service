@@ -1,0 +1,45 @@
+[Unit]
+Description=Rocksky drift Service (precomputed recommendations from Postgres + audio features)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+# drift is its own cargo workspace (excluded from the root one), so its binary
+# lives under drift/target, not the shared target/.
+#   cd /root/github/rocksky/drift && cargo build --release
+# doppler provides DATABASE_URL (drift falls back to it when DRIFT_DATABASE_URL
+# is unset).
+ExecStart=/bin/bash -ic 'exec doppler run -- ./drift/target/release/drift'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-drift
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+# Loopback only, on purpose: the only caller is apps/api (DRIFT_URL) on the
+# same host, and drift exposes every user's recommendations with no auth of
+# its own.
+Environment=DRIFT_HOST=127.0.0.1
+Environment=DRIFT_PORT=8093
+
+# The serving snapshot is a DuckDB file; StateDirectory has systemd create
+# /var/lib/drift. A restart serves the previous snapshot from it immediately
+# while the first refresh runs.
+StateDirectory=drift
+Environment=DRIFT_DB=/var/lib/drift/recommendations.ddb
+
+# Audio features come from riff's dump. If the file is missing drift still
+# starts and scores without the content signal (it logs a warning). Override
+# in /etc/default/rocksky-drift rather than editing this unit.
+Environment=DRIFT_FEATURES_PARQUET=/root/spotify-dump/track_audio_features.parquet
+EnvironmentFile=-/etc/default/rocksky-drift
+
+[Install]
+WantedBy=multi-user.target

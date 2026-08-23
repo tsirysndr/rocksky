@@ -2,7 +2,7 @@
 members = ["crates/*"]
 resolver = "2"
 
-exclude = ["riff"]
+exclude = ["riff", "drift"]
 
 [workspace.package]
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app"]
