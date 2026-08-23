@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../api";
+import { rocksky } from "../lib/rocksky";
 
 export type Story = {
   id: string;
@@ -24,16 +24,6 @@ export type StoriesFilter = {
 export const useStoriesQuery = (filter: StoriesFilter = {}) =>
   useQuery({
     queryKey: ["stories", filter.feed, filter.following],
-    queryFn: () =>
-      client.get<{ stories: Story[] }>("/xrpc/app.rocksky.feed.getStories", {
-        params: {
-          size: 80,
-          feed: filter.feed,
-          following: filter.following,
-        },
-        headers: filter.following
-          ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
-          : undefined,
-      }),
-    select: (res) => res.data.stories || [],
+    queryFn: () => rocksky().stories(80, filter.feed, filter.following),
+    select: (res) => (res.stories || []) as unknown as Story[],
   });

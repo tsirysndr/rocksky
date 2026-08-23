@@ -1,9 +1,11 @@
 import axios from "axios";
-import { client } from ".";
 import { API_URL } from "../consts";
+import { rocksky } from "../lib/rocksky";
 
 export const getFiles = async (id?: string) => {
-  const response = await client.get<{
+  const response = (await rocksky().get("app.rocksky.dropbox.getFiles", {
+    at: id,
+  })) as {
     parentDirectory: {
       id: string;
       name: string;
@@ -30,32 +32,20 @@ export const getFiles = async (id?: string) => {
       directoryId: string;
       trackId: string;
     }[];
-  }>("/xrpc/app.rocksky.dropbox.getFiles", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    params: {
-      at: id,
-    },
-  });
-  return response.data;
+  };
+  return response;
 };
 
 export const getFile = async (id: string) => {
-  const response = await client.get<{
+  const response = (await rocksky().get("app.rocksky.dropbox.getFiles", {
+    path: id,
+  })) as {
     ".tag": string;
     id: string;
     name: string;
     path_display: string;
-  }>("/xrpc/app.rocksky.dropbox.getFiles", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    params: {
-      path: id,
-    },
-  });
-  return response.data;
+  };
+  return response;
 };
 
 export const getTemporaryLink = async (id: string) => {

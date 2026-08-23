@@ -1,3 +1,4 @@
+import type { ChartsScrobbleViewBasic } from "@rocksky/sdk";
 import { useParams, useRouter } from "@tanstack/react-router";
 import { LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
@@ -48,16 +49,11 @@ function ScrobblesAreaChart() {
     },
   } = useRouter();
   const { did, rkey, id: genre } = useParams({ strict: false });
-  const [data, setData] = useState<
-    {
-      date: string;
-      count: number;
-    }[]
-  >([]);
+  const [data, setData] = useState<ChartsScrobbleViewBasic[]>([]);
   const { data: genreCharts } = useGenreChartQuery(genre!);
 
   useEffect(() => {
-    setData(genreCharts);
+    setData(genreCharts ?? []);
   }, [genreCharts]);
 
   useEffect(() => {

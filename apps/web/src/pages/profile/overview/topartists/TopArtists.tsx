@@ -75,7 +75,7 @@ function TopArtists(props: TopArtistsProps) {
     if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(profileStats.data.artists / props.size) || 1;
+    return Math.ceil((profileStats.data.artists ?? 0) / props.size) || 1;
   }, [profileStats.data, did, props.size]);
 
   const onSelectLastDays = (id: string) => {
@@ -91,7 +91,15 @@ function TopArtists(props: TopArtistsProps) {
       return;
     }
 
-    setTopArtists(artistsResult.data);
+    setTopArtists(
+      artistsResult.data.map((artist) => ({
+        id: artist.id ?? "",
+        name: artist.name ?? "",
+        picture: artist.picture,
+        uri: artist.uri ?? "",
+        scrobbles: artist.scrobbles ?? null,
+      })),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistsResult.data, artistsResult.isLoading, artistsResult.isError, did]);
 

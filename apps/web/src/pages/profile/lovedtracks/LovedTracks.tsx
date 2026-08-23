@@ -79,7 +79,7 @@ function LovedTracks() {
     if (!did || !profileStats.data) {
       return 1;
     }
-    return Math.ceil(profileStats.data.lovedTracks / size) || 1;
+    return Math.ceil((profileStats.data.lovedTracks ?? 0) / size) || 1;
   }, [profileStats.data, did]);
 
   useEffect(() => {

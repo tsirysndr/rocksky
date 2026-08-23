@@ -64,7 +64,7 @@ function Albums(props: AlbumsProps) {
     if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(profileStats.data.albums / props.size) || 1;
+    return Math.ceil((profileStats.data.albums ?? 0) / props.size) || 1;
   }, [profileStats.data, did, props.size]);
 
   useEffect(() => {
@@ -84,6 +84,7 @@ function Albums(props: AlbumsProps) {
         artist: x.artist,
         albumArt: x.albumArt,
         artistUri: x.artistUri,
+        year: x.year?.toString() ?? "",
         uri: x.uri,
         scrobbles: x.scrobbles,
       })),

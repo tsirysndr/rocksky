@@ -1,37 +1,42 @@
-import { client } from ".";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// The `any` returns preserve the previous untyped axios `response.data`
+// contract for existing consumers.
+import { rocksky } from "../lib/rocksky";
 
-export const getScrobbleByUri = async (uri: string) => {
+export const getScrobbleByUri = async (uri: string): Promise<any> => {
   if (uri.includes("app.rocksky.song")) return null;
-  const response = await client.get("/xrpc/app.rocksky.scrobble.getScrobble", {
-    params: { uri },
-  });
-  if (response.status !== 200) return null;
-  return response.data;
+  try {
+    return await rocksky().scrobble(uri);
+  } catch {
+    return null;
+  }
 };
 
-export const getFeedGenerators = async () => {
-  const response = await client.get("/xrpc/app.rocksky.feed.getFeedGenerators");
-  if (response.status !== 200) return null;
-  return response.data;
+export const getFeedGenerators = async (): Promise<any> => {
+  try {
+    return await rocksky().feedGenerators();
+  } catch {
+    return null;
+  }
 };
 
 export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
-  const response = await client.get<{
-    feed: { scrobble: Record<string, unknown> }[];
-    cursor?: string;
-  }>("/xrpc/app.rocksky.feed.getFeed", {
-    params: { feed: uri, limit, cursor },
-    headers: {
-      Authorization: localStorage.getItem("token")
-        ? `Bearer ${localStorage.getItem("token")}`
-        : undefined,
-    },
-  });
-  if (response.status !== 200) return { songs: [], cursor: undefined };
-  return {
-    songs: response.data.feed.map(({ scrobble }) => scrobble),
-    cursor: response.data.cursor,
-  };
+  try {
+    const data = (await rocksky().get("app.rocksky.feed.getFeed", {
+      feed: uri,
+      limit,
+      cursor,
+    })) as {
+      feed: { scrobble: Record<string, unknown> }[];
+      cursor?: string;
+    };
+    return {
+      songs: data.feed.map(({ scrobble }) => scrobble),
+      cursor: data.cursor,
+    };
+  } catch {
+    return { songs: [], cursor: undefined };
+  }
 };
 
 export const getScrobbles = async (
@@ -39,15 +44,16 @@ export const getScrobbles = async (
   following = false,
   offset = 0,
   limit = 30,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.scrobble.getScrobbles", {
-    params: { did, following, offset, limit },
-    headers: {
-      Authorization: localStorage.getItem("token")
-        ? `Bearer ${localStorage.getItem("token")}`
-        : undefined,
-    },
-  });
-  if (response.status !== 200) return { scrobbles: [] };
-  return { scrobbles: response.data.scrobbles };
+): Promise<{ scrobbles: any[] }> => {
+  try {
+    const scrobbles = await rocksky().scrobbleFeed(
+      did,
+      following,
+      limit,
+      offset,
+    );
+    return { scrobbles };
+  } catch {
+    return { scrobbles: [] };
+  }
 };

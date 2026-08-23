@@ -1,8 +1,8 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
-export const search = async (query: string) => {
-  const response = await client.get("/xrpc/app.rocksky.feed.search", {
-    params: { query, size: 100 },
-  });
-  return response.data;
+// The `any` return preserves the previous untyped axios `response.data`
+// contract for existing consumers.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const search = async (query: string): Promise<any> => {
+  return rocksky().get("app.rocksky.feed.search", { query, size: 100 });
 };

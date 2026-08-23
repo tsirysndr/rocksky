@@ -93,7 +93,7 @@ function TopTracks(props: TopTracksProps) {
     if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(profileStats.data.tracks / props.size) || 1;
+    return Math.ceil((profileStats.data.tracks ?? 0) / props.size) || 1;
   }, [profileStats.data, did, props.size]);
 
   useEffect(() => {
@@ -117,7 +117,7 @@ function TopTracks(props: TopTracksProps) {
     if (
       withDateRange &&
       topTracksRange === LAST_7_DAYS &&
-      tracksResult.data.length === 0
+      tracksResult.data?.length === 0
     ) {
       setTopTracksRange(ALL_TIME);
     }

@@ -1,4 +1,4 @@
-import { client } from "./index";
+import { rocksky } from "../lib/rocksky";
 
 export interface WrappedArtist {
   id: string;
@@ -56,11 +56,8 @@ export const getWrapped = async (
   did: string,
   year: number,
 ): Promise<WrappedData> => {
-  const res = await client.get("/xrpc/app.rocksky.stats.getWrapped", {
-    params: { did, year },
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  });
-  return res.data;
+  const res = await rocksky().wrapped(did, year);
+  // WrappedData refines the lexicon StatsWrappedView: the AppView always
+  // fills the core fields the wrapped UI renders.
+  return res as WrappedData;
 };

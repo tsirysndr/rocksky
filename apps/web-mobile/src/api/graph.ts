@@ -1,15 +1,18 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
 export const getFollows = async (
   actor: string,
   limit: number,
   dids?: string[],
   cursor?: string,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.graph.getFollows", {
-    params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
+  return rocksky().get("app.rocksky.graph.getFollows", {
+    actor,
+    limit: limit > 0 ? limit : 1,
+    dids,
+    cursor,
   });
-  return response.data;
 };
 
 export const getFollowers = async (
@@ -17,33 +20,20 @@ export const getFollowers = async (
   limit: number,
   dids?: string[],
   cursor?: string,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.graph.getFollowers", {
-    params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
+  return rocksky().get("app.rocksky.graph.getFollowers", {
+    actor,
+    limit: limit > 0 ? limit : 1,
+    dids,
+    cursor,
   });
-  return response.data;
 };
 
 export const followAccount = async (account: string) => {
-  const response = await client.post(
-    "/xrpc/app.rocksky.graph.followAccount",
-    undefined,
-    {
-      params: { account },
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    },
-  );
-  return response.data;
+  return rocksky().followAccount(account);
 };
 
 export const unfollowAccount = async (account: string) => {
-  const response = await client.post(
-    "/xrpc/app.rocksky.graph.unfollowAccount",
-    undefined,
-    {
-      params: { account },
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    },
-  );
-  return response.data;
+  return rocksky().unfollowAccount(account);
 };

@@ -28,11 +28,11 @@ function Overview() {
     setStats((prev) => ({
       ...prev,
       [did]: {
-        scrobbles: profileStats.data.scrobbles,
-        artists: profileStats.data.artists,
-        lovedTracks: profileStats.data.lovedTracks,
-        albums: profileStats.data.albums,
-        tracks: profileStats.data.tracks,
+        scrobbles: profileStats.data.scrobbles ?? 0,
+        artists: profileStats.data.artists ?? 0,
+        lovedTracks: profileStats.data.lovedTracks ?? 0,
+        albums: profileStats.data.albums ?? 0,
+        tracks: profileStats.data.tracks ?? 0,
       },
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps

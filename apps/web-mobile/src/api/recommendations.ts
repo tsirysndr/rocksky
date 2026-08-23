@@ -1,4 +1,4 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
 export type TrackRecommendation = {
   title?: string;
@@ -37,46 +37,18 @@ export type AlbumRecommendation = {
 };
 
 export const getTrackRecommendations = (did: string, limit = 50) =>
-  client
-    .get<{ recommendations: TrackRecommendation[] }>(
-      "/xrpc/app.rocksky.feed.getRecommendations",
-      {
-        params: { did, limit },
-        headers: {
-          Authorization: localStorage.getItem("token")
-            ? `Bearer ${localStorage.getItem("token")}`
-            : undefined,
-        },
-      },
-    )
-    .then((r) => r.data.recommendations ?? []);
+  rocksky()
+    .recommendations(did, limit)
+    .then(
+      (r) => (r.recommendations ?? []) as unknown as TrackRecommendation[],
+    );
 
 export const getArtistRecommendations = (did: string, limit = 50) =>
-  client
-    .get<{ artists: ArtistRecommendation[] }>(
-      "/xrpc/app.rocksky.feed.getArtistRecommendations",
-      {
-        params: { did, limit },
-        headers: {
-          Authorization: localStorage.getItem("token")
-            ? `Bearer ${localStorage.getItem("token")}`
-            : undefined,
-        },
-      },
-    )
-    .then((r) => r.data.artists ?? []);
+  rocksky()
+    .artistRecommendations(did, limit)
+    .then((r) => (r.artists ?? []) as unknown as ArtistRecommendation[]);
 
 export const getAlbumRecommendations = (did: string, limit = 50) =>
-  client
-    .get<{ albums: AlbumRecommendation[] }>(
-      "/xrpc/app.rocksky.feed.getAlbumRecommendations",
-      {
-        params: { did, limit },
-        headers: {
-          Authorization: localStorage.getItem("token")
-            ? `Bearer ${localStorage.getItem("token")}`
-            : undefined,
-        },
-      },
-    )
-    .then((r) => r.data.albums ?? []);
+  rocksky()
+    .albumRecommendations(did, limit)
+    .then((r) => (r.albums ?? []) as unknown as AlbumRecommendation[]);

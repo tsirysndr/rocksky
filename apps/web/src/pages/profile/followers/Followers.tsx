@@ -88,15 +88,17 @@ function Followers() {
     allFollowers.length,
     allFollowers
       .map((follower) => follower.did)
-      .filter((x) => x !== localStorage.getItem("did")),
+      .filter((x): x is string => !!x && x !== localStorage.getItem("did")),
   );
 
   useEffect(() => {
     if (!followsData) return;
     setFollows((prev) => {
       const newSet = new Set(prev);
-      followsData.follows.forEach((follow: { did: string }) => {
-        newSet.add(follow.did);
+      followsData.follows.forEach((follow) => {
+        if (follow.did) {
+          newSet.add(follow.did);
+        }
       });
       return newSet;
     });
@@ -129,7 +131,7 @@ function Followers() {
   return (
     <>
       <HeadingSmall className="!text-[var(--color-text)]">
-        Followers{count > 0 ? <> (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span>)</> : ""}
+        Followers{(count ?? 0) > 0 ? <> (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span>)</> : ""}
       </HeadingSmall>
 
       {(isPending || (isFetching && allFollowers.length === 0)) && (

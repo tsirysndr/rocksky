@@ -1,4 +1,4 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
 export type TrackRecommendation = {
   title?: string;
@@ -36,47 +36,26 @@ export type AlbumRecommendation = {
   source?: string;
 };
 
-export const getTrackRecommendations = (did: string, limit = 50) =>
-  client
-    .get<{ recommendations: TrackRecommendation[] }>(
-      "/xrpc/app.rocksky.feed.getRecommendations",
-      {
-        params: { did, limit },
-        headers: {
-          Authorization: localStorage.getItem("token")
-            ? `Bearer ${localStorage.getItem("token")}`
-            : undefined,
-        },
-      },
-    )
-    .then((r) => r.data.recommendations ?? []);
+export const getTrackRecommendations = (
+  did: string,
+  limit = 50,
+): Promise<TrackRecommendation[]> =>
+  rocksky()
+    .recommendations(did, limit)
+    .then((r) => (r.recommendations ?? []) as TrackRecommendation[]);
 
-export const getArtistRecommendations = (did: string, limit = 50) =>
-  client
-    .get<{ artists: ArtistRecommendation[] }>(
-      "/xrpc/app.rocksky.feed.getArtistRecommendations",
-      {
-        params: { did, limit },
-        headers: {
-          Authorization: localStorage.getItem("token")
-            ? `Bearer ${localStorage.getItem("token")}`
-            : undefined,
-        },
-      },
-    )
-    .then((r) => r.data.artists ?? []);
+export const getArtistRecommendations = (
+  did: string,
+  limit = 50,
+): Promise<ArtistRecommendation[]> =>
+  rocksky()
+    .artistRecommendations(did, limit)
+    .then((r) => (r.artists ?? []) as ArtistRecommendation[]);
 
-export const getAlbumRecommendations = (did: string, limit = 50) =>
-  client
-    .get<{ albums: AlbumRecommendation[] }>(
-      "/xrpc/app.rocksky.feed.getAlbumRecommendations",
-      {
-        params: { did, limit },
-        headers: {
-          Authorization: localStorage.getItem("token")
-            ? `Bearer ${localStorage.getItem("token")}`
-            : undefined,
-        },
-      },
-    )
-    .then((r) => r.data.albums ?? []);
+export const getAlbumRecommendations = (
+  did: string,
+  limit = 50,
+): Promise<AlbumRecommendation[]> =>
+  rocksky()
+    .albumRecommendations(did, limit)
+    .then((r) => (r.albums ?? []) as AlbumRecommendation[]);

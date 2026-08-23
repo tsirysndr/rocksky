@@ -1,3 +1,4 @@
+import { RockskyError } from "@rocksky/sdk";
 import { useQuery } from "@tanstack/react-query";
 import consola from "consola";
 import { useSetAtom } from "jotai";
@@ -11,7 +12,7 @@ import {
   getRecentTracksByDid,
 } from "../api/profile";
 import { profileAtom } from "../atoms/profile";
-import { API_URL } from "../consts";
+import { rocksky } from "../lib/rocksky";
 
 export const useProfileByDidQuery = (did: string) =>
   useQuery({
@@ -67,19 +68,29 @@ function useProfile(token?: string | null) {
 
     const fetchProfile = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/xrpc/app.rocksky.actor.getProfile`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        ).then((res) => res.text());
-        setData(response);
+        // No params — the viewer identity comes from the bearer token the
+        // shared client attaches.
+        const profile = await rocksky().get("app.rocksky.actor.getProfile");
+        setData(JSON.stringify(profile));
         setError(null);
       } catch (e) {
-        setError(e as Error);
-        setData(null);
+        if (
+          e instanceof RockskyError &&
+          (e.status === 401 ||
+            e.kind === "AuthMissing" ||
+            e.kind === "Unauthorized")
+        ) {
+          // Mirror the old raw-fetch sentinel so the token-clearing/redirect
+          // logic below stays identical.
+          setData("Unauthorized");
+          setError(null);
+        } else if (e instanceof RockskyError && e.status === 500) {
+          setData("Internal Server Error");
+          setError(null);
+        } else {
+          setError(e as Error);
+          setData(null);
+        }
       }
     };
     fetchProfile();

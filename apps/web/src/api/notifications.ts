@@ -1,12 +1,12 @@
-import { client } from ".";
+import type {
+  ListNotificationsOutput,
+  NotificationActor,
+  NotificationSubjectView,
+  NotificationView as LexNotificationView,
+} from "@rocksky/sdk";
+import { rocksky } from "../lib/rocksky";
 
-export interface NotificationActor {
-  id?: string;
-  did?: string;
-  handle?: string;
-  displayName?: string;
-  avatar?: string;
-}
+export type { NotificationActor };
 
 export type NotificationType =
   | "like_scrobble"
@@ -18,29 +18,17 @@ export type NotificationType =
   | "mention";
 
 /** The song/album behind a notification's subjectUri, for rich display. */
-export interface NotificationSubject {
-  uri: string;
-  title?: string;
-  artist?: string;
-  albumArt?: string;
-}
+export type NotificationSubject = NotificationSubjectView;
 
-export interface NotificationView {
-  id: string;
+/** The lexicon notification view, with `type` narrowed to the values the
+ * server actually emits. */
+export interface NotificationView extends Omit<LexNotificationView, "type"> {
   type: NotificationType;
-  read: boolean;
-  createdAt: string;
-  subjectUri?: string;
-  shoutId?: string;
-  shoutContent?: string;
-  actor?: NotificationActor;
-  subject?: NotificationSubject;
 }
 
-export interface NotificationList {
+export interface NotificationList
+  extends Omit<ListNotificationsOutput, "notifications"> {
   notifications: NotificationView[];
-  unreadCount: number;
-  cursor?: string;
 }
 
 /** A run of notifications collapsed into one row (Bluesky-style). */
@@ -100,39 +88,22 @@ export function groupNotifications(
   return groups;
 }
 
-const authHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
-
 export const getUnreadCount = async (): Promise<number> => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.notification.getUnreadCount",
-    { headers: authHeaders() },
-  );
-  return response.data?.count ?? 0;
+  const response = await rocksky().unreadCount();
+  return response?.count ?? 0;
 };
 
 export const listNotifications = async (
   cursor?: string,
 ): Promise<NotificationList> => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.notification.listNotifications",
-    {
-      params: { limit: 30, ...(cursor ? { cursor } : {}) },
-      headers: authHeaders(),
-    },
-  );
-  return response.data;
+  const response = await rocksky().notifications(30, cursor);
+  return response as NotificationList;
 };
 
 /** Mark notifications as viewed. Omit `ids` to mark the whole inbox. */
 export const markNotificationsSeen = async (
   ids?: string[],
 ): Promise<number> => {
-  const response = await client.post(
-    "/xrpc/app.rocksky.notification.updateSeen",
-    ids?.length ? { ids } : {},
-    { headers: authHeaders() },
-  );
-  return response.data?.unreadCount ?? 0;
+  const response = await rocksky().updateSeen(ids);
+  return response?.unreadCount ?? 0;
 };

@@ -52,7 +52,7 @@ export const useArtistsQuery = (
     queryFn: () => getArtists(did, offset, limit, startDate, endDate),
     enabled: !!did,
     select: (data) =>
-      data?.artists.map((x) => ({
+      data?.artists?.map((x) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -71,7 +71,7 @@ export const useAlbumsQuery = (
     enabled: !!did,
     select: (data) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data?.albums.map((x: any) => ({
+      data?.albums?.map((x: any) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -90,7 +90,7 @@ export const useTracksQuery = (
     enabled: !!did,
     select: (data) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data?.tracks.map((x: any) => ({
+      data?.tracks?.map((x: any) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -148,7 +148,7 @@ export const useTracksByGenreQuery = (genre: string, offset = 0, limit = 20) =>
     enabled: !!genre,
     select: (data) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data?.tracks.map((x: any) => ({
+      data?.tracks?.map((x: any) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -160,7 +160,7 @@ export const useAlbumsByGenreQuery = (genre: string, offset = 0, limit = 20) =>
     queryFn: () => getAlbumsByGenre(genre, offset, limit),
     enabled: !!genre,
     select: (data) =>
-      data?.albums.map((x) => ({
+      data?.albums?.map((x) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -172,7 +172,7 @@ export const useArtistsByGenreQuery = (genre: string, offset = 0, limit = 20) =>
     queryFn: () => getArtistsByGenre(genre, offset, limit),
     enabled: !!genre,
     select: (data) =>
-      data?.artists.map((x) => ({
+      data?.artists?.map((x) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -184,7 +184,7 @@ export const useAlbumsByGenreInfiniteQuery = (genre: string, limit = 20) =>
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getAlbumsByGenre(genre, pageParam * limit, limit);
       return {
-        albums: data?.albums.map((x) => ({
+        albums: (data.albums ?? []).map((x) => ({
           ...x,
           scrobbles: x.playCount,
         })),
@@ -205,7 +205,7 @@ export const useArtistsByGenreInfiniteQuery = (genre: string, limit = 20) =>
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getArtistsByGenre(genre, pageParam * limit, limit);
       return {
-        artists: data?.artists.map((x) => ({
+        artists: (data.artists ?? []).map((x) => ({
           ...x,
           scrobbles: x.playCount,
         })),
@@ -227,7 +227,7 @@ export const useTracksByGenreInfiniteQuery = (genre: string, limit = 20) =>
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getTracksByGenre(genre, pageParam * limit, limit);
       return {
-        tracks: data?.tracks.map((x) => ({
+        tracks: (data.tracks ?? []).map((x) => ({
           ...x,
           scrobbles: x.playCount,
         })),
@@ -253,7 +253,7 @@ export const useTopTracksQuery = (
     queryFn: () => getTopTracks(offset, limit, startDate, endDate),
     select: (data) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data?.tracks.map((x) => ({
+      data?.tracks?.map((x) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -269,7 +269,7 @@ export const useTopArtistsQuery = (
     queryKey: ["top-artists", offset, limit, startDate, endDate],
     queryFn: () => getTopArtists(offset, limit, startDate, endDate),
     select: (data) =>
-      data?.artists.map((x) => ({
+      data?.artists?.map((x) => ({
         ...x,
         scrobbles: x.playCount,
       })),
@@ -290,7 +290,7 @@ export const useTopArtistsInfiniteQuery = (
         endDate,
       );
       return {
-        artists: data?.artists.map((x) => ({
+        artists: (data.artists ?? []).map((x) => ({
           ...x,
           scrobbles: x.playCount,
         })),

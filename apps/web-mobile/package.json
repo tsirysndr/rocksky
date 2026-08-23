@@ -17,7 +17,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hookform/resolvers": "^4.0.0",
-    "@rocksky/sdk": "^0.10.2",
+    "@rocksky/sdk": "workspace:*",
     "@styled-icons/evaicons-solid": "^10.46.0",
     "@styled-icons/ionicons-outline": "^10.46.0",
     "@tabler/icons-react": "^3.31.0",

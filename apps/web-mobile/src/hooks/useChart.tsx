@@ -1,46 +1,42 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { API_URL } from "../consts";
+import { rocksky } from "../lib/rocksky";
 
-const chartFetcher = (url: string) =>
-  axios.get(url).then((r) => (r.status === 200 ? r.data : []));
+const chartFetcher = (opts: {
+  songuri?: string;
+  artisturi?: string;
+  albumuri?: string;
+  did?: string;
+}) =>
+  rocksky()
+    .scrobblesChart(opts)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .then((data) => data as any)
+    .catch(() => []);
 
 export const useSongChartQuery = (uri: string) =>
   useQuery({
     queryKey: ["chart", "song", uri],
-    queryFn: () =>
-      chartFetcher(
-        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?songuri=${uri}`,
-      ),
+    queryFn: () => chartFetcher({ songuri: uri }),
     enabled: !!uri,
   });
 
 export const useArtistChartQuery = (uri: string) =>
   useQuery({
     queryKey: ["chart", "artist", uri],
-    queryFn: () =>
-      chartFetcher(
-        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?artisturi=${uri}`,
-      ),
+    queryFn: () => chartFetcher({ artisturi: uri }),
     enabled: !!uri,
   });
 
 export const useAlbumChartQuery = (uri: string) =>
   useQuery({
     queryKey: ["chart", "album", uri],
-    queryFn: () =>
-      chartFetcher(
-        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?albumuri=${uri}`,
-      ),
+    queryFn: () => chartFetcher({ albumuri: uri }),
     enabled: !!uri,
   });
 
 export const useProfileChartQuery = (did: string) =>
   useQuery({
     queryKey: ["chart", "profile", did],
-    queryFn: () =>
-      chartFetcher(
-        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?did=${did}`,
-      ),
+    queryFn: () => chartFetcher({ did }),
     enabled: !!did,
   });

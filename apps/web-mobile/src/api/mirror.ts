@@ -1,4 +1,4 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
 export type MirrorProvider = "lastfm" | "listenbrainz" | "tealfm";
 
@@ -11,16 +11,9 @@ export interface MirrorSourceView {
   lastScrobbleSeenAt?: string;
 }
 
-const authHeader = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
-
 export const getMirrorSources = async (): Promise<MirrorSourceView[]> => {
-  const res = await client.get<{ sources: MirrorSourceView[] }>(
-    "/xrpc/app.rocksky.mirror.getMirrorSources",
-    { headers: authHeader() },
-  );
-  return res.data.sources ?? [];
+  const data = await rocksky().mirrorSources();
+  return (data.sources ?? []) as MirrorSourceView[];
 };
 
 export interface PutMirrorSourceInput {
@@ -33,10 +26,6 @@ export interface PutMirrorSourceInput {
 export const putMirrorSource = async (
   input: PutMirrorSourceInput,
 ): Promise<MirrorSourceView> => {
-  const res = await client.post<MirrorSourceView>(
-    "/xrpc/app.rocksky.mirror.putMirrorSource",
-    input,
-    { headers: authHeader() },
-  );
-  return res.data;
+  const data = await rocksky().putMirrorSource(input);
+  return data as MirrorSourceView;
 };

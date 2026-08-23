@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import useSWR from "swr";
-import { client } from "../api";
 import {
   getAlbumChart,
   getArtistChart,
@@ -8,13 +7,13 @@ import {
   getProfileChart,
   getSongChart,
 } from "../api/charts";
-import { API_URL } from "../consts";
+import { rocksky } from "../lib/rocksky";
 
 export const useScrobblesChartQuery = () =>
   useQuery({
     queryKey: ["scrobblesChart"],
-    queryFn: () => client.get("/xrpc/app.rocksky.charts.getScrobblesChart"),
-    select: ({ data }) => data.scrobbles || [],
+    queryFn: () => rocksky().scrobblesChart({}),
+    select: (data) => data.scrobbles || [],
   });
 
 export const useSongChartQuery = (uri: string) =>
@@ -53,14 +52,9 @@ export const useGenreChartQuery = (genre: string) =>
   });
 
 function useChart() {
-  const fetcher = (path: string) =>
-    fetch(`${API_URL}${path}`, {
-      method: "GET",
-    }).then((res) => res.json());
-
   const { data: scrobblesChart } = useSWR(
     "/xrpc/app.rocksky.charts.getScrobblesChart",
-    fetcher,
+    () => rocksky().scrobblesChart({}),
   );
 
   const getScrobblesChart = () => {
@@ -68,47 +62,23 @@ function useChart() {
   };
 
   const getSongChart = async (uri: string) => {
-    const response = await client.get(
-      "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { songuri: uri } },
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data.scrobbles;
+    const data = await rocksky().scrobblesChart({ songuri: uri });
+    return data.scrobbles ?? [];
   };
 
   const getArtistChart = async (uri: string) => {
-    const response = await client.get(
-      "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { artisturi: uri } },
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data.scrobbles;
+    const data = await rocksky().scrobblesChart({ artisturi: uri });
+    return data.scrobbles ?? [];
   };
 
   const getAlbumChart = async (uri: string) => {
-    const response = await client.get(
-      "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { albumuri: uri } },
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data.scrobbles;
+    const data = await rocksky().scrobblesChart({ albumuri: uri });
+    return data.scrobbles ?? [];
   };
 
   const getProfileChart = async (did: string) => {
-    const response = await client.get(
-      "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { did } },
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data.scrobbles;
+    const data = await rocksky().scrobblesChart({ did });
+    return data.scrobbles ?? [];
   };
 
   return {

@@ -1,70 +1,56 @@
+import type {
+  ScrobbleViewBasic,
+  StatsGlobalStatsView,
+  StatsView,
+} from "@rocksky/sdk";
 import { Compatibility } from "../types/compatibility";
 import { Neighbour } from "../types/neighbour";
 import { Profile } from "../types/profile";
-import { Scrobble } from "../types/scrobble";
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
-export const getProfileByDid = async (did: string) => {
-  const response = await client.get<Profile>(
-    "/xrpc/app.rocksky.actor.getProfile",
-    {
-      params: { did },
-    },
-  );
-  return response.data;
+// app.rocksky.actor.getProfile — the live AppView response carries the
+// spotify/googledrive/dropbox account fields on top of the lexicon view,
+// which the local Profile type describes.
+export const getProfileByDid = async (did: string): Promise<Profile> => {
+  return (await rocksky().get("app.rocksky.actor.getProfile", {
+    did,
+  })) as Profile;
 };
 
-export const getProfileStatsByDid = async (did: string) => {
-  const response = await client.get("/xrpc/app.rocksky.stats.getStats", {
-    params: { did },
-  });
-  return response.data;
+export const getProfileStatsByDid = async (did: string): Promise<StatsView> => {
+  return rocksky().stats(did);
 };
 
-export const getGlobalStats = async () => {
-  const response = await client.get<{
-    scrobbles: number;
-    users: number;
-    artists: number;
-    albums: number;
-    tracks: number;
-  }>("/xrpc/app.rocksky.stats.getGlobalStats");
-  return response.data;
+export const getGlobalStats = async (): Promise<StatsGlobalStatsView> => {
+  return rocksky().globalStats();
 };
 
 export const getRecentTracksByDid = async (
   did: string,
   offset = 0,
   limit = 10,
-): Promise<Scrobble[]> => {
-  const response = await client.get<{ scrobbles: Scrobble[] }>(
-    "/xrpc/app.rocksky.actor.getActorScrobbles",
-    {
-      params: { did, offset, limit },
-    },
-  );
-  return response.data.scrobbles || [];
+): Promise<ScrobbleViewBasic[]> => {
+  return rocksky().scrobbles(did, limit, offset);
 };
 
-export const getActorNeighbours = async (did: string) => {
-  const response = await client.get<{ neighbours: Neighbour[] }>(
-    "/xrpc/app.rocksky.actor.getActorNeighbours",
-    {
-      params: { did },
-    },
-  );
-  return response.data;
+// app.rocksky.actor.getActorNeighbours — the local Neighbour type describes
+// the live response, which always fills the profile and shared-artist fields
+// (the lexicon view marks everything optional).
+export const getActorNeighbours = async (
+  did: string,
+): Promise<{ neighbours: Neighbour[] }> => {
+  return (await rocksky().get("app.rocksky.actor.getActorNeighbours", {
+    did,
+  })) as { neighbours: Neighbour[] };
 };
 
-export const getActorCompatibility = async (did: string) => {
-  const response = await client.get<{ compatibility: Compatibility | null }>(
-    "/xrpc/app.rocksky.actor.getActorCompatibility",
-    {
-      params: { did },
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    },
-  );
-  return response.data;
+// app.rocksky.actor.getActorCompatibility — the local Compatibility type
+// describes the live response (topSharedArtists + per-artist ranks/weights),
+// which diverges from the lexicon compatibility view.
+export const getActorCompatibility = async (
+  did: string,
+): Promise<{ compatibility: Compatibility | null }> => {
+  return (await rocksky().get("app.rocksky.actor.getActorCompatibility", {
+    did,
+  })) as { compatibility: Compatibility | null };
 };

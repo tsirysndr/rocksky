@@ -86,26 +86,40 @@ const Album = () => {
   const uri = `${did}/app.rocksky.album/${rkey}`;
 
   useEffect(() => {
-    if (!isLoading && !isError) {
+    if (!isLoading && !isError && data) {
+      const tracks = data.tracks ?? [];
       setAlbum({
-        id: data.id,
+        id: data.id ?? "",
         albumArt: data.albumArt,
         artistUri: data.artistUri,
-        artist: data.artist,
-        title: data.title,
-        year: data.year,
-        uri: data.uri,
-        listeners: data.uniqueListeners,
-        scrobbles: data.playCount,
+        artist: data.artist ?? "",
+        title: data.title ?? "",
+        year: data.year ?? 0,
+        uri: data.uri ?? "",
+        listeners: data.uniqueListeners ?? 0,
+        scrobbles: data.playCount ?? 0,
         tags: data.tags,
-        tracks: data.tracks,
+        tracks: tracks.map((track) => ({
+          id: track.id ?? "",
+          trackNumber: track.trackNumber ?? 0,
+          album: track.album ?? "",
+          albumArt: track.albumArt ?? "",
+          albumArtist: track.albumArtist ?? "",
+          title: track.title ?? "",
+          artist: track.artist ?? "",
+          createdAt: track.createdAt ?? "",
+          uri: track.uri ?? "",
+          albumUri: track.albumUri ?? "",
+          artistUri: track.artistUri ?? "",
+          duration: track.duration ?? 0,
+          discNumber: track.discNumber ?? 1,
+        })),
         releaseDate: data.releaseDate
           ? dayjs(data.releaseDate).format("MMMM D, YYYY")
-          : data.year?.toString(),
-        label: data.tracks[0].copyrightMessage || data.tracks[0].label,
+          : (data.year?.toString() ?? ""),
+        label: tracks[0]?.copyrightMessage || tracks[0]?.label,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setDisc(Math.max(...data.tracks.map((track: any) => track.discNumber)));
+      setDisc(Math.max(...tracks.map((track) => track.discNumber ?? 1)));
     }
   }, [data, isLoading, isError]);
 

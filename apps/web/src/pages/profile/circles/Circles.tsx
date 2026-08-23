@@ -93,8 +93,10 @@ function Circles() {
     if (!followsData) return;
     setFollows((prev) => {
       const newSet = new Set(prev);
-      followsData.follows.forEach((follow: { did: string }) => {
-        newSet.add(follow.did);
+      followsData.follows.forEach((follow) => {
+        if (follow.did) {
+          newSet.add(follow.did);
+        }
       });
       return newSet;
     });

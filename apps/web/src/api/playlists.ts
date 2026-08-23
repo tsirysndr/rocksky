@@ -1,33 +1,28 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
+
+type PlaylistSummary = {
+  id: string;
+  name: string;
+  picture: string;
+  description?: string;
+  uri?: string;
+  spotifyLink?: string;
+  tidalLink?: string;
+  appleMusicLink?: string;
+  trackCount: number;
+};
 
 export const getPlaylists = async (
   did: string,
-): Promise<
-  {
-    id: string;
-    name: string;
-    picture: string;
-    description?: string;
-    uri?: string;
-    spotifyLink?: string;
-    tidalLink?: string;
-    appleMusicLink?: string;
-    trackCount: number;
-  }[]
-> => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.actor.getActorPlaylists",
-    {
-      params: { did },
-    },
-  );
-  return response.data.playlists;
+): Promise<PlaylistSummary[]> => {
+  const response = (await rocksky().get(
+    "app.rocksky.actor.getActorPlaylists",
+    { did },
+  )) as { playlists: PlaylistSummary[] };
+  return response.playlists;
 };
 
-export const getPlaylist = async (
-  did: string,
-  rkey: string,
-): Promise<{
+type PlaylistDetail = {
   id: string;
   name: string;
   picture: string;
@@ -59,11 +54,16 @@ export const getPlaylist = async (
     duration: number;
     discNumber: number;
   }[];
-}> => {
-  const response = await client.get("/xrpc/app.rocksky.playlist.getPlaylist", {
-    params: {
-      uri: `at://${did}/app.rocksky.playlist/${rkey}`,
-    },
-  });
-  return response.data;
+};
+
+// app.rocksky.playlist.getPlaylist — the live AppView response uses
+// name/picture/curatedBy (the lexicon view says title/coverImageUrl/curator*),
+// so the local PlaylistDetail type describes the wire shape.
+export const getPlaylist = async (
+  did: string,
+  rkey: string,
+): Promise<PlaylistDetail> => {
+  return (await rocksky().get("app.rocksky.playlist.getPlaylist", {
+    uri: `at://${did}/app.rocksky.playlist/${rkey}`,
+  })) as PlaylistDetail;
 };

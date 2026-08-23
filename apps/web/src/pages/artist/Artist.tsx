@@ -76,16 +76,16 @@ const Artist = () => {
     }
 
     setArtist({
-      id: artistResult.data.id,
-      name: artistResult.data.name,
+      id: artistResult.data.id ?? "",
+      name: artistResult.data.name ?? "",
       born: artistResult.data.born,
       bornIn: artistResult.data.bornIn,
       died: artistResult.data.died,
-      listeners: artistResult.data.uniqueListeners,
-      scrobbles: artistResult.data.playCount,
+      listeners: artistResult.data.uniqueListeners ?? 0,
+      scrobbles: artistResult.data.playCount ?? 0,
       picture: artistResult.data.picture,
-      tags: artistResult.data.genres,
-      uri: artistResult.data.uri,
+      tags: artistResult.data.genres ?? [],
+      uri: artistResult.data.uri ?? "",
       spotifyLink: artistResult.data.spotifyLink,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,6 +103,12 @@ const Artist = () => {
     setTopTracks(
       artistTracksResult.data.map((track) => ({
         ...track,
+        id: track.id ?? "",
+        title: track.title ?? "",
+        artist: track.artist ?? "",
+        albumArtist: track.albumArtist ?? "",
+        albumArt: track.albumArt ?? "",
+        uri: track.uri ?? "",
         scrobbles: track.playCount || 1,
       })),
     );
@@ -122,7 +128,17 @@ const Artist = () => {
       return;
     }
 
-    setTopAlbums(artistAlbumsResult.data);
+    setTopAlbums(
+      artistAlbumsResult.data.map((album) => ({
+        ...album,
+        id: album.id ?? "",
+        title: album.title ?? "",
+        artist: album.artist ?? "",
+        albumArt: album.albumArt ?? "",
+        artistUri: album.artistUri ?? "",
+        uri: album.uri ?? "",
+      })),
+    );
   }, [
     artistAlbumsResult.data,
     artistAlbumsResult.isLoading,

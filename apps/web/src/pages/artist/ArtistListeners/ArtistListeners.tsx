@@ -3,7 +3,7 @@ import { Avatar } from "baseui/avatar";
 import { HeadingSmall } from "baseui/typography";
 
 interface ArtistListenersProps {
-  listeners: {
+  listeners?: {
     id: string;
     did: string;
     handle: string;

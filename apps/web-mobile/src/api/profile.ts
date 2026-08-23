@@ -1,35 +1,24 @@
-import { client } from ".";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// These functions previously returned untyped axios `response.data`; the
+// `any` returns preserve that contract for existing consumers.
+import { rocksky } from "../lib/rocksky";
 
-export const getProfileByDid = async (did: string) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getProfile", {
-    params: { did },
-  });
-  return response.data;
+export const getProfileByDid = async (did: string): Promise<any> => {
+  return rocksky().profile(did);
 };
 
-export const getProfileStatsByDid = async (did: string) => {
-  const response = await client.get("/xrpc/app.rocksky.stats.getStats", {
-    params: { did },
-  });
-  return response.data;
+export const getProfileStatsByDid = async (did: string): Promise<any> => {
+  return rocksky().stats(did);
 };
 
 export const getRecentTracksByDid = async (
   did: string,
   offset = 0,
   limit = 10,
-) => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.actor.getActorScrobbles",
-    { params: { did, offset, limit } },
-  );
-  return response.data.scrobbles || [];
+): Promise<any[]> => {
+  return rocksky().scrobbles(did, limit, offset);
 };
 
-export const getActorNeighbours = async (did: string) => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.actor.getActorNeighbours",
-    { params: { did } },
-  );
-  return response.data;
+export const getActorNeighbours = async (did: string): Promise<any> => {
+  return rocksky().neighbours(did);
 };

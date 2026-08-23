@@ -1,45 +1,50 @@
-import { client } from ".";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// The `any` returns preserve the previous untyped axios `response.data`
+// contract for existing consumers.
+import { rocksky } from "../lib/rocksky";
 
 export const getSongByUri = async (uri: string) => {
   if (uri.includes("app.rocksky.scrobble")) return null;
-  const response = await client.get("/xrpc/app.rocksky.song.getSong", {
-    params: { uri },
-  });
+  const data = (await rocksky().song({ uri })) as any;
   return {
-    id: response.data?.id,
-    title: response.data?.title,
-    artist: response.data?.artist,
-    albumArtist: response.data?.albumArtist,
-    album: response.data?.album,
-    cover: response.data?.albumArt,
-    tags: response.data?.tags,
-    artistUri: response.data?.artistUri,
-    albumUri: response.data?.albumUri,
-    listeners: response.data?.uniqueListeners || 1,
-    scrobbles: response.data?.playCount || 1,
-    lyrics: response.data?.lyrics,
-    spotifyLink: response.data?.spotifyLink,
-    composer: response.data?.composer,
-    uri: response.data?.uri,
-    artists: response.data?.artists,
-    firstScrobble: response.data?.firstScrobble as
+    id: data?.id,
+    title: data?.title,
+    artist: data?.artist,
+    albumArtist: data?.albumArtist,
+    album: data?.album,
+    cover: data?.albumArt,
+    tags: data?.tags,
+    artistUri: data?.artistUri,
+    albumUri: data?.albumUri,
+    listeners: data?.uniqueListeners || 1,
+    scrobbles: data?.playCount || 1,
+    lyrics: data?.lyrics,
+    spotifyLink: data?.spotifyLink,
+    composer: data?.composer,
+    uri: data?.uri,
+    artists: data?.artists,
+    firstScrobble: data?.firstScrobble as
       | { handle: string; avatar: string; timestamp: string }
       | undefined,
   };
 };
 
-export const getArtistTracks = async (uri: string, limit = 10) => {
-  const response = await client.get("/xrpc/app.rocksky.artist.getArtistTracks", {
-    params: { uri, limit },
-  });
-  return response.data.tracks;
+export const getArtistTracks = async (
+  uri: string,
+  limit = 10,
+): Promise<any[]> => {
+  return rocksky().artistTracks(uri, limit);
 };
 
-export const getArtistAlbums = async (uri: string, limit = 10) => {
-  const response = await client.get("/xrpc/app.rocksky.artist.getArtistAlbums", {
-    params: { uri, limit },
-  });
-  return response.data.albums;
+export const getArtistAlbums = async (
+  uri: string,
+  limit = 10,
+): Promise<any[] | undefined> => {
+  const data = (await rocksky().get("app.rocksky.artist.getArtistAlbums", {
+    uri,
+    limit,
+  })) as { albums?: any[] };
+  return data.albums;
 };
 
 export const getArtists = async (
@@ -48,17 +53,14 @@ export const getArtists = async (
   limit = 30,
   startDate?: Date,
   endDate?: Date,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getActorArtists", {
-    params: {
-      did,
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
-    },
+): Promise<any> => {
+  return rocksky().get("app.rocksky.actor.getActorArtists", {
+    did,
+    limit,
+    offset,
+    startDate: startDate?.toISOString(),
+    endDate: endDate?.toISOString(),
   });
-  return response.data;
 };
 
 export const getAlbums = async (
@@ -67,17 +69,14 @@ export const getAlbums = async (
   limit = 12,
   startDate?: Date,
   endDate?: Date,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getActorAlbums", {
-    params: {
-      did,
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
-    },
+): Promise<any> => {
+  return rocksky().get("app.rocksky.actor.getActorAlbums", {
+    did,
+    limit,
+    offset,
+    startDate: startDate?.toISOString(),
+    endDate: endDate?.toISOString(),
   });
-  return response.data;
 };
 
 export const getTracks = async (
@@ -86,47 +85,37 @@ export const getTracks = async (
   limit = 20,
   startDate?: Date,
   endDate?: Date,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getActorSongs", {
-    params: {
-      did,
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
-    },
+): Promise<any> => {
+  return rocksky().get("app.rocksky.actor.getActorSongs", {
+    did,
+    limit,
+    offset,
+    startDate: startDate?.toISOString(),
+    endDate: endDate?.toISOString(),
   });
-  return response.data;
 };
 
-export const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.actor.getActorLovedSongs",
-    { params: { did, limit, offset } },
-  );
-  return response.data.tracks;
+export const getLovedTracks = async (
+  did: string,
+  offset = 0,
+  limit = 20,
+): Promise<any[]> => {
+  return rocksky().lovedSongs(did, limit, offset);
 };
 
-export const getAlbum = async (did: string, rkey: string) => {
-  const response = await client.get("/xrpc/app.rocksky.album.getAlbum", {
-    params: { uri: `at://${did}/app.rocksky.album/${rkey}` },
-  });
-  return response.data;
+export const getAlbum = async (did: string, rkey: string): Promise<any> => {
+  return rocksky().album(`at://${did}/app.rocksky.album/${rkey}`);
 };
 
-export const getArtist = async (did: string, rkey: string) => {
-  const response = await client.get("/xrpc/app.rocksky.artist.getArtist", {
-    params: { uri: `at://${did}/app.rocksky.artist/${rkey}` },
-  });
-  return response.data;
+export const getArtist = async (did: string, rkey: string): Promise<any> => {
+  return rocksky().artist(`at://${did}/app.rocksky.artist/${rkey}`);
 };
 
-export const getArtistListeners = async (uri: string, limit: number) => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.artist.getArtistListeners",
-    { params: { uri, limit } },
-  );
-  return response.data;
+export const getArtistListeners = async (
+  uri: string,
+  limit: number,
+): Promise<any> => {
+  return rocksky().artistListeners(uri, limit);
 };
 
 export type RecentListener = {
@@ -143,22 +132,16 @@ export const getArtistRecentListeners = async (
   uri: string,
   limit = 10,
 ): Promise<{ listeners: RecentListener[] }> => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.artist.getArtistRecentListeners",
-    { params: { uri, limit } },
-  );
-  return response.data;
+  const data = await rocksky().artistRecentListeners(uri, limit);
+  return data as unknown as { listeners: RecentListener[] };
 };
 
 export const getSongRecentListeners = async (
   uri: string,
   limit = 10,
 ): Promise<{ listeners: RecentListener[] }> => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.song.getSongRecentListeners",
-    { params: { uri, limit } },
-  );
-  return response.data;
+  const data = await rocksky().songRecentListeners(uri, limit);
+  return data as unknown as { listeners: RecentListener[] };
 };
 
 export const getTopArtists = async (
@@ -166,16 +149,13 @@ export const getTopArtists = async (
   limit = 20,
   startDate?: Date,
   endDate?: Date,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.charts.getTopArtists", {
-    params: {
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
-    },
+): Promise<any> => {
+  return rocksky().get("app.rocksky.charts.getTopArtists", {
+    limit,
+    offset,
+    startDate: startDate?.toISOString(),
+    endDate: endDate?.toISOString(),
   });
-  return response.data;
 };
 
 export const getTopTracks = async (
@@ -183,14 +163,11 @@ export const getTopTracks = async (
   limit = 20,
   startDate?: Date,
   endDate?: Date,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.charts.getTopTracks", {
-    params: {
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
-    },
+): Promise<any> => {
+  return rocksky().get("app.rocksky.charts.getTopTracks", {
+    limit,
+    offset,
+    startDate: startDate?.toISOString(),
+    endDate: endDate?.toISOString(),
   });
-  return response.data;
 };

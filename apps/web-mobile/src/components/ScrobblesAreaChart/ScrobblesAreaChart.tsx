@@ -3,8 +3,7 @@ import numeral from "numeral";
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { Area, AreaChart, Tooltip, TooltipProps, XAxis } from "recharts";
-import axios from "axios";
-import { API_URL } from "../../consts";
+import { rocksky } from "../../lib/rocksky";
 
 const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
@@ -28,26 +27,30 @@ function ScrobblesAreaChart() {
   useEffect(() => {
     if (pathname === "/") return;
 
-    const fetchChart = async (url: string) => {
+    const fetchChart = async (opts: {
+      did?: string;
+      artisturi?: string;
+      albumuri?: string;
+      songuri?: string;
+    }) => {
       try {
-        const res = await axios.get(url);
-        if (res.status === 200) setData(res.data);
+        const res = await rocksky().scrobblesChart(opts);
+        setData(res as unknown as { date: string; count: number }[]);
       } catch {
         // ignore
       }
     };
 
-    const base = `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart`;
     if (pathname.startsWith("/profile") && did) {
-      fetchChart(`${base}?did=${did}`);
+      fetchChart({ did });
     } else if (pathname.includes("app.rocksky.artist") && did && rkey) {
-      fetchChart(`${base}?artisturi=at://${did}/app.rocksky.artist/${rkey}`);
+      fetchChart({ artisturi: `at://${did}/app.rocksky.artist/${rkey}` });
     } else if (pathname.includes("app.rocksky.album") && did && rkey) {
-      fetchChart(`${base}?albumuri=at://${did}/app.rocksky.album/${rkey}`);
+      fetchChart({ albumuri: `at://${did}/app.rocksky.album/${rkey}` });
     } else if (pathname.includes("app.rocksky.song") && did && rkey) {
-      fetchChart(`${base}?songuri=at://${did}/app.rocksky.song/${rkey}`);
+      fetchChart({ songuri: `at://${did}/app.rocksky.song/${rkey}` });
     } else if (pathname.includes("app.rocksky.scrobble") && did && rkey) {
-      fetchChart(`${base}?songuri=at://${did}/app.rocksky.scrobble/${rkey}`);
+      fetchChart({ songuri: `at://${did}/app.rocksky.scrobble/${rkey}` });
     }
   }, [pathname, did, rkey]);
 

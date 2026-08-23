@@ -157,9 +157,7 @@ function Profile(props: ProfileProps) {
       const newSet = new Set(prev);
       if (!profile.data) return newSet;
       if (
-        data.followers.some(
-          (follower: { did: string }) => follower.did === currentDid,
-        )
+        data.followers.some((follower) => follower.did === currentDid)
       ) {
         newSet.add(profile.data.did);
       } else {

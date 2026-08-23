@@ -1,4 +1,5 @@
-import { client } from ".";
+import type { CreateScrobbleInput } from "@rocksky/sdk";
+import { rocksky } from "../lib/rocksky";
 
 export interface ScrobbleInput {
   title: string;
@@ -18,8 +19,6 @@ export interface ScrobbleInput {
 export const submitScrobble = async (input: ScrobbleInput): Promise<void> => {
   const payload = Object.fromEntries(
     Object.entries(input).filter(([, v]) => v != null),
-  );
-  await client.post("/xrpc/app.rocksky.scrobble.createScrobble", payload, {
-    headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
-  });
+  ) as CreateScrobbleInput;
+  await rocksky().createScrobble(payload);
 };

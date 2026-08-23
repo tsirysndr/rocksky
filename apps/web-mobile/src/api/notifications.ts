@@ -1,4 +1,4 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
 export interface NotificationActor {
   id?: string;
@@ -100,39 +100,22 @@ export function groupNotifications(
   return groups;
 }
 
-const authHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
-
 export const getUnreadCount = async (): Promise<number> => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.notification.getUnreadCount",
-    { headers: authHeaders() },
-  );
-  return response.data?.count ?? 0;
+  const data = await rocksky().unreadCount();
+  return data?.count ?? 0;
 };
 
 export const listNotifications = async (
   cursor?: string,
 ): Promise<NotificationList> => {
-  const response = await client.get(
-    "/xrpc/app.rocksky.notification.listNotifications",
-    {
-      params: { limit: 30, ...(cursor ? { cursor } : {}) },
-      headers: authHeaders(),
-    },
-  );
-  return response.data;
+  const data = await rocksky().notifications(30, cursor);
+  return data as unknown as NotificationList;
 };
 
 /** Mark notifications as viewed. Omit `ids` to mark the whole inbox. */
 export const markNotificationsSeen = async (
   ids?: string[],
 ): Promise<number> => {
-  const response = await client.post(
-    "/xrpc/app.rocksky.notification.updateSeen",
-    ids?.length ? { ids } : {},
-    { headers: authHeaders() },
-  );
-  return response.data?.unreadCount ?? 0;
+  const data = await rocksky().updateSeen(ids);
+  return data?.unreadCount ?? 0;
 };

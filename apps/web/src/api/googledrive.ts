@@ -1,7 +1,9 @@
-import { client } from ".";
+import { rocksky } from "../lib/rocksky";
 
 export const getFiles = async (parent_id?: string) => {
-  const response = await client.get<{
+  const response = (await rocksky().get("app.rocksky.googledrive.getFiles", {
+    at: parent_id,
+  })) as {
     parentDirectory: {
       id: string;
       name: string;
@@ -28,30 +30,18 @@ export const getFiles = async (parent_id?: string) => {
       directoryId: string;
       trackId: string;
     }[];
-  }>("/xrpc/app.rocksky.googledrive.getFiles", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    params: {
-      at: parent_id,
-    },
-  });
-  return response.data;
+  };
+  return response;
 };
 
 export const getFile = async (id: string) => {
-  const response = await client.get<{
+  const response = (await rocksky().get("app.rocksky.googledrive.getFile", {
+    id,
+  })) as {
     id: string;
     mimeType: string;
     name: string;
     parents: string[];
-  }>("/xrpc/app.rocksky.googledrive.getFile", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    params: {
-      id,
-    },
-  });
-  return response.data;
+  };
+  return response;
 };

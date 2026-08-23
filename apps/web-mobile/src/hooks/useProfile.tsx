@@ -1,3 +1,4 @@
+import { RockskyError } from "@rocksky/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
@@ -8,7 +9,7 @@ import {
   getRecentTracksByDid,
 } from "../api/profile";
 import { profileAtom } from "../atoms/profile";
-import { API_URL } from "../consts";
+import { rocksky } from "../lib/rocksky";
 
 export const useProfileByDidQuery = (did: string) =>
   useQuery({
@@ -42,9 +43,14 @@ export const useActorNeighboursQuery = (did: string) =>
     enabled: !!did,
   });
 
+// The profile JSON was previously handled untyped (JSON.parse of the raw
+// response body); keep the same looseness so downstream usage is unchanged.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ProfileData = Record<string, any>;
+
 function useProfile(token?: string | null) {
   const setProfile = useSetAtom(profileAtom);
-  const [data, setData] = useState<string | null>(null);
+  const [data, setData] = useState<ProfileData | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const isLoading = !data && !error;
 
@@ -52,13 +58,22 @@ function useProfile(token?: string | null) {
     if (!token) return;
     const fetchProfile = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/xrpc/app.rocksky.actor.getProfile`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        ).then((res) => res.text());
-        setData(response);
+        const profile = (await rocksky().get(
+          "app.rocksky.actor.getProfile",
+        )) as ProfileData;
+        setData(profile);
         setError(null);
       } catch (e) {
+        if (
+          e instanceof RockskyError &&
+          (e.status === 401 ||
+            e.kind === "AuthMissing" ||
+            e.kind === "Unauthorized")
+        ) {
+          localStorage.removeItem("token");
+          window.location.href = "/";
+          return;
+        }
         setError(e as Error);
         setData(null);
       }
@@ -67,9 +82,8 @@ function useProfile(token?: string | null) {
   }, [token]);
 
   useEffect(() => {
-    if (data && data !== "Unauthorized" && data !== "Internal Server Error") {
-      const profile = JSON.parse(data);
-      if (Object.keys(profile).length === 0) {
+    if (data) {
+      if (Object.keys(data).length === 0) {
         localStorage.removeItem("token");
         window.location.href = "/";
         return;
@@ -77,26 +91,22 @@ function useProfile(token?: string | null) {
       // Keep the logged-in DID in localStorage so own-profile detection
       // (follow button, onboarding, welcome banner) is reliable and synchronous
       // across the layout remounts that happen on every navigation.
-      if (profile.did) {
-        localStorage.setItem("did", profile.did);
+      if (data.did) {
+        localStorage.setItem("did", data.did);
       }
       setProfile({
-        avatar: profile.avatar,
-        displayName: profile.displayName,
-        handle: profile.handle,
-        spotifyUser: { isBeta: profile.spotifyUser?.isBetaUser },
-        spotifyConnected: profile.spotifyConnected,
-        did: profile.did,
+        avatar: data.avatar,
+        displayName: data.displayName,
+        handle: data.handle,
+        spotifyUser: { isBeta: data.spotifyUser?.isBetaUser },
+        spotifyConnected: data.spotifyConnected,
+        did: data.did,
       });
-    }
-    if (data === "Unauthorized") {
-      localStorage.removeItem("token");
-      window.location.href = "/";
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  return { data: data && data !== "Unauthorized" && data !== "Internal Server Error" ? JSON.parse(data) : null, error, isLoading };
+  return { data, error, isLoading };
 }
 
 export default useProfile;

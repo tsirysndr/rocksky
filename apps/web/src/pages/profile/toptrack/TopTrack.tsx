@@ -14,7 +14,7 @@ function TopTrack() {
     <>
       {!isLoading &&
         !allTimeTopTracksLoading &&
-        (data.length > 0 || allTimeTopTracks.length > 0) && (
+        ((data?.length ?? 0) > 0 || (allTimeTopTracks?.length ?? 0) > 0) && (
           <div className="flex">
             <div className="flex flex-col items-end pr-[15px]">
               <h4
@@ -25,37 +25,37 @@ function TopTrack() {
               </h4>
               <ScrollingText className="max-w-[500px]">
                 <Link
-                  to={(data[0] || allTimeTopTracks[0])?.uri
+                  to={(data?.[0] || allTimeTopTracks?.[0])?.uri
                     ?.split("at:/")[1]
                     ?.replace("app.rocksky.", "")}
                   className="!text-[var(--color-text)] no-underline hover:underline"
                 >
                   <b className="text-[18px]">
-                    {(data[0] || allTimeTopTracks[0])?.title}
+                    {(data?.[0] || allTimeTopTracks?.[0])?.title}
                   </b>
                 </Link>
               </ScrollingText>
 
               <ScrollingText className="max-w-[500px]">
                 <Link
-                  to={(data[0] || allTimeTopTracks[0])?.artistUri
+                  to={(data?.[0] || allTimeTopTracks?.[0])?.artistUri
                     ?.split("at:/")[1]
                     ?.replace("app.rocksky.", "")}
                   className="text-[var(--color-text)] no-underline hover:underline"
                 >
                   <span className="opacity-90 text-[18px]">
-                    {(data[0] || allTimeTopTracks[0])?.albumArtist}
+                    {(data?.[0] || allTimeTopTracks?.[0])?.albumArtist}
                   </span>
                 </Link>
               </ScrollingText>
             </div>
             <Link
-              to={(data[0] || allTimeTopTracks[0])?.albumUri
+              to={(data?.[0] || allTimeTopTracks?.[0])?.albumUri
                 ?.split("at:/")[1]
                 ?.replace("app.rocksky.", "")}
             >
-              {(data[0] || allTimeTopTracks[0])?.albumArt
-                ? <img src={(data[0] || allTimeTopTracks[0])?.albumArt} alt="album art" className="w-[70px] h-[70px] rounded" />
+              {(data?.[0] || allTimeTopTracks?.[0])?.albumArt
+                ? <img src={(data?.[0] || allTimeTopTracks?.[0])?.albumArt} alt="album art" className="w-[70px] h-[70px] rounded" />
                 : <div className="w-[70px] h-[70px] rounded bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={24} /></div>}
             </Link>
           </div>

@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../api";
+import { rocksky } from "../lib/rocksky";
 
-export type Stories = {
+/** The live story shape — refines the lexicon FeedStoryView (the AppView
+ * always fills these fields) and adds the viewer's like state. */
+export type Story = {
   id: string;
   title: string;
   artist: string;
@@ -16,7 +18,9 @@ export type Stories = {
   trackUri: string;
   liked?: boolean;
   likesCount?: number;
-}[];
+};
+
+export type Stories = Story[];
 
 export type StoriesFilter = {
   feed?: string;
@@ -26,18 +30,9 @@ export type StoriesFilter = {
 export const useStoriesQuery = (filter: StoriesFilter = {}) =>
   useQuery({
     queryKey: ["stories", filter.feed, filter.following],
-    queryFn: () =>
-      client.get<{ stories: Stories }>("/xrpc/app.rocksky.feed.getStories", {
-        params: {
-          size: 80,
-          feed: filter.feed,
-          following: filter.following,
-        },
-        // Always authenticate when a token exists — the server uses the viewer
-        // identity to fill each story's `liked` state (and `following` needs it).
-        headers: localStorage.getItem("token")
-          ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
-          : undefined,
-      }),
-    select: (res) => res.data.stories || [],
+    // The shared client always authenticates when a token exists — the server
+    // uses the viewer identity to fill each story's `liked` state (and
+    // `following` needs it).
+    queryFn: () => rocksky().stories(80, filter.feed, filter.following),
+    select: (res) => (res.stories ?? []) as Stories,
   });

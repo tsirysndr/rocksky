@@ -59,7 +59,7 @@ function TopAlbums() {
       return;
     }
 
-    if (topAlbumsRange === LAST_7_DAYS && albumsResult.data.length === 0) {
+    if (topAlbumsRange === LAST_7_DAYS && albumsResult.data?.length === 0) {
       setTopAlbumsRange(ALL_TIME);
     }
   }, [

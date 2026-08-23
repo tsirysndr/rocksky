@@ -80,7 +80,7 @@ function RecentTracks(props: RecentTracksProps) {
     if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(profileStats.data.scrobbles / props.size) || 1;
+    return Math.ceil((profileStats.data.scrobbles ?? 0) / props.size) || 1;
   }, [profileStats.data, did, props.size]);
 
   useEffect(() => {
@@ -94,19 +94,19 @@ function RecentTracks(props: RecentTracksProps) {
 
     setRecentTracks(
       recentTracksResult.data.map((item) => ({
-        id: item.id,
-        title: item.title,
-        artist: item.artist,
-        album: item.album,
+        id: item.id ?? "",
+        title: item.title ?? "",
+        artist: item.artist ?? "",
+        album: item.album ?? "",
         albumArt: item.albumArt,
-        albumArtist: item.albumArtist,
-        uri: item.uri,
-        date: item.createdAt.endsWith("Z")
+        albumArtist: item.albumArtist ?? "",
+        uri: item.uri ?? "",
+        date: item.createdAt?.endsWith("Z")
           ? item.createdAt
-          : `${item.createdAt}Z`,
-        scrobbleUri: item.uri,
-        albumUri: item.albumUri,
-        artistUri: item.artistUri,
+          : `${item.createdAt ?? ""}Z`,
+        scrobbleUri: item.uri ?? "",
+        albumUri: item.albumUri ?? "",
+        artistUri: item.artistUri ?? "",
       })),
     );
 

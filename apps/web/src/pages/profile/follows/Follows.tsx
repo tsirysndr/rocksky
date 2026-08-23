@@ -89,6 +89,7 @@ function Follows() {
     allFollows.length,
     allFollows
       .map((follow) => follow.did)
+      .filter((x): x is string => !!x)
       .filter((x) => x !== localStorage.getItem("did")),
   );
 
@@ -96,8 +97,10 @@ function Follows() {
     if (!followsData) return;
     setFollows((prev) => {
       const newSet = new Set(prev);
-      followsData.follows.forEach((follow: { did: string }) => {
-        newSet.add(follow.did);
+      followsData.follows.forEach((follow) => {
+        if (follow.did) {
+          newSet.add(follow.did);
+        }
       });
       return newSet;
     });
@@ -130,7 +133,7 @@ function Follows() {
   return (
     <>
       <HeadingSmall className="!text-[var(--color-text)]">
-        Following{count > 0 ? <> (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span>)</> : ""}
+        Following{(count ?? 0) > 0 ? <> (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span>)</> : ""}
       </HeadingSmall>
 
       {(isPending || (isFetching && allFollows.length === 0)) && (

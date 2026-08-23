@@ -82,11 +82,11 @@ const Song = () => {
   const songResult = useSongByUriQuery(uri);
 
   const artistTracksResult = useArtistTracksQuery(
-    songResult.data?.artistUri || scrobbleResult.data?.artistUri,
+    songResult.data?.artistUri || scrobbleResult.data?.artistUri || "",
     5,
   );
   const artistAlbumResult = useArtistAlbumsQuery(
-    songResult.data?.artistUri || scrobbleResult.data?.artistUri,
+    songResult.data?.artistUri || scrobbleResult.data?.artistUri || "",
     10,
   );
   const songRecentListenersResult = useSongRecentListenersQuery(
@@ -176,15 +176,15 @@ const Song = () => {
 
     setTopTracks(
       artistTracksResult.data.map((x) => ({
-        id: x.id,
-        title: x.title,
-        artist: x.artist,
-        albumArtist: x.albumArtist,
-        albumArt: x.albumArt,
-        uri: x.uri,
+        id: x.id ?? "",
+        title: x.title ?? "",
+        artist: x.artist ?? "",
+        albumArtist: x.albumArtist ?? "",
+        albumArt: x.albumArt ?? "",
+        uri: x.uri ?? "",
         artistUri: x.artistUri,
         albumUri: x.albumUri,
-        scrobbles: x.playCount,
+        scrobbles: x.playCount ?? 0,
       })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +199,17 @@ const Song = () => {
       return;
     }
 
-    setTopAlbums(artistAlbumResult.data);
+    setTopAlbums(
+      artistAlbumResult.data.map((album) => ({
+        ...album,
+        id: album.id ?? "",
+        title: album.title ?? "",
+        artist: album.artist ?? "",
+        albumArt: album.albumArt ?? "",
+        artistUri: album.artistUri ?? "",
+        uri: album.uri ?? "",
+      })),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistAlbumResult.data, artistAlbumResult.isLoading]);
 

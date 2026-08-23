@@ -1,4 +1,5 @@
-import { client } from ".";
+import { RockskyError } from "@rocksky/sdk";
+import { rocksky } from "../lib/rocksky";
 
 // Wraps the app.rocksky.rockbox.{getAudioSettings,putAudioSettings} XRPC
 // endpoints, which persist audio settings to the user's atproto record
@@ -65,24 +66,15 @@ export interface AudioSettingsPatch {
   replayGain?: LexReplayGain;
 }
 
-const authHeader = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
-});
-
 // Fetch the caller's own settings (auth required).
 export async function getAudioSettings(): Promise<AudioSettingsView | null> {
   try {
-    const res = await client.get<AudioSettingsView>(
-      "/xrpc/app.rocksky.rockbox.getAudioSettings",
-      { headers: authHeader() },
-    );
-    return res.data;
+    // Self-read: no params — identity comes from the bearer token.
+    const res = await rocksky().get("app.rocksky.rockbox.getAudioSettings");
+    return res as AudioSettingsView;
   } catch (e: unknown) {
     // 404 = no record yet for this user. Treat as "fresh user, no settings".
-    if (typeof e === "object" && e !== null && "response" in e) {
-      const resp = (e as { response?: { status?: number } }).response;
-      if (resp?.status === 404) return null;
-    }
+    if (e instanceof RockskyError && e.status === 404) return null;
     throw e;
   }
 }
@@ -91,25 +83,17 @@ export async function getAudioSettings(): Promise<AudioSettingsView | null> {
 // web UI doesn't need it today.
 export async function getAudioSettingsByDid(did: string): Promise<AudioSettingsView | null> {
   try {
-    const res = await client.get<AudioSettingsView>(
-      "/xrpc/app.rocksky.rockbox.getAudioSettings",
-      { params: { did } },
-    );
-    return res.data;
+    const res = await rocksky().audioSettings(did);
+    // The Lex* types refine the lexicon RockboxSettingsView (string enums
+    // narrowed to their documented values).
+    return res as AudioSettingsView;
   } catch (e: unknown) {
-    if (typeof e === "object" && e !== null && "response" in e) {
-      const resp = (e as { response?: { status?: number } }).response;
-      if (resp?.status === 404) return null;
-    }
+    if (e instanceof RockskyError && e.status === 404) return null;
     throw e;
   }
 }
 
 export async function putAudioSettings(patch: AudioSettingsPatch): Promise<AudioSettingsView> {
-  const res = await client.post<AudioSettingsView>(
-    "/xrpc/app.rocksky.rockbox.putAudioSettings",
-    patch,
-    { headers: authHeader() },
-  );
-  return res.data;
+  const res = await rocksky().putAudioSettings(patch);
+  return res as AudioSettingsView;
 }
