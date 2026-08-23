@@ -438,12 +438,18 @@ async function main() {
   const reg = buildRegistry();
   parseLog.success(`parsed ${reg.types.length} named types`);
 
-  // Only the Go (indigo) and TypeScript (atcute) SDKs consume generated lexicon
-  // types. The other languages are now native-core FFI SDKs over the shared Rust
-  // engine (crates/rocksky-sdk) and no longer have a `generated/` subtree.
+  // The Go (indigo), TypeScript (atcute) and Rust SDKs consume generated lexicon
+  // types. The rest are native-core FFI SDKs over the shared Rust engine
+  // (crates/rocksky-sdk) and have no `generated/` subtree.
+  //
+  // sdk/rust was dropped from this list at some point while its generated.rs
+  // stayed in the tree — lib.rs still exposes it and models.rs re-exports from
+  // it, so it silently went stale (it still carried the removed
+  // app.rocksky.playlistItem). Keep it here.
   const targets = [
     { lang: "typescript", path: join(REPO, "sdk/typescript/src/generated/types.ts"), fn: emitTypescript },
     { lang: "go", path: join(REPO, "sdk/go/rocksky/gen/types.go"), fn: emitGo },
+    { lang: "rust", path: join(REPO, "sdk/rust/src/generated.rs"), fn: emitRust },
   ];
 
   let totalBytes = 0;

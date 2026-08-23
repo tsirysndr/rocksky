@@ -162,6 +162,9 @@ pub struct ActorTrackView {
     /// MusicBrainz recording ID, if available.
     #[serde(rename = "recordingMbId", default, skip_serializing_if = "Option::is_none")]
     pub recording_mb_id: Option<String>,
+    /// The track's position within its album, if known (>= 1).
+    #[serde(rename = "trackNumber", default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -189,6 +192,26 @@ pub struct AddItemsToQueueParams {
     /// Whether to shuffle the added items in the queue
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shuffle: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AddSongsOutput {
+    /// AT-URIs of the created app.rocksky.playlist.song records
+    pub uris: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AddSongsParams {
+    /// The URI of the playlist to add the songs to
+    pub uri: String,
+    /// AT-URIs of the app.rocksky.song records to add
+    pub songs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumGetAlbumParams {
+    /// The URI of the album to retrieve.
+    pub uri: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -327,6 +350,37 @@ pub struct ApiKeyView {
     /// The date and time when the API key was created.
     #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ArtistGetArtistParams {
+    /// The URI of the artist to retrieve details from
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ArtistGetArtistsOutput {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artists: Vec<ArtistViewBasic>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ArtistGetArtistsParams {
+    /// The maximum number of artists to return
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    /// The offset for pagination
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+    /// The names of the artists to return
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub names: Option<String>,
+    /// The genre to filter artists by
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    /// RSQL filter expression, e.g. `name==Daft*;genres=in=(house,electro)`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, genres, bornIn, born, died, sha256, uri, createdAt
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -489,28 +543,6 @@ pub struct ArtistViewDetailed {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct AudioSettingsRecord {
-    /// Crossfade settings
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub crossfade: Option<RockboxCrossfadeSettings>,
-    /// Equalizer settings
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub equalizer: Option<RockboxEqualizerSettings>,
-    /// Replay gain settings
-    #[serde(rename = "replayGain", default, skip_serializing_if = "Option::is_none")]
-    pub replay_gain: Option<RockboxReplayGainSettings>,
-    /// Tone control settings (bass, treble, balance, channels)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tone: Option<RockboxToneSettings>,
-    /// When this settings record was first created.
-    #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
-    /// When this settings record was last updated.
-    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ChartsScrobbleViewBasic {
     /// The date of the scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -531,15 +563,6 @@ pub struct CreateApikeyInput {
     /// The name of the API key.
     pub name: String,
     /// A description for the API key.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct CreatePlaylistParams {
-    /// The name of the playlist
-    pub name: String,
-    /// A brief description of the playlist
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
@@ -663,6 +686,44 @@ pub struct CreateSongInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeleteAlbumInput {
+    /// The album id (album xata_id, as exposed by the library API).
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeleteAlbumOutput {
+    /// Always "ok" on success.
+    pub status: String,
+    /// Number of uploads deleted for the album.
+    pub deleted: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeletePlaylistInput {
+    /// The playlist id to delete.
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeletePlaylistOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeleteSongInput {
+    /// The song id (track xata_id, as exposed by the library API).
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeleteSongOutput {
+    /// Always "ok" on success.
+    pub status: String,
+    /// Number of uploads deleted (0 or 1).
+    pub deleted: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DescribeFeedGeneratorOutput {
     /// The DID of the feed generator.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -670,10 +731,6 @@ pub struct DescribeFeedGeneratorOutput {
     /// List of feed URIs generated by this feed generator.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub feeds: Vec<FeedUriView>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DescribeFeedGeneratorParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -691,7 +748,7 @@ pub struct DislikeSongInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DownloadFileParams {
+pub struct DropboxDownloadFileParams {
     /// The unique identifier of the file to download
     #[serde(rename = "fileId")]
     pub file_id: String,
@@ -724,6 +781,13 @@ pub struct DropboxFileView {
     /// The last modified date and time of the file on the server.
     #[serde(rename = "serverModified", default, skip_serializing_if = "Option::is_none")]
     pub server_modified: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DropboxGetFilesParams {
+    /// Path to the Dropbox folder or root directory
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -852,6 +916,12 @@ pub struct FeedRecommendedArtistView {
     /// neighbour | social | serendipity
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FeedSearchParams {
+    /// The search query string
+    pub query: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1060,12 +1130,15 @@ pub struct GetActorPlaylistsOutput {
 pub struct GetActorPlaylistsParams {
     /// The DID or handle of the actor
     pub did: String,
-    /// The maximum number of albums to return
+    /// The maximum number of playlists to return
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// The offset for pagination
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub offset: Option<i64>,
+    /// RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1111,9 +1184,39 @@ pub struct GetActorSongsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetAlbumParams {
-    /// The URI of the album to retrieve.
-    pub uri: String,
+pub struct GetAlbumInfoOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetAlbumInfoParams {
+    /// The album id
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetAlbumListOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetAlbumListParams {
+    /// List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred.
+    #[serde(rename = "type")]
+    pub type_: String,
+    /// Number of albums to return (max 500).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<i64>,
+    /// Offset for pagination.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+    /// First year in a byYear range.
+    #[serde(rename = "fromYear", default, skip_serializing_if = "Option::is_none")]
+    pub from_year: Option<i64>,
+    /// Last year in a byYear range.
+    #[serde(rename = "toYear", default, skip_serializing_if = "Option::is_none")]
+    pub to_year: Option<i64>,
+    /// Genre name when type is byGenre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1159,6 +1262,9 @@ pub struct GetAlbumsParams {
     /// The genre to filter artists by
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub genre: Option<String>,
+    /// RSQL filter expression, e.g. `artist=="Daft Punk";year=ge=2000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, year, releaseDate, sha256, uri, artistUri, createdAt
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1202,6 +1308,16 @@ pub struct GetArtistAlbumsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetArtistInfoOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetArtistInfoParams {
+    /// The artist id
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetArtistListenersOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub listeners: Vec<ArtistListenerViewBasic>,
@@ -1217,12 +1333,6 @@ pub struct GetArtistListenersParams {
     /// Maximum number of results to return
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetArtistParams {
-    /// The URI of the artist to retrieve details from
-    pub uri: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1270,28 +1380,6 @@ pub struct GetArtistShoutsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetArtistsOutput {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub artists: Vec<ArtistViewBasic>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetArtistsParams {
-    /// The maximum number of artists to return
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub limit: Option<i64>,
-    /// The offset for pagination
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub offset: Option<i64>,
-    /// The names of the artists to return
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub names: Option<String>,
-    /// The genre to filter artists by
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub genre: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetArtistTracksOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tracks: Vec<SongViewBasic>,
@@ -1318,12 +1406,30 @@ pub struct GetAudioSettingsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetCurrentlyPlayingParams {
-    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
-    pub player_id: Option<String>,
-    /// Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.
+pub struct GetCoverArtUrlOutput {
+    /// The resolved media or cover-art URL.
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetCoverArtUrlParams {
+    /// The cover-art id (album, artist or song).
+    pub id: String,
+    /// Requested square size in pixels.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub actor: Option<String>,
+    pub size: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetDownloadUrlOutput {
+    /// The resolved media or cover-art URL.
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetDownloadUrlParams {
+    /// The song id.
+    pub id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1389,13 +1495,6 @@ pub struct GetFileParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetFilesParams {
-    /// Path to the Dropbox folder or root directory
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetFollowersOutput {
     pub subject: ActorProfileViewBasic,
     pub followers: Vec<ActorProfileViewBasic>,
@@ -1444,7 +1543,31 @@ pub struct GetFollowsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetGenresOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetGenresParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetGlobalStatsParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetIndexesOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetIndexesParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetInternetRadioStationsOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetInternetRadioStationsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1466,6 +1589,28 @@ pub struct GetKnownFollowersParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetLicenseOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetLicenseParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetLyricsOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetLyricsParams {
+    /// The artist name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// The song title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetMetadataParams {
     /// Path to the file or folder in Dropbox
     pub path: String,
@@ -1481,31 +1626,43 @@ pub struct GetMirrorSourcesParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetMusicDirectoryOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetMusicDirectoryParams {
+    /// The directory id
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetMusicFoldersOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetMusicFoldersParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetNowPlayingOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetNowPlayingParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetPlaybackQueueParams {
     #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
     pub player_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetPlaylistParams {
-    /// The URI of the playlist to retrieve.
-    pub uri: String,
+pub struct GetPlayQueueOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetPlaylistsOutput {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub playlists: Vec<PlaylistViewBasic>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetPlaylistsParams {
-    /// The maximum number of playlists to return.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub limit: Option<i64>,
-    /// The offset for pagination, used to skip a number of playlists.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub offset: Option<i64>,
+pub struct GetPlayQueueParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1534,11 +1691,39 @@ pub struct GetProfileShoutsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetRandomSongsOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetRandomSongsParams {
+    /// Number of songs to return (max 500).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<i64>,
+    /// Only return songs in this genre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    /// Only return songs published after or in this year.
+    #[serde(rename = "fromYear", default, skip_serializing_if = "Option::is_none")]
+    pub from_year: Option<i64>,
+    /// Only return songs published before or in this year.
+    #[serde(rename = "toYear", default, skip_serializing_if = "Option::is_none")]
+    pub to_year: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetRecommendationsParams {
     /// DID or handle of the user to recommend for.
     pub did: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetScanStatusOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetScanStatusParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1592,6 +1777,9 @@ pub struct GetScrobblesParams {
     /// The offset for pagination
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub offset: Option<i64>,
+    /// RSQL filter expression, e.g. `track.artist=="Daft Punk";date=ge=2025-01-01`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: uri, date, timestamp, title, artist, album, track.title, track.artist, track.album, track.albumArtist, track.genre, track.duration, track.isrc, track.mbId, user.did, user.handle, user.displayName, artist.name, artist.genres
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1613,19 +1801,16 @@ pub struct GetShoutRepliesParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetSongParams {
-    /// The AT-URI of the song to retrieve
+pub struct GetSimilarSongsOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetSimilarSongsParams {
+    /// The artist, album or song id
+    pub id: String,
+    /// Number of songs to return.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub uri: Option<String>,
-    /// The MusicBrainz ID of the song to retrieve
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mbid: Option<String>,
-    /// The International Standard Recording Code (ISRC) of the song to retrieve
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub isrc: Option<String>,
-    /// The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL)
-    #[serde(rename = "spotifyId", default, skip_serializing_if = "Option::is_none")]
-    pub spotify_id: Option<String>,
+    pub count: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1644,6 +1829,22 @@ pub struct GetSongRecentListenersParams {
     /// Maximum number of results to return
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetSongsByGenreOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetSongsByGenreParams {
+    /// The genre name.
+    pub genre: String,
+    /// Number of songs to return (max 500).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<i64>,
+    /// Offset for pagination.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1672,6 +1873,17 @@ pub struct GetSongsParams {
     /// Filter songs by Spotify track ID (resolved internally to the Spotify track URL)
     #[serde(rename = "spotifyId", default, skip_serializing_if = "Option::is_none")]
     pub spotify_id: Option<String>,
+    /// RSQL filter expression, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, createdAt
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetStarredOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetStarredParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1691,6 +1903,24 @@ pub struct GetStoriesParams {
     /// If true, only return stories from users the viewer follows. Requires authentication.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub following: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetStreamUrlOutput {
+    /// The resolved media or cover-art URL.
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetStreamUrlParams {
+    /// The song id.
+    pub id: String,
+    /// Maximum bitrate (kbps); 0 means no limit.
+    #[serde(rename = "maxBitRate", default, skip_serializing_if = "Option::is_none")]
+    pub max_bit_rate: Option<i64>,
+    /// Preferred transcode format.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1719,6 +1949,19 @@ pub struct GetTopArtistsParams {
     /// The end date to filter artists to (ISO 8601 format)
     #[serde(rename = "endDate", default, skip_serializing_if = "Option::is_none")]
     pub end_date: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetTopSongsOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetTopSongsParams {
+    /// The artist name.
+    pub artist: String,
+    /// Number of songs to return.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1756,12 +1999,33 @@ pub struct GetTrackShoutsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetUnreadCountOutput {
+    /// The number of unread notifications.
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetUserOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetUserParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetWrappedParams {
     /// The DID or handle of the user
     pub did: String,
     /// The year to get wrapped stats for (defaults to current year)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GoogledriveDownloadFileParams {
+    /// The unique identifier of the file to download
+    #[serde(rename = "fileId")]
+    pub file_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1775,6 +2039,13 @@ pub struct GoogledriveFileView {
     /// The unique identifier of the file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GoogledriveGetFilesParams {
+    /// Path to the Google Drive folder or root directory
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<String>,
 }
 
 /// indicates that a handle or DID could not be resolved
@@ -1818,6 +2089,123 @@ pub struct InsertFilesParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryCreatePlaylistInput {
+    /// The playlist name.
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryCreatePlaylistOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetAlbumOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetAlbumParams {
+    /// The album id
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetArtistOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetArtistParams {
+    /// The artist id
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetArtistsOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetArtistsParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetPlaylistOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetPlaylistParams {
+    /// The playlist id
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetPlaylistsOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetPlaylistsParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetSongOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryGetSongParams {
+    /// The song id
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibrarySearchOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibrarySearchParams {
+    /// The search query.
+    pub query: String,
+    /// Maximum number of artists to return.
+    #[serde(rename = "artistCount", default, skip_serializing_if = "Option::is_none")]
+    pub artist_count: Option<i64>,
+    /// Artist result offset.
+    #[serde(rename = "artistOffset", default, skip_serializing_if = "Option::is_none")]
+    pub artist_offset: Option<i64>,
+    /// Maximum number of albums to return.
+    #[serde(rename = "albumCount", default, skip_serializing_if = "Option::is_none")]
+    pub album_count: Option<i64>,
+    /// Album result offset.
+    #[serde(rename = "albumOffset", default, skip_serializing_if = "Option::is_none")]
+    pub album_offset: Option<i64>,
+    /// Maximum number of songs to return.
+    #[serde(rename = "songCount", default, skip_serializing_if = "Option::is_none")]
+    pub song_count: Option<i64>,
+    /// Song result offset.
+    #[serde(rename = "songOffset", default, skip_serializing_if = "Option::is_none")]
+    pub song_offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryUpdatePlaylistInput {
+    /// The playlist id to update.
+    #[serde(rename = "playlistId")]
+    pub playlist_id: String,
+    /// New playlist name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// New playlist comment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+    /// A song id to add to the playlist.
+    #[serde(rename = "songIdToAdd", default, skip_serializing_if = "Option::is_none")]
+    pub song_id_to_add: Option<String>,
+    /// A track index to remove from the playlist.
+    #[serde(rename = "songIndexToRemove", default, skip_serializing_if = "Option::is_none")]
+    pub song_index_to_remove: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LibraryUpdatePlaylistOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LikeRecord {
     /// The date when the like was created.
     #[serde(rename = "createdAt")]
@@ -1837,6 +2225,25 @@ pub struct LikeSongInput {
     /// The unique identifier of the song to like
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListNotificationsOutput {
+    pub notifications: Vec<NotificationView>,
+    /// The number of unread notifications.
+    #[serde(rename = "unreadCount")]
+    pub unread_count: i64,
+    /// A cursor value to pass to subsequent calls to get the next page of results.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListNotificationsParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1873,16 +2280,75 @@ pub struct MirrorSourceView {
     pub last_scrobble_seen_at: Option<DateTime<Utc>>,
 }
 
+/// The user who triggered a notification.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct NextParams {
-    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
-    pub player_id: Option<String>,
+pub struct NotificationActor {
+    /// The unique identifier of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The decentralized identifier of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+    /// The handle of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handle: Option<String>,
+    /// The display name of the actor.
+    #[serde(rename = "displayName", default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    /// The URL of the actor's avatar image.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
+}
+
+/// The song, album, or scrobble a notification relates to, for rich display.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NotificationSubjectView {
+    /// The at-uri of the subject.
+    pub uri: String,
+    /// The title of the track or album.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The artist of the track or album.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// The album art image URL.
+    #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PauseParams {
-    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
-    pub player_id: Option<String>,
+pub struct NotificationView {
+    /// The unique identifier of the notification.
+    pub id: String,
+    /// The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment.
+    #[serde(rename = "type")]
+    pub type_: String,
+    /// Whether the notification has been viewed.
+    pub read: bool,
+    /// When the notification was created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// The at-uri of the subject the notification relates to.
+    #[serde(rename = "subjectUri", default, skip_serializing_if = "Option::is_none")]
+    pub subject_uri: Option<String>,
+    /// The id of the related shout, if any.
+    #[serde(rename = "shoutId", default, skip_serializing_if = "Option::is_none")]
+    pub shout_id: Option<String>,
+    /// The content of the related shout, if any.
+    #[serde(rename = "shoutContent", default, skip_serializing_if = "Option::is_none")]
+    pub shout_content: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor: Option<NotificationActor>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject: Option<NotificationSubjectView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PingOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PingParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1907,9 +2373,50 @@ pub struct PlayerCurrentlyPlayingViewDetailed {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlayerGetCurrentlyPlayingParams {
+    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<String>,
+    /// Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlayerNextParams {
+    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlayerPauseParams {
+    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PlayerPlaybackQueueViewDetailed {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tracks: Vec<SongViewBasic>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlayerPlayParams {
+    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlayerPreviousParams {
+    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlayerSeekParams {
+    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<String>,
+    /// The position in seconds to seek to
+    pub position: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1921,14 +2428,51 @@ pub struct PlayFileParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PlaylistItemRecord {
-    pub subject: StrongRef,
-    /// The date the playlist was created.
-    #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
-    pub track: SongViewBasic,
-    /// The order of the item in the playlist.
-    pub order: i64,
+pub struct PlaylistCreatePlaylistOutput {
+    /// The AT-URI of the created app.rocksky.playlist record.
+    pub uri: String,
+    /// The CID of the created app.rocksky.playlist record.
+    pub cid: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlaylistCreatePlaylistParams {
+    /// The name of the playlist
+    pub name: String,
+    /// A brief description of the playlist
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// The URL of the cover image for the playlist
+    #[serde(rename = "pictureUrl", default, skip_serializing_if = "Option::is_none")]
+    pub picture_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlaylistGetPlaylistParams {
+    /// The URI of the playlist to retrieve.
+    pub uri: String,
+    /// RSQL filter expression applied to the playlist's tracks, e.g. `artist=="Daft Punk";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, addedAt
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlaylistGetPlaylistsOutput {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub playlists: Vec<PlaylistViewBasic>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlaylistGetPlaylistsParams {
+    /// The maximum number of playlists to return.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    /// The offset for pagination, used to skip a number of playlists.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+    /// RSQL filter expression, e.g. `name=="Road trip*";track.artist=="Daft Punk"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt, curatorDid, curatorHandle, curatorName. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1959,6 +2503,54 @@ pub struct PlaylistRecord {
     /// The Apple Music link of the playlist.
     #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
     pub apple_music_link: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlaylistSongRecord {
+    /// Strong reference (AT-URI + CID) to the parent app.rocksky.playlist record.
+    pub playlist: StrongRef,
+    /// Strong reference (AT-URI + CID) to the app.rocksky.song record this entry points at.
+    pub song: StrongRef,
+    /// The title of the song.
+    pub title: String,
+    /// The artist of the song.
+    pub artist: String,
+    /// The album the song belongs to.
+    pub album: String,
+    /// The album artist of the song.
+    #[serde(rename = "albumArtist")]
+    pub album_artist: String,
+    /// The duration of the song in milliseconds.
+    pub duration: i64,
+    /// The URL of the album art of the song.
+    #[serde(rename = "albumArtUrl", default, skip_serializing_if = "Option::is_none")]
+    pub album_art_url: Option<String>,
+    /// The date and time the song was added to the playlist.
+    #[serde(rename = "addedAt")]
+    pub added_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlaylistUpdatePlaylistOutput {
+    /// The AT-URI of the updated app.rocksky.playlist record.
+    pub uri: String,
+    /// The CID of the updated app.rocksky.playlist record.
+    pub cid: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PlaylistUpdatePlaylistParams {
+    /// The URI of the playlist to update
+    pub uri: String,
+    /// The new name of the playlist
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The new description of the playlist
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// The new cover image URL for the playlist
+    #[serde(rename = "pictureUrl", default, skip_serializing_if = "Option::is_none")]
+    pub picture_url: Option<String>,
 }
 
 /// Basic view of a playlist, including its metadata
@@ -2035,18 +2627,6 @@ pub struct PlaylistViewDetailed {
     /// A list of tracks in the playlist.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tracks: Vec<SongViewBasic>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PlayParams {
-    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
-    pub player_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PreviousParams {
-    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
-    pub player_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2191,8 +2771,9 @@ pub struct RemoveShoutParams {
 pub struct RemoveTrackParams {
     /// The URI of the playlist to remove the track from
     pub uri: String,
-    /// The position of the track to remove in the playlist
-    pub position: i64,
+    /// The URI of the app.rocksky.song record to remove from the playlist
+    #[serde(rename = "songUri")]
+    pub song_uri: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2311,6 +2892,23 @@ pub struct RockboxToneSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SavePlayQueueInput {
+    /// Comma-separated song ids in the queue.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The id of the currently playing song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current: Option<String>,
+    /// Position within the current song, in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SavePlayQueueOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ScrobbleFirstScrobbleView {
     /// The handle of the user who first scrobbled this song.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2321,6 +2919,22 @@ pub struct ScrobbleFirstScrobbleView {
     /// The timestamp of the first scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ScrobbleInput {
+    /// The song id.
+    pub id: String,
+    /// Play time as a Unix timestamp in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time: Option<i64>,
+    /// True for a final submission, false for a now-playing update.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub submission: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ScrobbleOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2406,15 +3020,9 @@ pub struct ScrobbleViewBasic {
     /// The unique identifier of the scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// The handle of the user who created the scrobble.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user: Option<String>,
-    /// The display name of the user who created the scrobble.
-    #[serde(rename = "userDisplayName", default, skip_serializing_if = "Option::is_none")]
-    pub user_display_name: Option<String>,
-    /// The avatar URL of the user who created the scrobble.
-    #[serde(rename = "userAvatar", default, skip_serializing_if = "Option::is_none")]
-    pub user_avatar: Option<String>,
+    /// The unique identifier of the track this scrobble is of.
+    #[serde(rename = "trackId", default, skip_serializing_if = "Option::is_none")]
+    pub track_id: Option<String>,
     /// The title of the scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -2424,6 +3032,9 @@ pub struct ScrobbleViewBasic {
     /// The URI of the artist.
     #[serde(rename = "artistUri", default, skip_serializing_if = "Option::is_none")]
     pub artist_uri: Option<String>,
+    /// The album artist of the song.
+    #[serde(rename = "albumArtist", default, skip_serializing_if = "Option::is_none")]
+    pub album_artist: Option<String>,
     /// The album of the song.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub album: Option<String>,
@@ -2431,11 +3042,23 @@ pub struct ScrobbleViewBasic {
     #[serde(rename = "albumUri", default, skip_serializing_if = "Option::is_none")]
     pub album_uri: Option<String>,
     /// The album art URL of the song.
+    #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    /// The URI of the track (song) this scrobble is of.
+    #[serde(rename = "trackUri", default, skip_serializing_if = "Option::is_none")]
+    pub track_uri: Option<String>,
+    /// The handle of the user who created the scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cover: Option<String>,
+    pub handle: Option<String>,
+    /// The DID of the user who created the scrobble.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+    /// The avatar URL of the user who created the scrobble.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
     /// The timestamp when the scrobble was created.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub date: Option<DateTime<Utc>>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<DateTime<Utc>>,
     /// The URI of the scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
@@ -2501,17 +3124,25 @@ pub struct ScrobbleViewDetailed {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SearchParams {
-    /// The search query string
-    pub query: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SeekParams {
-    #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
-    pub player_id: Option<String>,
-    /// The position in seconds to seek to
-    pub position: i64,
+pub struct SettingsRecord {
+    /// Crossfade settings
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub crossfade: Option<RockboxCrossfadeSettings>,
+    /// Equalizer settings
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equalizer: Option<RockboxEqualizerSettings>,
+    /// Replay gain settings
+    #[serde(rename = "replayGain", default, skip_serializing_if = "Option::is_none")]
+    pub replay_gain: Option<RockboxReplayGainSettings>,
+    /// Tone control settings (bass, treble, balance, channels)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tone: Option<RockboxToneSettings>,
+    /// When this settings record was first created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// When this settings record was last updated.
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2533,16 +3164,55 @@ pub struct ShoutAuthor {
     pub avatar: Option<String>,
 }
 
+/// A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ShoutGif {
+    /// Direct URL of the animated GIF/MP4.
+    pub url: String,
+    /// Smaller still/preview image URL.
+    #[serde(rename = "previewUrl", default, skip_serializing_if = "Option::is_none")]
+    pub preview_url: Option<String>,
+    /// Alternative text describing the media.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alt: Option<String>,
+    /// The intrinsic width of the media in pixels.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<i64>,
+    /// The intrinsic height of the media in pixels.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<i64>,
+}
+
+/// A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ShoutMention {
+    /// The DID of the mentioned actor.
+    pub did: String,
+    /// Inclusive UTF-8 byte offset of the mention start.
+    #[serde(rename = "byteStart")]
+    pub byte_start: i64,
+    /// Exclusive UTF-8 byte offset of the mention end.
+    #[serde(rename = "byteEnd")]
+    pub byte_end: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ShoutRecord {
-    /// The message of the shout.
-    pub message: String,
+    /// The message of the shout. Optional when a gif/sticker/clip is attached.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
     /// The date when the shout was created.
     #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parent: Option<StrongRef>,
     pub subject: StrongRef,
+    /// An attached GIF, sticker, or clip (e.g. from KLIPY).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gif: Option<ShoutGif>,
+    /// Mentions of other actors within the message, anchored to UTF-8 byte ranges.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub facets: Vec<ShoutMention>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2562,6 +3232,12 @@ pub struct ShoutView {
     /// The author of the shout.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub author: Option<ShoutAuthor>,
+    /// An attached GIF, sticker, or clip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gif: Option<ShoutGif>,
+    /// Mentions of other actors within the message, anchored to UTF-8 byte ranges.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub facets: Vec<ShoutMention>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2575,6 +3251,69 @@ pub struct SongFirstScrobbleView {
     /// The timestamp of the first scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SongGetSongParams {
+    /// The AT-URI of the song to retrieve
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    /// The MusicBrainz ID of the song to retrieve
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    /// The International Standard Recording Code (ISRC) of the song to retrieve
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    /// The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL)
+    #[serde(rename = "spotifyId", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_id: Option<String>,
+}
+
+/// A ranked candidate match for a song from an external metadata provider.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SongMatchView {
+    /// The provider's numeric identifier for the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<i64>,
+    /// The title of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The artist of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// The album of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<String>,
+    /// The URL of the matched track's album art image.
+    #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    /// The International Standard Recording Code (ISRC) of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    /// The duration of the matched track in milliseconds.
+    #[serde(rename = "durationMs", default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<i64>,
+    /// The track number of the matched track in its album.
+    #[serde(rename = "trackNumber", default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
+    /// The disc number of the matched track in its album.
+    #[serde(rename = "discNumber", default, skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    /// A URL to the matched track on the provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
+    /// A URL to a short audio preview of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview: Option<String>,
+    /// The provider's popularity rank for the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rank: Option<i64>,
+    /// Whether the matched track has explicit lyrics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub explicit: Option<bool>,
+    /// Match confidence score in the range 0-100 (higher is better).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub score: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2740,47 +3479,6 @@ pub struct SongViewBasic {
     pub created_at: Option<DateTime<Utc>>,
 }
 
-/// A ranked candidate match for a song from an external metadata provider.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SongMatchView {
-    /// The provider's numeric identifier for the matched track.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<i64>,
-    /// The title of the matched track.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-    /// The artist of the matched track.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub artist: Option<String>,
-    /// The album of the matched track.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub album: Option<String>,
-    /// The URL of the matched track's album art image.
-    #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
-    pub album_art: Option<String>,
-    /// The International Standard Recording Code (ISRC) of the matched track.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub isrc: Option<String>,
-    /// The duration of the matched track in milliseconds.
-    #[serde(rename = "durationMs", default, skip_serializing_if = "Option::is_none")]
-    pub duration_ms: Option<i64>,
-    /// A URL to the matched track on the provider.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub link: Option<String>,
-    /// A URL to a short audio preview of the matched track.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub preview: Option<String>,
-    /// The provider's popularity rank for the matched track.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rank: Option<i64>,
-    /// Whether the matched track has explicit lyrics.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub explicit: Option<bool>,
-    /// Match confidence score in the range 0-100 (higher is better).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub score: Option<i64>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SongViewDetailed {
     /// The unique identifier of the song.
@@ -2844,10 +3542,22 @@ pub struct SongViewDetailed {
     /// The first scrobble of this song on Rocksky.
     #[serde(rename = "firstScrobble", default, skip_serializing_if = "Option::is_none")]
     pub first_scrobble: Option<SongFirstScrobbleView>,
-    /// Ranked list of candidate matches from external metadata providers
-    /// (e.g. Deezer). Additive field returned by matchSong; may be empty.
+    /// Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub matches: Vec<SongMatchView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SpotifyGetCurrentlyPlayingParams {
+    /// Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SpotifySeekParams {
+    /// The position in seconds to seek to
+    pub position: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2873,6 +3583,22 @@ pub struct SpotifyTrackView {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StarInput {
+    /// The song id to star.
+    pub id: String,
+    /// An album id to star.
+    #[serde(rename = "albumId", default, skip_serializing_if = "Option::is_none")]
+    pub album_id: Option<String>,
+    /// An artist id to star.
+    #[serde(rename = "artistId", default, skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StarOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StartPlaylistParams {
     /// The URI of the playlist to start
     pub uri: String,
@@ -2882,6 +3608,14 @@ pub struct StartPlaylistParams {
     /// The position in the playlist to start from, if not specified, starts from the beginning
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StartScanOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StartScanParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3116,6 +3850,22 @@ pub struct UnfollowAccountParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UnstarInput {
+    /// The song id to unstar.
+    pub id: String,
+    /// An album id to unstar.
+    #[serde(rename = "albumId", default, skip_serializing_if = "Option::is_none")]
+    pub album_id: Option<String>,
+    /// An artist id to unstar.
+    #[serde(rename = "artistId", default, skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UnstarOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateApikeyInput {
     /// The ID of the API key to update.
     pub id: String,
@@ -3124,4 +3874,28 @@ pub struct UpdateApikeyInput {
     /// A new description for the API key.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateNowPlayingInput {
+    /// The song id.
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateNowPlayingOutput {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateSeenInput {
+    /// The ids of the notifications to mark as viewed. Omit to mark all.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateSeenOutput {
+    /// The number of unread notifications remaining.
+    #[serde(rename = "unreadCount")]
+    pub unread_count: i64,
 }

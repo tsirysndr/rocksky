@@ -53,6 +53,9 @@ import type {
   StatsGlobalStatsView,
   StatsView,
   StatsWrappedView,
+  PlaylistCreatePlaylistOutput,
+  PlaylistUpdatePlaylistOutput,
+  AddSongsOutput,
   UnfollowAccountOutput,
   UpdateSeenOutput,
 } from "./generated/types.js";
@@ -515,6 +518,54 @@ export class RockskyClient {
   /** A single playlist with its items. */
   playlist(uri: string): Promise<PlaylistViewDetailed> {
     return this.query("app.rocksky.playlist.getPlaylist", { uri });
+  }
+
+  /**
+   * Create a playlist (`app.rocksky.playlist.createPlaylist`). Auth required.
+   * Publishes an app.rocksky.playlist record to the caller's repo; the AppView
+   * only lists it once the commit has been ingested.
+   */
+  createPlaylist(input: {
+    name: string;
+    description?: string;
+    pictureUrl?: string;
+  }): Promise<PlaylistCreatePlaylistOutput> {
+    return this.post("app.rocksky.playlist.createPlaylist", { params: input });
+  }
+
+  /** Rename or re-describe a playlist (`app.rocksky.playlist.updatePlaylist`). Owner only. */
+  updatePlaylist(input: {
+    uri: string;
+    name?: string;
+    description?: string;
+    pictureUrl?: string;
+  }): Promise<PlaylistUpdatePlaylistOutput> {
+    return this.post("app.rocksky.playlist.updatePlaylist", { params: input });
+  }
+
+  /**
+   * Add songs to a playlist (`app.rocksky.playlist.addSongs`). Owner only.
+   * `songs` are app.rocksky.song AT-URIs; returns the created entry URIs.
+   */
+  addSongs(uri: string, songs: string[]): Promise<AddSongsOutput> {
+    return this.post("app.rocksky.playlist.addSongs", {
+      params: { uri, songs },
+    });
+  }
+
+  /** Delete a playlist and the caller's own entries (`app.rocksky.playlist.removePlaylist`). Owner only. */
+  removePlaylist(uri: string): Promise<void> {
+    return this.post("app.rocksky.playlist.removePlaylist", { params: { uri } });
+  }
+
+  /**
+   * Remove a song from a playlist (`app.rocksky.playlist.removeTrack`). An
+   * entry can only be retracted by the repo that published it.
+   */
+  removeTrack(uri: string, songUri: string): Promise<void> {
+    return this.post("app.rocksky.playlist.removeTrack", {
+      params: { uri, songUri },
+    });
   }
   /** Shouts on an album. */
   albumShouts(uri: string, limit = 50, offset = 0): Promise<GetAlbumShoutsOutput> {
