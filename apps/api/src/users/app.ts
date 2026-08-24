@@ -13,6 +13,7 @@ import {
 import { Hono } from "hono";
 import { createAgent } from "lib/agent";
 import { fetchBskyProfile } from "lib/bskyProfile";
+import { withLikes } from "lib/trackLikes";
 import { verifyToken } from "lib/verifyToken";
 import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import { requestCounter } from "metrics";
@@ -496,10 +497,26 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
     .orderBy(asc(tables.playlistTracks.createdAt))
     .execute();
 
+  // Optional auth: the playlist is public, a valid token only decides whether
+  // `liked` can be filled in. A bad token must not fail the read.
+  let did_: string | undefined;
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+  if (bearer && bearer !== "null") {
+    try {
+      did_ = (await verifyToken(bearer)).did;
+    } catch {
+      did_ = undefined;
+    }
+  }
+
   return c.json({
     ...playlist[0].playlists,
     curatedBy: playlist[0].users,
-    tracks: results.map((x) => x.tracks),
+    tracks: await withLikes(
+      ctx,
+      results.map((x) => x.tracks),
+      did_,
+    ),
   });
 });
 

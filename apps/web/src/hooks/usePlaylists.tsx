@@ -131,10 +131,17 @@ const usePlaylists = () => {
       artistUri: string;
       duration: number;
       discNumber: number;
+      liked?: boolean;
     }[];
   }> => {
+    // The token is optional — it only decides whether the tracks come back
+    // with `liked` set. Without it every heart renders empty.
+    const token = localStorage.getItem("token");
     const response = await axios.get(
       `${API_URL}/users/${did}/app.rocksky.playlist/${rkey}`,
+      token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : undefined,
     );
     return response.data;
   };

@@ -304,7 +304,7 @@ const Album = () => {
                 },
                 TableBodyCell: {
                   style: {
-                    verticalAlign: "center",
+                    verticalAlign: "middle",
                   },
                 },
                 TableBodyRow: {
@@ -328,7 +328,7 @@ const Album = () => {
                   TableBodyCell: {
                     style: {
                       width: "50px",
-                      verticalAlign: "center",
+                      verticalAlign: "middle",
                     },
                   },
                 }}
@@ -394,7 +394,14 @@ const Album = () => {
                   </div>
                 )}
               </TableBuilderColumn>
-              <TableBuilderColumn header="">
+              <TableBuilderColumn
+                header=""
+                overrides={{
+                  TableBodyCell: {
+                    style: { width: "48px", verticalAlign: "middle" },
+                  },
+                }}
+              >
                 {(row: Row) => <LikeButton uri={row.uri} liked={row.liked} />}
               </TableBuilderColumn>
             </TableBuilder>
@@ -418,7 +425,7 @@ const Album = () => {
                       },
                       TableBodyCell: {
                         style: {
-                          verticalAlign: "center",
+                          verticalAlign: "middle",
                         },
                       },
                       TableBodyRow: {
@@ -437,7 +444,7 @@ const Album = () => {
                         TableBodyCell: {
                           style: {
                             width: "50px",
-                            verticalAlign: "center",
+                            verticalAlign: "middle",
                           },
                         },
                       }}
@@ -506,7 +513,14 @@ const Album = () => {
                         </div>
                       )}
                     </TableBuilderColumn>
-                    <TableBuilderColumn header="">
+                    <TableBuilderColumn
+                      header=""
+                      overrides={{
+                        TableBodyCell: {
+                          style: { width: "48px", verticalAlign: "middle" },
+                        },
+                      }}
+                    >
                       {(row: Row) => (
                         <LikeButton uri={row.uri} liked={row.liked} />
                       )}

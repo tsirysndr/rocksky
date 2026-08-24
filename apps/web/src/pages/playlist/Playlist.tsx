@@ -371,7 +371,7 @@ function Playlist() {
                 },
                 TableBodyCell: {
                   style: {
-                    verticalAlign: "center",
+                    verticalAlign: "middle",
                   },
                 },
                 TableBodyRow: {
@@ -400,7 +400,7 @@ function Playlist() {
                   TableBodyCell: {
                     style: {
                       width: "50px",
-                      verticalAlign: "center",
+                      verticalAlign: "middle",
                     },
                   },
                 }}
@@ -466,14 +466,23 @@ function Playlist() {
                   </div>
                 )}
               </TableBuilderColumn>
-              <TableBuilderColumn header="">
+              <TableBuilderColumn
+                header=""
+                overrides={{
+                  TableBodyCell: {
+                    style: { width: "48px", verticalAlign: "middle" },
+                  },
+                }}
+              >
                 {(row: Row) => <LikeButton uri={row.uri} liked={row.liked} />}
               </TableBuilderColumn>
               {isOwner && (
                 <TableBuilderColumn
                   header=""
                   overrides={{
-                    TableBodyCell: { style: { width: "48px" } },
+                    TableBodyCell: {
+                      style: { width: "48px", verticalAlign: "middle" },
+                    },
                   }}
                 >
                   {(row: Row) => (
