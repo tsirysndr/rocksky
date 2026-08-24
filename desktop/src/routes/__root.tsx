@@ -2,6 +2,7 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import * as React from "react";
 import { themeAtom } from "../atoms/theme";
+import AddToPlaylistPalette from "../components/AddToPlaylistPalette";
 import CreatePlaylistModal from "../components/CreatePlaylistModal";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
 import LibraryPlaylistModal from "../components/LibraryPlaylistModal";
@@ -60,6 +61,7 @@ function RootComponent() {
       <LibrarySearchModal />
       <CreatePlaylistModal />
       <LibraryPlaylistModal />
+      <AddToPlaylistPalette />
     </React.Fragment>
   );
 }

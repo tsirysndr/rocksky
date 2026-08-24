@@ -21,6 +21,13 @@ export const addSongsTargetAtom = atom<{ uri: string; name: string } | null>(
   null,
 );
 
+/**
+ * Song AT-URIs the new playlist should already contain, set when the modal is
+ * opened from "Create a new Playlist" in the add-to-playlist palette. Ignored
+ * when editing or adding to an existing playlist.
+ */
+export const newPlaylistSeedSongsAtom = atom<string[]>([]);
+
 /** A song added through the modal, shaped like a playlist page track row. */
 export type PendingPlaylistTrack = {
   id: string;

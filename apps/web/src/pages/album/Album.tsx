@@ -13,6 +13,7 @@ import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
+import { AddToPlaylistButton } from "../../components/AddToPlaylistPalette";
 import LikeButton from "../../components/LikeButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
@@ -36,6 +37,31 @@ const Link = styled(DefaultLink)`
     text-decoration: underline;
   }
 `;
+
+// Plus and heart sit next to each other, so these cells drop baseui's
+// horizontal cell padding. The first one keeps its left padding to stay clear
+// of the duration.
+const ACTION_CELL = {
+  TableBodyCell: {
+    style: {
+      width: "36px",
+      paddingLeft: "0px",
+      paddingRight: "0px",
+      verticalAlign: "middle",
+    },
+  },
+};
+
+const FIRST_ACTION_CELL = {
+  TableBodyCell: {
+    style: {
+      width: "52px",
+      paddingLeft: "16px",
+      paddingRight: "0px",
+      verticalAlign: "middle",
+    },
+  },
+};
 
 type Row = {
   id: string;
@@ -396,11 +422,15 @@ const Album = () => {
               </TableBuilderColumn>
               <TableBuilderColumn
                 header=""
-                overrides={{
-                  TableBodyCell: {
-                    style: { width: "48px", verticalAlign: "middle" },
-                  },
-                }}
+                overrides={FIRST_ACTION_CELL}
+              >
+                {(row: Row) => (
+                  <AddToPlaylistButton uri={row.uri} title={row.title} />
+                )}
+              </TableBuilderColumn>
+              <TableBuilderColumn
+                header=""
+                overrides={ACTION_CELL}
               >
                 {(row: Row) => <LikeButton uri={row.uri} liked={row.liked} />}
               </TableBuilderColumn>
@@ -515,11 +545,15 @@ const Album = () => {
                     </TableBuilderColumn>
                     <TableBuilderColumn
                       header=""
-                      overrides={{
-                        TableBodyCell: {
-                          style: { width: "48px", verticalAlign: "middle" },
-                        },
-                      }}
+                      overrides={FIRST_ACTION_CELL}
+                    >
+                      {(row: Row) => (
+                        <AddToPlaylistButton uri={row.uri} title={row.title} />
+                      )}
+                    </TableBuilderColumn>
+                    <TableBuilderColumn
+                      header=""
+                      overrides={ACTION_CELL}
                     >
                       {(row: Row) => (
                         <LikeButton uri={row.uri} liked={row.liked} />

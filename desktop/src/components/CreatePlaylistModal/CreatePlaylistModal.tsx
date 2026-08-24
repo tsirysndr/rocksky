@@ -12,6 +12,7 @@ import {
   addSongsTargetAtom,
   createPlaylistModalOpenAtom,
   editingPlaylistAtom,
+  newPlaylistSeedSongsAtom,
   pendingPlaylistTracksAtom,
 } from "../../atoms/createPlaylist";
 import {
@@ -66,11 +67,13 @@ type FormValues = z.infer<typeof schema>;
 
 function DetailsStep({
   editing,
+  seedSongUris,
   onCancel,
   onCreated,
   onSaved,
 }: {
   editing: { uri: string; name: string; description?: string } | null;
+  seedSongUris: string[];
   onCancel: () => void;
   onCreated: (playlist: { uri: string; name: string }) => void;
   onSaved: () => void;
@@ -89,7 +92,9 @@ function DetailsStep({
   });
   const create = useCreatePlaylistMutation();
   const update = useUpdatePlaylistMutation();
-  const isPending = create.isPending || update.isPending;
+  const addSongs = useAddSongsToPlaylistMutation();
+  const isPending =
+    create.isPending || update.isPending || addSongs.isPending;
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const onSubmit = handleSubmit(async (values) => {
@@ -108,6 +113,9 @@ function DetailsStep({
         name: values.name,
         description: values.description || undefined,
       });
+      if (seedSongUris.length > 0) {
+        await addSongs.mutateAsync({ uri: created.uri, songs: seedSongUris });
+      }
       onCreated({ uri: created.uri, name: values.name });
     } catch {
       setSubmitError(
@@ -400,6 +408,7 @@ function CreatePlaylistModal() {
   const [open, setOpen] = useAtom(createPlaylistModalOpenAtom);
   const [editing, setEditing] = useAtom(editingPlaylistAtom);
   const [addSongsTarget, setAddSongsTarget] = useAtom(addSongsTargetAtom);
+  const [seedSongUris, setSeedSongUris] = useAtom(newPlaylistSeedSongsAtom);
   const [playlist, setPlaylist] = useState<{
     uri: string;
     name: string;
@@ -411,6 +420,7 @@ function CreatePlaylistModal() {
       setPlaylist(null);
       setEditing(null);
       setAddSongsTarget(null);
+      setSeedSongUris([]);
       return;
     }
     const prev = document.body.style.overflow;
@@ -418,7 +428,7 @@ function CreatePlaylistModal() {
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open, setEditing, setAddSongsTarget]);
+  }, [open, setEditing, setAddSongsTarget, setSeedSongUris]);
 
   if (!open) return null;
 
@@ -434,6 +444,7 @@ function CreatePlaylistModal() {
         ) : (
           <DetailsStep
             editing={editing}
+            seedSongUris={seedSongUris}
             onCancel={close}
             onCreated={setPlaylist}
             onSaved={close}
