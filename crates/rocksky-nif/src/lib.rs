@@ -485,6 +485,94 @@ fn playlist(base: String, uri: String) -> String {
     envelope(RT.block_on(appview(&base).playlist(&uri)))
 }
 
+/// Call any AppView procedure whose arguments ride the query string — the write
+/// counterpart of `get/4`. Every `app.rocksky.playlist.*` procedure is here.
+#[rustler::nif(schedule = "DirtyIo")]
+fn post(base: String, nsid: String, params_json: String, token: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    let params: Vec<(String, String)> =
+        serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&params_json)
+            .map(|m| {
+                m.into_iter()
+                    .map(|(k, v)| {
+                        let s = match v {
+                            serde_json::Value::String(s) => s,
+                            other => other.to_string(),
+                        };
+                        (k, s)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+    envelope(RT.block_on(av.post(&nsid, &params)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn create_playlist(
+    base: String,
+    token: String,
+    name: String,
+    description: String,
+    picture_url: String,
+) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.create_playlist(&name, opt(&description), opt(&picture_url))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn update_playlist(
+    base: String,
+    token: String,
+    uri: String,
+    name: String,
+    description: String,
+    picture_url: String,
+) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.update_playlist(
+        &uri,
+        opt(&name),
+        opt(&description),
+        opt(&picture_url),
+    )))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn add_songs_to_playlist(base: String, token: String, uri: String, songs: Vec<String>) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.add_songs_to_playlist(&uri, &songs)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn remove_playlist_track(base: String, token: String, uri: String, song_uri: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.remove_playlist_track(&uri, &song_uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn remove_playlist(base: String, token: String, uri: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.remove_playlist(&uri)))
+}
+
 #[rustler::nif(schedule = "DirtyIo")]
 fn album_shouts(base: String, uri: String, limit: u32, offset: u32) -> String {
     envelope(RT.block_on(appview(&base).album_shouts(&uri, limit, offset)))

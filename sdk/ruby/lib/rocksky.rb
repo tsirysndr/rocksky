@@ -27,6 +27,7 @@ module Rocksky
       "char* rocksky_top_tracks(const char*, unsigned int, unsigned int)",
       "char* rocksky_global_stats(const char*)",
       "char* rocksky_get(const char*, const char*, const char*, const char*)",
+      "char* rocksky_post(const char*, const char*, const char*, const char*)",
       "char* rocksky_update_seen(const char*, const char*, const char*)",
       "char* rocksky_library_get(const char*, const char*, const char*, const char*)",
       "char* rocksky_library_post(const char*, const char*, const char*, const char*)",
@@ -181,6 +182,14 @@ module Rocksky
   # auth-gated queries.
   def self.get(nsid, params = {}, base: nil, token: nil)
     unwrap(C.rocksky_get(base.to_s, nsid, JSON.generate(params), token.to_s))
+  end
+
+  # Universal write escape hatch — call any app.rocksky.* procedure whose
+  # arguments ride the query string. Most are auth-gated, so pass +token+.
+  #
+  #   Rocksky.post("app.rocksky.playlist.removePlaylist", { uri: uri }, token: tok)
+  def self.post(nsid, params = {}, base: nil, token: nil)
+    unwrap(C.rocksky_post(base.to_s, nsid, JSON.generate(params), token.to_s))
   end
 
   # ---- notifications (auth-gated; +token+ required) ----
@@ -348,4 +357,5 @@ end
 
 require_relative "rocksky/filter"
 require_relative "rocksky/library"
+require_relative "rocksky/playlist"
 require_relative "rocksky/remote"

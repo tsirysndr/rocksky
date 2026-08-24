@@ -39,6 +39,7 @@
 (def ^:private h-toptracks (delay (downcall "rocksky_top_tracks" ADDR [ADDR I32 I32])))
 (def ^:private h-stats    (delay (downcall "rocksky_global_stats" ADDR [ADDR])))
 (def ^:private h-get      (delay (downcall "rocksky_get" ADDR [ADDR ADDR ADDR ADDR])))
+(def ^:private h-post     (delay (downcall "rocksky_post" ADDR [ADDR ADDR ADDR ADDR])))
 (def ^:private h-update-seen (delay (downcall "rocksky_update_seen" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-lib-get  (delay (downcall "rocksky_library_get" ADDR [ADDR ADDR ADDR ADDR])))
 (def ^:private h-lib-post (delay (downcall "rocksky_library_post" ADDR [ADDR ADDR ADDR ADDR])))
@@ -127,6 +128,21 @@
   ([nsid params base token]
    (with-open [^Arena a (Arena/ofConfined)]
      (unwrap (.invokeWithArguments ^MethodHandle @h-get
+                                   (object-array [(.allocateFrom a (str (or base "")))
+                                                  (.allocateFrom a (str nsid))
+                                                  (.allocateFrom a (json/generate-string params))
+                                                  (.allocateFrom a (str (or token "")))]))))))
+
+(defn procedure
+  "Universal write escape hatch — call any app.rocksky.* procedure whose
+  arguments ride the query string. Most are auth-gated, so pass `token`.
+
+    (procedure \"app.rocksky.playlist.removePlaylist\" {:uri uri} nil token)"
+  ([nsid params] (procedure nsid params nil nil))
+  ([nsid params base] (procedure nsid params base nil))
+  ([nsid params base token]
+   (with-open [^Arena a (Arena/ofConfined)]
+     (unwrap (.invokeWithArguments ^MethodHandle @h-post
                                    (object-array [(.allocateFrom a (str (or base "")))
                                                   (.allocateFrom a (str nsid))
                                                   (.allocateFrom a (json/generate-string params))

@@ -11,6 +11,10 @@
 -export([profile/1, profile/2, scrobbles/2, scrobbles/4, top_tracks/0,
          top_tracks/2, top_tracks/3, global_stats/0, global_stats/1,
          get/2, get/3, get/4, get_raw/4,
+         post/2, post/3, post/4, post_raw/4,
+         playlists/3, playlist/2,
+         create_playlist/2, create_playlist/5, update_playlist/6,
+         add_songs_to_playlist/4, remove_playlist_track/4, remove_playlist/3,
          catalog_songs/2, catalog_songs/3, catalog_artists/2, catalog_artists/3,
          catalog_albums/2, catalog_albums/3, scrobble_feed/2, scrobble_feed/3,
          library_get/4, library_post/4, library_get_raw/4, library_post_raw/4,
@@ -68,6 +72,53 @@ get(Nsid, Params, Base, Token) ->
 %% Flat form for cross-language callers passing a pre-encoded JSON params object.
 get_raw(Base, Nsid, ParamsJson, Token) ->
     unwrap(rocksky_nif:get(b(Base), b(Nsid), b(ParamsJson), b(Token))).
+
+%% ---- procedures (app.rocksky.* writes; args ride the query string) ----
+%%
+%% Universal write escape hatch. Most procedures are auth-gated, so pass Token.
+post(Nsid, Params) -> post(Nsid, Params, <<>>, <<>>).
+post(Nsid, Params, Base) -> post(Nsid, Params, Base, <<>>).
+post(Nsid, Params, Base, Token) ->
+    unwrap(rocksky_nif:post(b(Base), b(Nsid), iolist_to_binary(json:encode(Params)), b(Token))).
+
+post_raw(Base, Nsid, ParamsJson, Token) ->
+    unwrap(rocksky_nif:post(b(Base), b(Nsid), b(ParamsJson), b(Token))).
+
+%% ---- app.rocksky.playlist.* (the global, AT-Proto-backed playlists) ----
+%%
+%% Distinct from rocksky_library's playlist functions, which drive the
+%% Subsonic/Navidrome library. Writes publish records to the caller's repo and
+%% only appear in reads once the AppView has ingested the commit.
+
+playlists(Base, Limit, Offset) ->
+    unwrap(rocksky_nif:playlists(b(Base), Limit, Offset)).
+
+playlist(Base, Uri) ->
+    unwrap(rocksky_nif:playlist(b(Base), b(Uri))).
+
+%% Returns #{<<"uri">> => ..., <<"cid">> => ...}. Pass <<>> to omit an optional.
+create_playlist(Token, Name) -> create_playlist(<<>>, Token, Name, <<>>, <<>>).
+create_playlist(Base, Token, Name, Description, PictureUrl) ->
+    unwrap(rocksky_nif:create_playlist(b(Base), b(Token), b(Name), b(Description),
+                                       b(PictureUrl))).
+
+%% Owner only. The record is rewritten on its existing rkey, so the AT-URI holds.
+update_playlist(Base, Token, Uri, Name, Description, PictureUrl) ->
+    unwrap(rocksky_nif:update_playlist(b(Base), b(Token), b(Uri), b(Name), b(Description),
+                                       b(PictureUrl))).
+
+%% Owner only. Songs are app.rocksky.song AT-URIs; returns the created entries.
+add_songs_to_playlist(Base, Token, Uri, Songs) ->
+    unwrap(rocksky_nif:add_songs_to_playlist(b(Base), b(Token), b(Uri),
+                                             [b(S) || S <- Songs])).
+
+%% Only the repo that added an entry can retract it.
+remove_playlist_track(Base, Token, Uri, SongUri) ->
+    unwrap(rocksky_nif:remove_playlist_track(b(Base), b(Token), b(Uri), b(SongUri))).
+
+%% Owner only — removes the playlist and the caller's own entries.
+remove_playlist(Base, Token, Uri) ->
+    unwrap(rocksky_nif:remove_playlist(b(Base), b(Token), b(Uri))).
 
 %% ---- catalog + scrobble feed (optionally RSQL-filtered) ----
 %%

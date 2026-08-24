@@ -163,6 +163,53 @@ impl AppView {
             .map_err(|e| SdkError::Other(format!("decode {nsid}: {e}: {body}")))
     }
 
+    /// POST to an XRPC procedure whose arguments ride the **query string** rather
+    /// than a JSON body — which is how every `app.rocksky.playlist.*` procedure
+    /// is defined. Empty-valued params are dropped, matching `query`.
+    async fn procedure<T: DeserializeOwned>(
+        &self,
+        nsid: &str,
+        params: &[(&str, String)],
+    ) -> Result<T> {
+        let url = format!("{}/xrpc/{}", self.base, nsid);
+        let filtered: Vec<(&str, String)> = params
+            .iter()
+            .filter(|(_, v)| !v.is_empty())
+            .cloned()
+            .collect();
+        let mut req = self.http.post(&url).query(&filtered);
+        if let Some(token) = &self.token {
+            req = req.bearer_auth(token);
+        }
+        let res = req.send().await?;
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        if !status.is_success() {
+            return Err(SdkError::AppView {
+                nsid: nsid.to_string(),
+                status: status.as_u16(),
+                body,
+            });
+        }
+        // Several procedures answer 200 with an empty body.
+        if body.trim().is_empty() {
+            return serde_json::from_str("null")
+                .map_err(|e| SdkError::Other(format!("decode {nsid}: {e}")));
+        }
+        serde_json::from_str(&body)
+            .map_err(|e| SdkError::Other(format!("decode {nsid}: {e}: {body}")))
+    }
+
+    /// Escape hatch — call **any** AppView procedure whose arguments ride the
+    /// query string, by nsid. The named playlist methods are sugar over this.
+    pub async fn post(&self, nsid: &str, params: &[(String, String)]) -> Result<serde_json::Value> {
+        let borrowed: Vec<(&str, String)> = params
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.clone()))
+            .collect();
+        self.procedure(nsid, &borrowed).await
+    }
+
     /// Escape hatch — call **any** AppView read query by its nsid and get the raw
     /// JSON response back. Every named method on this client is sugar over this,
     /// so `get` reaches queries that have no dedicated wrapper (and any added
@@ -921,6 +968,87 @@ impl AppView {
     pub async fn playlist(&self, uri: &str) -> Result<serde_json::Value> {
         self.query(
             "app.rocksky.playlist.getPlaylist",
+            &[("uri", uri.to_string())],
+        )
+        .await
+    }
+
+    /// Create a playlist (`app.rocksky.playlist.createPlaylist`). Auth required.
+    /// Returns the new record's `{uri, cid}`; the AppView only lists it once
+    /// jetstream has ingested the commit.
+    pub async fn create_playlist(
+        &self,
+        name: &str,
+        description: Option<&str>,
+        picture_url: Option<&str>,
+    ) -> Result<serde_json::Value> {
+        self.procedure(
+            "app.rocksky.playlist.createPlaylist",
+            &[
+                ("name", name.to_string()),
+                ("description", description.unwrap_or_default().to_string()),
+                ("pictureUrl", picture_url.unwrap_or_default().to_string()),
+            ],
+        )
+        .await
+    }
+
+    /// Rename or re-describe a playlist (`app.rocksky.playlist.updatePlaylist`).
+    /// Owner only. Rewrites the record on its existing rkey, so the AT-URI is
+    /// stable.
+    pub async fn update_playlist(
+        &self,
+        uri: &str,
+        name: Option<&str>,
+        description: Option<&str>,
+        picture_url: Option<&str>,
+    ) -> Result<serde_json::Value> {
+        self.procedure(
+            "app.rocksky.playlist.updatePlaylist",
+            &[
+                ("uri", uri.to_string()),
+                ("name", name.unwrap_or_default().to_string()),
+                ("description", description.unwrap_or_default().to_string()),
+                ("pictureUrl", picture_url.unwrap_or_default().to_string()),
+            ],
+        )
+        .await
+    }
+
+    /// Add songs by their `app.rocksky.song` AT-URIs
+    /// (`app.rocksky.playlist.addSongs`). Owner only. Returns the AT-URIs of the
+    /// created `app.rocksky.playlist.song` entries.
+    pub async fn add_songs_to_playlist(
+        &self,
+        uri: &str,
+        songs: &[String],
+    ) -> Result<serde_json::Value> {
+        let mut params = vec![("uri", uri.to_string())];
+        params.extend(songs.iter().map(|s| ("songs", s.clone())));
+        self.procedure("app.rocksky.playlist.addSongs", &params)
+            .await
+    }
+
+    /// Remove a song from a playlist (`app.rocksky.playlist.removeTrack`). An
+    /// entry record lives in the repo that published it, so only that repo can
+    /// retract it.
+    pub async fn remove_playlist_track(
+        &self,
+        uri: &str,
+        song_uri: &str,
+    ) -> Result<serde_json::Value> {
+        self.procedure(
+            "app.rocksky.playlist.removeTrack",
+            &[("uri", uri.to_string()), ("songUri", song_uri.to_string())],
+        )
+        .await
+    }
+
+    /// Delete a playlist and the caller's own entries
+    /// (`app.rocksky.playlist.removePlaylist`). Owner only.
+    pub async fn remove_playlist(&self, uri: &str) -> Result<serde_json::Value> {
+        self.procedure(
+            "app.rocksky.playlist.removePlaylist",
             &[("uri", uri.to_string())],
         )
         .await

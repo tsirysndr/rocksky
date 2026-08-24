@@ -54,6 +54,20 @@ func (c *Client) query(ctx context.Context, nsid string, params map[string]any, 
 	return c.xrpc.Do(ctx, xrpc.Query, "", nsid, filtered, nil, out)
 }
 
+// procedure POSTs to an XRPC procedure whose arguments ride the query string
+// rather than a JSON body — which is how every app.rocksky.playlist.* procedure
+// is defined. Empty string params are dropped, matching query.
+func (c *Client) procedure(ctx context.Context, nsid string, params map[string]any, out any) error {
+	filtered := make(map[string]any, len(params))
+	for k, v := range params {
+		if s, ok := v.(string); ok && s == "" {
+			continue
+		}
+		filtered[k] = v
+	}
+	return c.xrpc.Do(ctx, xrpc.Procedure, "", nsid, filtered, nil, out)
+}
+
 // Profile returns an actor's detailed profile. actor is a handle or DID.
 func (c *Client) Profile(ctx context.Context, actor string) (*gen.ActorProfileViewDetailed, error) {
 	var out gen.ActorProfileViewDetailed
@@ -182,6 +196,15 @@ type (
 func (c *Client) Get(ctx context.Context, nsid string, params map[string]any) (json.RawMessage, error) {
 	var out json.RawMessage
 	err := c.query(ctx, nsid, params, &out)
+	return out, err
+}
+
+// Post calls any AppView procedure whose arguments ride the query string, by
+// nsid — the write counterpart of Get. Most are auth-gated; set a token with
+// WithToken first.
+func (c *Client) Post(ctx context.Context, nsid string, params map[string]any) (json.RawMessage, error) {
+	var out json.RawMessage
+	err := c.procedure(ctx, nsid, params, &out)
 	return out, err
 }
 
@@ -486,6 +509,47 @@ func (c *Client) Playlists(ctx context.Context, limit, offset int) (json.RawMess
 // Playlist returns a single playlist with its items.
 func (c *Client) Playlist(ctx context.Context, uri string) (json.RawMessage, error) {
 	return c.Get(ctx, "app.rocksky.playlist.getPlaylist", map[string]any{"uri": uri})
+}
+
+// CreatePlaylist publishes an app.rocksky.playlist record to the caller's repo
+// and returns its {uri, cid}. Auth required. The AppView only lists the
+// playlist once jetstream has ingested the commit.
+func (c *Client) CreatePlaylist(ctx context.Context, name, description, pictureURL string) (*gen.PlaylistCreatePlaylistOutput, error) {
+	var out gen.PlaylistCreatePlaylistOutput
+	err := c.procedure(ctx, "app.rocksky.playlist.createPlaylist",
+		map[string]any{"name": name, "description": description, "pictureUrl": pictureURL}, &out)
+	return &out, err
+}
+
+// UpdatePlaylist renames or re-describes a playlist. Owner only. The record is
+// rewritten on its existing rkey, so the AT-URI is stable.
+func (c *Client) UpdatePlaylist(ctx context.Context, uri, name, description, pictureURL string) (*gen.PlaylistUpdatePlaylistOutput, error) {
+	var out gen.PlaylistUpdatePlaylistOutput
+	err := c.procedure(ctx, "app.rocksky.playlist.updatePlaylist",
+		map[string]any{"uri": uri, "name": name, "description": description, "pictureUrl": pictureURL}, &out)
+	return &out, err
+}
+
+// AddSongs adds songs to a playlist by their app.rocksky.song AT-URIs and
+// returns the AT-URIs of the created entries. Owner only.
+func (c *Client) AddSongs(ctx context.Context, uri string, songs []string) (*gen.AddSongsOutput, error) {
+	var out gen.AddSongsOutput
+	err := c.procedure(ctx, "app.rocksky.playlist.addSongs",
+		map[string]any{"uri": uri, "songs": songs}, &out)
+	return &out, err
+}
+
+// RemoveTrack removes a song from a playlist. An entry record lives in the repo
+// that published it, so only that repo can retract it.
+func (c *Client) RemoveTrack(ctx context.Context, uri, songURI string) error {
+	return c.procedure(ctx, "app.rocksky.playlist.removeTrack",
+		map[string]any{"uri": uri, "songUri": songURI}, nil)
+}
+
+// RemovePlaylist deletes a playlist and the caller's own entries. Owner only.
+func (c *Client) RemovePlaylist(ctx context.Context, uri string) error {
+	return c.procedure(ctx, "app.rocksky.playlist.removePlaylist",
+		map[string]any{"uri": uri}, nil)
 }
 
 // AlbumShouts returns shouts on an album.

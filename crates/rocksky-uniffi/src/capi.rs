@@ -139,6 +139,27 @@ pub extern "C" fn rocksky_get(
     )
 }
 
+/// Call any AppView procedure whose arguments ride the query string, by nsid —
+/// the write counterpart of [`rocksky_get`]. `params_json` is a JSON object of
+/// string params. Every `app.rocksky.playlist.*` procedure is reachable here.
+#[no_mangle]
+pub extern "C" fn rocksky_post(
+    base: *const c_char,
+    nsid: *const c_char,
+    params_json: *const c_char,
+    token: *const c_char,
+) -> *mut c_char {
+    let mut av = appview(base);
+    let t = cstr(token);
+    if !t.is_empty() {
+        av.set_token(Some(t));
+    }
+    respond(
+        RT.block_on(av.post(&cstr(nsid), &crate::parse_string_params(&cstr(params_json))))
+            .map_err(|e| e.to_string()),
+    )
+}
+
 /// Build a token-enforced [`rocksky_sdk::Library`]. `token` must be non-empty —
 /// every `app.rocksky.library.*` call is auth-gated.
 fn library(base: *const c_char, token: *const c_char) -> Result<rocksky_sdk::Library, String> {

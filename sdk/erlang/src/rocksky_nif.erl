@@ -19,6 +19,8 @@
          recommendations/3, artist_recommendations/3, album_recommendations/3,
          stats/2, wrapped/3, mirror_sources/1, currently_playing/3,
          playback_queue/2, spotify_currently_playing/2, playlists/3, playlist/2,
+         post/4, create_playlist/5, update_playlist/6, add_songs_to_playlist/4,
+         remove_playlist_track/4, remove_playlist/3,
          album_shouts/4, artist_shouts/4, profile_shouts/4, track_shouts/2,
          shout_replies/4, audio_settings/2, apikeys/3,
          song_hash/3, album_hash/2, artist_hash/1,
@@ -262,6 +264,18 @@ playback_queue(_Base, _PlayerId) -> ?NOT_LOADED.
 spotify_currently_playing(_Base, _Actor) -> ?NOT_LOADED.
 playlists(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 playlist(_Base, _Uri) -> ?NOT_LOADED.
+
+post(_Base, _Nsid, _ParamsJson, _Token) -> ?NOT_LOADED.
+
+create_playlist(_Base, _Token, _Name, _Description, _PictureUrl) -> ?NOT_LOADED.
+
+update_playlist(_Base, _Token, _Uri, _Name, _Description, _PictureUrl) -> ?NOT_LOADED.
+
+add_songs_to_playlist(_Base, _Token, _Uri, _Songs) -> ?NOT_LOADED.
+
+remove_playlist_track(_Base, _Token, _Uri, _SongUri) -> ?NOT_LOADED.
+
+remove_playlist(_Base, _Token, _Uri) -> ?NOT_LOADED.
 album_shouts(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
 artist_shouts(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
 profile_shouts(_Base, _Did, _Limit, _Offset) -> ?NOT_LOADED.

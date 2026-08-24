@@ -18,6 +18,26 @@ pub mod capi;
 
 /// One multi-threaded tokio runtime drives every async SDK call across the FFI
 /// boundary. `block_on` from a host (non-runtime) thread is safe here.
+/// `{"k":"v"}` → the `(name, value)` pairs the AppView query/procedure helpers
+/// take. Non-string values are stringified; anything else yields no params.
+pub(crate) fn parse_string_params(params_json: &str) -> Vec<(String, String)> {
+    serde_json::from_str::<serde_json::Value>(params_json)
+        .ok()
+        .and_then(|v| v.as_object().cloned())
+        .map(|o| {
+            o.into_iter()
+                .map(|(k, v)| {
+                    let s = match v {
+                        serde_json::Value::String(s) => s,
+                        other => other.to_string(),
+                    };
+                    (k, s)
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 pub(crate) static RT: Lazy<tokio::runtime::Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -1182,6 +1202,66 @@ impl AppView {
 
     pub fn playlist(&self, uri: String) -> Result<String, RockskyError> {
         json(RT.block_on(self.inner.playlist(&uri)))
+    }
+
+    /// Create a playlist. Auth required — set a token first.
+    pub fn create_playlist(
+        &self,
+        name: String,
+        description: Option<String>,
+        picture_url: Option<String>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.create_playlist(
+            &name,
+            description.as_deref(),
+            picture_url.as_deref(),
+        )))
+    }
+
+    /// Rename or re-describe a playlist. Owner only.
+    pub fn update_playlist(
+        &self,
+        uri: String,
+        name: Option<String>,
+        description: Option<String>,
+        picture_url: Option<String>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.update_playlist(
+            &uri,
+            name.as_deref(),
+            description.as_deref(),
+            picture_url.as_deref(),
+        )))
+    }
+
+    /// Add songs by their `app.rocksky.song` AT-URIs. Owner only.
+    pub fn add_songs_to_playlist(
+        &self,
+        uri: String,
+        songs: Vec<String>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.add_songs_to_playlist(&uri, &songs)))
+    }
+
+    /// Remove a song from a playlist. Only the repo that added it can retract it.
+    pub fn remove_playlist_track(
+        &self,
+        uri: String,
+        song_uri: String,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.remove_playlist_track(&uri, &song_uri)))
+    }
+
+    /// Delete a playlist and the caller's own entries. Owner only.
+    pub fn remove_playlist(&self, uri: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.remove_playlist(&uri)))
+    }
+
+    /// Escape hatch — call any AppView procedure whose args ride the query
+    /// string. `params_json` is a JSON object of string params.
+    pub fn post(&self, nsid: String, params_json: String) -> Result<String, RockskyError> {
+        let params = parse_string_params(&params_json);
+        json(RT.block_on(self.inner.post(&nsid, &params)))
     }
 
     pub fn album_shouts(
