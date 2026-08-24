@@ -13,6 +13,7 @@ import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ContentLoader from "react-content-loader";
 import PlaylistCover from "../../components/PlaylistCover";
+import { GhostButton, PillLink } from "../../components/PillButton";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import { useTimeFormat } from "../../hooks/useFormat";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -58,38 +59,6 @@ const ActionRow = styled.div`
   gap: 12px;
 `;
 
-const AddSongsButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  flex-shrink: 0;
-  padding: 10px 4px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-family: RockfordSansMedium;
-  cursor: pointer;
-  &:hover { color: var(--color-text); }
-  &:disabled { opacity: 0.4; cursor: default; }
-`;
-
-const PdslsLink = styled.a`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 10px 22px;
-  border: none;
-  border-radius: 999px;
-  background: var(--color-text);
-  color: var(--color-background);
-  font-size: 0.875rem;
-  font-family: RockfordSansMedium;
-  text-decoration: none;
-  cursor: pointer;
-  &:hover { opacity: 0.85; }
-`;
 
 const RowAction = styled.button`
   display: inline-flex;
@@ -337,14 +306,14 @@ function Playlist() {
                   </LabelMedium>
                 </div>
                 <ActionRow className="mt-[24px]">
-                  <PdslsLink
+                  <PillLink
                     href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                     target="_blank"
                   >
                     <ExternalLink size={16} /> View on PDSls
-                  </PdslsLink>
+                  </PillLink>
                   {isOwner && (
-                    <AddSongsButton
+                    <GhostButton
                       onClick={() => {
                         setAddSongsTarget({
                           uri: `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`,
@@ -354,7 +323,7 @@ function Playlist() {
                       }}
                     >
                       <IconPlus size={16} /> Add songs
-                    </AddSongsButton>
+                    </GhostButton>
                   )}
                 </ActionRow>
               </div>

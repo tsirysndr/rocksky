@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { IconShare3 } from "@tabler/icons-react";
+import { PillLink } from "../PillButton";
 import SignInModal from "../SignInModal/SignInModal";
 
 interface Props {
   text: string;
+  variant?: "block" | "pill";
 }
 
-export default function ShareOnBluesky({ text }: Props) {
+export default function ShareOnBluesky({ text, variant = "block" }: Props) {
   const [signInOpen, setSignInOpen] = useState(false);
 
   const onClick = (e: React.MouseEvent) => {
@@ -17,6 +19,23 @@ export default function ShareOnBluesky({ text }: Props) {
   };
 
   const href = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
+
+  if (variant === "pill") {
+    return (
+      <>
+        <PillLink
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onClick}
+        >
+          <IconShare3 size={16} />
+          Share on Bluesky
+        </PillLink>
+        <SignInModal isOpen={signInOpen} onClose={() => setSignInOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <>

@@ -40,6 +40,7 @@ import { useArtistsQuery } from "../../hooks/useLibrary";
 import { getLastDays } from "../../lib/date";
 import { Link } from "@tanstack/react-router";
 import ContentLoader from "react-content-loader";
+import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 
 const Group = styled.div`
@@ -306,15 +307,15 @@ function Profile(props: ProfileProps) {
                     </span>
                   </LabelLarge>
                   <div className="flex items-center gap-[10px] mt-[30px] mr-[10px]">
-                    <a
+                    <PillLink
                       href={`https://pdsls.dev/at/${profiles[did]?.did}`}
                       target="_blank"
-                      className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
                     >
-                      <ExternalLink size={24} style={{ marginRight: 10 }} />
+                      <ExternalLink size={16} />
                       View on PDSls
-                    </a>
+                    </PillLink>
                     <ShareOnBluesky
+                      variant="pill"
                       text={`Check out ${profiles[did]?.displayName || profiles[did]?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
                     />
                   </div>
