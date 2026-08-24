@@ -1013,6 +1013,7 @@ pub async fn save_user_track(
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
         )
+        ON CONFLICT (sha256) DO UPDATE SET uri = COALESCE(tracks.uri, EXCLUDED.uri)
       "#,
             )
             .bind(record.title)
@@ -1043,6 +1044,21 @@ pub async fn save_user_track(
             track_id = &tracks[0].xata_id;
         }
         false => {
+            // The scrobble path (`save_track`) inserts its `tracks` row with a
+            // NULL uri — it only ever sees an `app.rocksky.scrobble` record, so
+            // there is no song at-uri to store. `update_track_uri` backfills
+            // that afterwards, but only for a row found by sha256; when the
+            // lookup above matched on mb_id/isrc instead (a cosmetic title
+            // difference between sources), its sha differs and the row would
+            // stay uri-less forever. Guarded on IS NULL so an existing uri —
+            // the first publisher's — is never repointed.
+            if tracks[0].uri.is_none() {
+                sqlx::query("UPDATE tracks SET uri = $2 WHERE xata_id = $1 AND uri IS NULL")
+                    .bind(&tracks[0].xata_id)
+                    .bind(uri)
+                    .execute(&mut **tx)
+                    .await?;
+            }
             track_id = &tracks[0].xata_id;
         }
     }
