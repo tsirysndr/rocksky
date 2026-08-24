@@ -35,6 +35,8 @@ export type PendingPlaylistTrack = {
   discNumber: number;
   albumUri: string;
   artistUri: string;
+  /** Absent on a just-added song; the real row carries it once ingested. */
+  liked?: boolean;
 };
 
 /**

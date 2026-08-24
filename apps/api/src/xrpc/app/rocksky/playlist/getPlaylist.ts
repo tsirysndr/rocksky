@@ -1,3 +1,4 @@
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { consola } from "consola";
 import { and, asc, eq, sql } from "drizzle-orm";
@@ -6,6 +7,7 @@ import type { Server } from "lexicon";
 import type { PlaylistViewDetailed } from "lexicon/types/app/rocksky/playlist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/playlist/getPlaylist";
 import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
+import { withLikes } from "lib/trackLikes";
 import * as R from "ramda";
 import tables from "schema";
 
@@ -35,9 +37,9 @@ import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getPlaylist = (params) =>
+  const getPlaylist = (params, auth: HandlerAuth) =>
     pipe(
-      { params, ctx },
+      { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
@@ -48,11 +50,14 @@ export default function (server: Server, ctx: Context) {
       }),
     );
   server.app.rocksky.playlist.getPlaylist({
-    handler: async ({ params }) => {
+    // Optional: authVerifier returns {} without a token, so the playlist stays
+    // public — a DID just means the per-track `liked` can be filled in.
+    auth: ctx.authVerifier,
+    handler: async ({ params, auth }) => {
       // Validate the filter up front so malformed expressions surface as a
       // 400 instead of being swallowed by the catchAll below.
       compileRsqlFilterParam(params.filter, FILTER_FIELDS);
-      const result = await Effect.runPromise(getPlaylist(params));
+      const result = await Effect.runPromise(getPlaylist(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -64,10 +69,12 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({
   params,
   ctx,
+  did,
 }: {
   params: QueryParams;
   ctx: Context;
-}): Effect.Effect<[Playlist, SelectTrack[]], Error> => {
+  did?: string;
+}): Effect.Effect<[Playlist, PlaylistTrack[]], Error> => {
   return Effect.tryPromise({
     try: async () => {
       // Clients build the URI from whatever identifies the actor in the route,
@@ -122,7 +129,8 @@ const retrieve = ({
             asc(tables.playlistTracks.createdAt),
           )
           .execute()
-          .then((rows) => rows.map((row) => row.tracks)),
+          .then((rows) => rows.map((row) => row.tracks))
+          .then((tracks) => withLikes(ctx, tracks, did)),
       ]);
 
       // presentation() reads playlist.playlists.* inside an Effect.sync, so a
@@ -131,7 +139,7 @@ const retrieve = ({
       if (!playlist?.playlists) {
         throw new Error(`Playlist not found: ${uri}`);
       }
-      return [playlist, tracks] as [Playlist, SelectTrack[]];
+      return [playlist, tracks] as [Playlist, PlaylistTrack[]];
     },
     catch: (error) => new Error(`Failed to retrieve playlist: ${error}`),
   });
@@ -155,7 +163,7 @@ const canonicalUri = async (ctx: Context, uri: string): Promise<string> => {
 
 const presentation = ([playlist, tracks]: [
   Playlist,
-  SelectTrack[],
+  PlaylistTrack[],
 ]): Effect.Effect<PlaylistViewDetailed, never> => {
   return Effect.sync(() => ({
     ...R.omit(["name", "picture"], playlist.playlists),
@@ -175,6 +183,8 @@ const presentation = ([playlist, tracks]: [
     trackCount: playlist.trackCount,
   }));
 };
+
+type PlaylistTrack = SelectTrack & { likesCount: number; liked: boolean };
 
 type Playlist = {
   playlists: SelectPlaylist;

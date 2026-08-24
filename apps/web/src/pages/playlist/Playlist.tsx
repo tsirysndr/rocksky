@@ -13,6 +13,7 @@ import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ContentLoader from "react-content-loader";
 import PlaylistCover from "../../components/PlaylistCover";
+import LikeButton from "../../components/LikeButton";
 import { GhostButton, PillLink } from "../../components/PillButton";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import { useTimeFormat } from "../../hooks/useFormat";
@@ -111,6 +112,7 @@ type Row = {
   duration: number;
   trackNumber: number;
   uri: string;
+  liked?: boolean;
 };
 
 function Playlist() {
@@ -147,6 +149,7 @@ function Playlist() {
       artistUri: string;
       duration: number;
       discNumber: number;
+      liked?: boolean;
     }[];
   } | null>(null);
   usePlaylistQuery(did!, rkey!);
@@ -200,6 +203,7 @@ function Playlist() {
         albumArtist: x.albumArtist,
         duration: x.duration,
         discNumber: x.discNumber,
+        liked: x.liked,
       })),
     [tracks],
   );
@@ -461,6 +465,9 @@ function Playlist() {
                     {formatTime(row.duration)}
                   </div>
                 )}
+              </TableBuilderColumn>
+              <TableBuilderColumn header="">
+                {(row: Row) => <LikeButton uri={row.uri} liked={row.liked} />}
               </TableBuilderColumn>
               {isOwner && (
                 <TableBuilderColumn

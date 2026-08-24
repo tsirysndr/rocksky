@@ -1,13 +1,14 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { consola } from "consola";
-import { asc, count, eq, inArray } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbum";
 import { dedupeTracksKeepLyrics } from "lib";
+import { withLikes } from "lib/trackLikes";
 import * as R from "ramda";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
@@ -107,36 +108,6 @@ const retrieve = ({
     },
   });
 };
-
-// Same shape as the feed's like counts: one query for every track on the album,
-// then folded back per track.
-async function withLikes<T>(
-  ctx: Context,
-  tracks: T[],
-  did?: string,
-): Promise<(T & { likesCount: number; liked: boolean })[]> {
-  const idOf = (track: T) => (track as { id?: string }).id;
-  const trackIds = tracks.map(idOf).filter(Boolean);
-  if (trackIds.length === 0) return [];
-
-  const likes = await ctx.db
-    .select()
-    .from(tables.lovedTracks)
-    .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
-    .where(inArray(tables.lovedTracks.trackId, trackIds))
-    .execute();
-
-  return tracks.map((track) => {
-    const trackLikes = likes.filter(
-      (l) => l.loved_tracks.trackId === idOf(track),
-    );
-    return {
-      ...track,
-      likesCount: trackLikes.length,
-      liked: !!did && trackLikes.some((l) => l.users?.did === did),
-    };
-  });
-}
 
 const presentation = ([album, artist, tracks, uniqueListeners, playCount]: [
   SelectAlbum,

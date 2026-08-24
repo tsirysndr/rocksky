@@ -122,6 +122,7 @@ type PlaylistDetail = {
     artistUri: string;
     duration: number;
     discNumber: number;
+    liked?: boolean;
   }[];
 };
 
