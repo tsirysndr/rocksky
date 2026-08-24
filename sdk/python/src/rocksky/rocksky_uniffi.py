@@ -509,6 +509,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists() != 29553:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_add_songs_to_playlist() != 59593:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_album() != 17604:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_album_recommendations() != 32927:
@@ -547,6 +549,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility() != 36558:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_create_playlist() != 55903:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing() != 29450:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_feed() != 45348:
@@ -581,11 +585,17 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_playlists() != 3803:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_post() != 48695:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_profile() != 38853:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts() != 27333:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations() != 8253:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist() != 62535:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist_track() != 21943:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble() != 50029:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -622,6 +632,8 @@ def _uniffi_check_api_checksums(lib):
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_track_shouts() != 8713:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_unread_count() != 41669:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_update_playlist() != 12822:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_update_seen() != 15297:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -1029,6 +1041,13 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_actor_playlists.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_actor_playlists.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_add_songs_to_playlist.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_add_songs_to_playlist.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1169,6 +1188,14 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_compatibility.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_compatibility.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_create_playlist.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_create_playlist.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_currently_playing.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1286,6 +1313,13 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlists.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlists.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_post.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_post.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_profile.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1307,6 +1341,19 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_recommendations.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_recommendations.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist_track.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist_track.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1443,6 +1490,15 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_unread_count.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_unread_count.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_update_playlist.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_update_playlist.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_update_seen.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -2230,6 +2286,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_unlike.restype = ctypes.c
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_add_songs_to_playlist.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_add_songs_to_playlist.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album.restype = ctypes.c_uint16
@@ -2287,6 +2346,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs.restype =
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_create_playlist.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_create_playlist.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing.restype = ctypes.c_uint16
@@ -2338,6 +2400,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playlist.restype = ctyp
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playlists.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playlists.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_post.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_post.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile.restype = ctypes.c_uint16
@@ -2347,6 +2412,12 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts.restype 
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist_track.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist_track.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble.restype = ctypes.c_uint16
@@ -2401,6 +2472,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_track_shouts.restype = 
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_unread_count.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_unread_count.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_update_playlist.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_update_playlist.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_update_seen.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_update_seen.restype = ctypes.c_uint16
@@ -3228,6 +3302,12 @@ class AppViewProtocol(typing.Protocol):
 
     def actor_playlists(self, actor: "str",limit: "int",offset: "int"):
         raise NotImplementedError
+    def add_songs_to_playlist(self, uri: "str",songs: "typing.List[str]"):
+        """
+        Add songs by their `app.rocksky.song` AT-URIs. Owner only.
+        """
+
+        raise NotImplementedError
     def album(self, uri: "str"):
         raise NotImplementedError
     def album_recommendations(self, actor: "str",limit: "typing.Optional[int]"):
@@ -3265,6 +3345,12 @@ class AppViewProtocol(typing.Protocol):
     def catalog_songs(self, limit: "int",offset: "int",genre: "typing.Optional[str]",filter: "typing.Optional[str]"):
         raise NotImplementedError
     def compatibility(self, actor: "str"):
+        raise NotImplementedError
+    def create_playlist(self, name: "str",description: "typing.Optional[str]",picture_url: "typing.Optional[str]"):
+        """
+        Create a playlist. Auth required — set a token first.
+        """
+
         raise NotImplementedError
     def currently_playing(self, player_id: "typing.Optional[str]",actor: "typing.Optional[str]"):
         raise NotImplementedError
@@ -3314,11 +3400,30 @@ class AppViewProtocol(typing.Protocol):
         raise NotImplementedError
     def playlists(self, limit: "int",offset: "int"):
         raise NotImplementedError
+    def post(self, nsid: "str",params_json: "str"):
+        """
+        Escape hatch — call any AppView procedure whose args ride the query
+        string. `params_json` is a JSON object of string params.
+        """
+
+        raise NotImplementedError
     def profile(self, actor: "str"):
         raise NotImplementedError
     def profile_shouts(self, actor: "str",limit: "int",offset: "int"):
         raise NotImplementedError
     def recommendations(self, actor: "str",limit: "typing.Optional[int]"):
+        raise NotImplementedError
+    def remove_playlist(self, uri: "str"):
+        """
+        Delete a playlist and the caller's own entries. Owner only.
+        """
+
+        raise NotImplementedError
+    def remove_playlist_track(self, uri: "str",song_uri: "str"):
+        """
+        Remove a song from a playlist. Only the repo that added it can retract it.
+        """
+
         raise NotImplementedError
     def scrobble(self, uri: "str"):
         raise NotImplementedError
@@ -3366,6 +3471,12 @@ class AppViewProtocol(typing.Protocol):
         """
         The authenticated viewer's unread-notification count
         (`app.rocksky.notification.getUnreadCount`).
+        """
+
+        raise NotImplementedError
+    def update_playlist(self, uri: "str",name: "typing.Optional[str]",description: "typing.Optional[str]",picture_url: "typing.Optional[str]"):
+        """
+        Rename or re-describe a playlist. Owner only.
         """
 
         raise NotImplementedError
@@ -3431,6 +3542,25 @@ class AppView:
         _UniffiConverterString.lower(actor),
         _UniffiConverterUInt32.lower(limit),
         _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def add_songs_to_playlist(self, uri: "str",songs: "typing.List[str]") -> "str":
+        """
+        Add songs by their `app.rocksky.song` AT-URIs. Owner only.
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterSequenceString.check_lower(songs)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_add_songs_to_playlist,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterSequenceString.lower(songs))
         )
 
 
@@ -3743,6 +3873,28 @@ class AppView:
 
 
 
+    def create_playlist(self, name: "str",description: "typing.Optional[str]",picture_url: "typing.Optional[str]") -> "str":
+        """
+        Create a playlist. Auth required — set a token first.
+        """
+
+        _UniffiConverterString.check_lower(name)
+        
+        _UniffiConverterOptionalString.check_lower(description)
+        
+        _UniffiConverterOptionalString.check_lower(picture_url)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_create_playlist,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(name),
+        _UniffiConverterOptionalString.lower(description),
+        _UniffiConverterOptionalString.lower(picture_url))
+        )
+
+
+
+
+
     def currently_playing(self, player_id: "typing.Optional[str]",actor: "typing.Optional[str]") -> "str":
         _UniffiConverterOptionalString.check_lower(player_id)
         
@@ -4006,6 +4158,26 @@ class AppView:
 
 
 
+    def post(self, nsid: "str",params_json: "str") -> "str":
+        """
+        Escape hatch — call any AppView procedure whose args ride the query
+        string. `params_json` is a JSON object of string params.
+        """
+
+        _UniffiConverterString.check_lower(nsid)
+        
+        _UniffiConverterString.check_lower(params_json)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_post,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(nsid),
+        _UniffiConverterString.lower(params_json))
+        )
+
+
+
+
+
     def profile(self, actor: "str") -> "ProfileView":
         _UniffiConverterString.check_lower(actor)
         
@@ -4045,6 +4217,41 @@ class AppView:
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_recommendations,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(actor),
         _UniffiConverterOptionalUInt32.lower(limit))
+        )
+
+
+
+
+
+    def remove_playlist(self, uri: "str") -> "str":
+        """
+        Delete a playlist and the caller's own entries. Owner only.
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def remove_playlist_track(self, uri: "str",song_uri: "str") -> "str":
+        """
+        Remove a song from a playlist. Only the repo that added it can retract it.
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterString.check_lower(song_uri)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist_track,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterString.lower(song_uri))
         )
 
 
@@ -4358,6 +4565,31 @@ class AppView:
 
         return _UniffiConverterTypeUnreadCount.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_unread_count,self._uniffi_clone_pointer(),)
+        )
+
+
+
+
+
+    def update_playlist(self, uri: "str",name: "typing.Optional[str]",description: "typing.Optional[str]",picture_url: "typing.Optional[str]") -> "str":
+        """
+        Rename or re-describe a playlist. Owner only.
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterOptionalString.check_lower(name)
+        
+        _UniffiConverterOptionalString.check_lower(description)
+        
+        _UniffiConverterOptionalString.check_lower(picture_url)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_update_playlist,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterOptionalString.lower(name),
+        _UniffiConverterOptionalString.lower(description),
+        _UniffiConverterOptionalString.lower(picture_url))
         )
 
 

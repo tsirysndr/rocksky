@@ -1012,6 +1012,18 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -1085,6 +1097,8 @@ internal interface UniffiLib : JnaLibrary {
     ): Pointer
     fun uniffi_rocksky_uniffi_fn_method_appview_actor_playlists(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_add_songs_to_playlist(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`songs`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_album(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_album_recommendations(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1123,6 +1137,8 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_compatibility(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_create_playlist(`ptr`: Pointer,`name`: RustBuffer.ByValue,`description`: RustBuffer.ByValue,`pictureUrl`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_currently_playing(`ptr`: Pointer,`playerId`: RustBuffer.ByValue,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_feed(`ptr`: Pointer,`feed`: RustBuffer.ByValue,`limit`: Int,`cursor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1157,11 +1173,17 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_playlists(`ptr`: Pointer,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_post(`ptr`: Pointer,`nsid`: RustBuffer.ByValue,`paramsJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_profile(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_profile_shouts(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_recommendations(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_remove_playlist(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_remove_playlist_track(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`songUri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_scrobble(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1198,6 +1220,8 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_fn_method_appview_track_shouts(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_unread_count(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_update_playlist(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`description`: RustBuffer.ByValue,`pictureUrl`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_update_seen(`ptr`: Pointer,`ids`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1501,6 +1525,8 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_add_songs_to_playlist(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_album(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_album_recommendations(
@@ -1539,6 +1565,8 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_compatibility(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_create_playlist(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_currently_playing(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_feed(
@@ -1573,11 +1601,17 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_playlists(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_post(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_profile(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_recommendations(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist_track(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_scrobble(
     ): Short
@@ -1614,6 +1648,8 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_checksum_method_appview_track_shouts(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_unread_count(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_update_playlist(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_update_seen(
     ): Short
@@ -1832,6 +1868,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists() != 29553.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_add_songs_to_playlist() != 59593.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_album() != 17604.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1889,6 +1928,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility() != 36558.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_create_playlist() != 55903.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing() != 29450.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1940,6 +1982,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_playlists() != 3803.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_post() != 48695.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_profile() != 38853.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1947,6 +1992,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations() != 8253.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist() != 62535.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_remove_playlist_track() != 21943.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble() != 50029.toShort()) {
@@ -2001,6 +2052,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_unread_count() != 41669.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_update_playlist() != 12822.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_update_seen() != 15297.toShort()) {
@@ -3208,6 +3262,11 @@ public interface AppViewInterface {
     
     fun `actorPlaylists`(`actor`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): kotlin.String
     
+    /**
+     * Add songs by their `app.rocksky.song` AT-URIs. Owner only.
+     */
+    fun `addSongsToPlaylist`(`uri`: kotlin.String, `songs`: List<kotlin.String>): kotlin.String
+    
     fun `album`(`uri`: kotlin.String): kotlin.String
     
     fun `albumRecommendations`(`actor`: kotlin.String, `limit`: kotlin.UInt?): kotlin.String
@@ -3245,6 +3304,11 @@ public interface AppViewInterface {
     fun `catalogSongs`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `genre`: kotlin.String?, `filter`: kotlin.String?): List<SongView>
     
     fun `compatibility`(`actor`: kotlin.String): kotlin.String
+    
+    /**
+     * Create a playlist. Auth required — set a token first.
+     */
+    fun `createPlaylist`(`name`: kotlin.String, `description`: kotlin.String?, `pictureUrl`: kotlin.String?): kotlin.String
     
     fun `currentlyPlaying`(`playerId`: kotlin.String?, `actor`: kotlin.String?): kotlin.String
     
@@ -3291,11 +3355,27 @@ public interface AppViewInterface {
     
     fun `playlists`(`limit`: kotlin.UInt, `offset`: kotlin.UInt): kotlin.String
     
+    /**
+     * Escape hatch — call any AppView procedure whose args ride the query
+     * string. `params_json` is a JSON object of string params.
+     */
+    fun `post`(`nsid`: kotlin.String, `paramsJson`: kotlin.String): kotlin.String
+    
     fun `profile`(`actor`: kotlin.String): ProfileView
     
     fun `profileShouts`(`actor`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): kotlin.String
     
     fun `recommendations`(`actor`: kotlin.String, `limit`: kotlin.UInt?): kotlin.String
+    
+    /**
+     * Delete a playlist and the caller's own entries. Owner only.
+     */
+    fun `removePlaylist`(`uri`: kotlin.String): kotlin.String
+    
+    /**
+     * Remove a song from a playlist. Only the repo that added it can retract it.
+     */
+    fun `removePlaylistTrack`(`uri`: kotlin.String, `songUri`: kotlin.String): kotlin.String
     
     fun `scrobble`(`uri`: kotlin.String): ScrobbleView
     
@@ -3342,6 +3422,11 @@ public interface AppViewInterface {
      * (`app.rocksky.notification.getUnreadCount`).
      */
     fun `unreadCount`(): UnreadCount
+    
+    /**
+     * Rename or re-describe a playlist. Owner only.
+     */
+    fun `updatePlaylist`(`uri`: kotlin.String, `name`: kotlin.String?, `description`: kotlin.String?, `pictureUrl`: kotlin.String?): kotlin.String
     
     /**
      * Mark notifications as viewed (`app.rocksky.notification.updateSeen`). Pass
@@ -3456,6 +3541,22 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_actor_playlists(
         it, FfiConverterString.lower(`actor`),FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Add songs by their `app.rocksky.song` AT-URIs. Owner only.
+     */
+    @Throws(RockskyException::class)override fun `addSongsToPlaylist`(`uri`: kotlin.String, `songs`: List<kotlin.String>): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_add_songs_to_playlist(
+        it, FfiConverterString.lower(`uri`),FfiConverterSequenceString.lower(`songs`),_status)
 }
     }
     )
@@ -3710,6 +3811,22 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
+    /**
+     * Create a playlist. Auth required — set a token first.
+     */
+    @Throws(RockskyException::class)override fun `createPlaylist`(`name`: kotlin.String, `description`: kotlin.String?, `pictureUrl`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_create_playlist(
+        it, FfiConverterString.lower(`name`),FfiConverterOptionalString.lower(`description`),FfiConverterOptionalString.lower(`pictureUrl`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(RockskyException::class)override fun `currentlyPlaying`(`playerId`: kotlin.String?, `actor`: kotlin.String?): kotlin.String {
             return FfiConverterString.lift(
     callWithPointer {
@@ -3942,6 +4059,23 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
+    /**
+     * Escape hatch — call any AppView procedure whose args ride the query
+     * string. `params_json` is a JSON object of string params.
+     */
+    @Throws(RockskyException::class)override fun `post`(`nsid`: kotlin.String, `paramsJson`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_post(
+        it, FfiConverterString.lower(`nsid`),FfiConverterString.lower(`paramsJson`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(RockskyException::class)override fun `profile`(`actor`: kotlin.String): ProfileView {
             return FfiConverterTypeProfileView.lift(
     callWithPointer {
@@ -3974,6 +4108,38 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_recommendations(
         it, FfiConverterString.lower(`actor`),FfiConverterOptionalUInt.lower(`limit`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Delete a playlist and the caller's own entries. Owner only.
+     */
+    @Throws(RockskyException::class)override fun `removePlaylist`(`uri`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist(
+        it, FfiConverterString.lower(`uri`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Remove a song from a playlist. Only the repo that added it can retract it.
+     */
+    @Throws(RockskyException::class)override fun `removePlaylistTrack`(`uri`: kotlin.String, `songUri`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_remove_playlist_track(
+        it, FfiConverterString.lower(`uri`),FfiConverterString.lower(`songUri`),_status)
 }
     }
     )
@@ -4218,6 +4384,22 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_unread_count(
         it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Rename or re-describe a playlist. Owner only.
+     */
+    @Throws(RockskyException::class)override fun `updatePlaylist`(`uri`: kotlin.String, `name`: kotlin.String?, `description`: kotlin.String?, `pictureUrl`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_update_playlist(
+        it, FfiConverterString.lower(`uri`),FfiConverterOptionalString.lower(`name`),FfiConverterOptionalString.lower(`description`),FfiConverterOptionalString.lower(`pictureUrl`),_status)
 }
     }
     )
