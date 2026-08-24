@@ -580,7 +580,9 @@ export default function LibraryPlaylist() {
               <PlayBtn onClick={handlePlay} disabled={songs.length === 0}><IconPlayerPlay size={15} /> Play</PlayBtn>
               <ShuffleBtn onClick={handleShuffle} disabled={songs.length === 0}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
               <ShuffleBtn onClick={openAddSongs}><IconPlus size={15} /> Add songs</ShuffleBtn>
-              <PlaylistSearch onChange={setFilter} />
+              <div style={{ marginLeft: "auto" }}>
+                <PlaylistSearch onChange={setFilter} />
+              </div>
             </PlayButtons>
           </Meta>
         </Header>

@@ -52,23 +52,43 @@ const BackButton = styled.button`
   }
 `;
 
+const ActionRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
 const AddSongsButton = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex-shrink: 0;
-  font-family: RockfordSansMedium;
-  font-size: 14px;
-  padding: 8px 4px;
-  margin-right: 20px;
+  padding: 10px 4px;
   border: none;
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
   cursor: pointer;
+  &:hover { color: var(--color-text); }
+  &:disabled { opacity: 0.4; cursor: default; }
+`;
 
-  &:hover {
-    text-decoration: underline;
-  }
+const PdslsLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-text);
+  color: var(--color-background);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  text-decoration: none;
+  cursor: pointer;
+  &:hover { opacity: 0.85; }
 `;
 
 const RowAction = styled.button`
@@ -170,7 +190,6 @@ function Playlist() {
   const openPlaylistModal = useSetAtom(createPlaylistModalOpenAtom);
   const [pending, setPending] = useAtom(pendingPlaylistTracksAtom);
   const [filter, setFilter] = useState("");
-  const [searchExpanded, setSearchExpanded] = useState(false);
   const playlistUri = playlist?.curatedBy?.did
     ? `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`
     : "";
@@ -317,17 +336,13 @@ function Playlist() {
                     {playlist.description}
                   </LabelMedium>
                 </div>
-                <div className="flex items-center justify-end flex-1 mr-[10px] gap-[8px]">
-                  {!searchExpanded && (
-                    <a
-                      href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                      target="_blank"
-                      className="text-[var(--color-text)] no-underline p-[16px] bg-[var(--color-default-button)]  rounded-[10px] pl-[25px] pr-[25px]"
-                    >
-                      <ExternalLink size={24} className="mr-[10px]" />
-                      View on PDSls
-                    </a>
-                  )}
+                <ActionRow className="mt-[24px]">
+                  <PdslsLink
+                    href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                    target="_blank"
+                  >
+                    <ExternalLink size={16} /> View on PDSls
+                  </PdslsLink>
                   {isOwner && (
                     <AddSongsButton
                       onClick={() => {
@@ -341,15 +356,11 @@ function Playlist() {
                       <IconPlus size={16} /> Add songs
                     </AddSongsButton>
                   )}
-                  <PlaylistSearch
-                    onChange={setFilter}
-                    onExpandedChange={setSearchExpanded}
-                  />
-                </div>
+                </ActionRow>
               </div>
             </Group>
 
-            <Group className="mb-[20px]">
+            <Group className="mb-[20px] items-center">
               <Avatar
                 name={playlist.curatedBy.displayName}
                 src={playlist.curatedBy.avatar}
@@ -364,6 +375,9 @@ function Playlist() {
                     {playlist.curatedBy.displayName}
                   </Link>
                 </LabelMedium>
+              </div>
+              <div className="flex flex-1 justify-end">
+                <PlaylistSearch onChange={setFilter} />
               </div>
             </Group>
 

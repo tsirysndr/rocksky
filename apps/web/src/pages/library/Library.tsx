@@ -1174,7 +1174,7 @@ export default function Library() {
 
           {/* -------- Playlists -------- */}
           <Tab title="Playlists" overrides={tabOverrides}>
-            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
               <UploadButton onClick={openCreatePlaylist}>
                 <IconPlus size={15} /> New playlist
               </UploadButton>
