@@ -51,6 +51,16 @@ const Link = styled(DefaultLink)`
   }
 `;
 
+const FirstScrobbleWhen = styled.span`
+  font-family: var(--font-mono);
+  margin: 0 4px;
+`;
+
+const FirstScrobbleWho = styled(Link)`
+  font-family: var(--font-mono);
+  margin-left: 4px;
+`;
+
 const ShowMore = styled.div`
   display: flex;
   justify-content: start;
@@ -318,18 +328,17 @@ const Song = () => {
                       margin={0}
                       className="!text-[var(--color-text-muted)]"
                     >
-                      First scrobbled{" "}
-                      <span style={{ fontFamily: "var(--font-mono)" }}>
+                      First scrobbled
+                      <FirstScrobbleWhen>
                         {dayjs(firstScrobble.timestamp).fromNow()}
-                      </span>{" "}
-                      by{" "}
-                      <Link
+                      </FirstScrobbleWhen>
+                      by
+                      <FirstScrobbleWho
                         to={`/profile/${firstScrobble.handle}` as string}
                         className="!text-[var(--color-primary)]"
-                        style={{ fontFamily: "var(--font-mono)" }}
                       >
                         @{firstScrobble.handle}
-                      </Link>
+                      </FirstScrobbleWho>
                     </LabelMedium>
                   </div>
                 )}
