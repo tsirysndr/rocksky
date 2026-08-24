@@ -40,6 +40,7 @@ import { fetchNavidromePlaylist } from "../../api/navidrome";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
 import { useSetAtom } from "jotai";
@@ -886,6 +887,7 @@ export default function Library() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [openAlbumMenuKey, setOpenAlbumMenuKey] = useState<string | null>(null);
   const [albumMenuAnchor, setAlbumMenuAnchor] = useState<HTMLElement | null>(null);
+  const [playlistFilter, setPlaylistFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
@@ -912,6 +914,14 @@ export default function Library() {
     const queue = allSongs.map((s) => songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null));
     playNow(queue, idx);
   }, [allSongs, creds, playNow]);
+
+  const visiblePlaylists = useMemo(() => {
+    const q = playlistFilter.trim().toLowerCase();
+    if (!q) return playlists;
+    return playlists.filter((pl) =>
+      [pl.name, pl.comment].some((f) => (f ?? "").toLowerCase().includes(q)),
+    );
+  }, [playlists, playlistFilter]);
 
   const openCreatePlaylist = useCallback(() => {
     setEditingPlaylist(null);
@@ -1164,10 +1174,15 @@ export default function Library() {
 
           {/* -------- Playlists -------- */}
           <Tab title="Playlists" overrides={tabOverrides}>
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
               <UploadButton onClick={openCreatePlaylist}>
                 <IconPlus size={15} /> New playlist
               </UploadButton>
+              <PlaylistSearch
+                onChange={setPlaylistFilter}
+                label="Search your playlists"
+                placeholder="Search your playlists"
+              />
             </div>
             {(playlistsLoading || !creds) && <TracksSkeleton />}
             {!playlistsLoading && creds && playlists.length === 0 && (
@@ -1179,9 +1194,18 @@ export default function Library() {
                 </div>
               </EmptyState>
             )}
-            {creds && playlists.length > 0 && (
+            {creds && playlists.length > 0 && visiblePlaylists.length === 0 && (
+              <EmptyState>
+                <IconPlaylist size={48} color="var(--color-text-muted)" />
+                <div style={{ textAlign: "center" }}>
+                  <EmptyTitle>No playlists match "{playlistFilter.trim()}"</EmptyTitle>
+                  <EmptySubtitle>Try a different search term</EmptySubtitle>
+                </div>
+              </EmptyState>
+            )}
+            {creds && visiblePlaylists.length > 0 && (
               <TrackList>
-                {playlists.map((pl) => (
+                {visiblePlaylists.map((pl) => (
                   <TrackRow key={pl.id} onClick={() => navigate({ to: "/library/playlist/$id", params: { id: pl.id } })}>
                     <ArtworkBox>
                       {pl.coverArt

@@ -27,6 +27,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { useSetAtom } from "jotai";
 import {
@@ -489,6 +490,7 @@ export default function LibraryPlaylist() {
 
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [filter, setFilter] = useState("");
 
   const songs: NavidromeSong[] = useMemo(() => playlist?.entry ?? [], [playlist]);
   // `||`, not `??`: navidrome used to hardcode duration to 0, so a deployment
@@ -516,6 +518,17 @@ export default function LibraryPlaylist() {
     }
     return arts;
   }, [songs, coverUrl]);
+
+  const visibleSongs = useMemo(() => {
+    const rows = songs.map((song, idx) => ({ song, idx }));
+    const q = filter.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(({ song }) =>
+      [song.title, song.artist, song.album].some((f) =>
+        (f ?? "").toLowerCase().includes(q),
+      ),
+    );
+  }, [songs, filter]);
 
   const openAddSongs = useCallback(() => {
     setEditingPlaylist(null);
@@ -567,6 +580,7 @@ export default function LibraryPlaylist() {
               <PlayBtn onClick={handlePlay} disabled={songs.length === 0}><IconPlayerPlay size={15} /> Play</PlayBtn>
               <ShuffleBtn onClick={handleShuffle} disabled={songs.length === 0}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
               <ShuffleBtn onClick={openAddSongs}><IconPlus size={15} /> Add songs</ShuffleBtn>
+              <PlaylistSearch onChange={setFilter} />
             </PlayButtons>
           </Meta>
         </Header>
@@ -576,9 +590,14 @@ export default function LibraryPlaylist() {
             <IconPlaylist size={40} />
             This playlist is empty.
           </Empty>
+        ) : visibleSongs.length === 0 ? (
+          <Empty>
+            <IconPlaylist size={40} />
+            No tracks match "{filter.trim()}".
+          </Empty>
         ) : (
           <TrackList>
-            {songs.map((song, idx) => {
+            {visibleSongs.map(({ song, idx }) => {
               const albumArt = coverUrl(song.coverArt);
               return (
                 <TrackRow key={`${song.id}-${idx}`} onClick={() => handleTrackPlay(idx)}>

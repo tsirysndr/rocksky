@@ -13,6 +13,7 @@ import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ContentLoader from "react-content-loader";
 import PlaylistCover from "../../components/PlaylistCover";
+import PlaylistSearch from "../../components/PlaylistSearch";
 import { useTimeFormat } from "../../hooks/useFormat";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
@@ -168,6 +169,7 @@ function Playlist() {
   const setAddSongsTarget = useSetAtom(addSongsTargetAtom);
   const openPlaylistModal = useSetAtom(createPlaylistModalOpenAtom);
   const [pending, setPending] = useAtom(pendingPlaylistTracksAtom);
+  const [filter, setFilter] = useState("");
   const playlistUri = playlist?.curatedBy?.did
     ? `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`
     : "";
@@ -191,6 +193,37 @@ function Playlist() {
     () => tracks.reduce((sum, t) => sum + (t.duration || 0), 0),
     [tracks],
   );
+
+  // `index` is assigned before filtering so a filtered row keeps its real
+  // position in the playlist.
+  const rows = useMemo(
+    () =>
+      tracks.map((x, index) => ({
+        id: x.id,
+        index,
+        trackNumber: x.trackNumber,
+        albumArt: x.albumArt,
+        title: x.title,
+        artist: x.artist,
+        uri: x.uri,
+        albumUri: x.albumUri,
+        artistUri: x.artistUri,
+        albumArtist: x.albumArtist,
+        duration: x.duration,
+        discNumber: x.discNumber,
+      })),
+    [tracks],
+  );
+
+  const visibleRows = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) =>
+      [r.title, r.artist, r.albumArtist].some((f) =>
+        (f ?? "").toLowerCase().includes(q),
+      ),
+    );
+  }, [rows, filter]);
 
   const isOwner = !!profile?.did && profile.did === playlist?.curatedBy?.did;
 
@@ -283,7 +316,8 @@ function Playlist() {
                     {playlist.description}
                   </LabelMedium>
                 </div>
-                <div className="flex items-center justify-end flex-1 mr-[10px]">
+                <div className="flex items-center justify-end flex-1 mr-[10px] gap-[8px]">
+                  <PlaylistSearch onChange={setFilter} />
                   {isOwner && (
                     <AddSongsButton
                       onClick={() => {
@@ -328,21 +362,12 @@ function Playlist() {
             </Group>
 
             <TableBuilder
-              data={tracks.map((x, index) => ({
-                id: x.id,
-                index,
-                trackNumber: x.trackNumber,
-                albumArt: x.albumArt,
-                title: x.title,
-                artist: x.artist,
-                uri: x.uri,
-                albumUri: x.albumUri,
-                artistUri: x.artistUri,
-                albumArtist: x.albumArtist,
-                duration: x.duration,
-                discNumber: x.discNumber,
-              }))}
-              emptyMessage="You haven't listened to any music yet."
+              data={visibleRows}
+              emptyMessage={
+                filter.trim()
+                  ? `No tracks match "${filter.trim()}".`
+                  : "This playlist is empty."
+              }
               divider="clean"
               overrides={{
                 TableHeadRow: {
