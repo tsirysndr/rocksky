@@ -124,7 +124,7 @@ type Row = {
 
 function Playlist() {
   const { did, rkey } = useParams({ strict: false });
-  const { formatTime } = useTimeFormat();
+  const { formatTime, formatDuration } = useTimeFormat();
   const [playlist, setPlaylist] = useState<{
     id: string;
     name: string;
@@ -185,6 +185,11 @@ function Playlist() {
     }
     return arts;
   }, [tracks]);
+
+  const totalDuration = useMemo(
+    () => tracks.reduce((sum, t) => sum + (t.duration || 0), 0),
+    [tracks],
+  );
 
   const isOwner = !!profile?.did && profile.did === playlist?.curatedBy?.did;
 
@@ -269,6 +274,7 @@ function Playlist() {
                   <LabelMedium className="!text-[var(--color-text-muted)]">
                     {tracks.length} Track
                     {tracks.length > 1 ? "s" : ""}
+                    {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
                   </LabelMedium>
                 </div>
                 <div className="mt-[40px]">
