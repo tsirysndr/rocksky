@@ -30,7 +30,7 @@ export const PillLink = styled.a`
   ${pill}
 `;
 
-export const GhostButton = styled.button`
+const ghost = `
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -41,8 +41,17 @@ export const GhostButton = styled.button`
   color: var(--color-text-muted);
   font-size: 0.875rem;
   font-family: RockfordSansMedium;
+  text-decoration: none;
   cursor: pointer;
 
   &:hover { color: var(--color-text); }
   &:disabled { opacity: 0.4; cursor: default; }
+`;
+
+export const GhostButton = styled.button`
+  ${ghost}
+`;
+
+export const GhostLink = styled.a`
+  ${ghost}
 `;

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { IconShare3 } from "@tabler/icons-react";
-import { PillLink } from "../PillButton";
+import { GhostLink } from "../PillButton";
 import SignInModal from "../SignInModal/SignInModal";
 
 interface Props {
   text: string;
-  variant?: "block" | "pill";
+  variant?: "block" | "ghost";
 }
 
 export default function ShareOnBluesky({ text, variant = "block" }: Props) {
@@ -20,10 +20,10 @@ export default function ShareOnBluesky({ text, variant = "block" }: Props) {
 
   const href = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
 
-  if (variant === "pill") {
+  if (variant === "ghost") {
     return (
       <>
-        <PillLink
+        <GhostLink
           href={href}
           target="_blank"
           rel="noopener noreferrer"
@@ -31,7 +31,7 @@ export default function ShareOnBluesky({ text, variant = "block" }: Props) {
         >
           <IconShare3 size={16} />
           Share on Bluesky
-        </PillLink>
+        </GhostLink>
         <SignInModal isOpen={signInOpen} onClose={() => setSignInOpen(false)} />
       </>
     );
