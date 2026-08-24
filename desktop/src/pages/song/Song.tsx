@@ -237,7 +237,7 @@ const Song = () => {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
-        <BackButton />
+        {!loading && <BackButton />}
         {loading && (
           <ContentLoader
             backgroundColor="var(--color-skeleton-background)"

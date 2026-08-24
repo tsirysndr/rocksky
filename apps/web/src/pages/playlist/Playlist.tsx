@@ -239,7 +239,7 @@ function Playlist() {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
-        <BackButton />
+        {playlist && <BackButton />}
         {!playlist && (
           <ContentLoader
             backgroundColor="var(--color-skeleton-background)"

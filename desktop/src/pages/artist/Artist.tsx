@@ -156,7 +156,7 @@ const Artist = () => {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
-        <BackButton />
+        {!loading && <BackButton />}
         <div className="mb-[50px]">
           {loading && (
             <ContentLoader

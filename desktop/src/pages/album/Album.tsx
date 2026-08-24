@@ -159,7 +159,7 @@ const Album = () => {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
-        <BackButton />
+        {album && <BackButton />}
         {!album && (
           <div className="mt-[-50px]">
             <ContentLoader
