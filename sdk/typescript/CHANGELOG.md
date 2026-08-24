@@ -4,6 +4,64 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.14.1] - 2026-08-24
+
+Playlist writes, and the typed shapes the library screens needed.
+
+### Added
+
+- **Playlist write methods on `RockskyClient`**, typed against the generated
+  outputs: `createPlaylist({ name, description?, pictureUrl? })`,
+  `updatePlaylist({ uri, name?, description?, pictureUrl? })`,
+  `addSongs(uri, songs)`, `removePlaylist(uri)` and `removeTrack(uri, songUri)`.
+  Each publishes to (or retracts from) the caller's repo, so the AppView only
+  reflects the change once the commit has been ingested.
+- **Typed library playlist responses** — `getPlaylists`, `getPlaylist`,
+  `createPlaylist`, `updatePlaylist` and `deletePlaylist` on `RockskyLibrary`
+  no longer return `unknown`. New exported types: `LibrarySong`,
+  `LibraryPlaylist`, `LibraryPlaylistMutation`, `LibraryPlaylistResponse`,
+  `LibraryPlaylistsResponse`.
+- **`LibraryPlaylist.uri` / `.trackArts`** — the AT-URI of the mirrored
+  `app.rocksky.playlist` record (absent until it is published), and album art
+  for up to four of the playlist's tracks for a cover mosaic. `trackArts` is
+  also on `PlaylistViewBasic`.
+- **`LibraryPlaylistMutation.atprotoError`** — the mirror to the caller's PDS
+  runs after the library has already been updated and cannot fail the call; when
+  it fails, the library change stands and the reason lands here.
+- **`filter` (RSQL) on the playlist queries** — `getActorPlaylists`,
+  `playlist.getPlaylists` and `playlist.getPlaylist` (the latter filtering the
+  playlist's tracks).
+- **`PlaylistSongRecord`** — the generated type for an
+  `app.rocksky.playlist.song` entry.
+
+### Fixed
+
+- **Authenticated requests with a JSON body lost their content-type.** The auth
+  wrapper merged headers with an object spread, but atcute passes a `Headers`
+  instance, which has no own enumerable properties — the spread produced `{}`
+  and dropped everything atcute had set, including
+  `content-type: application/json`. The AppView then rejected the request with
+  `InvalidRequest: Wrong request encoding (Content-Type): text/plain`. Latent
+  until the playlist procedures, which are the first authenticated calls with a
+  body. Now merged through `new Headers(init?.headers)`.
+
+### Removed
+
+- **`PlaylistItemRecord`** — `app.rocksky.playlistItem` no longer exists;
+  `PlaylistSongRecord` replaces it.
+- **`UpdatePlaylistInput` / `UpdatePlaylistOutput`** are now
+  `LibraryUpdatePlaylistInput` / `LibraryUpdatePlaylistOutput`, disambiguating
+  them from the `app.rocksky.playlist.updatePlaylist` types.
+- **`collaborators`** is gone from the playlist types — playlists are owner-only.
+- `RemoveTrackParams` identifies the track by **`songUri`** instead of
+  `position`.
+
+### Notes
+
+- The four items above are type-level breaking changes shipped in a patch bump.
+  They only affect code importing those generated names directly; the
+  `RockskyClient` method surface is additive.
+
 ## [0.14.0] - 2026-08-23
 
 **Browser-ready release.** The main entry no longer pulls in Node-only code, so
