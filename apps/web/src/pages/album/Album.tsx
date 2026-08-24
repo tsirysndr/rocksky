@@ -17,9 +17,9 @@ import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
-import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
 import { useAlbumQuery } from "../../hooks/useLibrary";
+import SongCover from "../../components/SongCover";
 import Main from "../../layouts/Main";
 
 const Group = styled.div`
@@ -199,10 +199,10 @@ const Album = () => {
         )}
         {album && (
           <Group>
-            {album.albumArt && <SongCover cover={album.albumArt!} size={165} />}
+            {album.albumArt && <SongCover cover={album.albumArt!} size={210} />}
             {!album.albumArt && (
-              <div className="w-[165px] h-[165px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
-                <div className="w-[130px] h-[130px]">
+              <div className="w-[210px] h-[210px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                <div className="w-[165px] h-[165px]">
                   <Disc color="rgba(66, 87, 108, 0.65)" />
                 </div>
               </div>
@@ -258,18 +258,18 @@ const Album = () => {
                     {numeral(album.scrobbles || 1).format("0,0")}
                   </LabelLarge>
                 </div>
-                <div className="flex items-center justify-end flex-1 mr-[10px] gap-[12px]">
-                  <PillLink
-                    href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                    target="_blank"
-                  >
-                    <ExternalLink size={16} />
-                    View on PDSls
-                  </PillLink>
-                  <ShareOnBluesky
-                    text={`${album?.title} by ${album?.artist} on Rocksky 🎵\n${window.location.href}`}
-                  />
-                </div>
+              </div>
+              <div className="flex items-center gap-[12px] mt-[20px]">
+                <PillLink
+                  href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                  target="_blank"
+                >
+                  <ExternalLink size={16} />
+                  View on PDSls
+                </PillLink>
+                <ShareOnBluesky
+                  text={`${album?.title} by ${album?.artist} on Rocksky 🎵\n${window.location.href}`}
+                />
               </div>
               <div className="mt-[10px]">
                 {(album?.tags || []).map((genre) => (

@@ -306,7 +306,7 @@ function Profile(props: ProfileProps) {
                       </span>
                     </span>
                   </LabelLarge>
-                  <div className="flex items-center gap-[12px] mt-[30px] mr-[10px]">
+                  <div className="flex items-center gap-[12px] mt-[20px]">
                     <PillLink
                       href={`https://pdsls.dev/at/${profiles[did]?.did}`}
                       target="_blank"

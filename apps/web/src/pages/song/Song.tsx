@@ -369,21 +369,22 @@ const Song = () => {
                       {numeral(song?.scrobbles).format("0,0")}
                     </HeadingXSmall>
                   </div>
-                  <div className="flex items-center justify-end flex-1 mr-[10px] gap-[12px]">
-                    <PillLink
-                      href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                      target="_blank"
-                    >
-                      <ExternalLink size={16} />
-                      View on PDSls
-                    </PillLink>
-                    <ShareOnBluesky
-                      text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵\n${window.location.href}`}
-                    />
-                  </div>
                 </div>
               </div>
             </Group>
+
+            <div className="flex items-center gap-[12px] mt-[20px] mb-[10px]">
+              <PillLink
+                href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                target="_blank"
+              >
+                <ExternalLink size={16} />
+                View on PDSls
+              </PillLink>
+              <ShareOnBluesky
+                text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵\n${window.location.href}`}
+              />
+            </div>
 
             {(song?.tags || []).length > 0 && (
               <div>

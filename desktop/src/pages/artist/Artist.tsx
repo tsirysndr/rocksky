@@ -243,22 +243,25 @@ const Artist = () => {
                         {numeral(artist?.scrobbles).format("0,0")}
                       </HeadingXSmall>
                     </div>
-                    <div className="flex items-center justify-end flex-1 mr-[10px] gap-[12px]">
-                      <PillLink
-                        href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                        target="_blank"
-                      >
-                        <ExternalLink size={16} />
-                        View on PDSls
-                      </PillLink>
-                      <ShareOnBluesky
-                        text={`Listening to ${artist?.name} on Rocksky 🎵\n${window.location.href}`}
-                      />
-                    </div>
                   </div>
                 </div>
               )}
             </Group>
+          )}
+
+          {artist && (
+            <div className="flex items-center gap-[12px] mt-[20px]">
+              <PillLink
+                href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                target="_blank"
+              >
+                <ExternalLink size={16} />
+                View on PDSls
+              </PillLink>
+              <ShareOnBluesky
+                text={`Listening to ${artist?.name} on Rocksky 🎵\n${window.location.href}`}
+              />
+            </div>
           )}
 
           {artist && (
