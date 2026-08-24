@@ -116,11 +116,16 @@ export class RockskyClient {
     let handler = simpleFetchHandler({ service: appview });
     if (token) {
       const inner = handler;
-      handler = ((pathname: string, init?: RequestInit) =>
-        inner(pathname, {
-          ...init,
-          headers: { ...(init?.headers as Record<string, string>), authorization: `Bearer ${token}` },
-        })) as typeof handler;
+      handler = ((pathname: string, init?: RequestInit) => {
+        // `new Headers(init.headers)`, not a spread: atcute hands us a Headers
+        // instance, and a Headers has no own enumerable properties — spreading
+        // it yields `{}` and silently drops everything already set. That threw
+        // away the `content-type: application/json` atcute adds for a JSON
+        // body, so the AppView saw text/plain and rejected the request.
+        const headers = new Headers(init?.headers);
+        headers.set("authorization", `Bearer ${token}`);
+        return inner(pathname, { ...init, headers });
+      }) as typeof handler;
     }
     this.rpc = new Client({ handler });
   }
