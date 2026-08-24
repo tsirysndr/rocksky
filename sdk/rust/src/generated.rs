@@ -2589,6 +2589,9 @@ pub struct PlaylistViewBasic {
     /// The number of tracks in the playlist.
     #[serde(rename = "trackCount", default, skip_serializing_if = "Option::is_none")]
     pub track_count: Option<i64>,
+    /// Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.
+    #[serde(rename = "trackArts", default, skip_serializing_if = "Vec::is_empty")]
+    pub track_arts: Vec<String>,
 }
 
 /// Detailed view of a playlist, including its tracks and metadata

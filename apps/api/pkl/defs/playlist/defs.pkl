@@ -138,6 +138,15 @@ defs = new Mapping<String, ObjectType> {
         description = "The number of tracks in the playlist."
         minimum = 0
       }
+      ["trackArts"] = new Array {
+        type = "array"
+        description =
+          "Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own."
+        items = new StringType {
+          type = "string"
+          format = "uri"
+        }
+      }
     }
   }
 }

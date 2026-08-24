@@ -10,6 +10,7 @@ export type PlaylistSummary = {
   tidalLink?: string;
   appleMusicLink?: string;
   trackCount: number;
+  trackArts?: string[];
 };
 
 // Escape for a double-quoted RSQL value; `*` stays, the caller adds wildcards.

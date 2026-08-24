@@ -84,6 +84,21 @@ const retrieve = ({
            FROM ${tables.playlistTracks}
            WHERE ${tables.playlistTracks.playlistId} = ${tables.playlists.id}
           )`.as("trackCount"),
+        // Album art of up to four tracks, for the cover mosaic shown when the
+        // playlist has no picture. Grouped by art so one album's tracks don't
+        // fill every tile; ordered by first-added so the mosaic is stable.
+        trackArts: sql<string[]>`
+          (SELECT COALESCE(array_agg(art), '{}')
+           FROM (
+             SELECT t.album_art AS art
+             FROM ${tables.playlistTracks} pt
+             JOIN ${tables.tracks} t ON pt.track_id = t.xata_id
+             WHERE pt.playlist_id = ${tables.playlists.id}
+               AND t.album_art IS NOT NULL
+             GROUP BY t.album_art
+             ORDER BY MIN(pt.xata_createdat)
+             LIMIT 4
+           ) arts)`.as("trackArts"),
       };
       const where = and(
         or(
@@ -127,6 +142,7 @@ const retrieve = ({
       return rows.map((row) => ({
         ...row.playlists,
         trackCount: row.trackCount,
+        trackArts: row.trackArts ?? [],
         title: row.playlists.name,
         coverImageUrl: row.playlists.picture,
         curatorDId: row.users.did,

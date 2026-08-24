@@ -5553,6 +5553,15 @@ export const schemaDict = {
             description: "The number of tracks in the playlist.",
             minimum: 0,
           },
+          trackArts: {
+            type: "array",
+            description:
+              "Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.",
+            items: {
+              type: "string",
+              format: "uri",
+            },
+          },
         },
       },
     },

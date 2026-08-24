@@ -70,6 +70,8 @@ export interface PlaylistViewBasic {
   createdAt?: string;
   /** The number of tracks in the playlist. */
   trackCount?: number;
+  /** Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own. */
+  trackArts?: string[];
   [k: string]: unknown;
 }
 

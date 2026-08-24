@@ -11,5 +11,6 @@ export const playlistsAtom = atom<
     tidalLink?: string;
     appleMusicLink?: string;
     trackCount: number;
+    trackArts?: string[];
   }[]
 >([]);

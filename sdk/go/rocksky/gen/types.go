@@ -1829,6 +1829,8 @@ type PlaylistViewBasic struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	// The number of tracks in the playlist.
 	TrackCount int `json:"trackCount,omitempty"`
+	// Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.
+	TrackArts []string `json:"trackArts,omitempty"`
 }
 
 // PlaylistViewDetailed Detailed view of a playlist, including its tracks and metadata

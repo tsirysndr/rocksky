@@ -20,7 +20,7 @@ import {
 } from "../../../atoms/createPlaylist";
 import { playlistsAtom } from "../../../atoms/playlists";
 import { profileAtom } from "../../../atoms/profile";
-import SongCover from "../../../components/SongCover";
+import PlaylistCover from "../../../components/PlaylistCover";
 import {
   usePlaylistsQuery,
   useRemovePlaylistMutation,
@@ -323,7 +323,10 @@ function Playlists() {
                 <FlexGridItem {...itemProps} key={playlist.id}>
                   <Card>
                     <Link to={href}>
-                      <SongCover cover={playlist.picture} />
+                      <PlaylistCover
+                        picture={playlist.picture}
+                        trackArts={playlist.trackArts}
+                      />
                     </Link>
                     {isOwnProfile && playlist.uri && (
                       <Actions data-playlist-actions>
