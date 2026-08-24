@@ -11,8 +11,7 @@ import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ContentLoader from "react-content-loader";
-import Disc from "../../components/Icons/Disc";
-import SongCover from "../../components/SongCover";
+import PlaylistCover from "../../components/PlaylistCover";
 import { useTimeFormat } from "../../hooks/useFormat";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
@@ -178,6 +177,15 @@ function Playlist() {
     return [...rows, ...extra];
   }, [playlist, pending, playlistUri]);
 
+  const trackArts = useMemo(() => {
+    const arts: string[] = [];
+    for (const t of tracks) {
+      if (t.albumArt && !arts.includes(t.albumArt)) arts.push(t.albumArt);
+      if (arts.length === 4) break;
+    }
+    return arts;
+  }, [tracks]);
+
   const isOwner = !!profile?.did && profile.did === playlist?.curatedBy?.did;
 
   const onRemoveTrack = async (songUri: string) => {
@@ -247,14 +255,12 @@ function Playlist() {
         {playlist && (
           <>
             <Group>
-              {playlist.picture && <SongCover cover={playlist.picture!} />}
-              {!playlist.picture && (
-                <div className="w-[240px] h-[240px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
-                  <div className="h-[130px] w-[130px]">
-                    <Disc color="rgba(66, 87, 108, 0.65)" />
-                  </div>
-                </div>
-              )}
+              <div className="mr-[12px]">
+                <PlaylistCover
+                  picture={playlist.picture}
+                  trackArts={trackArts}
+                />
+              </div>
               <div className="ml-[20px]">
                 <HeadingMedium margin={0} className="!text-[var(--color-text)]">
                   {playlist.name}
