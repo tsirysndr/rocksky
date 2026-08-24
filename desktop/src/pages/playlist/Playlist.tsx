@@ -170,6 +170,7 @@ function Playlist() {
   const openPlaylistModal = useSetAtom(createPlaylistModalOpenAtom);
   const [pending, setPending] = useAtom(pendingPlaylistTracksAtom);
   const [filter, setFilter] = useState("");
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const playlistUri = playlist?.curatedBy?.did
     ? `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`
     : "";
@@ -317,7 +318,16 @@ function Playlist() {
                   </LabelMedium>
                 </div>
                 <div className="flex items-center justify-end flex-1 mr-[10px] gap-[8px]">
-                  <PlaylistSearch onChange={setFilter} />
+                  {!searchExpanded && (
+                    <a
+                      href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                      target="_blank"
+                      className="text-[var(--color-text)] no-underline p-[16px] bg-[var(--color-default-button)]  rounded-[10px] pl-[25px] pr-[25px]"
+                    >
+                      <ExternalLink size={24} className="mr-[10px]" />
+                      View on PDSls
+                    </a>
+                  )}
                   {isOwner && (
                     <AddSongsButton
                       onClick={() => {
@@ -331,14 +341,10 @@ function Playlist() {
                       <IconPlus size={16} /> Add songs
                     </AddSongsButton>
                   )}
-                  <a
-                    href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                    target="_blank"
-                    className="text-[var(--color-text)] no-underline p-[16px] bg-[var(--color-default-button)]  rounded-[10px] pl-[25px] pr-[25px]"
-                  >
-                    <ExternalLink size={24} className="mr-[10px]" />
-                    View on PDSls
-                  </a>
+                  <PlaylistSearch
+                    onChange={setFilter}
+                    onExpandedChange={setSearchExpanded}
+                  />
                 </div>
               </div>
             </Group>

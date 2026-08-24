@@ -96,12 +96,15 @@ const ClearButton = styled.button`
 type Props = {
   /** Called with the filter term; "" whenever it is cleared or collapsed. */
   onChange: (value: string) => void;
+  /** Lets the parent yield room to the expanded input. */
+  onExpandedChange?: (expanded: boolean) => void;
   label?: string;
   placeholder?: string;
 };
 
 function PlaylistSearch({
   onChange,
+  onExpandedChange,
   label = "Search in playlist",
   placeholder = "Search in playlist",
 }: Props) {
@@ -128,6 +131,12 @@ function PlaylistSearch({
     // An over-long query leaves the last good filter in place.
     if (!invalid) onChangeRef.current(query);
   }, [query, invalid]);
+
+  const onExpandedChangeRef = useRef(onExpandedChange);
+  onExpandedChangeRef.current = onExpandedChange;
+  useEffect(() => {
+    onExpandedChangeRef.current?.(expanded);
+  }, [expanded]);
 
   useEffect(() => {
     if (expanded) inputRef.current?.focus();
