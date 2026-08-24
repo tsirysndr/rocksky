@@ -229,6 +229,20 @@ function invalidatePlaylists(
   queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
   if (id)
     queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", id] });
+
+  // The same change lands in the user's repo as an app.rocksky.playlist
+  // record, so the ATProto views of it — the profile playlists grid
+  // (["playlists", did, filter]) and the playlist page (["playlist", did,
+  // rkey]) — are stale now too. Distinct key prefixes from the navidrome ones
+  // above, so neither invalidation catches the other.
+  //
+  // Marking them stale is the point, not the refetch: the AppView only has the
+  // row once jetstream ingests the commit, so a refetch fired right now would
+  // race it and likely miss. Neither query is mounted while the library modal
+  // is open, so this defers the fetch to whenever the user opens their
+  // profile — by which time ingest has long since caught up.
+  queryClient.invalidateQueries({ queryKey: ["playlists"] });
+  queryClient.invalidateQueries({ queryKey: ["playlist"] });
 }
 
 export function useCreatePlaylistMutation() {
