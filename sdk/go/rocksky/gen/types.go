@@ -2434,6 +2434,10 @@ type SongViewBasic struct {
 	DiscNumber int `json:"discNumber,omitempty"`
 	// The number of times the song has been played.
 	PlayCount int `json:"playCount,omitempty"`
+	// The number of users who have loved this song.
+	LikesCount int `json:"likesCount,omitempty"`
+	// Whether the authenticated user has loved this song. False when unauthenticated.
+	Liked bool `json:"liked,omitempty"`
 	// The number of unique listeners who have played the song.
 	UniqueListeners int `json:"uniqueListeners,omitempty"`
 	// The URI of the album the song belongs to.

@@ -3457,6 +3457,12 @@ pub struct SongViewBasic {
     /// The number of times the song has been played.
     #[serde(rename = "playCount", default, skip_serializing_if = "Option::is_none")]
     pub play_count: Option<i64>,
+    /// The number of users who have loved this song.
+    #[serde(rename = "likesCount", default, skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
+    /// Whether the authenticated user has loved this song. False when unauthenticated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
     /// The number of unique listeners who have played the song.
     #[serde(rename = "uniqueListeners", default, skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,

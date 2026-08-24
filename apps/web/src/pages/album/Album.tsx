@@ -13,6 +13,7 @@ import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
+import LikeButton from "../../components/LikeButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import Disc from "../../components/Icons/Disc";
@@ -48,6 +49,7 @@ type Row = {
   duration: number;
   trackNumber: number;
   uri: string;
+  liked: boolean;
 };
 
 const Album = () => {
@@ -83,6 +85,7 @@ const Album = () => {
       artistUri: string;
       duration: number;
       discNumber: number;
+      liked: boolean;
     }[];
   } | null>(null);
   const uri = `${did}/app.rocksky.album/${rkey}`;
@@ -115,6 +118,7 @@ const Album = () => {
           artistUri: track.artistUri ?? "",
           duration: track.duration ?? 0,
           discNumber: track.discNumber ?? 1,
+          liked: track.liked ?? false,
         })),
         releaseDate: data.releaseDate
           ? dayjs(data.releaseDate).format("MMMM D, YYYY")
@@ -390,6 +394,9 @@ const Album = () => {
                   </div>
                 )}
               </TableBuilderColumn>
+              <TableBuilderColumn header="">
+                {(row: Row) => <LikeButton uri={row.uri} liked={row.liked} />}
+              </TableBuilderColumn>
             </TableBuilder>
           )}
           {disc > 1 && (
@@ -497,6 +504,11 @@ const Album = () => {
                         >
                           {formatTime(row.duration)}
                         </div>
+                      )}
+                    </TableBuilderColumn>
+                    <TableBuilderColumn header="">
+                      {(row: Row) => (
+                        <LikeButton uri={row.uri} liked={row.liked} />
                       )}
                     </TableBuilderColumn>
                   </TableBuilder>

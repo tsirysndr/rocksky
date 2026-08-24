@@ -30,6 +30,10 @@ export interface SongViewBasic {
   discNumber?: number;
   /** The number of times the song has been played. */
   playCount?: number;
+  /** The number of users who have loved this song. */
+  likesCount?: number;
+  /** Whether the authenticated user has loved this song. False when unauthenticated. */
+  liked?: boolean;
   /** The number of unique listeners who have played the song. */
   uniqueListeners?: number;
   /** The URI of the album the song belongs to. */

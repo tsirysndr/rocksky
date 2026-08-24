@@ -300,6 +300,27 @@ function Playlist() {
                     {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
                   </LabelMedium>
                 </div>
+                <ActionRow className="mt-[20px]">
+                  <PillLink
+                    href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                    target="_blank"
+                  >
+                    <ExternalLink size={16} /> View on PDSls
+                  </PillLink>
+                  {isOwner && (
+                    <GhostButton
+                      onClick={() => {
+                        setAddSongsTarget({
+                          uri: `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`,
+                          name: playlist.name,
+                        });
+                        openPlaylistModal(true);
+                      }}
+                    >
+                      <IconPlus size={16} /> Add songs
+                    </GhostButton>
+                  )}
+                </ActionRow>
                 <div className="mt-[40px]">
                   <LabelMedium className="!text-[var(--color-text-muted)]">
                     {playlist.description}
@@ -307,28 +328,6 @@ function Playlist() {
                 </div>
               </div>
             </Group>
-
-            <ActionRow className="mt-[20px]">
-              <PillLink
-                href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                target="_blank"
-              >
-                <ExternalLink size={16} /> View on PDSls
-              </PillLink>
-              {isOwner && (
-                <GhostButton
-                  onClick={() => {
-                    setAddSongsTarget({
-                      uri: `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`,
-                      name: playlist.name,
-                    });
-                    openPlaylistModal(true);
-                  }}
-                >
-                  <IconPlus size={16} /> Add songs
-                </GhostButton>
-              )}
-            </ActionRow>
 
             <Group className="mb-[20px] items-center">
               <Avatar
