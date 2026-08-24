@@ -1,11 +1,14 @@
+import { IconArrowLeft } from "@tabler/icons-react";
+import { useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import Main from "../../../layouts/Main";
 import { useAudioSettings } from "../../../hooks/useAudioSettings";
+import Main from "../../../layouts/Main";
 import { Crossfade } from "./sections/Crossfade";
 import { Equalizer } from "./sections/Equalizer";
 import { ReplayGain } from "./sections/ReplayGain";
 import { Tone } from "./sections/Tone";
 import {
+  BackBtn,
   Header,
   LoadingState,
   PageWrap,
@@ -27,10 +30,24 @@ const SECTIONS: { id: SectionId; label: string }[] = [
 export function SettingsAudio() {
   const [active, setActive] = useState<SectionId>("equalizer");
   const { isLoading, isError } = useAudioSettings();
+  const router = useRouter();
+  const navigate = useNavigate();
+  // Reached from the sticky player and from a shortcut, so there is no single
+  // parent to return to — retrace the user's step. On a cold deep-link there
+  // is nothing to go back to, so fall back to home.
+  const canGoBack = useCanGoBack();
 
   return (
     <Main>
       <PageWrap>
+        <BackBtn
+          onClick={() =>
+            canGoBack ? router.history.back() : navigate({ to: "/" })
+          }
+        >
+          <IconArrowLeft size={16} /> Back
+        </BackBtn>
+
         <Header>
           <Title>Audio Settings</Title>
           <Subtitle>

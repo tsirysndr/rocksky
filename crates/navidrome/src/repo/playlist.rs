@@ -14,6 +14,10 @@ pub struct PlaylistRow {
     pub created_by: String,
     pub xata_createdat: DateTime<Utc>,
     pub track_count: i64,
+    /// Total playing time of the playlist's tracks, in **milliseconds** —
+    /// `tracks.duration`'s own unit. Subsonic reports seconds, so the presenter
+    /// divides. 0 for an empty playlist.
+    pub duration_ms: i64,
     /// AT-URI of the `app.rocksky.playlist` record mirroring this playlist,
     /// NULL until the record has been published.
     pub uri: Option<String>,
@@ -21,6 +25,16 @@ pub struct PlaylistRow {
     /// cover mosaic. Empty when none of the tracks have art.
     pub track_arts: Vec<String>,
 }
+
+// COALESCE because SUM over no rows is NULL, and an empty playlist is 0 long.
+const DURATION_SELECT: &str = r#"
+    COALESCE((
+        SELECT SUM(t.duration)
+        FROM navidrome_playlist_tracks pt
+        JOIN tracks t ON t.xata_id = pt.track_id
+        WHERE pt.playlist_id = p.xata_id
+    ), 0)::bigint AS duration_ms
+"#;
 
 // Up to four distinct album covers, in the order the tracks carrying them were
 // added — enough for a 2×2 mosaic and no more.
@@ -60,6 +74,7 @@ pub async fn get_playlists(
             p.uri,
             (SELECT COUNT(*) FROM navidrome_playlist_tracks pt
              WHERE pt.playlist_id = p.xata_id) AS track_count,
+            {DURATION_SELECT},
             {TRACK_ARTS_SELECT}
         FROM navidrome_playlists p
         WHERE p.user_id = $1
@@ -226,6 +241,7 @@ pub async fn get_playlist(
             p.uri,
             (SELECT COUNT(*) FROM navidrome_playlist_tracks pt
              WHERE pt.playlist_id = p.xata_id) AS track_count,
+            {DURATION_SELECT},
             {TRACK_ARTS_SELECT}
         FROM navidrome_playlists p
         WHERE p.xata_id = $1 AND p.user_id = $2

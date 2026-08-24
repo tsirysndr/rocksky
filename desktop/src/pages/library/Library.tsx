@@ -60,6 +60,14 @@ function formatDuration(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// Coarse total for a playlist, matching the profile playlists grid.
+function formatTotalSecs(seconds: number) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h} hr ${m} min`;
+  return `${m} min`;
+}
+
 function getScrollParent(el: HTMLElement | null): HTMLElement | null {
   let cur: HTMLElement | null = el?.parentElement ?? null;
   while (cur) {
@@ -1182,7 +1190,7 @@ export default function Library() {
                     </ArtworkBox>
                     <TrackInfo>
                       <TrackTitle>{pl.name}</TrackTitle>
-                      <TrackMeta>{pl.songCount} track{pl.songCount !== 1 ? "s" : ""}</TrackMeta>
+                      <TrackMeta>{pl.songCount} track{pl.songCount !== 1 ? "s" : ""}{pl.duration > 0 && ` · ${formatTotalSecs(pl.duration)}`}</TrackMeta>
                     </TrackInfo>
                     <div className="track-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <MenuWrap>

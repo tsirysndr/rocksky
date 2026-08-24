@@ -12,7 +12,8 @@ fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
         "name": p.name,
         "public": false,
         "songCount": p.track_count,
-        "duration": 0,
+        // Subsonic reports playing time in seconds; tracks store milliseconds.
+        "duration": p.duration_ms / 1000,
         "created": p.xata_createdat.to_rfc3339(),
         "changed": p.xata_createdat.to_rfc3339(),
     });

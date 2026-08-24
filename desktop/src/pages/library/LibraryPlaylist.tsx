@@ -313,6 +313,94 @@ const Empty = styled.div`
 `;
 
 // ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+const shimmer = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+`;
+
+const Shimmer = styled.div`
+  ${shimmer}
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton-background) 25%,
+    var(--color-skeleton-foreground) 50%,
+    var(--color-skeleton-background) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+  flex-shrink: 0;
+`;
+
+const TrackRowSkeletonWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 0;
+`;
+
+const TrackInfoSkeleton = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+/**
+ * Placeholder for the whole page, laid out to match what replaces it — same
+ * cover box, same header block, same track rows — so nothing shifts when the
+ * playlist arrives.
+ */
+function PlaylistSkeleton() {
+  // Vary the widths so the rows don't read as mechanically identical.
+  const widths: Array<[string, string]> = [
+    ["55%", "35%"],
+    ["70%", "40%"],
+    ["48%", "30%"],
+    ["62%", "38%"],
+    ["50%", "32%"],
+    ["68%", "42%"],
+    ["58%", "34%"],
+    ["52%", "36%"],
+  ];
+  return (
+    <>
+      <Header>
+        <Shimmer style={{ width: 160, height: 160, borderRadius: 16 }} />
+        <Meta>
+          <Shimmer style={{ width: "45%", height: 30, marginBottom: 12 }} />
+          <Shimmer style={{ width: "25%", height: 13, marginBottom: 20 }} />
+          <div style={{ display: "flex", gap: 12 }}>
+            <Shimmer style={{ width: 108, height: 38, borderRadius: 999 }} />
+            <Shimmer style={{ width: 118, height: 38, borderRadius: 999 }} />
+            <Shimmer style={{ width: 124, height: 38, borderRadius: 999 }} />
+          </div>
+        </Meta>
+      </Header>
+      <TrackList>
+        {widths.map(([t, m], i) => (
+          <TrackRowSkeletonWrap key={`${t}-${i}`}>
+            <Shimmer style={{ width: 12, height: 14, borderRadius: 3 }} />
+            <Shimmer style={{ width: 40, height: 40, borderRadius: 8 }} />
+            <TrackInfoSkeleton>
+              <Shimmer style={{ width: t, height: 14 }} />
+              <Shimmer style={{ width: m, height: 12 }} />
+            </TrackInfoSkeleton>
+            <Shimmer style={{ width: 32, height: 14 }} />
+          </TrackRowSkeletonWrap>
+        ))}
+      </TrackList>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // TrackContextMenu
 // ---------------------------------------------------------------------------
 
@@ -403,7 +491,10 @@ export default function LibraryPlaylist() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const songs: NavidromeSong[] = useMemo(() => playlist?.entry ?? [], [playlist]);
-  const totalDuration = playlist?.duration ?? songs.reduce((sum, s) => sum + s.duration, 0);
+  // `||`, not `??`: navidrome used to hardcode duration to 0, so a deployment
+  // that predates the real sum would otherwise render "0 min" forever. Both
+  // sides are 0 for an empty playlist anyway.
+  const totalDuration = playlist?.duration || songs.reduce((sum, s) => sum + s.duration, 0);
 
   const coverUrl = useCallback(
     (coverArt?: string) => (creds && coverArt ? getCoverArtUrl(creds, coverArt) : null),
@@ -448,10 +539,7 @@ export default function LibraryPlaylist() {
           <BackBtn onClick={() => navigate({ to: "/library" })}>
             <IconArrowLeft size={16} /> Library
           </BackBtn>
-          <Empty>
-            <IconPlaylist size={40} />
-            Loading…
-          </Empty>
+          <PlaylistSkeleton />
         </Page>
       </Main>
     );

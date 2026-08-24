@@ -230,3 +230,22 @@ export const LoadingState = styled.div`
   padding: 24px 0;
   text-align: center;
 `;
+
+// Matches the back button on the library detail pages. This page has no
+// `/settings` parent to return to — it's opened from the sticky player and
+// from a keyboard shortcut — so it goes back through history instead.
+export const BackBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  cursor: pointer;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  &:hover { background: var(--color-menu-hover); color: var(--color-text); }
+`;
