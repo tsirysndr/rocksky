@@ -17,6 +17,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
+import BackButton from "../../components/BackButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import { songAtom } from "../../atoms/song";
@@ -236,6 +237,7 @@ const Song = () => {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
+        <BackButton />
         {loading && (
           <ContentLoader
             backgroundColor="var(--color-skeleton-background)"

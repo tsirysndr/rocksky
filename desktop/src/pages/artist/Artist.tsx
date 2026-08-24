@@ -22,6 +22,7 @@ import Albums from "./Albums";
 import ArtistListeners from "./ArtistListeners";
 import PopularSongs from "./PopularSongs";
 import ContentLoader from "react-content-loader";
+import BackButton from "../../components/BackButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 
@@ -155,6 +156,7 @@ const Artist = () => {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
+        <BackButton />
         <div className="mb-[50px]">
           {loading && (
             <ContentLoader

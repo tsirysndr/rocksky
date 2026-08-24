@@ -1,18 +1,15 @@
 import styled from "@emotion/styled";
 import { uriToPath } from "../../lib/uri";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
-import { IconArrowLeft, IconPlus, IconTrash } from "@tabler/icons-react";
-import {
-  Link as DefaultLink,
-  useParams,
-  useRouter,
-} from "@tanstack/react-router";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ContentLoader from "react-content-loader";
 import PlaylistCover from "../../components/PlaylistCover";
+import BackButton from "../../components/BackButton";
 import LikeButton from "../../components/LikeButton";
 import { GhostButton, PillLink } from "../../components/PillButton";
 import PlaylistSearch from "../../components/PlaylistSearch";
@@ -34,24 +31,6 @@ const Group = styled.div`
   display: flex;
   flex-direction: row;
   margin-top: 20px;
-`;
-
-const BackButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 8px;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-default-button);
-  color: var(--color-text);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--color-menu-hover);
-  }
 `;
 
 const ActionRow = styled.div`
@@ -157,7 +136,6 @@ function Playlist() {
   const uri = `${did}/app.rocksky.playlist/${rkey}`;
   const profile = useAtomValue(profileAtom);
   const removeTrack = useRemoveTrackFromPlaylistMutation();
-  const router = useRouter();
   const setAddSongsTarget = useSetAtom(addSongsTargetAtom);
   const openPlaylistModal = useSetAtom(createPlaylistModalOpenAtom);
   const [pending, setPending] = useAtom(pendingPlaylistTracksAtom);
@@ -261,13 +239,7 @@ function Playlist() {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
-        <BackButton
-          aria-label="Go back"
-          title="Go back"
-          onClick={() => router.history.back()}
-        >
-          <IconArrowLeft size={20} />
-        </BackButton>
+        <BackButton />
         {!playlist && (
           <ContentLoader
             backgroundColor="var(--color-skeleton-background)"

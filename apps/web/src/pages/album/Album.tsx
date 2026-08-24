@@ -14,6 +14,7 @@ import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { AddToPlaylistButton } from "../../components/AddToPlaylistPalette";
+import BackButton from "../../components/BackButton";
 import LikeButton from "../../components/LikeButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
@@ -158,6 +159,7 @@ const Album = () => {
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
+        <BackButton />
         {!album && (
           <div className="mt-[-50px]">
             <ContentLoader
