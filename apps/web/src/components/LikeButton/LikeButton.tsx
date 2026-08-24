@@ -71,7 +71,7 @@ function LikeButton({ uri, liked }: Props) {
         title={isLiked ? "Remove from loved songs" : "Add to loved songs"}
       >
         {isLiked ? (
-          <HeartFilled size={18} />
+          <HeartFilled size={18} color="var(--color-primary)" />
         ) : (
           <HeartOutline size={18} color="var(--color-text-muted)" />
         )}
