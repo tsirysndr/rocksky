@@ -110,6 +110,8 @@ const Grid = styled.div`
 
 const Card = styled.div`
   position: relative;
+  /* PlaylistCover carries margin-bottom: -5px; clear it, then space the title. */
+  margin-bottom: 15px;
 
   /* A component selector (\${Actions}) would need @emotion/babel-plugin or the
      SWC Emotion transform, neither of which this app runs — match a data
