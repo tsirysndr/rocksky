@@ -6,7 +6,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
-import { profileAtom } from "../atoms/profile";
 import { createApiKey, getApiKeys } from "../api/apikeys";
 import {
   addTrackToNavidromePlaylist,
@@ -20,15 +19,17 @@ import {
   fetchNavidromePlaylists,
   getCoverArtUrl,
   getNavidromeStreamUrl,
-  removeTrackFromNavidromePlaylist,
-  renameNavidromePlaylist,
-  searchNavidrome,
   type NavidromeAlbum,
   type NavidromeArtist,
   type NavidromeCredentials,
   type NavidromePlaylist,
   type NavidromeSong,
+  removeTrackFromNavidromePlaylist,
+  renameNavidromePlaylist,
+  searchNavidrome,
+  setNavidromePlaylistDescription,
 } from "../api/navidrome";
+import { profileAtom } from "../atoms/profile";
 import type { QueueTrack } from "../atoms/queue";
 
 const NAVIDROME_KEY_NAME = "navidrome";
@@ -42,9 +43,14 @@ export function useNavidromeCredentials() {
     staleTime: Infinity,
     queryFn: async () => {
       const { data: keys } = await getApiKeys(0, 100);
-      const existing = keys.find((k) => k.name === NAVIDROME_KEY_NAME && k.enabled);
+      const existing = keys.find(
+        (k) => k.name === NAVIDROME_KEY_NAME && k.enabled,
+      );
       if (existing) return { handle: handle!, apiKey: existing.apiKey };
-      const { data: created } = await createApiKey(NAVIDROME_KEY_NAME, "Navidrome API access");
+      const { data: created } = await createApiKey(
+        NAVIDROME_KEY_NAME,
+        "Navidrome API access",
+      );
       return { handle: handle!, apiKey: created.apiKey };
     },
   });
@@ -105,7 +111,11 @@ export function useNavidromeAlbumsQuery(q?: string) {
     enabled: !!creds,
     placeholderData: keepPreviousData,
     initialPageParam: 0,
-    queryFn: ({ pageParam }: { pageParam: number }): Promise<NavidromeAlbum[]> => {
+    queryFn: ({
+      pageParam,
+    }: {
+      pageParam: number;
+    }): Promise<NavidromeAlbum[]> => {
       if (q) {
         return searchNavidrome(creds!, q, {
           albumOffset: pageParam,
@@ -143,6 +153,27 @@ export function useNavidromeArtistsQuery(q?: string) {
   });
 }
 
+/**
+ * Song-only search over the user's own uploads, for the playlist modal. Scoped
+ * to their library by construction: navidrome only ever searches the caller's
+ * own tracks, so nothing from the global catalogue can turn up here.
+ */
+export function useNavidromeSongSearchQuery(query: string) {
+  const { data: creds } = useNavidromeCredentials();
+  const q = query.trim();
+  return useQuery({
+    queryKey: ["navidrome", "song-search", q],
+    enabled: !!creds && q.length >= 2,
+    placeholderData: keepPreviousData,
+    queryFn: (): Promise<NavidromeSong[]> =>
+      searchNavidrome(creds!, q, {
+        songCount: 30,
+        albumCount: 0,
+        artistCount: 0,
+      }).then((r) => r.songs),
+  });
+}
+
 export function useNavidromeAlbumQuery(albumId: string) {
   const { data: creds } = useNavidromeCredentials();
   return useQuery({
@@ -170,7 +201,8 @@ export function useNavidromePlaylistsQuery() {
   return useQuery({
     queryKey: ["navidrome", "playlists"],
     enabled: !!creds,
-    queryFn: (): Promise<NavidromePlaylist[]> => fetchNavidromePlaylists(creds!),
+    queryFn: (): Promise<NavidromePlaylist[]> =>
+      fetchNavidromePlaylists(creds!),
   });
 }
 
@@ -183,62 +215,89 @@ export function useNavidromePlaylistQuery(playlistId: string) {
   });
 }
 
+// Playlist mutations go through the Rocksky API, not straight to navidrome, so
+// the change is mirrored to the user's PDS — see api/navidrome.ts. That also
+// means they take no credentials: the API authenticates by JWT.
+//
+// A PlaylistMirrorWarning means the library change landed and only the PDS
+// record didn't, so these still invalidate on error: the list has changed
+// either way, and the caller decides how to surface the warning.
+function invalidatePlaylists(
+  queryClient: ReturnType<typeof useQueryClient>,
+  id?: string,
+) {
+  queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
+  if (id)
+    queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", id] });
+}
+
 export function useCreatePlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, songIds }: { name: string; songIds?: string[] }) =>
-      createNavidromePlaylist(creds!, name, songIds ?? []),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] }),
+    mutationFn: (input: {
+      name: string;
+      description?: string;
+      songIds?: string[];
+    }) => createNavidromePlaylist(input),
+    onSettled: () => invalidatePlaylists(queryClient),
   });
 }
 
 export function useDeletePlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteNavidromePlaylist(creds!, id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] }),
+    mutationFn: (id: string) => deleteNavidromePlaylist(id),
+    onSettled: () => invalidatePlaylists(queryClient),
   });
 }
 
 export function useRenamePlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      renameNavidromePlaylist(creds!, id, name),
-    onSuccess: (_d, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", id] });
+    mutationFn: async ({
+      id,
+      name,
+      description,
+    }: {
+      id: string;
+      name: string;
+      description?: string;
+    }) => {
+      await renameNavidromePlaylist(id, name);
+      if (description !== undefined) {
+        await setNavidromePlaylistDescription(id, description);
+      }
     },
+    onSettled: (_d, _e, { id }) => invalidatePlaylists(queryClient, id),
   });
 }
 
 export function useAddTrackToPlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ playlistId, songId }: { playlistId: string; songId: string }) =>
-      addTrackToNavidromePlaylist(creds!, playlistId, songId),
-    onSuccess: (_d, { playlistId }) => {
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", playlistId] });
-    },
+    mutationFn: ({
+      playlistId,
+      songId,
+    }: {
+      playlistId: string;
+      songId: string;
+    }) => addTrackToNavidromePlaylist(playlistId, songId),
+    onSettled: (_d, _e, { playlistId }) =>
+      invalidatePlaylists(queryClient, playlistId),
   });
 }
 
 export function useRemoveTrackFromPlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ playlistId, index }: { playlistId: string; index: number }) =>
-      removeTrackFromNavidromePlaylist(creds!, playlistId, index),
-    onSuccess: (_d, { playlistId }) => {
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", playlistId] });
-    },
+    mutationFn: ({
+      playlistId,
+      index,
+    }: {
+      playlistId: string;
+      index: number;
+    }) => removeTrackFromNavidromePlaylist(playlistId, index),
+    onSettled: (_d, _e, { playlistId }) =>
+      invalidatePlaylists(queryClient, playlistId),
   });
 }

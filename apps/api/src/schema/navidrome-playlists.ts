@@ -9,6 +9,9 @@ const navidromePlaylists = pgTable("navidrome_playlists", {
   id: text("xata_id").primaryKey().default(sql`xata_id()`),
   name: text("name").notNull(),
   description: text("description"),
+  // AT-URI of the app.rocksky.playlist record this row is mirrored to. NULL
+  // for playlists that predate the mirror; it publishes one on first mutation.
+  uri: text("uri").unique(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),

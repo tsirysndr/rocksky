@@ -95,7 +95,10 @@ pub use error::{Result, SdkError};
 pub use filter::{Filter, FilterValue};
 #[cfg(feature = "jetstream")]
 pub use jetstream::JetstreamConfig;
-pub use library::Library;
+pub use library::{
+    Library, LibraryPlaylist, LibraryPlaylistMutation, LibraryPlaylistResponse, LibraryPlaylists,
+    LibraryPlaylistsResponse, LibrarySong,
+};
 #[cfg(feature = "remote-player")]
 pub use remote_controller::{RemoteController, RemoteControllerConfig, RemoteDevice, RemoteEvent};
 #[cfg(feature = "remote-player")]

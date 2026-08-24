@@ -30,9 +30,7 @@ import {
 } from "../../hooks/useNavidrome";
 import {
   useNavidromePlaylistsQuery,
-  useCreatePlaylistMutation,
   useDeletePlaylistMutation,
-  useRenamePlaylistMutation,
 } from "../../hooks/useNavidrome";
 import { useDeleteUploadByTrackIdMutation, useDeleteAlbumByIdMutation } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
@@ -42,9 +40,15 @@ import { fetchNavidromePlaylist } from "../../api/navidrome";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
 import { useSetAtom } from "jotai";
 import { librarySearchOpenAtom } from "../../atoms/searchModal";
+import {
+  addLibrarySongsTargetAtom,
+  editingLibraryPlaylistAtom,
+  libraryPlaylistModalOpenAtom,
+} from "../../atoms/libraryPlaylist";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -799,12 +803,13 @@ function AlbumContextMenu({
 // ---------------------------------------------------------------------------
 
 function PlaylistContextMenu({
-  playlist, anchorEl, onPlay, onShuffle, onRename, onDelete, onClose,
+  playlist, anchorEl, onPlay, onShuffle, onAddSongs, onRename, onDelete, onClose,
 }: {
   playlist: NavidromePlaylist;
   anchorEl: HTMLElement | null;
   onPlay: () => void;
   onShuffle: () => void;
+  onAddSongs: () => void;
   onRename: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -823,7 +828,7 @@ function PlaylistContextMenu({
     <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
       <MenuHeader>
         <MenuHeaderArt>
-          <IconPlaylist size={16} color="var(--color-text-muted)" />
+          <TrackArtMosaic trackArts={playlist.trackArts} fallbackSize={16} />
         </MenuHeaderArt>
         <MenuHeaderInfo>
           <MenuHeaderTitle>{playlist.name}</MenuHeaderTitle>
@@ -838,6 +843,9 @@ function PlaylistContextMenu({
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconArrowsShuffle size={14} /> Play shuffled</span>
       </MenuItem>
       <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); onAddSongs(); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlus size={14} /> Add songs</span>
+      </MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onRename(); onClose(); }}>Rename</MenuItem>
       <MenuDivider />
       <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete playlist "${playlist.name}"? This cannot be undone.`)) return; onDelete(); onClose(); }}>
@@ -858,9 +866,10 @@ export default function Library() {
   const deleteTrack = useDeleteUploadByTrackIdMutation();
   const deleteAlbumById = useDeleteAlbumByIdMutation();
   const { data: playlists = [], isLoading: playlistsLoading } = useNavidromePlaylistsQuery();
-  const createPlaylist = useCreatePlaylistMutation();
-  const renamePlaylist = useRenamePlaylistMutation();
   const deletePlaylist = useDeletePlaylistMutation();
+  const setPlaylistModalOpen = useSetAtom(libraryPlaylistModalOpenAtom);
+  const setEditingPlaylist = useSetAtom(editingLibraryPlaylistAtom);
+  const setAddSongsTarget = useSetAtom(addLibrarySongsTargetAtom);
 
   const [activeKey, setActiveKey] = useState<string | number>("0");
   const [openPlaylistMenuId, setOpenPlaylistMenuId] = useState<string | null>(null);
@@ -896,11 +905,23 @@ export default function Library() {
     playNow(queue, idx);
   }, [allSongs, creds, playNow]);
 
-  const handleCreatePlaylist = useCallback(async () => {
-    const name = window.prompt("New playlist name")?.trim();
-    if (!name) return;
-    await createPlaylist.mutateAsync({ name });
-  }, [createPlaylist]);
+  const openCreatePlaylist = useCallback(() => {
+    setEditingPlaylist(null);
+    setAddSongsTarget(null);
+    setPlaylistModalOpen(true);
+  }, [setEditingPlaylist, setAddSongsTarget, setPlaylistModalOpen]);
+
+  const openEditPlaylist = useCallback((pl: NavidromePlaylist) => {
+    setAddSongsTarget(null);
+    setEditingPlaylist({ id: pl.id, name: pl.name, description: pl.comment });
+    setPlaylistModalOpen(true);
+  }, [setAddSongsTarget, setEditingPlaylist, setPlaylistModalOpen]);
+
+  const openAddSongs = useCallback((pl: NavidromePlaylist) => {
+    setEditingPlaylist(null);
+    setAddSongsTarget({ id: pl.id, name: pl.name });
+    setPlaylistModalOpen(true);
+  }, [setEditingPlaylist, setAddSongsTarget, setPlaylistModalOpen]);
 
   const playPlaylist = useCallback(
     async (pl: NavidromePlaylist, shuffle = false) => {
@@ -1136,7 +1157,7 @@ export default function Library() {
           {/* -------- Playlists -------- */}
           <Tab title="Playlists" overrides={tabOverrides}>
             <div style={{ marginBottom: 16 }}>
-              <UploadButton onClick={handleCreatePlaylist}>
+              <UploadButton onClick={openCreatePlaylist}>
                 <IconPlus size={15} /> New playlist
               </UploadButton>
             </div>
@@ -1157,7 +1178,7 @@ export default function Library() {
                     <ArtworkBox>
                       {pl.coverArt
                         ? <img src={getCoverArtUrl(creds, pl.coverArt)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        : <IconPlaylist size={18} color="var(--color-text-muted)" />}
+                        : <TrackArtMosaic trackArts={pl.trackArts} />}
                     </ArtworkBox>
                     <TrackInfo>
                       <TrackTitle>{pl.name}</TrackTitle>
@@ -1178,10 +1199,8 @@ export default function Library() {
                             anchorEl={playlistMenuAnchor}
                             onPlay={() => playPlaylist(pl)}
                             onShuffle={() => playPlaylist(pl, true)}
-                            onRename={async () => {
-                              const name = window.prompt("Rename playlist", pl.name)?.trim();
-                              if (name && name !== pl.name) await renamePlaylist.mutateAsync({ id: pl.id, name });
-                            }}
+                            onAddSongs={() => openAddSongs(pl)}
+                            onRename={() => openEditPlaylist(pl)}
                             onDelete={() => deletePlaylist.mutate(pl.id)}
                             onClose={() => { setOpenPlaylistMenuId(null); setPlaylistMenuAnchor(null); }}
                           />

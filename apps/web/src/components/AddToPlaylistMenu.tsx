@@ -1,9 +1,15 @@
 import styled from "@emotion/styled";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
+import { useSetAtom } from "jotai";
 import { useState } from "react";
 import {
+  addLibrarySongsTargetAtom,
+  editingLibraryPlaylistAtom,
+  libraryPlaylistModalOpenAtom,
+  newLibraryPlaylistSeedSongsAtom,
+} from "../atoms/libraryPlaylist";
+import {
   useAddTrackToPlaylistMutation,
-  useCreatePlaylistMutation,
   useNavidromePlaylistsQuery,
 } from "../hooks/useNavidrome";
 
@@ -66,17 +72,24 @@ export function AddToPlaylistMenu({
   const [open, setOpen] = useState(false);
   const { data: playlists = [] } = useNavidromePlaylistsQuery();
   const addTrack = useAddTrackToPlaylistMutation();
-  const createPlaylist = useCreatePlaylistMutation();
+  const setPlaylistModalOpen = useSetAtom(libraryPlaylistModalOpenAtom);
+  const setEditingPlaylist = useSetAtom(editingLibraryPlaylistAtom);
+  const setAddSongsTarget = useSetAtom(addLibrarySongsTargetAtom);
+  const setSeedSongs = useSetAtom(newLibraryPlaylistSeedSongsAtom);
 
   const add = (playlistId: string) => {
     addTrack.mutate({ playlistId, songId });
     onDone();
   };
 
-  const create = async () => {
-    const name = window.prompt("New playlist name")?.trim();
-    if (!name) return;
-    await createPlaylist.mutateAsync({ name, songIds: [songId] });
+  // Hands off to the full modal, seeded with this track, rather than prompting
+  // for a name inline: the menu dies with the dropdown, so there'd be nowhere
+  // to report a failed create.
+  const create = () => {
+    setEditingPlaylist(null);
+    setAddSongsTarget(null);
+    setSeedSongs([songId]);
+    setPlaylistModalOpen(true);
     onDone();
   };
 

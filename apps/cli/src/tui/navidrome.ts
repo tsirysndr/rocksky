@@ -1,4 +1,4 @@
-import { RockskyClient } from "client";
+import { ROCKSKY_API_URL, RockskyClient } from "client";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -70,6 +70,37 @@ async function call(
   return r;
 }
 
+/**
+ * Playlist writes go through the Rocksky API rather than straight to Navidrome.
+ * It runs the same Subsonic call and then mirrors the change onto the user's
+ * PDS as an app.rocksky.playlist record; calling Navidrome directly would skip
+ * the mirror and silently drift the repo from the library. Reads stay direct.
+ */
+async function libraryProcedure(
+  token: string,
+  method: string,
+  body: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const res = await fetch(`${ROCKSKY_API_URL}/xrpc/app.rocksky.library.${method}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!res.ok) {
+    throw new Error(
+      (json?.message as string) || `library.${method} failed (${res.status})`,
+    );
+  }
+  // The library change committed; only the PDS record didn't. Surfaced as an
+  // error so the caller says so, rather than reporting a clean success.
+  if (json?.atprotoError) throw new Error(json.atprotoError as string);
+  return json ?? {};
+}
+
 export interface Playlist {
   id: string;
   name: string;
@@ -114,33 +145,36 @@ export async function getPlaylist(
 }
 
 export async function createPlaylist(
-  creds: NavidromeCreds,
+  token: string,
   name: string,
 ): Promise<string | undefined> {
-  const r = await call("createPlaylist", creds, { name });
-  return r.playlist?.id;
+  const r = await libraryProcedure(token, "createPlaylist", { name });
+  return (r.playlist as { id?: string } | undefined)?.id;
 }
 
-export function deletePlaylist(creds: NavidromeCreds, id: string) {
-  return call("deletePlaylist", creds, { id });
+export function deletePlaylist(token: string, id: string) {
+  return libraryProcedure(token, "deletePlaylist", { id });
 }
 
 export function addTrackToPlaylist(
-  creds: NavidromeCreds,
+  token: string,
   playlistId: string,
   songId: string,
 ) {
-  return call("updatePlaylist", creds, { playlistId, songIdToAdd: songId });
+  return libraryProcedure(token, "updatePlaylist", {
+    playlistId,
+    songIdToAdd: songId,
+  });
 }
 
 export function removeTrackFromPlaylist(
-  creds: NavidromeCreds,
+  token: string,
   playlistId: string,
   index: number,
 ) {
-  return call("updatePlaylist", creds, {
+  return libraryProcedure(token, "updatePlaylist", {
     playlistId,
-    songIndexToRemove: String(index),
+    songIndexToRemove: index,
   });
 }
 
@@ -155,17 +189,17 @@ export function streamUrl(creds: NavidromeCreds, songId: string) {
  * rest. Returns the new id plus how many tracks were actually added.
  */
 export async function exportQueue(
-  creds: NavidromeCreds,
+  token: string,
   name: string,
   songIds: string[],
 ): Promise<{ id: string; added: number; failed: number }> {
-  const id = await createPlaylist(creds, name);
+  const id = await createPlaylist(token, name);
   if (!id) throw new Error("Failed to create playlist");
   let added = 0;
   let failed = 0;
   for (const songId of songIds) {
     try {
-      await addTrackToPlaylist(creds, id, songId);
+      await addTrackToPlaylist(token, id, songId);
       added++;
     } catch {
       failed++;

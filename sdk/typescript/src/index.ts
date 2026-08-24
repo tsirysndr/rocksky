@@ -10,7 +10,14 @@
  */
 export { RockskyClient, DEFAULT_APPVIEW, Interval } from "./client.js";
 export type { DateInterval } from "./client.js";
-export { RockskyLibrary } from "./library.js";
+export {
+  RockskyLibrary,
+  type LibrarySong,
+  type LibraryPlaylist,
+  type LibraryPlaylistMutation,
+  type LibraryPlaylistResponse,
+  type LibraryPlaylistsResponse,
+} from "./library.js";
 export {
   Agent,
   MAX_SAFE_WRITES_PER_HOUR,

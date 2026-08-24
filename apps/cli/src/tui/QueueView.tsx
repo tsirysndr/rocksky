@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Cell, Ell } from "./Columns";
 import { fmtDuration } from "./format";
 import { List } from "./List";
-import { exportQueue, getCreds } from "./navidrome";
+import { exportQueue } from "./navidrome";
 import { jumpTo } from "./playback";
 import { playerController } from "./player";
 import { queryClient } from "./queryClient";
@@ -62,12 +62,11 @@ export function QueueView({ height }: { height: number }) {
         return;
       }
       setNote(`Saving "${playlistName}"…`);
-      const creds = await getCreds(token);
-      if (!creds) {
+      if (!token) {
         setNote("Sign in to save playlists.");
         return;
       }
-      const { added, failed } = await exportQueue(creds, playlistName, songIds);
+      const { added, failed } = await exportQueue(token, playlistName, songIds);
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       const skipped = failed + missed + unresolvable;
       setNote(

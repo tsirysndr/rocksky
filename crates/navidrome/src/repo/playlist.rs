@@ -14,7 +14,32 @@ pub struct PlaylistRow {
     pub created_by: String,
     pub xata_createdat: DateTime<Utc>,
     pub track_count: i64,
+    /// AT-URI of the `app.rocksky.playlist` record mirroring this playlist,
+    /// NULL until the record has been published.
+    pub uri: Option<String>,
+    /// Album art of the first few distinct covers in the playlist, for the
+    /// cover mosaic. Empty when none of the tracks have art.
+    pub track_arts: Vec<String>,
 }
+
+// Up to four distinct album covers, in the order the tracks carrying them were
+// added — enough for a 2×2 mosaic and no more.
+const TRACK_ARTS_SELECT: &str = r#"
+    COALESCE((
+        SELECT array_agg(art ORDER BY added_at)
+        FROM (
+            SELECT t.album_art AS art, MIN(pt.xata_createdat) AS added_at
+            FROM navidrome_playlist_tracks pt
+            JOIN tracks t ON t.xata_id = pt.track_id
+            WHERE pt.playlist_id = p.xata_id
+              AND t.album_art IS NOT NULL
+              AND t.album_art <> ''
+            GROUP BY t.album_art
+            ORDER BY MIN(pt.xata_createdat)
+            LIMIT 4
+        ) arts
+    ), ARRAY[]::text[]) AS track_arts
+"#;
 
 // Navidrome playlists live in their own dedicated tables so they stay isolated
 // from playlists ingested from other sources (atproto, Spotify, …).
@@ -23,7 +48,7 @@ pub async fn get_playlists(
     pool: &Pool<Postgres>,
     user_id: &str,
 ) -> Result<Vec<PlaylistRow>, Error> {
-    let rows: Vec<PlaylistRow> = sqlx::query_as(
+    let rows: Vec<PlaylistRow> = sqlx::query_as(&format!(
         r#"
         SELECT
             p.xata_id,
@@ -32,13 +57,15 @@ pub async fn get_playlists(
             NULL::text AS picture,
             p.user_id AS created_by,
             p.xata_createdat,
+            p.uri,
             (SELECT COUNT(*) FROM navidrome_playlist_tracks pt
-             WHERE pt.playlist_id = p.xata_id) AS track_count
+             WHERE pt.playlist_id = p.xata_id) AS track_count,
+            {TRACK_ARTS_SELECT}
         FROM navidrome_playlists p
         WHERE p.user_id = $1
         ORDER BY p.xata_createdat DESC
         "#,
-    )
+    ))
     .bind(user_id)
     .fetch_all(pool)
     .await?;
@@ -187,7 +214,7 @@ pub async fn get_playlist(
     playlist_id: &str,
     user_id: &str,
 ) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
-    let playlist: Option<PlaylistRow> = sqlx::query_as(
+    let playlist: Option<PlaylistRow> = sqlx::query_as(&format!(
         r#"
         SELECT
             p.xata_id,
@@ -196,12 +223,14 @@ pub async fn get_playlist(
             NULL::text AS picture,
             p.user_id AS created_by,
             p.xata_createdat,
+            p.uri,
             (SELECT COUNT(*) FROM navidrome_playlist_tracks pt
-             WHERE pt.playlist_id = p.xata_id) AS track_count
+             WHERE pt.playlist_id = p.xata_id) AS track_count,
+            {TRACK_ARTS_SELECT}
         FROM navidrome_playlists p
         WHERE p.xata_id = $1 AND p.user_id = $2
         "#,
-    )
+    ))
     .bind(playlist_id)
     .bind(user_id)
     .fetch_optional(pool)

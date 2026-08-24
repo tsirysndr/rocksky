@@ -1,32 +1,36 @@
-// The playlist is created on "Next", not at the end: adding a song needs the
-// playlist's AT-URI to reference.
+// The navidrome-backed twin of CreatePlaylistModal: same two steps, same
+// chrome (both import components/CreatePlaylistModal/styles), but the songs
+// step searches only the user's own uploads instead of the global catalogue.
+//
+// Unlike its ATProto sibling the playlist is created on "Next" for a plainer
+// reason: adding a song needs the navidrome playlist id.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
-import { useAtom, useSetAtom } from "jotai";
-import _ from "lodash";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useAtom } from "jotai";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { getCoverArtUrl, type NavidromeSong } from "../../api/navidrome";
 import {
-  addSongsTargetAtom,
-  createPlaylistModalOpenAtom,
-  editingPlaylistAtom,
-  pendingPlaylistTracksAtom,
-} from "../../atoms/createPlaylist";
+  addLibrarySongsTargetAtom,
+  editingLibraryPlaylistAtom,
+  libraryPlaylistModalOpenAtom,
+  newLibraryPlaylistSeedSongsAtom,
+} from "../../atoms/libraryPlaylist";
 import {
-  useAddSongsToPlaylistMutation,
+  useAddTrackToPlaylistMutation,
   useCreatePlaylistMutation,
-  useUpdatePlaylistMutation,
-} from "../../hooks/usePlaylists";
-import { useSearchMutation } from "../../hooks/useSearch";
-import { isTrackHit, type TrackHit } from "../../types/search";
-import Track from "../Icons/Track";
+  useNavidromeCredentials,
+  useNavidromeSongSearchQuery,
+  useRenamePlaylistMutation,
+} from "../../hooks/useNavidrome";
 import {
   AddButton,
   AddError,
   Button,
   ContextLabel,
+  DESCRIPTION_MAX,
   Empty,
   ErrorText,
   EscHint,
@@ -37,6 +41,7 @@ import {
   FootHint,
   Form,
   Header,
+  NAME_MAX,
   Overlay,
   Panel,
   Primary,
@@ -51,28 +56,36 @@ import {
   TextInput,
   Thumb,
   Title,
-} from "./styles";
+} from "../CreatePlaylistModal/styles";
+import Track from "../Icons/Track";
 
 const schema = z.object({
   name: z
     .string()
     .trim()
     .min(1, "Give your playlist a name")
-    .max(512, "Name is too long"),
-  description: z.string().trim().max(256, "Description is too long"),
+    .max(NAME_MAX, "Name is too long"),
+  description: z
+    .string()
+    .trim()
+    .max(DESCRIPTION_MAX, "Description is too long"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
+type PlaylistTarget = { id: string; name: string };
+
 function DetailsStep({
   editing,
+  seedSongIds,
   onCancel,
   onCreated,
   onSaved,
 }: {
-  editing: { uri: string; name: string; description?: string } | null;
+  editing: { id: string; name: string; description?: string } | null;
+  seedSongIds: string[];
   onCancel: () => void;
-  onCreated: (playlist: { uri: string; name: string }) => void;
+  onCreated: (playlist: PlaylistTarget) => void;
   onSaved: () => void;
 }) {
   const {
@@ -88,32 +101,36 @@ function DetailsStep({
     },
   });
   const create = useCreatePlaylistMutation();
-  const update = useUpdatePlaylistMutation();
-  const isPending = create.isPending || update.isPending;
+  const rename = useRenamePlaylistMutation();
+  const isPending = create.isPending || rename.isPending;
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
     try {
       if (editing) {
-        await update.mutateAsync({
-          uri: editing.uri,
+        await rename.mutateAsync({
+          id: editing.id,
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
         });
         onSaved();
         return;
       }
-      const created = await create.mutateAsync({
+      const id = await create.mutateAsync({
         name: values.name,
         description: values.description || undefined,
+        songIds: seedSongIds,
       });
-      onCreated({ uri: created.uri, name: values.name });
-    } catch {
+      if (!id) throw new Error("navidrome returned no playlist id");
+      onCreated({ id, name: values.name });
+    } catch (e) {
       setSubmitError(
-        editing
-          ? "Could not save the playlist. Please try again."
-          : "Could not create the playlist. Please try again.",
+        e instanceof Error
+          ? e.message
+          : editing
+            ? "Could not save the playlist. Please try again."
+            : "Could not create the playlist. Please try again.",
       );
     }
   });
@@ -126,7 +143,7 @@ function DetailsStep({
           <Subtitle>
             {editing
               ? "Rename it or change its description."
-              : "Name it, then pick the songs."}
+              : "Name it, then pick songs from your library."}
           </Subtitle>
         </div>
         <EscHint>esc</EscHint>
@@ -178,7 +195,7 @@ function DetailsStep({
       </Form>
 
       <Footer>
-        <span>Published to your PDS as an app.rocksky.playlist record.</span>
+        <span>Saved to your library and mirrored to your PDS.</span>
         <FooterActions>
           <Button onClick={onCancel} disabled={isPending}>
             Cancel
@@ -198,50 +215,32 @@ function DetailsStep({
   );
 }
 
-function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
+function SongsStep({ playlist }: { playlist: PlaylistTarget }) {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [active, setActive] = useState(0);
-  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [added, setAdded] = useState<string[]>([]);
   const [pending, setPending] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
-  const { mutate, data, reset } = useSearchMutation();
-  const addSongs = useAddSongsToPlaylistMutation();
-  const setPendingTracks = useSetAtom(pendingPlaylistTracksAtom);
+  const { data: creds } = useNavidromeCredentials();
+  const addTrack = useAddTrackToPlaylistMutation();
   const inputRef = useRef<HTMLInputElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const debounced = useMemo(
-    () => _.debounce((q: string) => mutate(q), 180),
-    [mutate],
-  );
-
   useEffect(() => {
     inputRef.current?.focus();
-    return () => debounced.cancel();
-  }, [debounced]);
+  }, []);
 
   useEffect(() => {
-    const q = query.trim();
-    if (q.length < 2) {
-      debounced.cancel();
-      reset();
-      return;
-    }
-    debounced(q);
-  }, [query, debounced, reset]);
+    const timer = setTimeout(() => setDebouncedQuery(query), 180);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  // Only songs with an AT-URI can be referenced by a playlist entry.
-  const tracks = useMemo(
-    () =>
-      (data?.hits ?? [])
-        .filter(isTrackHit)
-        .filter((hit): hit is TrackHit & { uri: string } => !!hit.uri),
-    [data],
-  );
+  const { data: songs = [] } = useNavidromeSongSearchQuery(debouncedQuery);
 
-  const prevTracks = useRef(tracks);
-  if (prevTracks.current !== tracks) {
-    prevTracks.current = tracks;
+  const prevSongs = useRef(songs);
+  if (prevSongs.current !== songs) {
+    prevSongs.current = songs;
     if (active !== 0) setActive(0);
   }
 
@@ -249,38 +248,22 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
     rowRefs.current[active]?.scrollIntoView({ block: "nearest" });
   }, [active]);
 
-  const add = async (track: TrackHit & { uri: string }) => {
-    if (added.has(track.uri) || pending) return;
-    setPending(track.uri);
+  // A song may legitimately be added twice, so this tracks how many times each
+  // one has been — the button reads "Added" but stays clickable.
+  const addedCount = (songId: string) =>
+    added.filter((id) => id === songId).length;
+
+  const add = async (song: NavidromeSong) => {
+    if (pending) return;
+    setPending(song.id);
     setAddError(null);
     try {
-      await addSongs.mutateAsync({ uri: playlist.uri, songs: [track.uri] });
-      setAdded((prev) => new Set(prev).add(track.uri));
-      // The AppView won't have the row until jetstream ingests the commit, so
-      // hand the playlist page something to show right away.
-      setPendingTracks((prev) => ({
-        ...prev,
-        [playlist.uri]: [
-          ...(prev[playlist.uri] ?? []),
-          {
-            id: track.id,
-            title: track.title,
-            artist: track.artist,
-            albumArtist: track.albumArtist ?? track.artist,
-            album: track.album ?? "",
-            albumArt: track.albumArt ?? "",
-            uri: track.uri,
-            duration: 0,
-            trackNumber: 0,
-            discNumber: 0,
-            albumUri: "",
-            artistUri: "",
-          },
-        ],
-      }));
+      await addTrack.mutateAsync({ playlistId: playlist.id, songId: song.id });
+      setAdded((prev) => [...prev, song.id]);
     } catch (e) {
-      // Without this the failure was invisible: the row simply never flipped to
-      // "Added" and nothing said why.
+      // Includes the mirror warning: the song is in the library playlist but
+      // its record didn't reach the PDS. Saying so beats a row that silently
+      // never flips to "Added".
       setAddError(
         e instanceof Error ? e.message : "Could not add that song. Try again.",
       );
@@ -292,16 +275,16 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((i) => (tracks.length ? (i + 1) % tracks.length : 0));
+      setActive((i) => (songs.length ? (i + 1) % songs.length : 0));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((i) =>
-        tracks.length ? (i - 1 + tracks.length) % tracks.length : 0,
+        songs.length ? (i - 1 + songs.length) % songs.length : 0,
       );
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const track = tracks[active];
-      if (track) void add(track);
+      const song = songs[active];
+      if (song) void add(song);
     }
   };
 
@@ -314,7 +297,7 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
         <QueryInput
           ref={inputRef}
           value={query}
-          placeholder="Search songs by title or artist…"
+          placeholder="Search your library by title or artist…"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
         />
@@ -325,13 +308,17 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
 
       {addError && <AddError>{addError}</AddError>}
 
-      {tracks.length > 0 && (
+      {songs.length > 0 && (
         <Results>
-          {tracks.map((track, idx) => {
-            const isAdded = added.has(track.uri);
+          {songs.map((song, idx) => {
+            const count = addedCount(song.id);
+            const albumArt =
+              creds && song.coverArt
+                ? getCoverArtUrl(creds, song.coverArt)
+                : null;
             return (
               <Row
-                key={track.id}
+                key={song.id}
                 active={idx === active}
                 ref={(el) => {
                   rowRefs.current[idx] = el;
@@ -339,27 +326,31 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
                 onMouseMove={() => setActive(idx)}
               >
                 <Thumb>
-                  {track.albumArt ? (
-                    <img src={track.albumArt} alt={track.title} />
+                  {albumArt ? (
+                    <img src={albumArt} alt={song.title} />
                   ) : (
                     <Track color="var(--color-text-muted)" />
                   )}
                 </Thumb>
                 <RowText>
-                  <Primary>{track.title}</Primary>
-                  <Secondary>{track.artist}</Secondary>
+                  <Primary>{song.title}</Primary>
+                  <Secondary>
+                    {song.artist}
+                    {song.album && ` — ${song.album}`}
+                  </Secondary>
                 </RowText>
                 <AddButton
-                  added={isAdded}
-                  disabled={isAdded || pending === track.uri}
-                  onClick={() => void add(track)}
+                  added={count > 0}
+                  disabled={pending === song.id}
+                  onClick={() => void add(song)}
                 >
-                  {isAdded ? (
-                    <>
-                      <IconCheck size={14} /> Added
-                    </>
-                  ) : pending === track.uri ? (
+                  {pending === song.id ? (
                     "Adding…"
+                  ) : count > 0 ? (
+                    <>
+                      <IconCheck size={14} />{" "}
+                      {count > 1 ? `Added ×${count}` : "Added"}
+                    </>
                   ) : (
                     <>
                       <IconPlus size={14} /> Add
@@ -372,11 +363,11 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
         </Results>
       )}
 
-      {tracks.length === 0 && (
+      {songs.length === 0 && (
         <Empty>
           {trimmed.length < 2
-            ? "Start typing to find songs."
-            : `No songs for “${trimmed}”.`}
+            ? "Start typing to find songs in your library."
+            : `No songs in your library for “${trimmed}”.`}
         </Empty>
       )}
 
@@ -396,14 +387,16 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
   );
 }
 
-function CreatePlaylistModal() {
-  const [open, setOpen] = useAtom(createPlaylistModalOpenAtom);
-  const [editing, setEditing] = useAtom(editingPlaylistAtom);
-  const [addSongsTarget, setAddSongsTarget] = useAtom(addSongsTargetAtom);
-  const [playlist, setPlaylist] = useState<{
-    uri: string;
-    name: string;
-  } | null>(null);
+function LibraryPlaylistModal() {
+  const [open, setOpen] = useAtom(libraryPlaylistModalOpenAtom);
+  const [editing, setEditing] = useAtom(editingLibraryPlaylistAtom);
+  const [addSongsTarget, setAddSongsTarget] = useAtom(
+    addLibrarySongsTargetAtom,
+  );
+  const [seedSongIds, setSeedSongIds] = useAtom(
+    newLibraryPlaylistSeedSongsAtom,
+  );
+  const [playlist, setPlaylist] = useState<PlaylistTarget | null>(null);
 
   // Lock background scroll; reset to step 1 on close.
   useEffect(() => {
@@ -411,6 +404,7 @@ function CreatePlaylistModal() {
       setPlaylist(null);
       setEditing(null);
       setAddSongsTarget(null);
+      setSeedSongIds([]);
       return;
     }
     const prev = document.body.style.overflow;
@@ -418,7 +412,7 @@ function CreatePlaylistModal() {
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open, setEditing, setAddSongsTarget]);
+  }, [open, setEditing, setAddSongsTarget, setSeedSongIds]);
 
   if (!open) return null;
 
@@ -434,6 +428,7 @@ function CreatePlaylistModal() {
         ) : (
           <DetailsStep
             editing={editing}
+            seedSongIds={seedSongIds}
             onCancel={close}
             onCreated={setPlaylist}
             onSaved={close}
@@ -444,4 +439,4 @@ function CreatePlaylistModal() {
   );
 }
 
-export default CreatePlaylistModal;
+export default LibraryPlaylistModal;

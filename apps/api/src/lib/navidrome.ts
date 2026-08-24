@@ -177,6 +177,28 @@ type ProxyReqCtx = {
   input?: { body?: Record<string, unknown> };
 };
 
+/** An XRPC error reply for anything a library handler can fail with. */
+export function libraryErrorResponse(method: string, err: unknown) {
+  if (err instanceof NavidromeError) {
+    return { status: err.httpStatus, message: err.message };
+  }
+  if (err instanceof UnknownUserError) {
+    return { status: 401, message: err.message };
+  }
+  consola.error(`[library.${method}]`, err);
+  return { status: 500, message: `Internal error in library.${method}` };
+}
+
+/**
+ * Widen a hand-written library method config to satisfy the generated
+ * `ConfigOf` for whichever method it is registered against. Same reasoning as
+ * `proxyMethod`: the generated types are per-method, these handlers are
+ * uniform, and runtime request validation is unaffected.
+ */
+export function libraryMethod<T>(config: T): never {
+  return config as unknown as never;
+}
+
 type ProxyOptions = {
   /** Read params from the request body (procedures) instead of query params. */
   source?: "params" | "input";

@@ -2,6 +2,88 @@ import type { Client } from "@atcute/client";
 
 import { RockskyError } from "./errors.js";
 
+/** A song in the library, in the Subsonic `Child` shape. */
+export interface LibrarySong {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArtist?: string;
+  /** Seconds, not milliseconds — Subsonic's unit. */
+  duration: number;
+  coverArt?: string;
+  albumId?: string;
+  artistId?: string;
+  track?: number;
+  discNumber?: number;
+  genre?: string;
+  suffix?: string;
+  contentType?: string;
+  size?: number;
+  musicBrainzId?: string;
+  samplingRate?: number;
+}
+
+/**
+ * A library playlist. Subsonic's `Playlist` shape plus two Rocksky extensions:
+ * `uri` and `trackArts`.
+ */
+export interface LibraryPlaylist {
+  id: string;
+  name: string;
+  songCount: number;
+  /** Seconds. */
+  duration: number;
+  created: string;
+  changed: string;
+  public: boolean;
+  comment?: string;
+  coverArt?: string;
+  /**
+   * AT-URI of the `app.rocksky.playlist` record this playlist is mirrored to.
+   * Absent while the record has yet to be published.
+   */
+  uri?: string;
+  /**
+   * Album art of up to four of the playlist's tracks, oldest first — enough
+   * for a cover mosaic. Absent when none of them have art.
+   */
+  trackArts?: string[];
+  /** Only present on `getPlaylist`. */
+  entry?: LibrarySong[];
+}
+
+/** Envelope every navidrome method replies with. */
+interface SubsonicResponse {
+  status: string;
+  version?: string;
+  type?: string;
+}
+
+/**
+ * Reply to a playlist mutation.
+ *
+ * The playlist is mirrored to the caller's PDS as an `app.rocksky.playlist`
+ * record. That mirror runs after the library has already been updated, so it
+ * can't fail the call: when it does fail, the library change still stands and
+ * the reason lands in `atprotoError` for the caller to surface.
+ */
+export interface LibraryPlaylistMutation extends SubsonicResponse {
+  /** The resulting playlist — `createPlaylist` only. */
+  playlist?: LibraryPlaylist;
+  /** AT-URI of the mirrored record, when one was published or already existed. */
+  uri?: string;
+  atprotoError?: string;
+}
+
+export interface LibraryPlaylistsResponse extends SubsonicResponse {
+  playlists: { playlist: LibraryPlaylist[] };
+}
+
+export interface LibraryPlaylistResponse extends SubsonicResponse {
+  playlist: LibraryPlaylist;
+}
+
 /**
  * Authenticated client for the `app.rocksky.library.*` API — the Subsonic /
  * navidrome-compatible surface over a user's uploaded music.
@@ -160,28 +242,42 @@ export class RockskyLibrary {
   }
 
   /** `app.rocksky.library.getPlaylists` — requires auth. */
-  getPlaylists(): Promise<unknown> {
-    return this.query<unknown>("app.rocksky.library.getPlaylists", {});
+  getPlaylists(): Promise<LibraryPlaylistsResponse> {
+    return this.query<LibraryPlaylistsResponse>("app.rocksky.library.getPlaylists", {});
   }
 
   /** `app.rocksky.library.getPlaylist` — requires auth. */
-  getPlaylist(id: string): Promise<unknown> {
-    return this.query<unknown>("app.rocksky.library.getPlaylist", { id });
+  getPlaylist(id: string): Promise<LibraryPlaylistResponse> {
+    return this.query<LibraryPlaylistResponse>("app.rocksky.library.getPlaylist", { id });
   }
 
-  /** `app.rocksky.library.createPlaylist` — requires auth. */
-  createPlaylist(name: string): Promise<unknown> {
-    return this.procedure<unknown>("app.rocksky.library.createPlaylist", { name });
+  /**
+   * `app.rocksky.library.createPlaylist` — requires auth.
+   *
+   * Also publishes an `app.rocksky.playlist` record to the caller's PDS; see
+   * {@link LibraryPlaylistMutation} for how a failure there is reported.
+   */
+  createPlaylist(name: string): Promise<LibraryPlaylistMutation> {
+    return this.procedure<LibraryPlaylistMutation>("app.rocksky.library.createPlaylist", { name });
   }
 
-  /** `app.rocksky.library.updatePlaylist` — requires auth. */
-  updatePlaylist(playlistId: string, opts: { name?: string; comment?: string; songIdToAdd?: string; songIndexToRemove?: number } = {}): Promise<unknown> {
-    return this.procedure<unknown>("app.rocksky.library.updatePlaylist", { playlistId, ...opts });
+  /**
+   * `app.rocksky.library.updatePlaylist` — requires auth.
+   *
+   * Renames, adds a song or removes the song at a position, and replays the
+   * same change onto the mirrored record.
+   */
+  updatePlaylist(playlistId: string, opts: { name?: string; comment?: string; songIdToAdd?: string; songIndexToRemove?: number } = {}): Promise<LibraryPlaylistMutation> {
+    return this.procedure<LibraryPlaylistMutation>("app.rocksky.library.updatePlaylist", { playlistId, ...opts });
   }
 
-  /** `app.rocksky.library.deletePlaylist` — requires auth. */
-  deletePlaylist(id: string): Promise<{ status: string; deleted: number }> {
-    return this.procedure<{ status: string; deleted: number }>("app.rocksky.library.deletePlaylist", { id });
+  /**
+   * `app.rocksky.library.deletePlaylist` — requires auth.
+   *
+   * Retracts the mirrored record and the caller's entries in it too.
+   */
+  deletePlaylist(id: string): Promise<LibraryPlaylistMutation> {
+    return this.procedure<LibraryPlaylistMutation>("app.rocksky.library.deletePlaylist", { id });
   }
 
   /** `app.rocksky.library.deleteSong` — requires auth. */

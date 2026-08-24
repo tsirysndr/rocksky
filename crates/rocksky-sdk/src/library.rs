@@ -6,13 +6,122 @@
 //! [`crate::AppView::library`] errors when the client has none). Both the GET
 //! and POST helpers always send `Authorization: Bearer <token>`.
 //!
-//! Outputs are the raw JSON payloads returned by the AppView (the library
-//! lexicons are intentionally loose), so each method returns [`serde_json::Value`].
+//! The library lexicons are intentionally loose, so most methods return the
+//! AppView's raw [`serde_json::Value`] payload. The playlist methods are the
+//! exception: they are typed ([`LibraryPlaylist`], [`LibraryPlaylistMutation`])
+//! because a mutation also mirrors the playlist to the caller's PDS, and
+//! callers have to be able to see whether that part succeeded.
 
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::error::{Result, SdkError};
+
+/// A song in the library, in the Subsonic `Child` shape.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibrarySong {
+    pub id: String,
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album_artist: Option<String>,
+    /// Seconds, not milliseconds — Subsonic's unit.
+    pub duration: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover_art: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub track: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suffix: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub music_brainz_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sampling_rate: Option<i64>,
+}
+
+/// A library playlist: Subsonic's `Playlist` plus two Rocksky extensions,
+/// `uri` and `track_arts`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryPlaylist {
+    pub id: String,
+    pub name: String,
+    pub song_count: i64,
+    /// Seconds.
+    pub duration: i64,
+    pub created: String,
+    pub changed: String,
+    #[serde(default)]
+    pub public: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover_art: Option<String>,
+    /// AT-URI of the `app.rocksky.playlist` record this playlist is mirrored
+    /// to. `None` while the record has yet to be published.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    /// Album art of up to four of the playlist's tracks, oldest first — enough
+    /// for a cover mosaic. Empty when none of them have art.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub track_arts: Vec<String>,
+    /// Only present on `get_playlist`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entry: Vec<LibrarySong>,
+}
+
+/// Reply to a playlist mutation.
+///
+/// The playlist is mirrored to the caller's PDS as an `app.rocksky.playlist`
+/// record. That mirror runs after the library has already been updated, so it
+/// cannot fail the call: when it does fail, the library change still stands
+/// and the reason lands in `atproto_error` for the caller to surface.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryPlaylistMutation {
+    pub status: String,
+    /// The resulting playlist — `create_playlist` only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playlist: Option<LibraryPlaylist>,
+    /// AT-URI of the mirrored record, when one was published or already existed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub atproto_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LibraryPlaylists {
+    #[serde(default)]
+    pub playlist: Vec<LibraryPlaylist>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LibraryPlaylistsResponse {
+    pub status: String,
+    pub playlists: LibraryPlaylists,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LibraryPlaylistResponse {
+    pub status: String,
+    pub playlist: LibraryPlaylist,
+}
 
 /// Authenticated client for `app.rocksky.library.*`. Construct via
 /// [`Library::new`] or [`crate::AppView::library`]; a non-empty token is
@@ -60,7 +169,13 @@ impl Library {
     }
 
     /// GET an authenticated library query. Empty-valued params are dropped.
-    async fn query(&self, nsid: &str, params: Vec<(&str, String)>) -> Result<Value> {
+    // Generic in the output so the typed playlist methods can decode straight
+    // into their structs; everything else instantiates it at `Value`.
+    async fn query<T: DeserializeOwned>(
+        &self,
+        nsid: &str,
+        params: Vec<(&str, String)>,
+    ) -> Result<T> {
         let url = format!("{}/xrpc/{}", self.base, nsid);
         let filtered: Vec<(&str, String)> =
             params.into_iter().filter(|(_, v)| !v.is_empty()).collect();
@@ -75,7 +190,7 @@ impl Library {
     }
 
     /// POST an authenticated library procedure with a JSON body.
-    async fn procedure(&self, nsid: &str, body: Value) -> Result<Value> {
+    async fn procedure<T: DeserializeOwned>(&self, nsid: &str, body: Value) -> Result<T> {
         let url = format!("{}/xrpc/{}", self.base, nsid);
         let res = self
             .http
@@ -386,20 +501,23 @@ impl Library {
     }
 
     /// Query `app.rocksky.library.getPlaylists` (auth required).
-    pub async fn get_playlists(&self) -> Result<Value> {
+    pub async fn get_playlists(&self) -> Result<LibraryPlaylistsResponse> {
         self.query("app.rocksky.library.getPlaylists", Vec::new())
             .await
     }
 
     /// Query `app.rocksky.library.getPlaylist` (auth required).
-    pub async fn get_playlist(&self, id: &str) -> Result<Value> {
+    pub async fn get_playlist(&self, id: &str) -> Result<LibraryPlaylistResponse> {
         let mut params: Vec<(&str, String)> = Vec::new();
         params.push(("id", id.to_string()));
         self.query("app.rocksky.library.getPlaylist", params).await
     }
 
     /// Call the procedure `app.rocksky.library.createPlaylist` (auth required).
-    pub async fn create_playlist(&self, name: &str) -> Result<Value> {
+    ///
+    /// Also publishes an `app.rocksky.playlist` record to the caller's PDS; see
+    /// [`LibraryPlaylistMutation`] for how a failure there is reported.
+    pub async fn create_playlist(&self, name: &str) -> Result<LibraryPlaylistMutation> {
         let mut body = serde_json::Map::new();
         body.insert("name".into(), Value::String(name.to_string()));
         self.procedure("app.rocksky.library.createPlaylist", Value::Object(body))
@@ -407,6 +525,9 @@ impl Library {
     }
 
     /// Call the procedure `app.rocksky.library.updatePlaylist` (auth required).
+    ///
+    /// Renames, adds a song or removes the song at a position, and replays the
+    /// same change onto the mirrored record.
     pub async fn update_playlist(
         &self,
         playlist_id: &str,
@@ -414,7 +535,7 @@ impl Library {
         comment: Option<&str>,
         song_id_to_add: Option<&str>,
         song_index_to_remove: Option<i64>,
-    ) -> Result<Value> {
+    ) -> Result<LibraryPlaylistMutation> {
         let mut body = serde_json::Map::new();
         body.insert("playlistId".into(), Value::String(playlist_id.to_string()));
         if let Some(v) = name {
@@ -434,7 +555,9 @@ impl Library {
     }
 
     /// Call the procedure `app.rocksky.library.deletePlaylist` (auth required).
-    pub async fn delete_playlist(&self, id: &str) -> Result<Value> {
+    ///
+    /// Retracts the mirrored record and the caller's entries in it too.
+    pub async fn delete_playlist(&self, id: &str) -> Result<LibraryPlaylistMutation> {
         let mut body = serde_json::Map::new();
         body.insert("id".into(), Value::String(id.to_string()));
         self.procedure("app.rocksky.library.deletePlaylist", Value::Object(body))

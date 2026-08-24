@@ -41,10 +41,10 @@ export function AddToPlaylistView() {
   }
 
   async function addTo(playlistId: string) {
-    if (!creds || !pending) return;
+    if (!token || !pending) return;
     try {
       setNote("Adding…");
-      await addTrackToPlaylist(creds, playlistId, pending.trackId);
+      await addTrackToPlaylist(token, playlistId, pending.trackId);
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
       close();
@@ -64,9 +64,9 @@ export function AddToPlaylistView() {
         const n = name.trim();
         setCreating(false);
         setName("");
-        if (n && creds && pending) {
+        if (n && token && pending) {
           setNote(`Creating "${n}"…`);
-          createPlaylist(creds, n)
+          createPlaylist(token, n)
             .then((id) => (id ? addTo(id) : setNote("Create failed")))
             .catch((e) => setNote(`Error: ${e.message}`));
         }

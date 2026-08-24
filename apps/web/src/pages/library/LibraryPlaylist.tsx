@@ -6,6 +6,7 @@ import {
   IconMusic,
   IconPlayerPlay,
   IconPlaylist,
+  IconPlus,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -26,6 +27,13 @@ import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import TrackArtMosaic from "../../components/TrackArtMosaic";
+import { useSetAtom } from "jotai";
+import {
+  addLibrarySongsTargetAtom,
+  editingLibraryPlaylistAtom,
+  libraryPlaylistModalOpenAtom,
+} from "../../atoms/libraryPlaylist";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -387,6 +395,9 @@ export default function LibraryPlaylist() {
   const { playNow, playNext, playLast } = useUploadPlayer();
   const { data: playlist, isLoading } = useNavidromePlaylistQuery(id);
   const removeTrack = useRemoveTrackFromPlaylistMutation();
+  const setPlaylistModalOpen = useSetAtom(libraryPlaylistModalOpenAtom);
+  const setEditingPlaylist = useSetAtom(editingLibraryPlaylistAtom);
+  const setAddSongsTarget = useSetAtom(addLibrarySongsTargetAtom);
 
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -398,6 +409,28 @@ export default function LibraryPlaylist() {
     (coverArt?: string) => (creds && coverArt ? getCoverArtUrl(creds, coverArt) : null),
     [creds],
   );
+
+  // Built from the entries rather than the playlist's `trackArts`: they're
+  // already loaded here, and this way the mosaic uses the same cover URLs as
+  // the rows below it.
+  const mosaicArts = useMemo(() => {
+    const seen = new Set<string>();
+    const arts: string[] = [];
+    for (const song of songs) {
+      const url = coverUrl(song.coverArt);
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      arts.push(url);
+      if (arts.length === 4) break;
+    }
+    return arts;
+  }, [songs, coverUrl]);
+
+  const openAddSongs = useCallback(() => {
+    setEditingPlaylist(null);
+    setAddSongsTarget({ id, name: playlist?.name ?? "" });
+    setPlaylistModalOpen(true);
+  }, [id, playlist?.name, setEditingPlaylist, setAddSongsTarget, setPlaylistModalOpen]);
 
   const queue = useCallback(
     (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, coverUrl(s.coverArt))) : []),
@@ -435,7 +468,7 @@ export default function LibraryPlaylist() {
           <Cover>
             {coverUrl(playlist.coverArt)
               ? <img src={coverUrl(playlist.coverArt)!} alt={playlist.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <IconPlaylist size={56} color="var(--color-text-muted)" />}
+              : <TrackArtMosaic trackArts={mosaicArts} fallbackSize={56} />}
           </Cover>
           <Meta>
             <Name>{playlist.name}</Name>
@@ -445,6 +478,7 @@ export default function LibraryPlaylist() {
             <PlayButtons>
               <PlayBtn onClick={handlePlay} disabled={songs.length === 0}><IconPlayerPlay size={15} /> Play</PlayBtn>
               <ShuffleBtn onClick={handleShuffle} disabled={songs.length === 0}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
+              <ShuffleBtn onClick={openAddSongs}><IconPlus size={15} /> Add songs</ShuffleBtn>
             </PlayButtons>
           </Meta>
         </Header>

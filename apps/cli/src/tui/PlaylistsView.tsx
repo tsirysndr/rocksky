@@ -68,9 +68,9 @@ export function PlaylistsView({
     queryClient.invalidateQueries({ queryKey: ["playlist", detailId] });
 
   function doDelete(pl: { id: string; name: string }) {
-    if (!creds) return;
+    if (!token) return;
     setNote(`Deleting "${pl.name}"…`);
-    deletePlaylist(creds, pl.id)
+    deletePlaylist(token, pl.id)
       .then(() => {
         setNote("");
         setSel((s) => Math.max(0, Math.min(s, playlists.length - 2)));
@@ -104,9 +104,9 @@ export function PlaylistsView({
           const n = name.trim();
           setCreating(false);
           setName("");
-          if (n && creds) {
+          if (n && token) {
             setNote(`Creating "${n}"…`);
-            createPlaylist(creds, n)
+            createPlaylist(token, n)
               .then(() => {
                 setNote("");
                 refetchLists();
@@ -139,9 +139,9 @@ export function PlaylistsView({
           void streamAndPlay(token, shuffled(entries).map(entryToItem), 0);
           return;
         }
-        if ((input === "d" || input === "x") && creds && entries[entrySel]) {
+        if ((input === "d" || input === "x") && token && entries[entrySel]) {
           setNote("Removing…");
-          removeTrackFromPlaylist(creds, detailId, entrySel)
+          removeTrackFromPlaylist(token, detailId, entrySel)
             .then(() => {
               setNote("");
               setEntrySel((s) => Math.max(0, Math.min(s, entries.length - 2)));

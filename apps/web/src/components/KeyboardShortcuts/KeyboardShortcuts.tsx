@@ -4,13 +4,14 @@ import { Modal, ModalBody, ModalHeader } from "baseui/modal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { createPlaylistModalOpenAtom } from "../../atoms/createPlaylist";
+import { libraryPlaylistModalOpenAtom } from "../../atoms/libraryPlaylist";
 import { playerControlsAtom } from "../../atoms/playerControls";
 import { profileAtom } from "../../atoms/profile";
 import {
   librarySearchOpenAtom,
+  type SearchScope,
   searchModalOpenAtom,
   searchModalScopeAtom,
-  type SearchScope,
 } from "../../atoms/searchModal";
 import { shortcutsHelpOpenAtom } from "../../atoms/shortcuts";
 import { themeAtom } from "../../atoms/theme";
@@ -183,6 +184,9 @@ function KeyboardShortcuts() {
   const [createPlaylistOpen, setCreatePlaylistOpen] = useAtom(
     createPlaylistModalOpenAtom,
   );
+  const [libraryPlaylistOpen, setLibraryPlaylistOpen] = useAtom(
+    libraryPlaylistModalOpenAtom,
+  );
 
   // The keydown listener is installed once; read the latest values through a
   // ref so it never closes over stale state.
@@ -200,6 +204,8 @@ function KeyboardShortcuts() {
     setLibrarySearchOpen,
     createPlaylistOpen,
     setCreatePlaylistOpen,
+    libraryPlaylistOpen,
+    setLibraryPlaylistOpen,
   });
   stateRef.current = {
     navigate,
@@ -215,6 +221,8 @@ function KeyboardShortcuts() {
     setLibrarySearchOpen,
     createPlaylistOpen,
     setCreatePlaylistOpen,
+    libraryPlaylistOpen,
+    setLibraryPlaylistOpen,
   };
 
   useEffect(() => {
@@ -236,6 +244,7 @@ function KeyboardShortcuts() {
         if (s.helpOpen) s.setHelpOpen(false);
         if (s.searchOpen) s.setSearchOpen(false);
         if (s.createPlaylistOpen) s.setCreatePlaylistOpen(false);
+        if (s.libraryPlaylistOpen) s.setLibraryPlaylistOpen(false);
         s.setLibrarySearchOpen(false);
         pendingGoAt = 0;
         return;
@@ -243,6 +252,10 @@ function KeyboardShortcuts() {
 
       // Never hijack typing, and ignore browser/OS chords.
       if (isEditableTarget(e.target)) return;
+      // A modal that owns the screen owns the keyboard too: without this, `c`
+      // pressed with focus outside its inputs stacks the ATProto playlist
+      // modal on top of the library one.
+      if (s.libraryPlaylistOpen) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       // Second key of a `g …` navigation combo.

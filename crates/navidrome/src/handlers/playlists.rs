@@ -22,6 +22,14 @@ fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
     if p.picture.is_some() {
         obj["coverArt"] = json!(format!("pl-{}", p.xata_id));
     }
+    // Non-Subsonic extensions. Clients that don't know them ignore them; ours
+    // uses `trackArts` for the cover mosaic and `uri` to link to the record.
+    if let Some(uri) = &p.uri {
+        obj["uri"] = json!(uri);
+    }
+    if !p.track_arts.is_empty() {
+        obj["trackArts"] = json!(p.track_arts);
+    }
     obj
 }
 

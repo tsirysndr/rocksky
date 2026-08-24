@@ -22,6 +22,7 @@ import {
   getNavidromeStreamUrl,
   removeTrackFromNavidromePlaylist,
   renameNavidromePlaylist,
+  setNavidromePlaylistDescription,
   searchNavidrome,
   type NavidromeAlbum,
   type NavidromeArtist,
@@ -181,62 +182,73 @@ export function useNavidromePlaylistQuery(playlistId: string) {
   });
 }
 
+// Playlist mutations go through the Rocksky API, not straight to navidrome, so
+// the change is mirrored to the user's PDS — see api/navidrome.ts. That also
+// means they take no credentials: the API authenticates by JWT.
+//
+// A PlaylistMirrorWarning means the library change landed and only the PDS
+// record didn't, so these still invalidate on error: the list has changed
+// either way, and the caller decides how to surface the warning.
+function invalidatePlaylists(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
+  queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
+  if (id) queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", id] });
+}
+
 export function useCreatePlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, songIds }: { name: string; songIds?: string[] }) =>
-      createNavidromePlaylist(creds!, name, songIds ?? []),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] }),
+    mutationFn: (input: {
+      name: string;
+      description?: string;
+      songIds?: string[];
+    }) => createNavidromePlaylist(input),
+    onSettled: () => invalidatePlaylists(queryClient),
   });
 }
 
 export function useDeletePlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteNavidromePlaylist(creds!, id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] }),
+    mutationFn: (id: string) => deleteNavidromePlaylist(id),
+    onSettled: () => invalidatePlaylists(queryClient),
   });
 }
 
 export function useRenamePlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      renameNavidromePlaylist(creds!, id, name),
-    onSuccess: (_d, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", id] });
+    mutationFn: async ({
+      id,
+      name,
+      description,
+    }: {
+      id: string;
+      name: string;
+      description?: string;
+    }) => {
+      await renameNavidromePlaylist(id, name);
+      if (description !== undefined) {
+        await setNavidromePlaylistDescription(id, description);
+      }
     },
+    onSettled: (_d, _e, { id }) => invalidatePlaylists(queryClient, id),
   });
 }
 
 export function useAddTrackToPlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ playlistId, songId }: { playlistId: string; songId: string }) =>
-      addTrackToNavidromePlaylist(creds!, playlistId, songId),
-    onSuccess: (_d, { playlistId }) => {
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", playlistId] });
-    },
+      addTrackToNavidromePlaylist(playlistId, songId),
+    onSettled: (_d, _e, { playlistId }) => invalidatePlaylists(queryClient, playlistId),
   });
 }
 
 export function useRemoveTrackFromPlaylistMutation() {
-  const { data: creds } = useNavidromeCredentials();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ playlistId, index }: { playlistId: string; index: number }) =>
-      removeTrackFromNavidromePlaylist(creds!, playlistId, index),
-    onSuccess: (_d, { playlistId }) => {
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlists"] });
-      queryClient.invalidateQueries({ queryKey: ["navidrome", "playlist", playlistId] });
-    },
+      removeTrackFromNavidromePlaylist(playlistId, index),
+    onSettled: (_d, _e, { playlistId }) => invalidatePlaylists(queryClient, playlistId),
   });
 }

@@ -1,12 +1,13 @@
-import { Outlet, createRootRoute } from "@tanstack/react-router";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import * as React from "react";
 import { themeAtom } from "../atoms/theme";
 import CreatePlaylistModal from "../components/CreatePlaylistModal";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
+import LibraryPlaylistModal from "../components/LibraryPlaylistModal";
 import StickyPlayer from "../components/StickyPlayer";
-import SearchModal from "../layouts/Search/SearchModal";
 import LibrarySearchModal from "../layouts/Search/LibrarySearchModal";
+import SearchModal from "../layouts/Search/SearchModal";
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -58,6 +59,7 @@ function RootComponent() {
       <SearchModal />
       <LibrarySearchModal />
       <CreatePlaylistModal />
+      <LibraryPlaylistModal />
     </React.Fragment>
   );
 }
