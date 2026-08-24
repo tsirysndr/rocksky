@@ -1,14 +1,13 @@
-import { useState } from "react";
 import { IconShare3 } from "@tabler/icons-react";
+import { useState } from "react";
 import { GhostLink } from "../PillButton";
 import SignInModal from "../SignInModal/SignInModal";
 
 interface Props {
   text: string;
-  variant?: "block" | "ghost";
 }
 
-export default function ShareOnBluesky({ text, variant = "block" }: Props) {
+export default function ShareOnBluesky({ text }: Props) {
   const [signInOpen, setSignInOpen] = useState(false);
 
   const onClick = (e: React.MouseEvent) => {
@@ -20,36 +19,17 @@ export default function ShareOnBluesky({ text, variant = "block" }: Props) {
 
   const href = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
 
-  if (variant === "ghost") {
-    return (
-      <>
-        <GhostLink
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onClick}
-        >
-          <IconShare3 size={16} />
-          Share on Bluesky
-        </GhostLink>
-        <SignInModal isOpen={signInOpen} onClose={() => setSignInOpen(false)} />
-      </>
-    );
-  }
-
   return (
     <>
-      <a
+      <GhostLink
         href={href}
         target="_blank"
         rel="noopener noreferrer"
         onClick={onClick}
-        className="no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px] ml-[10px] inline-flex items-center gap-[10px]"
-        style={{ color: "var(--color-text)" }}
       >
-        <IconShare3 size={20} />
+        <IconShare3 size={16} />
         Share on Bluesky
-      </a>
+      </GhostLink>
       <SignInModal isOpen={signInOpen} onClose={() => setSignInOpen(false)} />
     </>
   );

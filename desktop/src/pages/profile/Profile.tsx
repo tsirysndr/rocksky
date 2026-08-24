@@ -306,7 +306,7 @@ function Profile(props: ProfileProps) {
                       </span>
                     </span>
                   </LabelLarge>
-                  <div className="flex items-center gap-[10px] mt-[30px] mr-[10px]">
+                  <div className="flex items-center gap-[12px] mt-[30px] mr-[10px]">
                     <PillLink
                       href={`https://pdsls.dev/at/${profiles[did]?.did}`}
                       target="_blank"
@@ -315,7 +315,6 @@ function Profile(props: ProfileProps) {
                       View on PDSls
                     </PillLink>
                     <ShareOnBluesky
-                      variant="ghost"
                       text={`Check out ${profiles[did]?.displayName || profiles[did]?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
                     />
                   </div>

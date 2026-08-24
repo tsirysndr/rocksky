@@ -17,6 +17,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
+import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import { songAtom } from "../../atoms/song";
 import Disc from "../../components/Icons/Disc";
@@ -368,18 +369,14 @@ const Song = () => {
                       {numeral(song?.scrobbles).format("0,0")}
                     </HeadingXSmall>
                   </div>
-                  <div className="flex items-center justify-end flex-1 mr-[10px]">
-                    <a
+                  <div className="flex items-center justify-end flex-1 mr-[10px] gap-[12px]">
+                    <PillLink
                       href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                       target="_blank"
-                      className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
                     >
-                      <ExternalLink
-                        size={24}
-                        className="mr-[10px] text-[var(--color-text)]"
-                      />
+                      <ExternalLink size={16} />
                       View on PDSls
-                    </a>
+                    </PillLink>
                     <ShareOnBluesky
                       text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵\n${window.location.href}`}
                     />
