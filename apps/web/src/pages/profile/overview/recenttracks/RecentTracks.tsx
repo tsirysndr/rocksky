@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import { uriToPath } from "../../../../lib/uri";
 import styled from "@emotion/styled";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
@@ -273,9 +274,7 @@ function RecentTracks(props: RecentTracksProps) {
           >
             {(row: Row) => (
               <div className="flex flex-row items-center">
-                <Link
-                  to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(row.albumUri)}>
                   {row.albumArt ? (
                     <img
                       src={row.albumArt}
@@ -291,7 +290,7 @@ function RecentTracks(props: RecentTracksProps) {
                 </Link>
                 <div className="min-w-0 flex-1 truncate">
                   <Link
-                    to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    to={uriToPath(row.uri)}
                     className="!text-[var(--color-text)]"
                   >
                     {row.title}
@@ -315,7 +314,7 @@ function RecentTracks(props: RecentTracksProps) {
             {(row: Row) => (
               <div className="flex min-w-0">
                 <Link
-                  to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                  to={uriToPath(row.artistUri)}
                   style={{ fontFamily: "RockfordSansLight" }}
                   className="!text-[var(--color-text)] min-w-0 truncate"
                 >

@@ -1,4 +1,5 @@
 import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
+import { uriToPath } from "../../../lib/uri";
 import {
   useActorNeighboursQuery,
   useProfileByDidQuery,
@@ -110,8 +111,7 @@ function Circles() {
       <p>
         People on Rocksky with similar music taste to @{profile.data?.handle}
       </p>
-      {(isPending ||
-        (isFetching && (data?.neighbours?.length ?? 0) === 0)) && (
+      {(isPending || (isFetching && (data?.neighbours?.length ?? 0) === 0)) && (
         <div className="mt-[40px]">
           <CircleRowSkeleton />
         </div>
@@ -186,9 +186,7 @@ function Circles() {
                     {neighbour.topSharedArtistsDetails.map((artist, index) => (
                       <div key={artist.id} className="inline">
                         <Link
-                          to={
-                            `/${artist.uri.split("at://")[1].replace("app.rocksky.", "")}` as string
-                          }
+                          to={uriToPath(artist.uri) as string}
                           className="no-underline"
                         >
                           <span className="mt-[0px] mb-[0px] text-[14px] !text-[var(--color-primary)]">

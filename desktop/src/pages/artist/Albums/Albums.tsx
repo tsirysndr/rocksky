@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../../lib/uri";
 import { Link as DefaultLink } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
@@ -46,17 +47,13 @@ function Albums(props: AlbumsProps) {
           props.topAlbums.map((album: any) => (
             <FlexGridItem {...itemProps} key={album.id}>
               {album.uri && (
-                <Link
-                  to={`/${album.uri.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(album.uri)}>
                   <SongCover cover={album.albumArt} size={230} />
                 </Link>
               )}
               {!album.uri && <SongCover cover={album.albumArt} size={230} />}
               {album.uri && (
-                <Link
-                  to={`/${album.uri.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(album.uri)}>
                   <LabelMedium className="!text-[var(--color-text)]">
                     {album.title}
                   </LabelMedium>
@@ -64,9 +61,7 @@ function Albums(props: AlbumsProps) {
               )}
               {!album.uri && <LabelMedium>{album.title}</LabelMedium>}
               {album.artistUri && (
-                <Link
-                  to={`/${album.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(album.artistUri)}>
                   <LabelSmall className="!text-[var(--color-text-muted)]">
                     {album.artist}
                   </LabelSmall>

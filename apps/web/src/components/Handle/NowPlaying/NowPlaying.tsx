@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../../lib/uri";
 import { Link as DefaultLink } from "@tanstack/react-router";
 import { IconMusic } from "@tabler/icons-react";
 import axios from "axios";
@@ -188,24 +189,41 @@ function NowPlaying({ did }: NowPlayingProps) {
         <>
           <div className="flex flex-row items-center mt-[25px]">
             {!!nowPlaying[did]?.albumUri && (
-              <Link
-                to={`/${nowPlaying[did]?.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-              >
-                {nowPlaying[did]?.albumArt
-                  ? <Cover src={nowPlaying[did]?.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                  : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
+              <Link to={uriToPath(nowPlaying[did]?.albumUri)}>
+                {nowPlaying[did]?.albumArt ? (
+                  <Cover
+                    src={nowPlaying[did]?.albumArt}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display =
+                        "none";
+                    }}
+                  />
+                ) : (
+                  <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">
+                    <IconMusic size={20} />
+                  </div>
+                )}
               </Link>
             )}
-            {!nowPlaying[did]?.albumUri && (
-              nowPlaying[did]?.albumArt
-                ? <Cover src={nowPlaying[did]?.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>
-            )}
+            {!nowPlaying[did]?.albumUri &&
+              (nowPlaying[did]?.albumArt ? (
+                <Cover
+                  src={nowPlaying[did]?.albumArt}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display =
+                      "none";
+                  }}
+                />
+              ) : (
+                <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">
+                  <IconMusic size={20} />
+                </div>
+              ))}
             <div className="max-w-[316px] overflow-hidden">
               <div className="max-w-[316px] overflow-hidden truncate">
                 {nowPlaying[did]?.songUri && (
                   <Link
-                    to={`/${nowPlaying[did]?.songUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    to={uriToPath(nowPlaying[did]?.songUri)}
                     className="font-semibold truncate whitespace-nowrap text-[var(--color-text)]"
                   >
                     {nowPlaying[did]?.title}
@@ -220,7 +238,7 @@ function NowPlaying({ did }: NowPlayingProps) {
               <div className="max-w-[316px] overflow-hidden truncate">
                 {!!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <Link
-                    to={`/${nowPlaying[did]?.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    to={uriToPath(nowPlaying[did]?.artistUri)}
                     className="text-[var(--color-text-muted)] font-semibold truncate whitespace-nowrap text-sm"
                     style={{ color: "var(--color-text-muted)" }}
                   >

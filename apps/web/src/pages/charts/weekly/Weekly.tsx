@@ -1,4 +1,5 @@
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { uriToPath } from "../../../lib/uri";
 import { useTopArtistsInfiniteQuery } from "../../../hooks/useLibrary";
 import Artist from "../../../components/Icons/Artist";
 import { getLastDays } from "../../../lib/date";
@@ -171,7 +172,7 @@ function Weekly() {
                     </div>
                   </div>
                   <a
-                    href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                    href={uriToPath(row.uri)}
                     className="no-underline !text-[var(--color-text)]"
                   >
                     {!!row.picture && (
@@ -192,7 +193,7 @@ function Weekly() {
                   </a>
                   <div className="min-w-0">
                     <a
-                      href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                      href={uriToPath(row.uri)}
                       className="no-underline !text-[var(--color-text)] block truncate"
                     >
                       {row.name}
@@ -215,7 +216,10 @@ function Weekly() {
               }}
             >
               {(row: ArtistRow) => (
-                <div className="flex flex-row items-center" style={{ fontFamily: "var(--font-mono)" }}>
+                <div
+                  className="flex flex-row items-center"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
                   {numeral(row.uniqueListeners).format("0,0")}
                 </div>
               )}
@@ -234,7 +238,10 @@ function Weekly() {
               }}
             >
               {(row: ArtistRow) => (
-                <div className="flex flex-row items-center" style={{ fontFamily: "var(--font-mono)" }}>
+                <div
+                  className="flex flex-row items-center"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
                   {numeral(row.scrobbles).format("0,0")}
                 </div>
               )}

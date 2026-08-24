@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../../lib/uri";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
@@ -110,7 +111,11 @@ function LovedTracks() {
     <>
       {did && (
         <HeadingSmall className="!text-[var(--color-text)]">
-          Loved Tracks (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(profileStats.data?.lovedTracks).format("0,0")}</span>)
+          Loved Tracks (
+          <span style={{ fontFamily: "var(--font-mono)" }}>
+            {numeral(profileStats.data?.lovedTracks).format("0,0")}
+          </span>
+          )
         </HeadingSmall>
       )}
       {(lovedTracksResult.isPending || lovedTracksResult.isFetching) &&
@@ -180,9 +185,7 @@ function LovedTracks() {
           {(row: Row) => (
             <div className="flex flex-row items-center">
               {row.albumUri && (
-                <Link
-                  to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(row.albumUri)}>
                   {!!row.albumArt && (
                     <img
                       src={row.albumArt}
@@ -215,7 +218,7 @@ function LovedTracks() {
               >
                 {row.uri && (
                   <Link
-                    to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    to={uriToPath(row.uri)}
                     className="!text-[var(--color-text)] truncate"
                   >
                     {row.title}
@@ -224,7 +227,7 @@ function LovedTracks() {
                 {!row.uri && <div className="truncate">{row.title}</div>}
                 {row.artistUri && (
                   <Link
-                    to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    to={uriToPath(row.artistUri)}
                     className="text-[var(--color-text-muted)] truncate"
                   >
                     {row.albumArtist}

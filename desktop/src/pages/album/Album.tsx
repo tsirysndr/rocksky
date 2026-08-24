@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../lib/uri";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
@@ -210,9 +211,7 @@ const Album = () => {
                 {album.title}
               </HeadingMedium>
               {album.artistUri && (
-                <Link
-                  to={`/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(album.artistUri)}>
                   <LabelLarge margin={0} className="!text-[var(--color-text)]">
                     {album.artist}
                   </LabelLarge>
@@ -356,7 +355,7 @@ const Album = () => {
                       <div>
                         {row.uri && (
                           <Link
-                            to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
+                            to={uriToPath(row.uri)}
                             className="!text-[var(--color-text)] block truncate"
                           >
                             {row.title}
@@ -371,7 +370,7 @@ const Album = () => {
                       <div>
                         {row.artistUri && (
                           <Link
-                            to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                            to={uriToPath(row.artistUri)}
                             className="!text-[var(--color-text-muted)] block truncate"
                           >
                             {row.albumArtist}
@@ -462,7 +461,7 @@ const Album = () => {
                             <div>
                               {row.uri && (
                                 <Link
-                                  to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
+                                  to={uriToPath(row.uri)}
                                   className="!text-[var(--color-text)] block truncate"
                                 >
                                   {row.title}
@@ -477,7 +476,7 @@ const Album = () => {
                             <div>
                               {row.artistUri && (
                                 <Link
-                                  to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                                  to={uriToPath(row.artistUri)}
                                   className="!text-[var(--color-text-muted)] block truncate"
                                 >
                                   {row.albumArtist}

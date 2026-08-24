@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../lib/uri";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { IconArrowLeft, IconPlus, IconTrash } from "@tabler/icons-react";
 import {
@@ -409,7 +410,7 @@ function Playlist() {
                       <div>
                         {row.uri && (
                           <Link
-                            to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
+                            to={uriToPath(row.uri)}
                             className="!text-[var(--color-text)] block truncate"
                           >
                             {row.title}
@@ -424,7 +425,7 @@ function Playlist() {
                       <div>
                         {row.artistUri && (
                           <Link
-                            to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                            to={uriToPath(row.artistUri)}
                             className="!text-[var(--color-text-muted)] block truncate"
                           >
                             {row.albumArtist}

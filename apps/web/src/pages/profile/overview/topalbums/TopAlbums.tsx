@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../../../lib/uri";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
@@ -139,22 +140,16 @@ function TopAlbums() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             topAlbums.map((album: any, index: number) => (
               <FlexGridItem {...itemProps} key={index}>
-                <Link
-                  to={`/${album.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(album.uri)}>
                   <SongCover cover={album.albumArt} size={230} />
                 </Link>
-                <Link
-                  to={`/${album.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(album.uri)}>
                   <b className="!text-[var(--color-text)] text-[15px]">
                     {album.title}
                   </b>
                 </Link>
                 {album.artistUri && (
-                  <Link
-                    to={`/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                  >
+                  <Link to={uriToPath(album.artistUri)}>
                     <span className="!text-[var(--color-text)]  text-[14px]">
                       {album.artist}
                     </span>

@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import { uriToPath } from "../../../../lib/uri";
 import styled from "@emotion/styled";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
@@ -163,9 +164,7 @@ function Albums(props: AlbumsProps) {
                 </div>
               </div>
               {row.uri && (
-                <Link
-                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(row.uri)}>
                   {!!row.albumArt && (
                     <img
                       src={row.albumArt}
@@ -194,14 +193,14 @@ function Albums(props: AlbumsProps) {
               )}
               <div className="flex flex-col min-w-0">
                 <Link
-                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                  to={uriToPath(row.uri)}
                   className="!text-[var(--color-text)] truncate"
                 >
                   {row.title}
                 </Link>
                 {row.artistUri && (
                   <Link
-                    to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    to={uriToPath(row.artistUri)}
                     className="!text-[var(--color-text-muted)] truncate"
                   >
                     {row.artist}
@@ -228,8 +227,7 @@ function Albums(props: AlbumsProps) {
               >
                 <span style={{ fontFamily: "var(--font-mono)" }}>
                   {numeral(row.scrobbles).format("0,0")}
-                </span>
-                {" "}
+                </span>{" "}
                 {index == 0 && " scrobbles"}
               </div>
               <span

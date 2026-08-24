@@ -1,4 +1,5 @@
 import { useParams } from "@tanstack/react-router";
+import { uriToPath } from "../../../../lib/uri";
 import {
   useActorCompatibilityQuery,
   useProfileByDidQuery,
@@ -89,9 +90,7 @@ function Compatibility() {
                     (artist, index) => (
                       <div key={artist.id} className="inline">
                         <Link
-                          to={
-                            `/${artist.uri.split("at://")[1].replace("app.rocksky.", "")}` as string
-                          }
+                          to={uriToPath(artist.uri) as string}
                           className="no-underline"
                         >
                           <span className="mt-[0px] mb-[0px] text-[14px] !text-[var(--color-primary)]">

@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../../lib/uri";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import {
   IconPencil,
@@ -318,7 +319,7 @@ function Playlists() {
             flexGridRowGap="scale800"
           >
             {playlists.map((playlist) => {
-              const href = `/${playlist.uri?.split("at://")[1].replace("app.rocksky.", "")}`;
+              const href = uriToPath(playlist.uri);
               return (
                 <FlexGridItem {...itemProps} key={playlist.id}>
                   <Card>

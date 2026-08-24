@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../lib/uri";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
 import {
   Link as DefaultLink,
@@ -244,9 +245,7 @@ const Song = () => {
           <>
             <Group>
               {song?.albumUri && (
-                <Link
-                  to={`/${song.albumUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                >
+                <Link to={uriToPath(song.albumUri)}>
                   {song.cover && <SongCover cover={song?.cover} size={150} />}
                   {!song.cover && (
                     <div className="w-[150px] h-[150px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
@@ -281,9 +280,7 @@ const Song = () => {
                     <span key={index}>
                       <div className="inline-block">
                         {artists[name]?.uri ? (
-                          <Link
-                            to={`/${artists[name]?.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                          >
+                          <Link to={uriToPath(artists[name]?.uri)}>
                             <LabelLarge
                               margin={0}
                               className="!text-[var(--color-text)]"

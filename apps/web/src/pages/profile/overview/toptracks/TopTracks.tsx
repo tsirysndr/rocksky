@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import { uriToPath } from "../../../../lib/uri";
 import styled from "@emotion/styled";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
@@ -303,9 +304,7 @@ function TopTracks(props: TopTracksProps) {
                   </div>
                 </div>
                 {row.albumUri && (
-                  <Link
-                    to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                  >
+                  <Link to={uriToPath(row.albumUri)}>
                     {!!row.albumArt && (
                       <img
                         src={row.albumArt}
@@ -336,14 +335,14 @@ function TopTracks(props: TopTracksProps) {
                 )}
                 <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
                   <Link
-                    to={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                    to={uriToPath(row.uri)}
                     className="!text-[var(--color-text)] truncate"
                   >
                     {row.title}
                   </Link>
                   {row.artistUri && (
                     <Link
-                      to={`/${row.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                      to={uriToPath(row.artistUri)}
                       className="!text-[var(--color-text-muted)] truncate"
                     >
                       {row.albumArtist}
@@ -381,8 +380,7 @@ function TopTracks(props: TopTracksProps) {
                 >
                   <span style={{ fontFamily: "var(--font-mono)" }}>
                     {numeral(row.scrobbles).format("0,0")}
-                  </span>
-                  {" "}
+                  </span>{" "}
                   {index == 0 && " scrobbles"}
                 </div>
                 <span

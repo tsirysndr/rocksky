@@ -5,6 +5,7 @@
  * popover. Web only — web-mobile keeps its own search.
  */
 import styled from "@emotion/styled";
+import { uriToPath } from "../../lib/uri";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { useNavigate } from "@tanstack/react-router";
 import { IconUser } from "@tabler/icons-react";
@@ -73,9 +74,7 @@ function toNavItem(hit: SearchHit): NavItem | null {
   }
 
   // Record-backed hits share the AT-URI → path derivation.
-  const href = hit.uri
-    ? `/${hit.uri.split("at://")[1].replace("app.rocksky.", "")}`
-    : null;
+  const href = hit.uri ? uriToPath(hit.uri) : null;
   if (!href) return null;
 
   if (isArtistHit(hit)) {

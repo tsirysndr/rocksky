@@ -1,4 +1,5 @@
 import ContentLoader from "react-content-loader";
+import { uriToPath } from "../../lib/uri";
 import styled from "@emotion/styled";
 import { IconMusic } from "@tabler/icons-react";
 import { Link as DefaultLink } from "@tanstack/react-router";
@@ -193,23 +194,36 @@ type TrackRow = TrackRecommendation & { index: number };
 type ArtistRow = ArtistRecommendation & { index: number };
 type AlbumRow = AlbumRecommendation & { index: number };
 
-const EMPTY_MSG = "Scrobble more tracks to unlock personalised recommendations.";
+const EMPTY_MSG =
+  "Scrobble more tracks to unlock personalised recommendations.";
 
 function Recommendations() {
   const profile = useAtomValue(profileAtom);
   const [activeKey, setActiveKey] = useState<React.Key>("0");
 
   const did = profile?.did;
-  const { data: tracks, isLoading: tracksLoading, isFetching: tracksFetching } =
-    useTrackRecommendationsQuery(did);
-  const { data: artists, isLoading: artistsLoading, isFetching: artistsFetching } =
-    useArtistRecommendationsQuery(did);
-  const { data: albums, isLoading: albumsLoading, isFetching: albumsFetching } =
-    useAlbumRecommendationsQuery(did);
+  const {
+    data: tracks,
+    isLoading: tracksLoading,
+    isFetching: tracksFetching,
+  } = useTrackRecommendationsQuery(did);
+  const {
+    data: artists,
+    isLoading: artistsLoading,
+    isFetching: artistsFetching,
+  } = useArtistRecommendationsQuery(did);
+  const {
+    data: albums,
+    isLoading: albumsLoading,
+    isFetching: albumsFetching,
+  } = useAlbumRecommendationsQuery(did);
 
-  const showTracksSkeleton = tracksLoading || (tracksFetching && !tracks?.length);
-  const showArtistsSkeleton = artistsLoading || (artistsFetching && !artists?.length);
-  const showAlbumsSkeleton = albumsLoading || (albumsFetching && !albums?.length);
+  const showTracksSkeleton =
+    tracksLoading || (tracksFetching && !tracks?.length);
+  const showArtistsSkeleton =
+    artistsLoading || (artistsFetching && !artists?.length);
+  const showAlbumsSkeleton =
+    albumsLoading || (albumsFetching && !albums?.length);
 
   const trackRows: TrackRow[] = (tracks ?? []).map((item, index) => ({
     ...item,
@@ -257,11 +271,9 @@ function Recommendations() {
               >
                 <TableBuilderColumn header="Track">
                   {(row: TrackRow) => {
-                    const href = row.trackUri
-                      ? `/${row.trackUri.split("at://")[1]?.replace("app.rocksky.", "")}`
-                      : null;
+                    const href = row.trackUri ? uriToPath(row.trackUri) : null;
                     const artistHref = row.artistUri
-                      ? `/${row.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`
+                      ? uriToPath(row.artistUri)
                       : null;
                     return (
                       <div className="flex flex-row items-center">
@@ -288,7 +300,10 @@ function Recommendations() {
                               {row.title}
                             </Link>
                           ) : (
-                            <span className="truncate" style={{ color: "var(--color-text)" }}>
+                            <span
+                              className="truncate"
+                              style={{ color: "var(--color-text)" }}
+                            >
                               {row.title}
                             </span>
                           )}
@@ -312,7 +327,10 @@ function Recommendations() {
                     );
                   }}
                 </TableBuilderColumn>
-                <TableBuilderColumn header="Source" overrides={SOURCE_COLUMN_OVERRIDES}>
+                <TableBuilderColumn
+                  header="Source"
+                  overrides={SOURCE_COLUMN_OVERRIDES}
+                >
                   {(row: TrackRow) => <SourceBadge source={row.source} />}
                 </TableBuilderColumn>
               </TableBuilder>
@@ -332,9 +350,7 @@ function Recommendations() {
               >
                 <TableBuilderColumn header="Artist">
                   {(row: ArtistRow) => {
-                    const href = row.uri
-                      ? `/${row.uri.split("at://")[1]?.replace("app.rocksky.", "")}`
-                      : null;
+                    const href = row.uri ? uriToPath(row.uri) : null;
                     return (
                       <div className="flex flex-row items-center">
                         <div className="mr-[20px] text-[var(--color-text)]">
@@ -360,14 +376,15 @@ function Recommendations() {
                               {row.name}
                             </Link>
                           ) : (
-                            <span className="truncate" style={{ color: "var(--color-text)" }}>
+                            <span
+                              className="truncate"
+                              style={{ color: "var(--color-text)" }}
+                            >
                               {row.name}
                             </span>
                           )}
                           {row.genres && row.genres.length > 0 && (
-                            <span
-                              style={{ color: "var(--color-text-muted)" }}
-                            >
+                            <span style={{ color: "var(--color-text-muted)" }}>
                               {row.genres.slice(0, 3).join(", ")}
                             </span>
                           )}
@@ -376,7 +393,10 @@ function Recommendations() {
                     );
                   }}
                 </TableBuilderColumn>
-                <TableBuilderColumn header="Source" overrides={SOURCE_COLUMN_OVERRIDES}>
+                <TableBuilderColumn
+                  header="Source"
+                  overrides={SOURCE_COLUMN_OVERRIDES}
+                >
                   {(row: ArtistRow) => <SourceBadge source={row.source} />}
                 </TableBuilderColumn>
               </TableBuilder>
@@ -396,11 +416,9 @@ function Recommendations() {
               >
                 <TableBuilderColumn header="Album">
                   {(row: AlbumRow) => {
-                    const href = row.uri
-                      ? `/${row.uri.split("at://")[1]?.replace("app.rocksky.", "")}`
-                      : null;
+                    const href = row.uri ? uriToPath(row.uri) : null;
                     const artistHref = row.artistUri
-                      ? `/${row.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`
+                      ? uriToPath(row.artistUri)
                       : null;
                     return (
                       <div className="flex flex-row items-center">
@@ -427,7 +445,10 @@ function Recommendations() {
                               {row.title}
                             </Link>
                           ) : (
-                            <span className="truncate" style={{ color: "var(--color-text)" }}>
+                            <span
+                              className="truncate"
+                              style={{ color: "var(--color-text)" }}
+                            >
                               {row.title}
                             </span>
                           )}
@@ -460,7 +481,10 @@ function Recommendations() {
                     );
                   }}
                 </TableBuilderColumn>
-                <TableBuilderColumn header="Source" overrides={SOURCE_COLUMN_OVERRIDES}>
+                <TableBuilderColumn
+                  header="Source"
+                  overrides={SOURCE_COLUMN_OVERRIDES}
+                >
                   {(row: AlbumRow) => <SourceBadge source={row.source} />}
                 </TableBuilderColumn>
               </TableBuilder>

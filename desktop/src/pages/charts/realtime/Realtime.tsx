@@ -2,6 +2,7 @@ import {
   useTopArtistsQuery,
   useTopTracksQuery,
 } from "../../../hooks/useLibrary";
+import { uriToPath } from "../../../lib/uri";
 import { Link } from "@tanstack/react-router";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import Artist from "../../../components/Icons/Artist";
@@ -141,11 +142,7 @@ function Realtime() {
                       </div>
                     </div>
                     {row.albumUri && (
-                      <Link
-                        to={
-                          `/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}` as string
-                        }
-                      >
+                      <Link to={uriToPath(row.albumUri) as string}>
                         {!!row.albumArt && (
                           <img
                             src={row.albumArt}
@@ -176,18 +173,14 @@ function Realtime() {
                     )}
                     <div className="flex flex-col min-w-0">
                       <Link
-                        to={
-                          `/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                        }
+                        to={uriToPath(row.uri) as string}
                         className="!text-[var(--color-text)] no-underline truncate"
                       >
                         {row.title}
                       </Link>
                       {row.artistUri && (
                         <Link
-                          to={
-                            `/${row.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                          }
+                          to={uriToPath(row.artistUri) as string}
                           className="!text-[var(--color-text-muted)] no-underline truncate"
                         >
                           {row.albumArtist}
@@ -300,9 +293,7 @@ function Realtime() {
                         {row.index + 1}
                       </div>
                     </div>
-                    <a
-                      href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
-                    >
+                    <a href={uriToPath(row.uri)}>
                       {!!row.picture && (
                         <img
                           src={row.picture}
@@ -321,7 +312,7 @@ function Realtime() {
                     </a>
                     <div className="min-w-0">
                       <a
-                        href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                        href={uriToPath(row.uri)}
                         className="no-underline !text-[var(--color-text)] block truncate"
                       >
                         {row.name}

@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../../lib/uri";
 import { ChevronLeft, ChevronRight } from "@styled-icons/evaicons-solid";
 import { Link as DefaultLink } from "@tanstack/react-router";
 import { Modal, ModalBody, ModalHeader, ROLE } from "baseui/modal";
@@ -511,21 +512,27 @@ function Stories() {
                 </div>
                 <div className="flex flex-col items-center flex-1">
                   {currentlyPlaying?.trackUri && (
-                    <Link
-                      to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                    >
-                      {currentlyPlaying?.albumArt
-                        ? <Cover src={currentlyPlaying.albumArt} key={currentlyPlaying?.id} />
-                        : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"><IconMusic size={60} /></div>}
+                    <Link to={uriToPath(currentlyPlaying?.trackUri)}>
+                      {currentlyPlaying?.albumArt ? (
+                        <Cover
+                          src={currentlyPlaying.albumArt}
+                          key={currentlyPlaying?.id}
+                        />
+                      ) : (
+                        <div
+                          style={{ width: 500, height: 500 }}
+                          className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"
+                        >
+                          <IconMusic size={60} />
+                        </div>
+                      )}
                     </Link>
                   )}
                   {currentlyPlaying?.trackUri && (
                     <div className="flex flex-row items-center">
                       {/* Balances the 32px like button so the title stays centered. */}
                       <div className="w-[32px] flex-shrink-0" />
-                      <Link
-                        to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                      >
+                      <Link to={uriToPath(currentlyPlaying?.trackUri)}>
                         <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
                       </Link>
                       <LikeButton onClick={handleLike}>
@@ -537,11 +544,20 @@ function Stories() {
                       </LikeButton>
                     </div>
                   )}
-                  {!currentlyPlaying?.trackUri && (
-                    currentlyPlaying?.albumArt
-                      ? <Cover src={currentlyPlaying.albumArt} key={currentlyPlaying?.id} />
-                      : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"><IconMusic size={60} /></div>
-                  )}
+                  {!currentlyPlaying?.trackUri &&
+                    (currentlyPlaying?.albumArt ? (
+                      <Cover
+                        src={currentlyPlaying.albumArt}
+                        key={currentlyPlaying?.id}
+                      />
+                    ) : (
+                      <div
+                        style={{ width: 500, height: 500 }}
+                        className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"
+                      >
+                        <IconMusic size={60} />
+                      </div>
+                    ))}
                 </div>
                 <div className="flex items-center h-[500px] w-[50px]">
                   {currentIndex < (stories || []).length - 1 && (
@@ -558,9 +574,7 @@ function Stories() {
               {!currentlyPlaying?.trackUri && (
                 <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
               )}
-              <Link
-                to={`/${currentlyPlaying?.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-              >
+              <Link to={uriToPath(currentlyPlaying?.artistUri)}>
                 <TrackArtist>{currentlyPlaying?.artist}</TrackArtist>
               </Link>
             </ModalBody>

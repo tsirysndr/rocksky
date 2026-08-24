@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { uriToPath } from "../../../lib/uri";
 import { Link as DefaultLink } from "@tanstack/react-router";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingSmall } from "baseui/typography";
@@ -172,9 +173,7 @@ function PopularSongs(props: PopularSongsProps) {
                     </div>
                   </div>
                   {row.albumUri && (
-                    <Link
-                      to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                    >
+                    <Link to={uriToPath(row.albumUri)}>
                       {!!row.albumArt && (
                         <img
                           src={row.albumArt}
@@ -203,14 +202,14 @@ function PopularSongs(props: PopularSongsProps) {
                   )}
                   <div className="flex flex-col min-w-0">
                     <Link
-                      to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                      to={uriToPath(row.uri)}
                       className="!text-[var(--color-text)] block truncate"
                     >
                       {row.title}
                     </Link>
                     {row.artistUri && (
                       <Link
-                        to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                        to={uriToPath(row.artistUri)}
                         className="!text-[var(--color-text-muted)] block truncate"
                       >
                         {row.albumArtist}
