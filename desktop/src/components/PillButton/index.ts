@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 
-// The playlist detail pages' control styling: one solid pill for the primary
-// action, a ghost for the rest.
+// The library's "Upload Music" colours in a pill, plus a ghost for secondary
+// actions.
 
 const pill = `
   display: inline-flex;
@@ -11,14 +11,14 @@ const pill = `
   padding: 10px 22px;
   border: none;
   border-radius: 999px;
-  background: var(--color-text);
-  color: var(--color-background);
+  background: var(--color-menu-hover);
+  color: var(--color-text);
   font-size: 0.875rem;
   font-family: RockfordSansMedium;
   text-decoration: none;
   cursor: pointer;
 
-  &:hover { opacity: 0.85; }
+  &:hover { background: color-mix(in srgb, var(--color-primary) 15%, transparent); }
   &:disabled { opacity: 0.4; cursor: default; }
 `;
 
