@@ -56,5 +56,11 @@ const add = ({
       );
       return { uris };
     },
-    catch: (error) => new Error(`Failed to add songs to playlist: ${error}`),
+    // InvalidRequestError already carries a status and a usable message
+    // ("Only the playlist owner…", "Song not found: …"); wrapping it in a plain
+    // Error turned every one of those into an opaque 500.
+    catch: (error) =>
+      error instanceof Error
+        ? error
+        : new Error(`Failed to add songs to playlist: ${error}`),
   });

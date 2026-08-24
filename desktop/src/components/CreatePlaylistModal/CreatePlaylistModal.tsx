@@ -193,6 +193,13 @@ const QueryInput = styled.input`
 
 // Same treatment as the global palette's section headings, so the playlist
 // being added to reads as the heading for the results below it.
+const AddError = styled.div`
+  flex-shrink: 0;
+  padding: 4px 18px 8px;
+  color: var(--color-primary);
+  font-size: 13px;
+`;
+
 const ContextLabel = styled.div`
   flex-shrink: 0;
   font-family: RockfordSansBold;
@@ -487,6 +494,7 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
   const [active, setActive] = useState(0);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const { mutate, data, reset } = useSearchMutation();
   const addSongs = useAddSongsToPlaylistMutation();
   const setPendingTracks = useSetAtom(pendingPlaylistTracksAtom);
@@ -535,6 +543,7 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
   const add = async (track: TrackHit & { uri: string }) => {
     if (added.has(track.uri) || pending) return;
     setPending(track.uri);
+    setAddError(null);
     try {
       await addSongs.mutateAsync({ uri: playlist.uri, songs: [track.uri] });
       setAdded((prev) => new Set(prev).add(track.uri));
@@ -560,6 +569,12 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
           },
         ],
       }));
+    } catch (e) {
+      // Without this the failure was invisible: the row simply never flipped to
+      // "Added" and nothing said why.
+      setAddError(
+        e instanceof Error ? e.message : "Could not add that song. Try again.",
+      );
     } finally {
       setPending(null);
     }
@@ -598,6 +613,8 @@ function SongsStep({ playlist }: { playlist: { uri: string; name: string } }) {
       </SearchRow>
 
       <ContextLabel>Adding to {playlist.name}</ContextLabel>
+
+      {addError && <AddError>{addError}</AddError>}
 
       {tracks.length > 0 && (
         <Results>
