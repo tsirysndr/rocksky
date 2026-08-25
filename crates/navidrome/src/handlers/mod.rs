@@ -1,8 +1,8 @@
 pub mod albums;
 pub mod artists;
 pub mod cover_art;
-pub mod download;
 pub mod directory;
+pub mod download;
 pub mod genres;
 pub mod info;
 pub mod music_folders;
