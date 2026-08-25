@@ -127,42 +127,23 @@ export function getNavidromeDownloadUrl(
   return `${NAVIDROME_URL}/rest/download?${p}`;
 }
 
-const safeFilename = (name: string) =>
-  name.replace(/[\\/:*?"<>|]/g, "_").trim() || "track";
-
 /**
- * Fetches into a blob rather than pointing an <a download> at the endpoint:
- * that redirects to storage on another origin, where the download attribute is
- * ignored and the file would open instead of saving under a real name.
+ * Navigates to the download endpoint rather than fetching it: the object store
+ * sends no CORS headers, so fetch is blocked, and the endpoint serves the bytes
+ * itself with a Content-Disposition filename — nothing to do client-side.
+ *
+ * The id may be a track, an album or a playlist; the latter two arrive zipped.
  */
-export async function downloadNavidromeSong(
+export function downloadFromNavidrome(
   creds: NavidromeCredentials,
-  song: NavidromeSong,
-): Promise<void> {
-  const res = await fetch(getNavidromeDownloadUrl(creds, song.id));
-  if (!res.ok) {
-    throw new Error(`Could not download "${song.title}" (${res.status})`);
-  }
-  const blob = await res.blob();
-  const ext = song.suffix || blob.type.split("/")[1] || "mp3";
-  const url = URL.createObjectURL(blob);
+  id: string,
+): void {
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `${safeFilename(song.artist)} - ${safeFilename(song.title)}.${ext}`;
+  a.href = getNavidromeDownloadUrl(creds, id);
+  a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
-}
-
-/** One at a time: browsers throttle or drop parallel downloads. */
-export async function downloadNavidromeSongs(
-  creds: NavidromeCredentials,
-  songs: NavidromeSong[],
-): Promise<void> {
-  for (const song of songs) {
-    await downloadNavidromeSong(creds, song);
-  }
 }
 
 export async function fetchNavidromeAlbums(

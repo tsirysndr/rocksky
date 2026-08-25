@@ -15,8 +15,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
-  downloadNavidromeSong,
-  downloadNavidromeSongs,
+  downloadFromNavidrome,
   fetchNavidromeAlbum,
   getCoverArtUrl,
   type NavidromeAlbum,
@@ -717,7 +716,7 @@ function TrackContextMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
       <MenuDivider />
-      <MenuItem onClick={(e) => { e.stopPropagation(); void downloadNavidromeSong(creds, song); onClose(); }}>
+      <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, song.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
       </MenuItem>
       <MenuDivider />
@@ -799,12 +798,7 @@ function AlbumContextMenu({
       <MenuItem onClick={async (e) => { e.stopPropagation(); playLastAll(await fetchTracks()); onClose(); }}>Play last</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Add shuffled</MenuItem>
       <MenuDivider />
-      <MenuItem onClick={async (e) => {
-        e.stopPropagation();
-        onClose();
-        const full = await fetchNavidromeAlbum(creds, album.id);
-        await downloadNavidromeSongs(creds, full?.song ?? []);
-      }}>
+      <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
       </MenuItem>
       {album.artistId && (
@@ -828,10 +822,11 @@ function AlbumContextMenu({
 // ---------------------------------------------------------------------------
 
 function PlaylistContextMenu({
-  playlist, anchorEl, onPlay, onShuffle, onAddSongs, onRename, onDelete, onClose,
+  playlist, anchorEl, creds, onPlay, onShuffle, onAddSongs, onRename, onDelete, onClose,
 }: {
   playlist: NavidromePlaylist;
   anchorEl: HTMLElement | null;
+  creds: NavidromeCredentials;
   onPlay: () => void;
   onShuffle: () => void;
   onAddSongs: () => void;
@@ -870,6 +865,9 @@ function PlaylistContextMenu({
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); onAddSongs(); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlus size={14} /> Add songs</span>
+      </MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, playlist.id); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download playlist</span>
       </MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onRename(); onClose(); }}>Rename</MenuItem>
       <MenuDivider />
@@ -1245,6 +1243,7 @@ export default function Library() {
                           <PlaylistContextMenu
                             playlist={pl}
                             anchorEl={playlistMenuAnchor}
+                            creds={creds}
                             onPlay={() => playPlaylist(pl)}
                             onShuffle={() => playPlaylist(pl, true)}
                             onAddSongs={() => openAddSongs(pl)}

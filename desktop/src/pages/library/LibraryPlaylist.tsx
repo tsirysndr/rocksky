@@ -13,7 +13,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Route } from "../../routes/library/playlist/$id";
 import {
-  downloadNavidromeSong,
+  downloadFromNavidrome,
   getCoverArtUrl,
   type NavidromeSong,
   type NavidromeCredentials,
@@ -453,7 +453,7 @@ function TrackContextMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
       <MenuDivider />
-      <MenuItem onClick={(e) => { e.stopPropagation(); void downloadNavidromeSong(creds, song); onClose(); }}>
+      <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, song.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
       </MenuItem>
       <MenuDivider />
@@ -586,6 +586,7 @@ export default function LibraryPlaylist() {
               <PlayBtn onClick={handlePlay} disabled={songs.length === 0}><IconPlayerPlay size={15} /> Play</PlayBtn>
               <ShuffleBtn onClick={handleShuffle} disabled={songs.length === 0}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
               <ShuffleBtn onClick={openAddSongs}><IconPlus size={15} /> Add songs</ShuffleBtn>
+              <ShuffleBtn onClick={() => downloadFromNavidrome(creds, playlist.id)} disabled={songs.length === 0}><IconDownload size={15} /> Download</ShuffleBtn>
               <div style={{ marginLeft: "auto" }}>
                 <PlaylistSearch onChange={setFilter} />
               </div>

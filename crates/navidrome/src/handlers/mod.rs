@@ -1,6 +1,7 @@
 pub mod albums;
 pub mod artists;
 pub mod cover_art;
+pub mod download;
 pub mod directory;
 pub mod genres;
 pub mod info;
@@ -146,7 +147,7 @@ async fn dispatch(
                 Some(id) => id.as_str(),
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
-            stream::handle(&format, user_id, id, pool, range.as_deref()).await
+            download::handle(&format, user_id, id, pool).await
         }
         "getCoverArt" => {
             let id = match params.get("id") {

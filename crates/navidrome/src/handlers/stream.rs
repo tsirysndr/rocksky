@@ -75,6 +75,24 @@ fn decrypt_cached(encoded: &str) -> Result<String, anyhow::Error> {
     Ok(plaintext)
 }
 
+/// The object URL for a full track row. `download` needs this too, and carries
+/// TrackWithUpload rather than the trimmed StreamTrack this module selects.
+pub async fn resolve_track_url(
+    track: &crate::xata::track::TrackWithUpload,
+) -> Result<String, anyhow::Error> {
+    resolve_url(&StreamTrack {
+        r2_key: track.r2_key.clone(),
+        storage_provider_id: track.storage_provider_id.clone(),
+        storage_endpoint: track.storage_endpoint.clone(),
+        storage_region: track.storage_region.clone(),
+        storage_bucket: track.storage_bucket.clone(),
+        storage_access_key: track.storage_access_key.clone(),
+        storage_secret_key: track.storage_secret_key.clone(),
+        storage_public_url: track.storage_public_url.clone(),
+    })
+    .await
+}
+
 async fn resolve_url(track: &StreamTrack) -> Result<String, anyhow::Error> {
     if track.storage_provider_id.is_none() {
         return Ok(s3::public_url(&track.r2_key));

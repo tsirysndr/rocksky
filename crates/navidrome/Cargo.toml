@@ -44,3 +44,4 @@ bytes = "1"
 sha2 = "0.10"
 xsalsa20poly1305 = "0.9"
 base64 = "0.22"
+zip = { version = "8.6.0", default-features = false }
