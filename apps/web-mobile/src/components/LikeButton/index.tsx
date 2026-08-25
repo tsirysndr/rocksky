@@ -70,9 +70,15 @@ export default function LikeButton({ uri, liked, withLabel }: Props) {
         }
       >
         {isLiked ? (
-          <IconHeartFilled size={20} color="var(--color-primary)" />
+          <IconHeartFilled
+            size={withLabel ? 18 : 20}
+            color="var(--color-primary)"
+          />
         ) : (
-          <IconHeart size={20} color="var(--color-text-muted)" />
+          <IconHeart
+            size={withLabel ? 18 : 20}
+            color={withLabel ? "currentColor" : "var(--color-text-muted)"}
+          />
         )}
         {withLabel && (isLiked ? "Liked" : "Like")}
       </button>

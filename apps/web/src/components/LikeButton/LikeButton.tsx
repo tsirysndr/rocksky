@@ -3,21 +3,18 @@ import { useRef, useState } from "react";
 import useLike from "../../hooks/useLike";
 import HeartFilled from "../Icons/Heart";
 import HeartOutline from "../Icons/HeartOutline";
+import { GhostButton } from "../PillButton";
 import SignInModal from "../SignInModal";
 
-const Button = styled.button<{ withLabel?: boolean }>`
+const IconOnly = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: ${({ withLabel }) => (withLabel ? "auto" : "32px")};
+  width: 32px;
   height: 32px;
-  padding: ${({ withLabel }) => (withLabel ? "10px 4px" : "0")};
+  padding: 0;
   border: none;
-  border-radius: ${({ withLabel }) => (withLabel ? "999px" : "50%")};
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-family: RockfordSansMedium;
+  border-radius: 50%;
   background: transparent;
   cursor: pointer;
 
@@ -56,6 +53,8 @@ function LikeButton({ uri, liked, withLabel }: Props) {
 
   if (!uri) return null;
 
+  const Control = withLabel ? GhostButton : IconOnly;
+
   const toggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -79,21 +78,26 @@ function LikeButton({ uri, liked, withLabel }: Props) {
 
   return (
     <>
-      <Button
+      <Control
         type="button"
-        withLabel={withLabel}
         onClick={toggle}
         aria-pressed={isLiked}
         aria-label={isLiked ? "Remove from loved songs" : "Add to loved songs"}
         title={isLiked ? "Remove from loved songs" : "Add to loved songs"}
       >
         {isLiked ? (
-          <HeartFilled size={18} color="var(--color-primary)" />
+          <HeartFilled
+            size={withLabel ? 16 : 18}
+            color="var(--color-primary)"
+          />
         ) : (
-          <HeartOutline size={18} color="var(--color-text-muted)" />
+          <HeartOutline
+            size={withLabel ? 16 : 18}
+            color={withLabel ? "currentColor" : "var(--color-text-muted)"}
+          />
         )}
         {withLabel && (isLiked ? "Liked" : "Like")}
-      </Button>
+      </Control>
       <SignInModal
         isOpen={signInOpen}
         onClose={() => setSignInOpen(false)}
