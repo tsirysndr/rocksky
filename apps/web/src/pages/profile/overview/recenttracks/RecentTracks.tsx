@@ -275,13 +275,15 @@ function RecentTracks(props: RecentTracksProps) {
           <TableBuilderColumn
             header="Title"
             overrides={{
-              // width 100% + maxWidth 0: the cell takes the space the fixed
-              // columns leave, but content can never widen it — titles
-              // truncate instead of overflowing the cell.
+              // No width: under tableLayout: fixed this column takes whatever
+              // the sized ones leave. It used to declare 100%, which together
+              // with the artist's 28% and the date's 160px asks for far more
+              // than the table has — that overspill is what scrolled it
+              // sideways. maxWidth 0 keeps long titles truncating rather than
+              // widening the cell.
               TableBodyCell: {
                 style: {
-                  verticalAlign: "center",
-                  width: "100%",
+                  verticalAlign: "middle",
                   maxWidth: 0,
                   overflow: "hidden",
                 },
@@ -323,7 +325,7 @@ function RecentTracks(props: RecentTracksProps) {
               // hidden, so under fixed layout these body-cell widths size the
               // columns; the Title column takes the remainder.
               TableBodyCell: {
-                style: { verticalAlign: "center", width: "28%" },
+                style: { verticalAlign: "middle", width: "28%" },
               },
             }}
           >
@@ -346,7 +348,7 @@ function RecentTracks(props: RecentTracksProps) {
                 style: {
                   verticalAlign: "middle",
                   width: "160px",
-                  paddingRight: "0px",
+                  paddingRight: "12px",
                 },
               },
             }}
