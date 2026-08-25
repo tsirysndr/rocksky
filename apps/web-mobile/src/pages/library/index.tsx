@@ -694,6 +694,8 @@ export default function LibraryPage() {
             </div>
             <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow(t); setSheetPlaylist(null); }} />
             <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
+            <SheetItem label="Play next" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNextAll(t); setSheetPlaylist(null); }} />
+            <SheetItem label="Add to queue" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playLastAll(t); setSheetPlaylist(null); }} />
             <SheetItem label="Insert shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNextAll([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
             <SheetItem label="Insert last shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playLastAll([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
             {creds && (

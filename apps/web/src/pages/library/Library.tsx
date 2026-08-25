@@ -872,6 +872,8 @@ function PlaylistContextMenu({
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconArrowsShuffle size={14} /> Play shuffled</span>
       </MenuItem>
       <MenuDivider />
+      <MenuItem onClick={async (e) => { e.stopPropagation(); playNextAll(await fetchTracks()); onClose(); }}>Play next</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); playLastAll(await fetchTracks()); onClose(); }}>Play last</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNextAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
       <MenuDivider />

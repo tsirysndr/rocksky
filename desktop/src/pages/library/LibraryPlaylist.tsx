@@ -497,6 +497,7 @@ export default function LibraryPlaylist() {
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [filter, setFilter] = useState("");
+  const [searchExpanded, setSearchExpanded] = useState(false);
 
   const songs: NavidromeSong[] = useMemo(() => playlist?.entry ?? [], [playlist]);
   // `||`, not `??`: navidrome used to hardcode duration to 0, so a deployment
@@ -585,10 +586,14 @@ export default function LibraryPlaylist() {
             <PlayButtons>
               <PlayBtn onClick={handlePlay} disabled={songs.length === 0}><IconPlayerPlay size={15} /> Play</PlayBtn>
               <ShuffleBtn onClick={handleShuffle} disabled={songs.length === 0}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
-              <ShuffleBtn onClick={openAddSongs}><IconPlus size={15} /> Add songs</ShuffleBtn>
-              <ShuffleBtn onClick={() => downloadFromNavidrome(creds, playlist.id)} disabled={songs.length === 0}><IconDownload size={15} /> Download</ShuffleBtn>
+              {!searchExpanded && (
+                <>
+                  <ShuffleBtn onClick={openAddSongs}><IconPlus size={15} /> Add songs</ShuffleBtn>
+                  <ShuffleBtn onClick={() => downloadFromNavidrome(creds, playlist.id)} disabled={songs.length === 0}><IconDownload size={15} /> Download</ShuffleBtn>
+                </>
+              )}
               <div style={{ marginLeft: "auto" }}>
-                <PlaylistSearch onChange={setFilter} />
+                <PlaylistSearch onChange={setFilter} onExpandedChange={setSearchExpanded} />
               </div>
             </PlayButtons>
           </Meta>
