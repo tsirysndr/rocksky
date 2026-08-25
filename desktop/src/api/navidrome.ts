@@ -23,6 +23,7 @@ export interface NavidromeSong {
   artistId?: string;
   track?: number;
   genre?: string;
+  suffix?: string;
 }
 
 export interface NavidromeAlbum {
@@ -110,6 +111,58 @@ export function getNavidromeStreamUrl(
     format: "raw",
   });
   return `${NAVIDROME_URL}/rest/stream?${p}`;
+}
+
+export function getNavidromeDownloadUrl(
+  creds: NavidromeCredentials,
+  songId: string,
+): string {
+  const p = new URLSearchParams({
+    u: creds.handle,
+    p: creds.apiKey,
+    v: V,
+    c: C,
+    id: songId,
+  });
+  return `${NAVIDROME_URL}/rest/download?${p}`;
+}
+
+const safeFilename = (name: string) =>
+  name.replace(/[\\/:*?"<>|]/g, "_").trim() || "track";
+
+/**
+ * Fetches into a blob rather than pointing an <a download> at the endpoint:
+ * that redirects to storage on another origin, where the download attribute is
+ * ignored and the file would open instead of saving under a real name.
+ */
+export async function downloadNavidromeSong(
+  creds: NavidromeCredentials,
+  song: NavidromeSong,
+): Promise<void> {
+  const res = await fetch(getNavidromeDownloadUrl(creds, song.id));
+  if (!res.ok) {
+    throw new Error(`Could not download "${song.title}" (${res.status})`);
+  }
+  const blob = await res.blob();
+  const ext = song.suffix || blob.type.split("/")[1] || "mp3";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${safeFilename(song.artist)} - ${safeFilename(song.title)}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** One at a time: browsers throttle or drop parallel downloads. */
+export async function downloadNavidromeSongs(
+  creds: NavidromeCredentials,
+  songs: NavidromeSong[],
+): Promise<void> {
+  for (const song of songs) {
+    await downloadNavidromeSong(creds, song);
+  }
 }
 
 export async function fetchNavidromeAlbums(

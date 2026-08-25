@@ -3,6 +3,7 @@ import {
   IconArrowLeft,
   IconArrowsShuffle,
   IconDots,
+  IconDownload,
   IconMusic,
   IconPlayerPlay,
   IconVinyl,
@@ -10,7 +11,13 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef, useEffect, useState } from "react";
 import { Route } from "../../routes/library/album/$id";
-import { getCoverArtUrl, type NavidromeSong, type NavidromeCredentials } from "../../api/navidrome";
+import {
+  downloadNavidromeSong,
+  downloadNavidromeSongs,
+  getCoverArtUrl,
+  type NavidromeCredentials,
+  type NavidromeSong,
+} from "../../api/navidrome";
 import { useNavidromeAlbumQuery, useNavidromeCredentials, songToQueueTrack } from "../../hooks/useNavidrome";
 import { useDeleteUploadByTrackIdMutation, useDeleteAlbumByIdMutation } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
@@ -407,6 +414,10 @@ function TrackMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
       <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); void downloadNavidromeSong(creds, song); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
+      </MenuItem>
+      <MenuDivider />
       <AddToPlaylistMenu songId={song.id} onDone={onClose} />
       {song.artistId && (
         <>
@@ -493,6 +504,7 @@ export default function LibraryAlbum() {
             <PlayButtons>
               <PlayBtn onClick={handlePlay}><IconPlayerPlay size={15} /> Play</PlayBtn>
               <ShuffleBtn onClick={handleShuffle}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
+              <ShuffleBtn onClick={() => void downloadNavidromeSongs(creds, songs)}><IconDownload size={15} /> Download</ShuffleBtn>
               <DeleteAlbumBtn
                 disabled={deleteAlbumById.isPending}
                 onClick={() => {

@@ -3,6 +3,7 @@ import {
   IconArrowLeft,
   IconArrowsShuffle,
   IconDots,
+  IconDownload,
   IconMusic,
   IconPlayerPlay,
   IconPlaylist,
@@ -12,6 +13,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Route } from "../../routes/library/playlist/$id";
 import {
+  downloadNavidromeSong,
   getCoverArtUrl,
   type NavidromeSong,
   type NavidromeCredentials,
@@ -450,6 +452,10 @@ function TrackContextMenu({
       </MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); void downloadNavidromeSong(creds, song); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
+      </MenuItem>
       <MenuDivider />
       <AddToPlaylistMenu songId={song.id} onDone={onClose} />
       {song.artistId && (

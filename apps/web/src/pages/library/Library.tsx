@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import {
   IconArrowsShuffle,
   IconDots,
+  IconDownload,
   IconMusic,
   IconPlayerPlay,
   IconSearch,
@@ -14,6 +15,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
+  downloadNavidromeSong,
+  downloadNavidromeSongs,
   fetchNavidromeAlbum,
   getCoverArtUrl,
   type NavidromeAlbum,
@@ -714,6 +717,10 @@ function TrackContextMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
       <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); void downloadNavidromeSong(creds, song); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
+      </MenuItem>
+      <MenuDivider />
       <AddToPlaylistMenu songId={song.id} onDone={onClose} />
       {song.artistId && (
         <>
@@ -791,6 +798,15 @@ function AlbumContextMenu({
       <MenuItem onClick={async (e) => { e.stopPropagation(); playNextAll(await fetchTracks()); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); playLastAll(await fetchTracks()); onClose(); }}>Play last</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Add shuffled</MenuItem>
+      <MenuDivider />
+      <MenuItem onClick={async (e) => {
+        e.stopPropagation();
+        onClose();
+        const full = await fetchNavidromeAlbum(creds, album.id);
+        await downloadNavidromeSongs(creds, full?.song ?? []);
+      }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
+      </MenuItem>
       {album.artistId && (
         <>
           <MenuDivider />
