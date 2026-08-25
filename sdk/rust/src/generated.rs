@@ -2266,6 +2266,9 @@ pub struct MirrorSourceView {
     pub provider: String,
     /// Whether scrobbles from this source are being mirrored into Rocksky.
     pub enabled: bool,
+    /// Whether Rocksky scrobbles are mirrored out to this source. Enabled unless the user turned it off. teal.fm only.
+    #[serde(rename = "pushEnabled", default, skip_serializing_if = "Option::is_none")]
+    pub push_enabled: Option<bool>,
     /// Username on the external service (Last.fm / ListenBrainz). Null for Teal.fm.
     #[serde(rename = "externalUsername", default, skip_serializing_if = "Option::is_none")]
     pub external_username: Option<String>,
@@ -2677,6 +2680,9 @@ pub struct PutMirrorSourceInput {
     /// Enable or disable mirroring for this provider.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
+    /// Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only.
+    #[serde(rename = "pushEnabled", default, skip_serializing_if = "Option::is_none")]
+    pub push_enabled: Option<bool>,
     /// External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm.
     #[serde(rename = "externalUsername", default, skip_serializing_if = "Option::is_none")]
     pub external_username: Option<String>,

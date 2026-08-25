@@ -4707,6 +4707,11 @@ export const schemaDict = {
             description:
               "Whether scrobbles from this source are being mirrored into Rocksky.",
           },
+          pushEnabled: {
+            type: "boolean",
+            description:
+              "Whether Rocksky scrobbles are mirrored out to this source. Enabled unless the user turned it off. teal.fm only.",
+          },
           externalUsername: {
             type: "string",
             description:
@@ -4785,6 +4790,11 @@ export const schemaDict = {
               enabled: {
                 type: "boolean",
                 description: "Enable or disable mirroring for this provider.",
+              },
+              pushEnabled: {
+                type: "boolean",
+                description:
+                  "Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only.",
               },
               externalUsername: {
                 type: "string",

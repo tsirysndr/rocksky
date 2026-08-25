@@ -8,6 +8,7 @@ import type { MirrorSourceView } from "lexicon/types/app/rocksky/mirror/defs";
 import type { InputSchema } from "lexicon/types/app/rocksky/mirror/putMirrorSource";
 import { encryptCredential } from "lib/storage-crypto";
 import tables from "schema";
+import { resolvePushEnabled } from "tealfm/pushEnabled";
 
 const PROVIDERS = new Set(["lastfm", "listenbrainz", "tealfm"]);
 const MIRROR_TOPIC = "rocksky.mirror.user";
@@ -104,6 +105,8 @@ const upsert = ({
       if (existing) {
         const updates: Record<string, unknown> = { updatedAt: now };
         if (input.enabled !== undefined) updates.enabled = input.enabled;
+        if (input.pushEnabled !== undefined)
+          updates.pushEnabled = input.pushEnabled;
         if (input.externalUsername !== undefined)
           updates.externalUsername = input.externalUsername;
         if (encryptedApiKey !== undefined)
@@ -123,6 +126,9 @@ const upsert = ({
             userId: user.id,
             provider: input.provider,
             enabled: input.enabled ?? false,
+            // Left NULL when unspecified so the default stays "enabled, unless
+            // DISABLED_TEALFM says otherwise" rather than being frozen now.
+            pushEnabled: input.pushEnabled ?? null,
             externalUsername: input.externalUsername ?? null,
             encryptedApiKey: encryptedApiKey ?? null,
             lastScrobbleSeenAt: input.enabled ? watermarkSeed : null,
@@ -144,6 +150,7 @@ const upsert = ({
       return {
         provider: row.provider,
         enabled: row.enabled,
+        pushEnabled: resolvePushEnabled(row.pushEnabled, did),
         externalUsername: row.externalUsername ?? undefined,
         hasCredentials: !!row.encryptedApiKey,
         lastPolledAt: row.lastPolledAt?.toISOString(),

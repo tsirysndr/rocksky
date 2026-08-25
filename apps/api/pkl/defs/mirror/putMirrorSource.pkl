@@ -20,6 +20,10 @@ defs = new Mapping<String, Procedure> {
             type = "boolean"
             description = "Enable or disable mirroring for this provider."
           }
+          ["pushEnabled"] = new BooleanType {
+            type = "boolean"
+            description = "Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only."
+          }
           ["externalUsername"] = new StringType {
             type = "string"
             description = "External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm."

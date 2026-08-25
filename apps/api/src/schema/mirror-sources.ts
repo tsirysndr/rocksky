@@ -19,6 +19,10 @@ const mirrorSources = pgTable(
       .references(() => users.id),
     provider: text("provider").notNull(),
     enabled: boolean("enabled").notNull().default(false),
+    // Rocksky -> the provider. Nullable on purpose: NULL means "never set",
+    // which the API reports as enabled, so existing rows keep pushing without
+    // a backfill. Only teal.fm reads it today.
+    pushEnabled: boolean("push_enabled"),
     externalUsername: text("external_username"),
     encryptedApiKey: text("encrypted_api_key"),
     lastPolledAt: timestamp("last_polled_at"),

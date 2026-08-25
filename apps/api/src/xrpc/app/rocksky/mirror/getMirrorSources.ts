@@ -6,6 +6,7 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { MirrorSourceView } from "lexicon/types/app/rocksky/mirror/defs";
 import tables from "schema";
+import { resolvePushEnabled } from "tealfm/pushEnabled";
 
 const PROVIDERS = ["lastfm", "listenbrainz", "tealfm"] as const;
 
@@ -69,6 +70,7 @@ const retrieve = ({
         return {
           provider,
           enabled: r?.enabled ?? false,
+          pushEnabled: resolvePushEnabled(r?.pushEnabled, did),
           externalUsername: r?.externalUsername ?? undefined,
           hasCredentials: !!r?.encryptedApiKey,
           lastPolledAt: r?.lastPolledAt?.toISOString(),
@@ -86,5 +88,6 @@ const emptySources = (): MirrorSourceView[] =>
   PROVIDERS.map((provider) => ({
     provider,
     enabled: false,
+    pushEnabled: true,
     hasCredentials: false,
   }));

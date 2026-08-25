@@ -18,6 +18,10 @@
           "type": "boolean",
           "description": "Whether scrobbles from this source are being mirrored into Rocksky."
         },
+        "pushEnabled": {
+          "type": "boolean",
+          "description": "Whether Rocksky scrobbles are mirrored out to this source. Enabled unless the user turned it off. teal.fm only."
+        },
         "externalUsername": {
           "type": "string",
           "description": "Username on the external service (Last.fm / ListenBrainz). Null for Teal.fm."

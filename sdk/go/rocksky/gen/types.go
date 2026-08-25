@@ -1598,6 +1598,8 @@ type MirrorSourceView struct {
 	Provider string `json:"provider,omitempty"`
 	// Whether scrobbles from this source are being mirrored into Rocksky.
 	Enabled bool `json:"enabled,omitempty"`
+	// Whether Rocksky scrobbles are mirrored out to this source. Enabled unless the user turned it off. teal.fm only.
+	PushEnabled bool `json:"pushEnabled,omitempty"`
 	// Username on the external service (Last.fm / ListenBrainz). Null for Teal.fm.
 	ExternalUsername string `json:"externalUsername,omitempty"`
 	// True when an API key is stored. Last.fm/ListenBrainz only; always false for Teal.fm.
@@ -1889,6 +1891,8 @@ type PutMirrorSourceInput struct {
 	Provider string `json:"provider,omitempty"`
 	// Enable or disable mirroring for this provider.
 	Enabled bool `json:"enabled,omitempty"`
+	// Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only.
+	PushEnabled bool `json:"pushEnabled,omitempty"`
 	// External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm.
 	ExternalUsername string `json:"externalUsername,omitempty"`
 	// API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it.

@@ -6,8 +6,8 @@ import type * as Status from "lexicon/types/fm/teal/actor/status";
 import type { PlayView } from "lexicon/types/fm/teal/feed/defs";
 import * as LegacyPlay from "lexicon/types/fm/teal/alpha/feed/play";
 import * as Play from "lexicon/types/fm/teal/feed/play";
-import { env } from "lib/env";
 import type { MusicbrainzTrack } from "types/track";
+import { isTealPushEnabled } from "./pushEnabled";
 
 const SUBMISSION_CLIENT_AGENT = "rocksky/v0.0.1";
 const LEGACY_PLAY_COLLECTION = "fm.teal.alpha.feed.play";
@@ -52,9 +52,9 @@ async function publishPlayingNow(
     return;
   }
 
-  if (env.DISABLED_TEALFM.includes(agent.assertDid)) {
+  if (!(await isTealPushEnabled(agent.assertDid))) {
     consola.info(
-      `teal.fm is disabled for ${chalk.cyanBright(agent.assertDid)}`,
+      `teal.fm push is disabled for ${chalk.cyanBright(agent.assertDid)}`,
     );
     return;
   }

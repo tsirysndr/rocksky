@@ -1641,6 +1641,8 @@ export interface MirrorSourceView {
   provider: string;
   /** Whether scrobbles from this source are being mirrored into Rocksky. */
   enabled: boolean;
+  /** Whether Rocksky scrobbles are mirrored out to this source. Enabled unless the user turned it off. teal.fm only. */
+  pushEnabled?: boolean;
   /** Username on the external service (Last.fm / ListenBrainz). Null for Teal.fm. */
   externalUsername?: string;
   /** True when an API key is stored. Last.fm/ListenBrainz only; always false for Teal.fm. */
@@ -1934,6 +1936,8 @@ export interface PutMirrorSourceInput {
   provider: string;
   /** Enable or disable mirroring for this provider. */
   enabled?: boolean;
+  /** Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only. */
+  pushEnabled?: boolean;
   /** External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm. */
   externalUsername?: string;
   /** API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it. */

@@ -280,6 +280,7 @@ function ProviderPanel({
   source: MirrorSourceView;
   onPut: (input: {
     enabled?: boolean;
+    pushEnabled?: boolean;
     externalUsername?: string;
     apiKey?: string;
   }) => void;
@@ -493,7 +494,9 @@ function ProviderPanel({
             className="font-semibold text-sm m-[0px]"
             style={{ color: "var(--color-text)" }}
           >
-            Mirror enabled
+            {source.provider === "tealfm"
+              ? "Mirror enabled — Teal.fm → Rocksky"
+              : "Mirror enabled"}
           </p>
           <p
             className="text-xs m-[0px] mt-[4px]"
@@ -515,6 +518,40 @@ function ProviderPanel({
           onChange={(e) => onPut({ enabled: e.target.checked })}
         />
       </div>
+
+      {source.provider === "tealfm" && (
+        <div
+          className="rounded-xl p-[16px] mt-[12px] flex items-center justify-between"
+          style={{
+            backgroundColor: "var(--color-surface)",
+          }}
+        >
+          <div className="min-w-0 flex-1 pr-[12px]">
+            <p
+              className="font-semibold text-sm m-[0px]"
+              style={{ color: "var(--color-text)" }}
+            >
+              Mirror enabled — Rocksky → Teal.fm
+            </p>
+            <p
+              className="text-xs m-[0px] mt-[4px]"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {source.pushEnabled !== false
+                ? "Your Rocksky scrobbles are published to your Teal.fm play records."
+                : "Your Rocksky scrobbles stay out of Teal.fm."}
+            </p>
+          </div>
+          <Checkbox
+            checked={source.pushEnabled !== false}
+            checkmarkType={STYLE_TYPE.toggle_round}
+            disabled={busy}
+            labelPlacement={LABEL_PLACEMENT.right}
+            overrides={TOGGLE_OVERRIDES}
+            onChange={(e) => onPut({ pushEnabled: e.target.checked })}
+          />
+        </div>
+      )}
 
       {(source.lastPolledAt || source.lastScrobbleSeenAt) && (
         <div className="mt-[12px] px-[4px] text-xs" style={{ color: "var(--color-text-muted)" }}>

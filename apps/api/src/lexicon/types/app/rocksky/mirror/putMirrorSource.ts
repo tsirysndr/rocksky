@@ -16,6 +16,8 @@ export interface InputSchema {
   provider: string;
   /** Enable or disable mirroring for this provider. */
   enabled?: boolean;
+  /** Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only. */
+  pushEnabled?: boolean;
   /** External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm. */
   externalUsername?: string;
   /** API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it. */

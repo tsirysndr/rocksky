@@ -4,7 +4,10 @@ export type MirrorProvider = "lastfm" | "listenbrainz" | "tealfm";
 
 export interface MirrorSourceView {
   provider: MirrorProvider;
+  /** Provider -> Rocksky. */
   enabled: boolean;
+  /** Rocksky -> provider. teal.fm only; on unless the user turned it off. */
+  pushEnabled?: boolean;
   externalUsername?: string;
   hasCredentials: boolean;
   lastPolledAt?: string;
@@ -19,6 +22,7 @@ export const getMirrorSources = async (): Promise<MirrorSourceView[]> => {
 export interface PutMirrorSourceInput {
   provider: MirrorProvider;
   enabled?: boolean;
+  pushEnabled?: boolean;
   externalUsername?: string;
   /** Omit to leave existing key unchanged. Empty string to clear. */
   apiKey?: string;

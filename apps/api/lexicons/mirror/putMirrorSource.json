@@ -21,6 +21,10 @@
               "type": "boolean",
               "description": "Enable or disable mirroring for this provider."
             },
+            "pushEnabled": {
+              "type": "boolean",
+              "description": "Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only."
+            },
             "externalUsername": {
               "type": "string",
               "description": "External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm."
