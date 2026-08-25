@@ -22,6 +22,7 @@ export interface NavidromeSong {
   albumId?: string;
   artistId?: string;
   track?: number;
+  discNumber?: number;
   genre?: string;
 }
 

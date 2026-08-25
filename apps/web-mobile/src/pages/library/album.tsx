@@ -88,6 +88,21 @@ export default function LibraryAlbumPage() {
   const songs: NavidromeSong[] = useMemo(() => album?.song ?? [], [album]);
   const totalDuration = album?.duration ?? songs.reduce((sum, s) => sum + s.duration, 0);
 
+  // idx stays the position in the flat list — the queue and the action sheet
+  // index into that, so grouping must not renumber it.
+  const discs = useMemo(() => {
+    const byDisc = new Map<number, { song: NavidromeSong; idx: number }[]>();
+    songs.forEach((song, idx) => {
+      const disc = song.discNumber ?? 1;
+      const bucket = byDisc.get(disc);
+      if (bucket) bucket.push({ song, idx });
+      else byDisc.set(disc, [{ song, idx }]);
+    });
+    return [...byDisc.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([disc, tracks]) => ({ disc, tracks }));
+  }, [songs]);
+
   const queue = useCallback(
     (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, albumArt)) : []),
     [creds, songs, albumArt],
@@ -205,8 +220,17 @@ export default function LibraryAlbumPage() {
         </div>
 
         {/* Track list */}
-        <div className="flex flex-col">
-          {songs.map((song, idx) => (
+        {discs.map(({ disc, tracks }) => (
+        <div className="flex flex-col" key={disc}>
+          {discs.length > 1 && (
+            <p
+              className="text-xs uppercase tracking-wider font-semibold m-0 mt-5 mb-1"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Volume {disc}
+            </p>
+          )}
+          {tracks.map(({ song, idx }) => (
             <div
               key={song.id}
               className="flex items-center gap-3 py-3 active:opacity-70"
@@ -239,6 +263,7 @@ export default function LibraryAlbumPage() {
             </div>
           ))}
         </div>
+        ))}
       </div>
 
       {/* Track action sheet */}

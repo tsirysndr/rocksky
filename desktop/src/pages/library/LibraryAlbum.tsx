@@ -9,7 +9,7 @@ import {
   IconVinyl,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useEffect, useState } from "react";
+import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { Route } from "../../routes/library/album/$id";
 import {
   downloadFromNavidrome,
@@ -157,6 +157,15 @@ const DeleteAlbumBtn = styled(ShuffleBtn)`
   color: #e55;
   &:hover { color: #e55; opacity: 0.8; }
   &:disabled { opacity: 0.4; cursor: default; }
+`;
+
+const VolumeHeading = styled.div`
+  font-family: RockfordSansMedium;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 20px 0 6px;
 `;
 
 const TrackList = styled.div`
@@ -456,6 +465,21 @@ export default function LibraryAlbum() {
   const { data: album, isLoading } = useNavidromeAlbumQuery(id);
 
   const songs: NavidromeSong[] = album?.song ?? [];
+
+  // idx is the position in the flat list, which is what the queue and the
+  // context menu index into — grouping must not renumber it.
+  const discs = useMemo(() => {
+    const byDisc = new Map<number, { song: NavidromeSong; idx: number }[]>();
+    songs.forEach((song, idx) => {
+      const disc = song.discNumber ?? 1;
+      const bucket = byDisc.get(disc);
+      if (bucket) bucket.push({ song, idx });
+      else byDisc.set(disc, [{ song, idx }]);
+    });
+    return [...byDisc.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([disc, tracks]) => ({ disc, tracks }));
+  }, [songs]);
   const albumArtUrl = creds && album?.coverArt ? getCoverArtUrl(creds, album.coverArt) : null;
   const totalSecs = songs.reduce((sum, s) => sum + s.duration, 0);
 
@@ -517,8 +541,10 @@ export default function LibraryAlbum() {
           </AlbumMeta>
         </AlbumHeader>
 
-        <TrackList>
-          {songs.map((song, idx) => (
+        {discs.map(({ disc, tracks }) => (
+        <TrackList key={disc}>
+          {discs.length > 1 && <VolumeHeading>Volume {disc}</VolumeHeading>}
+          {tracks.map(({ song, idx }) => (
             <TrackRow key={song.id} onClick={() => handleTrackClick(idx)}>
               <TrackNum>{song.track ?? idx + 1}</TrackNum>
               <TrackInfo>
@@ -553,6 +579,7 @@ export default function LibraryAlbum() {
             </TrackRow>
           ))}
         </TrackList>
+        ))}
       </Page>
     </Main>
   );
