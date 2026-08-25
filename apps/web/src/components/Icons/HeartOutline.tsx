@@ -16,6 +16,10 @@ const HeartOutline: React.FC<HeartOutlineProps> = ({
     width={size}
     xmlns="http://www.w3.org/2000/svg"
     height={size}
+    // The paths are drawn in a 20-unit space. Without a viewBox, width/height
+    // only resize the canvas — the drawing keeps its own size and anything
+    // under 20px is clipped on the right and bottom rather than scaled.
+    viewBox="0 0 20 20"
     style={{
       WebkitPrintColorAdjust: "exact",
       paddingTop: 1,
