@@ -51,6 +51,9 @@ export const getSongByUri = async (uri: string) => {
     spotifyLink: data.spotifyLink,
     composer: data.composer,
     uri: data.uri,
+    // A song's own URI is what liking needs, so they're the same here.
+    trackUri: data.uri,
+    liked: data.liked,
     artists: (data.artists ?? []).map((artist) => ({
       id: artist.id ?? "",
       name: artist.name ?? "",

@@ -178,7 +178,7 @@ export default function Song() {
 
             {/* Links */}
             <div className="mb-6 flex flex-col gap-3">
-              <LikeButton uri={song.uri} liked={song.liked} withLabel />
+              <LikeButton uri={song.trackUri ?? song.uri} liked={song.liked} withLabel />
               <ShareOnBluesky
                 text={`${isScrobble ? "Just scrobbled" : "Listening to"} ${song.title} by ${song.albumArtist || song.artist} on Rocksky 🎵\n${window.location.href}`}
               />

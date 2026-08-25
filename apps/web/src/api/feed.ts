@@ -35,6 +35,9 @@ export const getScrobbleByUri = async (uri: string) => {
     spotifyLink: data.spotifyLink,
     composer: data.composer,
     uri: data.uri,
+    // `uri` is the scrobble's; liking needs the song's.
+    trackUri: data.trackUri,
+    liked: data.liked,
     artists: (data.artists ?? []).map((artist) => ({
       id: artist.id ?? "",
       name: artist.name ?? "",

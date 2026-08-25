@@ -2248,6 +2248,8 @@ export interface ScrobbleViewDetailed {
   /** The SHA256 hash of the scrobble data. */
   sha256?: string;
   liked?: boolean;
+  /** The URI of the track (song) this scrobble is of. */
+  trackUri?: string;
   likesCount?: number;
   /** The number of listeners */
   listeners?: number;

@@ -3120,6 +3120,9 @@ pub struct ScrobbleViewDetailed {
     pub sha256: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub liked: Option<bool>,
+    /// The URI of the track (song) this scrobble is of.
+    #[serde(rename = "trackUri", default, skip_serializing_if = "Option::is_none")]
+    pub track_uri: Option<String>,
     #[serde(rename = "likesCount", default, skip_serializing_if = "Option::is_none")]
     pub likes_count: Option<i64>,
     /// The number of listeners

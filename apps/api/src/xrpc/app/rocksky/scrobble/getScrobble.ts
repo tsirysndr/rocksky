@@ -1,3 +1,4 @@
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { consola } from "consola";
 import { asc, count, countDistinct, eq } from "drizzle-orm";
@@ -6,6 +7,7 @@ import type { Server } from "lexicon";
 import type { ScrobbleViewDetailed } from "lexicon/types/app/rocksky/scrobble/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobble";
 import * as R from "ramda";
+import { withLikes } from "lib/trackLikes";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
 import type { SelectScrobble } from "schema/scrobbles";
@@ -14,9 +16,9 @@ import type { SelectUser } from "schema/users";
 import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
-  const getScrobble = (params: QueryParams) =>
+  const getScrobble = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
-      { params, ctx },
+      { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
@@ -27,8 +29,11 @@ export default function (server: Server, ctx: Context) {
       }),
     );
   server.app.rocksky.scrobble.getScrobble({
-    handler: async ({ params }) => {
-      const result = await Effect.runPromise(getScrobble(params));
+    // Optional: authVerifier returns {} without a token, so the scrobble stays
+    // public — a DID just means `liked` can be filled in.
+    auth: ctx.authVerifier,
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(getScrobble(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -40,12 +45,15 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({
   params,
   ctx,
+  did,
 }: {
   params: QueryParams;
   ctx: Context;
+  did?: string;
 }): Effect.Effect<
   [
     Scrobble | undefined,
+    boolean,
     SelectArtist[],
     number,
     number,
@@ -82,6 +90,9 @@ const retrieve = ({
 
       return Promise.all([
         Promise.resolve(scrobble),
+        withLikes(ctx, [scrobble?.tracks], did).then(
+          (rows) => rows[0]?.liked ?? false,
+        ),
         Promise.resolve(artists.filter((x) => x !== undefined)),
         // count the number of listeners
         ctx.db
@@ -130,12 +141,14 @@ const retrieve = ({
 
 const presentation = ([
   { scrobbles, tracks, users, albums, artists },
+  liked,
   trackArtists,
   listeners,
   scrobblesCount,
   firstScrobble,
 ]: [
   Scrobble | undefined,
+  boolean,
   SelectArtist[],
   number,
   number,
@@ -149,6 +162,9 @@ const presentation = ([
       updatedAt: item.updatedAt.toISOString(),
     })),
     albumUri: albums.uri,
+    // `uri` below is the scrobble's; liking needs the song's.
+    trackUri: tracks.uri,
+    liked,
     cover: tracks.albumArt,
     date: scrobbles.timestamp.toISOString(),
     user: users.handle,

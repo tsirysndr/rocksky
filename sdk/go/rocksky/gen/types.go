@@ -2201,6 +2201,8 @@ type ScrobbleViewDetailed struct {
 	// The SHA256 hash of the scrobble data.
 	SHA256 string `json:"sha256,omitempty"`
 	Liked bool `json:"liked,omitempty"`
+	// The URI of the track (song) this scrobble is of.
+	TrackURI string `json:"trackUri,omitempty"`
 	LikesCount int `json:"likesCount,omitempty"`
 	// The number of listeners
 	Listeners int `json:"listeners,omitempty"`

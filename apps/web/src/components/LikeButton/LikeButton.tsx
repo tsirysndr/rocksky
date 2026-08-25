@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import useLike from "../../hooks/useLike";
 import HeartFilled from "../Icons/Heart";
 import HeartOutline from "../Icons/HeartOutline";
@@ -41,6 +41,16 @@ type Props = {
 function LikeButton({ uri, liked, withLabel }: Props) {
   const [isLiked, setIsLiked] = useState(!!liked);
   const [pending, setPending] = useState(false);
+
+  // The page header renders before its query resolves, so `liked` arrives after
+  // mount and useState's initial value is already stale. Adopt it when it
+  // changes — but never mid-toggle, or an in-flight optimistic flip gets
+  // reverted by the pre-toggle value.
+  const lastLiked = useRef(liked);
+  if (liked !== lastLiked.current) {
+    lastLiked.current = liked;
+    if (!pending && !!liked !== isLiked) setIsLiked(!!liked);
+  }
   const [signInOpen, setSignInOpen] = useState(false);
   const { like, unlike } = useLike();
 

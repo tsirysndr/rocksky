@@ -1,5 +1,5 @@
 import { IconHeart, IconHeartFilled } from "@tabler/icons-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { like, unlike } from "../../api/likes";
 import SignInModal from "../SignInModal";
 
@@ -14,6 +14,15 @@ type Props = {
 export default function LikeButton({ uri, liked, withLabel }: Props) {
   const [isLiked, setIsLiked] = useState(!!liked);
   const [pending, setPending] = useState(false);
+
+  // The page renders before its query resolves, so `liked` arrives after mount
+  // and useState's initial value is already stale. Adopt it when it changes —
+  // but never mid-toggle, or an in-flight optimistic flip gets reverted.
+  const lastLiked = useRef(liked);
+  if (liked !== lastLiked.current) {
+    lastLiked.current = liked;
+    if (!pending && !!liked !== isLiked) setIsLiked(!!liked);
+  }
   const [signInOpen, setSignInOpen] = useState(false);
 
   if (!uri) return null;

@@ -20,6 +20,8 @@ export const songAtom = atom<{
   spotifyLink?: string;
   composer?: string | null;
   uri?: string;
+  /** The song's own AT-URI. On a scrobble page `uri` is the scrobble's. */
+  trackUri?: string;
   /** Whether the signed-in user has loved this song. */
   liked?: boolean;
 } | null>(null);

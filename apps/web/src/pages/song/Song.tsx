@@ -386,7 +386,6 @@ const Song = () => {
             </Group>
 
             <div className="flex items-center gap-[12px] mt-[20px] mb-[10px]">
-              <LikeButton uri={song?.uri} liked={song?.liked} withLabel />
               <PillLink
                 href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                 target="_blank"
@@ -394,6 +393,7 @@ const Song = () => {
                 <ExternalLink size={16} />
                 View on PDSls
               </PillLink>
+              <LikeButton uri={song?.trackUri ?? song?.uri} liked={song?.liked} withLabel />
               <ShareOnBluesky
                 text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵\n${window.location.href}`}
               />

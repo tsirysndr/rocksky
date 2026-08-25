@@ -166,6 +166,10 @@ defs = new Mapping<String, ObjectType> {
       ["liked"] = new BooleanType {
         type = "boolean"
       }
+      ["trackUri"] = new StringType {
+        type = "string"
+        description = "The URI of the track (song) this scrobble is of."
+      }
 
       ["likesCount"] = new IntegerType {
         type = "integer"

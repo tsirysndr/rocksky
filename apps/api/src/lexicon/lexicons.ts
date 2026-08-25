@@ -6703,6 +6703,10 @@ export const schemaDict = {
           liked: {
             type: "boolean",
           },
+          trackUri: {
+            type: "string",
+            description: "The URI of the track (song) this scrobble is of.",
+          },
           likesCount: {
             type: "integer",
           },
