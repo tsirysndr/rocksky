@@ -167,28 +167,14 @@ button {
   color: inherit;
 }
 
-/* Tauri desktop shell (titleBarStyle: Overlay + hiddenTitle): the macOS
-   traffic lights overlay the top-left ~80x28px of the webview. Nudge the
-   fixed navbar's content down a touch so its leftmost controls (logo/title
-   on narrow windows) never sit under the buttons. The class is set on <body>
-   from main.tsx when running inside Tauri. */
-body.tauri-desktop .navbar-container {
-  padding-top: 14px;
-}
-
-/* WKWebView paints its default blue focus ring on click/programmatic focus —
-   popover menus get focused when they open. Drop the ring for mouse/programmatic
-   focus only; keyboard navigation (:focus-visible) keeps its outline. */
-:focus:not(:focus-visible) {
-  outline: none;
-}
-
 
 /* ── Audio sliders ──────────────────────────────────────────────────────────
    WKWebView's native range rendering ignores accent-color and draws a track
    that's invisible on the dark theme. Style every range input's track + thumb
    explicitly (solid rgba fallback first — color-mix may be unsupported). */
 input[type="range"] {
+  --range-glow: rgba(171, 40, 252, 0.55);
+  --range-glow: color-mix(in srgb, var(--color-primary) 55%, transparent);
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
@@ -209,7 +195,9 @@ input[type="range"]::-webkit-slider-thumb {
   border: none;
   background: var(--color-primary);
   margin-top: -4.5px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 6px var(--range-glow),
+    0 0 14px var(--range-glow);
 }
 input[type="range"]::-moz-range-track {
   height: 4px;
@@ -223,5 +211,11 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 50%;
   border: none;
   background: var(--color-primary);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 6px var(--range-glow),
+    0 0 14px var(--range-glow);
+}
+input[type="range"]:disabled::-webkit-slider-thumb,
+input[type="range"]:disabled::-moz-range-thumb {
+  box-shadow: none;
 }

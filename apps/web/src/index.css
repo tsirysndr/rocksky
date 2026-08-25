@@ -173,6 +173,8 @@ button {
    that's invisible on the dark theme. Style every range input's track + thumb
    explicitly (solid rgba fallback first — color-mix may be unsupported). */
 input[type="range"] {
+  --range-glow: rgba(171, 40, 252, 0.55);
+  --range-glow: color-mix(in srgb, var(--color-primary) 55%, transparent);
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
@@ -193,7 +195,9 @@ input[type="range"]::-webkit-slider-thumb {
   border: none;
   background: var(--color-primary);
   margin-top: -4.5px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 6px var(--range-glow),
+    0 0 14px var(--range-glow);
 }
 input[type="range"]::-moz-range-track {
   height: 4px;
@@ -207,5 +211,11 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 50%;
   border: none;
   background: var(--color-primary);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 6px var(--range-glow),
+    0 0 14px var(--range-glow);
+}
+input[type="range"]:disabled::-webkit-slider-thumb,
+input[type="range"]:disabled::-moz-range-thumb {
+  box-shadow: none;
 }

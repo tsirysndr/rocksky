@@ -157,7 +157,7 @@ export const Slider = styled.input`
     border-radius: 50%;
     border: none;
     background: var(--color-primary);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 6px var(--range-glow), 0 0 14px var(--range-glow);
   }
 
   &::-moz-range-track {
@@ -173,7 +173,7 @@ export const Slider = styled.input`
     border-radius: 50%;
     border: none;
     background: var(--color-primary);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 6px var(--range-glow), 0 0 14px var(--range-glow);
   }
 `;
 

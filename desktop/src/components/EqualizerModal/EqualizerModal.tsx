@@ -29,6 +29,7 @@ const VerticalSlider = styled.input<{ disabled: boolean }>`
     background: #ffffff;
     margin-top: 0;
     margin-left: -5px;
+    box-shadow: 0 0 6px var(--range-glow), 0 0 14px var(--range-glow);
   }
 `;
 
