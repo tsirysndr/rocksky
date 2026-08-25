@@ -2,7 +2,7 @@ import { AtpAgent, type Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { InvalidRequestError } from "@atproto/xrpc-server";
 import type { Context } from "context";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import * as Playlist from "lexicon/types/app/rocksky/playlist";
 import * as PlaylistSong from "lexicon/types/app/rocksky/playlist/song";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
@@ -215,10 +215,14 @@ export async function removeTrackFromPlaylist(
   agent: Agent,
   did: string,
   playlistUri: string,
-  songUri: string,
+  songUri?: string,
+  index?: number,
 ): Promise<void> {
+  // Same ordering getPlaylist presents, so `index` means the row the user
+  // clicked. addedAt is the record's own timestamp; createdAt only says when
+  // we ingested it, which differs when entries arrive out of order.
   const entries = await ctx.db
-    .select({ uri: tables.playlistTracks.uri })
+    .select({ uri: tables.playlistTracks.uri, songUri: tables.tracks.uri })
     .from(tables.playlistTracks)
     .innerJoin(
       tables.playlists,
@@ -228,25 +232,53 @@ export async function removeTrackFromPlaylist(
       tables.tracks,
       eq(tables.playlistTracks.trackId, tables.tracks.id),
     )
-    .where(
-      and(
-        eq(tables.playlists.uri, playlistUri),
-        eq(tables.tracks.uri, songUri),
-      ),
+    .where(eq(tables.playlists.uri, playlistUri))
+    .orderBy(
+      asc(tables.playlistTracks.addedAt),
+      asc(tables.playlistTracks.createdAt),
     )
     .execute();
 
+  // A song can sit in a playlist more than once, so a position identifies one
+  // entry where a song URI identifies a set. Prefer the position; songUri is
+  // the older, blunter path and still removes every copy.
+  let targets: { uri: string | null }[];
+  if (index !== undefined) {
+    const at = entries[index];
+    if (!at) {
+      throw new InvalidRequestError(
+        `No track at position ${index} in that playlist`,
+        "NotFound",
+      );
+    }
+    // Guard against the list having shifted between render and click.
+    if (songUri && at.songUri !== songUri) {
+      throw new InvalidRequestError(
+        "The playlist changed since you loaded it — reload and try again",
+        "Conflict",
+      );
+    }
+    targets = [at];
+  } else if (songUri) {
+    targets = entries.filter((e) => e.songUri === songUri);
+  } else {
+    throw new InvalidRequestError(
+      "Pass either index or songUri",
+      "InvalidRequest",
+    );
+  }
+
   // An entry can only be retracted by the repo that published it.
-  const own = entries
+  const own = targets
     .map((e) => e.uri)
     .filter((uri) => uri && atUriRepo(uri) === did);
 
   if (own.length === 0) {
     throw new InvalidRequestError(
-      entries.length > 0
+      targets.length > 0
         ? "That track was added by someone else and can only be removed by them"
         : "Track not found in playlist",
-      entries.length > 0 ? "Forbidden" : "NotFound",
+      targets.length > 0 ? "Forbidden" : "NotFound",
     );
   }
 

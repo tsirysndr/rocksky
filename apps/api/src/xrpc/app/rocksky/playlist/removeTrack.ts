@@ -47,8 +47,11 @@ const remove = ({
         did,
         params.uri,
         params.songUri,
+        params.index,
       );
-      consola.info(`Removed ${params.songUri} from ${params.uri}`);
+      consola.info(
+        `Removed ${params.index !== undefined ? `#${params.index}` : params.songUri} from ${params.uri}`,
+      );
     },
     catch: (error) =>
       new Error(`Failed to remove track from playlist: ${error}`),

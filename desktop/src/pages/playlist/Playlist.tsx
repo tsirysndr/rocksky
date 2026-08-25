@@ -198,23 +198,33 @@ function Playlist() {
 
   const isOwner = !!profile?.did && profile.did === playlist?.curatedBy?.did;
 
-  const onRemoveTrack = async (songUri: string) => {
+  const onRemoveTrack = async (songUri: string, index: number) => {
     if (!playlist?.curatedBy?.did || !rkey) return;
     await removeTrack.mutateAsync({
       uri: `at://${playlist.curatedBy.did}/app.rocksky.playlist/${rkey}`,
       songUri,
+      index,
     });
     // The row only disappears from the AppView once jetstream ingests the
-    // delete commit, so drop it locally rather than refetching into a stale list.
+    // delete commit, so drop it locally rather than refetching into a stale
+    // list. By position, matching what the server removed — filtering on the
+    // song URI would drop every copy of a song listed more than once.
     setPlaylist((prev) =>
       prev
-        ? { ...prev, tracks: prev.tracks.filter((t) => t.uri !== songUri) }
+        ? { ...prev, tracks: prev.tracks.filter((_, i) => i !== index) }
         : prev,
     );
-    setPending((prev) => ({
-      ...prev,
-      [playlistUri]: (prev[playlistUri] ?? []).filter((t) => t.uri !== songUri),
-    }));
+    // Pending rows are appended after the ingested ones, so a position past
+    // the end of the real list is one of them.
+    const pendingIndex = index - (playlist.tracks?.length ?? 0);
+    if (pendingIndex >= 0) {
+      setPending((prev) => ({
+        ...prev,
+        [playlistUri]: (prev[playlistUri] ?? []).filter(
+          (_, i) => i !== pendingIndex,
+        ),
+      }));
+    }
   };
 
   const refetch = useCallback(async () => {
@@ -462,7 +472,7 @@ function Playlist() {
                       aria-label={`Remove ${row.title} from this playlist`}
                       title="Remove from playlist"
                       disabled={removeTrack.isPending}
-                      onClick={() => void onRemoveTrack(row.uri)}
+                      onClick={() => void onRemoveTrack(row.uri, row.index)}
                     >
                       <IconTrash size={16} />
                     </RowAction>

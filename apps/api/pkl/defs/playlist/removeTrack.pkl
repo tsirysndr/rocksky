@@ -6,9 +6,9 @@ defs = new Mapping<String, Procedure> {
   ["main"] {
     type = "procedure"
     description =
-      "Remove a track from a playlist. Deletes the app.rocksky.playlist.song record that put it there, which only the repo that added it can do."
+      "Remove one track from a playlist. Deletes the app.rocksky.playlist.song record that put it there, which only the repo that added it can do. Prefer `index`: a song can sit in a playlist more than once, and `songUri` alone cannot say which copy to drop."
     parameters = new Params {
-      required = List("uri", "songUri")
+      required = List("uri")
       properties {
         ["uri"] = new StringType {
           type = "string"
@@ -17,8 +17,13 @@ defs = new Mapping<String, Procedure> {
         }
         ["songUri"] = new StringType {
           type = "string"
-          description = "The URI of the app.rocksky.song record to remove from the playlist"
+          description = "The URI of the app.rocksky.song record to remove. Removes every copy of it; pass `index` instead to remove one."
           format = "at-uri"
+        }
+        ["index"] = new IntegerType {
+          type = "integer"
+          description = "0-based position of the entry to remove, in the order getPlaylist returns."
+          minimum = 0
         }
       }
     }

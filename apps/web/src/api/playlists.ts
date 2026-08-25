@@ -82,12 +82,18 @@ export const removePlaylist = async (uri: string): Promise<void> => {
   });
 };
 
+/**
+ * `index` identifies one entry; `songUri` alone would drop every copy of a
+ * song that sits in the playlist more than once. It is still sent so the
+ * server can reject a stale position.
+ */
 export const removeTrackFromPlaylist = async (input: {
   uri: string;
   songUri: string;
+  index: number;
 }): Promise<void> => {
   await rocksky().post("app.rocksky.playlist.removeTrack", {
-    params: { uri: input.uri, songUri: input.songUri },
+    params: { uri: input.uri, songUri: input.songUri, index: input.index },
   });
 };
 

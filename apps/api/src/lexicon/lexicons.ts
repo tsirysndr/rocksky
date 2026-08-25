@@ -5807,10 +5807,10 @@ export const schemaDict = {
       main: {
         type: "procedure",
         description:
-          "Remove a track from a playlist. Deletes the app.rocksky.playlist.song record that put it there, which only the repo that added it can do.",
+          "Remove one track from a playlist. Deletes the app.rocksky.playlist.song record that put it there, which only the repo that added it can do. Prefer `index`: a song can sit in a playlist more than once, and `songUri` alone cannot say which copy to drop.",
         parameters: {
           type: "params",
-          required: ["uri", "songUri"],
+          required: ["uri"],
           properties: {
             uri: {
               type: "string",
@@ -5820,8 +5820,14 @@ export const schemaDict = {
             songUri: {
               type: "string",
               description:
-                "The URI of the app.rocksky.song record to remove from the playlist",
+                "The URI of the app.rocksky.song record to remove. Removes every copy of it; pass `index` instead to remove one.",
               format: "at-uri",
+            },
+            index: {
+              type: "integer",
+              description:
+                "0-based position of the entry to remove, in the order getPlaylist returns.",
+              minimum: 0,
             },
           },
         },

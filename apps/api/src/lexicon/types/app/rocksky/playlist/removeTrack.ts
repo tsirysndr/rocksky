@@ -12,7 +12,9 @@ export interface QueryParams {
   /** The URI of the playlist to remove the track from */
   uri: string;
   /** The URI of the app.rocksky.song record to remove from the playlist */
-  songUri: string;
+  songUri?: string;
+  /** 0-based position of the entry to remove, in the order getPlaylist returns. */
+  index?: number;
 }
 
 export type InputSchema = undefined;
