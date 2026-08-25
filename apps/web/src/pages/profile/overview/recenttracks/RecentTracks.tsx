@@ -345,28 +345,34 @@ function RecentTracks(props: RecentTracksProps) {
             header="Date"
             overrides={{
               TableBodyCell: {
+                // Wide enough for the heart plus the longest relative date
+                // ("about 1 month ago"). At 160px the two together overflowed,
+                // and justify-end pushed the heart out of the cell where the
+                // Root's overflow clipped it away entirely.
                 style: {
                   verticalAlign: "middle",
-                  width: "160px",
+                  width: "210px",
                   paddingRight: "12px",
                 },
               },
             }}
           >
             {(row: Row) => (
-              <div className="flex items-center justify-end gap-[4px]">
-                <LikeButton
-                  uri={row.trackUri}
-                  trackId={row.trackId}
-                  liked={row.liked}
-                />
+              <div className="flex items-center justify-end gap-[6px]">
+                <span className="shrink-0">
+                  <LikeButton
+                    uri={row.trackUri}
+                    trackId={row.trackId}
+                    liked={row.liked}
+                  />
+                </span>
                 <StatefulTooltip
                   content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
                   returnFocus
                   autoFocus
                 >
                   <div
-                    className="text-[var(--color-text-muted)] whitespace-nowrap"
+                    className="text-[var(--color-text-muted)] whitespace-nowrap truncate"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     {dayjs(row.date).fromNow()}
