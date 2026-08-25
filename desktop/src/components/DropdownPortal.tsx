@@ -12,7 +12,11 @@ const FixedMenu = styled.div<{ top: number; right: number; opacity: number }>`
   border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
-  min-width: 180px;
+  /* Fixed rather than min-width: the header carries a track title and artist,
+     and without a ceiling a long one stretches the menu across the page
+     instead of ellipsizing. */
+  width: 260px;
+  box-sizing: border-box;
   padding: 6px;
   display: flex;
   flex-direction: column;
