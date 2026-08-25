@@ -249,6 +249,15 @@ function RecentTracks(props: RecentTracksProps) {
                 backgroundColor: "var(--color-background)",
               },
             },
+            // baseui's Root is the scroll container. With tableLayout: fixed
+            // every column already truncates, so a horizontal scrollbar here
+            // only ever means something overflowed by accident — clip instead.
+            Root: {
+              style: {
+                overflowX: "hidden",
+                backgroundColor: "var(--color-background)",
+              },
+            },
             Table: {
               style: {
                 backgroundColor: "var(--color-background)",
@@ -331,51 +340,37 @@ function RecentTracks(props: RecentTracksProps) {
             )}
           </TableBuilderColumn>
           <TableBuilderColumn
-            header=""
-            overrides={{
-              TableBodyCell: {
-                style: {
-                  width: "48px",
-                  paddingLeft: "0px",
-                  paddingRight: "0px",
-                  verticalAlign: "middle",
-                },
-              },
-            }}
-          >
-            {(row: Row) => <LikeButton uri={row.trackUri} trackId={row.trackId} liked={row.liked} />}
-          </TableBuilderColumn>
-          <TableBuilderColumn
             header="Date"
             overrides={{
               TableBodyCell: {
-                // The table is tableLayout: fixed, so this width is honoured
-                // as given — a percentage would squeeze the column and clip
-                // the text. paddingRight: 0 puts the date's right edge on the
-                // table's, lining it up with "See All" above.
                 style: {
                   verticalAlign: "middle",
-                  width: "120px",
-                  whiteSpace: "nowrap",
-                  textAlign: "right",
+                  width: "160px",
                   paddingRight: "0px",
                 },
               },
             }}
           >
             {(row: Row) => (
-              <StatefulTooltip
-                content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
-                returnFocus
-                autoFocus
-              >
-                <div
-                  className="text-[var(--color-text-muted)] whitespace-nowrap"
-                  style={{ fontFamily: "var(--font-mono)" }}
+              <div className="flex items-center justify-end gap-[4px]">
+                <LikeButton
+                  uri={row.trackUri}
+                  trackId={row.trackId}
+                  liked={row.liked}
+                />
+                <StatefulTooltip
+                  content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
+                  returnFocus
+                  autoFocus
                 >
-                  {dayjs(row.date).fromNow()}
-                </div>
-              </StatefulTooltip>
+                  <div
+                    className="text-[var(--color-text-muted)] whitespace-nowrap"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    {dayjs(row.date).fromNow()}
+                  </div>
+                </StatefulTooltip>
+              </div>
             )}
           </TableBuilderColumn>
         </TableBuilder>
