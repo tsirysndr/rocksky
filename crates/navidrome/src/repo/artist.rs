@@ -34,7 +34,7 @@ pub async fn get_all_artists(
             JOIN user_uploads uu ON uu.track_id = atk.track_id
             WHERE atk.artist_id = artists.xata_id AND uu.user_id = $1
         )
-        ORDER BY artists.name ASC
+        ORDER BY artists.name ASC, artists.xata_id ASC
         "#,
     )
     .bind(user_id)
@@ -108,7 +108,7 @@ pub async fn search_artists(
               JOIN user_uploads uu ON uu.track_id = atk.track_id
               WHERE atk.artist_id = artists.xata_id AND uu.user_id = $1
           )
-        ORDER BY artists.name ASC
+        ORDER BY artists.name ASC, artists.xata_id ASC
         LIMIT $3 OFFSET $4
         "#,
     )
@@ -158,7 +158,7 @@ pub async fn get_artists_by_names(
         WHERE user_uploads.user_id = $1
           AND artists.name = ANY($2)
         GROUP BY artists.xata_id, artists.name, artists.picture
-        ORDER BY artists.name ASC
+        ORDER BY artists.name ASC, artists.xata_id ASC
         "#,
     )
     .bind(user_id)

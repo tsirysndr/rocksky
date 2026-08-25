@@ -64,7 +64,7 @@ pub async fn get_tracks_by_album(
                     AND tracks.album_artist = albums.artist
         WHERE album_tracks.album_id = $1
           AND user_uploads.user_id = $2
-        ORDER BY tracks.disc_number ASC NULLS FIRST, tracks.track_number ASC NULLS FIRST
+        ORDER BY tracks.disc_number ASC NULLS FIRST, tracks.track_number ASC NULLS FIRST, tracks.xata_id ASC
         "#,
         TRACK_SELECT
     ))
@@ -200,7 +200,7 @@ pub async fn search_tracks(
         {}
         WHERE user_uploads.user_id = $1
           AND LOWER(tracks.title) LIKE LOWER($2)
-        ORDER BY tracks.title ASC
+        ORDER BY tracks.title ASC, tracks.xata_id ASC
         LIMIT $3 OFFSET $4
         "#,
         TRACK_SELECT

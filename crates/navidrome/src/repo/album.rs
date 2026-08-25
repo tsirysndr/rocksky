@@ -30,7 +30,7 @@ pub async fn get_albums_by_artist(
         WHERE artist_albums.artist_id = $2
           AND user_uploads.user_id = $1
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
-        ORDER BY albums.year DESC NULLS LAST
+        ORDER BY albums.year DESC NULLS LAST, albums.xata_id ASC
         "#,
     )
     .bind(user_id)
@@ -87,20 +87,27 @@ pub async fn get_album_list(
     to_year: Option<i32>,
     genre: Option<&str>,
 ) -> Result<Vec<AlbumWithStats>, Error> {
+    // Every branch ends in xata_id: these paginate with LIMIT/OFFSET, and the
+    // sort keys are far from unique. user_uploads.uploaded_at defaults to now(),
+    // which is the *transaction* timestamp, so a bulk upload gives every album
+    // in it the same created_at. Postgres may then order tied rows differently
+    // per query, and OFFSET pages silently overlap and skip — albums the user
+    // uploaded never appear at all. "random" is exempt: it has no stable order
+    // by definition.
     let order_clause = match list_type {
-        "newest" => "ORDER BY created_at DESC NULLS LAST",
-        "alphabeticalByName" => "ORDER BY title ASC",
-        "alphabeticalByArtist" => "ORDER BY artist ASC",
+        "newest" => "ORDER BY created_at DESC NULLS LAST, xata_id ASC",
+        "alphabeticalByName" => "ORDER BY title ASC, xata_id ASC",
+        "alphabeticalByArtist" => "ORDER BY artist ASC, xata_id ASC",
         "random" => "ORDER BY RANDOM()",
-        "recent" => "ORDER BY created_at DESC NULLS LAST",
+        "recent" => "ORDER BY created_at DESC NULLS LAST, xata_id ASC",
         "byYear" => {
             if from_year.unwrap_or(0) > to_year.unwrap_or(9999) {
-                "ORDER BY year DESC NULLS LAST"
+                "ORDER BY year DESC NULLS LAST, xata_id ASC"
             } else {
-                "ORDER BY year ASC NULLS LAST"
+                "ORDER BY year ASC NULLS LAST, xata_id ASC"
             }
         }
-        _ => "ORDER BY created_at DESC NULLS LAST",
+        _ => "ORDER BY created_at DESC NULLS LAST, xata_id ASC",
     };
 
     let year_filter = if list_type == "byYear" {
@@ -316,7 +323,7 @@ pub async fn search_albums(
               )
         ) deduped
         WHERE dedup_rank = 1
-        ORDER BY title ASC
+        ORDER BY title ASC, xata_id ASC
         LIMIT $3 OFFSET $4
         "#,
     )
@@ -363,7 +370,7 @@ pub async fn get_albums_by_names(
           AND albums.title = ANY($2)
           AND albums.artist = ANY($3)
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
-        ORDER BY albums.title ASC
+        ORDER BY albums.title ASC, albums.xata_id ASC
         "#,
     )
     .bind(user_id)

@@ -81,6 +81,15 @@ function getScrollParent(el: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
+function dedupeById<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
 function useInfiniteScrollSentinel(
   hasNextPage: boolean,
   isFetchingNextPage: boolean,
@@ -930,8 +939,17 @@ export default function Library() {
   const albumsQuery = useNavidromeAlbumsQuery(searchQuery);
   const artistsQuery = useNavidromeArtistsQuery(searchQuery);
 
-  const allSongs: NavidromeSong[] = useMemo(() => tracksQuery.data?.pages.flat() ?? [], [tracksQuery.data]);
-  const albums: NavidromeAlbum[] = useMemo(() => albumsQuery.data?.pages.flat() ?? [], [albumsQuery.data]);
+  // Offset paging can hand back a row twice if the server's order shifts between
+  // pages. Duplicates would render twice and push real entries off the end, so
+  // drop them by id.
+  const allSongs: NavidromeSong[] = useMemo(
+    () => dedupeById(tracksQuery.data?.pages.flat() ?? []),
+    [tracksQuery.data],
+  );
+  const albums: NavidromeAlbum[] = useMemo(
+    () => dedupeById(albumsQuery.data?.pages.flat() ?? []),
+    [albumsQuery.data],
+  );
   const artists: NavidromeArtist[] = useMemo(() => artistsQuery.data ?? [], [artistsQuery.data]);
 
   const tracksSentinelRef = useInfiniteScrollSentinel(tracksQuery.hasNextPage, tracksQuery.isFetchingNextPage, tracksQuery.fetchNextPage);
