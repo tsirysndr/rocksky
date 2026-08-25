@@ -233,7 +233,7 @@ function RecentTracks(props: RecentTracksProps) {
             },
             TableBodyCell: {
               style: {
-                verticalAlign: "center",
+                verticalAlign: "middle",
               },
             },
             TableBodyRow: {
@@ -349,9 +349,13 @@ function RecentTracks(props: RecentTracksProps) {
             header="Date"
             overrides={{
               TableBodyCell: {
+                // The table is tableLayout: fixed, so this width is honoured
+                // as given — a percentage would squeeze the column and clip
+                // the text. paddingRight: 0 puts the date's right edge on the
+                // table's, lining it up with "See All" above.
                 style: {
                   verticalAlign: "middle",
-                  width: "1%",
+                  width: "120px",
                   whiteSpace: "nowrap",
                   textAlign: "right",
                   paddingRight: "0px",
