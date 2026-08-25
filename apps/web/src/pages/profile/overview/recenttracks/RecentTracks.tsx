@@ -362,13 +362,6 @@ function RecentTracks(props: RecentTracksProps) {
           >
             {(row: Row) => (
               <div className="flex items-center justify-end gap-[14px]">
-                <span className="shrink-0">
-                  <LikeButton
-                    uri={row.trackUri}
-                    trackId={row.trackId}
-                    liked={row.liked}
-                  />
-                </span>
                 <StatefulTooltip
                   content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
                   returnFocus
@@ -381,6 +374,13 @@ function RecentTracks(props: RecentTracksProps) {
                     {dayjs(row.date).fromNow()}
                   </div>
                 </StatefulTooltip>
+                <span className="shrink-0">
+                  <LikeButton
+                    uri={row.trackUri}
+                    trackId={row.trackId}
+                    liked={row.liked}
+                  />
+                </span>
               </div>
             )}
           </TableBuilderColumn>
