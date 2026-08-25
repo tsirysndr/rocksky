@@ -53,6 +53,7 @@ type Row = {
   scrobbleUri: string;
   uri: string;
   trackUri: string;
+  trackId: string;
   liked: boolean;
 };
 
@@ -110,6 +111,7 @@ function RecentTracks(props: RecentTracksProps) {
           : `${item.createdAt ?? ""}Z`,
         scrobbleUri: item.uri ?? "",
         trackUri: item.trackUri ?? "",
+        trackId: item.trackId ?? "",
         liked: item.liked ?? false,
         albumUri: item.albumUri ?? "",
         artistUri: item.artistUri ?? "",
@@ -364,7 +366,7 @@ function RecentTracks(props: RecentTracksProps) {
               },
             }}
           >
-            {(row: Row) => <LikeButton uri={row.trackUri} liked={row.liked} />}
+            {(row: Row) => <LikeButton uri={row.trackUri} trackId={row.trackId} liked={row.liked} />}
           </TableBuilderColumn>
         </TableBuilder>
       )}

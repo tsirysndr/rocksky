@@ -990,6 +990,110 @@ app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
   return c.json([]);
 });
 
+// Like by track id, for rows that have no app.rocksky.song record to address.
+// A track ingested from a scrobble carries uri = NULL until it is published,
+// and the like itself is keyed by sha256 anyway — the song URI was only ever a
+// way to find the row.
+app.post("/tracks/:trackId/likes", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/tracks/:trackId/likes",
+  });
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = await verifyToken(bearer);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const result = await ctx.db
+    .select()
+    .from(tables.tracks)
+    .where(eq(tables.tracks.id, c.req.param("trackId")))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
+  if (!result) {
+    c.status(404);
+    return c.text("Track not found");
+  }
+
+  await likeTrack(
+    ctx,
+    {
+      title: result.title,
+      artist: result.artist,
+      album: result.album,
+      albumArt: result.albumArt,
+      albumArtist: result.albumArtist,
+      trackNumber: result.trackNumber,
+      duration: result.duration,
+      composer: result.composer,
+      lyrics: result.lyrics,
+      discNumber: result.discNumber,
+    },
+    user,
+    agent,
+  );
+
+  return c.json({});
+});
+
+app.delete("/tracks/:trackId/likes", async (c) => {
+  requestCounter.add(1, {
+    method: "DELETE",
+    route: "/users/tracks/:trackId/likes",
+  });
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = await verifyToken(bearer);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const track = await ctx.db
+    .select()
+    .from(tables.tracks)
+    .where(eq(tables.tracks.id, c.req.param("trackId")))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
+  if (!track) {
+    c.status(404);
+    return c.text("Track not found");
+  }
+
+  await unLikeTrack(ctx, track.sha256, user, agent);
+
+  return c.json([]);
+});
+
 app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
   requestCounter.add(1, {
     method: "POST",

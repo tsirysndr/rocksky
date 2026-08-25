@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { useRef, useState } from "react";
+import { likeTrackById, unlikeTrackById } from "../../api/likes";
 import useLike from "../../hooks/useLike";
 import HeartFilled from "../Icons/Heart";
 import HeartOutline from "../Icons/HeartOutline";
@@ -28,14 +29,19 @@ const IconOnly = styled.button`
 `;
 
 type Props = {
-  /** The song's AT-URI. Without one there is nothing to love, so nothing renders. */
+  /** The song's AT-URI, when it has a record. */
   uri?: string;
+  /**
+   * Fallback identity: a track ingested from a scrobble has no song record
+   * until one is published, and the like is keyed by sha256 either way.
+   */
+  trackId?: string;
   liked?: boolean;
   /** Show "Like"/"Liked" next to the heart, for page headers. */
   withLabel?: boolean;
 };
 
-function LikeButton({ uri, liked, withLabel }: Props) {
+function LikeButton({ uri, trackId, liked, withLabel }: Props) {
   const [isLiked, setIsLiked] = useState(!!liked);
   const [pending, setPending] = useState(false);
 
@@ -51,7 +57,7 @@ function LikeButton({ uri, liked, withLabel }: Props) {
   const [signInOpen, setSignInOpen] = useState(false);
   const { like, unlike } = useLike();
 
-  if (!uri) return null;
+  if (!uri && !trackId) return null;
 
   const Control = withLabel ? GhostButton : IconOnly;
 
@@ -68,7 +74,9 @@ function LikeButton({ uri, liked, withLabel }: Props) {
     setIsLiked(next);
     setPending(true);
     try {
-      await (next ? like(uri) : unlike(uri));
+      if (uri) await (next ? like(uri) : unlike(uri));
+      else if (trackId)
+        await (next ? likeTrackById(trackId) : unlikeTrackById(trackId));
     } catch {
       setIsLiked(!next);
     } finally {
