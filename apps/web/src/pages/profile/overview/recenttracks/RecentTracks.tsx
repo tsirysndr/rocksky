@@ -361,7 +361,7 @@ function RecentTracks(props: RecentTracksProps) {
             }}
           >
             {(row: Row) => (
-              <div className="flex items-center justify-end gap-[6px]">
+              <div className="flex items-center justify-end gap-[14px]">
                 <span className="shrink-0">
                   <LikeButton
                     uri={row.trackUri}
