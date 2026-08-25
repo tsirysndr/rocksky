@@ -5,6 +5,11 @@ const VERSION: &str = "1.16.1";
 const SERVER_TYPE: &str = "navidrome";
 const SERVER_VERSION: &str = "0.49.3";
 
+// Every reply is scoped to one user and goes stale the moment their library
+// changes. Without this a 200 GET is heuristically cacheable, so the refetch
+// after removing a track can be served the pre-removal body.
+const NO_STORE: (&str, &str) = ("Cache-Control", "no-store");
+
 pub fn ok(format: &str, data: Value) -> HttpResponse {
     let mut base = json!({
         "status": "ok",
@@ -22,10 +27,13 @@ pub fn ok(format: &str, data: Value) -> HttpResponse {
     if format == "xml" {
         let xml = to_xml(&base);
         HttpResponse::Ok()
+            .append_header(NO_STORE)
             .content_type("text/xml; charset=utf-8")
             .body(xml)
     } else {
-        HttpResponse::Ok().json(json!({ "subsonic-response": base }))
+        HttpResponse::Ok()
+            .append_header(NO_STORE)
+            .json(json!({ "subsonic-response": base }))
     }
 }
 
@@ -44,10 +52,13 @@ pub fn err(format: &str, code: u32, message: &str) -> HttpResponse {
     if format == "xml" {
         let xml = to_xml(&base);
         HttpResponse::Ok()
+            .append_header(NO_STORE)
             .content_type("text/xml; charset=utf-8")
             .body(xml)
     } else {
-        HttpResponse::Ok().json(json!({ "subsonic-response": base }))
+        HttpResponse::Ok()
+            .append_header(NO_STORE)
+            .json(json!({ "subsonic-response": base }))
     }
 }
 
