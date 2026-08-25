@@ -1,3 +1,4 @@
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { consola } from "consola";
 import { type SQL, asc, count, eq, or } from "drizzle-orm";
@@ -5,14 +6,15 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/getSong";
+import { withLikes } from "lib/trackLikes";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
-  const getSong = (params: QueryParams) =>
+  const getSong = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
-      { params, ctx },
+      { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
@@ -23,8 +25,11 @@ export default function (server: Server, ctx: Context) {
       }),
     );
   server.app.rocksky.song.getSong({
-    handler: async ({ params }) => {
-      const result = await Effect.runPromise(getSong(params));
+    // Optional: authVerifier returns {} without a token, so the song stays
+    // public — a DID just means `liked` can be filled in.
+    auth: ctx.authVerifier,
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(getSong(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -33,7 +38,15 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
+const retrieve = ({
+  params,
+  ctx,
+  did,
+}: {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+}) => {
   return Effect.tryPromise({
     try: async () => {
       const uri = params.uri?.trim();
@@ -87,7 +100,9 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       );
 
       return Promise.all([
-        Promise.resolve(track),
+        // withLikes over the single track, so the counts come from the same
+        // place the album and playlist views use.
+        withLikes(ctx, [track], did).then((rows) => rows[0] ?? track),
         Promise.resolve(artist),
         Promise.resolve(artists.filter((x) => x !== undefined)),
         ctx.db

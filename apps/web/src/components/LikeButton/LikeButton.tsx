@@ -5,15 +5,19 @@ import HeartFilled from "../Icons/Heart";
 import HeartOutline from "../Icons/HeartOutline";
 import SignInModal from "../SignInModal";
 
-const Button = styled.button`
+const Button = styled.button<{ withLabel?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  gap: 8px;
+  width: ${({ withLabel }) => (withLabel ? "auto" : "32px")};
   height: 32px;
-  padding: 0;
+  padding: ${({ withLabel }) => (withLabel ? "10px 4px" : "0")};
   border: none;
-  border-radius: 50%;
+  border-radius: ${({ withLabel }) => (withLabel ? "999px" : "50%")};
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
   background: transparent;
   cursor: pointer;
 
@@ -30,9 +34,11 @@ type Props = {
   /** The song's AT-URI. Without one there is nothing to love, so nothing renders. */
   uri?: string;
   liked?: boolean;
+  /** Show "Like"/"Liked" next to the heart, for page headers. */
+  withLabel?: boolean;
 };
 
-function LikeButton({ uri, liked }: Props) {
+function LikeButton({ uri, liked, withLabel }: Props) {
   const [isLiked, setIsLiked] = useState(!!liked);
   const [pending, setPending] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
@@ -65,6 +71,7 @@ function LikeButton({ uri, liked }: Props) {
     <>
       <Button
         type="button"
+        withLabel={withLabel}
         onClick={toggle}
         aria-pressed={isLiked}
         aria-label={isLiked ? "Remove from loved songs" : "Add to loved songs"}
@@ -75,6 +82,7 @@ function LikeButton({ uri, liked }: Props) {
         ) : (
           <HeartOutline size={18} color="var(--color-text-muted)" />
         )}
+        {withLabel && (isLiked ? "Liked" : "Like")}
       </Button>
       <SignInModal
         isOpen={signInOpen}

@@ -1964,8 +1964,10 @@ type RemoveShoutParams struct {
 type RemoveTrackParams struct {
 	// The URI of the playlist to remove the track from
 	URI string `json:"uri,omitempty"`
-	// The URI of the app.rocksky.song record to remove from the playlist
+	// The URI of the app.rocksky.song record to remove. Removes every copy of it; pass `index` instead to remove one.
 	SongURI string `json:"songUri,omitempty"`
+	// 0-based position of the entry to remove, in the order getPlaylist returns.
+	Index int `json:"index,omitempty"`
 }
 
 type ReplyShoutInput struct {
@@ -2482,6 +2484,10 @@ type SongViewDetailed struct {
 	DiscNumber int `json:"discNumber,omitempty"`
 	// The number of times the song has been played.
 	PlayCount int `json:"playCount,omitempty"`
+	// The number of users who have loved this song.
+	LikesCount int `json:"likesCount,omitempty"`
+	// Whether the authenticated user has loved this song. False when unauthenticated.
+	Liked bool `json:"liked,omitempty"`
 	// The number of unique listeners who have played the song.
 	UniqueListeners int `json:"uniqueListeners,omitempty"`
 	// The URI of the album the song belongs to.

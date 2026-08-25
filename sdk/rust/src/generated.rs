@@ -2780,9 +2780,12 @@ pub struct RemoveShoutParams {
 pub struct RemoveTrackParams {
     /// The URI of the playlist to remove the track from
     pub uri: String,
-    /// The URI of the app.rocksky.song record to remove from the playlist
-    #[serde(rename = "songUri")]
-    pub song_uri: String,
+    /// The URI of the app.rocksky.song record to remove. Removes every copy of it; pass `index` instead to remove one.
+    #[serde(rename = "songUri", default, skip_serializing_if = "Option::is_none")]
+    pub song_uri: Option<String>,
+    /// 0-based position of the entry to remove, in the order getPlaylist returns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub index: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3529,6 +3532,12 @@ pub struct SongViewDetailed {
     /// The number of times the song has been played.
     #[serde(rename = "playCount", default, skip_serializing_if = "Option::is_none")]
     pub play_count: Option<i64>,
+    /// The number of users who have loved this song.
+    #[serde(rename = "likesCount", default, skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
+    /// Whether the authenticated user has loved this song. False when unauthenticated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
     /// The number of unique listeners who have played the song.
     #[serde(rename = "uniqueListeners", default, skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,

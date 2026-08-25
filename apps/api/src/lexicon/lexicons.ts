@@ -7774,6 +7774,16 @@ export const schemaDict = {
             description: "The number of times the song has been played.",
             minimum: 0,
           },
+          likesCount: {
+            type: "integer",
+            description: "The number of users who have loved this song.",
+            minimum: 0,
+          },
+          liked: {
+            type: "boolean",
+            description:
+              "Whether the authenticated user has loved this song. False when unauthenticated.",
+          },
           uniqueListeners: {
             type: "integer",
             description:

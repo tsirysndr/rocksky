@@ -2009,8 +2009,10 @@ export interface RemoveShoutParams {
 export interface RemoveTrackParams {
   /** The URI of the playlist to remove the track from */
   uri: AtUri;
-  /** The URI of the app.rocksky.song record to remove from the playlist */
-  songUri: AtUri;
+  /** The URI of the app.rocksky.song record to remove. Removes every copy of it; pass `index` instead to remove one. */
+  songUri?: AtUri;
+  /** 0-based position of the entry to remove, in the order getPlaylist returns. */
+  index?: number;
 }
 
 export interface ReplyShoutInput {
@@ -2529,6 +2531,10 @@ export interface SongViewDetailed {
   discNumber?: number;
   /** The number of times the song has been played. */
   playCount?: number;
+  /** The number of users who have loved this song. */
+  likesCount?: number;
+  /** Whether the authenticated user has loved this song. False when unauthenticated. */
+  liked?: boolean;
   /** The number of unique listeners who have played the song. */
   uniqueListeners?: number;
   /** The URI of the album the song belongs to. */

@@ -1,3 +1,4 @@
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { consola } from "consola";
 import { desc, eq, or } from "drizzle-orm";
@@ -5,12 +6,13 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorScrobbles";
 import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
+import { withLikes } from "lib/trackLikes";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const getActorScrobbles = (params: QueryParams) =>
+  const getActorScrobbles = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
-      { params, ctx },
+      { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
@@ -21,8 +23,11 @@ export default function (server: Server, ctx: Context) {
       }),
     );
   server.app.rocksky.actor.getActorScrobbles({
-    handler: async ({ params }) => {
-      const result = await Effect.runPromise(getActorScrobbles(params));
+    // Optional: authVerifier returns {} without a token, so this stays public —
+    // a DID just means `liked` can be filled in.
+    auth: ctx.authVerifier,
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(getActorScrobbles(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -34,9 +39,11 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({
   params,
   ctx,
+  did,
 }: {
   params: QueryParams;
   ctx: Context;
+  did?: string;
 }): Effect.Effect<{ data: Scrobble[] }, Error> => {
   return Effect.tryPromise({
     try: async () => {
@@ -74,13 +81,18 @@ const retrieve = ({
             eq(tables.users.handle, params.did),
           ),
         )
-        .orderBy(desc(tables.scrobbles.timestamp))
+        // id breaks ties: scrobbles can share a timestamp, and without a
+        // unique key OFFSET pages overlap and skip.
+        .orderBy(desc(tables.scrobbles.timestamp), desc(tables.scrobbles.id))
         .limit(limit)
         .offset(offset)
         .execute();
 
+      // Keyed on track_id — `id` here is the scrobble, not the song.
+      const withLiked = await withLikes(ctx, rows, did, (r) => r.track_id);
+
       return {
-        data: rows.map((r) => ({
+        data: withLiked.map((r) => ({
           ...r,
           created_at: r.created_at.toISOString().replace(/Z$/, ""),
           timestamp: r.timestamp.toISOString(),
@@ -110,6 +122,7 @@ const presentation = ({
       avatar: x.avatar,
       uri: x.uri,
       trackUri: x.track_uri,
+      liked: x.liked ?? false,
       artistUri: x.artist_uri,
       albumUri: x.album_uri,
       createdAt: x.timestamp,
@@ -119,6 +132,7 @@ const presentation = ({
 
 type Scrobble = {
   id: string;
+  liked?: boolean;
   track_id: string | null;
   title: string;
   artist: string;
@@ -133,4 +147,5 @@ type Scrobble = {
   artist_uri: string | null;
   album_uri: string | null;
   created_at: string;
+  timestamp: string;
 };

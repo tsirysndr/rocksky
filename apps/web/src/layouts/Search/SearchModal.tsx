@@ -5,6 +5,7 @@
  * popover. Web only — web-mobile keeps its own search.
  */
 import styled from "@emotion/styled";
+import LikeButton from "../../components/LikeButton";
 import { uriToPath } from "../../lib/uri";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { useNavigate } from "@tanstack/react-router";
@@ -45,6 +46,8 @@ type NavItem = {
   secondaryMono: boolean;
   typeLabel: string;
   art: Art;
+  /** Song AT-URI, on track hits only — what the heart needs to love it. */
+  songUri?: string;
 };
 
 // A broken/placeholder avatar comes back as a URL ending in "/@jpeg".
@@ -111,6 +114,7 @@ function toNavItem(hit: SearchHit): NavItem | null {
       secondaryMono: false,
       typeLabel: "Song",
       art: { url: hit.albumArt, round: false, kind: "tracks" },
+      songUri: hit.uri ?? undefined,
     };
   }
   if (isPlaylistHit(hit)) {
@@ -519,6 +523,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                       )}
                     </RowText>
                     <TypeBadge>{item.typeLabel}</TypeBadge>
+                    {item.songUri && <LikeButton uri={item.songUri} />}
                   </Row>
                 );
               })}

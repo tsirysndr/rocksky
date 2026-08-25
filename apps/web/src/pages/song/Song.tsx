@@ -18,6 +18,7 @@ import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import BackButton from "../../components/BackButton";
+import LikeButton from "../../components/LikeButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import { songAtom } from "../../atoms/song";
@@ -385,6 +386,7 @@ const Song = () => {
             </Group>
 
             <div className="flex items-center gap-[12px] mt-[20px] mb-[10px]">
+              <LikeButton uri={song?.uri} liked={song?.liked} withLabel />
               <PillLink
                 href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                 target="_blank"

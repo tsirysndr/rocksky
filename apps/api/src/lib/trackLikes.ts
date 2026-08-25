@@ -11,8 +11,11 @@ export async function withLikes<T>(
   ctx: Context,
   tracks: T[],
   did?: string,
+  /** Where the track id lives, when the row's own `id` is something else. */
+  selectId: (row: T) => string | null | undefined = (row) =>
+    (row as { id?: string }).id,
 ): Promise<(T & { likesCount: number; liked: boolean })[]> {
-  const idOf = (track: T) => (track as { id?: string }).id;
+  const idOf = selectId;
   const trackIds = tracks.map(idOf).filter(Boolean);
   if (trackIds.length === 0) return [];
 

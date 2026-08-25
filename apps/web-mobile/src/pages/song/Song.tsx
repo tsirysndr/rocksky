@@ -7,6 +7,7 @@ import { IconBrandSpotify } from "@tabler/icons-react";
 import { useArtistAlbumsQuery, useArtistTracksQuery, useSongByUriQuery, useSongRecentListenersQuery } from "../../hooks/useLibrary";
 import { useScrobbleByUriQuery } from "../../hooks/useScrobble";
 import Main from "../../layouts/Main";
+import LikeButton from "../../components/LikeButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import FloatingShoutBar from "../../components/FloatingShoutBar";
 import RecentListeners from "../../components/RecentListeners";
@@ -177,6 +178,7 @@ export default function Song() {
 
             {/* Links */}
             <div className="mb-6 flex flex-col gap-3">
+              <LikeButton uri={song.uri} liked={song.liked} withLabel />
               <ShareOnBluesky
                 text={`${isScrobble ? "Just scrobbled" : "Listening to"} ${song.title} by ${song.albumArtist || song.artist} on Rocksky 🎵\n${window.location.href}`}
               />

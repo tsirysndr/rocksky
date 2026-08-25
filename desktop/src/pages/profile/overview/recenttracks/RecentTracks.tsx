@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import LikeButton from "../../../../components/LikeButton";
 import { uriToPath } from "../../../../lib/uri";
 import styled from "@emotion/styled";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
@@ -51,6 +52,8 @@ type Row = {
   artistUri: string;
   scrobbleUri: string;
   uri: string;
+  trackUri: string;
+  liked: boolean;
 };
 
 interface RecentTracksProps {
@@ -106,6 +109,8 @@ function RecentTracks(props: RecentTracksProps) {
           ? item.createdAt
           : `${item.createdAt ?? ""}Z`,
         scrobbleUri: item.uri ?? "",
+        trackUri: item.trackUri ?? "",
+        liked: item.liked ?? false,
         albumUri: item.albumUri ?? "",
         artistUri: item.artistUri ?? "",
       })),
@@ -345,6 +350,21 @@ function RecentTracks(props: RecentTracksProps) {
                 </div>
               </StatefulTooltip>
             )}
+          </TableBuilderColumn>
+          <TableBuilderColumn
+            header=""
+            overrides={{
+              TableBodyCell: {
+                style: {
+                  width: "48px",
+                  paddingLeft: "0px",
+                  paddingRight: "0px",
+                  verticalAlign: "middle",
+                },
+              },
+            }}
+          >
+            {(row: Row) => <LikeButton uri={row.trackUri} liked={row.liked} />}
           </TableBuilderColumn>
         </TableBuilder>
       )}
