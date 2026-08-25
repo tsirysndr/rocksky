@@ -10,7 +10,7 @@
 import styled from "@emotion/styled";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { useNavigate } from "@tanstack/react-router";
-import { IconDots, IconDownload, IconPlayerPlay, IconPlaylist, IconPlaylistAdd, IconCornerDownRight } from "@tabler/icons-react";
+import { IconArrowsShuffle, IconDots, IconDownload, IconPlayerPlay, IconPlaylist, IconPlaylistAdd, IconCornerDownRight } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -553,6 +553,33 @@ function Palette({ onClose }: { onClose: () => void }) {
               >
                 <IconPlaylistAdd size={16} color={ICON} /> Add to queue
               </MenuItem>
+              {menu.item.kind === "album" && (
+                <>
+                  <MenuItem
+                    onClick={async () => {
+                      const it = menu.item;
+                      setMenu(null);
+                      if (it.kind !== "album") return;
+                      const t = await albumTracks(it.album);
+                      playNextAll([...t].sort(() => Math.random() - 0.5));
+                    }}
+                  >
+                    <IconArrowsShuffle size={16} color={ICON} /> Insert shuffled
+                  </MenuItem>
+                  <MenuItem
+                    onClick={async () => {
+                      const it = menu.item;
+                      setMenu(null);
+                      if (it.kind !== "album") return;
+                      const t = await albumTracks(it.album);
+                      playLastAll([...t].sort(() => Math.random() - 0.5));
+                    }}
+                  >
+                    <IconArrowsShuffle size={16} color={ICON} /> Insert last
+                    shuffled
+                  </MenuItem>
+                </>
+              )}
               {menu.item.kind === "song" && (
                 <MenuItem
                   onClick={() => {
