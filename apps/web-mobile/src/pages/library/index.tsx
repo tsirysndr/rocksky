@@ -656,6 +656,8 @@ export default function LibraryPage() {
             <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNow([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
             <SheetItem label="Play next" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNextAll(t); setSheetAlbum(null); }} />
             <SheetItem label="Add to queue" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playLastAll(t); setSheetAlbum(null); }} />
+            <SheetItem label="Insert shuffled" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNextAll([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
+            <SheetItem label="Insert last shuffled" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playLastAll([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
             {creds && (
               <SheetItem icon={<IconDownload size={16} />} label="Download album" onClick={() => { downloadFromNavidrome(creds, sheetAlbum.id); setSheetAlbum(null); }} />
             )}
@@ -692,6 +694,8 @@ export default function LibraryPage() {
             </div>
             <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow(t); setSheetPlaylist(null); }} />
             <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
+            <SheetItem label="Insert shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNextAll([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
+            <SheetItem label="Insert last shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playLastAll([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
             {creds && (
               <SheetItem icon={<IconDownload size={16} />} label="Download playlist" onClick={() => { downloadFromNavidrome(creds, sheetPlaylist.id); setSheetPlaylist(null); }} />
             )}
