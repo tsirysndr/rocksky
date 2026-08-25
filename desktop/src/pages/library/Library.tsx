@@ -720,7 +720,7 @@ function TrackContextMenu({
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
       </MenuItem>
       <MenuDivider />
-      <AddToPlaylistMenu songId={song.id} onDone={onClose} />
+      <AddToPlaylistMenu songId={song.id} title={song.title} onDone={onClose} />
       {song.artistId && (
         <>
           <MenuDivider />
