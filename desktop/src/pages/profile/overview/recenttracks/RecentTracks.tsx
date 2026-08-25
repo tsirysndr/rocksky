@@ -221,6 +221,9 @@ function RecentTracks(props: RecentTracksProps) {
             albumUri: x.albumUri,
             artistUri: x.artistUri,
             albumArtist: x.albumArtist,
+            trackUri: x.trackUri,
+            trackId: x.trackId,
+            liked: x.liked,
           }))}
           emptyMessage={`@${user?.handle} has not listened to any tracks yet.`}
           divider="clean"
@@ -325,7 +328,7 @@ function RecentTracks(props: RecentTracksProps) {
               // hidden, so under fixed layout these body-cell widths size the
               // columns; the Title column takes the remainder.
               TableBodyCell: {
-                style: { verticalAlign: "middle", width: "28%" },
+                style: { verticalAlign: "middle", width: "18%" },
               },
             }}
           >
