@@ -331,29 +331,6 @@ function RecentTracks(props: RecentTracksProps) {
             )}
           </TableBuilderColumn>
           <TableBuilderColumn
-            header="Date"
-            overrides={{
-              TableBodyCell: {
-                style: { verticalAlign: "center", width: "160px" },
-              },
-            }}
-          >
-            {(row: Row) => (
-              <StatefulTooltip
-                content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
-                returnFocus
-                autoFocus
-              >
-                <div
-                  className="w-[120px] text-[var(--color-text-muted)]"
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  {dayjs(row.date).fromNow()}
-                </div>
-              </StatefulTooltip>
-            )}
-          </TableBuilderColumn>
-          <TableBuilderColumn
             header=""
             overrides={{
               TableBodyCell: {
@@ -367,6 +344,35 @@ function RecentTracks(props: RecentTracksProps) {
             }}
           >
             {(row: Row) => <LikeButton uri={row.trackUri} trackId={row.trackId} liked={row.liked} />}
+          </TableBuilderColumn>
+          <TableBuilderColumn
+            header="Date"
+            overrides={{
+              TableBodyCell: {
+                style: {
+                  verticalAlign: "middle",
+                  width: "1%",
+                  whiteSpace: "nowrap",
+                  textAlign: "right",
+                  paddingRight: "0px",
+                },
+              },
+            }}
+          >
+            {(row: Row) => (
+              <StatefulTooltip
+                content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
+                returnFocus
+                autoFocus
+              >
+                <div
+                  className="text-[var(--color-text-muted)] whitespace-nowrap"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {dayjs(row.date).fromNow()}
+                </div>
+              </StatefulTooltip>
+            )}
           </TableBuilderColumn>
         </TableBuilder>
       )}
