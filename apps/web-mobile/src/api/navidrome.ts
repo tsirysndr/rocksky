@@ -97,6 +97,39 @@ export function getNavidromeStreamUrl(creds: NavidromeCredentials, songId: strin
   return `${NAVIDROME_URL}/rest/stream?${p}`;
 }
 
+export function getNavidromeDownloadUrl(
+  creds: NavidromeCredentials,
+  id: string,
+): string {
+  const p = new URLSearchParams({
+    u: creds.handle,
+    p: creds.apiKey,
+    v: V,
+    c: C,
+    id,
+  });
+  return `${NAVIDROME_URL}/rest/download?${p}`;
+}
+
+/**
+ * Navigates to the download endpoint rather than fetching it: the object store
+ * sends no CORS headers, so fetch is blocked, and the endpoint serves the bytes
+ * itself with a Content-Disposition filename.
+ *
+ * The id may be a track, an album or a playlist; the latter two arrive zipped.
+ */
+export function downloadFromNavidrome(
+  creds: NavidromeCredentials,
+  id: string,
+): void {
+  const a = document.createElement("a");
+  a.href = getNavidromeDownloadUrl(creds, id);
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 export async function fetchNavidromeAlbums(
   creds: NavidromeCredentials,
   offset = 0,

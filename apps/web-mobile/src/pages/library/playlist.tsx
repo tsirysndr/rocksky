@@ -1,6 +1,7 @@
 import {
   IconArrowLeft,
   IconArrowsShuffle,
+  IconDownload,
   IconDots,
   IconMusic,
   IconPlayerPlay,
@@ -10,7 +11,11 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ContentLoader from "react-content-loader";
-import { getCoverArtUrl, type NavidromeSong } from "../../api/navidrome";
+import {
+  downloadFromNavidrome,
+  getCoverArtUrl,
+  type NavidromeSong,
+} from "../../api/navidrome";
 import type { QueueTrack } from "../../atoms/queue";
 import {
   useNavidromeCredentials,
@@ -154,6 +159,14 @@ export default function LibraryPlaylistPage() {
               >
                 <IconArrowsShuffle size={14} /> Shuffle
               </button>
+              <button
+                onClick={() => downloadFromNavidrome(creds, playlist.id)}
+                disabled={songs.length === 0}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border-none cursor-pointer text-sm font-semibold bg-transparent disabled:opacity-50"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                <IconDownload size={14} /> Download
+              </button>
             </div>
           </div>
         </div>
@@ -223,6 +236,7 @@ export default function LibraryPlaylistPage() {
             <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetIdx(null); }} />
             <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetIdx(null); }} />
             <SheetItem icon={<IconPlaylist size={16} />} label="Add to playlist" onClick={() => { setAddToPlaylistSongId(sheetSong.id); setSheetIdx(null); }} />
+            <SheetItem icon={<IconDownload size={16} />} label="Download" onClick={() => { downloadFromNavidrome(creds, sheetSong.id); setSheetIdx(null); }} />
             {sheetSong.albumId && (
               <SheetItem label="Go to album" onClick={() => { navigate(`/library/album/${sheetSong.albumId}`); setSheetIdx(null); }} />
             )}

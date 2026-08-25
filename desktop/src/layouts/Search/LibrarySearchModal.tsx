@@ -10,19 +10,21 @@
 import styled from "@emotion/styled";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { useNavigate } from "@tanstack/react-router";
-import { IconDots, IconPlayerPlay, IconPlaylistAdd, IconCornerDownRight } from "@tabler/icons-react";
-import { useAtom } from "jotai";
+import { IconDots, IconDownload, IconPlayerPlay, IconPlaylist, IconPlaylistAdd, IconCornerDownRight } from "@tabler/icons-react";
+import { useAtom, useSetAtom } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   fetchNavidromeAlbum,
+  downloadFromNavidrome,
   getCoverArtUrl,
   searchNavidrome,
   type NavidromeAlbum,
   type NavidromeArtist,
   type NavidromeSong,
 } from "../../api/navidrome";
+import { addToLibraryPlaylistSongAtom } from "../../atoms/addToLibraryPlaylist";
 import { librarySearchOpenAtom } from "../../atoms/searchModal";
 import AlbumArt from "../../components/AlbumArt";
 import Artist from "../../components/Icons/Artist";
@@ -265,6 +267,7 @@ function Palette({ onClose }: { onClose: () => void }) {
   const { playNow, playNext, playLast, playNextAll, playLastAll } = useUploadPlayer();
 
   const [query, setQuery] = useState("");
+  const setAddToPlaylistSong = useSetAtom(addToLibraryPlaylistSongAtom);
   const [songs, setSongs] = useState<NavidromeSong[]>([]);
   const [albums, setAlbums] = useState<NavidromeAlbum[]>([]);
   const [artists, setArtists] = useState<NavidromeArtist[]>([]);
@@ -550,6 +553,34 @@ function Palette({ onClose }: { onClose: () => void }) {
               >
                 <IconPlaylistAdd size={16} color={ICON} /> Add to queue
               </MenuItem>
+              {menu.item.kind === "song" && (
+                <MenuItem
+                  onClick={() => {
+                    const it = menu.item;
+                    setMenu(null);
+                    if (it.kind !== "song") return;
+                    setAddToPlaylistSong({ id: it.song.id, title: it.song.title });
+                    onClose();
+                  }}
+                >
+                  <IconPlaylist size={16} color={ICON} /> Add to playlist…
+                </MenuItem>
+              )}
+              {(menu.item.kind === "song" || menu.item.kind === "album") && (
+                <MenuItem
+                  onClick={() => {
+                    const it = menu.item;
+                    setMenu(null);
+                    if (!creds) return;
+                    if (it.kind === "song") downloadFromNavidrome(creds, it.song.id);
+                    else if (it.kind === "album")
+                      downloadFromNavidrome(creds, it.album.id);
+                  }}
+                >
+                  <IconDownload size={16} color={ICON} />{" "}
+                  {menu.item.kind === "album" ? "Download album" : "Download"}
+                </MenuItem>
+              )}
             </Menu>
           </>,
           // Portal into #root (which carries the `.dark` class) — NOT document.body,

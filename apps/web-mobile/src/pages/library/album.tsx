@@ -1,6 +1,7 @@
 import {
   IconArrowLeft,
   IconArrowsShuffle,
+  IconDownload,
   IconDots,
   IconMusic,
   IconPlayerPlay,
@@ -12,6 +13,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ContentLoader from "react-content-loader";
 import {
+  downloadFromNavidrome,
   getCoverArtUrl,
   type NavidromeSong,
 } from "../../api/navidrome";
@@ -180,6 +182,14 @@ export default function LibraryAlbumPage() {
                 <IconArrowsShuffle size={14} /> Shuffle
               </button>
               <button
+                onClick={() => downloadFromNavidrome(creds, album.id)}
+                disabled={songs.length === 0}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border-none cursor-pointer text-sm font-semibold bg-transparent disabled:opacity-50"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                <IconDownload size={14} /> Download
+              </button>
+              <button
                 disabled={deleteAlbum.isPending || songs.length === 0}
                 onClick={() => {
                   if (!window.confirm(`Delete every track from "${album.name}" by ${album.artist}? This cannot be undone.`)) return;
@@ -250,6 +260,7 @@ export default function LibraryAlbumPage() {
             <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, albumArt)); setSheetSong(null); }} />
             <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, albumArt)); setSheetSong(null); }} />
             <SheetItem icon={<IconPlaylist size={16} />} label="Add to playlist" onClick={() => { setAddToPlaylistSongId(sheetSong.id); setSheetSong(null); }} />
+            <SheetItem icon={<IconDownload size={16} />} label="Download" onClick={() => { downloadFromNavidrome(creds, sheetSong.id); setSheetSong(null); }} />
             {sheetSong.artistId && (
               <SheetItem label="Go to artist" onClick={() => { navigate(`/library/artist/${sheetSong.artistId}`); setSheetSong(null); }} />
             )}

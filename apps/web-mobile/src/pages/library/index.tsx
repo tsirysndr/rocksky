@@ -1,6 +1,7 @@
 import {
   IconArrowsShuffle,
   IconDots,
+  IconDownload,
   IconMusic,
   IconPlayerPlay,
   IconPlaylist,
@@ -16,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  downloadFromNavidrome,
   fetchNavidromeAlbum,
   fetchNavidromePlaylist,
   getCoverArtUrl,
@@ -613,6 +615,7 @@ export default function LibraryPage() {
             <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetSong(null); }} />
             <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetSong(null); }} />
             <SheetItem icon={<IconPlaylist size={16} />} label="Add to playlist" onClick={() => { setAddToPlaylistSongId(sheetSong.id); setSheetSong(null); }} />
+            <SheetItem icon={<IconDownload size={16} />} label="Download" onClick={() => { downloadFromNavidrome(creds, sheetSong.id); setSheetSong(null); }} />
             {sheetSong.albumId && (
               <SheetItem label="Go to album" onClick={() => { navigate(`/library/album/${sheetSong.albumId}`); setSheetSong(null); }} />
             )}
@@ -653,6 +656,9 @@ export default function LibraryPage() {
             <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNow([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
             <SheetItem label="Play next" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNextAll(t); setSheetAlbum(null); }} />
             <SheetItem label="Add to queue" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playLastAll(t); setSheetAlbum(null); }} />
+            {creds && (
+              <SheetItem icon={<IconDownload size={16} />} label="Download album" onClick={() => { downloadFromNavidrome(creds, sheetAlbum.id); setSheetAlbum(null); }} />
+            )}
             {sheetAlbum.artistId && (
               <SheetItem label="Go to artist" onClick={() => { navigate(`/library/artist/${sheetAlbum.artistId}`); setSheetAlbum(null); }} />
             )}
@@ -686,6 +692,9 @@ export default function LibraryPage() {
             </div>
             <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow(t); setSheetPlaylist(null); }} />
             <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
+            {creds && (
+              <SheetItem icon={<IconDownload size={16} />} label="Download playlist" onClick={() => { downloadFromNavidrome(creds, sheetPlaylist.id); setSheetPlaylist(null); }} />
+            )}
             <SheetItem
               label="Rename"
               onClick={async () => {
