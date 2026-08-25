@@ -15,11 +15,13 @@ import { Route } from "../../routes/library/playlist/$id";
 import {
   downloadFromNavidrome,
   getCoverArtUrl,
-  type NavidromeSong,
   type NavidromeCredentials,
+  type NavidromePlaylist,
+  type NavidromeSong,
 } from "../../api/navidrome";
 import {
   useNavidromeCredentials,
+  useDeletePlaylistMutation,
   useNavidromePlaylistQuery,
   useRemoveTrackFromPlaylistMutation,
   songToQueueTrack,
@@ -480,6 +482,59 @@ function TrackContextMenu({
 }
 
 // ---------------------------------------------------------------------------
+// PlaylistMenu
+// ---------------------------------------------------------------------------
+
+function PlaylistMenu({
+  playlist, anchorEl, creds, onAddSongs, onRename, onDelete, onClose,
+}: {
+  playlist: NavidromePlaylist;
+  anchorEl: HTMLElement | null;
+  creds: NavidromeCredentials;
+  onAddSongs: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { playNextAll, playLastAll } = useUploadPlayer();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const tracks = () =>
+    (playlist.entry ?? []).map((s) =>
+      songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null),
+    );
+
+  return (
+    <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(tracks()); onClose(); }}>Play next</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(tracks()); onClose(); }}>Play last</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); onAddSongs(); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlus size={14} /> Add songs</span>
+      </MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, playlist.id); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
+      </MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onRename(); onClose(); }}>Rename</MenuItem>
+      <MenuDivider />
+      <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete playlist "${playlist.name}"? This cannot be undone.`)) return; onDelete(); onClose(); }}>
+        Delete playlist
+      </DangerMenuItem>
+    </DropdownPortal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -490,6 +545,7 @@ export default function LibraryPlaylist() {
   const { playNow, playNext, playLast } = useUploadPlayer();
   const { data: playlist, isLoading } = useNavidromePlaylistQuery(id);
   const removeTrack = useRemoveTrackFromPlaylistMutation();
+  const deletePlaylist = useDeletePlaylistMutation();
   const setPlaylistModalOpen = useSetAtom(libraryPlaylistModalOpenAtom);
   const setEditingPlaylist = useSetAtom(editingLibraryPlaylistAtom);
   const setAddSongsTarget = useSetAtom(addLibrarySongsTargetAtom);
@@ -498,6 +554,8 @@ export default function LibraryPlaylist() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [filter, setFilter] = useState("");
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [playlistMenuOpen, setPlaylistMenuOpen] = useState(false);
+  const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState<HTMLElement | null>(null);
 
   const songs: NavidromeSong[] = useMemo(() => playlist?.entry ?? [], [playlist]);
   // `||`, not `??`: navidrome used to hardcode duration to 0, so a deployment
@@ -536,6 +594,13 @@ export default function LibraryPlaylist() {
       ),
     );
   }, [songs, filter]);
+
+  const openRenamePlaylist = useCallback(() => {
+    if (!playlist) return;
+    setAddSongsTarget(null);
+    setEditingPlaylist({ id: playlist.id, name: playlist.name, description: playlist.comment });
+    setPlaylistModalOpen(true);
+  }, [playlist, setAddSongsTarget, setEditingPlaylist, setPlaylistModalOpen]);
 
   const openAddSongs = useCallback(() => {
     setEditingPlaylist(null);
@@ -591,6 +656,32 @@ export default function LibraryPlaylist() {
                   <ShuffleBtn onClick={openAddSongs}><IconPlus size={15} /> Add songs</ShuffleBtn>
                   <ShuffleBtn onClick={() => downloadFromNavidrome(creds, playlist.id)} disabled={songs.length === 0}><IconDownload size={15} /> Download</ShuffleBtn>
                 </>
+              )}
+              {!searchExpanded && (
+                <MenuWrap>
+                  <MenuBtn
+                    aria-label="Playlist actions"
+                    title="More"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (playlistMenuOpen) { setPlaylistMenuOpen(false); setPlaylistMenuAnchor(null); }
+                      else { setPlaylistMenuOpen(true); setPlaylistMenuAnchor(e.currentTarget); }
+                    }}
+                  >
+                    <IconDots size={15} />
+                  </MenuBtn>
+                  {playlistMenuOpen && (
+                    <PlaylistMenu
+                      playlist={playlist}
+                      anchorEl={playlistMenuAnchor}
+                      creds={creds}
+                      onAddSongs={openAddSongs}
+                      onRename={openRenamePlaylist}
+                      onDelete={() => deletePlaylist.mutate(playlist.id, { onSuccess: () => navigate({ to: "/library" }) })}
+                      onClose={() => { setPlaylistMenuOpen(false); setPlaylistMenuAnchor(null); }}
+                    />
+                  )}
+                </MenuWrap>
               )}
               <div style={{ marginLeft: "auto" }}>
                 <PlaylistSearch onChange={setFilter} onExpandedChange={setSearchExpanded} />

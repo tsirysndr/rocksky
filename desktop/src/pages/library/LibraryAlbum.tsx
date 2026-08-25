@@ -153,12 +153,6 @@ const ShuffleBtn = styled.button`
   &:hover { color: var(--color-text); }
 `;
 
-const DeleteAlbumBtn = styled(ShuffleBtn)`
-  color: #e55;
-  &:hover { color: #e55; opacity: 0.8; }
-  &:disabled { opacity: 0.4; cursor: default; }
-`;
-
 const VolumeHeading = styled.div`
   font-family: RockfordSansMedium;
   font-size: 0.8125rem;
@@ -451,6 +445,58 @@ function TrackMenu({
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+// AlbumMenu
+// ---------------------------------------------------------------------------
+
+function AlbumMenu({
+  album, songs, albumArtUrl, anchorEl, creds, onDelete, onClose,
+}: {
+  album: { id: string; name: string; artistId?: string };
+  songs: NavidromeSong[];
+  albumArtUrl: string | null;
+  anchorEl: HTMLElement | null;
+  creds: NavidromeCredentials;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { playNextAll, playLastAll } = useUploadPlayer();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const tracks = () => songs.map((s) => songToQueueTrack(s, creds, albumArtUrl));
+
+  return (
+    <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(tracks()); onClose(); }}>Play next</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(tracks()); onClose(); }}>Play last</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
+      </MenuItem>
+      {album.artistId && (
+        <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/artist/$id", params: { id: album.artistId! } }); onClose(); }}>
+          Go to artist
+        </MenuItem>
+      )}
+      <MenuDivider />
+      <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete all tracks from "${album.name}"? This cannot be undone.`)) return; onDelete(); onClose(); }}>
+        Delete album
+      </DangerMenuItem>
+    </DropdownPortal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 
 export default function LibraryAlbum() {
   const navigate = useNavigate();
@@ -461,6 +507,8 @@ export default function LibraryAlbum() {
   const deleteAlbumById = useDeleteAlbumByIdMutation();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [albumMenuOpen, setAlbumMenuOpen] = useState(false);
+  const [albumMenuAnchor, setAlbumMenuAnchor] = useState<HTMLElement | null>(null);
 
   const { data: album, isLoading } = useNavidromeAlbumQuery(id);
 
@@ -528,15 +576,30 @@ export default function LibraryAlbum() {
               <PlayBtn onClick={handlePlay}><IconPlayerPlay size={15} /> Play</PlayBtn>
               <ShuffleBtn onClick={handleShuffle}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
               <ShuffleBtn onClick={() => downloadFromNavidrome(creds, album.id)}><IconDownload size={15} /> Download</ShuffleBtn>
-              <DeleteAlbumBtn
-                disabled={deleteAlbumById.isPending}
-                onClick={() => {
-                  if (!window.confirm(`Delete all tracks from "${album.name}"? This cannot be undone.`)) return;
-                  deleteAlbumById.mutate(id, { onSuccess: () => navigate({ to: "/library" }) });
-                }}
-              >
-                Delete album
-              </DeleteAlbumBtn>
+              <MenuWrap>
+                <MenuBtn
+                  aria-label="Album actions"
+                  title="More"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (albumMenuOpen) { setAlbumMenuOpen(false); setAlbumMenuAnchor(null); }
+                    else { setAlbumMenuOpen(true); setAlbumMenuAnchor(e.currentTarget); }
+                  }}
+                >
+                  <IconDots size={15} />
+                </MenuBtn>
+                {albumMenuOpen && (
+                  <AlbumMenu
+                    album={album}
+                    songs={songs}
+                    albumArtUrl={albumArtUrl}
+                    anchorEl={albumMenuAnchor}
+                    creds={creds}
+                    onDelete={() => deleteAlbumById.mutate(id, { onSuccess: () => navigate({ to: "/library" }) })}
+                    onClose={() => { setAlbumMenuOpen(false); setAlbumMenuAnchor(null); }}
+                  />
+                )}
+              </MenuWrap>
             </PlayButtons>
           </AlbumMeta>
         </AlbumHeader>
