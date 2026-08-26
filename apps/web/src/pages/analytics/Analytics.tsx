@@ -314,22 +314,40 @@ function VizTooltip({
  * component here is dropped and the bars end up pointing at a filter that was
  * never defined — which Chromium ignores but WebKit treats as an error and
  * refuses to paint.
+ *
+ * A drop shadow rather than a blurred copy merged under the source: merging
+ * stacks the bar on top of itself, so its density came out of filter
+ * compositing and the two engines disagreed on it. Here the halo is a separate
+ * flood and the bar's weight is only ever its own fill and stroke. sRGB for the
+ * same reason — filters default to linearRGB, where that disagreement is worst.
  */
-const neonDefs = (id: string) => (
+const neonDefs = (id: string, color: string) => (
   <defs key={id}>
-    <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3.5" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
+    <filter
+      id={`${id}-glow`}
+      x="-50%"
+      y="-50%"
+      width="200%"
+      height="200%"
+      colorInterpolationFilters="sRGB"
+    >
+      <feDropShadow
+        dx="0"
+        dy="0"
+        stdDeviation="3"
+        floodColor={color}
+        floodOpacity="0.55"
+      />
     </filter>
   </defs>
 );
 
 const neonBar = (id: string, color: string) => ({
   fill: color,
-  fillOpacity: 0.3,
+  // The old glow stacked a blurred copy under the bar, so 0.3 composited to
+  // ~0.5 in the body. The halo no longer contributes density, so that value is
+  // stated outright — same weight as before, now identical in both engines.
+  fillOpacity: 0.5,
   stroke: color,
   strokeWidth: 1.5,
   filter: `url(#${id}-glow)`,
@@ -575,12 +593,15 @@ function Analytics() {
                     y="-50%"
                     width="200%"
                     height="200%"
+                    colorInterpolationFilters="sRGB"
                   >
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
+                    <feDropShadow
+                      dx="0"
+                      dy="0"
+                      stdDeviation="3"
+                      floodColor={SERIES_1}
+                      floodOpacity="0.5"
+                    />
                   </filter>
                 </defs>
                 <CartesianGrid stroke={GRID} vertical={false} />
@@ -624,7 +645,7 @@ function Analytics() {
             <PanelNote>Every play in the range, folded onto the week.</PanelNote>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={byWeekday} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                {neonDefs("viz-weekday")}
+                {neonDefs("viz-weekday", SERIES_1)}
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -659,7 +680,7 @@ function Analytics() {
             <PanelNote>How the range breaks down month by month.</PanelNote>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={byMonth} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                {neonDefs("viz-month")}
+                {neonDefs("viz-month", SERIES_2)}
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="key"
@@ -700,7 +721,7 @@ function Analytics() {
             ) : (
               <ResponsiveContainer width="100%" height={Math.max(220, artistBars.length * 34)}>
                 <BarChart data={artistBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
-                  {neonDefs("viz-artist")}
+                  {neonDefs("viz-artist", SERIES_1)}
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
@@ -734,7 +755,7 @@ function Analytics() {
             ) : (
               <ResponsiveContainer width="100%" height={Math.max(220, trackBars.length * 34)}>
                 <BarChart data={trackBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
-                  {neonDefs("viz-track")}
+                  {neonDefs("viz-track", SERIES_2)}
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
