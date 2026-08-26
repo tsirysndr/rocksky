@@ -968,6 +968,12 @@ function StickyPlayerWithData() {
     [],
   );
 
+  // Playback ending unmounts the overlay but leaves the atom set, so the next
+  // track would open fullscreen on its own.
+  useEffect(() => {
+    if (!nowPlaying) setFullscreenOpen(false);
+  }, [nowPlaying, setFullscreenOpen]);
+
   if (!nowPlaying) return <></>;
 
   const isRockbox = player === "rockbox";

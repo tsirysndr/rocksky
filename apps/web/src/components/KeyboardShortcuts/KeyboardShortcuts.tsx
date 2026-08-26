@@ -13,6 +13,8 @@ import {
   searchModalOpenAtom,
   searchModalScopeAtom,
 } from "../../atoms/searchModal";
+import { fullscreenPlayerAtom } from "../../atoms/fullscreenPlayer";
+import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { rightPaneHiddenAtom } from "../../atoms/rightPane";
 import { shortcutsHelpOpenAtom } from "../../atoms/shortcuts";
 import { themeAtom } from "../../atoms/theme";
@@ -47,6 +49,7 @@ const GROUPS: Group[] = [
       { keys: ["Esc"], label: "Close dialog / search" },
       { keys: ["t"], label: "Toggle light / dark theme" },
       { keys: ["\\"], label: "Show / hide the side panel" },
+      { keys: ["f"], label: "Toggle the fullscreen player" },
       { keys: ["e"], label: "Equalizer (audio settings)" },
       { keys: ["c"], label: "Create a playlist" },
     ],
@@ -181,6 +184,8 @@ function KeyboardShortcuts() {
   const [{ darkMode }, setTheme] = useAtom(themeAtom);
   const [helpOpen, setHelpOpen] = useAtom(shortcutsHelpOpenAtom);
   const [paneHidden, setPaneHidden] = useAtom(rightPaneHiddenAtom);
+  const [fullscreenOpen, setFullscreenOpen] = useAtom(fullscreenPlayerAtom);
+  const nowPlaying = useAtomValue(nowPlayingAtom);
   const [searchOpen, setSearchOpen] = useAtom(searchModalOpenAtom);
   const setSearchScope = useSetAtom(searchModalScopeAtom);
   const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
@@ -203,6 +208,9 @@ function KeyboardShortcuts() {
     setHelpOpen,
     paneHidden,
     setPaneHidden,
+    fullscreenOpen,
+    setFullscreenOpen,
+    nowPlaying,
     searchOpen,
     setSearchOpen,
     setSearchScope,
@@ -222,6 +230,9 @@ function KeyboardShortcuts() {
     setHelpOpen,
     paneHidden,
     setPaneHidden,
+    fullscreenOpen,
+    setFullscreenOpen,
+    nowPlaying,
     searchOpen,
     setSearchOpen,
     setSearchScope,
@@ -248,6 +259,7 @@ function KeyboardShortcuts() {
       // Escape closes any open overlay (baseui also closes on Escape, but this
       // covers focus edge-cases and keeps the pending `g` state clean).
       if (e.key === "Escape") {
+        if (s.fullscreenOpen) s.setFullscreenOpen(false);
         if (s.helpOpen) s.setHelpOpen(false);
         if (s.searchOpen) s.setSearchOpen(false);
         if (s.createPlaylistOpen) s.setCreatePlaylistOpen(false);
@@ -328,6 +340,13 @@ function KeyboardShortcuts() {
         case "\\":
           e.preventDefault();
           s.setPaneHidden(!s.paneHidden);
+          break;
+        case "f":
+          // Nothing to show fullscreen without a track, and the player that
+          // hosts the overlay does not render at all in that case.
+          if (!s.nowPlaying) break;
+          e.preventDefault();
+          s.setFullscreenOpen(!s.fullscreenOpen);
           break;
         case "e":
           e.preventDefault();
