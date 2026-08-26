@@ -1,5 +1,8 @@
 import styled from "@emotion/styled";
+import { IconCalendar } from "@tabler/icons-react";
 import dayjs from "dayjs";
+import { useEffect, useRef, useState } from "react";
+import Calendar from "./Calendar";
 
 export type Range = { from: string; to: string; label: string };
 
@@ -48,38 +51,34 @@ const Preset = styled.button<{ active: boolean }>`
 `;
 
 const Custom = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  position: relative;
   margin-left: auto;
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
 `;
 
-const DateInput = styled.input`
-  padding: 6px 10px;
+const Trigger = styled.button<{ open: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.28);
+  border: 1px solid
+    ${({ open }) => (open ? "var(--color-primary)" : "rgba(128,128,128,0.28)")};
   background: var(--color-input-background);
   color: var(--color-text);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  color-scheme: light;
+  cursor: pointer;
 
-  &:focus {
-    outline: none;
-    border-color: var(--color-primary);
+  svg {
+    color: var(--color-text-muted);
   }
+`;
 
-  &::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-  }
-
-  /* The theme is a class, not the OS setting, so the native calendar popover
-     and its glyph have to be told about dark mode explicitly. */
-  .dark & {
-    color-scheme: dark;
-  }
+const Popover = styled.div`
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
 `;
 
 function DateRangePicker({
@@ -89,19 +88,24 @@ function DateRangePicker({
   value: Range;
   onChange: (range: Range) => void;
 }) {
-  const setBound = (key: "from" | "to", next: string) => {
-    if (!next) return;
-    const candidate = { ...value, [key]: next, label: "Custom" };
-    if (dayjs(candidate.from).isAfter(dayjs(candidate.to))) {
-      onChange(
-        key === "from"
-          ? { ...candidate, to: next }
-          : { ...candidate, from: next },
-      );
-      return;
-    }
-    onChange(candidate);
-  };
+  const [open, setOpen] = useState(false);
+  const anchor = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!anchor.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
 
   return (
     <Bar>
@@ -115,23 +119,25 @@ function DateRangePicker({
           {p.label}
         </Preset>
       ))}
-      <Custom>
-        <DateInput
-          type="date"
-          aria-label="From"
-          value={value.from}
-          max={value.to}
-          onChange={(e) => setBound("from", e.target.value)}
-        />
-        <span>→</span>
-        <DateInput
-          type="date"
-          aria-label="To"
-          value={value.to}
-          min={value.from}
-          max={dayjs().format("YYYY-MM-DD")}
-          onChange={(e) => setBound("to", e.target.value)}
-        />
+      <Custom ref={anchor}>
+        <Trigger open={open} type="button" onClick={() => setOpen(!open)}>
+          <IconCalendar size={15} />
+          {value.from} → {value.to}
+        </Trigger>
+        {open && (
+          <Popover>
+            <Calendar
+              from={value.from}
+              to={value.to}
+              min={EPOCH}
+              max={dayjs().format("YYYY-MM-DD")}
+              onSelect={(from, to) => {
+                onChange({ from, to, label: "Custom" });
+                setOpen(false);
+              }}
+            />
+          </Popover>
+        )}
       </Custom>
     </Bar>
   );
