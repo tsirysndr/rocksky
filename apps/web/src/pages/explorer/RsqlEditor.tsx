@@ -47,6 +47,14 @@ const Highlight = styled.pre`
   color: var(--color-text);
 `;
 
+/* Zero-width marker rendered at the caret inside the overlay. The overlay
+   already mirrors the textarea's metrics exactly, so its position is the
+   caret's position — no second measuring element needed. */
+const CaretMark = styled.span`
+  display: inline-block;
+  width: 0;
+`;
+
 const Input = styled.textarea`
   ${shared}
   position: absolute;
@@ -99,12 +107,11 @@ const Tok = styled.span<{ kind: string }>`
   text-underline-offset: 3px;
 `;
 
-const Menu = styled.ul`
+const Menu = styled.ul<{ left: number; top: number }>`
   position: absolute;
   z-index: 30;
-  left: 12px;
-  right: 12px;
-  top: calc(100% + 6px);
+  left: ${({ left }) => left}px;
+  top: ${({ top }) => top}px;
   max-height: 260px;
   overflow-y: auto;
   margin: 0;
@@ -115,10 +122,8 @@ const Menu = styled.ul`
   background: var(--color-background);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 
-  @media (min-width: 640px) {
-    right: auto;
-    min-width: 360px;
-  }
+  min-width: 280px;
+  max-width: min(420px, 90vw);
 `;
 
 const Item = styled.li<{ active: boolean }>`
@@ -171,6 +176,9 @@ function RsqlEditor({
 }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
+  const caretRef = useRef<HTMLSpanElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState({ left: 0, top: 0 });
   const [caret, setCaret] = useState(0);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -209,6 +217,22 @@ function RsqlEditor({
   useEffect(() => {
     setActive(0);
   }, [completion.prefix, completion.what]);
+
+  // Anchor the menu under the caret. Measured after paint, since the marker
+  // only has a position once the split above has rendered.
+  useEffect(() => {
+    if (!open) return;
+    const mark = caretRef.current;
+    // The frame, not the editor box: the menu is positioned against it.
+    const frame = frameRef.current;
+    if (!mark || !frame) return;
+    const markBox = mark.getBoundingClientRect();
+    const frameBox = frame.getBoundingClientRect();
+    setAnchor({
+      left: Math.max(0, Math.min(markBox.left - frameBox.left, frameBox.width - 280)),
+      top: markBox.bottom - frameBox.top + 8,
+    });
+  }, [open, caret, value]);
 
   const accept = useCallback(
     (suggestion: Suggestion) => {
@@ -278,14 +302,27 @@ function RsqlEditor({
   };
 
   return (
-    <Frame>
+    <Frame ref={frameRef}>
       <Editor>
         <Highlight ref={highlightRef} aria-hidden="true">
-          {tokens.map((t) => (
-            <Tok key={`${t.start}-${t.kind}`} kind={t.kind}>
-              {t.text}
-            </Tok>
-          ))}
+          {tokens.map((t) =>
+            // Split the token the caret sits inside so the marker lands exactly
+            // where the caret is, not at the token boundary.
+            caret > t.start && caret < t.end ? (
+              <Tok key={`${t.start}-${t.kind}`} kind={t.kind}>
+                {t.text.slice(0, caret - t.start)}
+                <CaretMark ref={caretRef} />
+                {t.text.slice(caret - t.start)}
+              </Tok>
+            ) : (
+              <Tok key={`${t.start}-${t.kind}`} kind={t.kind}>
+                {caret === t.start && <CaretMark ref={caretRef} />}
+                {t.text}
+                {caret === t.end && <CaretMark ref={caretRef} />}
+              </Tok>
+            ),
+          )}
+          {tokens.length === 0 && <CaretMark ref={caretRef} />}
           {"\n"}
         </Highlight>
         <Input
@@ -314,7 +351,7 @@ function RsqlEditor({
         />
       </Editor>
       {open && suggestions.length > 0 && (
-        <Menu>
+        <Menu left={anchor.left} top={anchor.top}>
           {suggestions.map((s, i) => (
             <Item
               key={s.label}
