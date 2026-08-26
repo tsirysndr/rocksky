@@ -17,8 +17,10 @@ import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as MirrorsRouteImport } from './routes/mirrors'
 import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as ImportRouteImport } from './routes/import'
+import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AccessTokensRouteImport } from './routes/access-tokens'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
@@ -87,6 +89,11 @@ const ImportRoute = ImportRouteImport.update({
   path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChartsRoute = ChartsRouteImport.update({
   id: '/charts',
   path: '/charts',
@@ -95,6 +102,11 @@ const ChartsRoute = ChartsRouteImport.update({
 const ApikeysRoute = ApikeysRouteImport.update({
   id: '/apikeys',
   path: '/apikeys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccessTokensRoute = AccessTokensRouteImport.update({
@@ -236,8 +248,10 @@ const DidAlbumRkeyRoute = DidAlbumRkeyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access-tokens': typeof AccessTokensRoute
+  '/analytics': typeof AnalyticsRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/explore': typeof ExploreRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/mirrors': typeof MirrorsRoute
@@ -275,8 +289,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-tokens': typeof AccessTokensRoute
+  '/analytics': typeof AnalyticsRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/explore': typeof ExploreRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/mirrors': typeof MirrorsRoute
@@ -315,8 +331,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/access-tokens': typeof AccessTokensRoute
+  '/analytics': typeof AnalyticsRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/explore': typeof ExploreRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/mirrors': typeof MirrorsRoute
@@ -356,8 +374,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/access-tokens'
+    | '/analytics'
     | '/apikeys'
     | '/charts'
+    | '/explore'
     | '/import'
     | '/loading'
     | '/mirrors'
@@ -395,8 +415,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/access-tokens'
+    | '/analytics'
     | '/apikeys'
     | '/charts'
+    | '/explore'
     | '/import'
     | '/loading'
     | '/mirrors'
@@ -434,8 +456,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/access-tokens'
+    | '/analytics'
     | '/apikeys'
     | '/charts'
+    | '/explore'
     | '/import'
     | '/loading'
     | '/mirrors'
@@ -474,8 +498,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessTokensRoute: typeof AccessTokensRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   ApikeysRoute: typeof ApikeysRoute
   ChartsRoute: typeof ChartsRoute
+  ExploreRoute: typeof ExploreRoute
   ImportRoute: typeof ImportRoute
   LoadingRoute: typeof LoadingRoute
   MirrorsRoute: typeof MirrorsRoute
@@ -569,6 +595,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/charts': {
       id: '/charts'
       path: '/charts'
@@ -581,6 +614,13 @@ declare module '@tanstack/react-router' {
       path: '/apikeys'
       fullPath: '/apikeys'
       preLoaderRoute: typeof ApikeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/access-tokens': {
@@ -778,8 +818,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessTokensRoute: AccessTokensRoute,
+  AnalyticsRoute: AnalyticsRoute,
   ApikeysRoute: ApikeysRoute,
   ChartsRoute: ChartsRoute,
+  ExploreRoute: ExploreRoute,
   ImportRoute: ImportRoute,
   LoadingRoute: LoadingRoute,
   MirrorsRoute: MirrorsRoute,
