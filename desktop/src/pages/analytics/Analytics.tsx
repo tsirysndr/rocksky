@@ -344,10 +344,7 @@ const neonDefs = (id: string, color: string) => (
 
 const neonBar = (id: string, color: string) => ({
   fill: color,
-  // The old glow stacked a blurred copy under the bar, so 0.3 composited to
-  // ~0.5 in the body. The halo no longer contributes density, so that value is
-  // stated outright — same weight as before, now identical in both engines.
-  fillOpacity: 0.5,
+  fillOpacity: 0.3,
   stroke: color,
   strokeWidth: 1.5,
   filter: `url(#${id}-glow)`,
