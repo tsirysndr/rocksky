@@ -8,6 +8,7 @@ import CreatePlaylistModal from "../components/CreatePlaylistModal";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
 import LibraryPlaylistModal from "../components/LibraryPlaylistModal";
 import LibraryPrefetch from "../components/LibraryPrefetch";
+import ShortcutsButton from "../components/ShortcutsButton";
 import StickyPlayer from "../components/StickyPlayer";
 import LibrarySearchModal from "../layouts/Search/LibrarySearchModal";
 import SearchModal from "../layouts/Search/SearchModal";
@@ -59,6 +60,7 @@ function RootComponent() {
       <Outlet />
       <StickyPlayer />
       <KeyboardShortcuts />
+      <ShortcutsButton />
       <SearchModal />
       <LibrarySearchModal />
       <CreatePlaylistModal />
