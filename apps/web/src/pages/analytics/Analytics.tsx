@@ -11,7 +11,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -22,7 +21,16 @@ import BackButton from "../../components/BackButton";
 import { rocksky } from "../../lib/rocksky";
 import Main from "../../layouts/Main";
 import DateRangePicker, { presetRange, type Range } from "./DateRangePicker";
-import { AXIS, GRID, SERIES_1, SERIES_2, chartPalette } from "./palette";
+import {
+  AXIS,
+  GLOW,
+  GRID,
+  SERIES_1,
+  SERIES_2,
+  SERIES_3,
+  SERIES_4,
+  chartPalette,
+} from "./palette";
 
 const Page = styled.div`
   ${chartPalette}
@@ -38,9 +46,24 @@ const Title = styled.h1`
 `;
 
 const Subtitle = styled.p`
-  margin: 0 0 24px;
+  margin: 0;
   font-size: 0.875rem;
   color: var(--color-text-muted);
+`;
+
+const Header = styled.div`
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+`;
+
+const Scope = styled.div`
+  display: flex;
+  gap: 6px;
+  padding-top: 6px;
 `;
 
 const Tiles = styled.div`
@@ -50,11 +73,26 @@ const Tiles = styled.div`
   margin-bottom: 28px;
 `;
 
-const Tile = styled.div`
+const Tile = styled.div<{ accent: string }>`
+  position: relative;
   padding: 16px 18px;
   border-radius: 14px;
-  border: 1px solid rgba(128, 128, 128, 0.18);
-  background: var(--color-menu-hover);
+  border: 1px solid
+    ${({ accent }) => `color-mix(in srgb, ${accent} 35%, transparent)`};
+  background: ${({ accent }) =>
+    `linear-gradient(160deg, color-mix(in srgb, ${accent} 16%, transparent), color-mix(in srgb, ${accent} 4%, transparent))`};
+  overflow: hidden;
+
+  /* The lit top edge — the tile reads as neon without tinting its numbers,
+     which stay on text tokens. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: ${({ accent }) => accent};
+    box-shadow: ${({ accent }) => `0 0 12px ${accent}`};
+  }
 `;
 
 const TileLabel = styled.div`
@@ -231,6 +269,7 @@ const MeterFill = styled.div<{ pct: number }>`
   height: 100%;
   border-radius: 4px;
   background: ${SERIES_1};
+  box-shadow: 0 0 10px ${GLOW};
 `;
 
 const Count = styled.div`
@@ -269,6 +308,37 @@ function VizTooltip({
   );
 }
 
+/**
+ * Glow for one series. Bars carry a flat semi-transparent fill with a
+ * full-opacity outline, so the mark reads as lit while the outline keeps it
+ * legible against the surface at any fill opacity.
+ */
+function NeonDefs({ id }: { id: string }) {
+  return (
+    <defs>
+      <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3.5" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+  );
+}
+
+const neonBar = (id: string, color: string) => ({
+  fill: color,
+  fillOpacity: 0.3,
+  stroke: color,
+  strokeWidth: 1.5,
+  filter: `url(#${id}-glow)`,
+});
+
+/** Large global totals need compacting or the axis eats the plot. */
+const compact = (value: number) =>
+  value >= 1000 ? numeral(value).format("0.[0]a") : String(value);
+
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function Analytics() {
@@ -276,9 +346,14 @@ function Analytics() {
   // profileAtom fills in asynchronously and resets across layout remounts;
   // the stored DID is what makes the scope synchronous. With neither, the
   // queries fall back to Rocksky-wide numbers instead of rendering nothing.
-  const did = profile?.did ?? localStorage.getItem("did") ?? undefined;
+  const ownDid = profile?.did ?? localStorage.getItem("did") ?? undefined;
   const [range, setRange] = useState<Range>(() => presetRange("30 days"));
   const [allTime, setAllTime] = useState(false);
+  const [scope, setScope] = useState<"mine" | "global">("mine");
+
+  // Signed out there is nothing to scope to, so the switch is hidden and every
+  // query runs Rocksky-wide.
+  const did = ownDid && scope === "mine" ? ownDid : undefined;
 
   const daily = useQuery({
     queryKey: ["analytics", "daily", did, range.from, range.to],
@@ -416,27 +491,49 @@ function Analytics() {
     <Main>
       <Page>
         <BackButton />
-        <Title>Analytics</Title>
-        <Subtitle>
-          {profile?.handle
-            ? `Listening for @${profile.handle}`
-            : "Listening across Rocksky."}
-        </Subtitle>
+        <Header>
+          <div>
+            <Title>Analytics</Title>
+            <Subtitle>
+              {did
+                ? `Listening for @${profile?.handle ?? "you"}`
+                : "Listening across Rocksky."}
+            </Subtitle>
+          </div>
+          {ownDid && (
+            <Scope>
+              <Toggle
+                type="button"
+                active={scope === "mine"}
+                onClick={() => setScope("mine")}
+              >
+                My listening
+              </Toggle>
+              <Toggle
+                type="button"
+                active={scope === "global"}
+                onClick={() => setScope("global")}
+              >
+                All of Rocksky
+              </Toggle>
+            </Scope>
+          )}
+        </Header>
 
         <DateRangePicker value={range} onChange={setRange} />
 
         <Tiles>
-          <Tile>
+          <Tile accent={SERIES_1}>
             <TileLabel>Scrobbles</TileLabel>
             <TileValue>{numeral(totals.scrobbles).format("0,0")}</TileValue>
             <TileNote>over {totals.spanDays} days</TileNote>
           </Tile>
-          <Tile>
+          <Tile accent={SERIES_2}>
             <TileLabel>Per day</TileLabel>
             <TileValue>{numeral(totals.perDay).format("0,0.0")}</TileValue>
             <TileNote>daily average</TileNote>
           </Tile>
-          <Tile>
+          <Tile accent={SERIES_3}>
             <TileLabel>Active days</TileLabel>
             <TileValue>{numeral(totals.activeDays).format("0,0")}</TileValue>
             <TileNote>
@@ -446,7 +543,7 @@ function Analytics() {
               of the range
             </TileNote>
           </Tile>
-          <Tile>
+          <Tile accent={SERIES_4}>
             <TileLabel>Busiest day</TileLabel>
             <TileValue>
               {numeral(totals.busiest?.count ?? 0).format("0,0")}
@@ -466,12 +563,25 @@ function Analytics() {
             <Empty>{loading ? "Loading…" : "Nothing scrobbled in this range."}</Empty>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+              <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="viz-area" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={SERIES_1} stopOpacity={0.45} />
                     <stop offset="100%" stopColor={SERIES_1} stopOpacity={0} />
                   </linearGradient>
+                  <filter
+                    id="viz-area-glow"
+                    x="-50%"
+                    y="-50%"
+                    width="200%"
+                    height="200%"
+                  >
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
@@ -486,8 +596,9 @@ function Analytics() {
                   tick={{ fill: AXIS, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
-                  width={44}
+                  width={52}
                   allowDecimals={false}
+                  tickFormatter={compact}
                 />
                 <Tooltip
                   cursor={{ stroke: SERIES_1, strokeWidth: 1 }}
@@ -499,6 +610,7 @@ function Analytics() {
                   stroke={SERIES_1}
                   strokeWidth={2}
                   fill="url(#viz-area)"
+                  filter="url(#viz-area-glow)"
                   activeDot={{ r: 4, strokeWidth: 2 }}
                 />
               </AreaChart>
@@ -511,7 +623,8 @@ function Analytics() {
             <PanelTitle>Listening by weekday</PanelTitle>
             <PanelNote>Every play in the range, folded onto the week.</PanelNote>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={byWeekday} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+              <BarChart data={byWeekday} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <NeonDefs id="viz-weekday" />
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -523,14 +636,20 @@ function Analytics() {
                   tick={{ fill: AXIS, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
-                  width={44}
+                  width={52}
                   allowDecimals={false}
+                  tickFormatter={compact}
                 />
                 <Tooltip
                   cursor={{ fill: "transparent" }}
                   content={<VizTooltip unit="scrobbles" />}
                 />
-                <Bar dataKey="count" fill={SERIES_1} radius={[4, 4, 0, 0]} maxBarSize={34} />
+                <Bar
+                  dataKey="count"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={34}
+                  {...neonBar("viz-weekday", SERIES_1)}
+                />
               </BarChart>
             </ResponsiveContainer>
           </Panel>
@@ -539,7 +658,8 @@ function Analytics() {
             <PanelTitle>Monthly totals</PanelTitle>
             <PanelNote>How the range breaks down month by month.</PanelNote>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={byMonth} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+              <BarChart data={byMonth} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <NeonDefs id="viz-month" />
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="key"
@@ -552,14 +672,20 @@ function Analytics() {
                   tick={{ fill: AXIS, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
-                  width={44}
+                  width={52}
                   allowDecimals={false}
+                  tickFormatter={compact}
                 />
                 <Tooltip
                   cursor={{ fill: "transparent" }}
                   content={<VizTooltip unit="scrobbles" />}
                 />
-                <Bar dataKey="count" fill={SERIES_2} radius={[4, 4, 0, 0]} maxBarSize={34} />
+                <Bar
+                  dataKey="count"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={34}
+                  {...neonBar("viz-month", SERIES_2)}
+                />
               </BarChart>
             </ResponsiveContainer>
           </Panel>
@@ -574,6 +700,7 @@ function Analytics() {
             ) : (
               <ResponsiveContainer width="100%" height={Math.max(220, artistBars.length * 34)}>
                 <BarChart data={artistBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+                  <NeonDefs id="viz-artist" />
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
@@ -582,14 +709,18 @@ function Analytics() {
                     tick={{ fill: AXIS, fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    width={120}
+                    width={150}
+                    tickFormatter={(v: string) =>
+                      v.length > 20 ? `${v.slice(0, 19)}…` : v
+                    }
                   />
                   <Tooltip cursor={{ fill: "transparent" }} content={<VizTooltip unit="plays" />} />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={18}>
-                    {artistBars.map((b) => (
-                      <Cell key={b.key} fill={SERIES_1} />
-                    ))}
-                  </Bar>
+                  <Bar
+                    dataKey="count"
+                    radius={[0, 4, 4, 0]}
+                    maxBarSize={18}
+                    {...neonBar("viz-artist", SERIES_1)}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -603,6 +734,7 @@ function Analytics() {
             ) : (
               <ResponsiveContainer width="100%" height={Math.max(220, trackBars.length * 34)}>
                 <BarChart data={trackBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+                  <NeonDefs id="viz-track" />
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
@@ -611,17 +743,18 @@ function Analytics() {
                     tick={{ fill: AXIS, fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    width={160}
+                    width={170}
                     tickFormatter={(v: string) =>
-                      v.length > 26 ? `${v.slice(0, 25)}…` : v
+                      v.length > 24 ? `${v.slice(0, 23)}…` : v
                     }
                   />
                   <Tooltip cursor={{ fill: "transparent" }} content={<VizTooltip unit="plays" />} />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={18}>
-                    {trackBars.map((b) => (
-                      <Cell key={b.key} fill={SERIES_2} />
-                    ))}
-                  </Bar>
+                  <Bar
+                    dataKey="count"
+                    radius={[0, 4, 4, 0]}
+                    maxBarSize={18}
+                    {...neonBar("viz-track", SERIES_2)}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -670,7 +803,11 @@ function Analytics() {
                     <Avatar as="div" />
                   )}
                   <Who>
-                    <Link to="/profile/$did" params={{ did: s.did ?? "" }}>
+                    <Link
+                      to="/profile/$did"
+                      params={{ did: s.did ?? "" }}
+                      style={{ textDecoration: "none" }}
+                    >
                       <WhoName>{s.displayName || s.handle}</WhoName>
                     </Link>
                     <WhoHandle>@{s.handle}</WhoHandle>
