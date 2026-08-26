@@ -138,7 +138,8 @@ function ScrobblesAreaChart() {
             </LabelMedium>
             <Link
               to="/analytics"
-              className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:underline"
+              className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+              style={{ textDecoration: "none" }}
             >
               View more
             </Link>

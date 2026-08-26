@@ -273,15 +273,18 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function Analytics() {
   const profile = useAtomValue(profileAtom);
+  // profileAtom fills in asynchronously and resets across layout remounts;
+  // the stored DID is what makes the scope synchronous. With neither, the
+  // queries fall back to Rocksky-wide numbers instead of rendering nothing.
+  const did = profile?.did ?? localStorage.getItem("did") ?? undefined;
   const [range, setRange] = useState<Range>(() => presetRange("30 days"));
   const [allTime, setAllTime] = useState(false);
 
   const daily = useQuery({
-    queryKey: ["analytics", "daily", profile?.did, range.from, range.to],
-    enabled: !!profile?.did,
+    queryKey: ["analytics", "daily", did, range.from, range.to],
     queryFn: async () => {
       const res = await rocksky().scrobblesChart({
-        did: profile?.did,
+        did,
         from: range.from,
         to: range.to,
       });
@@ -294,8 +297,7 @@ function Analytics() {
   });
 
   const topArtists = useQuery({
-    queryKey: ["analytics", "artists", profile?.did, range.from, range.to],
-    enabled: !!profile?.did,
+    queryKey: ["analytics", "artists", did, range.from, range.to],
     queryFn: () =>
       rocksky().topArtistsInterval(
         10,
@@ -304,13 +306,12 @@ function Analytics() {
           startDate: dayjs(range.from).toISOString(),
           endDate: dayjs(range.to).endOf("day").toISOString(),
         },
-        profile?.did,
+        did,
       ),
   });
 
   const topTracks = useQuery({
-    queryKey: ["analytics", "tracks", profile?.did, range.from, range.to],
-    enabled: !!profile?.did,
+    queryKey: ["analytics", "tracks", did, range.from, range.to],
     queryFn: () =>
       rocksky().topTracksInterval(
         10,
@@ -319,7 +320,7 @@ function Analytics() {
           startDate: dayjs(range.from).toISOString(),
           endDate: dayjs(range.to).endOf("day").toISOString(),
         },
-        profile?.did,
+        did,
       ),
   });
 
@@ -419,7 +420,7 @@ function Analytics() {
         <Subtitle>
           {profile?.handle
             ? `Listening for @${profile.handle}`
-            : "Sign in to see your listening."}
+            : "Listening across Rocksky."}
         </Subtitle>
 
         <DateRangePicker value={range} onChange={setRange} />
