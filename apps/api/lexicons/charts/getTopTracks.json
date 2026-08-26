@@ -8,6 +8,11 @@
       "parameters": {
         "type": "params",
         "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor to scope the chart to",
+            "format": "at-identifier"
+          },
           "limit": {
             "type": "integer",
             "description": "The maximum number of tracks to return",

@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
+import { count, desc, sql, and, eq, gte, lte, inArray, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
@@ -57,6 +57,27 @@ const retrieve = ({
         );
       }
 
+      if (params.did) {
+        const user = await ctx.db
+          .select({ id: tables.users.id })
+          .from(tables.users)
+          .where(
+            or(
+              eq(tables.users.did, params.did),
+              eq(tables.users.handle, params.did),
+            ),
+          )
+          .execute()
+          .then((rows) => rows[0]);
+        if (!user) return { data: [] };
+        dateConditions.push(eq(tables.scrobbles.userId, user.id));
+      }
+
+      // A one-listener chart can't rank by unique listeners.
+      const ranking = params.did
+        ? desc(sql`count(${tables.scrobbles.id})`)
+        : desc(sql`count(DISTINCT ${tables.scrobbles.userId})`);
+
       const topTracksQuery = ctx.db
         .select({
           trackId: tables.scrobbles.trackId,
@@ -69,7 +90,7 @@ const retrieve = ({
         .from(tables.scrobbles)
         .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
         .groupBy(tables.scrobbles.trackId)
-        .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
+        .orderBy(ranking)
         .limit(limit)
         .offset(offset);
 

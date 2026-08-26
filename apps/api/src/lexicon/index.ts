@@ -33,6 +33,7 @@ import type * as AppRockskyArtistGetArtistTracks from "./types/app/rocksky/artis
 import type * as AppRockskyArtistGetArtists from "./types/app/rocksky/artist/getArtists";
 import type * as AppRockskyChartsGetScrobblesChart from "./types/app/rocksky/charts/getScrobblesChart";
 import type * as AppRockskyChartsGetTopArtists from "./types/app/rocksky/charts/getTopArtists";
+import type * as AppRockskyChartsGetTopScrobblers from "./types/app/rocksky/charts/getTopScrobblers";
 import type * as AppRockskyChartsGetTopTracks from "./types/app/rocksky/charts/getTopTracks";
 import type * as AppRockskyDropboxDownloadFile from "./types/app/rocksky/dropbox/downloadFile";
 import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/getFiles";
@@ -541,6 +542,17 @@ export class AppRockskyChartsNS {
     >,
   ) {
     const nsid = "app.rocksky.charts.getTopArtists"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getTopScrobblers<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyChartsGetTopScrobblers.Handler<ExtractAuth<AV>>,
+      AppRockskyChartsGetTopScrobblers.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.charts.getTopScrobblers"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 

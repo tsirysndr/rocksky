@@ -367,6 +367,25 @@ export interface ArtistViewDetailed {
   tags?: string[];
 }
 
+export interface ChartsScrobblerViewBasic {
+  /** The unique identifier of the actor. */
+  id?: string;
+  /** The DID of the actor. */
+  did?: string;
+  /** The handle of the actor. */
+  handle?: string;
+  /** The display name of the actor. */
+  displayName?: string;
+  /** The URL of the actor's avatar image. */
+  avatar?: Uri;
+  /** The number of scrobbles in the requested window. */
+  scrobbles?: number;
+  /** The number of distinct artists scrobbled in the window. */
+  uniqueArtists?: number;
+  /** The number of distinct tracks scrobbled in the window. */
+  uniqueTracks?: number;
+}
+
 export interface ChartsScrobbleViewBasic {
   /** The date of the scrobble. */
   date?: DateTime;
@@ -1382,6 +1401,8 @@ export interface GetTopArtistsOutput {
 }
 
 export interface GetTopArtistsParams {
+  /** The DID or handle of the actor to scope the chart to */
+  did?: AtIdentifier;
   /** The maximum number of artists to return */
   limit?: number;
   /** The offset for pagination */
@@ -1389,6 +1410,21 @@ export interface GetTopArtistsParams {
   /** The start date to filter artists from (ISO 8601 format) */
   startDate?: DateTime;
   /** The end date to filter artists to (ISO 8601 format) */
+  endDate?: DateTime;
+}
+
+export interface GetTopScrobblersOutput {
+  scrobblers?: ChartsScrobblerViewBasic[];
+}
+
+export interface GetTopScrobblersParams {
+  /** The maximum number of scrobblers to return */
+  limit?: number;
+  /** The offset for pagination */
+  offset?: number;
+  /** The start date to count scrobbles from (ISO 8601 format) */
+  startDate?: DateTime;
+  /** The end date to count scrobbles to (ISO 8601 format) */
   endDate?: DateTime;
 }
 
@@ -1408,6 +1444,8 @@ export interface GetTopTracksOutput {
 }
 
 export interface GetTopTracksParams {
+  /** The DID or handle of the actor to scope the chart to */
+  did?: AtIdentifier;
   /** The maximum number of tracks to return */
   limit?: number;
   /** The offset for pagination */
@@ -2847,6 +2885,7 @@ export interface Endpoints {
   "app.rocksky.artist.getArtistTracks": GetArtistTracksOutput;
   "app.rocksky.charts.getScrobblesChart": ChartsView;
   "app.rocksky.charts.getTopArtists": GetTopArtistsOutput;
+  "app.rocksky.charts.getTopScrobblers": GetTopScrobblersOutput;
   "app.rocksky.charts.getTopTracks": GetTopTracksOutput;
   "app.rocksky.dropbox.downloadFile": void;
   "app.rocksky.dropbox.getFiles": DropboxFileListView;

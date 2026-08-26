@@ -7,25 +7,23 @@ import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyArtistDefs from "../artist/defs";
+import type * as AppRockskyChartsDefs from "./defs";
 
 export interface QueryParams {
-  /** The DID or handle of the actor to scope the chart to */
-  did?: string;
-  /** The maximum number of artists to return */
+  /** The maximum number of scrobblers to return */
   limit?: number;
   /** The offset for pagination */
   offset?: number;
-  /** The start date to filter artists from (ISO 8601 format) */
+  /** The start date to count scrobbles from (ISO 8601 format) */
   startDate?: string;
-  /** The end date to filter artists to (ISO 8601 format) */
+  /** The end date to count scrobbles to (ISO 8601 format) */
   endDate?: string;
 }
 
 export type InputSchema = undefined;
 
 export interface OutputSchema {
-  artists?: AppRockskyArtistDefs.ArtistViewBasic[];
+  scrobblers?: AppRockskyChartsDefs.ScrobblerViewBasic[];
   [k: string]: unknown;
 }
 

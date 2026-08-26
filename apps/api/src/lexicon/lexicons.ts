@@ -1799,6 +1799,46 @@ export const schemaDict = {
           },
         },
       },
+      scrobblerViewBasic: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the actor.",
+          },
+          did: {
+            type: "string",
+            description: "The DID of the actor.",
+          },
+          handle: {
+            type: "string",
+            description: "The handle of the actor.",
+          },
+          displayName: {
+            type: "string",
+            description: "The display name of the actor.",
+          },
+          avatar: {
+            type: "string",
+            description: "The URL of the actor's avatar image.",
+            format: "uri",
+          },
+          scrobbles: {
+            type: "integer",
+            description: "The number of scrobbles in the requested window.",
+          },
+          uniqueArtists: {
+            type: "integer",
+            description:
+              "The number of distinct artists scrobbled in the window.",
+          },
+          uniqueTracks: {
+            type: "integer",
+            description:
+              "The number of distinct tracks scrobbled in the window.",
+          },
+        },
+      },
     },
   },
   AppRockskyChartsGetScrobblesChart: {
@@ -1865,6 +1905,12 @@ export const schemaDict = {
         parameters: {
           type: "params",
           properties: {
+            did: {
+              type: "string",
+              description:
+                "The DID or handle of the actor to scope the chart to",
+              format: "at-identifier",
+            },
             limit: {
               type: "integer",
               description: "The maximum number of artists to return",
@@ -1907,6 +1953,59 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyChartsGetTopScrobblers: {
+    lexicon: 1,
+    id: "app.rocksky.charts.getTopScrobblers",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get the listeners who scrobbled the most, all-time or over a date range",
+        parameters: {
+          type: "params",
+          properties: {
+            limit: {
+              type: "integer",
+              description: "The maximum number of scrobblers to return",
+              minimum: 1,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination",
+              minimum: 0,
+            },
+            startDate: {
+              type: "string",
+              description:
+                "The start date to count scrobbles from (ISO 8601 format)",
+              format: "datetime",
+            },
+            endDate: {
+              type: "string",
+              description:
+                "The end date to count scrobbles to (ISO 8601 format)",
+              format: "datetime",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              scrobblers: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.charts.defs#scrobblerViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyChartsGetTopTracks: {
     lexicon: 1,
     id: "app.rocksky.charts.getTopTracks",
@@ -1917,6 +2016,12 @@ export const schemaDict = {
         parameters: {
           type: "params",
           properties: {
+            did: {
+              type: "string",
+              description:
+                "The DID or handle of the actor to scope the chart to",
+              format: "at-identifier",
+            },
             limit: {
               type: "integer",
               description: "The maximum number of tracks to return",
@@ -9824,6 +9929,7 @@ export const ids = {
   AppRockskyChartsDefs: "app.rocksky.charts.defs",
   AppRockskyChartsGetScrobblesChart: "app.rocksky.charts.getScrobblesChart",
   AppRockskyChartsGetTopArtists: "app.rocksky.charts.getTopArtists",
+  AppRockskyChartsGetTopScrobblers: "app.rocksky.charts.getTopScrobblers",
   AppRockskyChartsGetTopTracks: "app.rocksky.charts.getTopTracks",
   AppRockskyDropboxDefs: "app.rocksky.dropbox.defs",
   AppRockskyDropboxDownloadFile: "app.rocksky.dropbox.downloadFile",

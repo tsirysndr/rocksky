@@ -8,6 +8,10 @@ defs = new Mapping<String, Query> {
     description = "Get top artists"
     parameters = new Params {
       properties {
+        ["did"] = new StringType {
+          description = "The DID or handle of the actor to scope the chart to"
+          format = "at-identifier"
+        }
         ["limit"] = new IntegerType {
           type = "integer"
           description = "The maximum number of artists to return"

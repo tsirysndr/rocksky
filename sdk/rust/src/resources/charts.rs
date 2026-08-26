@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use crate::client::Client;
 use crate::error::Result;
+use crate::generated::{ChartsScrobblerViewBasic, GetTopScrobblersOutput};
 use crate::models::{
     ArtistBasic, ArtistsEnvelope, SongBasic, TracksEnvelope,
 };
@@ -36,6 +37,14 @@ impl<'a> ChartsApi<'a> {
         }
     }
 
+    /// The listeners who scrobbled the most, all-time or over a date range.
+    pub fn top_scrobblers(&self) -> TopScrobblers<'_> {
+        TopScrobblers {
+            client: self.client,
+            params: RangeParams::default(),
+        }
+    }
+
     /// Scrobble counts over time (time-series). Server returns a free-form
     /// shape; this method hands you the raw JSON.
     pub fn scrobbles_chart(&self) -> ScrobblesChart<'_> {
@@ -49,6 +58,8 @@ impl<'a> ChartsApi<'a> {
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RangeParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    did: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -68,6 +79,12 @@ macro_rules! range_chart {
         }
 
         impl<'a> $name<'a> {
+            /// Scope the chart to one actor (DID or handle) instead of the
+            /// platform-wide ranking.
+            pub fn did(mut self, did: impl Into<String>) -> Self {
+                self.params.did = Some(did.into());
+                self
+            }
             pub fn limit(mut self, limit: u32) -> Self {
                 self.params.limit = Some(limit);
                 self
@@ -108,6 +125,13 @@ range_chart!(
     artists,
     ArtistBasic,
     "app.rocksky.charts.getTopArtists"
+);
+range_chart!(
+    TopScrobblers,
+    GetTopScrobblersOutput,
+    scrobblers,
+    ChartsScrobblerViewBasic,
+    "app.rocksky.charts.getTopScrobblers"
 );
 
 #[derive(Debug, Default, Serialize)]

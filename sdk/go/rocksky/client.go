@@ -364,6 +364,32 @@ func (c *Client) TopArtistsInterval(ctx context.Context, limit, offset int, inte
 	return out.Artists, err
 }
 
+// TopScrobblers returns the listeners who scrobbled the most over the interval.
+// Pass AllTime() for the all-time leaderboard.
+func (c *Client) TopScrobblers(ctx context.Context, limit, offset int, interval DateInterval) ([]gen.ChartsScrobblerViewBasic, error) {
+	var out gen.GetTopScrobblersOutput
+	err := c.query(ctx, "app.rocksky.charts.getTopScrobblers",
+		map[string]any{"limit": limit, "offset": offset, "startDate": interval.start, "endDate": interval.end}, &out)
+	return out.Scrobblers, err
+}
+
+// ActorTopTracksInterval is TopTracksInterval scoped to a single actor (DID or
+// handle) rather than the platform-wide ranking.
+func (c *Client) ActorTopTracksInterval(ctx context.Context, actor string, limit, offset int, interval DateInterval) ([]gen.SongViewBasic, error) {
+	var out tracksOut
+	err := c.query(ctx, "app.rocksky.charts.getTopTracks",
+		map[string]any{"did": actor, "limit": limit, "offset": offset, "startDate": interval.start, "endDate": interval.end}, &out)
+	return out.Tracks, err
+}
+
+// ActorTopArtistsInterval is TopArtistsInterval scoped to a single actor.
+func (c *Client) ActorTopArtistsInterval(ctx context.Context, actor string, limit, offset int, interval DateInterval) ([]gen.ArtistViewBasic, error) {
+	var out artistsOut
+	err := c.query(ctx, "app.rocksky.charts.getTopArtists",
+		map[string]any{"did": actor, "limit": limit, "offset": offset, "startDate": interval.start, "endDate": interval.end}, &out)
+	return out.Artists, err
+}
+
 // ---- raw-JSON long tail -------------------------------------------------
 //
 // Bespoke shapes returned verbatim as json.RawMessage; unmarshal as you like.

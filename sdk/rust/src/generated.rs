@@ -543,6 +543,34 @@ pub struct ArtistViewDetailed {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ChartsScrobblerViewBasic {
+    /// The unique identifier of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The DID of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+    /// The handle of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handle: Option<String>,
+    /// The display name of the actor.
+    #[serde(rename = "displayName", default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    /// The URL of the actor's avatar image.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
+    /// The number of scrobbles in the requested window.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrobbles: Option<i64>,
+    /// The number of distinct artists scrobbled in the window.
+    #[serde(rename = "uniqueArtists", default, skip_serializing_if = "Option::is_none")]
+    pub unique_artists: Option<i64>,
+    /// The number of distinct tracks scrobbled in the window.
+    #[serde(rename = "uniqueTracks", default, skip_serializing_if = "Option::is_none")]
+    pub unique_tracks: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ChartsScrobbleViewBasic {
     /// The date of the scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1937,6 +1965,9 @@ pub struct GetTopArtistsOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetTopArtistsParams {
+    /// The DID or handle of the actor to scope the chart to
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
     /// The maximum number of artists to return
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
@@ -1947,6 +1978,28 @@ pub struct GetTopArtistsParams {
     #[serde(rename = "startDate", default, skip_serializing_if = "Option::is_none")]
     pub start_date: Option<DateTime<Utc>>,
     /// The end date to filter artists to (ISO 8601 format)
+    #[serde(rename = "endDate", default, skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetTopScrobblersOutput {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scrobblers: Vec<ChartsScrobblerViewBasic>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetTopScrobblersParams {
+    /// The maximum number of scrobblers to return
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    /// The offset for pagination
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+    /// The start date to count scrobbles from (ISO 8601 format)
+    #[serde(rename = "startDate", default, skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<DateTime<Utc>>,
+    /// The end date to count scrobbles to (ISO 8601 format)
     #[serde(rename = "endDate", default, skip_serializing_if = "Option::is_none")]
     pub end_date: Option<DateTime<Utc>>,
 }
@@ -1972,6 +2025,9 @@ pub struct GetTopTracksOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetTopTracksParams {
+    /// The DID or handle of the actor to scope the chart to
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
     /// The maximum number of tracks to return
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,

@@ -10,6 +10,8 @@ import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskySongDefs from "../song/defs";
 
 export interface QueryParams {
+  /** The DID or handle of the actor to scope the chart to */
+  did?: string;
   /** The maximum number of tracks to return */
   limit?: number;
   /** The offset for pagination */

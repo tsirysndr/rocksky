@@ -168,6 +168,26 @@ export const ArtistFields = {
   createdAt: "createdAt",
 } as const;
 
+/** Filterable fields of app.rocksky.playlist.getPlaylists (`track.*` selectors match the playlist's contents). */
+export const PlaylistFields = {
+  name: "name",
+  title: "title",
+  description: "description",
+  uri: "uri",
+  spotifyLink: "spotifyLink",
+  tidalLink: "tidalLink",
+  appleMusicLink: "appleMusicLink",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+  curatorDid: "curatorDid",
+  curatorHandle: "curatorHandle",
+  curatorName: "curatorName",
+  trackTitle: "track.title",
+  trackArtist: "track.artist",
+  trackAlbum: "track.album",
+  trackAlbumArtist: "track.albumArtist",
+} as const;
+
 /** Filterable fields of app.rocksky.scrobble.getScrobbles (dotted selectors reach the joined track/user/artist). */
 export const ScrobbleFields = {
   uri: "uri",

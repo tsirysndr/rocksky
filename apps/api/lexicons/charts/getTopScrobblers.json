@@ -1,21 +1,16 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.charts.getTopArtists",
+  "id": "app.rocksky.charts.getTopScrobblers",
   "defs": {
     "main": {
       "type": "query",
-      "description": "Get top artists",
+      "description": "Get the listeners who scrobbled the most, all-time or over a date range",
       "parameters": {
         "type": "params",
         "properties": {
-          "did": {
-            "type": "string",
-            "description": "The DID or handle of the actor to scope the chart to",
-            "format": "at-identifier"
-          },
           "limit": {
             "type": "integer",
-            "description": "The maximum number of artists to return",
+            "description": "The maximum number of scrobblers to return",
             "minimum": 1
           },
           "offset": {
@@ -25,12 +20,12 @@
           },
           "startDate": {
             "type": "string",
-            "description": "The start date to filter artists from (ISO 8601 format)",
+            "description": "The start date to count scrobbles from (ISO 8601 format)",
             "format": "datetime"
           },
           "endDate": {
             "type": "string",
-            "description": "The end date to filter artists to (ISO 8601 format)",
+            "description": "The end date to count scrobbles to (ISO 8601 format)",
             "format": "datetime"
           }
         }
@@ -40,11 +35,11 @@
         "schema": {
           "type": "object",
           "properties": {
-            "artists": {
+            "scrobblers": {
               "type": "array",
               "items": {
                 "type": "ref",
-                "ref": "app.rocksky.artist.defs#artistViewBasic"
+                "ref": "app.rocksky.charts.defs#scrobblerViewBasic"
               }
             }
           }

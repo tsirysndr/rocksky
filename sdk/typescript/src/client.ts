@@ -10,6 +10,7 @@ import type {
   AlbumViewDetailed,
   ArtistViewBasic,
   ArtistViewDetailed,
+  ChartsScrobblerViewBasic,
   ChartsView,
   CreateScrobbleInput,
   FollowAccountOutput,
@@ -242,24 +243,52 @@ export class RockskyClient {
     return this.topArtistsInterval(limit, offset, Interval.allTime());
   }
 
-  /** The top tracks chart over a typed {@link DateInterval}. */
-  async topTracksInterval(limit: number, offset: number, interval: DateInterval): Promise<SongViewBasic[]> {
+  /** The top tracks chart over a typed {@link DateInterval}. Pass `did` to scope
+   * it to one actor instead of the platform-wide ranking. */
+  async topTracksInterval(
+    limit: number,
+    offset: number,
+    interval: DateInterval,
+    did?: string,
+  ): Promise<SongViewBasic[]> {
     const out = await this.query<{ tracks?: SongViewBasic[] }>("app.rocksky.charts.getTopTracks", {
       limit,
       offset,
+      did,
       ...interval,
     });
     return out.tracks ?? [];
   }
 
-  /** The top artists chart over a typed {@link DateInterval}. */
-  async topArtistsInterval(limit: number, offset: number, interval: DateInterval): Promise<ArtistViewBasic[]> {
+  /** The top artists chart over a typed {@link DateInterval}. Pass `did` to scope
+   * it to one actor instead of the platform-wide ranking. */
+  async topArtistsInterval(
+    limit: number,
+    offset: number,
+    interval: DateInterval,
+    did?: string,
+  ): Promise<ArtistViewBasic[]> {
     const out = await this.query<{ artists?: ArtistViewBasic[] }>("app.rocksky.charts.getTopArtists", {
       limit,
       offset,
+      did,
       ...interval,
     });
     return out.artists ?? [];
+  }
+
+  /** The listeners who scrobbled the most, over a typed {@link DateInterval}.
+   * Pass `Interval.allTime()` for the all-time leaderboard. */
+  async topScrobblers(
+    limit = 20,
+    offset = 0,
+    interval: DateInterval = {},
+  ): Promise<ChartsScrobblerViewBasic[]> {
+    const out = await this.query<{ scrobblers?: ChartsScrobblerViewBasic[] }>(
+      "app.rocksky.charts.getTopScrobblers",
+      { limit, offset, ...interval },
+    );
+    return out.scrobblers ?? [];
   }
 
   /** The album catalog, optionally filtered by `genre` and/or an RSQL
@@ -516,9 +545,18 @@ export class RockskyClient {
   spotifyCurrentlyPlaying(actor: string): Promise<PlayerCurrentlyPlayingViewDetailed> {
     return this.query("app.rocksky.spotify.getCurrentlyPlaying", { actor });
   }
-  /** The playlist catalog. */
-  playlists(limit = 50, offset = 0): Promise<PlaylistGetPlaylistsOutput> {
-    return this.query("app.rocksky.playlist.getPlaylists", { limit, offset });
+  /** The playlist catalog, optionally filtered by an RSQL {@link Filter}
+   * expression (see {@link PlaylistFields}). */
+  playlists(
+    limit = 50,
+    offset = 0,
+    filter?: string | Filter,
+  ): Promise<PlaylistGetPlaylistsOutput> {
+    return this.query("app.rocksky.playlist.getPlaylists", {
+      limit,
+      offset,
+      filter: filter?.toString(),
+    });
   }
   /** A single playlist with its items. */
   playlist(uri: string): Promise<PlaylistViewDetailed> {

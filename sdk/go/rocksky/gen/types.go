@@ -367,6 +367,25 @@ type ArtistViewDetailed struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
+type ChartsScrobblerViewBasic struct {
+	// The unique identifier of the actor.
+	ID string `json:"id,omitempty"`
+	// The DID of the actor.
+	DID string `json:"did,omitempty"`
+	// The handle of the actor.
+	Handle string `json:"handle,omitempty"`
+	// The display name of the actor.
+	DisplayName string `json:"displayName,omitempty"`
+	// The URL of the actor's avatar image.
+	Avatar string `json:"avatar,omitempty"`
+	// The number of scrobbles in the requested window.
+	Scrobbles int `json:"scrobbles,omitempty"`
+	// The number of distinct artists scrobbled in the window.
+	UniqueArtists int `json:"uniqueArtists,omitempty"`
+	// The number of distinct tracks scrobbled in the window.
+	UniqueTracks int `json:"uniqueTracks,omitempty"`
+}
+
 type ChartsScrobbleViewBasic struct {
 	// The date of the scrobble.
 	Date string `json:"date,omitempty"`
@@ -1353,6 +1372,8 @@ type GetTopArtistsOutput struct {
 }
 
 type GetTopArtistsParams struct {
+	// The DID or handle of the actor to scope the chart to
+	DID string `json:"did,omitempty"`
 	// The maximum number of artists to return
 	Limit int `json:"limit,omitempty"`
 	// The offset for pagination
@@ -1360,6 +1381,21 @@ type GetTopArtistsParams struct {
 	// The start date to filter artists from (ISO 8601 format)
 	StartDate string `json:"startDate,omitempty"`
 	// The end date to filter artists to (ISO 8601 format)
+	EndDate string `json:"endDate,omitempty"`
+}
+
+type GetTopScrobblersOutput struct {
+	Scrobblers []ChartsScrobblerViewBasic `json:"scrobblers,omitempty"`
+}
+
+type GetTopScrobblersParams struct {
+	// The maximum number of scrobblers to return
+	Limit int `json:"limit,omitempty"`
+	// The offset for pagination
+	Offset int `json:"offset,omitempty"`
+	// The start date to count scrobbles from (ISO 8601 format)
+	StartDate string `json:"startDate,omitempty"`
+	// The end date to count scrobbles to (ISO 8601 format)
 	EndDate string `json:"endDate,omitempty"`
 }
 
@@ -1378,6 +1414,8 @@ type GetTopTracksOutput struct {
 }
 
 type GetTopTracksParams struct {
+	// The DID or handle of the actor to scope the chart to
+	DID string `json:"did,omitempty"`
 	// The maximum number of tracks to return
 	Limit int `json:"limit,omitempty"`
 	// The offset for pagination

@@ -55,6 +55,7 @@ export {
   SongFields,
   AlbumFields,
   ArtistFields,
+  PlaylistFields,
   ScrobbleFields,
   type FilterValue,
 } from "./filter.js";

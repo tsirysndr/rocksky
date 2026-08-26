@@ -24,6 +24,7 @@ import getArtists from "./app/rocksky/artist/getArtists";
 import getArtistTracks from "./app/rocksky/artist/getArtistTracks";
 import getScrobblesChart from "./app/rocksky/charts/getScrobblesChart";
 import getTopArtists from "./app/rocksky/charts/getTopArtists";
+import getTopScrobblers from "./app/rocksky/charts/getTopScrobblers";
 import getTopTracks from "./app/rocksky/charts/getTopTracks";
 import downloadFileFromDropbox from "./app/rocksky/dropbox/downloadFile";
 import getFilesFromDropbox from "./app/rocksky/dropbox/getFiles";
@@ -196,6 +197,7 @@ export default function (server: Server, ctx: Context) {
   getActorCompatibility(server, ctx);
   matchSong(server, ctx);
   getTopArtists(server, ctx);
+  getTopScrobblers(server, ctx);
   getTopTracks(server, ctx);
   getStories(server, ctx);
   getRecommendations(server, ctx);

@@ -29,4 +29,42 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
+  ["scrobblerViewBasic"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the actor."
+      }
+      ["did"] = new StringType {
+        type = "string"
+        description = "The DID of the actor."
+      }
+      ["handle"] = new StringType {
+        type = "string"
+        description = "The handle of the actor."
+      }
+      ["displayName"] = new StringType {
+        type = "string"
+        description = "The display name of the actor."
+      }
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the actor's avatar image."
+      }
+      ["scrobbles"] = new IntegerType {
+        type = "integer"
+        description = "The number of scrobbles in the requested window."
+      }
+      ["uniqueArtists"] = new IntegerType {
+        type = "integer"
+        description = "The number of distinct artists scrobbled in the window."
+      }
+      ["uniqueTracks"] = new IntegerType {
+        type = "integer"
+        description = "The number of distinct tracks scrobbled in the window."
+      }
+    }
+  }
 }
