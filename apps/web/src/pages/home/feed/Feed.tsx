@@ -2,7 +2,8 @@ import styled from "@emotion/styled";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "baseui/avatar";
 import type { BlockProps } from "baseui/block";
-import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { FlexGridItem } from "baseui/flex-grid";
+import ResponsiveFlexGrid from "../../../components/ResponsiveFlexGrid";
 import { StatefulTooltip } from "baseui/tooltip";
 import { LabelSmall } from "baseui/typography";
 import dayjs from "dayjs";
@@ -12,6 +13,7 @@ import { useEffect, useRef } from "react";
 import ContentLoader from "react-content-loader";
 import { feedGeneratorUriAtom } from "../../../atoms/feed";
 import { followingFeedAtom } from "../../../atoms/followingFeed";
+import { rightPaneHiddenAtom } from "../../../atoms/rightPane";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
 import { WS_URL } from "../../../consts";
@@ -32,6 +34,26 @@ const itemProps: BlockProps = {
   flexDirection: "column",
 };
 
+const SKELETON_VIEWBOX = 1100;
+const SKELETON_GAP = 24;
+
+/** Skeleton tiles laid out on the same column count as the grid they stand in for. */
+const skeletonTiles = (columns: number, rows: number) => {
+  const size = (SKELETON_VIEWBOX - SKELETON_GAP * (columns - 1)) / columns;
+  const tiles = Array.from({ length: columns * rows }, (_, i) => ({
+    key: i,
+    x: (i % columns) * (size + SKELETON_GAP),
+    y: Math.floor(i / columns) * (size + 32),
+    size,
+  }));
+  return { tiles, height: rows * size + (rows - 1) * 32 };
+};
+
+/* Sizing by the viewBox aspect ratio rather than a fixed height keeps the
+   skeleton the same height as the grid it stands in for at any column count —
+   a fixed height letterboxes, which then needs a margin to hide. */
+const skeletonStyle = { width: "100%", height: "auto" } as const;
+
 const Container = styled.div`
   @media (max-width: 1152px) {
     margin-left: 20px;
@@ -46,6 +68,10 @@ function Feed() {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const followingFeed = useAtomValue(followingFeedAtom);
+  const paneHidden = useAtomValue(rightPaneHiddenAtom);
+  const skeletonColumns = paneHidden ? 4 : 3;
+  const firstSkeleton = skeletonTiles(skeletonColumns, 2);
+  const nextSkeleton = skeletonTiles(skeletonColumns, 1);
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useFeedInfiniteQuery(feedUri, 30);
   const {
@@ -148,21 +174,23 @@ function Feed() {
       {(isLoading || scrobbleLoading) && (
         <ContentLoader
           width="100%"
-          height={800}
-          viewBox="0 0 1100 800"
+          height={firstSkeleton.height}
+          viewBox={`0 0 ${SKELETON_VIEWBOX} ${firstSkeleton.height}`}
           backgroundColor="var(--color-skeleton-background)"
           foregroundColor="var(--color-skeleton-foreground)"
-          style={{ marginTop: "-100px" }}
+          style={skeletonStyle}
         >
-          {/* First row - 3 items with 24px gap (scale800) */}
-          <rect x="0" y="0" rx="2" ry="2" width="349" height="349" />
-          <rect x="373" y="0" rx="2" ry="2" width="349" height="349" />
-          <rect x="746" y="0" rx="2" ry="2" width="349" height="349" />
-
-          {/* Second row - 3 items with 32px row gap (scale1000) */}
-          <rect x="0" y="381" rx="2" ry="2" width="349" height="349" />
-          <rect x="373" y="381" rx="2" ry="2" width="349" height="349" />
-          <rect x="746" y="381" rx="2" ry="2" width="349" height="349" />
+          {firstSkeleton.tiles.map((tile) => (
+            <rect
+              key={tile.key}
+              x={tile.x}
+              y={tile.y}
+              rx="2"
+              ry="2"
+              width={tile.size}
+              height={tile.size}
+            />
+          ))}
         </ContentLoader>
       )}
 
@@ -178,8 +206,7 @@ function Feed() {
             </div>
           ) : (
             <>
-              <FlexGrid
-                flexGridColumnCount={[1, 2, 3]}
+              <ResponsiveFlexGrid
                 flexGridColumnGap="scale800"
                 flexGridRowGap="scale1000"
               >
@@ -260,7 +287,7 @@ function Feed() {
                     </FlexGridItem>
                   ))
                 }
-              </FlexGrid>
+              </ResponsiveFlexGrid>
 
               {/* Load more trigger */}
               <div
@@ -272,29 +299,23 @@ function Feed() {
                   : isFetchingNextPage) && (
                   <ContentLoader
                     width="100%"
-                    height={360}
-                    viewBox="0 0 1100 360"
+                    height={nextSkeleton.height}
+                    viewBox={`0 0 ${SKELETON_VIEWBOX} ${nextSkeleton.height}`}
                     backgroundColor="var(--color-skeleton-background)"
                     foregroundColor="var(--color-skeleton-foreground)"
+                    style={skeletonStyle}
                   >
-                    {/* 3 items with 24px gap (scale800) */}
-                    <rect x="0" y="10" rx="2" ry="2" width="349" height="349" />
-                    <rect
-                      x="373"
-                      y="10"
-                      rx="2"
-                      ry="2"
-                      width="349"
-                      height="349"
-                    />
-                    <rect
-                      x="746"
-                      y="10"
-                      rx="2"
-                      ry="2"
-                      width="349"
-                      height="349"
-                    />
+                    {nextSkeleton.tiles.map((tile) => (
+                      <rect
+                        key={tile.key}
+                        x={tile.x}
+                        y={tile.y}
+                        rx="2"
+                        ry="2"
+                        width={tile.size}
+                        height={tile.size}
+                      />
+                    ))}
                   </ContentLoader>
                 )}
               </div>

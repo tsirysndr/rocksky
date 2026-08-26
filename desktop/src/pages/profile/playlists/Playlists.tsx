@@ -8,7 +8,8 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { BlockProps } from "baseui/block";
-import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { FlexGridItem } from "baseui/flex-grid";
+import ResponsiveFlexGrid from "../../../components/ResponsiveFlexGrid";
 import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import _ from "lodash";
@@ -281,8 +282,7 @@ function Playlists() {
       </Toolbar>
 
       {playlistsData.isPending && playlists.length === 0 && (
-        <FlexGrid
-          flexGridColumnCount={[1, 2, 3]}
+        <ResponsiveFlexGrid
           flexGridColumnGap="scale800"
           flexGridRowGap="scale800"
         >
@@ -291,7 +291,7 @@ function Playlists() {
               <PlaylistCardSkeleton />
             </FlexGridItem>
           ))}
-        </FlexGrid>
+        </ResponsiveFlexGrid>
       )}
 
       {isEmpty && isFiltered && (
@@ -315,8 +315,7 @@ function Playlists() {
 
       {playlists.length > 0 && (
         <Grid>
-          <FlexGrid
-            flexGridColumnCount={[1, 2, 3]}
+          <ResponsiveFlexGrid
             flexGridColumnGap="scale800"
             flexGridRowGap="scale800"
           >
@@ -366,7 +365,7 @@ function Playlists() {
                 </FlexGridItem>
               );
             })}
-          </FlexGrid>
+          </ResponsiveFlexGrid>
         </Grid>
       )}
     </>

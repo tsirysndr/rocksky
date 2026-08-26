@@ -1,4 +1,5 @@
-import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { FlexGridItem } from "baseui/flex-grid";
+import ResponsiveFlexGrid from "../../../components/ResponsiveFlexGrid";
 import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingXSmall, LabelMedium } from "baseui/typography";
 import Composer from "../../../components/Icons/Composer";
@@ -18,8 +19,7 @@ function Credits({ composers }: CreditsProps) {
           >
             Credits
           </HeadingXSmall>
-          <FlexGrid
-            flexGridColumnCount={[1, 2, 3]}
+          <ResponsiveFlexGrid
             flexGridColumnGap="scale800"
             flexGridRowGap="scale800"
           >
@@ -57,7 +57,7 @@ function Credits({ composers }: CreditsProps) {
                 </StatefulTooltip>
               </FlexGridItem>
             ))}
-          </FlexGrid>
+          </ResponsiveFlexGrid>
         </>
       )}
     </div>

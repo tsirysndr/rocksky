@@ -9,6 +9,8 @@ import { consola } from "consola";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { displayDrawerAtom } from "../atoms/drawer";
+import { rightPaneHiddenAtom } from "../atoms/rightPane";
+import RightPaneToggle from "../components/RightPaneToggle";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";
@@ -67,7 +69,8 @@ let remoteAutoRegistered = false;
 function Main(props: MainProps) {
   const { children } = props;
   const displayDrawer = useAtomValue(displayDrawerAtom);
-  const withRightPane = props.withRightPane ?? true;
+  const paneHidden = useAtomValue(rightPaneHiddenAtom);
+  const withRightPane = (props.withRightPane ?? true) && !paneHidden;
   const [handle, setHandle] = useState("");
   const [password, setPassword] = useState("");
   const jwt = localStorage.getItem("token");
@@ -258,6 +261,7 @@ function Main(props: MainProps) {
         }}
       />
       <Navbar />
+      {(props.withRightPane ?? true) && <RightPaneToggle />}
 
       <Flex style={{ width: withRightPane ? "770px" : "1090px" }}>
         {!displayDrawer && <div className="relative">{children}</div>}

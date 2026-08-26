@@ -1,7 +1,8 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { uriToPath } from "../../../lib/uri";
 import { useArtistsByGenreInfiniteQuery } from "../../../hooks/useLibrary";
-import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { FlexGridItem } from "baseui/flex-grid";
+import ResponsiveFlexGrid from "../../../components/ResponsiveFlexGrid";
 import { BlockProps } from "baseui/block";
 import numeral from "numeral";
 import { useEffect, useRef } from "react";
@@ -45,8 +46,7 @@ function Artists() {
   return (
     <>
       {isLoading && (
-        <FlexGrid
-          flexGridColumnCount={[1, 2, 3]}
+        <ResponsiveFlexGrid
           flexGridColumnGap="scale800"
           flexGridRowGap="scale1000"
           className="mt-[50px]"
@@ -70,12 +70,11 @@ function Artists() {
               </ContentLoader>
             </FlexGridItem>
           ))}
-        </FlexGrid>
+        </ResponsiveFlexGrid>
       )}
       {!isLoading && (
         <>
-          <FlexGrid
-            flexGridColumnCount={[1, 2, 3]}
+          <ResponsiveFlexGrid
             flexGridColumnGap="scale800"
             flexGridRowGap="scale1000"
             className="mt-[50px]"
@@ -120,7 +119,7 @@ function Artists() {
                 </div>
               </FlexGridItem>
             ))}
-          </FlexGrid>
+          </ResponsiveFlexGrid>
 
           {/* Infinite scroll trigger */}
           <div ref={loadMoreRef} className="h-[20px] w-full" />

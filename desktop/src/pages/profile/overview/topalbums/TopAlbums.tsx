@@ -2,7 +2,8 @@ import styled from "@emotion/styled";
 import { uriToPath } from "../../../../lib/uri";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
-import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { FlexGridItem } from "baseui/flex-grid";
+import ResponsiveFlexGrid from "../../../../components/ResponsiveFlexGrid";
 import { HeadingSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useMemo } from "react";
@@ -97,8 +98,7 @@ function TopAlbums() {
         </LastDaysMenu>
       </div>
       {albumsResult.isLoading && (
-        <FlexGrid
-          flexGridColumnCount={[1, 2, 3]}
+        <ResponsiveFlexGrid
           flexGridColumnGap="scale800"
           flexGridRowGap="scale800"
         >
@@ -123,7 +123,7 @@ function TopAlbums() {
               </ContentLoader>
             </FlexGridItem>
           ))}
-        </FlexGrid>
+        </ResponsiveFlexGrid>
       )}
       {!albumsResult.isLoading && !topAlbums.length && (
         <div className="text-[var(--color-text-muted)] text-[14px]">
@@ -131,8 +131,7 @@ function TopAlbums() {
         </div>
       )}
       {!albumsResult.isLoading && topAlbums.length > 0 && (
-        <FlexGrid
-          flexGridColumnCount={[1, 2, 3]}
+        <ResponsiveFlexGrid
           flexGridColumnGap="scale800"
           flexGridRowGap="scale800"
         >
@@ -166,7 +165,7 @@ function TopAlbums() {
               </FlexGridItem>
             ))
           }
-        </FlexGrid>
+        </ResponsiveFlexGrid>
       )}
     </>
   );

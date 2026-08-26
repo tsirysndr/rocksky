@@ -2,7 +2,8 @@ import styled from "@emotion/styled";
 import { uriToPath } from "../../../lib/uri";
 import { Link as DefaultLink } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
-import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { FlexGridItem } from "baseui/flex-grid";
+import ResponsiveFlexGrid from "../../../components/ResponsiveFlexGrid";
 import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
 import SongCover from "../../../components/SongCover";
 
@@ -37,8 +38,7 @@ function Albums(props: AlbumsProps) {
       <HeadingSmall marginBottom={"15px"} className="!text-[var(--color-text)]">
         Albums
       </HeadingSmall>
-      <FlexGrid
-        flexGridColumnCount={[1, 2, 3]}
+      <ResponsiveFlexGrid
         flexGridColumnGap="scale800"
         flexGridRowGap="scale800"
       >
@@ -75,7 +75,7 @@ function Albums(props: AlbumsProps) {
             </FlexGridItem>
           ))
         }
-      </FlexGrid>
+      </ResponsiveFlexGrid>
     </>
   );
 }
