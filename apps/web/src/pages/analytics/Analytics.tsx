@@ -37,6 +37,12 @@ const Page = styled.div`
   ${chartPalette}
   margin-top: 70px;
   margin-bottom: 160px;
+
+  /* Recharts sets no z-index on the tooltip, so it lost to the side panel and
+     the player, both of which paint later. Above the player's 9001. */
+  .recharts-tooltip-wrapper {
+    z-index: 9100;
+  }
 `;
 
 const Title = styled.h1`

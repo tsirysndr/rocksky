@@ -13,6 +13,7 @@ import {
   searchModalOpenAtom,
   searchModalScopeAtom,
 } from "../../atoms/searchModal";
+import { rightPaneHiddenAtom } from "../../atoms/rightPane";
 import { shortcutsHelpOpenAtom } from "../../atoms/shortcuts";
 import { themeAtom } from "../../atoms/theme";
 
@@ -45,6 +46,7 @@ const GROUPS: Group[] = [
       { keys: ["?"], label: "Show this help" },
       { keys: ["Esc"], label: "Close dialog / search" },
       { keys: ["t"], label: "Toggle light / dark theme" },
+      { keys: ["\\"], label: "Show / hide the side panel" },
       { keys: ["e"], label: "Equalizer (audio settings)" },
       { keys: ["c"], label: "Create a playlist" },
     ],
@@ -178,6 +180,7 @@ function KeyboardShortcuts() {
   const controls = useAtomValue(playerControlsAtom);
   const [{ darkMode }, setTheme] = useAtom(themeAtom);
   const [helpOpen, setHelpOpen] = useAtom(shortcutsHelpOpenAtom);
+  const [paneHidden, setPaneHidden] = useAtom(rightPaneHiddenAtom);
   const [searchOpen, setSearchOpen] = useAtom(searchModalOpenAtom);
   const setSearchScope = useSetAtom(searchModalScopeAtom);
   const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
@@ -198,6 +201,8 @@ function KeyboardShortcuts() {
     setTheme,
     helpOpen,
     setHelpOpen,
+    paneHidden,
+    setPaneHidden,
     searchOpen,
     setSearchOpen,
     setSearchScope,
@@ -215,6 +220,8 @@ function KeyboardShortcuts() {
     setTheme,
     helpOpen,
     setHelpOpen,
+    paneHidden,
+    setPaneHidden,
     searchOpen,
     setSearchOpen,
     setSearchScope,
@@ -317,6 +324,10 @@ function KeyboardShortcuts() {
         case "t":
           e.preventDefault();
           toggleTheme();
+          break;
+        case "\\":
+          e.preventDefault();
+          s.setPaneHidden(!s.paneHidden);
           break;
         case "e":
           e.preventDefault();

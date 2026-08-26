@@ -42,7 +42,7 @@ function RightPaneToggle() {
     <Button
       type="button"
       aria-label={hidden ? "Show side panel" : "Hide side panel"}
-      title={hidden ? "Show side panel" : "Hide side panel"}
+      title={`${hidden ? "Show" : "Hide"} side panel (\\)`}
       aria-pressed={!hidden}
       onClick={() => setHidden(!hidden)}
     >
