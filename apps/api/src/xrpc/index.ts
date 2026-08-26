@@ -22,6 +22,7 @@ import getArtistListeners from "./app/rocksky/artist/getArtistListeners";
 import getArtistRecentListeners from "./app/rocksky/artist/getArtistRecentListeners";
 import getArtists from "./app/rocksky/artist/getArtists";
 import getArtistTracks from "./app/rocksky/artist/getArtistTracks";
+import getDecades from "./app/rocksky/charts/getDecades";
 import getScrobblesChart from "./app/rocksky/charts/getScrobblesChart";
 import getTopArtists from "./app/rocksky/charts/getTopArtists";
 import getTopScrobblers from "./app/rocksky/charts/getTopScrobblers";
@@ -127,6 +128,7 @@ export default function (server: Server, ctx: Context) {
   getArtistListeners(server, ctx);
   getArtistRecentListeners(server, ctx);
   getArtistTracks(server, ctx);
+  getDecades(server, ctx);
   getScrobblesChart(server, ctx);
   downloadFileFromDropbox(server, ctx);
   getFilesFromDropbox(server, ctx);

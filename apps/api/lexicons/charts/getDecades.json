@@ -1,0 +1,45 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.charts.getDecades",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get scrobble counts grouped by the release decade of the music",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor to scope the chart to",
+            "format": "at-identifier"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "The start date to count scrobbles from (ISO 8601 format)",
+            "format": "datetime"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "The end date to count scrobbles to (ISO 8601 format)",
+            "format": "datetime"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "decades": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.charts.defs#decadeViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -6,7 +6,10 @@ use serde_json::Value;
 
 use crate::client::Client;
 use crate::error::Result;
-use crate::generated::{ChartsScrobblerViewBasic, GetTopScrobblersOutput};
+use crate::generated::{
+    ChartsDecadeViewBasic, ChartsScrobblerViewBasic, GetDecadesOutput,
+    GetTopScrobblersOutput,
+};
 use crate::models::{
     ArtistBasic, ArtistsEnvelope, SongBasic, TracksEnvelope,
 };
@@ -40,6 +43,14 @@ impl<'a> ChartsApi<'a> {
     /// The listeners who scrobbled the most, all-time or over a date range.
     pub fn top_scrobblers(&self) -> TopScrobblers<'_> {
         TopScrobblers {
+            client: self.client,
+            params: RangeParams::default(),
+        }
+    }
+
+    /// Scrobbles grouped by the release decade of the music.
+    pub fn decades(&self) -> Decades<'_> {
+        Decades {
             client: self.client,
             params: RangeParams::default(),
         }
@@ -125,6 +136,13 @@ range_chart!(
     artists,
     ArtistBasic,
     "app.rocksky.charts.getTopArtists"
+);
+range_chart!(
+    Decades,
+    GetDecadesOutput,
+    decades,
+    ChartsDecadeViewBasic,
+    "app.rocksky.charts.getDecades"
 );
 range_chart!(
     TopScrobblers,

@@ -43,6 +43,28 @@ export function validateScrobbleViewBasic(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.charts.defs#scrobbleViewBasic", v);
 }
 
+export interface DecadeViewBasic {
+  /** The first year of the decade, e.g. 1990. */
+  decade?: number;
+  /** The number of scrobbles of music released in this decade. */
+  scrobbles?: number;
+  /** The number of distinct albums scrobbled from this decade. */
+  uniqueAlbums?: number;
+  [k: string]: unknown;
+}
+
+export function isDecadeViewBasic(v: unknown): v is DecadeViewBasic {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.charts.defs#decadeViewBasic"
+  );
+}
+
+export function validateDecadeViewBasic(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.charts.defs#decadeViewBasic", v);
+}
+
 export interface ScrobblerViewBasic {
   /** The unique identifier of the actor. */
   id?: string;

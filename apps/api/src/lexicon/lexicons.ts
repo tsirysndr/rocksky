@@ -1799,6 +1799,25 @@ export const schemaDict = {
           },
         },
       },
+      decadeViewBasic: {
+        type: "object",
+        properties: {
+          decade: {
+            type: "integer",
+            description: "The first year of the decade, e.g. 1990.",
+          },
+          scrobbles: {
+            type: "integer",
+            description:
+              "The number of scrobbles of music released in this decade.",
+          },
+          uniqueAlbums: {
+            type: "integer",
+            description:
+              "The number of distinct albums scrobbled from this decade.",
+          },
+        },
+      },
       scrobblerViewBasic: {
         type: "object",
         properties: {
@@ -1836,6 +1855,55 @@ export const schemaDict = {
             type: "integer",
             description:
               "The number of distinct tracks scrobbled in the window.",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyChartsGetDecades: {
+    lexicon: 1,
+    id: "app.rocksky.charts.getDecades",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get scrobble counts grouped by the release decade of the music",
+        parameters: {
+          type: "params",
+          properties: {
+            did: {
+              type: "string",
+              description:
+                "The DID or handle of the actor to scope the chart to",
+              format: "at-identifier",
+            },
+            startDate: {
+              type: "string",
+              description:
+                "The start date to count scrobbles from (ISO 8601 format)",
+              format: "datetime",
+            },
+            endDate: {
+              type: "string",
+              description:
+                "The end date to count scrobbles to (ISO 8601 format)",
+              format: "datetime",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              decades: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.charts.defs#decadeViewBasic",
+                },
+              },
+            },
           },
         },
       },
@@ -9927,6 +9995,7 @@ export const ids = {
   AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
   AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
   AppRockskyChartsDefs: "app.rocksky.charts.defs",
+  AppRockskyChartsGetDecades: "app.rocksky.charts.getDecades",
   AppRockskyChartsGetScrobblesChart: "app.rocksky.charts.getScrobblesChart",
   AppRockskyChartsGetTopArtists: "app.rocksky.charts.getTopArtists",
   AppRockskyChartsGetTopScrobblers: "app.rocksky.charts.getTopScrobblers",

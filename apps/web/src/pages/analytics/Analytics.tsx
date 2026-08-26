@@ -17,6 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { profileAtom } from "../../atoms/profile";
+import { themeAtom } from "../../atoms/theme";
 import BackButton from "../../components/BackButton";
 import { rocksky } from "../../lib/rocksky";
 import Main from "../../layouts/Main";
@@ -330,10 +331,33 @@ const neonBar = (color: string) => ({
 const compact = (value: number) =>
   value >= 1000 ? numeral(value).format("0.[0]a") : String(value);
 
+function DecadeTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: { label: string; count: number; albums: number } }[];
+}) {
+  if (!active || !payload?.length) return null;
+  const point = payload[0].payload;
+  return (
+    <TooltipBox>
+      <TooltipLabel>{point.label}</TooltipLabel>
+      <TooltipValue>
+        {numeral(point.count).format("0,0")} scrobbles
+      </TooltipValue>
+      <TooltipValue>
+        {numeral(point.albums).format("0,0")} albums
+      </TooltipValue>
+    </TooltipBox>
+  );
+}
+
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function Analytics() {
   const profile = useAtomValue(profileAtom);
+  const { darkMode } = useAtomValue(themeAtom);
   // profileAtom fills in asynchronously and resets across layout remounts;
   // the stored DID is what makes the scope synchronous. With neither, the
   // queries fall back to Rocksky-wide numbers instead of rendering nothing.
@@ -382,6 +406,18 @@ function Analytics() {
       rocksky().topTracksInterval(
         10,
         0,
+        {
+          startDate: dayjs(range.from).toISOString(),
+          endDate: dayjs(range.to).endOf("day").toISOString(),
+        },
+        did,
+      ),
+  });
+
+  const decades = useQuery({
+    queryKey: ["analytics", "decades", did, range.from, range.to],
+    queryFn: () =>
+      rocksky().decades(
         {
           startDate: dayjs(range.from).toISOString(),
           endDate: dayjs(range.to).endOf("day").toISOString(),
@@ -470,6 +506,17 @@ function Analytics() {
         count: t.playCount ?? 0,
       })),
     [topTracks.data],
+  );
+
+  const decadeBars = useMemo(
+    () =>
+      (decades.data ?? []).map((d) => ({
+        key: String(d.decade ?? 0),
+        label: `${d.decade}s`,
+        count: d.scrobbles ?? 0,
+        albums: d.uniqueAlbums ?? 0,
+      })),
+    [decades.data],
   );
 
   const board = scrobblers.data ?? [];
@@ -601,7 +648,7 @@ function Analytics() {
                   stroke={SERIES_1}
                   strokeWidth={2}
                   fill="url(#viz-area)"
-                  filter="url(#viz-area-glow)"
+                  filter={darkMode ? "url(#viz-area-glow)" : undefined}
                   activeDot={{ r: 4, strokeWidth: 2 }}
                 />
               </AreaChart>
@@ -679,6 +726,53 @@ function Analytics() {
             </ResponsiveContainer>
           </Panel>
         </Grid2>
+
+        <Panel>
+          <PanelTitle>Music by decade</PanelTitle>
+          <PanelNote>
+            When the music you played was released, by its album year.
+          </PanelNote>
+          {decadeBars.length === 0 ? (
+            <Empty>
+              {decades.isLoading
+                ? "Loading…"
+                : "No release years known for this range."}
+            </Empty>
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart
+                data={decadeBars}
+                margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+              >
+                <CartesianGrid stroke={GRID} vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: AXIS, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fill: AXIS, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={52}
+                  allowDecimals={false}
+                  tickFormatter={compact}
+                />
+                <Tooltip
+                  cursor={{ fill: "transparent" }}
+                  content={<DecadeTooltip />}
+                />
+                <Bar
+                  dataKey="count"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={44}
+                  {...neonBar(SERIES_3)}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Panel>
 
         <Grid2>
           <Panel>

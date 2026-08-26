@@ -10,6 +10,7 @@ import type {
   AlbumViewDetailed,
   ArtistViewBasic,
   ArtistViewDetailed,
+  ChartsDecadeViewBasic,
   ChartsScrobblerViewBasic,
   ChartsView,
   CreateScrobbleInput,
@@ -275,6 +276,19 @@ export class RockskyClient {
       ...interval,
     });
     return out.artists ?? [];
+  }
+
+  /** Scrobbles grouped by the release decade of the music, over a typed
+   * {@link DateInterval}. Pass `did` to scope it to one actor. */
+  async decades(
+    interval: DateInterval = {},
+    did?: string,
+  ): Promise<ChartsDecadeViewBasic[]> {
+    const out = await this.query<{ decades?: ChartsDecadeViewBasic[] }>(
+      "app.rocksky.charts.getDecades",
+      { did, ...interval },
+    );
+    return out.decades ?? [];
   }
 
   /** The listeners who scrobbled the most, over a typed {@link DateInterval}.

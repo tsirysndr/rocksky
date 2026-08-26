@@ -31,6 +31,7 @@ import type * as AppRockskyArtistGetArtistListeners from "./types/app/rocksky/ar
 import type * as AppRockskyArtistGetArtistRecentListeners from "./types/app/rocksky/artist/getArtistRecentListeners";
 import type * as AppRockskyArtistGetArtistTracks from "./types/app/rocksky/artist/getArtistTracks";
 import type * as AppRockskyArtistGetArtists from "./types/app/rocksky/artist/getArtists";
+import type * as AppRockskyChartsGetDecades from "./types/app/rocksky/charts/getDecades";
 import type * as AppRockskyChartsGetScrobblesChart from "./types/app/rocksky/charts/getScrobblesChart";
 import type * as AppRockskyChartsGetTopArtists from "./types/app/rocksky/charts/getTopArtists";
 import type * as AppRockskyChartsGetTopScrobblers from "./types/app/rocksky/charts/getTopScrobblers";
@@ -521,6 +522,17 @@ export class AppRockskyChartsNS {
 
   constructor(server: Server) {
     this._server = server;
+  }
+
+  getDecades<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyChartsGetDecades.Handler<ExtractAuth<AV>>,
+      AppRockskyChartsGetDecades.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.charts.getDecades"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
   }
 
   getScrobblesChart<AV extends AuthVerifier>(

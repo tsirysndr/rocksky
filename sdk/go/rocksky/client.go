@@ -364,6 +364,15 @@ func (c *Client) TopArtistsInterval(ctx context.Context, limit, offset int, inte
 	return out.Artists, err
 }
 
+// Decades returns scrobbles grouped by the release decade of the music.
+// Pass an empty actor for the Rocksky-wide chart.
+func (c *Client) Decades(ctx context.Context, actor string, interval DateInterval) ([]gen.ChartsDecadeViewBasic, error) {
+	var out gen.GetDecadesOutput
+	err := c.query(ctx, "app.rocksky.charts.getDecades",
+		map[string]any{"did": actor, "startDate": interval.start, "endDate": interval.end}, &out)
+	return out.Decades, err
+}
+
 // TopScrobblers returns the listeners who scrobbled the most over the interval.
 // Pass AllTime() for the all-time leaderboard.
 func (c *Client) TopScrobblers(ctx context.Context, limit, offset int, interval DateInterval) ([]gen.ChartsScrobblerViewBasic, error) {

@@ -29,6 +29,23 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
+  ["decadeViewBasic"] {
+    type = "object"
+    properties {
+      ["decade"] = new IntegerType {
+        type = "integer"
+        description = "The first year of the decade, e.g. 1990."
+      }
+      ["scrobbles"] = new IntegerType {
+        type = "integer"
+        description = "The number of scrobbles of music released in this decade."
+      }
+      ["uniqueAlbums"] = new IntegerType {
+        type = "integer"
+        description = "The number of distinct albums scrobbled from this decade."
+      }
+    }
+  }
   ["scrobblerViewBasic"] {
     type = "object"
     properties {

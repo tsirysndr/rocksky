@@ -367,6 +367,15 @@ type ArtistViewDetailed struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
+type ChartsDecadeViewBasic struct {
+	// The first year of the decade, e.g. 1990.
+	Decade int `json:"decade,omitempty"`
+	// The number of scrobbles of music released in this decade.
+	Scrobbles int `json:"scrobbles,omitempty"`
+	// The number of distinct albums scrobbled from this decade.
+	UniqueAlbums int `json:"uniqueAlbums,omitempty"`
+}
+
 type ChartsScrobblerViewBasic struct {
 	// The unique identifier of the actor.
 	ID string `json:"id,omitempty"`
@@ -993,6 +1002,19 @@ type GetCoverArtUrlParams struct {
 	ID string `json:"id,omitempty"`
 	// Requested square size in pixels.
 	Size int `json:"size,omitempty"`
+}
+
+type GetDecadesOutput struct {
+	Decades []ChartsDecadeViewBasic `json:"decades,omitempty"`
+}
+
+type GetDecadesParams struct {
+	// The DID or handle of the actor to scope the chart to
+	DID string `json:"did,omitempty"`
+	// The start date to count scrobbles from (ISO 8601 format)
+	StartDate string `json:"startDate,omitempty"`
+	// The end date to count scrobbles to (ISO 8601 format)
+	EndDate string `json:"endDate,omitempty"`
 }
 
 type GetDownloadUrlOutput struct {

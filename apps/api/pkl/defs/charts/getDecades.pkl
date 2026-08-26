@@ -1,0 +1,40 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.charts.getDecades"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get scrobble counts grouped by the release decade of the music"
+    parameters = new Params {
+      properties {
+        ["did"] = new StringType {
+          description = "The DID or handle of the actor to scope the chart to"
+          format = "at-identifier"
+        }
+        ["startDate"] = new StringType {
+          description = "The start date to count scrobbles from (ISO 8601 format)"
+          format = "datetime"
+        }
+        ["endDate"] = new StringType {
+          description = "The end date to count scrobbles to (ISO 8601 format)"
+          format = "datetime"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Array> {
+          ["decades"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.charts.defs#decadeViewBasic"
+            }
+          }
+        }
+      }
+    }
+  }
+}

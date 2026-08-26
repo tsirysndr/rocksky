@@ -543,6 +543,19 @@ pub struct ArtistViewDetailed {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ChartsDecadeViewBasic {
+    /// The first year of the decade, e.g. 1990.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decade: Option<i64>,
+    /// The number of scrobbles of music released in this decade.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrobbles: Option<i64>,
+    /// The number of distinct albums scrobbled from this decade.
+    #[serde(rename = "uniqueAlbums", default, skip_serializing_if = "Option::is_none")]
+    pub unique_albums: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ChartsScrobblerViewBasic {
     /// The unique identifier of the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1446,6 +1459,25 @@ pub struct GetCoverArtUrlParams {
     /// Requested square size in pixels.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetDecadesOutput {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub decades: Vec<ChartsDecadeViewBasic>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetDecadesParams {
+    /// The DID or handle of the actor to scope the chart to
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+    /// The start date to count scrobbles from (ISO 8601 format)
+    #[serde(rename = "startDate", default, skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<DateTime<Utc>>,
+    /// The end date to count scrobbles to (ISO 8601 format)
+    #[serde(rename = "endDate", default, skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

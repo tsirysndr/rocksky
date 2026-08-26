@@ -367,6 +367,15 @@ export interface ArtistViewDetailed {
   tags?: string[];
 }
 
+export interface ChartsDecadeViewBasic {
+  /** The first year of the decade, e.g. 1990. */
+  decade?: number;
+  /** The number of scrobbles of music released in this decade. */
+  scrobbles?: number;
+  /** The number of distinct albums scrobbled from this decade. */
+  uniqueAlbums?: number;
+}
+
 export interface ChartsScrobblerViewBasic {
   /** The unique identifier of the actor. */
   id?: string;
@@ -997,6 +1006,19 @@ export interface GetCoverArtUrlParams {
   id: string;
   /** Requested square size in pixels. */
   size?: number;
+}
+
+export interface GetDecadesOutput {
+  decades?: ChartsDecadeViewBasic[];
+}
+
+export interface GetDecadesParams {
+  /** The DID or handle of the actor to scope the chart to */
+  did?: AtIdentifier;
+  /** The start date to count scrobbles from (ISO 8601 format) */
+  startDate?: DateTime;
+  /** The end date to count scrobbles to (ISO 8601 format) */
+  endDate?: DateTime;
 }
 
 export interface GetDownloadUrlOutput {
@@ -2883,6 +2905,7 @@ export interface Endpoints {
   "app.rocksky.artist.getArtistRecentListeners": GetArtistRecentListenersOutput;
   "app.rocksky.artist.getArtists": ArtistGetArtistsOutput;
   "app.rocksky.artist.getArtistTracks": GetArtistTracksOutput;
+  "app.rocksky.charts.getDecades": GetDecadesOutput;
   "app.rocksky.charts.getScrobblesChart": ChartsView;
   "app.rocksky.charts.getTopArtists": GetTopArtistsOutput;
   "app.rocksky.charts.getTopScrobblers": GetTopScrobblersOutput;
