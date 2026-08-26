@@ -1,5 +1,6 @@
-import { FlexGrid, type FlexGridProps } from "baseui/flex-grid";
+import { FlexGrid } from "baseui/flex-grid";
 import { useAtomValue } from "jotai";
+import type { ComponentProps } from "react";
 import { rightPaneHiddenAtom } from "../../atoms/rightPane";
 
 /**
@@ -7,7 +8,7 @@ import { rightPaneHiddenAtom } from "../../atoms/rightPane";
  * hidden — the content column goes from 770px to 1090px, which is room for
  * a fourth card.
  */
-function ResponsiveFlexGrid(props: FlexGridProps) {
+function ResponsiveFlexGrid(props: ComponentProps<typeof FlexGrid>) {
   const paneHidden = useAtomValue(rightPaneHiddenAtom);
 
   return (
