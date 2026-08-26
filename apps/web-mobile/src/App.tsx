@@ -28,7 +28,10 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/charts" element={<Charts />} />
-        <Route path="/recommendations" element={<Recommendations />} />
+        {/* Recommendations is temporarily hidden. */}
+        {false && (
+          <Route path="/recommendations" element={<Recommendations />} />
+        )}
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/wrapped" element={<WrappedPage />} />
         <Route path="/search" element={<Search />} />

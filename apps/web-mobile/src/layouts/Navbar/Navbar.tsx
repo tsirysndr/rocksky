@@ -108,14 +108,17 @@ function Navbar() {
                   My Profile
                 </Link>
               )}
-              <Link
-                to="/recommendations"
-                className="py-3.5 px-2 no-underline font-medium text-base block"
-                style={{ color: "var(--color-text)" }}
-                onClick={() => setMenuOpen(false)}
-              >
-                Recommendations
-              </Link>
+              {/* Recommendations is temporarily hidden from the menu. */}
+              {false && (
+                <Link
+                  to="/recommendations"
+                  className="py-3.5 px-2 no-underline font-medium text-base block"
+                  style={{ color: "var(--color-text)" }}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Recommendations
+                </Link>
+              )}
               <Link
                 to="/wrapped"
                 className="py-3.5 px-2 no-underline font-medium text-base block"

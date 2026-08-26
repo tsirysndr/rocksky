@@ -152,7 +152,8 @@ function Navbar() {
         </Link>
       </div>
       <div className="flex-1"></div>
-      {profile && jwt && (
+      {/* Recommendations is temporarily hidden from the nav. */}
+      {false && profile && jwt && (
         <div className="mr-[20px]">
           <Link
             to="/recommendations"
@@ -176,7 +177,7 @@ function Navbar() {
           </AnimatedLink>
         </Link>
       </div>
-      <div>
+      <div className="mr-[20px]">
         <Link
           to="/charts"
           className="text-[var(--color-text)] text-[16px] opacity-90 hover:opacity-100"
@@ -184,6 +185,17 @@ function Navbar() {
         >
           <AnimatedLink>
             <b>Charts</b>
+          </AnimatedLink>
+        </Link>
+      </div>
+      <div>
+        <Link
+          to="/explore"
+          className="text-[var(--color-text)] text-[16px] opacity-90 hover:opacity-100"
+          style={{ textDecoration: "none" }}
+        >
+          <AnimatedLink>
+            <b>Explore</b>
           </AnimatedLink>
         </Link>
       </div>
