@@ -17,7 +17,7 @@ import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
   downloadFromNavidrome,
   fetchNavidromeAlbum,
-  getCoverArtUrl,
+  coverArtUrlOf,
   type NavidromeAlbum,
   type NavidromeArtist,
   type NavidromeSong,
@@ -858,7 +858,7 @@ function PlaylistContextMenu({
   const fetchTracks = async () => {
     const full = await fetchNavidromePlaylist(creds, playlist.id);
     return (full?.entry ?? []).map((s) =>
-      songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null),
+      songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null),
     );
   };
 
@@ -957,7 +957,7 @@ export default function Library() {
 
   const handleTrackClick = useCallback((_song: NavidromeSong, idx: number) => {
     if (!creds) return;
-    const queue = allSongs.map((s) => songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null));
+    const queue = allSongs.map((s) => songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null));
     playNow(queue, idx);
   }, [allSongs, creds, playNow]);
 
@@ -992,7 +992,7 @@ export default function Library() {
       if (!creds) return;
       const full = await fetchNavidromePlaylist(creds, pl.id);
       let tracks = (full?.entry ?? []).map((s) =>
-        songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null),
+        songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null),
       );
       if (shuffle) tracks = [...tracks].sort(() => Math.random() - 0.5);
       playNow(tracks);
@@ -1065,7 +1065,7 @@ export default function Library() {
             {allSongs.length > 0 && creds && (
               <TrackList>
                 {allSongs.map((song, idx) => {
-                  const albumArt = song.coverArt ? getCoverArtUrl(creds, song.coverArt) : null;
+                  const albumArt = song.coverArt ? coverArtUrlOf(song) : null;
                   return (
                     <TrackRow key={song.id} onClick={() => handleTrackClick(song, idx)}>
                       <TrackNum>{idx + 1}</TrackNum>
@@ -1140,7 +1140,7 @@ export default function Library() {
             {creds && albums.length > 0 && (
               <Grid>
                 {albums.map((alb) => {
-                  const albumArtUrl = alb.coverArt ? getCoverArtUrl(creds, alb.coverArt) : null;
+                  const albumArtUrl = alb.coverArt ? coverArtUrlOf(alb) : null;
                   return (
                     <AlbumCard key={alb.id} onClick={() => navigate({ to: "/library/album/$id", params: { id: alb.id } })}>
                       <AlbumArtContainer>
@@ -1254,8 +1254,8 @@ export default function Library() {
                 {visiblePlaylists.map((pl) => (
                   <TrackRow key={pl.id} onClick={() => navigate({ to: "/library/playlist/$id", params: { id: pl.id } })}>
                     <ArtworkBox>
-                      {pl.coverArt
-                        ? <img src={getCoverArtUrl(creds, pl.coverArt)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      {coverArtUrlOf(pl)
+                        ? <img src={coverArtUrlOf(pl)!} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         : <TrackArtMosaic trackArts={pl.trackArts} />}
                     </ArtworkBox>
                     <TrackInfo>

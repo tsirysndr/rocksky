@@ -19,6 +19,8 @@ export interface NavidromeSong {
   album: string;
   duration: number; // seconds
   coverArt?: string;
+  /** Public CDN URL for the art — use this, not a credentialed link. */
+  coverArtUrl?: string;
   albumId?: string;
   artistId?: string;
   track?: number;
@@ -36,6 +38,8 @@ export interface NavidromeAlbum {
   duration: number; // seconds
   year?: number;
   coverArt?: string;
+  /** Public CDN URL for the art — use this, not a credentialed link. */
+  coverArtUrl?: string;
   _coverArtUrl?: string;
   song?: NavidromeSong[];
 }
@@ -46,6 +50,8 @@ export interface NavidromeArtist {
   albumCount: number;
   artistImageUrl?: string;
   coverArt?: string;
+  /** Public CDN URL for the art — use this, not a credentialed link. */
+  coverArtUrl?: string;
   album?: NavidromeAlbum[];
 }
 
@@ -56,6 +62,8 @@ export interface NavidromePlaylist {
   duration: number; // seconds
   comment?: string;
   coverArt?: string;
+  /** Public CDN URL for the art — use this, not a credentialed link. */
+  coverArtUrl?: string;
   entry?: NavidromeSong[];
   /** AT-URI of the app.rocksky.playlist record this playlist is mirrored to. */
   uri?: string;
@@ -81,19 +89,17 @@ function sr(data: unknown) {
   >;
 }
 
-export function getCoverArtUrl(
-  creds: NavidromeCredentials,
-  id: string,
-): string {
-  const p = new URLSearchParams({
-    u: creds.handle,
-    p: creds.apiKey,
-    v: V,
-    c: C,
-    id,
-  });
-  return `${NAVIDROME_URL}/rest/getCoverArt?${p}`;
-}
+/**
+ * The art to render for an entity.
+ *
+ * Always the CDN URL the server publishes. Building a /rest/getCoverArt link
+ * instead would put the user's API key in an <img src>, and from there into
+ * the DOM, browser history, referrer headers and any screenshot — for a
+ * picture that is public anyway.
+ */
+export const coverArtUrlOf = (
+  entity?: { coverArtUrl?: string | null } | null,
+): string | null => entity?.coverArtUrl ?? null;
 
 export function getNavidromeStreamUrl(
   creds: NavidromeCredentials,

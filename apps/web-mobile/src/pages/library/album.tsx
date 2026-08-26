@@ -14,7 +14,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ContentLoader from "react-content-loader";
 import {
   downloadFromNavidrome,
-  getCoverArtUrl,
+  coverArtUrlOf,
   type NavidromeSong,
 } from "../../api/navidrome";
 import type { QueueTrack } from "../../atoms/queue";
@@ -84,7 +84,7 @@ export default function LibraryAlbumPage() {
 
   const { data: album, isLoading } = useNavidromeAlbumQuery(id ?? "");
 
-  const albumArt = creds && album?.coverArt ? getCoverArtUrl(creds, album.coverArt) : null;
+  const albumArt = creds && album?.coverArt ? coverArtUrlOf(album) : null;
   const songs: NavidromeSong[] = useMemo(() => album?.song ?? [], [album]);
   const totalDuration = album?.duration ?? songs.reduce((sum, s) => sum + s.duration, 0);
 

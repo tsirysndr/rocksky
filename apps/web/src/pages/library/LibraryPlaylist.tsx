@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Route } from "../../routes/library/playlist/$id";
 import {
   downloadFromNavidrome,
-  getCoverArtUrl,
+  coverArtUrlOf,
   type NavidromeCredentials,
   type NavidromePlaylist,
   type NavidromeSong,
@@ -509,7 +509,7 @@ function PlaylistMenu({
 
   const tracks = () =>
     (playlist.entry ?? []).map((s) =>
-      songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null),
+      songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null),
     );
 
   return (
@@ -564,7 +564,7 @@ export default function LibraryPlaylist() {
   const totalDuration = playlist?.duration || songs.reduce((sum, s) => sum + s.duration, 0);
 
   const coverUrl = useCallback(
-    (coverArt?: string) => (creds && coverArt ? getCoverArtUrl(creds, coverArt) : null),
+    (entity?: { coverArtUrl?: string }) => coverArtUrlOf(entity),
     [creds],
   );
 
@@ -575,7 +575,7 @@ export default function LibraryPlaylist() {
     const seen = new Set<string>();
     const arts: string[] = [];
     for (const song of songs) {
-      const url = coverUrl(song.coverArt);
+      const url = coverUrl(song);
       if (!url || seen.has(url)) continue;
       seen.add(url);
       arts.push(url);
@@ -609,7 +609,7 @@ export default function LibraryPlaylist() {
   }, [id, playlist?.name, setEditingPlaylist, setAddSongsTarget, setPlaylistModalOpen]);
 
   const queue = useCallback(
-    (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, coverUrl(s.coverArt))) : []),
+    (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, coverUrl(s))) : []),
     [creds, songs, coverUrl],
   );
 
@@ -639,8 +639,8 @@ export default function LibraryPlaylist() {
 
         <Header>
           <Cover>
-            {coverUrl(playlist.coverArt)
-              ? <img src={coverUrl(playlist.coverArt)!} alt={playlist.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {coverUrl(playlist)
+              ? <img src={coverUrl(playlist)!} alt={playlist.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : <TrackArtMosaic trackArts={mosaicArts} fallbackSize={56} />}
           </Cover>
           <Meta>
@@ -703,7 +703,7 @@ export default function LibraryPlaylist() {
         ) : (
           <TrackList>
             {visibleSongs.map(({ song, idx }) => {
-              const albumArt = coverUrl(song.coverArt);
+              const albumArt = coverUrl(song);
               return (
                 <TrackRow key={`${song.id}-${idx}`} onClick={() => handleTrackPlay(idx)}>
                   <TrackNum>{idx + 1}</TrackNum>

@@ -20,7 +20,7 @@ import {
   downloadFromNavidrome,
   fetchNavidromeAlbum,
   fetchNavidromePlaylist,
-  getCoverArtUrl,
+  coverArtUrlOf,
   type NavidromeAlbum,
   type NavidromeArtist,
   type NavidromePlaylist,
@@ -237,14 +237,14 @@ export default function LibraryPage() {
   );
 
   const coverUrl = useCallback(
-    (coverArt?: string) => (creds && coverArt ? getCoverArtUrl(creds, coverArt) : null),
+    (entity?: { coverArtUrl?: string }) => coverArtUrlOf(entity),
     [creds],
   );
 
   const handleTrackPlay = useCallback(
     (idx: number) => {
       if (!creds) return;
-      const queue = allSongs.map((s) => songToQueueTrack(s, creds, coverUrl(s.coverArt)));
+      const queue = allSongs.map((s) => songToQueueTrack(s, creds, coverUrl(s)));
       playNow(queue, idx >= 0 ? idx : 0);
     },
     [allSongs, creds, coverUrl, playNow],
@@ -254,7 +254,7 @@ export default function LibraryPage() {
     async (album: NavidromeAlbum): Promise<QueueTrack[]> => {
       if (!creds) return [];
       const full = await fetchNavidromeAlbum(creds, album.id);
-      const art = coverUrl(full?.coverArt ?? album.coverArt);
+      const art = coverUrl(full ?? album);
       return (full?.song ?? []).map((s) => songToQueueTrack(s, creds, art));
     },
     [creds, coverUrl],
@@ -264,7 +264,7 @@ export default function LibraryPage() {
     async (playlist: NavidromePlaylist): Promise<QueueTrack[]> => {
       if (!creds) return [];
       const full = await fetchNavidromePlaylist(creds, playlist.id);
-      return (full?.entry ?? []).map((s) => songToQueueTrack(s, creds, coverUrl(s.coverArt)));
+      return (full?.entry ?? []).map((s) => songToQueueTrack(s, creds, coverUrl(s)));
     },
     [creds, coverUrl],
   );
@@ -385,8 +385,8 @@ export default function LibraryPage() {
                 className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
                 style={{ backgroundColor: "var(--color-menu-hover)" }}
               >
-                {coverUrl(song.coverArt) ? (
-                  <img src={coverUrl(song.coverArt)!} alt="" className="w-full h-full object-cover" />
+                {coverUrl(song) ? (
+                  <img src={coverUrl(song)!} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <IconMusic size={16} color="var(--color-text-muted)" />
                 )}
@@ -448,7 +448,7 @@ export default function LibraryPage() {
           {creds && albums.length > 0 && (
             <div className="grid grid-cols-2 gap-4 pb-6">
               {albums.map((alb) => {
-                const art = coverUrl(alb.coverArt);
+                const art = coverUrl(alb);
                 return (
                   <div
                     key={alb.id}
@@ -572,8 +572,8 @@ export default function LibraryPage() {
                 className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
                 style={{ backgroundColor: "var(--color-menu-hover)" }}
               >
-                {coverUrl(pl.coverArt) ? (
-                  <img src={coverUrl(pl.coverArt)!} alt="" className="w-full h-full object-cover" />
+                {coverUrl(pl) ? (
+                  <img src={coverUrl(pl)!} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <IconPlaylist size={18} color="var(--color-text-muted)" />
                 )}
@@ -602,8 +602,8 @@ export default function LibraryPage() {
           <>
             <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
               <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-menu-hover)" }}>
-                {coverUrl(sheetSong.coverArt)
-                  ? <img src={coverUrl(sheetSong.coverArt)!} alt="" className="w-full h-full object-cover" />
+                {coverUrl(sheetSong)
+                  ? <img src={coverUrl(sheetSong)!} alt="" className="w-full h-full object-cover" />
                   : <IconMusic size={16} color="var(--color-text-muted)" />}
               </div>
               <div className="min-w-0 flex-1">
@@ -612,8 +612,8 @@ export default function LibraryPage() {
               </div>
             </div>
             <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={() => { const i = allSongs.findIndex((s) => s.id === sheetSong.id); handleTrackPlay(i); setSheetSong(null); }} />
-            <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetSong(null); }} />
-            <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetSong(null); }} />
+            <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong))); setSheetSong(null); }} />
+            <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong))); setSheetSong(null); }} />
             <SheetItem icon={<IconPlaylist size={16} />} label="Add to playlist" onClick={() => { setAddToPlaylistSongId(sheetSong.id); setSheetSong(null); }} />
             <SheetItem icon={<IconDownload size={16} />} label="Download" onClick={() => { downloadFromNavidrome(creds, sheetSong.id); setSheetSong(null); }} />
             {sheetSong.albumId && (
@@ -643,8 +643,8 @@ export default function LibraryPage() {
           <>
             <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
               <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-menu-hover)" }}>
-                {coverUrl(sheetAlbum.coverArt)
-                  ? <img src={coverUrl(sheetAlbum.coverArt)!} alt="" className="w-full h-full object-cover" />
+                {coverUrl(sheetAlbum)
+                  ? <img src={coverUrl(sheetAlbum)!} alt="" className="w-full h-full object-cover" />
                   : <IconVinyl size={16} color="var(--color-text-muted)" />}
               </div>
               <div className="min-w-0 flex-1">

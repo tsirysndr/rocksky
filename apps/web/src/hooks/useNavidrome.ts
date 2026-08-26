@@ -17,7 +17,7 @@ import {
   fetchNavidromeArtists,
   fetchNavidromePlaylist,
   fetchNavidromePlaylists,
-  getCoverArtUrl,
+  coverArtUrlOf,
   getNavidromeStreamUrl,
   type NavidromeAlbum,
   type NavidromeArtist,
@@ -65,7 +65,7 @@ export function songToQueueTrack(
     albumArtOverride !== undefined
       ? albumArtOverride
       : song.coverArt
-        ? getCoverArtUrl(creds, song.coverArt)
+        ? coverArtUrlOf(song)
         : null;
   return {
     uploadId: song.id,

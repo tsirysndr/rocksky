@@ -93,6 +93,12 @@ pub fn track_to_json(t: &crate::xata::track::TrackWithUpload, _user_id: &str) ->
         s["coverArt"] = json!(format!("tr-{}", t.xata_id));
     }
 
+    // The CDN URL itself, so clients never have to build a credentialed
+    // /rest/getCoverArt link to render a picture that is public anyway.
+    if let Some(art) = &t.album_art {
+        s["coverArtUrl"] = json!(art);
+    }
+
     if let Some(artist_id) = &t.artist_id {
         s["artistId"] = json!(artist_id);
     }

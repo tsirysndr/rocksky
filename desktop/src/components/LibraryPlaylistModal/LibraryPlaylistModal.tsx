@@ -11,7 +11,7 @@ import { useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { getCoverArtUrl, type NavidromeSong } from "../../api/navidrome";
+import { coverArtUrlOf, type NavidromeSong } from "../../api/navidrome";
 import {
   addLibrarySongsTargetAtom,
   editingLibraryPlaylistAtom,
@@ -314,7 +314,7 @@ function SongsStep({ playlist }: { playlist: PlaylistTarget }) {
             const count = addedCount(song.id);
             const albumArt =
               creds && song.coverArt
-                ? getCoverArtUrl(creds, song.coverArt)
+                ? coverArtUrlOf(song)
                 : null;
             return (
               <Row

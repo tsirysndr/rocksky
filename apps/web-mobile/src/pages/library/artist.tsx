@@ -9,7 +9,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ContentLoader from "react-content-loader";
 import {
   fetchNavidromeAlbum,
-  getCoverArtUrl,
+  coverArtUrlOf,
   type NavidromeAlbum,
   type NavidromeCredentials,
 } from "../../api/navidrome";
@@ -29,7 +29,7 @@ async function fetchAllArtistTracks(
   const results = await Promise.all(
     albums.map(async (a) => {
       const full = await fetchNavidromeAlbum(creds, a.id);
-      const artUrl = full?.coverArt ? getCoverArtUrl(creds, full.coverArt) : null;
+      const artUrl = full?.coverArt ? coverArtUrlOf(full) : null;
       return (full?.song ?? []).map((s) => songToQueueTrack(s, creds, artUrl));
     }),
   );
@@ -128,7 +128,7 @@ export default function LibraryArtistPage() {
             <h2 className="text-sm font-bold m-0 mb-3" style={{ color: "var(--color-text)" }}>Albums</h2>
             <div className="grid grid-cols-2 gap-4">
               {albums.map((alb) => {
-                const artUrl = alb.coverArt ? getCoverArtUrl(creds, alb.coverArt) : null;
+                const artUrl = alb.coverArt ? coverArtUrlOf(alb) : null;
                 return (
                   <div
                     key={alb.id}

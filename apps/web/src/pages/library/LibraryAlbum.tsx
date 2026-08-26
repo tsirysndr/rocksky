@@ -13,7 +13,7 @@ import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { Route } from "../../routes/library/album/$id";
 import {
   downloadFromNavidrome,
-  getCoverArtUrl,
+  coverArtUrlOf,
   type NavidromeCredentials,
   type NavidromeSong,
 } from "../../api/navidrome";
@@ -528,7 +528,7 @@ export default function LibraryAlbum() {
       .sort(([a], [b]) => a - b)
       .map(([disc, tracks]) => ({ disc, tracks }));
   }, [songs]);
-  const albumArtUrl = creds && album?.coverArt ? getCoverArtUrl(creds, album.coverArt) : null;
+  const albumArtUrl = creds && album?.coverArt ? coverArtUrlOf(album) : null;
   const totalSecs = songs.reduce((sum, s) => sum + s.duration, 0);
 
   const toTrack = useCallback(

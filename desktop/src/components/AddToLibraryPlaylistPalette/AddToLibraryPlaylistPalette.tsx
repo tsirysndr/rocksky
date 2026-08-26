@@ -3,7 +3,7 @@ import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getCoverArtUrl } from "../../api/navidrome";
+import { coverArtUrlOf } from "../../api/navidrome";
 import { addToLibraryPlaylistSongAtom } from "../../atoms/addToLibraryPlaylist";
 import {
   addLibrarySongsTargetAtom,
@@ -235,7 +235,7 @@ function AddToLibraryPlaylistPalette() {
               >
                 <Thumb>
                   {creds && playlist.coverArt ? (
-                    <img src={getCoverArtUrl(creds, playlist.coverArt)} alt="" />
+                    <img src={coverArtUrlOf(playlist) ?? undefined} alt="" />
                   ) : (
                     <TrackArtMosaic
                       trackArts={playlist.trackArts}

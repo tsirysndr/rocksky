@@ -27,7 +27,9 @@ fn album_to_json(a: &AlbumWithStats, artist_id_override: Option<&str>) -> Value 
 
     if let Some(art) = &a.album_art {
         obj["coverArt"] = json!(format!("al-{}", a.xata_id));
-        let _ = art;
+        // The CDN URL itself, so clients never have to build a credentialed
+        // /rest/getCoverArt link to render a picture that is public anyway.
+        obj["coverArtUrl"] = json!(art);
     }
 
     obj

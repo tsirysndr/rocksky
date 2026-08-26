@@ -8,7 +8,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { Route } from "../../routes/library/artist/$id";
-import { getCoverArtUrl, fetchNavidromeAlbum, type NavidromeAlbum, type NavidromeCredentials } from "../../api/navidrome";
+import { coverArtUrlOf, fetchNavidromeAlbum, type NavidromeAlbum, type NavidromeCredentials } from "../../api/navidrome";
 import { useNavidromeArtistQuery, useNavidromeCredentials, songToQueueTrack } from "../../hooks/useNavidrome";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
@@ -22,7 +22,7 @@ async function fetchAllArtistTracks(albums: NavidromeAlbum[], creds: NavidromeCr
   const results = await Promise.all(
     albums.map(async (a) => {
       const full = await fetchNavidromeAlbum(creds, a.id);
-      const artUrl = full?.coverArt ? getCoverArtUrl(creds, full.coverArt) : null;
+      const artUrl = full?.coverArt ? coverArtUrlOf(full) : null;
       return (full?.song ?? []).map((s) => songToQueueTrack(s, creds, artUrl));
     }),
   );
@@ -291,7 +291,7 @@ export default function LibraryArtist() {
             <SectionTitle>Albums</SectionTitle>
             <AlbumGrid>
               {albums.map((alb) => {
-                const artUrl = alb._coverArtUrl ?? (alb.coverArt ? getCoverArtUrl(creds, alb.coverArt) : null);
+                const artUrl = alb._coverArtUrl ?? (alb.coverArt ? coverArtUrlOf(alb) : null);
                 return (
                   <AlbumCard key={alb.id} onClick={() => navigate({ to: "/library/album/$id", params: { id: alb.id } })}>
                     <AlbumArtWrap className="alb-art">

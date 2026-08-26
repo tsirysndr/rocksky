@@ -18,7 +18,7 @@ import { createPortal } from "react-dom";
 import {
   fetchNavidromeAlbum,
   downloadFromNavidrome,
-  getCoverArtUrl,
+  coverArtUrlOf,
   searchNavidrome,
   type NavidromeAlbum,
   type NavidromeArtist,
@@ -448,7 +448,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                   {
                     primary: song.title,
                     secondary: `${song.artist} — ${song.album}`,
-                    art: song.coverArt && creds ? getCoverArtUrl(creds, song.coverArt) : null,
+                    art: song.coverArt && creds ? coverArtUrlOf(song) : null,
                     round: false,
                     icon: <Disc color={ICON} width={22} height={22} />,
                     withMenu: true,
@@ -466,7 +466,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                   {
                     primary: album.name,
                     secondary: album.artist,
-                    art: album.coverArt && creds ? getCoverArtUrl(creds, album.coverArt) : null,
+                    art: album.coverArt && creds ? coverArtUrlOf(album) : null,
                     round: false,
                     icon: <Disc color={ICON} width={22} height={22} />,
                     withMenu: true,
@@ -484,7 +484,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                   {
                     primary: artist.name,
                     secondary: null,
-                    art: artist.artistImageUrl || (artist.coverArt && creds ? getCoverArtUrl(creds, artist.coverArt) : null),
+                    art: artist.artistImageUrl || (artist.coverArt && creds ? coverArtUrlOf(artist) : null),
                     round: true,
                     icon: <Artist color={ICON} />,
                     withMenu: false,

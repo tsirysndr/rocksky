@@ -13,7 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ContentLoader from "react-content-loader";
 import {
   downloadFromNavidrome,
-  getCoverArtUrl,
+  coverArtUrlOf,
   type NavidromeSong,
 } from "../../api/navidrome";
 import type { QueueTrack } from "../../atoms/queue";
@@ -83,12 +83,12 @@ export default function LibraryPlaylistPage() {
   const totalDuration = playlist?.duration ?? songs.reduce((sum, s) => sum + s.duration, 0);
 
   const coverUrl = useCallback(
-    (coverArt?: string) => (creds && coverArt ? getCoverArtUrl(creds, coverArt) : null),
+    (entity?: { coverArtUrl?: string }) => coverArtUrlOf(entity),
     [creds],
   );
 
   const queue = useCallback(
-    (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, coverUrl(s.coverArt))) : []),
+    (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, coverUrl(s))) : []),
     [creds, songs, coverUrl],
   );
 
@@ -129,8 +129,8 @@ export default function LibraryPlaylistPage() {
         {/* Header */}
         <div className="flex gap-4 items-end mb-6">
           <div className="w-32 h-32 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-menu-hover)", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
-            {coverUrl(playlist.coverArt) ? (
-              <img src={coverUrl(playlist.coverArt)!} alt={playlist.name} className="w-full h-full object-cover" />
+            {coverUrl(playlist) ? (
+              <img src={coverUrl(playlist)!} alt={playlist.name} className="w-full h-full object-cover" />
             ) : (
               <IconPlaylist size={48} color="var(--color-text-muted)" />
             )}
@@ -189,8 +189,8 @@ export default function LibraryPlaylistPage() {
                   className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
                   style={{ backgroundColor: "var(--color-menu-hover)" }}
                 >
-                  {coverUrl(song.coverArt) ? (
-                    <img src={coverUrl(song.coverArt)!} alt="" className="w-full h-full object-cover" />
+                  {coverUrl(song) ? (
+                    <img src={coverUrl(song)!} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <IconMusic size={16} color="var(--color-text-muted)" />
                   )}
@@ -223,8 +223,8 @@ export default function LibraryPlaylistPage() {
           <>
             <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
               <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-menu-hover)" }}>
-                {coverUrl(sheetSong.coverArt)
-                  ? <img src={coverUrl(sheetSong.coverArt)!} alt="" className="w-full h-full object-cover" />
+                {coverUrl(sheetSong)
+                  ? <img src={coverUrl(sheetSong)!} alt="" className="w-full h-full object-cover" />
                   : <IconMusic size={16} color="var(--color-text-muted)" />}
               </div>
               <div className="min-w-0 flex-1">
@@ -233,8 +233,8 @@ export default function LibraryPlaylistPage() {
               </div>
             </div>
             <SheetItem label="Play" onClick={() => { handleTrackPlay(sheetIdx!); setSheetIdx(null); }} />
-            <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetIdx(null); }} />
-            <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong.coverArt))); setSheetIdx(null); }} />
+            <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong))); setSheetIdx(null); }} />
+            <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong))); setSheetIdx(null); }} />
             <SheetItem icon={<IconPlaylist size={16} />} label="Add to playlist" onClick={() => { setAddToPlaylistSongId(sheetSong.id); setSheetIdx(null); }} />
             <SheetItem icon={<IconDownload size={16} />} label="Download" onClick={() => { downloadFromNavidrome(creds, sheetSong.id); setSheetIdx(null); }} />
             {sheetSong.albumId && (
