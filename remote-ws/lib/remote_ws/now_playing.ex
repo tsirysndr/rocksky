@@ -168,8 +168,10 @@ defmodule RemoteWs.NowPlaying do
         &Redis.del/1
       )
 
-      StopDebouncer.cancel(did)
-      Nats.publish("rocksky.song.stopped", Jason.encode!(%{did: did}))
+      # Debounced rather than published outright: a disconnect is usually a
+      # reload or a network blip, and firing immediately deleted the status
+      # record for a track that was still playing.
+      StopDebouncer.schedule(did)
     end
 
     :ok

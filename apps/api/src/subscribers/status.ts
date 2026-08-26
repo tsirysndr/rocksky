@@ -9,6 +9,7 @@ import { enrichWithDeezer } from "lib/deezer";
 import type * as Status from "lexicon/types/app/rocksky/actor/status";
 import type { TrackView } from "lexicon/types/app/rocksky/actor/defs";
 import tracks from "schema/tracks";
+import { remainingPlaybackMs } from "./playback";
 
 const jc = JSONCodec();
 
@@ -200,11 +201,26 @@ function rateLimitResetMsg(err: any): string {
 
 // Last status successfully written to the PDS per DID.
 // Tracks key ("name:artist") and source so Navidrome can override a Rockbox
-// entry for the same track without being deduped.
+// entry for the same track without being deduped, plus when it was written and
+// how long the track runs, so a stop arriving mid-track can be deferred.
 const lastPushedStatus = new Map<
   string,
-  { key: string; source: string } | null
+  { key: string; source: string; startedAt: number; durationMs: number } | null
 >();
+
+// Deletes deferred until the current track would have finished, keyed by DID.
+const pendingDeletes = new Map<string, NodeJS.Timeout>();
+
+function cancelPendingDelete(did: string): void {
+  const timer = pendingDeletes.get(did);
+  if (timer) {
+    clearTimeout(timer);
+    pendingDeletes.delete(did);
+  }
+}
+
+const remainingMs = (did: string): number =>
+  remainingPlaybackMs(lastPushedStatus.get(did), Date.now());
 
 // Unix ms timestamp until which PDS writes are suppressed for a given DID.
 // Set when a 429 is received; cleared automatically once the time passes.
@@ -233,6 +249,25 @@ function applyRateLimitBackoff(did: string, err: any): void {
     until = Date.now() + 60_000; // conservative 1-minute fallback
   }
   rateLimitedUntil.set(did, until);
+}
+
+const STOP_GRACE_MS = 5_000;
+
+async function clearStatus(ctx: Context, did: string): Promise<void> {
+  const agent = await createAgent(ctx.oauthClient, did);
+  if (!agent) {
+    consola.warn(`[status] No agent for ${did}, skipping song.stopped`);
+    return;
+  }
+
+  await agent.com.atproto.repo.deleteRecord({
+    repo: agent.assertDid,
+    collection: "app.rocksky.actor.status",
+    rkey: "self",
+  });
+
+  lastPushedStatus.set(did, null);
+  consola.info(`[status] Cleared status for ${did}`);
 }
 
 export function onSongChanged(ctx: Context) {
@@ -305,7 +340,15 @@ export function onSongChanged(ctx: Context) {
           validate: false,
         });
 
-        lastPushedStatus.set(did, { key: trackKey, source });
+        lastPushedStatus.set(did, {
+          key: trackKey,
+          source,
+          startedAt: Date.parse(startedAt),
+          durationMs: track.durationMs,
+        });
+        // A new track owns the record now, so a stop deferred for the previous
+        // one must not fire and delete it.
+        cancelPendingDelete(did);
 
         // When Navidrome is the source, clear ws_lastsong so a stale status=0
         // from Rockbox cannot fire song.stopped and delete this record.
@@ -376,20 +419,30 @@ export function onSongStopped(ctx: Context) {
           continue;
         }
 
-        const agent = await createAgent(ctx.oauthClient, did);
-        if (!agent) {
-          consola.warn(`[status] No agent for ${did}, skipping song.stopped`);
+        const remaining = remainingMs(did);
+        if (remaining > 0) {
+          cancelPendingDelete(did);
+          const snapshot = lastPushedStatus.get(did);
+          pendingDeletes.set(
+            did,
+            setTimeout(() => {
+              pendingDeletes.delete(did);
+              // Only clear the status this stop was actually about.
+              if (lastPushedStatus.get(did) !== snapshot) return;
+              clearStatus(ctx, did).catch((err) =>
+                consola.error(
+                  `[status] deferred clear failed for ${did}: ${err?.message ?? err}`,
+                ),
+              );
+            }, remaining + STOP_GRACE_MS),
+          );
+          consola.info(
+            `[status] deferred clear for ${did} — ${Math.round(remaining / 1000)}s of the track left`,
+          );
           continue;
         }
 
-        await agent.com.atproto.repo.deleteRecord({
-          repo: agent.assertDid,
-          collection: "app.rocksky.actor.status",
-          rkey: "self",
-        });
-
-        lastPushedStatus.set(did, null);
-        consola.info(`[status] Cleared status for ${did}`);
+        await clearStatus(ctx, did);
       } catch (err: any) {
         const status =
           err?.status ?? err?.response?.status ?? err?.error?.status;
