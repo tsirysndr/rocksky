@@ -1,5 +1,5 @@
 import type { ChartsScrobbleViewBasic } from "@rocksky/sdk";
-import { useParams, useRouter } from "@tanstack/react-router";
+import { Link, useParams, useRouter } from "@tanstack/react-router";
 import { LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
 import numeral from "numeral";
@@ -58,7 +58,13 @@ function ScrobblesAreaChart() {
 
   useEffect(() => {
     const fetchScrobblesChart = async () => {
-      if (pathname === "/" || pathname === "/charts" || pathname === "/recommendations") {
+      if (
+        pathname === "/" ||
+        pathname === "/charts" ||
+        pathname === "/analytics" ||
+        pathname === "/explore" ||
+        pathname === "/recommendations"
+      ) {
         return;
       }
 
@@ -107,6 +113,8 @@ function ScrobblesAreaChart() {
   const chartData =
     pathname === "/" ||
     pathname === "/charts" ||
+    pathname === "/analytics" ||
+    pathname === "/explore" ||
     pathname === "/tos" ||
     pathname === "/mirrors" ||
     pathname === "/recommendations" ||
@@ -124,12 +132,17 @@ function ScrobblesAreaChart() {
           Stats like the rest of the library. */}
       {(!pathname.includes("/playlist/") || pathname.startsWith("/library")) && (
         <>
-          <LabelMedium
-            marginBottom={"10px"}
-            className="!text-[var(--color-text)]"
-          >
-            Scrobble Stats
-          </LabelMedium>
+          <div className="flex items-baseline justify-between w-[300px] mb-[10px]">
+            <LabelMedium className="!text-[var(--color-text)]">
+              Scrobble Stats
+            </LabelMedium>
+            <Link
+              to="/analytics"
+              className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:underline"
+            >
+              View more
+            </Link>
+          </div>
           <AreaChart
             width={300}
             height={120}
