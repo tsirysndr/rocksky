@@ -259,12 +259,27 @@ function PlaylistCards({ items }: { items: PlaylistViewBasic[] }) {
   );
 }
 
-function ScrobbleRows({ items }: { items: ScrobbleViewBasic[] }) {
+/**
+ * getScrobbles answers with cover/user/date where the lexicon declares
+ * albumArt/handle/createdAt — the rest of the app already reads the former.
+ */
+type ScrobbleRow = ScrobbleViewBasic & {
+  cover?: string;
+  user?: string;
+  userDisplayName?: string;
+  date?: string;
+};
+
+const scrobbleArt = (s: ScrobbleRow) => s.cover || s.albumArt || PLACEHOLDER;
+const scrobbleHandle = (s: ScrobbleRow) => s.user || s.handle;
+const scrobbleDate = (s: ScrobbleRow) => s.date || s.createdAt;
+
+function ScrobbleRows({ items }: { items: ScrobbleRow[] }) {
   return (
     <Rows>
       {items.map((scrobble, i) => (
         <Row key={scrobble.id ?? i}>
-          <Art src={scrobble.albumArt || PLACEHOLDER} alt="" />
+          <Art src={scrobbleArt(scrobble)} alt="" />
           <Body>
             {scrobble.uri ? (
               <Link
@@ -281,11 +296,13 @@ function ScrobbleRows({ items }: { items: ScrobbleViewBasic[] }) {
             )}
             <SecondaryText>
               {scrobble.artist}
-              {scrobble.handle ? ` · @${scrobble.handle}` : ""}
+              {scrobbleHandle(scrobble) ? ` · @${scrobbleHandle(scrobble)}` : ""}
             </SecondaryText>
           </Body>
           <Meta>
-            {scrobble.createdAt ? dayjs(scrobble.createdAt).fromNow() : ""}
+            {scrobbleDate(scrobble)
+              ? dayjs(scrobbleDate(scrobble)).fromNow()
+              : ""}
           </Meta>
         </Row>
       ))}
@@ -298,7 +315,7 @@ export type ResultSet =
   | { key: "albums"; items: AlbumViewBasic[] }
   | { key: "artists"; items: ArtistViewBasic[] }
   | { key: "playlists"; items: PlaylistViewBasic[] }
-  | { key: "scrobbles"; items: ScrobbleViewBasic[] };
+  | { key: "scrobbles"; items: ScrobbleRow[] };
 
 export const resultCount = (result: ResultSet | undefined) =>
   result?.items.length ?? 0;
