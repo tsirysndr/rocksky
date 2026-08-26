@@ -309,23 +309,23 @@ function VizTooltip({
 }
 
 /**
- * Glow for one series. Bars carry a flat semi-transparent fill with a
- * full-opacity outline, so the mark reads as lit while the outline keeps it
- * legible against the surface at any fill opacity.
+ * Glow for one series. Returned from a plain function, not a component:
+ * recharts only renders children whose type is a raw SVG tag, so a custom
+ * component here is dropped and the bars end up pointing at a filter that was
+ * never defined — which Chromium ignores but WebKit treats as an error and
+ * refuses to paint.
  */
-function NeonDefs({ id }: { id: string }) {
-  return (
-    <defs>
-      <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="3.5" result="blur" />
-        <feMerge>
-          <feMergeNode in="blur" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-  );
-}
+const neonDefs = (id: string) => (
+  <defs key={id}>
+    <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+);
 
 const neonBar = (id: string, color: string) => ({
   fill: color,
@@ -624,7 +624,7 @@ function Analytics() {
             <PanelNote>Every play in the range, folded onto the week.</PanelNote>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={byWeekday} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                <NeonDefs id="viz-weekday" />
+                {neonDefs("viz-weekday")}
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -659,7 +659,7 @@ function Analytics() {
             <PanelNote>How the range breaks down month by month.</PanelNote>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={byMonth} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                <NeonDefs id="viz-month" />
+                {neonDefs("viz-month")}
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="key"
@@ -700,7 +700,7 @@ function Analytics() {
             ) : (
               <ResponsiveContainer width="100%" height={Math.max(220, artistBars.length * 34)}>
                 <BarChart data={artistBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
-                  <NeonDefs id="viz-artist" />
+                  {neonDefs("viz-artist")}
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
@@ -734,7 +734,7 @@ function Analytics() {
             ) : (
               <ResponsiveContainer width="100%" height={Math.max(220, trackBars.length * 34)}>
                 <BarChart data={trackBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
-                  <NeonDefs id="viz-track" />
+                  {neonDefs("viz-track")}
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
