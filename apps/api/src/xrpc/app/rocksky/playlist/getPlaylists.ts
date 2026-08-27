@@ -109,9 +109,8 @@ const retrieve = ({
              LIMIT 4
            ) arts)`.as("trackArts"),
       };
-      const base = () =>
-        ctx.db
-          .select(projection)
+      const base = (dedupe = false) =>
+        (dedupe ? ctx.db.selectDistinct(projection) : ctx.db.select(projection))
           .from(tables.userPlaylists)
           .leftJoin(
             tables.playlists,
@@ -127,11 +126,18 @@ const retrieve = ({
       const offset = params.offset || 0;
 
       // Filtering on track fields needs the contents joined in, which fans a
-      // playlist out to one row per matching track — GROUP BY folds it back to
+      // playlist out to one row per matching track — DISTINCT folds it back to
       // one row per playlist. The join is skipped entirely when the filter
       // doesn't mention tracks, so the common case pays nothing for it.
+      //
+      // DISTINCT rather than GROUP BY on the playlist id: Postgres only infers
+      // that the other selected columns are functionally dependent when the
+      // grouped column is a PRIMARY KEY, and xata_id carries a UNIQUE
+      // constraint instead. Grouping therefore raised "column must appear in
+      // the GROUP BY clause", which the catchAll below turned into an empty
+      // result — so every track filter silently returned nothing.
       if (filtersOnTracks(params.filter)) {
-        return base()
+        return base(true)
           .innerJoin(
             tables.playlistTracks,
             eq(tables.playlistTracks.playlistId, tables.playlists.id),
@@ -141,11 +147,6 @@ const retrieve = ({
             eq(tables.playlistTracks.trackId, tables.tracks.id),
           )
           .where(where)
-          .groupBy(
-            tables.playlists.id,
-            tables.users.id,
-            tables.userPlaylists.id,
-          )
           .orderBy(desc(tables.playlists.createdAt))
           .limit(limit)
           .offset(offset)

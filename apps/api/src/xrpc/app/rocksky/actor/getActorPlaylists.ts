@@ -107,9 +107,8 @@ const retrieve = ({
         ),
         compileRsqlFilterParam(params.filter, FILTER_FIELDS),
       );
-      const base = () =>
-        ctx.db
-          .select(projection)
+      const base = (dedupe = false) =>
+        (dedupe ? ctx.db.selectDistinct(projection) : ctx.db.select(projection))
           .from(tables.playlists)
           .leftJoin(
             tables.users,
@@ -117,9 +116,14 @@ const retrieve = ({
           );
 
       // Joining the contents fans a playlist out to one row per matching
-      // track; GROUP BY folds it back. Only done when the filter asks for it.
+      // track; DISTINCT folds it back. Only done when the filter asks for it.
+      // Not GROUP BY on the ids: Postgres only treats the other selected
+      // columns as functionally dependent when the grouped column is a PRIMARY
+      // KEY, and xata_id is UNIQUE instead — so grouping raised "column must
+      // appear in the GROUP BY clause" and the catchAll turned that into an
+      // empty list.
       const rows = filtersOnTracks(params.filter)
-        ? await base()
+        ? await base(true)
             .innerJoin(
               tables.playlistTracks,
               eq(tables.playlistTracks.playlistId, tables.playlists.id),
@@ -129,7 +133,6 @@ const retrieve = ({
               eq(tables.playlistTracks.trackId, tables.tracks.id),
             )
             .where(where)
-            .groupBy(tables.playlists.id, tables.users.id)
             .offset(params.offset)
             .limit(params.limit)
             .execute()
