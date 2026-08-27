@@ -65,18 +65,18 @@ export const ENTITIES: Entity[] = [
       d("createdAt", "First seen on Rocksky"),
     ],
     examples: [
+      { label: "Metallica", filter: 'artist=="Metallica"' },
       {
-        label: "Long Daft Punk tracks",
-        filter: 'artist=="Daft Punk";duration=gt=300000',
+        label: "Long Beatles tracks",
+        filter: 'artist=="The Beatles";duration=gt=300000',
       },
-      {
-        label: "House or techno",
-        filter: "genre=in=(House,Techno)",
-      },
-      {
-        label: "Titles starting with Blue",
-        filter: 'title=="Blue*"',
-      },
+      { label: "Titles with love", filter: 'title=="*Love*"' },
+      { label: "Over ten minutes", filter: "duration=gt=600000" },
+      { label: "Opening tracks", filter: "trackNumber==1" },
+      { label: "Remasters", filter: 'album=="*Remaster*"' },
+      { label: "Has an ISRC", filter: "isrc!=null" },
+      { label: "Second discs", filter: "discNumber==2" },
+      { label: "Credited composer", filter: "composer!=null" },
     ],
   },
   {
@@ -93,12 +93,16 @@ export const ENTITIES: Entity[] = [
       d("createdAt", "First seen on Rocksky"),
     ],
     examples: [
-      { label: "Nineties albums", filter: "year=ge=1990;year=le=1999" },
-      { label: "Radiohead", filter: 'artist=="Radiohead"' },
+      { label: "This decade", filter: "year=ge=2020" },
+      { label: "The nineties", filter: "year=ge=1990;year=le=1999" },
+      { label: "Before 1980", filter: "year=lt=1980" },
+      { label: "Metallica", filter: 'artist=="Metallica"' },
+      { label: "Live albums", filter: 'title=="*Live*"' },
       {
-        label: "Recent additions",
-        filter: "createdAt=gt=2026-01-01",
+        label: "Sixties Beatles",
+        filter: 'artist=="The Beatles";year=lt=1970',
       },
+      { label: "Known release date", filter: "releaseDate!=null" },
     ],
   },
   {
@@ -115,12 +119,12 @@ export const ENTITIES: Entity[] = [
       d("createdAt", "First seen on Rocksky"),
     ],
     examples: [
-      { label: "Tagged jazz", filter: 'genres=="jazz"' },
-      { label: "From France", filter: 'bornIn=="*France*"' },
-      {
-        label: "Electronic or ambient",
-        filter: "genres=in=(electronic,ambient)",
-      },
+      { label: "Trance", filter: 'genres=="trance"' },
+      { label: "Anime", filter: 'genres=="anime"' },
+      { label: "J-rock", filter: 'genres=="j-rock"' },
+      { label: "Ambient or lo-fi", filter: "genres=in=(ambient,lo-fi)" },
+      { label: "Anything but pop", filter: "genres=out=(pop)" },
+      { label: "Named the…", filter: 'name=="*The*"' },
     ],
   },
   {
@@ -145,15 +149,16 @@ export const ENTITIES: Entity[] = [
       s("track.albumArtist", "Contains a track whose album artist is…"),
     ],
     examples: [
-      {
-        label: "Contains Daft Punk",
-        filter: 'track.artist=="Daft Punk"',
-      },
-      { label: "Named summer", filter: 'name=="*summer*"' },
+      { label: "Contains Evanescence", filter: 'track.artist=="Evanescence"' },
+      { label: "Contains Metallica", filter: 'track.artist=="Metallica"' },
+      { label: "Contains Daft Punk", filter: 'track.artist=="Daft Punk"' },
+      { label: "Holds a Discovery track", filter: 'track.album=="*Discovery*"' },
+      { label: "Named mix", filter: 'name=="*Mix*"' },
       {
         label: "By one curator",
         filter: 'curatorHandle=="tsiry-sandratraina.com"',
       },
+      { label: "Has a description", filter: "description!=null" },
     ],
   },
   {
@@ -181,17 +186,19 @@ export const ENTITIES: Entity[] = [
       arr("artist.genres", "Artist genre tags"),
     ],
     examples: [
+      { label: "One listener", filter: 'user.handle=="ducky.ws"' },
       {
-        label: "This year, one artist",
-        filter: 'artist=="Aphex Twin";date=gt=2026-01-01',
+        label: "Metallica this year",
+        filter: 'artist=="Metallica";date=gt=2026-01-01',
       },
+      { label: "This month", filter: "date=gt=2026-08-01" },
+      { label: "Tracks over 8 minutes", filter: "track.duration=gt=480000" },
+      { label: "Trance artists", filter: 'artist.genres=="trance"' },
+      { label: "Titles with love", filter: 'title=="*Love*"' },
+      { label: "From a remaster", filter: 'track.album=="*Remaster*"' },
       {
-        label: "One listener's jazz",
-        filter: 'user.handle=="tsiry-sandratraina.com";artist.genres=="jazz"',
-      },
-      {
-        label: "Tracks over 8 minutes",
-        filter: "track.duration=gt=480000",
+        label: "One listener, long tracks",
+        filter: 'user.handle=="hkamran.com";track.duration=gt=300000',
       },
     ],
   },
