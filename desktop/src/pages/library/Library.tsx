@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import {
+  IconAlertTriangle,
   IconArrowsShuffle,
   IconDots,
   IconDownload,
@@ -90,14 +91,19 @@ function dedupeById<T extends { id: string }>(items: T[]): T[] {
   });
 }
 
+// The node is held in state, not a ref, so that it is a dependency of the
+// effect. baseui only renders the active tab panel, so a sentinel mounts and
+// unmounts on every tab switch — with a ref the effect wouldn't re-run for it,
+// and the observer would end up attached to nothing (a panel opened after its
+// query settled) or to a detached node (a panel returned to). Either way
+// scrolling stopped loading more.
 function useInfiniteScrollSentinel(
   hasNextPage: boolean,
   isFetchingNextPage: boolean,
   fetchNextPage: () => unknown,
 ) {
-  const ref = useRef<HTMLDivElement>(null);
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -109,8 +115,8 @@ function useInfiniteScrollSentinel(
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-  return ref;
+  }, [el, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  return setEl;
 }
 
 // ---------------------------------------------------------------------------
@@ -573,6 +579,21 @@ const PrimaryButton = styled.button`
 
 const Sentinel = styled.div`height: 1px;`;
 
+// A failed load used to leave the tab on its skeleton forever, which reads as a
+// library that never finishes loading rather than one that couldn't.
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <EmptyState>
+      <IconAlertTriangle size={48} color="var(--color-text-muted)" />
+      <div style={{ textAlign: "center" }}>
+        <EmptyTitle>Couldn't load your library</EmptyTitle>
+        <EmptySubtitle>Check your connection and try again</EmptySubtitle>
+      </div>
+      <PrimaryButton onClick={onRetry}>Retry</PrimaryButton>
+    </EmptyState>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Skeleton
 // ---------------------------------------------------------------------------
@@ -908,7 +929,8 @@ function PlaylistContextMenu({
 export default function Library() {
   const navigate = useNavigate();
   const { playNow, playNext, playLast } = useUploadPlayer();
-  const { data: creds } = useNavidromeCredentials();
+  const credentials = useNavidromeCredentials();
+  const creds = credentials.data;
   const deleteTrack = useDeleteUploadByTrackIdMutation();
   const deleteAlbumById = useDeleteAlbumByIdMutation();
   const { data: playlists = [], isLoading: playlistsLoading } = useNavidromePlaylistsQuery();
@@ -1000,7 +1022,23 @@ export default function Library() {
     [creds, playNow],
   );
 
-  const isLoading = !creds || tracksQuery.isLoading;
+  // Every tab is gated on the navidrome credentials, so a failure there has to
+  // break the skeletons in all three — otherwise they spin forever.
+  const retry = useCallback(() => {
+    if (credentials.isError) {
+      credentials.refetch();
+      return;
+    }
+    tracksQuery.refetch();
+    albumsQuery.refetch();
+    artistsQuery.refetch();
+  }, [credentials, tracksQuery, albumsQuery, artistsQuery]);
+
+  const tracksFailed = credentials.isError || tracksQuery.isError;
+  const albumsFailed = credentials.isError || albumsQuery.isError;
+  const artistsFailed = credentials.isError || artistsQuery.isError;
+
+  const isLoading = !tracksFailed && (!creds || tracksQuery.isLoading);
 
   return (
     <Main>
@@ -1040,7 +1078,9 @@ export default function Library() {
           <Tab title="Tracks" overrides={tabOverrides}>
             {isLoading && <TracksSkeleton />}
 
-            {!isLoading && allSongs.length === 0 && (
+            {tracksFailed && allSongs.length === 0 && <LoadFailed onRetry={retry} />}
+
+            {!isLoading && !tracksFailed && allSongs.length === 0 && (
               <EmptyState>
                 <IconVinyl size={48} color="var(--color-text-muted)" />
                 {searchQuery ? (
@@ -1127,8 +1167,9 @@ export default function Library() {
 
           {/* -------- Albums -------- */}
           <Tab title="Albums" overrides={tabOverrides}>
-            {(albumsQuery.isLoading || !creds) && <AlbumsSkeleton />}
-            {!albumsQuery.isLoading && creds && albums.length === 0 && (
+            {!albumsFailed && (albumsQuery.isLoading || !creds) && <AlbumsSkeleton />}
+            {albumsFailed && albums.length === 0 && <LoadFailed onRetry={retry} />}
+            {!albumsFailed && !albumsQuery.isLoading && creds && albums.length === 0 && (
               <EmptyState>
                 <IconVinyl size={48} color="var(--color-text-muted)" />
                 <div style={{ textAlign: "center" }}>
@@ -1192,8 +1233,9 @@ export default function Library() {
 
           {/* -------- Artists -------- */}
           <Tab title="Artists" overrides={tabOverrides}>
-            {(artistsQuery.isLoading || !creds) && <ArtistsSkeleton />}
-            {!artistsQuery.isLoading && creds && artists.length === 0 && (
+            {!artistsFailed && (artistsQuery.isLoading || !creds) && <ArtistsSkeleton />}
+            {artistsFailed && artists.length === 0 && <LoadFailed onRetry={retry} />}
+            {!artistsFailed && !artistsQuery.isLoading && creds && artists.length === 0 && (
               <EmptyState>
                 <IconUser size={48} color="var(--color-text-muted)" />
                 <div style={{ textAlign: "center" }}>
