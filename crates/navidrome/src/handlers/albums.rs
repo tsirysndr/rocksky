@@ -25,6 +25,14 @@ fn album_to_json(a: &AlbumWithStats, artist_id_override: Option<&str>) -> Value 
         obj["year"] = json!(year);
     }
 
+    // The AT-URI of the album record, so a client can address this album by
+    // record rather than by the Navidrome id, which is local to this server.
+    // Absent until the record has been published — same contract as a
+    // playlist's `uri`.
+    if let Some(uri) = &a.uri {
+        obj["uri"] = json!(uri);
+    }
+
     if let Some(art) = &a.album_art {
         obj["coverArt"] = json!(format!("al-{}", a.xata_id));
         // The CDN URL itself, so clients never have to build a credentialed
@@ -41,7 +49,16 @@ pub async fn handle_get_album(
     album_id: &str,
     pool: &Arc<Pool<Postgres>>,
 ) -> HttpResponse {
-    let album = match repo::album::get_album_by_id(pool, album_id, user_id).await {
+    // `id` may be the Navidrome id or the AT-URI of the album's record — an NFC
+    // tag or a share link carries the URI, since the Navidrome id means nothing
+    // outside this server.
+    let lookup = if album_id.starts_with("at://") {
+        repo::album::get_album_by_uri(pool, album_id, user_id).await
+    } else {
+        repo::album::get_album_by_id(pool, album_id, user_id).await
+    };
+
+    let album = match lookup {
         Ok(Some(a)) => a,
         Ok(None) => return response::err(format, 70, "Album not found"),
         Err(e) => {
@@ -49,6 +66,10 @@ pub async fn handle_get_album(
             return response::err(format, 0, "Internal server error");
         }
     };
+
+    // Everything below addresses the album by its Navidrome id — resolving by
+    // URI must not leave the raw URI in `parent` / `albumId` / `coverArt`.
+    let album_id = album.xata_id.as_str();
 
     let tracks = match repo::track::get_tracks_by_album(pool, album_id, user_id).await {
         Ok(t) => t,

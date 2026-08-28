@@ -16,6 +16,7 @@ pub async fn get_albums_by_artist(
             albums.artist,
             albums.year,
             albums.album_art,
+            albums.uri,
             COUNT(DISTINCT album_tracks.track_id) AS song_count,
             SUM(tracks.duration)::bigint AS total_duration,
             MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
@@ -29,7 +30,7 @@ pub async fn get_albums_by_artist(
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE artist_albums.artist_id = $2
           AND user_uploads.user_id = $1
-        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
+        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
         ORDER BY albums.year DESC NULLS LAST, albums.xata_id ASC
         "#,
     )
@@ -54,6 +55,7 @@ pub async fn get_album_by_id(
             albums.artist,
             albums.year,
             albums.album_art,
+            albums.uri,
             COUNT(DISTINCT album_tracks.track_id) AS song_count,
             SUM(tracks.duration)::bigint AS total_duration,
             MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
@@ -66,11 +68,53 @@ pub async fn get_album_by_id(
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND albums.xata_id = $2
-        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
+        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
         "#,
     )
     .bind(user_id)
     .bind(album_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row)
+}
+
+/// Look an album up by the AT-URI of its `app.rocksky.album` record.
+///
+/// The Navidrome id is local to this server, so anything that has to name an
+/// album durably — an NFC tag, a share link, another client's record — carries
+/// the record URI instead. `albums.uri` is unique, so this is a point lookup.
+pub async fn get_album_by_uri(
+    pool: &Pool<Postgres>,
+    uri: &str,
+    user_id: &str,
+) -> Result<Option<AlbumWithStats>, Error> {
+    let row: Option<AlbumWithStats> = sqlx::query_as(
+        r#"
+        SELECT
+            albums.xata_id,
+            albums.title,
+            albums.artist,
+            albums.year,
+            albums.album_art,
+            albums.uri,
+            COUNT(DISTINCT album_tracks.track_id) AS song_count,
+            SUM(tracks.duration)::bigint AS total_duration,
+            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
+        FROM albums
+        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
+        JOIN tracks ON album_tracks.track_id = tracks.xata_id
+                    AND tracks.album = albums.title
+                    AND tracks.album_artist = albums.artist
+        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
+        WHERE user_uploads.user_id = $1
+          AND albums.uri = $2
+        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
+        "#,
+    )
+    .bind(user_id)
+    .bind(uri)
     .fetch_optional(pool)
     .await?;
 
@@ -156,6 +200,7 @@ pub async fn get_album_list(
             artist,
             year,
             album_art,
+            uri,
             song_count,
             total_duration,
             created_at,
@@ -167,6 +212,7 @@ pub async fn get_album_list(
                 albums.artist,
                 albums.year,
                 albums.album_art,
+                albums.uri,
                 COALESCE((
                     SELECT COUNT(DISTINCT atr.track_id)
                     FROM album_tracks atr
@@ -257,6 +303,7 @@ pub async fn search_albums(
             artist,
             year,
             album_art,
+            uri,
             song_count,
             total_duration,
             created_at,
@@ -268,6 +315,7 @@ pub async fn search_albums(
                 albums.artist,
                 albums.year,
                 albums.album_art,
+                albums.uri,
                 COALESCE((
                     SELECT COUNT(DISTINCT atr.track_id)
                     FROM album_tracks atr
@@ -356,6 +404,7 @@ pub async fn get_albums_by_names(
             albums.artist,
             albums.year,
             albums.album_art,
+            albums.uri,
             COUNT(DISTINCT album_tracks.track_id) AS song_count,
             SUM(tracks.duration)::bigint AS total_duration,
             MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
@@ -369,7 +418,7 @@ pub async fn get_albums_by_names(
         WHERE user_uploads.user_id = $1
           AND albums.title = ANY($2)
           AND albums.artist = ANY($3)
-        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
+        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
         ORDER BY albums.title ASC, albums.xata_id ASC
         "#,
     )

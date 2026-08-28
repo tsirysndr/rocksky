@@ -40,6 +40,20 @@ pub async fn handle_search3(
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
 
+    // An at:// query is a record lookup, not a text search — NFC tags and share
+    // links carry an app.rocksky.album URI, and neither Typesense nor a LIKE
+    // over titles would ever match one.
+    if query.starts_with("at://") {
+        let album = match repo::album::get_album_by_uri(pool, query.trim(), user_id).await {
+            Ok(found) => found,
+            Err(e) => {
+                tracing::error!("search3 by uri error: {}", e);
+                return response::err(format, 0, "Internal server error");
+            }
+        };
+        return build_response(format, user_id, None, album.map(|a| vec![a]), None);
+    }
+
     // Empty query is the "browse all" path used by the web client's infinite-scroll
     // tabs. Typesense's pagination here is hard-capped at 250 hits on page=1, so we
     // skip it for browse-all and let SQL do real LIMIT/OFFSET pagination.
@@ -146,6 +160,9 @@ fn build_response(
             }
             if let Some(year) = a.year {
                 obj["year"] = json!(year);
+            }
+            if let Some(uri) = &a.uri {
+                obj["uri"] = json!(uri);
             }
             if a.album_art.is_some() {
                 obj["coverArt"] = json!(format!("al-{}", a.xata_id));

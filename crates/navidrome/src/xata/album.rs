@@ -23,4 +23,9 @@ pub struct AlbumWithStats {
     pub total_duration: Option<i64>,
     pub created_at: Option<DateTime<Utc>>,
     pub artist_id: Option<String>,
+    /// AT-URI of the `app.rocksky.album` record this album belongs to, NULL
+    /// until the record has been published. Mirrors `PlaylistRow::uri`, and is
+    /// what lets a client address a library album by record rather than by the
+    /// Navidrome id, which is local to this server.
+    pub uri: Option<String>,
 }

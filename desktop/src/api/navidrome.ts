@@ -42,6 +42,8 @@ export interface NavidromeAlbum {
   coverArtUrl?: string;
   _coverArtUrl?: string;
   song?: NavidromeSong[];
+  /** AT-URI of the app.rocksky.album record this album belongs to. */
+  uri?: string;
 }
 
 export interface NavidromeArtist {

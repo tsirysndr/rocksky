@@ -69,6 +69,9 @@ pub async fn handle_get_music_directory(
                         if let Some(year) = a.year {
                             obj["year"] = json!(year);
                         }
+                        if let Some(uri) = &a.uri {
+                            obj["uri"] = json!(uri);
+                        }
                         if a.album_art.is_some() {
                             obj["coverArt"] = json!(format!("al-{}", a.xata_id));
                         }

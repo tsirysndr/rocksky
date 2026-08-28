@@ -115,6 +115,8 @@ export interface Album {
   name: string;
   artist: string;
   songCount: number;
+  /** AT-URI of the app.rocksky.album record this album belongs to. */
+  uri?: string;
 }
 export interface PlaylistEntry {
   id: string;
