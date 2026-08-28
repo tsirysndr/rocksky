@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { shuffled } from "../../lib/shuffle";
 import {
   IconArrowLeft,
   IconArrowsShuffle,
@@ -478,8 +479,8 @@ function AlbumMenu({
     <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
       <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(tracks()); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(tracks()); onClose(); }}>Play last</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(shuffled(tracks())); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(shuffled(tracks())); onClose(); }}>Insert last shuffled</MenuItem>
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
@@ -543,7 +544,7 @@ export default function LibraryAlbum() {
   }, [songs, toTrack, playNow]);
 
   const handleShuffle = useCallback(() => {
-    playNow([...songs.map(toTrack).filter(Boolean) as QueueTrack[]].sort(() => Math.random() - 0.5));
+    playNow(shuffled(songs.map(toTrack).filter(Boolean) as QueueTrack[]));
   }, [songs, toTrack, playNow]);
 
   const handleTrackClick = useCallback((idx: number) => {

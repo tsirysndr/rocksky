@@ -1,3 +1,4 @@
+import { shuffled } from "../../lib/shuffle";
 import {
   IconArrowLeft,
   IconArrowsShuffle,
@@ -53,7 +54,7 @@ export default function LibraryArtistPage() {
   const handleShuffle = useCallback(async () => {
     if (!creds) return;
     const tracks = await fetchAllArtistTracks(albums, creds);
-    playNow([...tracks].sort(() => Math.random() - 0.5));
+    playNow(shuffled(tracks));
   }, [albums, creds, playNow]);
 
   if (isLoading || !creds || !artist) {

@@ -1,3 +1,4 @@
+import { shuffled } from "../../lib/shuffle";
 import {
   IconArrowsShuffle,
   IconDots,
@@ -315,7 +316,7 @@ export default function LibraryPage() {
     (shuffle = false, startIndex = 0) => {
       const tracks = favoriteTracks();
       if (!tracks.length) return;
-      playNow(shuffle ? [...tracks].sort(() => Math.random() - 0.5) : tracks, shuffle ? 0 : startIndex);
+      playNow(shuffle ? shuffled(tracks) : tracks, shuffle ? 0 : startIndex);
     },
     [favoriteTracks, playNow],
   );
@@ -764,8 +765,8 @@ export default function LibraryPage() {
             <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={() => { playFavorites(true); setFavoritesSheetOpen(false); }} />
             <SheetItem label="Play next" onClick={() => { playNextAll(favoriteTracks()); setFavoritesSheetOpen(false); }} />
             <SheetItem label="Play last" onClick={() => { playLastAll(favoriteTracks()); setFavoritesSheetOpen(false); }} />
-            <SheetItem label="Insert shuffled" onClick={() => { playNextAll([...favoriteTracks()].sort(() => Math.random() - 0.5)); setFavoritesSheetOpen(false); }} />
-            <SheetItem label="Insert last shuffled" onClick={() => { playLastAll([...favoriteTracks()].sort(() => Math.random() - 0.5)); setFavoritesSheetOpen(false); }} />
+            <SheetItem label="Insert shuffled" onClick={() => { playNextAll(shuffled(favoriteTracks())); setFavoritesSheetOpen(false); }} />
+            <SheetItem label="Insert last shuffled" onClick={() => { playLastAll(shuffled(favoriteTracks())); setFavoritesSheetOpen(false); }} />
             <SheetItem icon={<IconDownload size={16} />} label="Download" onClick={() => { downloadFavorites(creds, favorites); setFavoritesSheetOpen(false); }} />
           </>
         )}
@@ -839,11 +840,11 @@ export default function LibraryPage() {
               </div>
             </div>
             <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNow(t); setSheetAlbum(null); }} />
-            <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNow([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
+            <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNow(shuffled(t)); setSheetAlbum(null); }} />
             <SheetItem label="Play next" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNextAll(t); setSheetAlbum(null); }} />
             <SheetItem label="Add to queue" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playLastAll(t); setSheetAlbum(null); }} />
-            <SheetItem label="Insert shuffled" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNextAll([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
-            <SheetItem label="Insert last shuffled" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playLastAll([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
+            <SheetItem label="Insert shuffled" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playNextAll(shuffled(t)); setSheetAlbum(null); }} />
+            <SheetItem label="Insert last shuffled" onClick={async () => { const t = await fetchAlbumTracks(sheetAlbum); playLastAll(shuffled(t)); setSheetAlbum(null); }} />
             {creds && (
               <SheetItem icon={<IconDownload size={16} />} label="Download album" onClick={() => { downloadFromNavidrome(creds, sheetAlbum.id); setSheetAlbum(null); }} />
             )}
@@ -879,11 +880,11 @@ export default function LibraryPage() {
               </div>
             </div>
             <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow(t); setSheetPlaylist(null); }} />
-            <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
+            <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNow(shuffled(t)); setSheetPlaylist(null); }} />
             <SheetItem label="Play next" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNextAll(t); setSheetPlaylist(null); }} />
             <SheetItem label="Add to queue" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playLastAll(t); setSheetPlaylist(null); }} />
-            <SheetItem label="Insert shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNextAll([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
-            <SheetItem label="Insert last shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playLastAll([...t].sort(() => Math.random() - 0.5)); setSheetPlaylist(null); }} />
+            <SheetItem label="Insert shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playNextAll(shuffled(t)); setSheetPlaylist(null); }} />
+            <SheetItem label="Insert last shuffled" onClick={async () => { const t = await fetchPlaylistTracks(sheetPlaylist); playLastAll(shuffled(t)); setSheetPlaylist(null); }} />
             {creds && (
               <SheetItem icon={<IconDownload size={16} />} label="Download playlist" onClick={() => { downloadFromNavidrome(creds, sheetPlaylist.id); setSheetPlaylist(null); }} />
             )}

@@ -8,6 +8,7 @@
  * the local in-browser engine, or relays to the active remote device.
  */
 import styled from "@emotion/styled";
+import { shuffled } from "../../lib/shuffle";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { useNavigate } from "@tanstack/react-router";
 import { IconArrowsShuffle, IconDots, IconDownload, IconPlayerPlay, IconPlaylist, IconPlaylistAdd, IconCornerDownRight } from "@tabler/icons-react";
@@ -561,7 +562,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                       setMenu(null);
                       if (it.kind !== "album") return;
                       const t = await albumTracks(it.album);
-                      playNextAll([...t].sort(() => Math.random() - 0.5));
+                      playNextAll(shuffled(t));
                     }}
                   >
                     <IconArrowsShuffle size={16} color={ICON} /> Insert shuffled
@@ -572,7 +573,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                       setMenu(null);
                       if (it.kind !== "album") return;
                       const t = await albumTracks(it.album);
-                      playLastAll([...t].sort(() => Math.random() - 0.5));
+                      playLastAll(shuffled(t));
                     }}
                   >
                     <IconArrowsShuffle size={16} color={ICON} /> Insert last

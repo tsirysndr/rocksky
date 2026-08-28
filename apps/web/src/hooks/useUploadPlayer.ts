@@ -5,6 +5,8 @@ import { deviceCommandAtom } from "../atoms/devices";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
+import { shuffleAtom } from "../atoms/playback";
+import { shuffledFrom } from "../lib/shuffle";
 import { ensureStreamToken } from "../api/uploads";
 import {
   ensureRockboxReady,
@@ -63,10 +65,20 @@ export function useUploadPlayer() {
   // When a remote device is the active player, these actions are relayed to it
   // instead of driving the local wasm engine.
   const deviceCommand = useAtomValue(deviceCommandAtom);
+  const shuffle = useAtomValue(shuffleAtom);
 
   const playNow = useCallback(
-    async (tracks: QueueTrack[], startIndex = 0) => {
-      if (!tracks.length) return;
+    async (input: QueueTrack[], from = 0) => {
+      if (!input.length) return;
+
+      // The engine's shuffle flag only governs what Rockbox does when *it*
+      // starts a playlist; a queue we build and hand over is played in the
+      // order we give it. So the toggle has to be applied here, or starting an
+      // album, a playlist or an NFC tag would ignore it entirely. The picked
+      // track still leads — shuffle decides what follows it.
+      const tracks = shuffle ? shuffledFrom(input, from) : input;
+      const startIndex = shuffle ? 0 : from;
+
       if (deviceCommand.active) {
         deviceCommand.send("enqueue", {
           tracks: tracks.map(toDescriptor),
@@ -102,7 +114,7 @@ export function useUploadPlayer() {
       if (after.length) p.insert(after, InsertMode.PlayLast);
       if (before.length) p.insert(before, InsertMode.Prepend);
     },
-    [setNowPlaying, setPlayer, deviceCommand],
+    [setNowPlaying, setPlayer, deviceCommand, shuffle],
   );
 
   const playNext = useCallback(async (track: QueueTrack) => {

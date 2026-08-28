@@ -1,3 +1,4 @@
+import { shuffled } from "../../lib/shuffle";
 import {
   IconArrowLeft,
   IconArrowsShuffle,
@@ -93,7 +94,7 @@ export default function LibraryPlaylistPage() {
   );
 
   const handlePlay = useCallback(() => playNow(queue()), [queue, playNow]);
-  const handleShuffle = useCallback(() => playNow([...queue()].sort(() => Math.random() - 0.5)), [queue, playNow]);
+  const handleShuffle = useCallback(() => playNow(shuffled(queue())), [queue, playNow]);
   const handleTrackPlay = useCallback((idx: number) => playNow(queue(), idx), [queue, playNow]);
 
   const sheetSong = sheetIdx != null ? songs[sheetIdx] : null;

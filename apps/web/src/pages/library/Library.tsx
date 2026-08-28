@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { shuffled } from "../../lib/shuffle";
 import {
   IconAlertTriangle,
   IconArrowsShuffle,
@@ -882,14 +883,14 @@ function AlbumContextMenu({
       <MenuItem onClick={async (e) => { e.stopPropagation(); playNow(await fetchTracks()); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlayerPlay size={14} /> Play</span>
       </MenuItem>
-      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNow([...t].sort(() => Math.random() - 0.5)); onClose(); }}>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNow(shuffled(t)); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconArrowsShuffle size={14} /> Play shuffled</span>
       </MenuItem>
       <MenuDivider />
       <MenuItem onClick={async (e) => { e.stopPropagation(); playNextAll(await fetchTracks()); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); playLastAll(await fetchTracks()); onClose(); }}>Play last</MenuItem>
-      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNextAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
-      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNextAll(shuffled(t)); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll(shuffled(t)); onClose(); }}>Insert last shuffled</MenuItem>
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
@@ -966,8 +967,8 @@ function PlaylistContextMenu({
       <MenuDivider />
       <MenuItem onClick={async (e) => { e.stopPropagation(); playNextAll(await fetchTracks()); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); playLastAll(await fetchTracks()); onClose(); }}>Play last</MenuItem>
-      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNextAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
-      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNextAll(shuffled(t)); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll(shuffled(t)); onClose(); }}>Insert last shuffled</MenuItem>
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); onAddSongs(); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlus size={14} /> Add songs</span>
@@ -1034,8 +1035,8 @@ function FavoritesContextMenu({
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(tracks()); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(tracks()); onClose(); }}>Play last</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(shuffled(tracks())); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(shuffled(tracks())); onClose(); }}>Insert last shuffled</MenuItem>
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFavorites(creds, songs); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
@@ -1153,7 +1154,7 @@ export default function Library() {
   const playFavorites = useCallback((shuffle = false, startIndex = 0) => {
     const tracks = favoriteTracks();
     if (!tracks.length) return;
-    playNow(shuffle ? [...tracks].sort(() => Math.random() - 0.5) : tracks, shuffle ? 0 : startIndex);
+    playNow(shuffle ? shuffled(tracks) : tracks, shuffle ? 0 : startIndex);
   }, [favoriteTracks, playNow]);
 
   const visiblePlaylists = useMemo(() => {
@@ -1189,7 +1190,7 @@ export default function Library() {
       let tracks = (full?.entry ?? []).map((s) =>
         songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null),
       );
-      if (shuffle) tracks = [...tracks].sort(() => Math.random() - 0.5);
+      if (shuffle) tracks = shuffled(tracks);
       playNow(tracks);
     },
     [creds, playNow],

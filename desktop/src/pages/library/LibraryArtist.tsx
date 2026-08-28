@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { shuffled } from "../../lib/shuffle";
 import {
   IconArrowLeft,
   IconArrowsShuffle,
@@ -258,7 +259,7 @@ export default function LibraryArtist() {
   const handleShuffle = useCallback(async () => {
     if (!creds) return;
     const tracks = await fetchAllArtistTracks(albums, creds);
-    playNow([...tracks].sort(() => Math.random() - 0.5));
+    playNow(shuffled(tracks));
   }, [albums, creds, playNow]);
 
   if (isLoading || !artist || !creds) return <ArtistPageSkeleton />;

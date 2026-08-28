@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { shuffled } from "../../lib/shuffle";
 import {
   IconArrowLeft,
   IconArrowsShuffle,
@@ -517,8 +518,8 @@ function PlaylistMenu({
     <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
       <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(tracks()); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(tracks()); onClose(); }}>Play last</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(shuffled(tracks())); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(shuffled(tracks())); onClose(); }}>Insert last shuffled</MenuItem>
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); onAddSongs(); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlus size={14} /> Add songs</span>
@@ -621,7 +622,7 @@ export default function LibraryPlaylist() {
   );
 
   const handlePlay = useCallback(() => playNow(queue()), [queue, playNow]);
-  const handleShuffle = useCallback(() => playNow([...queue()].sort(() => Math.random() - 0.5)), [queue, playNow]);
+  const handleShuffle = useCallback(() => playNow(shuffled(queue())), [queue, playNow]);
   const handleTrackPlay = useCallback((idx: number) => playNow(queue(), idx), [queue, playNow]);
 
   if (isLoading || !creds || !playlist) {
