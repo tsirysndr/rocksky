@@ -6,6 +6,13 @@ declare module "nfc-pcsc" {
     reader: { name: string };
     read(block: number, length: number, blockSize?: number): Promise<Buffer>;
     write(block: number, data: Buffer, blockSize?: number): Promise<void>;
+    /** MIFARE Classic sector authentication. `keyType` is 0x60 (A) or 0x61 (B). */
+    authenticate(
+      block: number,
+      keyType: number,
+      key: Buffer | string,
+      obsolete?: boolean,
+    ): Promise<void>;
     on(event: string, handler: (...args: any[]) => void): void;
   }
 

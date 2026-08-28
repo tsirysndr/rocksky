@@ -11,8 +11,20 @@
 //! The reader is driven through PC/SC, which is the only transport that is
 //! native on all three desktops (macOS CryptoTokenKit, pcsclite, WinSCard) and
 //! the one every ACS/CCID reader speaks. Tag I/O uses the ACS pseudo-APDUs
-//! (`FF B0` read, `FF D6` write) that those readers expose for NFC Forum
-//! Type 2 tags — NTAG213/215/216 and MIFARE Ultralight.
+//! (`FF B0` read, `FF D6` write) those readers expose.
+//!
+//! Two tag families carry the same NDEF message over different protocols, and
+//! the ATR says which is on the reader:
+//!
+//! - NFC Forum Type 2 (NTAG213/215/216, MIFARE Ultralight): 4-byte pages, read
+//!   and written directly.
+//! - MIFARE Classic: 16-byte blocks in 4-block sectors, each sector behind a key
+//!   exchange, with NDEF mapped on per NXP AN1305. Sold as "NFC tags" as often
+//!   as Type 2 ones, and the reason a write used to fail with SW 6300. A blank
+//!   one is formatted on first write, which is what a phone does too.
+//!
+//! `hardware_roundtrip` in the tests below drives the whole thing against a real
+//! reader; it is `#[ignore]`d, since it needs one.
 //!
 //! `pcsc` is a blocking C API, so it is confined to one worker thread: the
 //! thread polls for a tag, emits `nfc://scan` when one is tapped, and performs
@@ -239,7 +251,14 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 });
                 match &result {
                     Ok(_) => tracing::info!("nfc: wrote {:?} to tag {uid}", job.payloads),
-                    Err(e) => tracing::warn!("nfc: write failed: {e}"),
+                    // Everything needed to tell the causes apart without a
+                    // second attempt: which page or block died, what the tag
+                    // is, and how much the message needed.
+                    Err(e) => tracing::warn!(
+                        "nfc: write to tag {uid} failed: {e} (kind {:?}, needed {} bytes)",
+                        tag_kind(&card),
+                        encode_ndef_uris(&uris).len(),
+                    ),
                 }
                 let _ = job.reply.send(result);
                 // A written tag is still on the reader; don't immediately scan
@@ -269,7 +288,12 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 }
             }
 
-            let _ = card.disconnect(Disposition::LeaveCard);
+            // ResetCard, not LeaveCard: a MIFARE Classic halts after a failed
+            // authentication, and the polling loop tries the NDEF key on every
+            // tag it sees. Leaving it halted made the next connect fail, so the
+            // reader looked empty and an armed write sat there until it timed
+            // out. Resetting powers the tag back up for the next tick.
+            let _ = card.disconnect(Disposition::ResetCard);
             break;
         }
 
@@ -365,18 +389,342 @@ fn read_pages(card: &Card, page: u8, count: u8) -> Result<Vec<u8>, String> {
 fn write_page(card: &Card, page: u8, data: &[u8]) -> Result<(), String> {
     let mut apdu = vec![0xFF, 0xD6, 0x00, page, PAGE_LEN as u8];
     apdu.extend_from_slice(data);
+    transmit(card, &apdu)
+        .map(|_| ())
+        .map_err(|e| format!("{e} at page {page}"))
+}
+
+/// What a PC/SC reader says a contactless storage card is.
+///
+/// The ATR of a storage card is synthesised by the reader to a fixed shape
+/// (PC/SC part 3, §3.1.3.2.3.1): `3B 8F 80 01 80 4F 0C A0 00 00 03 06 <SS>
+/// <card name, 2 bytes> …`. Only the Ultralight family speaks the page-addressed
+/// Type 2 protocol this module writes; MIFARE Classic uses 16-byte blocks behind
+/// a key exchange, and its rejection of `FF D6` is the SW 6300 people hit when
+/// they buy "NFC tags" that turn out to be Classic.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum TagKind {
+    /// NTAG21x / MIFARE Ultralight — page-addressed, no authentication.
+    Type2,
+    /// MIFARE Classic: 16-byte blocks behind a per-sector key exchange. The
+    /// number is how many 4-block sectors it has (16 on a 1K, 40 on a 4K).
+    Classic(&'static str, u8),
+    /// No storage-card ATR, or one we don't recognise. Treated as Type 2, which
+    /// is what an unbranded NTAG clone almost always is.
+    Unknown,
+}
+
+fn tag_kind(card: &Card) -> TagKind {
+    match card.status2_owned() {
+        Ok(status) => tag_kind_from_atr(status.atr()),
+        Err(_) => TagKind::Unknown,
+    }
+}
+
+fn tag_kind_from_atr(atr: &[u8]) -> TagKind {
+    // Locate the card-name bytes by the RID that precedes them, rather than a
+    // fixed offset — the historical-byte prefix varies between readers.
+    const RID: [u8; 5] = [0xA0, 0x00, 0x00, 0x03, 0x06];
+    let Some(at) = atr.windows(RID.len()).position(|w| w == RID) else {
+        return TagKind::Unknown;
+    };
+    // RID, then one byte of standard (SS), then the two-byte card name.
+    let Some(name) = atr.get(at + RID.len() + 1..at + RID.len() + 3) else {
+        return TagKind::Unknown;
+    };
+    match (name[0], name[1]) {
+        (0x00, 0x03) => TagKind::Type2,
+        (0x00, 0x01) => TagKind::Classic("MIFARE Classic 1K", 16),
+        // Only the first 32 sectors of a 4K are the 4-block kind this addresses;
+        // the 8 above them are 16-block sectors, and 31 usable sectors is far
+        // more room than a tag of ours ever needs.
+        (0x00, 0x02) => TagKind::Classic("MIFARE Classic 4K", 32),
+        (0x00, 0x26) => TagKind::Classic("MIFARE Mini", 5),
+        (0x00, 0x36) | (0x00, 0x37) => TagKind::Classic("MIFARE Plus", 32),
+        _ => TagKind::Unknown,
+    }
+}
+
+// ── MIFARE Classic ──────────────────────────────────────────────────────────
+//
+// Classic is not an NFC Forum tag type, but NXP AN1305 maps NDEF onto it and
+// that mapping is what phones read and write — so a Classic tag someone bought
+// as an "NFC tag" holds an ordinary NDEF message, just addressed differently.
+//
+// Layout: 16-byte blocks grouped into 4-block sectors. The last block of each
+// sector is its trailer (two keys and the access bits), and sector 0 block 0 is
+// factory data, so the usable space is 3 blocks per sector from sector 1 up.
+// Every sector must be authenticated before any of its blocks can be touched.
+
+/// Data bytes per sector: three 16-byte blocks, the fourth being the trailer.
+const CLASSIC_SECTOR_BYTES: usize = 3 * CLASSIC_BLOCK_LEN;
+const CLASSIC_BLOCK_LEN: usize = 16;
+
+/// The NFC Forum's well-known key A for NDEF sectors on Classic (AN1305 §3.3).
+/// An NDEF-formatted tag carries this; a factory-blank one does not.
+const NDEF_KEY: [u8; 6] = [0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7];
+/// The factory transport key. Authenticating with it means the tag has never
+/// been NDEF-formatted.
+const FACTORY_KEY: [u8; 6] = [0xFF; 6];
+/// Key A of the MAD sector, fixed by the MAD spec so any reader can read it.
+const MAD_KEY: [u8; 6] = [0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5];
+
+/// A sector trailer: key A, three access-condition bytes, the general-purpose
+/// byte, then key B.
+///
+/// Key B is left at the factory value on every sector, and the access bits
+/// (`7F 07 88` for NDEF, `78 77 88` for the MAD) keep the trailer writable with
+/// key B. Formatting is therefore reversible — a wrong trailer can be rewritten
+/// rather than locking the sector for good.
+fn trailer(key_a: &[u8; 6], access: [u8; 4]) -> Vec<u8> {
+    let mut t = key_a.to_vec();
+    t.extend_from_slice(&access);
+    t.extend_from_slice(&FACTORY_KEY);
+    t
+}
+
+/// CRC-8 over the MAD's bytes: polynomial 0x1D, preset 0xC7.
+fn crc8_mad(data: &[u8]) -> u8 {
+    let mut crc: u8 = 0xC7;
+    for &b in data {
+        crc ^= b;
+        for _ in 0..8 {
+            crc = if crc & 0x80 != 0 {
+                (crc << 1) ^ 0x1D
+            } else {
+                crc << 1
+            };
+        }
+    }
+    crc
+}
+
+/// MAD1 blocks 1 and 2 — the directory that tells a reader which sectors hold
+/// NDEF. Every sector from 1 up is claimed by the NDEF AID (0x03E1, stored
+/// little-endian). Byte 0 is the CRC over everything that follows it; byte 1 is
+/// the card-publisher sector, 0 for none.
+fn mad_blocks(sectors: u8) -> (Vec<u8>, Vec<u8>) {
+    let mut b1 = vec![0x00, 0x00];
+    let mut b2 = Vec::new();
+    for s in 1..sectors.min(16) {
+        let aid = [0xE1, 0x03];
+        if s <= 7 {
+            b1.extend_from_slice(&aid);
+        } else {
+            b2.extend_from_slice(&aid);
+        }
+    }
+    let mut crc_input = b1[1..].to_vec();
+    crc_input.extend_from_slice(&b2);
+    b1[0] = crc8_mad(&crc_input);
+    (b1, b2)
+}
+
+/// Turn a factory-blank Classic tag into an NDEF one.
+///
+/// Only ever called on a tag that still answers to the factory key everywhere,
+/// so there is nothing of anyone's to destroy. The NDEF sectors are done first
+/// and the MAD last: a format interrupted halfway leaves a tag whose directory
+/// still says "not NDEF", which is what it was to begin with.
+fn classic_format(card: &Card, sectors: u8) -> Result<(), String> {
+    for sector in 1..sectors {
+        if !try_auth(card, &FACTORY_KEY, sector) {
+            return Err(format!("sector {sector} wouldn't authenticate to format"));
+        }
+        for block in 0..3u8 {
+            classic_write_block(card, sector * 4 + block, &[0u8; CLASSIC_BLOCK_LEN])?;
+        }
+        classic_write_block(
+            card,
+            sector * 4 + 3,
+            &trailer(&NDEF_KEY, [0x7F, 0x07, 0x88, 0x40]),
+        )?;
+    }
+
+    if !try_auth(card, &FACTORY_KEY, 0) {
+        return Err("the MAD sector wouldn't authenticate to format".into());
+    }
+    let (b1, b2) = mad_blocks(sectors);
+    classic_write_block(card, 1, &b1)?;
+    classic_write_block(card, 2, &b2)?;
+    // GPB 0xC1: MAD present, version 1, multi-application.
+    classic_write_block(card, 3, &trailer(&MAD_KEY, [0x78, 0x77, 0x88, 0xC1]))?;
+    Ok(())
+}
+
+/// Load a key into the reader's volatile key slot 0 for the next authenticate.
+fn load_key(card: &Card, key: &[u8; 6]) -> Result<(), String> {
+    let mut apdu = vec![0xFF, 0x82, 0x00, 0x00, 0x06];
+    apdu.extend_from_slice(key);
     transmit(card, &apdu).map(|_| ())
 }
 
-/// User-memory size in bytes, from the capability container (page 3, byte 2,
-/// in units of 8 bytes). Falls back to the NTAG213 size when the CC is absent
-/// or nonsensical — the write then fails cleanly on the first bad page rather
-/// than trusting a wild number.
-fn capacity(card: &Card) -> usize {
-    match read_pages(card, 3, 1) {
-        Ok(cc) if cc.len() >= 3 && cc[0] == 0xE1 && cc[2] > 0 => cc[2] as usize * 8,
-        _ => 144,
+/// Authenticate `block`'s sector with the key already in slot 0, as key A.
+fn authenticate(card: &Card, block: u8) -> Result<(), String> {
+    transmit(
+        card,
+        &[0xFF, 0x86, 0x00, 0x00, 0x05, 0x01, 0x00, block, 0x60, 0x00],
+    )
+    .map(|_| ())
+}
+
+/// Authenticate a sector, returning false when the key is simply wrong — the
+/// caller uses that to tell an NDEF-formatted tag from a blank one, so it must
+/// not be an error.
+fn try_auth(card: &Card, key: &[u8; 6], sector: u8) -> bool {
+    load_key(card, key).is_ok() && authenticate(card, sector * 4).is_ok()
+}
+
+fn classic_read_block(card: &Card, block: u8) -> Result<Vec<u8>, String> {
+    transmit(card, &[0xFF, 0xB0, 0x00, block, CLASSIC_BLOCK_LEN as u8])
+}
+
+fn classic_write_block(card: &Card, block: u8, data: &[u8]) -> Result<(), String> {
+    let mut apdu = vec![0xFF, 0xD6, 0x00, block, CLASSIC_BLOCK_LEN as u8];
+    apdu.extend_from_slice(data);
+    transmit(card, &apdu)
+        .map(|_| ())
+        .map_err(|e| format!("{e} at block {block}"))
+}
+
+/// The data blocks of sectors 1..`sectors`, in order — where the NDEF message
+/// lives. Sector 0 is skipped: it holds the MIFARE Application Directory, which
+/// says which sectors are NDEF, and rewriting it is a formatting operation.
+fn classic_data_blocks(sectors: u8) -> Vec<u8> {
+    (1..sectors)
+        .flat_map(|s| (0..3).map(move |b| s * 4 + b))
+        .collect()
+}
+
+/// Read the NDEF message off a Classic tag, sector by sector.
+///
+/// Stops at the first sector that won't authenticate, which is the end of the
+/// NDEF area — sectors beyond it belong to other applications and are none of
+/// our business.
+fn classic_read_ndef(card: &Card, sectors: u8) -> Result<Vec<String>, String> {
+    let mut data = Vec::new();
+    for sector in 1..sectors {
+        if !try_auth(card, &NDEF_KEY, sector) {
+            break;
+        }
+        for block in 0..3u8 {
+            match classic_read_block(card, sector * 4 + block) {
+                Ok(bytes) => data.extend_from_slice(&bytes),
+                Err(_) => break,
+            }
+        }
     }
+
+    Ok(find_ndef_tlv(&data).map(uri_records).unwrap_or_default())
+}
+
+/// Write an NDEF TLV across a Classic tag's NDEF sectors.
+///
+/// Only data blocks are touched. Sector trailers hold the keys and access bits,
+/// and a wrong value there locks the sector permanently — so a tag that isn't
+/// already NDEF-formatted is refused rather than formatted in place.
+fn classic_write_ndef(card: &Card, bytes: &[u8], sectors: u8) -> Result<(), String> {
+    // A tag straight out of the packet has no NDEF mapping on it at all — the
+    // keys are still the factory ones and there is no MAD. That is not a
+    // failure, it is a tag that needs formatting once, which is what a phone
+    // would silently do too.
+    if !try_auth(card, &NDEF_KEY, 1) {
+        if !try_auth(card, &FACTORY_KEY, 1) {
+            return Err(
+                "this MIFARE Classic tag is locked with keys we don't have, so it can't be written"
+                    .into(),
+            );
+        }
+        tracing::info!("nfc: blank Classic tag, formatting it for NDEF");
+        classic_format(card, sectors)?;
+    }
+
+    // A block write is all 16 bytes or nothing, so the TLV is padded out to a
+    // whole block. encode_ndef_uris pads to the Type 2 page size, which is a
+    // quarter of that.
+    let mut padded = bytes.to_vec();
+    pad_to(&mut padded, CLASSIC_BLOCK_LEN);
+
+    let blocks = classic_data_blocks(sectors);
+    let chunks: Vec<&[u8]> = padded.chunks(CLASSIC_BLOCK_LEN).collect();
+    if chunks.len() > blocks.len() {
+        return Err(format!(
+            "this tag holds {} bytes of NDEF; the link needs {}.",
+            blocks.len() * CLASSIC_BLOCK_LEN,
+            padded.len()
+        ));
+    }
+
+    // Same ordering rule as Type 2: the block carrying the TLV header goes last,
+    // so an interrupted write leaves a tag that reads as blank, not as half a
+    // record. Authentication is per sector and is re-asserted on each crossing.
+    let mut plan: Vec<(u8, &[u8])> = blocks.into_iter().zip(chunks).collect();
+    if plan.is_empty() {
+        return Err("nothing to write".into());
+    }
+    let head = plan.remove(0);
+    plan.push(head);
+
+    let mut authed = None;
+    for (block, chunk) in plan {
+        let sector = block / 4;
+        if authed != Some(sector) {
+            if !try_auth(card, &NDEF_KEY, sector) {
+                return Err(format!("sector {sector} wouldn't authenticate"));
+            }
+            authed = Some(sector);
+        }
+        classic_write_block(card, block, chunk)?;
+    }
+    Ok(())
+}
+
+/// Whether the tag has been locked read-only.
+///
+/// Byte 3 of the capability container holds the NDEF access condition: 0x00 is
+/// read/write, anything else restricts writing. A tag locked this way (or with
+/// its static lock bits burned) answers every write with the same SW 6300 as a
+/// Classic tag, and the lock is irreversible — so this is worth saying plainly
+/// rather than letting the user retry a tag that will never take a write.
+fn is_read_only(card: &Card) -> bool {
+    matches!(read_pages(card, 3, 1), Ok(cc) if cc.len() >= 4 && cc[0] == 0xE1 && cc[3] != 0x00)
+}
+
+/// Usable user-memory size in bytes.
+///
+/// The capability container (page 3, byte 2, in units of 8) is the tag's own
+/// claim, and a blank tag has no CC at all. Neither is trustworthy enough to
+/// size a write against — a wrong answer here is exactly the half-written tag
+/// this module must avoid — so the claim is confirmed by reading up to the page
+/// it implies. Real memory is what actually reads back.
+fn capacity(card: &Card) -> usize {
+    let claimed = match read_pages(card, 3, 1) {
+        Ok(cc) if cc.len() >= 3 && cc[0] == 0xE1 && cc[2] > 0 => cc[2] as usize * 8,
+        // No CC (a factory-blank or non-NDEF tag): assume the smallest Type 2
+        // layout and let the probe below find the rest.
+        _ => 48,
+    };
+    readable_from(card, FIRST_DATA_PAGE, claimed.max(48))
+}
+
+/// Bytes that actually read back from `page`, probing up to `limit`. Stops at
+/// the first read that fails, which is where the tag's memory ends.
+fn readable_from(card: &Card, page: u8, limit: usize) -> usize {
+    let mut ok = 0;
+    let mut at = page;
+    while ok < limit {
+        // Four pages at a time, the most a single READ BINARY returns.
+        let want = ((limit - ok) / PAGE_LEN).clamp(1, 4) as u8;
+        match read_pages(card, at, want) {
+            Ok(bytes) if !bytes.is_empty() => ok += bytes.len(),
+            _ => break,
+        }
+        match at.checked_add(want) {
+            Some(next) => at = next,
+            None => break,
+        }
+    }
+    ok
 }
 
 // ── NDEF ────────────────────────────────────────────────────────────────────
@@ -472,10 +820,17 @@ fn encode_ndef_uris(uris: &[&str]) -> Vec<u8> {
     }
     tlv.extend_from_slice(&records);
     tlv.push(0xFE); // terminator
-    while tlv.len() % PAGE_LEN != 0 {
-        tlv.push(0x00);
-    }
+    pad_to(&mut tlv, PAGE_LEN);
     tlv
+}
+
+/// Zero-pad to a whole number of `align`-byte units. Tag memory is written in
+/// fixed-size units — pages on Type 2, blocks on Classic — and a short trailing
+/// write is rejected outright, so the message always ends on a boundary.
+fn pad_to(bytes: &mut Vec<u8>, align: usize) {
+    while !bytes.len().is_multiple_of(align) {
+        bytes.push(0x00);
+    }
 }
 
 /// Writes as many of `uris` as the tag has room for, and reports how many stuck.
@@ -484,6 +839,22 @@ fn encode_ndef_uris(uris: &[&str]) -> Vec<u8> {
 /// is the one that plays and the rest only matter if it stops resolving, so a
 /// small tag is better off with a working shortcut than with no tag at all.
 fn write_ndef(card: &Card, uris: &[&str]) -> Result<usize, String> {
+    // Classic stores the same NDEF message, just in authenticated 16-byte
+    // blocks. Its own sizing is per sector, so it does its own trimming.
+    if let TagKind::Classic(_, sectors) = tag_kind(card) {
+        let room = (sectors as usize - 1) * CLASSIC_SECTOR_BYTES;
+        let mut take = uris.len();
+        while take > 1 && encode_ndef_uris(&uris[..take]).len() > room {
+            take -= 1;
+        }
+        classic_write_ndef(card, &encode_ndef_uris(&uris[..take]), sectors)?;
+        return Ok(take);
+    }
+
+    if is_read_only(card) {
+        return Err("this tag is locked read-only and can't be rewritten".into());
+    }
+
     let room = capacity(card);
     let mut take = uris.len();
     while take > 1 && encode_ndef_uris(&uris[..take]).len() > room {
@@ -497,18 +868,38 @@ fn write_ndef(card: &Card, uris: &[&str]) -> Result<usize, String> {
             bytes.len()
         ));
     }
-    for (i, chunk) in bytes.chunks(PAGE_LEN).enumerate() {
-        let page = u8::try_from(i)
-            .ok()
-            .and_then(|i| FIRST_DATA_PAGE.checked_add(i))
-            .ok_or("the link is longer than this tag can address")?;
-        write_page(card, page, chunk)?;
+    let pages: Vec<(u8, &[u8])> = bytes
+        .chunks(PAGE_LEN)
+        .enumerate()
+        .map(|(i, chunk)| {
+            let page = u8::try_from(i)
+                .ok()
+                .and_then(|i| FIRST_DATA_PAGE.checked_add(i))
+                .ok_or("the link is longer than this tag can address")?;
+            Ok((page, chunk))
+        })
+        .collect::<Result<_, String>>()?;
+
+    // The first page carries the TLV header, and without it the message is not
+    // an NDEF message at all. Writing it last means a write that dies partway —
+    // tag pulled off the reader, memory smaller than it claimed — leaves a tag
+    // that reads as blank rather than as a corrupt half-record.
+    let (first, rest) = pages.split_at(1);
+    for (page, chunk) in rest {
+        write_page(card, *page, chunk)?;
+    }
+    for (page, chunk) in first {
+        write_page(card, *page, chunk)?;
     }
     Ok(take)
 }
 
 /// Pull every URI record out of the tag's NDEF message, in tag order.
 fn read_ndef_uris(card: &Card) -> Result<Vec<String>, String> {
+    if let TagKind::Classic(_, sectors) = tag_kind(card) {
+        return classic_read_ndef(card, sectors);
+    }
+
     // Read the whole user memory in one sweep: TLVs before the NDEF one (lock
     // and memory control) push the message to an offset we can't predict.
     let pages = (capacity(card) / PAGE_LEN).min(256) as u16;
@@ -743,6 +1134,185 @@ mod tests {
             hex(&["https://rocksky.app"]),
             "0310d1010c5504726f636b736b792e617070fe00"
         );
+    }
+
+    /// Real ATRs as PC/SC synthesises them for contactless storage cards. The
+    /// Classic ones are what SW 6300 on a write actually means.
+    #[test]
+    fn reads_the_tag_type_out_of_the_atr() {
+        let ultralight = [
+            0x3B, 0x8F, 0x80, 0x01, 0x80, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x03, 0x06, 0x03, 0x00,
+            0x03, 0x00, 0x00, 0x00, 0x00, 0x68,
+        ];
+        assert_eq!(tag_kind_from_atr(&ultralight), TagKind::Type2);
+
+        let classic_1k = [
+            0x3B, 0x8F, 0x80, 0x01, 0x80, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x03, 0x06, 0x03, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x00, 0x6A,
+        ];
+        assert_eq!(
+            tag_kind_from_atr(&classic_1k),
+            TagKind::Classic("MIFARE Classic 1K", 16)
+        );
+
+        // A contact smartcard's ATR carries no storage-card RID: not a refusal.
+        assert_eq!(
+            tag_kind_from_atr(&[0x3B, 0x65, 0x00, 0x00]),
+            TagKind::Unknown
+        );
+        assert_eq!(tag_kind_from_atr(&[]), TagKind::Unknown);
+    }
+
+    /// End-to-end against whatever tag is on the reader, through the same
+    /// functions the app calls. Ignored by default — it needs hardware, and it
+    /// overwrites the tag it finds.
+    ///
+    ///     cargo test -p rocksky-desktop --lib nfc -- --ignored --nocapture
+    #[test]
+    #[ignore = "needs a reader with a tag on it, and rewrites that tag"]
+    fn hardware_roundtrip() {
+        let ctx = Context::establish(Scope::User).expect("no PC/SC");
+        let mut buf = [0u8; 2048];
+        let readers: Vec<String> = ctx
+            .list_readers(&mut buf)
+            .expect("list_readers")
+            .map(|r| r.to_string_lossy().into_owned())
+            .collect();
+        let name = readers.first().expect("no reader connected");
+        let cname = std::ffi::CString::new(name.as_str()).unwrap();
+        let card = ctx
+            .connect(&cname, ShareMode::Shared, Protocols::ANY)
+            .expect("no tag on the reader");
+
+        println!("reader: {name}, tag: {:?}", tag_kind(&card));
+
+        let uris = [
+            "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlkzzimck2k",
+            "rocksky://library/album/rec_9f8e7d",
+        ];
+        let written = write_ndef(&card, &uris).expect("write failed");
+        assert_eq!(written, uris.len(), "both records should fit");
+
+        let read = read_ndef_uris(&card).expect("read failed");
+        assert_eq!(read, uris, "what came back is what went on");
+        println!("roundtripped {} records", read.len());
+
+        let _ = card.disconnect(Disposition::ResetCard);
+    }
+
+    /// Pinned against the bytes a real MIFARE Classic 1K accepted: an all-NDEF
+    /// MAD1 for sectors 1-15, CRC 0xEC over the 31 bytes that follow it.
+    #[test]
+    fn mad_matches_what_the_tag_accepted() {
+        let hex = |b: &[u8]| b.iter().map(|x| format!("{x:02x}")).collect::<String>();
+        let (b1, b2) = mad_blocks(16);
+        assert_eq!(
+            hex(&b1),
+            "ec00e103e103e103e103e103e103e103",
+            "MAD block 1: CRC, publisher sector, then sectors 1-7"
+        );
+        assert_eq!(
+            hex(&b2),
+            "e103e103e103e103e103e103e103e103",
+            "MAD block 2: sectors 8-15"
+        );
+        assert_eq!(b1.len(), CLASSIC_BLOCK_LEN);
+        assert_eq!(b2.len(), CLASSIC_BLOCK_LEN);
+    }
+
+    /// Key B stays at the factory value and the access bits keep the trailer
+    /// writable with it, so a format is always reversible. If this ever changes,
+    /// a bad trailer would brick the sector permanently.
+    #[test]
+    fn format_stays_reversible() {
+        for t in [
+            trailer(&NDEF_KEY, [0x7F, 0x07, 0x88, 0x40]),
+            trailer(&MAD_KEY, [0x78, 0x77, 0x88, 0xC1]),
+        ] {
+            assert_eq!(t.len(), CLASSIC_BLOCK_LEN);
+            assert_eq!(&t[10..], &FACTORY_KEY, "key B must stay recoverable");
+        }
+    }
+
+    /// Sector trailers and sector 0 must never appear in the write plan: the
+    /// trailer holds the keys and access bits, and writing a wrong value there
+    /// locks the sector for good.
+    #[test]
+    fn classic_never_addresses_a_trailer_or_sector_zero() {
+        let blocks = classic_data_blocks(16);
+        assert_eq!(
+            blocks.len(),
+            15 * 3,
+            "15 usable sectors, 3 data blocks each"
+        );
+        for b in &blocks {
+            assert!(*b >= 4, "sector 0 is the MAD, block {b} is in it");
+            assert_ne!(b % 4, 3, "block {b} is a sector trailer");
+        }
+        // Contiguous 3-block runs, starting at each sector boundary.
+        assert_eq!(&blocks[..4], &[4, 5, 6, 8]);
+        assert_eq!(blocks.last(), Some(&62));
+    }
+
+    /// A 1K holds 720 NDEF bytes, far more than a tag of ours needs — but the
+    /// arithmetic still has to agree with what the write plan can address.
+    #[test]
+    fn classic_capacity_matches_its_block_plan() {
+        for (sectors, want) in [(16u8, 720usize), (32, 1488), (5, 192)] {
+            assert_eq!((sectors as usize - 1) * CLASSIC_SECTOR_BYTES, want);
+            assert_eq!(
+                classic_data_blocks(sectors).len() * CLASSIC_BLOCK_LEN,
+                want,
+                "{sectors}-sector tag"
+            );
+        }
+    }
+
+    /// Classic writes whole 16-byte blocks, but the encoder pads to the Type 2
+    /// page size — so the payload has to be padded again before chunking, or
+    /// the final block write would be short.
+    #[test]
+    fn classic_pads_the_tlv_to_whole_blocks() {
+        let bytes = encode_ndef_uris(&[
+            "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlkzzimck2k",
+            "rocksky://library/album/rec_9f8e7d",
+        ]);
+        assert_eq!(bytes.len() % PAGE_LEN, 0, "encoder pads to pages");
+        assert_ne!(
+            bytes.len() % CLASSIC_BLOCK_LEN,
+            0,
+            "and this vector is deliberately not block-aligned"
+        );
+
+        let mut padded = bytes.clone();
+        pad_to(&mut padded, CLASSIC_BLOCK_LEN);
+        assert_eq!(padded.len() % CLASSIC_BLOCK_LEN, 0);
+        // Padding is trailing zeros after the terminator, so it reads the same.
+        assert_eq!(
+            find_ndef_tlv(&padded).map(uri_records),
+            find_ndef_tlv(&bytes).map(uri_records),
+        );
+    }
+
+    /// The TLV header goes on last, so a write that dies partway leaves a tag
+    /// that reads as blank instead of as half a record.
+    #[test]
+    fn header_page_is_written_last() {
+        let bytes = encode_ndef_uris(&[
+            "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlkzzimck2k",
+            "rocksky://library/album/rec_9f8e7d",
+        ]);
+        let pages: Vec<u8> = (0..bytes.len() / PAGE_LEN)
+            .map(|i| FIRST_DATA_PAGE + i as u8)
+            .collect();
+        let (first, rest) = pages.split_at(1);
+        let order: Vec<u8> = rest.iter().chain(first).copied().collect();
+
+        assert_eq!(order.last(), Some(&FIRST_DATA_PAGE));
+        assert_eq!(order.first(), Some(&(FIRST_DATA_PAGE + 1)));
+        assert_eq!(order.len(), pages.len(), "every page still gets written");
+        // Without page 4 the TLV is unreadable, which is the point.
+        assert!(find_ndef_tlv(&bytes[PAGE_LEN..]).is_none());
     }
 
     #[test]

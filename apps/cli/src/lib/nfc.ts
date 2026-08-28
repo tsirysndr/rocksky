@@ -12,6 +12,10 @@
 // point here therefore loads it lazily and reports a plain message when it is
 // absent, rather than exploding at import time.
 
+// Type-only, so it erases at compile time and the runtime import below stays
+// the single lazy entry point into the optional native module.
+import type { Reader } from "nfc-pcsc";
+
 /** Type 2 tag user memory starts at page 4; pages 0–3 are UID/lock/CC. */
 const FIRST_DATA_PAGE = 4;
 const PAGE_LEN = 4;
@@ -282,6 +286,207 @@ export function decodeNdefUris(data: Buffer): string[] {
   return message ? uriRecords(message) : [];
 }
 
+// ── MIFARE Classic ──────────────────────────────────────────────────────────
+//
+// Classic isn't an NFC Forum tag type, but NXP AN1305 maps NDEF onto it and
+// that is what phones read and write — so a Classic tag sold as an "NFC tag"
+// carries an ordinary NDEF message, addressed differently: 16-byte blocks in
+// 4-block sectors, each sector behind a key exchange, the last block of every
+// sector being its trailer. Mirrors desktop/src-tauri/src/nfc.rs.
+
+const CLASSIC_BLOCK_LEN = 16;
+/** Three data blocks per sector; the fourth is the trailer. */
+const CLASSIC_SECTOR_BYTES = 3 * CLASSIC_BLOCK_LEN;
+const KEY_A = 0x60;
+const KEY_B = 0x61;
+
+/** The NFC Forum's well-known key A for NDEF sectors (AN1305 §3.3). */
+const NDEF_KEY = Buffer.from([0xd3, 0xf7, 0xd3, 0xf7, 0xd3, 0xf7]);
+/** The factory transport key: a tag that answers to this is unformatted. */
+const FACTORY_KEY = Buffer.from([0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
+/** Key A of the MAD sector, fixed by the spec so any reader can read it. */
+const MAD_KEY = Buffer.from([0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5]);
+
+export type TagKind =
+  | { kind: "type2" }
+  | { kind: "classic"; name: string; sectors: number }
+  | { kind: "unknown" };
+
+/**
+ * What the card is, from the ATR the reader synthesises for storage cards
+ * (PC/SC part 3 §3.1.3.2.3.1). The two-byte card name sits just past the
+ * RID `A0 00 00 03 06` and a standard byte.
+ */
+export function tagKindFromAtr(atr?: Buffer | null): TagKind {
+  if (!atr) return { kind: "unknown" };
+  const rid = Buffer.from([0xa0, 0x00, 0x00, 0x03, 0x06]);
+  const at = atr.indexOf(rid);
+  if (at < 0 || at + rid.length + 3 > atr.length) return { kind: "unknown" };
+  const name = atr.readUInt16BE(at + rid.length + 1);
+  switch (name) {
+    case 0x0003:
+      return { kind: "type2" };
+    case 0x0001:
+      return { kind: "classic", name: "MIFARE Classic 1K", sectors: 16 };
+    // Only a 4K's first 32 sectors are the 4-block kind addressed here.
+    case 0x0002:
+      return { kind: "classic", name: "MIFARE Classic 4K", sectors: 32 };
+    case 0x0026:
+      return { kind: "classic", name: "MIFARE Mini", sectors: 5 };
+    default:
+      return { kind: "unknown" };
+  }
+}
+
+/** Sector trailer: key A, three access bytes, the GPB, then key B. Key B stays
+ *  the factory value so a wrong trailer can always be rewritten. */
+function trailer(keyA: Buffer, access: number[]): Buffer {
+  return Buffer.concat([keyA, Buffer.from(access), FACTORY_KEY]);
+}
+
+/** CRC-8 over the MAD's bytes: polynomial 0x1D, preset 0xC7. */
+function crc8Mad(data: Buffer): number {
+  let crc = 0xc7;
+  for (const b of data) {
+    crc ^= b;
+    for (let i = 0; i < 8; i++) {
+      crc = crc & 0x80 ? ((crc << 1) ^ 0x1d) & 0xff : (crc << 1) & 0xff;
+    }
+  }
+  return crc;
+}
+
+/** MAD1 blocks 1 and 2: the directory claiming every sector from 1 up for the
+ *  NDEF AID (0x03E1, little-endian). Byte 0 is the CRC over all that follows;
+ *  byte 1 is the card-publisher sector, 0 for none. */
+function madBlocks(sectors: number): [Buffer, Buffer] {
+  const aids: number[] = [];
+  for (let s = 1; s < Math.min(sectors, 16); s++) aids.push(0xe1, 0x03);
+  const b1 = Buffer.concat([Buffer.from([0x00, 0x00]), Buffer.from(aids.slice(0, 14))]);
+  const b2 = Buffer.concat([Buffer.from(aids.slice(14))]);
+  b1[0] = crc8Mad(Buffer.concat([b1.subarray(1), b2]));
+  return [b1, b2];
+}
+
+/** The data blocks of sectors 1.., in order. Sector 0 holds the MAD and every
+ *  fourth block is a trailer, so neither is ever addressed. */
+function classicDataBlocks(sectors: number): number[] {
+  const blocks: number[] = [];
+  for (let s = 1; s < sectors; s++) for (let b = 0; b < 3; b++) blocks.push(s * 4 + b);
+  return blocks;
+}
+
+async function tryAuth(reader: Reader, key: Buffer, sector: number): Promise<boolean> {
+  try {
+    await reader.authenticate(sector * 4, KEY_A, key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Turn a factory-blank Classic tag into an NDEF one. Only ever called when the
+ * factory key still opens everything, so there is nothing of anyone's to lose.
+ * NDEF sectors first, MAD last: an interrupted format leaves a directory that
+ * still says "not NDEF", which is where it started.
+ */
+async function classicFormat(reader: Reader, sectors: number): Promise<void> {
+  const blank = Buffer.alloc(CLASSIC_BLOCK_LEN);
+  for (let s = 1; s < sectors; s++) {
+    if (!(await tryAuth(reader, FACTORY_KEY, s))) {
+      throw new Error(`sector ${s} wouldn't authenticate to format`);
+    }
+    for (let b = 0; b < 3; b++) {
+      await reader.write(s * 4 + b, blank, CLASSIC_BLOCK_LEN);
+    }
+    await reader.write(s * 4 + 3, trailer(NDEF_KEY, [0x7f, 0x07, 0x88, 0x40]), CLASSIC_BLOCK_LEN);
+  }
+
+  if (!(await tryAuth(reader, FACTORY_KEY, 0))) {
+    throw new Error("the MAD sector wouldn't authenticate to format");
+  }
+  const [b1, b2] = madBlocks(sectors);
+  await reader.write(1, b1, CLASSIC_BLOCK_LEN);
+  await reader.write(2, b2, CLASSIC_BLOCK_LEN);
+  // GPB 0xC1: MAD present, version 1, multi-application.
+  await reader.write(3, trailer(MAD_KEY, [0x78, 0x77, 0x88, 0xc1]), CLASSIC_BLOCK_LEN);
+}
+
+/** Read the NDEF message off a Classic tag. Stops at the first sector that
+ *  won't authenticate — that is the end of the NDEF area. */
+export async function classicReadNdef(reader: Reader, sectors: number): Promise<string[]> {
+  const parts: Buffer[] = [];
+  for (let s = 1; s < sectors; s++) {
+    if (!(await tryAuth(reader, NDEF_KEY, s))) break;
+    try {
+      parts.push(await reader.read(s * 4, CLASSIC_SECTOR_BYTES, CLASSIC_BLOCK_LEN));
+    } catch {
+      break;
+    }
+  }
+  return decodeNdefUris(Buffer.concat(parts));
+}
+
+/** Write an NDEF TLV across a Classic tag's sectors, formatting it first if it
+ *  has never held NDEF. Only data blocks are touched. */
+export async function classicWriteNdef(
+  reader: Reader,
+  bytes: Buffer,
+  sectors: number,
+): Promise<void> {
+  if (!(await tryAuth(reader, NDEF_KEY, 1))) {
+    if (!(await tryAuth(reader, FACTORY_KEY, 1))) {
+      throw new Error(
+        "this MIFARE Classic tag is locked with keys we don't have, so it can't be written",
+      );
+    }
+    await classicFormat(reader, sectors);
+  }
+
+  // A block write is all 16 bytes or nothing; encodeNdefUris pads to the Type 2
+  // page size, a quarter of that.
+  const padLen = (CLASSIC_BLOCK_LEN - (bytes.length % CLASSIC_BLOCK_LEN)) % CLASSIC_BLOCK_LEN;
+  const padded = Buffer.concat([bytes, Buffer.alloc(padLen)]);
+
+  const blocks = classicDataBlocks(sectors);
+  const chunks: Buffer[] = [];
+  for (let i = 0; i < padded.length; i += CLASSIC_BLOCK_LEN) {
+    chunks.push(padded.subarray(i, i + CLASSIC_BLOCK_LEN));
+  }
+  if (chunks.length > blocks.length) {
+    throw new Error(
+      `this tag holds ${blocks.length * CLASSIC_BLOCK_LEN} bytes of NDEF; ` +
+        `the link needs ${padded.length}.`,
+    );
+  }
+
+  // The block carrying the TLV header goes last, so an interrupted write leaves
+  // a tag that reads as blank rather than as half a record.
+  const plan = chunks.map((chunk, i) => ({ block: blocks[i], chunk }));
+  if (!plan.length) throw new Error("nothing to write");
+  plan.push(plan.shift()!);
+
+  let authed = -1;
+  for (const { block, chunk } of plan) {
+    const sector = Math.floor(block / 4);
+    if (authed !== sector) {
+      if (!(await tryAuth(reader, NDEF_KEY, sector))) {
+        throw new Error(`sector ${sector} wouldn't authenticate`);
+      }
+      authed = sector;
+    }
+    await reader.write(block, chunk, CLASSIC_BLOCK_LEN);
+  }
+}
+
+/** How many bytes of NDEF a tag of this kind can hold. */
+export function tagCapacity(kind: TagKind): number {
+  return kind.kind === "classic"
+    ? (kind.sectors - 1) * CLASSIC_SECTOR_BYTES
+    : DEFAULT_CAPACITY;
+}
+
 // ── Reader ──────────────────────────────────────────────────────────────────
 
 export class NfcUnavailableError extends Error {
@@ -347,14 +552,23 @@ export async function openNfc(): Promise<NfcSession> {
   nfc.on("reader", (reader) => {
     readerHandlers.forEach((h) => h(reader.reader.name, true));
 
-    reader.on("card", async (card: { uid?: string }) => {
+    reader.on("card", async (card: { uid?: string; atr?: Buffer }) => {
       const uid = card.uid ?? "";
+      // Type 2 and Classic hold the same NDEF message over different protocols;
+      // the ATR says which is on the reader.
+      const kind = tagKindFromAtr(card.atr);
+
       if (pending) {
         const job = pending;
         pending = null;
         try {
-          const fitted = fitNdefUris(job.payloads);
-          await reader.write(FIRST_DATA_PAGE, encodeNdefUris(fitted), PAGE_LEN);
+          const fitted = fitNdefUris(job.payloads, tagCapacity(kind));
+          const bytes = encodeNdefUris(fitted);
+          if (kind.kind === "classic") {
+            await classicWriteNdef(reader, bytes, kind.sectors);
+          } else {
+            await reader.write(FIRST_DATA_PAGE, bytes, PAGE_LEN);
+          }
           job.resolve(uid);
         } catch (e: any) {
           job.reject(new Error(e?.message ?? "the tag rejected the write"));
@@ -364,7 +578,10 @@ export async function openNfc(): Promise<NfcSession> {
 
       let payloads: string[] = [];
       try {
-        payloads = decodeNdefUris(await reader.read(FIRST_DATA_PAGE, DEFAULT_CAPACITY, PAGE_LEN));
+        payloads =
+          kind.kind === "classic"
+            ? await classicReadNdef(reader, kind.sectors)
+            : decodeNdefUris(await reader.read(FIRST_DATA_PAGE, DEFAULT_CAPACITY, PAGE_LEN));
       } catch {
         // Unreadable tag (wrong type, moved off the reader mid-read).
       }
