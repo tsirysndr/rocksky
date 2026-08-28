@@ -2,7 +2,7 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres};
 
-use crate::repo::track::TRACK_SELECT;
+use crate::repo::track::track_select;
 use crate::xata::track::TrackWithUpload;
 
 #[derive(sqlx::FromRow)]
@@ -284,11 +284,12 @@ async fn with_tracks(
     // row deserializes into TrackWithUpload correctly.
     let tracks_sql = format!(
         r#"
-        {TRACK_SELECT}
+        {}
         JOIN navidrome_playlist_tracks npt ON npt.track_id = tracks.xata_id
         WHERE npt.playlist_id = $1 AND user_uploads.user_id = $2
         ORDER BY npt.xata_createdat ASC
         "#,
+        track_select()
     );
 
     let tracks: Vec<TrackWithUpload> = sqlx::query_as(&tracks_sql)
