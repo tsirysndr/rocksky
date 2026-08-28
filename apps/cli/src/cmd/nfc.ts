@@ -8,7 +8,7 @@ import chalk from "chalk";
 import { loadToken } from "lib/token";
 import {
   NfcUnavailableError,
-  nfcPayloadFor,
+  nfcPayloadsFor,
   openNfc,
   parseNfcPayload,
 } from "../lib/nfc";
@@ -47,6 +47,30 @@ async function describe(payload: string): Promise<string> {
   }
 }
 
+/**
+ * Both tag records for a ref that is only one of them. Throws when the library
+ * can't be reached or doesn't have it, which the caller treats as "write what
+ * the user gave me" rather than an error — a tag with one good record beats no
+ * tag at all.
+ */
+async function completeRef(
+  kind: "album" | "playlist",
+  ref: string,
+): Promise<string[]> {
+  const token = loadToken();
+  if (!token) throw new Error("not signed in");
+  const creds = await getCreds(token);
+  if (!creds) throw new Error("no library credentials");
+
+  const found =
+    kind === "album"
+      ? (await getAlbum(creds, ref)).album
+      : (await getPlaylist(creds, ref)).playlist;
+  if (!found?.id) throw new Error("not in your library");
+
+  return nfcPayloadsFor(kind, found);
+}
+
 export async function nfcStatus() {
   try {
     const session = await openNfc();
@@ -75,9 +99,16 @@ export async function nfcRead(opts: { watch?: boolean } = {}) {
     const session = await openNfc();
     console.log(violet("Hold a tag on the reader…"));
 
-    session.onTag(async ({ uid, payload }) => {
-      const label = payload ? await describe(payload) : chalk.dim("empty tag");
-      console.log(`${chalk.dim(uid)}  ${payload ?? ""}  ${label}`);
+    session.onTag(async ({ uid, payloads }) => {
+      if (!payloads.length) {
+        console.log(`${chalk.dim(uid)}  ${chalk.dim("empty tag")}`);
+      }
+      // One line per record, in tag order — a dump should show the fallback as
+      // well as the URI that gets tried first.
+      for (const [i, payload] of payloads.entries()) {
+        const prefix = i === 0 ? chalk.dim(uid) : " ".repeat(uid.length);
+        console.log(`${prefix}  ${payload}  ${await describe(payload)}`);
+      }
       if (!opts.watch) {
         session.close();
         process.exit(0);
@@ -111,15 +142,21 @@ export async function nfcWrite(opts: { album?: string; playlist?: string }) {
     process.exit(1);
   }
 
-  // An at:// ref goes on the tag verbatim; a bare id still gets the
-  // rocksky://library/… wrapper it has always had.
-  const portable = ref.startsWith("at://");
-  const payload = portable ? ref : nfcPayloadFor(kind, { id: ref });
+  // A tag wants both halves: the record URI, which plays anywhere, and the
+  // library id behind it as the fallback. The ref is only ever one of the two,
+  // so look the other up — both lookups accept either key. Offline, signed out
+  // or not in the library, we write the half we were handed.
+  const payloads = await completeRef(kind, ref).catch(() =>
+    nfcPayloadsFor(kind, ref.startsWith("at://") ? { uri: ref } : { id: ref }),
+  );
+  const portable = payloads.some((p) => p.startsWith("at://"));
 
   try {
     const session = await openNfc();
-    console.log(violet(`Hold a tag on the reader to write ${cyan(payload)}…`));
-    await session.write(payload);
+    console.log(
+      violet(`Hold a tag on the reader to write ${cyan(payloads.join(" + "))}…`),
+    );
+    await session.write(payloads);
     session.close();
     console.log(
       chalk.green(

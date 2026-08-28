@@ -9,9 +9,9 @@
 import {
   type NfcSession,
   type NfcTarget,
-  nfcPayloadFor,
+  nfcPayloadsFor,
   openNfc,
-  parseNfcPayload,
+  parseNfcPayloads,
 } from "../lib/nfc";
 import {
   entryToItem,
@@ -49,8 +49,13 @@ export function closeNfc(): void {
   opening = null;
 }
 
-/** Resolve a tag payload to a queue and play it. Returns what started playing. */
-async function play(target: NfcTarget, token: string): Promise<string> {
+/**
+ * Resolve one tag target to a queue and play it. Returns what started playing,
+ * or null when the target isn't in this library — that is the miss the caller
+ * retries against the tag's next record. An unreachable library throws instead,
+ * so a network failure is never mistaken for a record that isn't there.
+ */
+async function play(target: NfcTarget, token: string): Promise<string | null> {
   const creds = await getCreds(token);
   if (!creds) throw new Error("no library credentials");
 
@@ -62,7 +67,7 @@ async function play(target: NfcTarget, token: string): Promise<string> {
       creds,
       target.kind === "albumUri" ? target.uri : target.id,
     );
-    if (!album?.id) throw new Error("that album is not in your library");
+    if (!album?.id) return null;
     if (!entries.length) throw new Error(`“${album.name}” is empty`);
     await streamAndPlay(token, entries.map(entryToItem), 0);
     return album.name;
@@ -72,7 +77,7 @@ async function play(target: NfcTarget, token: string): Promise<string> {
     creds,
     target.kind === "playlistUri" ? target.uri : target.id,
   );
-  if (!playlist?.id) throw new Error("that playlist is not in your library");
+  if (!playlist?.id) return null;
   if (!entries.length) throw new Error(`“${playlist.name}” is empty`);
   await streamAndPlay(token, entries.map(entryToItem), 0);
   return playlist.name;
@@ -96,17 +101,23 @@ export function startNfcWatch(
         notify(connected ? `NFC reader connected — ${name}` : "NFC reader disconnected"),
       );
 
-      s.onTag(async ({ payload }) => {
-        if (!payload) return notify("This tag is empty");
-        const target = parseNfcPayload(payload);
-        if (!target) return notify("This tag isn’t a Rocksky album or playlist");
+      s.onTag(async ({ payloads }) => {
+        if (!payloads.length) return notify("This tag is empty");
+        const targets = parseNfcPayloads(payloads);
+        if (!targets.length) return notify("This tag isn’t a Rocksky album or playlist");
 
         const token = getToken();
         if (!token) return notify("Sign in (A) to play tags from your library");
 
         notify("Reading tag…");
         try {
-          notify(`Playing “${await play(target, token)}”`);
+          // Records in tag order: the record URI, then the library id. A miss on
+          // the first is the case the second exists for.
+          for (const target of targets) {
+            const name = await play(target, token);
+            if (name) return notify(`Playing “${name}”`);
+          }
+          notify("That tag points at something no longer in your library");
         } catch (e: any) {
           notify(`Tag error: ${e.message}`);
         }
@@ -138,19 +149,22 @@ export async function writeAlbumTag(album: {
   if (!album.uri) {
     throw new Error(`“${album.name}” has no published record yet — nothing written`);
   }
-  await writeTag(nfcPayloadFor("album", { uri: album.uri, id: "" }));
+  // No id fallback record here: My Music rows carry no Navidrome id, and the
+  // record URI is the portable half anyway.
+  await writeTag(nfcPayloadsFor("album", { uri: album.uri }));
 }
 
-/** Write a playlist to a tag, preferring its record URI over the library id. */
+/** Write a playlist to a tag: its record URI, then the library id as fallback. */
 export async function writePlaylistTag(playlist: {
   uri?: string;
   id: string;
 }): Promise<boolean> {
-  await writeTag(nfcPayloadFor("playlist", playlist));
+  await writeTag(nfcPayloadsFor("playlist", playlist));
   return !!playlist.uri?.trim();
 }
 
-async function writeTag(payload: string): Promise<void> {
+async function writeTag(payloads: string[]): Promise<void> {
+  if (!payloads.length) throw new Error("nothing to write");
   const s = await connect();
-  await s.write(payload);
+  await s.write(payloads);
 }

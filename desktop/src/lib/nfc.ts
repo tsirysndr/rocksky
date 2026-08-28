@@ -33,19 +33,26 @@ export type NfcTarget =
   | { kind: "playlist"; id: string };
 
 /**
- * What gets burned onto the tag.
+ * What gets burned onto the tag, one NDEF record per entry, in order.
  *
- * The record's AT-URI whenever there is one: it names the album or playlist
- * itself, so the tag is portable — it resolves on any machine, for any user,
- * against any server. The `rocksky://library/...` form is only a fallback for
- * an entity with no published record yet (an unmirrored playlist), and such a
- * tag resolves against this user's library alone.
+ * The record's AT-URI first whenever there is one: it names the album or
+ * playlist itself, so the tag is portable — it resolves on any machine, for any
+ * user, against any server. The `rocksky://library/...` link to this server's
+ * own id follows as a fallback, tried only when the record URI resolves to
+ * nothing (never published, or the record was deleted while the upload stayed).
+ *
+ * An entity with no record yet gets the id link alone, and such a tag resolves
+ * against this user's library only.
  */
-export function nfcPayloadFor(
+export function nfcPayloadsFor(
   kind: "album" | "playlist",
-  ref: { uri?: string | null; id: string },
-): string {
-  return ref.uri?.trim() || `rocksky://library/${kind}/${ref.id}`;
+  ref: { uri?: string | null; id?: string | null },
+): string[] {
+  const uri = ref.uri?.trim();
+  const id = ref.id?.trim();
+  return [uri, id && `rocksky://library/${kind}/${id}`].filter(
+    (p): p is string => !!p,
+  );
 }
 
 /** Whether a tag made from this ref will work outside the owner's library. */
@@ -84,15 +91,30 @@ export function parseNfcPayload(payload: string): NfcTarget | null {
   return null;
 }
 
+/**
+ * Every target a tag's records name, best first. Anything unrecognised is
+ * dropped rather than ending the list — a foreign record sitting alongside ours
+ * shouldn't hide the one we can play.
+ */
+export function parseNfcPayloads(payloads: string[]): NfcTarget[] {
+  return payloads
+    .map(parseNfcPayload)
+    .filter((t): t is NfcTarget => t !== null);
+}
+
 export function nfcStatus(): Promise<NfcStatus> {
   if (!isTauri()) return Promise.resolve(NO_READER);
   return invoke<NfcStatus>("nfc_status");
 }
 
-/** Arms a write and resolves with the tag's UID once the user taps one. */
-export function nfcWrite(payload: string): Promise<string> {
+/**
+ * Arms a write and resolves with the tag's UID once the user taps one. Each
+ * entry becomes one NDEF record, in order; a tag with no room for them all
+ * keeps the leading ones.
+ */
+export function nfcWrite(payloads: string[]): Promise<string> {
   if (!isTauri()) return Promise.reject(new Error("NFC needs the desktop app"));
-  return invoke<string>("nfc_write", { payload });
+  return invoke<string>("nfc_write", { payloads });
 }
 
 export function nfcCancelWrite(): Promise<void> {
@@ -103,7 +125,11 @@ export function nfcCancelWrite(): Promise<void> {
 }
 
 /** A tag was tapped. */
-export type NfcScan = { payload: string; uid: string };
+export type NfcScan = {
+  /** The tag's records, in the order a reader should try them. */
+  payloads: string[];
+  uid: string;
+};
 
 function subscribe<T>(event: string, handler: (payload: T) => void): () => void {
   if (!isTauri()) {

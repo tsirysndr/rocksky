@@ -20,7 +20,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import { songToQueueTrack, useNavidromeCredentials } from "../../hooks/useNavidrome";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import { useNfcStatus } from "../../hooks/useNfc";
-import { type NfcTarget, onNfcScan, parseNfcPayload } from "../../lib/nfc";
+import { type NfcTarget, onNfcScan, parseNfcPayloads } from "../../lib/nfc";
 
 // baseui's startEnhancer wants a component taking a required numeric `size`;
 // the tabler icons' own `size` is wider than that.
@@ -33,6 +33,25 @@ type Resolved = {
   /** Where to send the user so they can see what started playing. */
   route: { to: string; params: { id: string } };
 };
+
+/**
+ * The first target that is actually in the library, or null if none are.
+ *
+ * A tag carries the record URI and the library id behind it, so a miss on the
+ * first is exactly what the second is for. Only a miss falls through: a network
+ * or auth failure throws, so an outage is reported as one instead of being
+ * retried against a second lookup that would fail the same way.
+ */
+async function resolveFirst(
+  targets: NfcTarget[],
+  creds: NavidromeCredentials,
+): Promise<Resolved | null> {
+  for (const target of targets) {
+    const found = await resolve(target, creds);
+    if (found) return found;
+  }
+  return null;
+}
 
 async function resolve(
   target: NfcTarget,
@@ -90,13 +109,13 @@ export default function NfcListener() {
 
   useEffect(
     () =>
-      onNfcScan(async ({ payload }) => {
+      onNfcScan(async ({ payloads }) => {
         const { creds, playNow, navigate, enqueue } = handlers.current;
         const notify = (message: string) =>
           enqueue({ message, startEnhancer: NfcGlyph }, DURATION.short);
 
-        const target = parseNfcPayload(payload);
-        if (!target) {
+        const targets = parseNfcPayloads(payloads);
+        if (!targets.length) {
           notify("This tag isn’t a Rocksky album or playlist");
           return;
         }
@@ -106,7 +125,7 @@ export default function NfcListener() {
         }
 
         try {
-          const found = await resolve(target, creds);
+          const found = await resolveFirst(targets, creds);
           if (!found) {
             notify("That tag points at something no longer in your library");
             return;

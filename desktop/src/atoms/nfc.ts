@@ -6,15 +6,15 @@ import { atom } from "jotai";
  * the user closes the dialog.
  */
 export const nfcWriteTargetAtom = atom<{
-  /** The NDEF URI to store. */
-  payload: string;
+  /** The NDEF URIs to store, one record each, in the order to try them. */
+  payloads: string[];
   /** Shown in the dialog so the user knows which tag they are making. */
   label: string;
   sublabel?: string;
   /**
-   * False when the payload fell back to a library id because the entity has no
-   * published record — the tag then only works in this user's own library, and
-   * the dialog says so rather than promising a portable tag.
+   * False when there is no record URI to write, only a library id — the tag
+   * then only works in this user's own library, and the dialog says so rather
+   * than promising a portable tag.
    */
   portable: boolean;
 } | null>(null);

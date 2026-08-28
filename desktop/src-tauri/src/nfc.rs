@@ -1,9 +1,12 @@
 //! NFC tags as physical shortcuts to an album or a playlist.
 //!
-//! A tag holds one NDEF URI record — `rocksky://library/album/<id>` or
-//! `rocksky://library/playlist/<id>` — which the webview resolves against the
-//! Navidrome library and plays. `at://` URIs are accepted on read too, so a tag
-//! written elsewhere (the mobile app, a phone's tag writer) still works.
+//! A tag holds NDEF URI records, which the webview resolves against the
+//! Navidrome library and plays. The first record is the album's or playlist's
+//! `at://` record URI, which resolves anywhere; the second is a
+//! `rocksky://library/<kind>/<id>` link to this server's own id, tried only
+//! when the first doesn't resolve. Either form is accepted alone, so a tag
+//! written elsewhere — the mobile app, a phone's tag writer, an older build —
+//! still works, and so does one written here on a tag too small for both.
 //!
 //! The reader is driven through PC/SC, which is the only transport that is
 //! native on all three desktops (macOS CryptoTokenKit, pcsclite, WinSCard) and
@@ -57,8 +60,9 @@ pub struct NfcStatus {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ScanEvent {
-    /// The URI stored in the tag's NDEF record.
-    payload: String,
+    /// The URIs stored in the tag's NDEF records, in tag order. The first is
+    /// what should play; any after it are fallbacks for when it won't resolve.
+    payloads: Vec<String>,
     /// Tag UID, hex — lets the UI tell two taps of the same tag apart.
     uid: String,
 }
@@ -67,7 +71,7 @@ struct ScanEvent {
 
 enum Cmd {
     Write {
-        payload: String,
+        payloads: Vec<String>,
         reply: Sender<Result<String, String>>,
     },
     CancelWrite,
@@ -103,17 +107,24 @@ pub fn nfc_status(state: tauri::State<'_, Nfc>) -> NfcStatus {
 }
 
 /// Arm a write and wait for the user to tap a tag. Resolves with the tag UID.
+///
+/// `payloads` becomes one NDEF record each, in order — the URI that should play
+/// first, then any fallbacks.
 #[tauri::command]
-pub async fn nfc_write(app: AppHandle, payload: String) -> Result<String, String> {
-    let payload = payload.trim().to_string();
-    if payload.is_empty() {
+pub async fn nfc_write(app: AppHandle, payloads: Vec<String>) -> Result<String, String> {
+    let payloads: Vec<String> = payloads
+        .into_iter()
+        .map(|p| p.trim().to_string())
+        .filter(|p| !p.is_empty())
+        .collect();
+    if payloads.is_empty() {
         return Err("nothing to write".into());
     }
 
     let (reply, done) = channel();
     app.state::<Nfc>()
         .tx
-        .send(Cmd::Write { payload, reply })
+        .send(Cmd::Write { payloads, reply })
         .map_err(|_| "the NFC reader is not running".to_string())?;
 
     // `done.recv_timeout` blocks, so it cannot run on the async runtime.
@@ -138,7 +149,7 @@ pub fn nfc_cancel_write(state: tauri::State<'_, Nfc>) -> Result<(), String> {
 // ── Worker ──────────────────────────────────────────────────────────────────
 
 struct Pending {
-    payload: String,
+    payloads: Vec<String>,
     reply: Sender<Result<String, String>>,
 }
 
@@ -151,8 +162,8 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
         // Drain queued commands first so a write arms before this tick's poll.
         loop {
             match rx.try_recv() {
-                Ok(Cmd::Write { payload, reply }) => {
-                    if let Some(prev) = pending.replace(Pending { payload, reply }) {
+                Ok(Cmd::Write { payloads, reply }) => {
+                    if let Some(prev) = pending.replace(Pending { payloads, reply }) {
                         let _ = prev.reply.send(Err("superseded by another write".into()));
                     }
                 }
@@ -214,9 +225,20 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
             let uid = read_uid(&card).unwrap_or_default();
 
             if let Some(job) = pending.take() {
-                let result = write_ndef(&card, &job.payload).map(|_| uid.clone());
+                let uris: Vec<&str> = job.payloads.iter().map(String::as_str).collect();
+                let result = write_ndef(&card, &uris).map(|written| {
+                    if written < uris.len() {
+                        tracing::warn!(
+                            "nfc: tag {uid} only had room for {written} of {} records; \
+                             wrote {:?} without its fallback",
+                            uris.len(),
+                            &uris[..written]
+                        );
+                    }
+                    uid.clone()
+                });
                 match &result {
-                    Ok(_) => tracing::info!("nfc: wrote {} to tag {uid}", job.payload),
+                    Ok(_) => tracing::info!("nfc: wrote {:?} to tag {uid}", job.payloads),
                     Err(e) => tracing::warn!("nfc: write failed: {e}"),
                 }
                 let _ = job.reply.send(result);
@@ -229,12 +251,18 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                     None => true,
                 };
                 if fresh {
-                    match read_ndef_uri(&card) {
-                        Ok(Some(payload)) => {
-                            tracing::info!("nfc: tag {uid} → {payload}");
-                            let _ = app.emit("nfc://scan", ScanEvent { payload, uid: uid.clone() });
+                    match read_ndef_uris(&card) {
+                        Ok(payloads) if !payloads.is_empty() => {
+                            tracing::info!("nfc: tag {uid} → {payloads:?}");
+                            let _ = app.emit(
+                                "nfc://scan",
+                                ScanEvent {
+                                    payloads,
+                                    uid: uid.clone(),
+                                },
+                            );
                         }
-                        Ok(None) => tracing::debug!("nfc: tag {uid} holds no NDEF URI record"),
+                        Ok(_) => tracing::debug!("nfc: tag {uid} holds no NDEF URI record"),
                         Err(e) => tracing::debug!("nfc: read failed: {e}"),
                     }
                     last_scan = Some((uid, Instant::now()));
@@ -301,7 +329,10 @@ fn transmit(card: &Card, apdu: &[u8]) -> Result<Vec<u8>, String> {
     }
     let (data, sw) = res.split_at(res.len() - 2);
     if sw != [0x90, 0x00] {
-        return Err(format!("tag rejected the command (SW {:02X}{:02X})", sw[0], sw[1]));
+        return Err(format!(
+            "tag rejected the command (SW {:02X}{:02X})",
+            sw[0], sw[1]
+        ));
     }
     Ok(data.to_vec())
 }
@@ -391,33 +422,55 @@ const URI_PREFIXES: [&str; 36] = [
     "urn:nfc:",
 ];
 
-/// One NDEF URI record wrapped in a Type 2 NDEF TLV, padded to whole pages.
-fn encode_ndef_uri(uri: &str) -> Vec<u8> {
-    // Longest match wins, so "https://www." beats "https://".
-    let (code, rest) = URI_PREFIXES
+/// The URI's abbreviation code and the remainder that follows it.
+/// Longest match wins, so "https://www." beats "https://".
+fn abbreviate(uri: &str) -> (u8, &str) {
+    URI_PREFIXES
         .iter()
         .enumerate()
         .skip(1)
         .filter(|(_, p)| uri.starts_with(*p))
         .max_by_key(|(_, p)| p.len())
         .map(|(i, p)| (i as u8, &uri[p.len()..]))
-        .unwrap_or((0, uri));
+        .unwrap_or((0, uri))
+}
 
-    let mut payload = vec![code];
-    payload.extend_from_slice(rest.as_bytes());
+/// NDEF URI records wrapped in a Type 2 NDEF TLV, padded to whole pages.
+///
+/// Order carries meaning: a reader tries the records front to back, so the
+/// portable record URI goes first and the library-id fallback second. A reader
+/// that only looks at the first record — an older build, a phone — sees exactly
+/// the single-record tag it would have seen before, which is why the fallback
+/// is a second record rather than something bolted onto the first URI.
+fn encode_ndef_uris(uris: &[&str]) -> Vec<u8> {
+    let mut records = Vec::new();
+    for (i, uri) in uris.iter().enumerate() {
+        let (code, rest) = abbreviate(uri);
+        let mut payload = vec![code];
+        payload.extend_from_slice(rest.as_bytes());
 
-    // MB|ME|SR|TNF=1 (well known), type "U".
-    let mut record = vec![0xD1, 0x01, payload.len() as u8, b'U'];
-    record.extend_from_slice(&payload);
+        // SR|TNF=1 (well known), plus MB on the first record and ME on the
+        // last — both on a lone record, which is the 0xD1 tags carried before.
+        let mut flags = 0x11u8;
+        if i == 0 {
+            flags |= 0x80;
+        }
+        if i + 1 == uris.len() {
+            flags |= 0x40;
+        }
+
+        records.extend_from_slice(&[flags, 0x01, payload.len() as u8, b'U']);
+        records.extend_from_slice(&payload);
+    }
 
     let mut tlv = vec![0x03];
-    if record.len() < 0xFF {
-        tlv.push(record.len() as u8);
+    if records.len() < 0xFF {
+        tlv.push(records.len() as u8);
     } else {
         tlv.push(0xFF);
-        tlv.extend_from_slice(&(record.len() as u16).to_be_bytes());
+        tlv.extend_from_slice(&(records.len() as u16).to_be_bytes());
     }
-    tlv.extend_from_slice(&record);
+    tlv.extend_from_slice(&records);
     tlv.push(0xFE); // terminator
     while tlv.len() % PAGE_LEN != 0 {
         tlv.push(0x00);
@@ -425,9 +478,19 @@ fn encode_ndef_uri(uri: &str) -> Vec<u8> {
     tlv
 }
 
-fn write_ndef(card: &Card, uri: &str) -> Result<(), String> {
-    let bytes = encode_ndef_uri(uri);
+/// Writes as many of `uris` as the tag has room for, and reports how many stuck.
+///
+/// Trailing records are dropped rather than failing the write: the first record
+/// is the one that plays and the rest only matter if it stops resolving, so a
+/// small tag is better off with a working shortcut than with no tag at all.
+fn write_ndef(card: &Card, uris: &[&str]) -> Result<usize, String> {
     let room = capacity(card);
+    let mut take = uris.len();
+    while take > 1 && encode_ndef_uris(&uris[..take]).len() > room {
+        take -= 1;
+    }
+
+    let bytes = encode_ndef_uris(&uris[..take]);
     if bytes.len() > room {
         return Err(format!(
             "this tag holds {room} bytes; the link needs {}. Use an NTAG215 or larger.",
@@ -441,11 +504,11 @@ fn write_ndef(card: &Card, uri: &str) -> Result<(), String> {
             .ok_or("the link is longer than this tag can address")?;
         write_page(card, page, chunk)?;
     }
-    Ok(())
+    Ok(take)
 }
 
-/// Pull the first URI record out of the tag's NDEF message.
-fn read_ndef_uri(card: &Card) -> Result<Option<String>, String> {
+/// Pull every URI record out of the tag's NDEF message, in tag order.
+fn read_ndef_uris(card: &Card) -> Result<Vec<String>, String> {
     // Read the whole user memory in one sweep: TLVs before the NDEF one (lock
     // and memory control) push the message to an offset we can't predict.
     let pages = (capacity(card) / PAGE_LEN).min(256) as u16;
@@ -467,9 +530,9 @@ fn read_ndef_uri(card: &Card) -> Result<Option<String>, String> {
     }
 
     let Some(message) = find_ndef_tlv(&data) else {
-        return Ok(None);
+        return Ok(Vec::new());
     };
-    Ok(first_uri_record(message))
+    Ok(uri_records(message))
 }
 
 /// Walk the TLV chain and return the NDEF message's bytes.
@@ -477,8 +540,8 @@ fn find_ndef_tlv(data: &[u8]) -> Option<&[u8]> {
     let mut i = 0;
     while i < data.len() {
         match data[i] {
-            0x00 => i += 1,             // NULL padding
-            0xFE => return None,        // terminator
+            0x00 => i += 1,      // NULL padding
+            0xFE => return None, // terminator
             tag => {
                 let (len, header) = match data.get(i + 1)? {
                     0xFF => (
@@ -502,10 +565,15 @@ fn find_ndef_tlv(data: &[u8]) -> Option<&[u8]> {
     None
 }
 
-/// Decode the first well-known URI record in an NDEF message. Only short
+/// Decode every well-known URI record in an NDEF message, in order. Only short
 /// records are handled — a tag we wrote is always one, and a foreign tag whose
 /// link needs a 32-bit length is not something this app can play.
-fn first_uri_record(message: &[u8]) -> Option<String> {
+///
+/// A malformed record ends the walk and keeps whatever came before it: the
+/// first record is the one that plays, so a damaged fallback must not cost the
+/// caller the good record ahead of it.
+fn uri_records(message: &[u8]) -> Vec<String> {
+    let mut uris = Vec::new();
     let mut i = 0;
     while i + 3 <= message.len() {
         let flags = message[i];
@@ -516,44 +584,57 @@ fn first_uri_record(message: &[u8]) -> Option<String> {
         let (payload_len, mut cursor) = if short {
             (message[i + 2] as usize, i + 3)
         } else {
-            let bytes = message.get(i + 2..i + 6)?;
+            let Some(bytes) = message.get(i + 2..i + 6) else {
+                break;
+            };
             (
                 u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as usize,
                 i + 6,
             )
         };
         if il {
-            cursor += 1 + *message.get(cursor)? as usize;
+            let Some(id_len) = message.get(cursor) else {
+                break;
+            };
+            cursor += 1 + *id_len as usize;
         }
 
-        let rec_type = message.get(cursor..cursor + type_len)?;
+        let Some(rec_type) = message.get(cursor..cursor + type_len) else {
+            break;
+        };
         cursor += type_len;
-        let payload = message.get(cursor..cursor + payload_len)?;
+        let Some(payload) = message.get(cursor..cursor + payload_len) else {
+            break;
+        };
 
         // TNF 1 (well known) + type "U".
         if flags & 0x07 == 0x01 && rec_type == b"U" && !payload.is_empty() {
             let prefix = URI_PREFIXES.get(payload[0] as usize).copied().unwrap_or("");
-            return Some(format!(
+            uris.push(format!(
                 "{prefix}{}",
                 String::from_utf8_lossy(&payload[1..])
             ));
         }
 
         if flags & 0x40 != 0 {
-            return None; // ME: last record
+            break; // ME: last record
         }
         i = cursor + payload_len;
     }
-    None
+    uris
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn roundtrip_all(uris: &[&str]) -> Vec<String> {
+        let tlv = encode_ndef_uris(uris);
+        find_ndef_tlv(&tlv).map(uri_records).unwrap_or_default()
+    }
+
     fn roundtrip(uri: &str) -> Option<String> {
-        let tlv = encode_ndef_uri(uri);
-        first_uri_record(find_ndef_tlv(&tlv)?)
+        roundtrip_all(&[uri]).into_iter().next()
     }
 
     #[test]
@@ -573,9 +654,56 @@ mod tests {
     #[test]
     fn abbreviates_known_prefixes() {
         // 0x03 len | D1 01 len 'U' | prefix code
-        let tlv = encode_ndef_uri("https://rocksky.app");
+        let tlv = encode_ndef_uris(&["https://rocksky.app"]);
         assert_eq!(tlv[6], 0x04, "https:// should compress to prefix code 4");
-        assert_eq!(roundtrip("https://rocksky.app").as_deref(), Some("https://rocksky.app"));
+        assert_eq!(
+            roundtrip("https://rocksky.app").as_deref(),
+            Some("https://rocksky.app")
+        );
+    }
+
+    /// A tag carries the record URI and the library-id fallback, in that order.
+    #[test]
+    fn roundtrips_a_uri_with_its_fallback() {
+        let uris = [
+            "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlkzzimck2k",
+            "rocksky://library/album/rec_9f8e7d",
+        ];
+        assert_eq!(roundtrip_all(&uris), uris);
+    }
+
+    /// The message-begin and message-end flags have to land on the right
+    /// records, or a conforming reader rejects the whole message.
+    #[test]
+    fn flags_mark_the_first_and_last_record() {
+        let one = encode_ndef_uris(&["rocksky://library/album/a"]);
+        assert_eq!(one[2], 0xD1, "a lone record is both first and last");
+
+        let two = encode_ndef_uris(&["at://d/app.rocksky.album/r", "rocksky://library/album/a"]);
+        assert_eq!(two[2], 0x91, "first record: MB, no ME");
+        // 4-byte header + 1 prefix code + the URI itself.
+        let second = 2 + 4 + 1 + "at://d/app.rocksky.album/r".len();
+        assert_eq!(two[second], 0x51, "second record: ME, no MB");
+    }
+
+    /// A reader that stops at the first record — an older build, a phone —
+    /// must see exactly what a single-record tag would have given it.
+    #[test]
+    fn first_record_is_unchanged_by_the_fallback() {
+        let uri = "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlkzzimck2k";
+        let with = roundtrip_all(&[uri, "rocksky://library/album/rec_9f8e7d"]);
+        assert_eq!(with.first().map(String::as_str), Some(uri));
+    }
+
+    /// A damaged trailing record must not cost us the good one ahead of it.
+    #[test]
+    fn keeps_earlier_records_when_a_later_one_is_truncated() {
+        let uri = "at://did:plc:abc/app.rocksky.album/3lhl";
+        let mut tlv = encode_ndef_uris(&[uri, "rocksky://library/album/rec_9f8e7d"]);
+        // Lop off the tail of the second record, mid-payload.
+        tlv.truncate(tlv.len() - 12);
+        let message = find_ndef_tlv(&tlv).unwrap_or(&tlv[2..]);
+        assert_eq!(uri_records(message).first().map(String::as_str), Some(uri));
     }
 
     /// The CLI writes tags too (apps/cli/src/lib/nfc.ts). A tag written there
@@ -583,25 +711,39 @@ mod tests {
     /// bytes — a change on one side fails this before it reaches a tag.
     #[test]
     fn matches_the_cli_encoder_byte_for_byte() {
-        let hex = |uri: &str| {
-            encode_ndef_uri(uri)
+        let hex = |uris: &[&str]| {
+            encode_ndef_uris(uris)
                 .iter()
                 .map(|b| format!("{b:02x}"))
                 .collect::<String>()
         };
         assert_eq!(
-            hex("rocksky://library/album/abc123"),
+            hex(&[
+                "at://did:plc:abc/app.rocksky.album/3lhl",
+                "rocksky://library/album/abc123",
+            ]),
+            "034f910128550061743a2f2f6469643a706c633a6162632f6170702e726f636b736b792e616c62756d2f\
+             336c686c51011f5500726f636b736b793a2f2f6c6962726172792f616c62756d2f616263313233fe0000"
+        );
+        assert_eq!(
+            hex(&["rocksky://library/album/abc123"]),
             "0323d1011f5500726f636b736b793a2f2f6c6962726172792f616c62756d2f616263313233fe0000"
         );
         assert_eq!(
-            hex("rocksky://library/playlist/9f8e7d"),
+            hex(&["rocksky://library/playlist/9f8e7d"]),
             "0326d101225500726f636b736b793a2f2f6c6962726172792f706c61796c6973742f396638653764fe000000"
         );
-        assert_eq!(hex("https://rocksky.app"), "0310d1010c5504726f636b736b792e617070fe00");
+        assert_eq!(
+            hex(&["https://rocksky.app"]),
+            "0310d1010c5504726f636b736b792e617070fe00"
+        );
     }
 
     #[test]
     fn writes_whole_pages() {
-        assert_eq!(encode_ndef_uri("rocksky://library/album/abc").len() % PAGE_LEN, 0);
+        assert_eq!(
+            encode_ndef_uris(&["rocksky://library/album/abc"]).len() % PAGE_LEN,
+            0
+        );
     }
 }

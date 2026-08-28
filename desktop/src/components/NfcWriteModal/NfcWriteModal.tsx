@@ -51,7 +51,7 @@ export default function NfcWriteModal() {
     let live = true;
     setPhase({ state: "waiting" });
 
-    nfcWrite(target.payload).then(
+    nfcWrite(target.payloads).then(
       () => {
         if (!live) return;
         setPhase({ state: "ok" });

@@ -3,7 +3,7 @@ import { IconNfc } from "@tabler/icons-react";
 import { useSetAtom } from "jotai";
 import { nfcWriteTargetAtom } from "../atoms/nfc";
 import { useNfcReady } from "../hooks/useNfc";
-import { isPortableRef, nfcPayloadFor } from "../lib/nfc";
+import { isPortableRef, nfcPayloadsFor } from "../lib/nfc";
 
 // Opens the write dialog, which owns the "tap a tag" wait. Shaped like
 // AddToPlaylistMenu so it drops into any of the library dropdowns.
@@ -70,7 +70,7 @@ export function WriteToNfcMenuItem({
         e.stopPropagation();
         if (!ready) return;
         setTarget({
-          payload: nfcPayloadFor(kind, { uri, id }),
+          payloads: nfcPayloadsFor(kind, { uri, id }),
           label,
           sublabel,
           portable,
