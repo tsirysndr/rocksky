@@ -23,7 +23,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import { songToQueueTrack, useNavidromeCredentials } from "../../hooks/useNavidrome";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import { useNfcStatus } from "../../hooks/useNfc";
-import { type NfcTarget, onNfcScan, parseNfcPayloads } from "../../lib/nfc";
+import { type NfcTarget, nfcRescan, onNfcScan, parseNfcPayloads } from "../../lib/nfc";
 
 // baseui's startEnhancer wants a component taking a required numeric `size`;
 // the tabler icons' own `size` is wider than that.
@@ -124,9 +124,8 @@ export default function NfcListener() {
   const handlers = useRef({ creds, did, playNow, navigate, enqueue });
   handlers.current = { creds, did, playNow, navigate, enqueue };
 
-  useEffect(
-    () =>
-      onNfcScan(async ({ payloads }) => {
+  useEffect(() => {
+    const stop = onNfcScan(async ({ payloads }) => {
         const { creds, did, playNow, navigate, enqueue } = handlers.current;
         const notify = (message: string) =>
           enqueue({ message, startEnhancer: NfcGlyph }, DURATION.short);
@@ -168,9 +167,25 @@ export default function NfcListener() {
         } catch {
           notify("Could not reach your library to play that tag");
         }
-      }),
-    [],
-  );
+    });
+
+    return stop;
+  }, []);
+
+  // Ask for the tag that may already be resting on the reader. Its arrival scan
+  // fired before this component mounted, and since it never leaves, nothing
+  // would emit again.
+  //
+  // Deferred until the credentials are in hand: they are fetched over the
+  // network, and a scan that lands before they arrive is dropped with "sign in
+  // to play tags" — which is how a tag on the reader at launch silently did
+  // nothing. Once only, so later credential refetches don't restart playback.
+  const rescanned = useRef(false);
+  useEffect(() => {
+    if (!creds || rescanned.current) return;
+    rescanned.current = true;
+    nfcRescan();
+  }, [creds]);
 
   // Reader plug/unplug. Skips the first observation so launching the app with
   // a reader already attached doesn't pop a toast.

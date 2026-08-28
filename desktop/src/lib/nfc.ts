@@ -138,6 +138,20 @@ export function nfcWrite(payloads: string[]): Promise<string> {
   return invoke<string>("nfc_write", { payloads });
 }
 
+/**
+ * Ask the reader to read the tag on it again, even if it never left.
+ *
+ * Tags are read once on arrival, and `nfc://scan` is fire-and-forget — so a tag
+ * already resting on the reader when the app starts is read before this webview
+ * subscribes, and would otherwise never be seen. Call this after subscribing.
+ */
+export function nfcRescan(): Promise<void> {
+  if (!isTauri()) return Promise.resolve();
+  return invoke<void>("nfc_rescan").catch(() => {
+    // No reader thread — nothing to re-read.
+  });
+}
+
 export function nfcCancelWrite(): Promise<void> {
   if (!isTauri()) return Promise.resolve();
   return invoke<void>("nfc_cancel_write").catch(() => {

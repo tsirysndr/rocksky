@@ -104,6 +104,7 @@ pub fn run() {
             nfc::nfc_status,
             nfc::nfc_write,
             nfc::nfc_cancel_write,
+            nfc::nfc_rescan,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -33,7 +33,7 @@
 
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use pcsc::{Card, Context, Disposition, Protocols, Scope, ShareMode};
 use serde::Serialize;
@@ -44,9 +44,6 @@ const WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 /// Poll interval of the worker loop. Fast enough that a tap feels instant,
 /// slow enough that an idle reader costs nothing.
 const POLL: Duration = Duration::from_millis(250);
-/// Ignore repeat reads of the same tag for this long. A tag left on the reader
-/// is seen on every tick, and each one would restart playback.
-const RESCAN_COOLDOWN: Duration = Duration::from_secs(3);
 
 /// Type 2 tag user memory starts here; pages 0–3 are UID, lock bytes and the
 /// capability container.
@@ -87,6 +84,8 @@ enum Cmd {
         reply: Sender<Result<String, String>>,
     },
     CancelWrite,
+    /// Forget which tag is on the reader, so a resident one is read again.
+    Rescan,
 }
 
 /// The Tauri-state handle onto the reader thread.
@@ -149,6 +148,21 @@ pub async fn nfc_write(app: AppHandle, payloads: Vec<String>) -> Result<String, 
     .map_err(|e| e.to_string())?
 }
 
+/// Read the tag on the reader again, even if it hasn't moved.
+///
+/// A tag is otherwise read once, when it arrives. That leaves a gap at startup:
+/// the worker polls immediately, but `nfc://scan` is fire-and-forget, so a tag
+/// already sitting on the reader is read and emitted before the webview has
+/// subscribed — and never again, because it never left. The listener calls this
+/// once it is actually listening.
+#[tauri::command]
+pub fn nfc_rescan(state: tauri::State<'_, Nfc>) -> Result<(), String> {
+    state
+        .tx
+        .send(Cmd::Rescan)
+        .map_err(|_| "the NFC reader is not running".to_string())
+}
+
 /// Disarm a pending write (the user closed the "tap a tag" dialog).
 #[tauri::command]
 pub fn nfc_cancel_write(state: tauri::State<'_, Nfc>) -> Result<(), String> {
@@ -167,7 +181,7 @@ struct Pending {
 
 fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
     let mut pending: Option<Pending> = None;
-    let mut last_scan: Option<(String, Instant)> = None;
+    let mut last_scan: Option<String> = None;
     let mut ctx: Option<Context> = None;
 
     loop {
@@ -175,6 +189,10 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
         loop {
             match rx.try_recv() {
                 Ok(Cmd::Write { payloads, reply }) => {
+                    tracing::info!(
+                        "nfc: write armed ({} records), waiting for a tag",
+                        payloads.len()
+                    );
                     if let Some(prev) = pending.replace(Pending { payloads, reply }) {
                         let _ = prev.reply.send(Err("superseded by another write".into()));
                     }
@@ -184,6 +202,7 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                         let _ = prev.reply.send(Err("cancelled".into()));
                     }
                 }
+                Ok(Cmd::Rescan) => last_scan = None,
                 Err(TryRecvError::Empty) => break,
                 // Every handle dropped: the app is shutting down.
                 Err(TryRecvError::Disconnected) => return,
@@ -217,11 +236,16 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
             Err(e) => {
                 tracing::debug!("nfc: reader enumeration failed: {e}");
                 ctx = None;
+                // Sleep before retrying: `continue` re-establishes the context
+                // at the top, and without this a persistently failing
+                // enumeration would spin the thread at 100% CPU.
+                std::thread::sleep(POLL);
                 continue;
             }
         };
 
         let mut card_present = false;
+        let mut context_died = false;
         for reader in &readers {
             let card = match context.connect(
                 &std::ffi::CString::new(reader.as_str()).unwrap(),
@@ -229,8 +253,18 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 Protocols::ANY,
             ) {
                 Ok(card) => card,
-                // No tag on this reader — by far the common case.
-                Err(_) => continue,
+                // An empty reader is the common case and the only one worth
+                // passing over quietly. The rest mean this context is finished —
+                // the daemon restarted, the handle went stale, the reader was
+                // yanked — and retrying on it forever would leave the app
+                // silently dead: no scans, and armed writes timing out with the
+                // reader apparently empty. Drop it so the next tick rebuilds it.
+                Err(pcsc::Error::NoSmartcard) | Err(pcsc::Error::RemovedCard) => continue,
+                Err(e) => {
+                    tracing::warn!("nfc: connect to {reader} failed ({e}); resetting the context");
+                    context_died = true;
+                    break;
+                }
             };
             card_present = true;
 
@@ -263,13 +297,13 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 let _ = job.reply.send(result);
                 // A written tag is still on the reader; don't immediately scan
                 // it back and start playing.
-                last_scan = Some((uid, Instant::now()));
+                last_scan = Some(uid.clone());
             } else {
-                let fresh = match &last_scan {
-                    Some((prev, at)) => *prev != uid || at.elapsed() > RESCAN_COOLDOWN,
-                    None => true,
-                };
-                if fresh {
+                // Only when this tag wasn't the one already sitting there. A tag
+                // whose UID wouldn't read is not identifiable, so it can't be
+                // "the same one" as anything — reading it again next tick is the
+                // only way to recover.
+                if uid.is_empty() || last_scan.as_deref() != Some(uid.as_str()) {
                     match read_ndef_uris(&card) {
                         Ok(payloads) if !payloads.is_empty() => {
                             tracing::info!("nfc: tag {uid} → {payloads:?}");
@@ -280,20 +314,31 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                                     uid: uid.clone(),
                                 },
                             );
+                            // Remembered only now. Recording a tag we failed to
+                            // read would suppress it for as long as it sits
+                            // there, turning one bad read — a half-settled card
+                            // right after a reset — into a tag that never plays
+                            // again.
+                            last_scan = Some(uid.clone());
                         }
-                        Ok(_) => tracing::debug!("nfc: tag {uid} holds no NDEF URI record"),
+                        Ok(_) => tracing::debug!("nfc: tag {uid:?} holds no NDEF URI record"),
                         Err(e) => tracing::debug!("nfc: read failed: {e}"),
                     }
-                    last_scan = Some((uid, Instant::now()));
                 }
             }
 
-            // ResetCard, not LeaveCard: a MIFARE Classic halts after a failed
-            // authentication, and the polling loop tries the NDEF key on every
-            // tag it sees. Leaving it halted made the next connect fail, so the
-            // reader looked empty and an armed write sat there until it timed
-            // out. Resetting powers the tag back up for the next tick.
-            let _ = card.disconnect(Disposition::ResetCard);
+            // Reset only to recover, never on the happy path. A reset re-powers
+            // the tag, and for a short while afterwards it answers nothing —
+            // which showed up as ticks that saw a card but read a blank UID off
+            // it. A tag we read cleanly is left alone; one that misbehaved (a
+            // Classic halts after a failed authentication) is reset so the next
+            // tick meets a fresh card.
+            let disposition = if uid.is_empty() {
+                Disposition::ResetCard
+            } else {
+                Disposition::LeaveCard
+            };
+            let _ = card.disconnect(disposition);
             break;
         }
 
@@ -301,6 +346,24 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
         // without waiting out the cooldown.
         if !card_present {
             last_scan = None;
+        }
+
+        if context_died {
+            ctx = None;
+            // Say so rather than reporting a healthy but permanently empty
+            // reader: a pending write is about to time out, and the user should
+            // see a reason for it.
+            publish(
+                &app,
+                &status,
+                NfcStatus {
+                    available: false,
+                    error: Some("lost contact with the reader; reconnecting".into()),
+                    ..Default::default()
+                },
+            );
+            std::thread::sleep(POLL);
+            continue;
         }
 
         publish(
@@ -1019,6 +1082,19 @@ fn uri_records(message: &[u8]) -> Vec<String> {
 mod tests {
     use super::*;
 
+    /// There is one physical reader, and the test harness runs tests in
+    /// parallel. Two connections talking to the same tag at once interleave
+    /// their APDUs and read each other's bytes back as garbage, so the
+    /// hardware tests take this first. (The same hazard applies to the running
+    /// app: don't drive a reader from two processes at once.)
+    static READER: Mutex<()> = Mutex::new(());
+
+    /// Held across a hardware test. Poisoning is irrelevant here — a panicking
+    /// test has already failed, and the next one still wants exclusive access.
+    fn reader_lock() -> std::sync::MutexGuard<'static, ()> {
+        READER.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     fn roundtrip_all(uris: &[&str]) -> Vec<String> {
         let tlv = encode_ndef_uris(uris);
         find_ndef_tlv(&tlv).map(uri_records).unwrap_or_default()
@@ -1171,6 +1247,7 @@ mod tests {
     #[test]
     #[ignore = "needs a reader with a tag on it, and rewrites that tag"]
     fn hardware_roundtrip() {
+        let _guard = reader_lock();
         let ctx = Context::establish(Scope::User).expect("no PC/SC");
         let mut buf = [0u8; 2048];
         let readers: Vec<String> = ctx
@@ -1196,6 +1273,114 @@ mod tests {
         let read = read_ndef_uris(&card).expect("read failed");
         assert_eq!(read, uris, "what came back is what went on");
         println!("roundtripped {} records", read.len());
+
+        let _ = card.disconnect(Disposition::ResetCard);
+    }
+
+    /// The worker's actual sequence, which `hardware_roundtrip` doesn't cover:
+    /// several poll ticks that read the tag and reset it, then a tick that
+    /// writes, then more reads. Each tick reconnects, as the loop does.
+    ///
+    ///     cargo test -p rocksky-desktop --lib nfc -- --ignored --nocapture
+    #[test]
+    #[ignore = "needs a reader with a tag on it, and rewrites that tag"]
+    fn hardware_poll_then_write() {
+        let _guard = reader_lock();
+        let ctx = Context::establish(Scope::User).expect("no PC/SC");
+        let mut buf = [0u8; 2048];
+        let readers: Vec<String> = ctx
+            .list_readers(&mut buf)
+            .expect("list_readers")
+            .map(|r| r.to_string_lossy().into_owned())
+            .collect();
+        let name = readers.first().expect("no reader connected");
+        let cname = std::ffi::CString::new(name.as_str()).unwrap();
+
+        let tick = || {
+            ctx.connect(&cname, ShareMode::Shared, Protocols::ANY)
+                .expect("connect failed mid-poll")
+        };
+
+        // Poll ticks, exactly as the loop runs them.
+        for i in 0..4 {
+            let card = tick();
+            let uid = read_uid(&card).unwrap_or_default();
+            let got = read_ndef_uris(&card).expect("read failed");
+            println!("poll {i}: uid={uid} records={}", got.len());
+            let _ = card.disconnect(Disposition::ResetCard);
+            std::thread::sleep(POLL);
+        }
+
+        // Then the tick that carries the armed write.
+        let uris = [
+            "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlkzzimck2k",
+            "rocksky://library/album/rec_9f8e7d",
+        ];
+        let card = tick();
+        let uid = read_uid(&card).unwrap_or_default();
+        let written = write_ndef(&card, &uris).expect("write failed after polling");
+        println!("write tick: uid={uid} wrote={written}");
+        assert_eq!(written, uris.len());
+        let _ = card.disconnect(Disposition::ResetCard);
+
+        // And reads after it, which is how the user would notice it stuck.
+        for i in 0..2 {
+            std::thread::sleep(POLL);
+            let card = tick();
+            let got = read_ndef_uris(&card).expect("read after write failed");
+            println!("post-write poll {i}: {} records", got.len());
+            assert_eq!(got, uris, "the tag should hold what we just wrote");
+            let _ = card.disconnect(Disposition::ResetCard);
+        }
+    }
+
+    /// Burn a real tag from the command line, through the shipping write path.
+    /// Comma-separated URIs, best first — the record URI, then the library id:
+    ///
+    ///     ROCKSKY_TAG_URIS='at://…/app.rocksky.album/…,rocksky://library/album/rec_…' \
+    ///       cargo test -p rocksky-desktop --lib nfc -- --ignored --nocapture write_tag
+    ///
+    /// Skips when the variable is unset, so a plain `--ignored` run doesn't
+    /// blank a tag with someone else's leftovers.
+    #[test]
+    #[ignore = "needs a reader, a tag, and ROCKSKY_TAG_URIS"]
+    fn hardware_write_tag() {
+        let Ok(spec) = std::env::var("ROCKSKY_TAG_URIS") else {
+            println!("ROCKSKY_TAG_URIS unset — nothing to write");
+            return;
+        };
+        let uris: Vec<&str> = spec
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect();
+        assert!(!uris.is_empty(), "ROCKSKY_TAG_URIS held no URIs");
+
+        let _guard = reader_lock();
+        let ctx = Context::establish(Scope::User).expect("no PC/SC");
+        let mut buf = [0u8; 2048];
+        let readers: Vec<String> = ctx
+            .list_readers(&mut buf)
+            .expect("list_readers")
+            .map(|r| r.to_string_lossy().into_owned())
+            .collect();
+        let name = readers.first().expect("no reader connected");
+        let cname = std::ffi::CString::new(name.as_str()).unwrap();
+        let card = ctx
+            .connect(&cname, ShareMode::Shared, Protocols::ANY)
+            .expect("no tag on the reader");
+
+        let uid = read_uid(&card).unwrap_or_default();
+        println!("tag {uid} ({:?})", tag_kind(&card));
+        for u in &uris {
+            println!("  writing: {u}");
+        }
+        let written = write_ndef(&card, &uris).expect("write failed");
+        assert_eq!(written, uris.len(), "not every record fitted");
+
+        let read = read_ndef_uris(&card).expect("read-back failed");
+        assert_eq!(read, uris, "the tag doesn't hold what we wrote");
+        println!("verified {} records on tag {uid}", read.len());
 
         let _ = card.disconnect(Disposition::ResetCard);
     }
