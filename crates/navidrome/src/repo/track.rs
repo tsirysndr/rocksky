@@ -187,7 +187,8 @@ pub async fn get_random_songs(
         ORDER BY RANDOM()
         LIMIT $2
         "#,
-        track_select(), where_clause
+        track_select(),
+        where_clause
     );
 
     let rows: Vec<TrackWithUpload> = sqlx::query_as(&sql)
