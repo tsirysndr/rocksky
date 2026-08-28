@@ -15,6 +15,7 @@ import {
   removeTrackFromPlaylist,
   type PlaylistEntry,
 } from "./navidrome";
+import { writePlaylistTag } from "./nfc";
 import { streamAndPlay } from "./playback";
 import { queryClient } from "./queryClient";
 import { shuffled } from "./shuffle";
@@ -165,6 +166,15 @@ export function PlaylistsView({
       } else if (input === "c") {
         setCreating(true);
         setName("");
+      } else if (input === "T") {
+        // Burn the selected playlist onto an NFC tag.
+        const pl = playlists[sel];
+        if (pl) {
+          setNote(`Hold a tag on the reader to write “${pl.name}”…`);
+          writePlaylistTag(pl.id)
+            .then(() => setNote(`Tag written — it now plays “${pl.name}”`))
+            .catch((e: any) => setNote(`NFC: ${e.message}`));
+        }
       } else if (input === "d" || input === "x") {
         const pl = playlists[sel];
         if (pl && creds) setConfirmDelete({ id: pl.id, name: pl.name });
@@ -301,7 +311,7 @@ export function PlaylistsView({
         />
       )}
       {note ? <Text color={BLUE}>{note}</Text> : null}
-      <Text dimColor>Enter open · c create · d delete</Text>
+      <Text dimColor>Enter open · c create · d delete · T write NFC tag</Text>
     </Box>
   );
 }

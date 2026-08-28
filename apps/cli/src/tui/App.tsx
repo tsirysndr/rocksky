@@ -35,8 +35,10 @@ import {
   searchOpenAtom,
   soundOpenAtom,
   queueVersionAtom,
+  nfcMessageAtom,
   tabAtom,
 } from "./store";
+import { startNfcWatch } from "./nfc";
 import { BLUE } from "./theme";
 import { useFullScreen } from "./useFullScreen";
 
@@ -59,6 +61,7 @@ export function App() {
   const setScrobbledTitle = useSetAtom(scrobbledTitleAtom);
   const setQueueVersion = useSetAtom(queueVersionAtom);
   const setLikedIds = useSetAtom(likedIdsAtom);
+  const [nfcMessage, setNfcMessage] = useAtom(nfcMessageAtom);
   const toggleLike = useToggleLike(token);
 
   const overlayOpen =
@@ -105,6 +108,22 @@ export function App() {
       mprisRef.current = null;
     };
   }, []);
+
+  // Tap an NFC tag to play the album or playlist it holds. Reads the token from
+  // the store on each tap rather than closing over it, so signing in mid-session
+  // doesn't need the watcher restarted (which would drop the reader).
+  useEffect(() => {
+    const store = getDefaultStore();
+    return startNfcWatch(() => store.get(authAtom), setNfcMessage);
+  }, [setNfcMessage]);
+
+  // NFC notices are transient; clear them so the footer doesn't keep showing a
+  // tap from ten minutes ago.
+  useEffect(() => {
+    if (!nfcMessage) return;
+    const id = setTimeout(() => setNfcMessage(""), 6000);
+    return () => clearTimeout(id);
+  }, [nfcMessage, setNfcMessage]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -290,6 +309,9 @@ export function App() {
 
       <Box flexDirection="column">
         <PlayerBar />
+        {nfcMessage ? (
+          <Text color={BLUE} wrap="truncate-end">{`⌁ ${nfcMessage}`}</Text>
+        ) : null}
         <Text dimColor wrap="truncate-end">
           {"? help · / search · Q queue · e eq · Space play/pause · n/p next/prev · Tab tabs · q quit"}
         </Text>

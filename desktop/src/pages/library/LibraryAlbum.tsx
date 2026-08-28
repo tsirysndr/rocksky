@@ -24,6 +24,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -483,6 +484,7 @@ function AlbumMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
       </MenuItem>
+      <WriteToNfcMenuItem kind="album" id={album.id} label={album.name} sublabel={songs[0]?.albumArtist ?? songs[0]?.artist} onDone={onClose} />
       {album.artistId && (
         <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/artist/$id", params: { id: album.artistId! } }); onClose(); }}>
           Go to artist

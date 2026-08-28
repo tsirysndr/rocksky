@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import Main from "../../../layouts/Main";
+import { useNfcStatus } from "../../../hooks/useNfc";
 import { isTauri } from "../../../lib/tauri";
 import {
   Card,
@@ -268,6 +269,63 @@ function MediaCacheSection() {
   );
 }
 
+function NfcSection() {
+  const status = useNfcStatus();
+  const reader = status.readers[0] ?? null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <CardTitle>NFC tags</CardTitle>
+          <CardHint>
+            Turn an NFC tag into a physical shortcut. Write one from the “…”
+            menu of any library album or playlist, then tap it on the reader to
+            start playing — from anywhere in the app.
+          </CardHint>
+        </div>
+      </CardHeader>
+
+      <Row>
+        <Label>
+          Reader
+          <LabelHint>
+            {reader
+              ? status.cardPresent
+                ? "A tag is on the reader"
+                : "Waiting for a tag"
+              : (status.error ??
+                "Plug in a PC/SC reader (ACR122U and other ACS/CCID models)")}
+          </LabelHint>
+        </Label>
+        <StatusLine>
+          <StatusDot on={!!reader} />
+          {reader ?? "Not connected"}
+        </StatusLine>
+      </Row>
+
+      {status.readers.length > 1 && (
+        <Row>
+          <Label>
+            Other readers
+            <LabelHint>{status.readers.slice(1).join(", ")}</LabelHint>
+          </Label>
+        </Row>
+      )}
+
+      <Row>
+        <Label>
+          Supported tags
+          <LabelHint>
+            NFC Forum Type 2 — NTAG213/215/216 and MIFARE Ultralight. Writing
+            replaces whatever the tag held.
+          </LabelHint>
+        </Label>
+      </Row>
+    </Card>
+  );
+}
+
 export function SettingsDesktop() {
   return (
     <Main>
@@ -275,8 +333,8 @@ export function SettingsDesktop() {
         <Header>
           <Title>Desktop Settings</Title>
           <Subtitle>
-            Settings specific to the Rocksky desktop app: remote control and
-            local media caching.
+            Settings specific to the Rocksky desktop app: remote control, local
+            media caching and NFC tags.
           </Subtitle>
         </Header>
 
@@ -284,6 +342,7 @@ export function SettingsDesktop() {
           <Section>
             <RemoteControlSection />
             <MediaCacheSection />
+            <NfcSection />
           </Section>
         ) : (
           <LoadingState>

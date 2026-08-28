@@ -81,6 +81,9 @@
     "uuid": "^13.0.0",
     "zod": "^3.24.3"
   },
+  "optionalDependencies": {
+    "nfc-pcsc": "^0.8.1"
+  },
   "devDependencies": {
     "@types/express": "^5.0.1",
     "@types/node": "^22.14.1",

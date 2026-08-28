@@ -50,3 +50,9 @@ export const soundOpenAtom = atom(false);
 
 /** Whether the full-help modal is open. */
 export const helpOpenAtom = atom(false);
+
+/**
+ * Latest NFC notice — a tag tapped, a tag written, a reader plugged in. Shown
+ * in the footer on every tab, because a tap can happen wherever the user is.
+ */
+export const nfcMessageAtom = atom("");

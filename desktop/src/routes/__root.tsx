@@ -8,6 +8,8 @@ import CreatePlaylistModal from "../components/CreatePlaylistModal";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
 import LibraryPlaylistModal from "../components/LibraryPlaylistModal";
 import LibraryPrefetch from "../components/LibraryPrefetch";
+import NfcListener from "../components/NfcListener";
+import NfcWriteModal from "../components/NfcWriteModal";
 import ShortcutsButton from "../components/ShortcutsButton";
 import StickyPlayer from "../components/StickyPlayer";
 import LibrarySearchModal from "../layouts/Search/LibrarySearchModal";
@@ -68,6 +70,8 @@ function RootComponent() {
       <AddToPlaylistPalette />
       <AddToLibraryPlaylistPalette />
       <LibraryPrefetch />
+      <NfcWriteModal />
+      <NfcListener />
     </React.Fragment>
   );
 }

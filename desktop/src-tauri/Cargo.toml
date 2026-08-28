@@ -35,3 +35,6 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 # OS media-session integration: macOS Now Playing + media keys, Linux MPRIS
 # (the media controls shown in notifications/applets).
 souvlaki = "0.8"
+# NFC tag reader/writer transport. PC/SC is native on macOS and Windows and
+# ships as pcsclite on Linux, and it is what every ACS/CCID reader speaks.
+pcsc = "2.9"

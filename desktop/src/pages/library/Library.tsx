@@ -43,6 +43,7 @@ import { fetchNavidromePlaylist } from "../../api/navidrome";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
@@ -832,6 +833,7 @@ function AlbumContextMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
       </MenuItem>
+      <WriteToNfcMenuItem kind="album" id={album.id} label={album.name} sublabel={album.artist} onDone={onClose} />
       {album.artistId && (
         <>
           <MenuDivider />
@@ -913,6 +915,13 @@ function PlaylistContextMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, playlist.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download playlist</span>
       </MenuItem>
+      <WriteToNfcMenuItem
+        kind="playlist"
+        id={playlist.id}
+        label={playlist.name}
+        sublabel={`${playlist.songCount} tracks`}
+        onDone={onClose}
+      />
       <MenuItem onClick={(e) => { e.stopPropagation(); onRename(); onClose(); }}>Rename</MenuItem>
       <MenuDivider />
       <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete playlist "${playlist.name}"? This cannot be undone.`)) return; onDelete(); onClose(); }}>

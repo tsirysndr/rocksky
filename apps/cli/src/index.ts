@@ -181,6 +181,38 @@ program
     await mpd(opts);
   });
 
+// NFC talks to the reader and the library API only — no local database.
+const nfcCmd = program
+  .command("nfc")
+  .description("read and write NFC tags that play a library album or playlist");
+
+nfcCmd
+  .command("status")
+  .description("list connected NFC readers")
+  .action(async () => {
+    const { nfcStatus } = await import("cmd/nfc");
+    await nfcStatus();
+  });
+
+nfcCmd
+  .command("read")
+  .option("-w, --watch", "keep reading tags until interrupted")
+  .description("show what the tapped tag points at")
+  .action(async (opts: { watch?: boolean }) => {
+    const { nfcRead } = await import("cmd/nfc");
+    await nfcRead(opts);
+  });
+
+nfcCmd
+  .command("write")
+  .option("-a, --album <id>", "library album id to write")
+  .option("-p, --playlist <id>", "library playlist id to write")
+  .description("write a library album or playlist onto the tapped tag")
+  .action(async (opts: { album?: string; playlist?: string }) => {
+    const { nfcWrite } = await import("cmd/nfc");
+    await nfcWrite(opts);
+  });
+
 // Import reads an export file and publishes via @rocksky/sdk — no local DB.
 program
   .command("import")

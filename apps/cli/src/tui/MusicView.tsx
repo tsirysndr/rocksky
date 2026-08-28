@@ -8,6 +8,7 @@ import { fmtDuration } from "./format";
 import { likedIdsAtom, useToggleLike } from "./likes";
 import { List } from "./List";
 import { getCreds, getStarred } from "./navidrome";
+import { writeAlbumTag } from "./nfc";
 import { enqueueAt, streamAndPlay } from "./playback";
 import { INSERT_MODES, type QueueItem } from "./player";
 import { PlaylistsView } from "./PlaylistsView";
@@ -390,6 +391,23 @@ export function MusicView({
         const cur = items[selected];
         if (cur?.kind === "track" && cur.trackId)
           setAddToPlaylist({ trackId: cur.trackId, title: cur.title });
+      } else if (input === "T") {
+        // Burn the selected album onto an NFC tag; tapping it plays the album.
+        const cur = items[selected];
+        const album =
+          cur?.kind === "album"
+            ? { name: cur.album, artist: cur.albumArtist }
+            : top?.type === "album" && top.albumName
+              ? { name: top.albumName, artist: top.albumArtist ?? "" }
+              : null;
+        if (!album) {
+          setMessage("Select an album to write to an NFC tag");
+        } else if (token) {
+          setMessage(`Hold a tag on the reader to write “${album.name}”…`);
+          writeAlbumTag(token, album.name, album.artist)
+            .then(() => setMessage(`Tag written — it now plays “${album.name}”`))
+            .catch((e: any) => setMessage(`NFC: ${e.message}`));
+        }
       } else if (input === "d" || input === "x") {
         // Delete the selected uploaded track or album (with confirmation).
         const cur = items[selected];

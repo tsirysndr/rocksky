@@ -3,6 +3,7 @@ mod dsp;
 mod engine;
 mod login;
 mod media;
+mod nfc;
 mod player;
 mod remote;
 mod rocksky;
@@ -47,6 +48,9 @@ pub fn run() {
 
             // Browser-login token handoff (the CLI's localhost:6996 contract).
             login::start(app.handle());
+
+            // NFC tag reader. Idles harmlessly when no reader is plugged in.
+            app.manage(nfc::Nfc::start(app.handle()));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -97,6 +101,9 @@ pub fn run() {
             rocksky::rocksky_feed,
             rocksky::rocksky_profile,
             rocksky::rocksky_search,
+            nfc::nfc_status,
+            nfc::nfc_write,
+            nfc::nfc_cancel_write,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

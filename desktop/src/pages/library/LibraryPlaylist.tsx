@@ -31,6 +31,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { useSetAtom } from "jotai";
@@ -525,6 +526,13 @@ function PlaylistMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, playlist.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
       </MenuItem>
+      <WriteToNfcMenuItem
+        kind="playlist"
+        id={playlist.id}
+        label={playlist.name}
+        sublabel={`${playlist.songCount} tracks`}
+        onDone={onClose}
+      />
       <MenuItem onClick={(e) => { e.stopPropagation(); onRename(); onClose(); }}>Rename</MenuItem>
       <MenuDivider />
       <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete playlist "${playlist.name}"? This cannot be undone.`)) return; onDelete(); onClose(); }}>

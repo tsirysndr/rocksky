@@ -3,6 +3,7 @@ import { render } from "ink";
 import { loadToken } from "lib/token";
 import React from "react";
 import { App } from "../tui/App";
+import { closeNfc } from "../tui/nfc";
 import { playerController } from "../tui/player";
 import { queryClient } from "../tui/queryClient";
 import { startRockskyRemote } from "../tui/rockskyWs";
@@ -67,6 +68,7 @@ export async function tui(opts: { output?: string } = {}) {
   // cleared and the pre-launch terminal is restored without artifacts.
   clearTimeout(saveTimer!);
   remote.stop();
+  closeNfc();
   saveSettings(playerController.snapshotSettings());
   saveSession(playerController.sessionSnapshot());
   restoreTerminal();

@@ -28,6 +28,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       ["f", "like / unlike"],
       [";", "add to playlist"],
       ["d", "delete track / album"],
+      ["T", "write album to an NFC tag"],
     ],
   },
   {
@@ -36,6 +37,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       ["Enter", "open / play"],
       ["c", "create playlist"],
       ["d", "delete / remove track"],
+      ["T", "write playlist to an NFC tag"],
       ["Q → s", "save queue as playlist"],
     ],
   },
