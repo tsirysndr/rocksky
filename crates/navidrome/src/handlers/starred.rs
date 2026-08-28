@@ -31,6 +31,7 @@ pub async fn handle_get_starred2(
                         "title": t.title,
                         "album": t.album,
                         "artist": t.artist,
+                        "albumArtist": t.album_artist,
                         "duration": t.duration / 1000,
                         "size": t.file_size,
                         "contentType": t.mime_type,
@@ -46,14 +47,26 @@ pub async fn handle_get_starred2(
                     if let Some(tn) = t.track_number {
                         s["track"] = json!(tn);
                     }
+                    if let Some(dn) = t.disc_number {
+                        s["discNumber"] = json!(dn);
+                    }
                     if let Some(g) = &t.genre {
                         s["genre"] = json!(g);
+                    }
+                    if let Some(mb) = &t.mb_id {
+                        s["musicBrainzId"] = json!(mb);
                     }
                     if let Some(album_id) = &t.album_id {
                         s["albumId"] = json!(album_id);
                         s["coverArt"] = json!(format!("al-{}", album_id));
                     } else if t.album_art.is_some() {
                         s["coverArt"] = json!(format!("tr-{}", t.xata_id));
+                    }
+                    // The CDN URL itself, same as songs::track_to_json — without it
+                    // clients have no art to render but the credentialed
+                    // /rest/getCoverArt link, which puts the API key in an <img src>.
+                    if let Some(art) = &t.album_art {
+                        s["coverArtUrl"] = json!(art);
                     }
                     if let Some(artist_id) = &t.artist_id {
                         s["artistId"] = json!(artist_id);
