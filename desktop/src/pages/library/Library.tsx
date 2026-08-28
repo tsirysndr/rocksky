@@ -4,6 +4,7 @@ import {
   IconArrowsShuffle,
   IconDots,
   IconDownload,
+  IconHeart,
   IconMusic,
   IconPlayerPlay,
   IconSearch,
@@ -12,11 +13,12 @@ import {
   IconVinyl,
   IconX,
 } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
   downloadFromNavidrome,
+  downloadTracksFromNavidrome,
   fetchNavidromeAlbum,
   coverArtUrlOf,
   type NavidromeAlbum,
@@ -28,6 +30,7 @@ import {
   useNavidromeAlbumsQuery,
   useNavidromeArtistsQuery,
   useNavidromeCredentials,
+  useNavidromeFavoritesQuery,
   useNavidromeTracksQuery,
   songToQueueTrack,
 } from "../../hooks/useNavidrome";
@@ -43,11 +46,12 @@ import { fetchNavidromePlaylist } from "../../api/navidrome";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
-import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
 import PlaylistSearch from "../../components/PlaylistSearch";
+import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { profileAtom } from "../../atoms/profile";
 import { librarySearchOpenAtom } from "../../atoms/searchModal";
 import {
   addLibrarySongsTargetAtom,
@@ -123,6 +127,27 @@ function useInfiniteScrollSentinel(
 // ---------------------------------------------------------------------------
 // Tab overrides (baseui requires plain objects)
 // ---------------------------------------------------------------------------
+
+// baseui addresses tabs by their index, but a link — or an NFC tap — names the
+// tab it wants. This is the one place the two are tied together, so a tab moving
+// doesn't silently repoint every ?tab= link at its neighbour.
+const TAB_NAMES = [
+  "tracks",
+  "albums",
+  "artists",
+  "playlists",
+  "favorites",
+] as const;
+
+export type LibraryTab = (typeof TAB_NAMES)[number];
+
+export const isLibraryTab = (v: unknown): v is LibraryTab =>
+  typeof v === "string" && (TAB_NAMES as readonly string[]).includes(v);
+
+const tabKeyFor = (tab?: string) => {
+  const i = TAB_NAMES.indexOf(tab as LibraryTab);
+  return String(i < 0 ? 0 : i);
+};
 
 const tabOverrides = {
   Tab: {
@@ -580,6 +605,44 @@ const PrimaryButton = styled.button`
 
 const Sentinel = styled.div`height: 1px;`;
 
+const PlayButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+`;
+
+const PlayBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: none;
+  background: var(--color-text);
+  color: var(--color-background);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  border-radius: 999px;
+  cursor: pointer;
+  &:hover:not(:disabled) { opacity: 0.85; }
+  &:disabled { opacity: 0.4; cursor: default; }
+`;
+
+const ShuffleBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  cursor: pointer;
+  &:hover:not(:disabled) { color: var(--color-text); }
+  &:disabled { opacity: 0.4; cursor: default; }
+`;
+
 // A failed load used to leave the tab on its skeleton forever, which reads as a
 // library that never finishes loading rather than one that couldn't.
 function LoadFailed({ onRetry }: { onRetry: () => void }) {
@@ -833,7 +896,7 @@ function AlbumContextMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
       </MenuItem>
-      <WriteToNfcMenuItem kind="album" id={album.id} uri={album.uri} label={album.name} sublabel={album.artist} onDone={onClose} />
+      <WriteToNfcMenuItem target={{ kind: "album", id: album.id, uri: album.uri }} label={album.name} sublabel={album.artist} onDone={onClose} />
       {album.artistId && (
         <>
           <MenuDivider />
@@ -916,9 +979,7 @@ function PlaylistContextMenu({
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download playlist</span>
       </MenuItem>
       <WriteToNfcMenuItem
-        kind="playlist"
-        id={playlist.id}
-        uri={playlist.uri}
+        target={{ kind: "playlist", id: playlist.id, uri: playlist.uri }}
         label={playlist.name}
         sublabel={`${playlist.songCount} tracks`}
         onDone={onClose}
@@ -933,6 +994,89 @@ function PlaylistContextMenu({
 }
 
 // ---------------------------------------------------------------------------
+// FavoritesContextMenu
+// ---------------------------------------------------------------------------
+
+// Favorites are a query, not a record: no AT-URI and no library id. Every action
+// therefore works off the songs already on screen rather than fetching a
+// container by id the way the album and playlist menus do.
+function FavoritesContextMenu({
+  songs, anchorEl, creds, did, tracks, onPlay, onShuffle, onClose,
+}: {
+  songs: NavidromeSong[];
+  anchorEl: HTMLElement | null;
+  creds: NavidromeCredentials;
+  /** Whose favorites these are — the only handle a tag can name them by. */
+  did?: string;
+  tracks: () => QueueTrack[];
+  onPlay: () => void;
+  onShuffle: () => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { playNextAll, playLastAll } = useUploadPlayer();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  return (
+    <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
+      <MenuHeader>
+        <MenuHeaderArt>
+          <IconHeart size={16} color="var(--color-text-muted)" />
+        </MenuHeaderArt>
+        <MenuHeaderInfo>
+          <MenuHeaderTitle>Favorites</MenuHeaderTitle>
+          <MenuHeaderArtist>{songs.length} track{songs.length !== 1 ? "s" : ""}</MenuHeaderArtist>
+        </MenuHeaderInfo>
+      </MenuHeader>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); onPlay(); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlayerPlay size={14} /> Play</span>
+      </MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onShuffle(); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconArrowsShuffle size={14} /> Play shuffled</span>
+      </MenuItem>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(tracks()); onClose(); }}>Play next</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(tracks()); onClose(); }}>Play last</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert shuffled</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll([...tracks()].sort(() => Math.random() - 0.5)); onClose(); }}>Insert last shuffled</MenuItem>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); downloadFavorites(creds, songs); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
+      </MenuItem>
+      <WriteToNfcMenuItem
+        target={{ kind: "favorites", did: did ?? "" }}
+        label="Favorites"
+        sublabel={`${songs.length} track${songs.length !== 1 ? "s" : ""}`}
+        onDone={onClose}
+      />
+    </DropdownPortal>
+  );
+}
+
+// One file per track — there is no favorites id for the server to zip. That is
+// a lot of downloads to start by accident, so a large set asks first.
+const DOWNLOAD_CONFIRM_THRESHOLD = 5;
+
+function downloadFavorites(creds: NavidromeCredentials, songs: NavidromeSong[]) {
+  if (songs.length === 0) return;
+  if (
+    songs.length > DOWNLOAD_CONFIRM_THRESHOLD &&
+    !window.confirm(`Download ${songs.length} favorite tracks as ${songs.length} separate files?`)
+  ) {
+    return;
+  }
+  downloadTracksFromNavidrome(creds, songs.map((s) => s.id));
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -941,6 +1085,7 @@ export default function Library() {
   const { playNow, playNext, playLast } = useUploadPlayer();
   const credentials = useNavidromeCredentials();
   const creds = credentials.data;
+  const did = useAtomValue(profileAtom)?.did;
   const deleteTrack = useDeleteUploadByTrackIdMutation();
   const deleteAlbumById = useDeleteAlbumByIdMutation();
   const { data: playlists = [], isLoading: playlistsLoading } = useNavidromePlaylistsQuery();
@@ -949,13 +1094,25 @@ export default function Library() {
   const setEditingPlaylist = useSetAtom(editingLibraryPlaylistAtom);
   const setAddSongsTarget = useSetAtom(addLibrarySongsTargetAtom);
 
-  const [activeKey, setActiveKey] = useState<string | number>("0");
+  // ?tab= picks the opening tab so a link — or an NFC tap landing on favorites —
+  // can point at one. It seeds the state rather than driving it, so clicking
+  // between tabs afterwards doesn't rewrite the URL on every switch.
+  const search = useSearch({ strict: false }) as { tab?: string };
+  const [activeKey, setActiveKey] = useState<string | number>(() => tabKeyFor(search.tab));
+  useEffect(() => {
+    if (search.tab) setActiveKey(tabKeyFor(search.tab));
+  }, [search.tab]);
+
   const [openPlaylistMenuId, setOpenPlaylistMenuId] = useState<string | null>(null);
   const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState<HTMLElement | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [openAlbumMenuKey, setOpenAlbumMenuKey] = useState<string | null>(null);
   const [albumMenuAnchor, setAlbumMenuAnchor] = useState<HTMLElement | null>(null);
+  const [favoritesMenuOpen, setFavoritesMenuOpen] = useState(false);
+  const [favoritesMenuAnchor, setFavoritesMenuAnchor] = useState<HTMLElement | null>(null);
+  const [openFavoriteMenuId, setOpenFavoriteMenuId] = useState<string | null>(null);
+  const [favoriteMenuAnchor, setFavoriteMenuAnchor] = useState<HTMLElement | null>(null);
   const [playlistFilter, setPlaylistFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
@@ -970,6 +1127,7 @@ export default function Library() {
   const tracksQuery = useNavidromeTracksQuery(searchQuery);
   const albumsQuery = useNavidromeAlbumsQuery(searchQuery);
   const artistsQuery = useNavidromeArtistsQuery(searchQuery);
+  const favoritesQuery = useNavidromeFavoritesQuery();
 
   // Offset paging can hand back a row twice if the server's order shifts between
   // pages. Duplicates would render twice and push real entries off the end, so
@@ -984,6 +1142,18 @@ export default function Library() {
   );
   const artists: NavidromeArtist[] = useMemo(() => artistsQuery.data ?? [], [artistsQuery.data]);
 
+  // getStarred2 takes no query, so the search box filters this tab here instead
+  // of server-side — otherwise typing would leave favorites untouched and look
+  // broken next to the three tabs that do respond.
+  const favorites: NavidromeSong[] = useMemo(() => {
+    const all = favoritesQuery.data ?? [];
+    const q = searchQuery?.toLowerCase();
+    if (!q) return all;
+    return all.filter((s) =>
+      [s.title, s.artist, s.album].some((f) => (f ?? "").toLowerCase().includes(q)),
+    );
+  }, [favoritesQuery.data, searchQuery]);
+
   const tracksSentinelRef = useInfiniteScrollSentinel(tracksQuery.hasNextPage, tracksQuery.isFetchingNextPage, tracksQuery.fetchNextPage);
   const albumsSentinelRef = useInfiniteScrollSentinel(albumsQuery.hasNextPage, albumsQuery.isFetchingNextPage, albumsQuery.fetchNextPage);
 
@@ -992,6 +1162,17 @@ export default function Library() {
     const queue = allSongs.map((s) => songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null));
     playNow(queue, idx);
   }, [allSongs, creds, playNow]);
+
+  const favoriteTracks = useCallback((): QueueTrack[] => {
+    if (!creds) return [];
+    return favorites.map((s) => songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null));
+  }, [favorites, creds]);
+
+  const playFavorites = useCallback((shuffle = false, startIndex = 0) => {
+    const tracks = favoriteTracks();
+    if (!tracks.length) return;
+    playNow(shuffle ? [...tracks].sort(() => Math.random() - 0.5) : tracks, shuffle ? 0 : startIndex);
+  }, [favoriteTracks, playNow]);
 
   const visiblePlaylists = useMemo(() => {
     const q = playlistFilter.trim().toLowerCase();
@@ -1033,7 +1214,7 @@ export default function Library() {
   );
 
   // Every tab is gated on the navidrome credentials, so a failure there has to
-  // break the skeletons in all three — otherwise they spin forever.
+  // break the skeletons in all of them — otherwise they spin forever.
   const retry = useCallback(() => {
     if (credentials.isError) {
       credentials.refetch();
@@ -1042,11 +1223,13 @@ export default function Library() {
     tracksQuery.refetch();
     albumsQuery.refetch();
     artistsQuery.refetch();
-  }, [credentials, tracksQuery, albumsQuery, artistsQuery]);
+    favoritesQuery.refetch();
+  }, [credentials, tracksQuery, albumsQuery, artistsQuery, favoritesQuery]);
 
   const tracksFailed = credentials.isError || tracksQuery.isError;
   const albumsFailed = credentials.isError || albumsQuery.isError;
   const artistsFailed = credentials.isError || artistsQuery.isError;
+  const favoritesFailed = credentials.isError || favoritesQuery.isError;
 
   const isLoading = !tracksFailed && (!creds || tracksQuery.isLoading);
 
@@ -1341,6 +1524,126 @@ export default function Library() {
                   </TrackRow>
                 ))}
               </TrackList>
+            )}
+          </Tab>
+
+          {/* -------- Favorites -------- */}
+          <Tab title="Favorites" overrides={tabOverrides}>
+            {!favoritesFailed && (favoritesQuery.isLoading || !creds) && <TracksSkeleton />}
+
+            {favoritesFailed && favorites.length === 0 && <LoadFailed onRetry={retry} />}
+
+            {!favoritesFailed && !favoritesQuery.isLoading && creds && favorites.length === 0 && (
+              <EmptyState>
+                <IconHeart size={48} color="var(--color-text-muted)" />
+                <div style={{ textAlign: "center" }}>
+                  {searchQuery ? (
+                    <>
+                      <EmptyTitle>No favorites match "{searchQuery}"</EmptyTitle>
+                      <EmptySubtitle>Try a different search term</EmptySubtitle>
+                    </>
+                  ) : (
+                    <>
+                      <EmptyTitle>No favorites yet</EmptyTitle>
+                      {/* Loves on tracks with no uploaded file are left out by the
+                          server, so "you have none" and "none of yours are here"
+                          look the same — say which. */}
+                      <EmptySubtitle>
+                        Tracks you love that are in your library show up here
+                      </EmptySubtitle>
+                    </>
+                  )}
+                </div>
+              </EmptyState>
+            )}
+
+            {creds && favorites.length > 0 && (
+              <>
+                <PlayButtons>
+                  <PlayBtn onClick={() => playFavorites()}>
+                    <IconPlayerPlay size={15} /> Play
+                  </PlayBtn>
+                  <ShuffleBtn onClick={() => playFavorites(true)}>
+                    <IconArrowsShuffle size={15} /> Shuffle
+                  </ShuffleBtn>
+                  <ShuffleBtn onClick={() => downloadFavorites(creds, favorites)}>
+                    <IconDownload size={15} /> Download
+                  </ShuffleBtn>
+                  <MenuWrap>
+                    <MenuBtn aria-label="Favorites actions" title="More" onClick={(e) => {
+                      e.stopPropagation();
+                      if (favoritesMenuOpen) { setFavoritesMenuOpen(false); setFavoritesMenuAnchor(null); }
+                      else { setFavoritesMenuOpen(true); setFavoritesMenuAnchor(e.currentTarget); }
+                    }}>
+                      <IconDots size={15} />
+                    </MenuBtn>
+                    {favoritesMenuOpen && (
+                      <FavoritesContextMenu
+                        songs={favorites}
+                        anchorEl={favoritesMenuAnchor}
+                        creds={creds}
+                        did={did}
+                        tracks={favoriteTracks}
+                        onPlay={() => playFavorites()}
+                        onShuffle={() => playFavorites(true)}
+                        onClose={() => { setFavoritesMenuOpen(false); setFavoritesMenuAnchor(null); }}
+                      />
+                    )}
+                  </MenuWrap>
+                </PlayButtons>
+
+                <TrackList>
+                  {favorites.map((song, idx) => {
+                    const albumArt = song.coverArt ? coverArtUrlOf(song) : null;
+                    return (
+                      <TrackRow key={song.id} onClick={() => playFavorites(false, idx)}>
+                        <TrackNum>{idx + 1}</TrackNum>
+                        <ArtworkBox>
+                          {albumArt ? (
+                            <>
+                              <img src={albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              <ArtworkOverlay className="artwork-overlay">
+                                <IconPlayerPlay size={16} color="#fff" fill="#fff" />
+                              </ArtworkOverlay>
+                            </>
+                          ) : (
+                            <IconMusic size={18} color="var(--color-text-muted)" />
+                          )}
+                        </ArtworkBox>
+                        <TrackInfo>
+                          <TrackTitle>{song.title}</TrackTitle>
+                          <TrackMeta>{song.artist}{song.album && ` — ${song.album}`}</TrackMeta>
+                        </TrackInfo>
+                        <Duration>{formatDuration(song.duration)}</Duration>
+                        <div className="track-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <MenuWrap>
+                            <MenuBtn onClick={(e) => {
+                              e.stopPropagation();
+                              if (openFavoriteMenuId === song.id) { setOpenFavoriteMenuId(null); setFavoriteMenuAnchor(null); }
+                              else { setOpenFavoriteMenuId(song.id); setFavoriteMenuAnchor(e.currentTarget); }
+                            }}>
+                              <IconDots size={15} />
+                            </MenuBtn>
+                            {openFavoriteMenuId === song.id && (
+                              <TrackContextMenu
+                                song={song}
+                                albumArt={albumArt}
+                                anchorEl={favoriteMenuAnchor}
+                                creds={creds}
+                                onPlay={() => playFavorites(false, idx)}
+                                onPlayNext={playNext}
+                                onPlayLast={playLast}
+                                onDelete={() => deleteTrack.mutate(song.id)}
+                                onClose={() => { setOpenFavoriteMenuId(null); setFavoriteMenuAnchor(null); }}
+                              />
+                            )}
+                          </MenuWrap>
+                        </div>
+                      </TrackRow>
+                    );
+                  })}
+                </TrackList>
+              </>
             )}
           </Tab>
         </Tabs>

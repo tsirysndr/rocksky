@@ -1,4 +1,4 @@
-// NFC tags as physical shortcuts to a library album or playlist.
+// NFC tags as physical shortcuts to a library album, playlist or favorites.
 //
 // Wire format is identical to the desktop app's (desktop/src-tauri/src/nfc.rs),
 // which has a test pinning both encoders to the same bytes: NDEF URI records
@@ -65,7 +65,8 @@ export type NfcTarget =
   | { kind: "albumUri"; uri: string }
   | { kind: "playlistUri"; uri: string }
   | { kind: "album"; id: string }
-  | { kind: "playlist"; id: string };
+  | { kind: "playlist"; id: string }
+  | { kind: "favorites"; did: string };
 
 /**
  * What gets burned onto the tag, one NDEF record per entry, in order.
@@ -88,6 +89,18 @@ export function nfcPayloadsFor(
   return [uri, id && `rocksky://library/${kind}/${id}`].filter(
     (p): p is string => !!p,
   );
+}
+
+/**
+ * What gets burned onto a favorites tag.
+ *
+ * Favorites are a query, not a record: there is no AT-URI to write and no
+ * library id either, so the tag names the person instead — their DID plus the
+ * label for what to play. Any Rocksky player signed in as them resolves it.
+ */
+export function nfcFavoritesPayloads(did: string): string[] {
+  const value = did.trim();
+  return value ? [`rocksky://favorites/${encodeURIComponent(value)}`] : [];
 }
 
 const AT_URI = /^at:\/\/[^/]+\/app\.rocksky\.(album|playlist)\/[^/]+$/i;
@@ -114,6 +127,12 @@ export function parseNfcPayload(payload: string): NfcTarget | null {
       kind: library[1].toLowerCase() as "album" | "playlist",
       id: decodeURIComponent(library[2]),
     };
+  }
+
+  // Favorites name their owner rather than a record — see nfcFavoritesPayloads.
+  const favorites = /^rocksky:\/\/favorites\/(.+)$/i.exec(value);
+  if (favorites) {
+    return { kind: "favorites", did: decodeURIComponent(favorites[1]) };
   }
 
   return null;

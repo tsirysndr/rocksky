@@ -3,7 +3,7 @@ import { IconNfc } from "@tabler/icons-react";
 import { useSetAtom } from "jotai";
 import { nfcWriteTargetAtom } from "../atoms/nfc";
 import { useNfcReady } from "../hooks/useNfc";
-import { isPortableRef, nfcPayloadsFor } from "../lib/nfc";
+import { isPortableRef, nfcFavoritesPayloads, nfcPayloadsFor } from "../lib/nfc";
 
 // Opens the write dialog, which owns the "tap a tag" wait. Shaped like
 // AddToPlaylistMenu so it drops into any of the library dropdowns.
@@ -37,44 +37,64 @@ const Item = styled.button`
   }
 `;
 
+/**
+ * What a tag will point at.
+ *
+ * Albums and playlists are records with an id behind them; favorites are a
+ * query owned by a person, so the tag carries their DID instead — see
+ * nfcFavoritesPayloads.
+ */
+export type NfcWriteTarget =
+  | {
+      kind: "album" | "playlist";
+      id: string;
+      /** The record's AT-URI, when it has one — this is what makes the tag portable. */
+      uri?: string | null;
+    }
+  | { kind: "favorites"; did: string };
+
 export function WriteToNfcMenuItem({
-  kind,
-  id,
-  uri,
+  target,
   label,
   sublabel,
   onDone,
 }: {
-  kind: "album" | "playlist";
-  id: string;
-  /** The record's AT-URI, when it has one — this is what makes the tag portable. */
-  uri?: string | null;
+  target: NfcWriteTarget;
   label: string;
   sublabel?: string;
   onDone: () => void;
 }) {
   const setTarget = useSetAtom(nfcWriteTargetAtom);
   const { ready, reason } = useNfcReady();
-  const portable = isPortableRef({ uri });
+
+  // A favorites tag names a person, not a server row, so it travels with them:
+  // portable in the same sense a record URI is.
+  const payloads =
+    target.kind === "favorites"
+      ? nfcFavoritesPayloads(target.did)
+      : nfcPayloadsFor(target.kind, { uri: target.uri, id: target.id });
+  const portable =
+    target.kind === "favorites" ? true : isPortableRef({ uri: target.uri });
+
+  const unwritable =
+    payloads.length === 0 ? "Nothing to write to a tag yet" : null;
 
   return (
     <Item
-      disabled={!ready}
+      disabled={!ready || !!unwritable}
       title={
         reason ??
-        (portable
-          ? `Tap a tag to make it play “${label}” on any Rocksky player`
-          : `Tap a tag to make it play “${label}”. This ${kind} has no published record yet, so the tag will only work in your own library.`)
+        unwritable ??
+        (target.kind === "favorites"
+          ? `Tap a tag to make it play “${label}” wherever you’re signed in`
+          : portable
+            ? `Tap a tag to make it play “${label}” on any Rocksky player`
+            : `Tap a tag to make it play “${label}”. This ${target.kind} has no published record yet, so the tag will only work in your own library.`)
       }
       onClick={(e) => {
         e.stopPropagation();
-        if (!ready) return;
-        setTarget({
-          payloads: nfcPayloadsFor(kind, { uri, id }),
-          label,
-          sublabel,
-          portable,
-        });
+        if (!ready || unwritable) return;
+        setTarget({ payloads, label, sublabel, portable });
         onDone();
       }}
     >

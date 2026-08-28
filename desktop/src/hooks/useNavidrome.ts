@@ -16,6 +16,7 @@ import {
   fetchNavidromeAlbums,
   fetchNavidromeArtist,
   fetchNavidromeArtists,
+  fetchNavidromeFavorites,
   fetchNavidromePlaylist,
   fetchNavidromePlaylists,
   coverArtUrlOf,
@@ -195,6 +196,23 @@ export function useNavidromeArtistQuery(artistId: string) {
     enabled: !!creds && !!artistId,
     staleTime: 5 * 60 * 1000,
     queryFn: () => fetchNavidromeArtist(creds!, artistId),
+  });
+}
+
+// -- Favorites ---------------------------------------------------------------
+
+export const FAVORITES_QUERY_KEY = ["navidrome", "favorites"];
+
+/**
+ * Loved tracks the user can actually play. Unpaged — the endpoint returns the
+ * whole set — so the tab renders it in one go and never scroll-loads.
+ */
+export function useNavidromeFavoritesQuery() {
+  const { data: creds } = useNavidromeCredentials();
+  return useQuery({
+    queryKey: FAVORITES_QUERY_KEY,
+    enabled: !!creds,
+    queryFn: (): Promise<NavidromeSong[]> => fetchNavidromeFavorites(creds!),
   });
 }
 

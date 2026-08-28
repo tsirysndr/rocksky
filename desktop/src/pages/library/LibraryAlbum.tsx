@@ -484,7 +484,7 @@ function AlbumMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
       </MenuItem>
-      <WriteToNfcMenuItem kind="album" id={album.id} uri={album.uri} label={album.name} sublabel={songs[0]?.albumArtist ?? songs[0]?.artist} onDone={onClose} />
+      <WriteToNfcMenuItem target={{ kind: "album", id: album.id, uri: album.uri }} label={album.name} sublabel={songs[0]?.albumArtist ?? songs[0]?.artist} onDone={onClose} />
       {album.artistId && (
         <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/artist/$id", params: { id: album.artistId! } }); onClose(); }}>
           Go to artist

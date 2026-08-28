@@ -8,7 +8,7 @@ import { fmtDuration } from "./format";
 import { likedIdsAtom, useToggleLike } from "./likes";
 import { List } from "./List";
 import { getCreds, getStarred } from "./navidrome";
-import { writeAlbumTag } from "./nfc";
+import { writeAlbumTag, writeFavoritesTag } from "./nfc";
 import { enqueueAt, streamAndPlay } from "./playback";
 import { INSERT_MODES, type QueueItem } from "./player";
 import { PlaylistsView } from "./PlaylistsView";
@@ -391,6 +391,17 @@ export function MusicView({
         const cur = items[selected];
         if (cur?.kind === "track" && cur.trackId)
           setAddToPlaylist({ trackId: cur.trackId, title: cur.title });
+      } else if (input === "T" && mode === "favorites") {
+        // On the Favorites list the tag names the whole list, not a row: there
+        // is no record to point at, so it carries the user's DID instead.
+        if (!token) {
+          setMessage("Sign in (A) to write a favorites tag");
+        } else {
+          setMessage("Hold a tag on the reader to write “Favorites”…");
+          writeFavoritesTag(token)
+            .then(() => setMessage("Tag written — it now plays “Favorites”"))
+            .catch((e: any) => setMessage(`NFC: ${e.message}`));
+        }
       } else if (input === "T") {
         // Burn the selected album onto an NFC tag; tapping it plays the album.
         // The row already carries the album's record URI, which is what goes on

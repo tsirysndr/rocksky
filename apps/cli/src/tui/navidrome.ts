@@ -40,6 +40,15 @@ export async function getCreds(token?: string): Promise<NavidromeCreds | null> {
   return (cachedCreds = creds);
 }
 
+let cachedDid: string | null = null;
+
+/** The signed-in user's DID — it can't change within a session, so cache it. */
+export async function getDid(token: string): Promise<string> {
+  if (cachedDid) return cachedDid;
+  const user = await new RockskyClient(token).getCurrentUser();
+  return (cachedDid = user.did);
+}
+
 function restUrl(
   method: string,
   creds: NavidromeCreds,

@@ -527,9 +527,7 @@ function PlaylistMenu({
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download</span>
       </MenuItem>
       <WriteToNfcMenuItem
-        kind="playlist"
-        id={playlist.id}
-        uri={playlist.uri}
+        target={{ kind: "playlist", id: playlist.id, uri: playlist.uri }}
         label={playlist.name}
         sublabel={`${playlist.songCount} tracks`}
         onDone={onClose}

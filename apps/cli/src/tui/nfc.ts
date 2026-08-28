@@ -9,6 +9,7 @@
 import {
   type NfcSession,
   type NfcTarget,
+  nfcFavoritesPayloads,
   nfcPayloadsFor,
   openNfc,
   parseNfcPayloads,
@@ -17,7 +18,9 @@ import {
   entryToItem,
   getAlbum,
   getCreds,
+  getDid,
   getPlaylist,
+  getStarred,
 } from "./navidrome";
 import { streamAndPlay } from "./playback";
 
@@ -58,6 +61,19 @@ export function closeNfc(): void {
 async function play(target: NfcTarget, token: string): Promise<string | null> {
   const creds = await getCreds(token);
   if (!creds) throw new Error("no library credentials");
+
+  // Favorites belong to a person, and the only ones this session can fetch are
+  // the signed-in user's. A tag naming someone else is not a miss to fall
+  // through — no later record would help — so it throws and says why.
+  if (target.kind === "favorites") {
+    if (target.did !== (await getDid(token))) {
+      throw new Error("that tag holds someone else’s favorites");
+    }
+    const entries = await getStarred(creds);
+    if (!entries.length) throw new Error("your favorites are empty");
+    await streamAndPlay(token, entries.map(entryToItem), 0);
+    return "Favorites";
+  }
 
   // getAlbum and getPlaylist each take a record URI or a Navidrome id, so a
   // portable tag and a legacy one land on the same call — no listing, no
@@ -104,7 +120,8 @@ export function startNfcWatch(
       s.onTag(async ({ payloads }) => {
         if (!payloads.length) return notify("This tag is empty");
         const targets = parseNfcPayloads(payloads);
-        if (!targets.length) return notify("This tag isn’t a Rocksky album or playlist");
+        if (!targets.length)
+          return notify("This tag isn’t a Rocksky album, playlist or favorites tag");
 
         const token = getToken();
         if (!token) return notify("Sign in (A) to play tags from your library");
@@ -161,6 +178,16 @@ export async function writePlaylistTag(playlist: {
 }): Promise<boolean> {
   await writeTag(nfcPayloadsFor("playlist", playlist));
   return !!playlist.uri?.trim();
+}
+
+/**
+ * Write the signed-in user's favorites to a tag.
+ *
+ * There is no record URI and no library id to write — favorites are a query —
+ * so the tag names their owner and any player signed in as them resolves it.
+ */
+export async function writeFavoritesTag(token: string): Promise<void> {
+  await writeTag(nfcFavoritesPayloads(await getDid(token)));
 }
 
 async function writeTag(payloads: string[]): Promise<void> {

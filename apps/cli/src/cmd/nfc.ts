@@ -8,11 +8,12 @@ import chalk from "chalk";
 import { loadToken } from "lib/token";
 import {
   NfcUnavailableError,
+  nfcFavoritesPayloads,
   nfcPayloadsFor,
   openNfc,
   parseNfcPayload,
 } from "../lib/nfc";
-import { getAlbum, getCreds, getPlaylist } from "../tui/navidrome";
+import { getAlbum, getCreds, getDid, getPlaylist } from "../tui/navidrome";
 
 const violet = chalk.hex("#A855F7");
 const cyan = chalk.hex("#22D3EE");
@@ -29,6 +30,15 @@ async function describe(payload: string): Promise<string> {
   if (!target) return chalk.yellow("not a Rocksky tag");
   const token = loadToken();
   if (!token) return `${target.kind}`;
+  // Favorites name a person, so there is nothing to look up — but say whose,
+  // since only their own player can play the tag.
+  if (target.kind === "favorites") {
+    const mine = await getDid(token).then(
+      (did) => did === target.did,
+      () => false,
+    );
+    return `favorites · ${target.did}${mine ? chalk.green(" · yours") : chalk.yellow(" · not yours")}`;
+  }
   try {
     const creds = await getCreds(token);
     if (!creds) return `${target.kind}`;
@@ -127,29 +137,46 @@ export async function nfcRead(opts: { watch?: boolean } = {}) {
   }
 }
 
-export async function nfcWrite(opts: { album?: string; playlist?: string }) {
+export async function nfcWrite(opts: {
+  album?: string;
+  playlist?: string;
+  favorites?: boolean;
+}) {
   const kind = opts.album ? "album" : opts.playlist ? "playlist" : null;
   const ref = opts.album ?? opts.playlist;
-  if (!kind || !ref) {
-    console.error(chalk.red("Pass either --album <ref> or --playlist <ref>."));
+  if (!opts.favorites && (!kind || !ref)) {
+    console.error(
+      chalk.red("Pass --album <ref>, --playlist <ref> or --favorites."),
+    );
     console.error(
       chalk.dim(
         "A ref is the record's AT-URI (at://…/app.rocksky.album/…), which makes\n" +
           "the tag work on any Rocksky player, or a library id, which does not.\n" +
-          "`rocksky` (TUI) → My Music → T picks the right one for you.",
+          "`rocksky` (TUI) → My Music → T picks the right one for you.\n" +
+          "--favorites needs no ref: the tag names you, and plays your favorites\n" +
+          "wherever you're signed in.",
       ),
     );
     process.exit(1);
   }
 
-  // A tag wants both halves: the record URI, which plays anywhere, and the
-  // library id behind it as the fallback. The ref is only ever one of the two,
-  // so look the other up — both lookups accept either key. Offline, signed out
-  // or not in the library, we write the half we were handed.
-  const payloads = await completeRef(kind, ref).catch(() =>
-    nfcPayloadsFor(kind, ref.startsWith("at://") ? { uri: ref } : { id: ref }),
-  );
-  const portable = payloads.some((p) => p.startsWith("at://"));
+  // Favorites are a query with no record and no library id, so the tag holds
+  // the user's DID. That needs a session — there is nothing to fall back on.
+  let payloads: string[];
+  if (opts.favorites) {
+    const token = loadToken();
+    if (!token) fail(new Error("Sign in first: rocksky login"));
+    payloads = await getDid(token).then(nfcFavoritesPayloads, fail);
+  } else {
+    // A tag wants both halves: the record URI, which plays anywhere, and the
+    // library id behind it as the fallback. The ref is only ever one of the two,
+    // so look the other up — both lookups accept either key. Offline, signed out
+    // or not in the library, we write the half we were handed.
+    payloads = await completeRef(kind!, ref!).catch(() =>
+      nfcPayloadsFor(kind!, ref!.startsWith("at://") ? { uri: ref! } : { id: ref! }),
+    );
+  }
+  const portable = opts.favorites || payloads.some((p) => p.startsWith("at://"));
 
   try {
     const session = await openNfc();
@@ -160,9 +187,11 @@ export async function nfcWrite(opts: { album?: string; playlist?: string }) {
     session.close();
     console.log(
       chalk.green(
-        portable
-          ? "Tag written. Tap it on any Rocksky player to play."
-          : "Tag written. Tap it to play — this ref is a library id, so the tag only works in your own library.",
+        opts.favorites
+          ? "Tag written. Tap it on any Rocksky player you're signed in to."
+          : portable
+            ? "Tag written. Tap it on any Rocksky player to play."
+            : "Tag written. Tap it to play — this ref is a library id, so the tag only works in your own library.",
       ),
     );
     process.exit(0);

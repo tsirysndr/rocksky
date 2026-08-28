@@ -28,7 +28,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       ["f", "like / unlike"],
       [";", "add to playlist"],
       ["d", "delete track / album"],
-      ["T", "write album to an NFC tag"],
+      ["T", "write album (or, on Favorites, your favorites) to an NFC tag"],
     ],
   },
   {

@@ -646,6 +646,8 @@ mod tests {
             // The legacy library-id form, still read so old tags keep working.
             "rocksky://library/album/abc123",
             "rocksky://library/playlist/9f8e7d",
+            // Favorites are a query, not a record, so the tag names their owner.
+            "rocksky://favorites/did%3Aplc%3A7vdlgi2bflelz7mmuxoqjfcr",
         ] {
             assert_eq!(roundtrip(uri).as_deref(), Some(uri));
         }
@@ -732,6 +734,10 @@ mod tests {
         assert_eq!(
             hex(&["rocksky://library/playlist/9f8e7d"]),
             "0326d101225500726f636b736b793a2f2f6c6962726172792f706c61796c6973742f396638653764fe000000"
+        );
+        assert_eq!(
+            hex(&["rocksky://favorites/did%3Aplc%3Aabc"]),
+            "0328d101245500726f636b736b793a2f2f6661766f72697465732f646964253341706c63253341616263fe00"
         );
         assert_eq!(
             hex(&["https://rocksky.app"]),

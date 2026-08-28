@@ -184,7 +184,9 @@ program
 // NFC talks to the reader and the library API only — no local database.
 const nfcCmd = program
   .command("nfc")
-  .description("read and write NFC tags that play a library album or playlist");
+  .description(
+    "read and write NFC tags that play a library album, playlist or your favorites",
+  );
 
 nfcCmd
   .command("status")
@@ -207,11 +209,16 @@ nfcCmd
   .command("write")
   .option("-a, --album <id>", "library album id to write")
   .option("-p, --playlist <id>", "library playlist id to write")
-  .description("write a library album or playlist onto the tapped tag")
-  .action(async (opts: { album?: string; playlist?: string }) => {
-    const { nfcWrite } = await import("cmd/nfc");
-    await nfcWrite(opts);
-  });
+  .option("-f, --favorites", "write your favorites (needs no id)")
+  .description(
+    "write a library album, playlist or your favorites onto the tapped tag",
+  )
+  .action(
+    async (opts: { album?: string; playlist?: string; favorites?: boolean }) => {
+      const { nfcWrite } = await import("cmd/nfc");
+      await nfcWrite(opts);
+    },
+  );
 
 // Import reads an export file and publishes via @rocksky/sdk — no local DB.
 program

@@ -10,12 +10,15 @@ import { IconNfc, IconNfcOff } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { DURATION, useSnackbar } from "baseui/snackbar";
 import { useEffect, useRef } from "react";
+import { useAtomValue } from "jotai";
 import {
   coverArtUrlOf,
   fetchNavidromeAlbum,
+  fetchNavidromeFavorites,
   fetchNavidromePlaylist,
   type NavidromeCredentials,
 } from "../../api/navidrome";
+import { profileAtom } from "../../atoms/profile";
 import type { QueueTrack } from "../../atoms/queue";
 import { songToQueueTrack, useNavidromeCredentials } from "../../hooks/useNavidrome";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
@@ -31,7 +34,7 @@ type Resolved = {
   tracks: QueueTrack[];
   name: string;
   /** Where to send the user so they can see what started playing. */
-  route: { to: string; params: { id: string } };
+  route: { to: string; params?: { id: string }; search?: { tab: string } };
 };
 
 /**
@@ -57,6 +60,19 @@ async function resolve(
   target: NfcTarget,
   creds: NavidromeCredentials,
 ): Promise<Resolved | null> {
+  // A favorites tag names its owner, and the only favorites this app can fetch
+  // are the signed-in user's — the caller has already checked the DID matches.
+  if (target.kind === "favorites") {
+    const songs = await fetchNavidromeFavorites(creds);
+    return {
+      tracks: songs.map((s) =>
+        songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null),
+      ),
+      name: "Favorites",
+      route: { to: "/library", search: { tab: "favorites" } },
+    };
+  }
+
   // getAlbum takes either a record URI or a Navidrome id, so a portable tag and
   // a legacy one land on the same call.
   if (target.kind === "album" || target.kind === "albumUri") {
@@ -100,23 +116,24 @@ export default function NfcListener() {
   const { data: creds } = useNavidromeCredentials();
   const { playNow } = useUploadPlayer();
   const status = useNfcStatus();
+  const did = useAtomValue(profileAtom)?.did;
 
   // The handlers are re-created on every credential/queue change; keeping them
   // in a ref means the Tauri listener is registered once instead of being torn
   // down and re-registered underneath a tap.
-  const handlers = useRef({ creds, playNow, navigate, enqueue });
-  handlers.current = { creds, playNow, navigate, enqueue };
+  const handlers = useRef({ creds, did, playNow, navigate, enqueue });
+  handlers.current = { creds, did, playNow, navigate, enqueue };
 
   useEffect(
     () =>
       onNfcScan(async ({ payloads }) => {
-        const { creds, playNow, navigate, enqueue } = handlers.current;
+        const { creds, did, playNow, navigate, enqueue } = handlers.current;
         const notify = (message: string) =>
           enqueue({ message, startEnhancer: NfcGlyph }, DURATION.short);
 
         const targets = parseNfcPayloads(payloads);
         if (!targets.length) {
-          notify("This tag isn’t a Rocksky album or playlist");
+          notify("This tag isn’t a Rocksky album, playlist or favorites tag");
           return;
         }
         if (!creds) {
@@ -124,8 +141,19 @@ export default function NfcListener() {
           return;
         }
 
+        // Favorites are only ever fetched for the signed-in user, so a tag made
+        // by someone else names a set this app cannot reach. Saying so beats
+        // resolving it into the generic "no longer in your library".
+        const playable = targets.filter(
+          (t) => t.kind !== "favorites" || t.did === did,
+        );
+        if (!playable.length) {
+          notify("That tag holds someone else’s favorites");
+          return;
+        }
+
         try {
-          const found = await resolveFirst(targets, creds);
+          const found = await resolveFirst(playable, creds);
           if (!found) {
             notify("That tag points at something no longer in your library");
             return;
