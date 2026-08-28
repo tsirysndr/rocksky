@@ -316,7 +316,10 @@ export default function LibraryPage() {
     (shuffle = false, startIndex = 0) => {
       const tracks = favoriteTracks();
       if (!tracks.length) return;
-      playNow(shuffle ? shuffled(tracks) : tracks, shuffle ? 0 : startIndex);
+      // No start index when shuffling: there is no chosen track to lead with,
+      // and pinning one would leave the queue's head fixed.
+      if (shuffle) playNow(shuffled(tracks));
+      else playNow(tracks, startIndex);
     },
     [favoriteTracks, playNow],
   );

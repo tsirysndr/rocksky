@@ -6,7 +6,7 @@ import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
 import { shuffleAtom } from "../atoms/playback";
-import { shuffledFrom } from "../lib/shuffle";
+import { shuffled, shuffledFrom } from "../lib/shuffle";
 import { ensureStreamToken } from "../api/uploads";
 import { playMediaAnchor } from "../lib/audio/media-session-anchor";
 import {
@@ -62,16 +62,22 @@ export function useUploadPlayer() {
   const shuffle = useAtomValue(shuffleAtom);
 
   const playNow = useCallback(
-    async (input: QueueTrack[], from = 0) => {
+    // `from` is the track the user actually picked. Omitted when they asked for
+    // the whole album or playlist, which is the difference shuffle turns on:
+    // there is no chosen track to lead, so the queue is shuffled outright.
+    async (input: QueueTrack[], from?: number) => {
       if (!input.length) return;
 
       // The engine's shuffle flag only governs what Rockbox does when *it*
       // starts a playlist; a queue we build and hand over is played in the
       // order we give it. So the toggle has to be applied here, or starting an
-      // album or a playlist would ignore it entirely. The picked track still
-      // leads — shuffle decides what follows it.
-      const tracks = shuffle ? shuffledFrom(input, from) : input;
-      const startIndex = shuffle ? 0 : from;
+      // album or a playlist would ignore it entirely.
+      const tracks = shuffle
+        ? from === undefined
+          ? shuffled(input)
+          : shuffledFrom(input, from)
+        : input;
+      const startIndex = shuffle ? 0 : (from ?? 0);
 
       if (deviceCommand.active) {
         deviceCommand.send("enqueue", {
