@@ -112,9 +112,20 @@ impl Nfc {
 
 // ── Commands ────────────────────────────────────────────────────────────────
 
+/// The status cell, tolerating a poisoned lock.
+///
+/// A panic anywhere that holds this would otherwise poison it, and the next
+/// `unwrap` would take the reader thread down with it — leaving an app that
+/// silently never scans and whose writes all time out, with nothing in the log
+/// to say why. The status is a plain snapshot; a torn one is not worth a dead
+/// reader.
+fn status_of(cell: &Mutex<NfcStatus>) -> std::sync::MutexGuard<'_, NfcStatus> {
+    cell.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 #[tauri::command]
 pub fn nfc_status(state: tauri::State<'_, Nfc>) -> NfcStatus {
-    state.status.lock().unwrap().clone()
+    status_of(&state.status).clone()
 }
 
 /// Arm a write and wait for the user to tap a tag. Resolves with the tag UID.
@@ -247,11 +258,13 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
         let mut card_present = false;
         let mut context_died = false;
         for reader in &readers {
-            let card = match context.connect(
-                &std::ffi::CString::new(reader.as_str()).unwrap(),
-                ShareMode::Shared,
-                Protocols::ANY,
-            ) {
+            // A reader name is whatever the driver reports. Skipping one we
+            // can't turn into a C string beats taking the whole thread down.
+            let Ok(name) = std::ffi::CString::new(reader.as_str()) else {
+                tracing::warn!("nfc: skipping reader with an unusable name: {reader:?}");
+                continue;
+            };
+            let card = match context.connect(&name, ShareMode::Shared, Protocols::ANY) {
                 Ok(card) => card,
                 // An empty reader is the common case and the only one worth
                 // passing over quietly. The rest mean this context is finished —
@@ -273,6 +286,10 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
             // came off cleanly. A tick that only read the UID leaves it true:
             // that is a reader command and disturbs no tag state.
             let mut clean = true;
+
+            if !is_same_tag(&last_scan, &uid) {
+                last_scan = None;
+            }
 
             if let Some(job) = pending.take() {
                 let uris: Vec<&str> = job.payloads.iter().map(String::as_str).collect();
@@ -306,11 +323,8 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 // it back and start playing.
                 last_scan = Some(uid.clone());
             } else {
-                // Only when this tag wasn't the one already sitting there. A tag
-                // whose UID wouldn't read is not identifiable, so it can't be
-                // "the same one" as anything — reading it again next tick is the
-                // only way to recover.
-                if uid.is_empty() || last_scan.as_deref() != Some(uid.as_str()) {
+                // Cleared just above unless this is the tag we already scanned.
+                if last_scan.is_none() {
                     match read_ndef_uris(&card) {
                         Ok(payloads) if !payloads.is_empty() => {
                             tracing::info!("nfc: tag {uid} → {payloads:?}");
@@ -396,6 +410,19 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
     }
 }
 
+/// Whether the tag now on the reader is the one already scanned.
+///
+/// Anything else means that tag is gone, and the new one is due a read — even
+/// if the reader was never observed empty in between. Waiting for that gap
+/// misses a swap done between two polls, which left the arriving tag treated as
+/// already-scanned and silently never read.
+///
+/// A UID that wouldn't read is never "the same": it identifies nothing, so the
+/// only way to recover is to look again.
+fn is_same_tag(last_scan: &Option<String>, uid: &str) -> bool {
+    !uid.is_empty() && last_scan.as_deref() == Some(uid)
+}
+
 fn list_readers(ctx: &Context) -> Result<Vec<String>, pcsc::Error> {
     let mut buf = vec![0u8; 4096];
     Ok(ctx
@@ -407,7 +434,7 @@ fn list_readers(ctx: &Context) -> Result<Vec<String>, pcsc::Error> {
 /// Store the status and tell the webview, but only when something changed —
 /// this runs four times a second.
 fn publish(app: &AppHandle, cell: &Arc<Mutex<NfcStatus>>, next: NfcStatus) {
-    let mut slot = cell.lock().unwrap();
+    let mut slot = status_of(cell);
     let changed = slot.available != next.available
         || slot.card_present != next.card_present
         || slot.readers != next.readers
@@ -1398,6 +1425,25 @@ mod tests {
         println!("verified {} records on tag {uid}", read.len());
 
         let _ = card.disconnect(Disposition::ResetCard);
+    }
+
+    /// Swapping one tag for another between two polls shows no empty reader in
+    /// between, so tag identity — not an observed gap — has to drive the reread.
+    #[test]
+    fn a_swapped_tag_is_not_the_one_already_scanned() {
+        let scanned = Some("87494824".to_string());
+
+        assert!(is_same_tag(&scanned, "87494824"), "same tag, still resting");
+        assert!(
+            !is_same_tag(&scanned, "16FDC341"),
+            "a different tag is a new arrival even with no gap between them"
+        );
+        assert!(
+            !is_same_tag(&scanned, ""),
+            "an unreadable UID identifies nothing, so look again"
+        );
+        assert!(!is_same_tag(&None, "87494824"), "nothing scanned yet");
+        assert!(!is_same_tag(&None, ""), "no tag, no UID");
     }
 
     /// Pinned against the bytes a real MIFARE Classic 1K accepted: an all-NDEF
