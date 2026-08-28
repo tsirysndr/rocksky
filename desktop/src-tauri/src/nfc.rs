@@ -269,6 +269,10 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
             card_present = true;
 
             let uid = read_uid(&card).unwrap_or_default();
+            // Whether this tick's tag-level work (authenticate, read, write)
+            // came off cleanly. A tick that only read the UID leaves it true:
+            // that is a reader command and disturbs no tag state.
+            let mut clean = true;
 
             if let Some(job) = pending.take() {
                 let uris: Vec<&str> = job.payloads.iter().map(String::as_str).collect();
@@ -294,6 +298,9 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                         encode_ndef_uris(&uris).len(),
                     ),
                 }
+                // A write authenticates its way across the tag, so leave it
+                // power-cycled for whatever comes next either way.
+                clean = false;
                 let _ = job.reply.send(result);
                 // A written tag is still on the reader; don't immediately scan
                 // it back and start playing.
@@ -321,22 +328,30 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                             // again.
                             last_scan = Some(uid.clone());
                         }
-                        Ok(_) => tracing::debug!("nfc: tag {uid:?} holds no NDEF URI record"),
-                        Err(e) => tracing::debug!("nfc: read failed: {e}"),
+                        Ok(_) => {
+                            tracing::debug!("nfc: tag {uid:?} holds no NDEF URI record");
+                            clean = false;
+                        }
+                        Err(e) => {
+                            tracing::debug!("nfc: read failed: {e}");
+                            clean = false;
+                        }
                     }
                 }
             }
 
-            // Reset only to recover, never on the happy path. A reset re-powers
-            // the tag, and for a short while afterwards it answers nothing —
-            // which showed up as ticks that saw a card but read a blank UID off
-            // it. A tag we read cleanly is left alone; one that misbehaved (a
-            // Classic halts after a failed authentication) is reset so the next
-            // tick meets a fresh card.
-            let disposition = if uid.is_empty() {
-                Disposition::ResetCard
-            } else {
+            // Reset only to recover, never on the happy path — a reset
+            // re-powers the tag, and it answers nothing for a moment after.
+            //
+            // "Recover" is judged on the tag-level work, not on the UID: reading
+            // the UID is a reader command that succeeds even when the tag itself
+            // is wedged. A MIFARE Classic that has been left mid-authentication
+            // refuses the next one, which surfaced as a tag reading fine and
+            // then, seconds later, reporting no NDEF records at all.
+            let disposition = if clean && !uid.is_empty() {
                 Disposition::LeaveCard
+            } else {
+                Disposition::ResetCard
             };
             let _ = card.disconnect(disposition);
             break;
