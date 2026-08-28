@@ -559,9 +559,12 @@ mod tests {
     #[test]
     fn roundtrips_the_uris_we_write() {
         for uri in [
+            // What tags carry now: the record URI, which is portable.
+            "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlkzzimck2k",
+            "at://did:plc:7iza6de2dwap2sbkpav7c6c6/app.rocksky.playlist/3lbqwxyz1234",
+            // The legacy library-id form, still read so old tags keep working.
             "rocksky://library/album/abc123",
             "rocksky://library/playlist/9f8e7d",
-            "at://did:plc:7iza6de2dwap2sbkpav7c6c6/app.rocksky.playlist/3lbqwxyz1234",
         ] {
             assert_eq!(roundtrip(uri).as_deref(), Some(uri));
         }
