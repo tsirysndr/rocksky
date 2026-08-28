@@ -38,9 +38,16 @@ async function resolve(
   target: NfcTarget,
   creds: NavidromeCredentials,
 ): Promise<Resolved | null> {
-  if (target.kind === "album") {
-    const album = await fetchNavidromeAlbum(creds, target.id);
-    if (!album) return null;
+  // getAlbum takes either a record URI or a Navidrome id, so a portable tag and
+  // a legacy one land on the same call.
+  if (target.kind === "album" || target.kind === "albumUri") {
+    const album = await fetchNavidromeAlbum(
+      creds,
+      target.kind === "albumUri" ? target.uri : target.id,
+    );
+    // A miss comes back as an error body with no album in it, which still
+    // destructures into an object — so test a field, not the object.
+    if (!album?.id) return null;
     const art = album.coverArt ? coverArtUrlOf(album) : null;
     return {
       tracks: (album.song ?? []).map((s) => songToQueueTrack(s, creds, art)),

@@ -61,30 +61,51 @@ const URI_PREFIXES = [
 // ── Payload scheme ──────────────────────────────────────────────────────────
 
 export type NfcTarget =
+  | { kind: "albumUri"; uri: string }
+  | { kind: "playlistUri"; uri: string }
   | { kind: "album"; id: string }
-  | { kind: "playlist"; id: string }
-  | { kind: "playlistUri"; uri: string };
+  | { kind: "playlist"; id: string };
 
-export function nfcPayloadFor(kind: "album" | "playlist", id: string): string {
-  return `rocksky://library/${kind}/${id}`;
+/**
+ * What gets burned onto the tag.
+ *
+ * The record's AT-URI whenever there is one: it names the album or playlist
+ * itself, so the tag is portable — it resolves on any machine, for any user,
+ * against any server. The `rocksky://library/...` form is only a fallback for
+ * an entity with no published record yet (an unmirrored playlist), and such a
+ * tag resolves against this user's library alone.
+ */
+export function nfcPayloadFor(
+  kind: "album" | "playlist",
+  ref: { uri?: string | null; id: string },
+): string {
+  return ref.uri?.trim() || `rocksky://library/${kind}/${ref.id}`;
 }
+
+const AT_URI = /^at:\/\/[^/]+\/app\.rocksky\.(album|playlist)\/[^/]+$/i;
 
 /** Read a tag payload back into something playable, or null if it isn't ours. */
 export function parseNfcPayload(payload: string): NfcTarget | null {
   const value = payload.trim();
 
+  // A record URI names the album or playlist itself. The Navidrome API resolves
+  // one directly (getAlbum / getPlaylist / search3 all take a URI), so a tag
+  // written by any Rocksky client — or by a phone's tag writer — works here.
+  const record = AT_URI.exec(value);
+  if (record) {
+    return record[1].toLowerCase() === "album"
+      ? { kind: "albumUri", uri: value }
+      : { kind: "playlistUri", uri: value };
+  }
+
+  // Legacy / unmirrored form: a library id, meaningful only on the server that
+  // issued it. Still read so tags written before the switch keep working.
   const library = /^rocksky:\/\/library\/(album|playlist)\/(.+)$/i.exec(value);
   if (library) {
     return {
       kind: library[1].toLowerCase() as "album" | "playlist",
       id: decodeURIComponent(library[2]),
     };
-  }
-
-  // A library playlist mirrored to the user's PDS keeps its record URI, so a
-  // tag carrying one can be matched back to the playlist exactly.
-  if (/^at:\/\/[^/]+\/app\.rocksky\.playlist\/[^/]+$/i.test(value)) {
-    return { kind: "playlistUri", uri: value };
   }
 
   return null;

@@ -3,7 +3,7 @@ import { IconNfc } from "@tabler/icons-react";
 import { useSetAtom } from "jotai";
 import { nfcWriteTargetAtom } from "../atoms/nfc";
 import { useNfcReady } from "../hooks/useNfc";
-import { nfcPayloadFor } from "../lib/nfc";
+import { isPortableRef, nfcPayloadFor } from "../lib/nfc";
 
 // Opens the write dialog, which owns the "tap a tag" wait. Shaped like
 // AddToPlaylistMenu so it drops into any of the library dropdowns.
@@ -40,27 +40,41 @@ const Item = styled.button`
 export function WriteToNfcMenuItem({
   kind,
   id,
+  uri,
   label,
   sublabel,
   onDone,
 }: {
   kind: "album" | "playlist";
   id: string;
+  /** The record's AT-URI, when it has one — this is what makes the tag portable. */
+  uri?: string | null;
   label: string;
   sublabel?: string;
   onDone: () => void;
 }) {
   const setTarget = useSetAtom(nfcWriteTargetAtom);
   const { ready, reason } = useNfcReady();
+  const portable = isPortableRef({ uri });
 
   return (
     <Item
       disabled={!ready}
-      title={reason ?? `Tap a tag to make it play “${label}”`}
+      title={
+        reason ??
+        (portable
+          ? `Tap a tag to make it play “${label}” on any Rocksky player`
+          : `Tap a tag to make it play “${label}”. This ${kind} has no published record yet, so the tag will only work in your own library.`)
+      }
       onClick={(e) => {
         e.stopPropagation();
         if (!ready) return;
-        setTarget({ payload: nfcPayloadFor(kind, id), label, sublabel });
+        setTarget({
+          payload: nfcPayloadFor(kind, { uri, id }),
+          label,
+          sublabel,
+          portable,
+        });
         onDone();
       }}
     >

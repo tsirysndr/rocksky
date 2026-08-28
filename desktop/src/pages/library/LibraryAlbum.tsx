@@ -452,7 +452,7 @@ function TrackMenu({
 function AlbumMenu({
   album, songs, albumArtUrl, anchorEl, creds, onDelete, onClose,
 }: {
-  album: { id: string; name: string; artistId?: string };
+  album: { id: string; name: string; artistId?: string; uri?: string };
   songs: NavidromeSong[];
   albumArtUrl: string | null;
   anchorEl: HTMLElement | null;
@@ -484,7 +484,7 @@ function AlbumMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
       </MenuItem>
-      <WriteToNfcMenuItem kind="album" id={album.id} label={album.name} sublabel={songs[0]?.albumArtist ?? songs[0]?.artist} onDone={onClose} />
+      <WriteToNfcMenuItem kind="album" id={album.id} uri={album.uri} label={album.name} sublabel={songs[0]?.albumArtist ?? songs[0]?.artist} onDone={onClose} />
       {album.artistId && (
         <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/artist/$id", params: { id: album.artistId! } }); onClose(); }}>
           Go to artist

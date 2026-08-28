@@ -15,11 +15,9 @@ import {
 } from "../lib/nfc";
 import {
   entryToItem,
-  findAlbumId,
   getAlbum,
   getCreds,
   getPlaylist,
-  getPlaylists,
 } from "./navidrome";
 import { streamAndPlay } from "./playback";
 
@@ -56,23 +54,28 @@ async function play(target: NfcTarget, token: string): Promise<string> {
   const creds = await getCreds(token);
   if (!creds) throw new Error("no library credentials");
 
-  if (target.kind === "album") {
-    const { album, entries } = await getAlbum(creds, target.id);
-    if (!entries.length) throw new Error(`“${album?.name ?? "album"}” is empty`);
+  // getAlbum and getPlaylist each take a record URI or a Navidrome id, so a
+  // portable tag and a legacy one land on the same call — no listing, no
+  // matching by title.
+  if (target.kind === "album" || target.kind === "albumUri") {
+    const { album, entries } = await getAlbum(
+      creds,
+      target.kind === "albumUri" ? target.uri : target.id,
+    );
+    if (!album?.id) throw new Error("that album is not in your library");
+    if (!entries.length) throw new Error(`“${album.name}” is empty`);
     await streamAndPlay(token, entries.map(entryToItem), 0);
-    return album?.name ?? "album";
+    return album.name;
   }
 
-  let id = target.kind === "playlist" ? target.id : null;
-  if (target.kind === "playlistUri") {
-    id = (await getPlaylists(creds)).find((p) => p.uri === target.uri)?.id ?? null;
-    if (!id) throw new Error("that playlist is no longer in your library");
-  }
-
-  const { playlist, entries } = await getPlaylist(creds, id!);
-  if (!entries.length) throw new Error(`“${playlist?.name ?? "playlist"}” is empty`);
+  const { playlist, entries } = await getPlaylist(
+    creds,
+    target.kind === "playlistUri" ? target.uri : target.id,
+  );
+  if (!playlist?.id) throw new Error("that playlist is not in your library");
+  if (!entries.length) throw new Error(`“${playlist.name}” is empty`);
   await streamAndPlay(token, entries.map(entryToItem), 0);
-  return playlist?.name ?? "playlist";
+  return playlist.name;
 }
 
 /**
@@ -121,27 +124,30 @@ export function startNfcWatch(
 }
 
 /**
- * Write the selected album to a tag. Albums in My Music come from the uploads
- * API, which has no Navidrome id, so the id is looked up first — the tag has to
- * carry the same identifier the desktop app writes or the two wouldn't be
- * interchangeable.
+ * Write the selected album to a tag.
+ *
+ * My Music rows come from the uploads API, which carries the album's record URI
+ * — and that URI is exactly what the tag should hold, so there is nothing to
+ * look up. (This used to match the album by title and artist against the
+ * library, which could refuse or, worse, pin the wrong release.)
  */
-export async function writeAlbumTag(
-  token: string,
-  name: string,
-  artist: string,
-): Promise<void> {
-  const creds = await getCreds(token);
-  if (!creds) throw new Error("no library credentials");
-  const id = await findAlbumId(creds, name, artist);
-  if (!id) {
-    throw new Error(`couldn't pin down “${name}” in your library — nothing written`);
+export async function writeAlbumTag(album: {
+  uri?: string;
+  name: string;
+}): Promise<void> {
+  if (!album.uri) {
+    throw new Error(`“${album.name}” has no published record yet — nothing written`);
   }
-  await writeTag(nfcPayloadFor("album", id));
+  await writeTag(nfcPayloadFor("album", { uri: album.uri, id: "" }));
 }
 
-export async function writePlaylistTag(id: string): Promise<void> {
-  await writeTag(nfcPayloadFor("playlist", id));
+/** Write a playlist to a tag, preferring its record URI over the library id. */
+export async function writePlaylistTag(playlist: {
+  uri?: string;
+  id: string;
+}): Promise<boolean> {
+  await writeTag(nfcPayloadFor("playlist", playlist));
+  return !!playlist.uri?.trim();
 }
 
 async function writeTag(payload: string): Promise<void> {

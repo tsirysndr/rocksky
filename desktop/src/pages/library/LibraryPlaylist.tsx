@@ -529,6 +529,7 @@ function PlaylistMenu({
       <WriteToNfcMenuItem
         kind="playlist"
         id={playlist.id}
+        uri={playlist.uri}
         label={playlist.name}
         sublabel={`${playlist.songCount} tracks`}
         onDone={onClose}

@@ -393,18 +393,20 @@ export function MusicView({
           setAddToPlaylist({ trackId: cur.trackId, title: cur.title });
       } else if (input === "T") {
         // Burn the selected album onto an NFC tag; tapping it plays the album.
+        // The row already carries the album's record URI, which is what goes on
+        // the tag — so the tag works on any Rocksky player, not just this one.
         const cur = items[selected];
         const album =
           cur?.kind === "album"
-            ? { name: cur.album, artist: cur.albumArtist }
+            ? { name: cur.album, uri: cur.albumUri }
             : top?.type === "album" && top.albumName
-              ? { name: top.albumName, artist: top.albumArtist ?? "" }
+              ? { name: top.albumName, uri: top.albumUri }
               : null;
         if (!album) {
           setMessage("Select an album to write to an NFC tag");
-        } else if (token) {
+        } else {
           setMessage(`Hold a tag on the reader to write “${album.name}”…`);
-          writeAlbumTag(token, album.name, album.artist)
+          writeAlbumTag(album)
             .then(() => setMessage(`Tag written — it now plays “${album.name}”`))
             .catch((e: any) => setMessage(`NFC: ${e.message}`));
         }

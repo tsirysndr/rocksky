@@ -115,7 +115,9 @@ export default function NfcWriteModal() {
         </Title>
         <Subtitle>
           {phase.state === "ok"
-            ? "Tap it on the reader any time to start playing."
+            ? target.portable
+              ? "Tap it on any Rocksky player to start playing."
+              : "Tap it on the reader any time to start playing."
             : phase.state === "error"
               ? "The tag was left untouched."
               : "Keep it there until this dialog confirms."}
@@ -123,6 +125,11 @@ export default function NfcWriteModal() {
 
         <TargetName>{target.label}</TargetName>
         {target.sublabel && <TargetMeta>{target.sublabel}</TargetMeta>}
+        {!target.portable && phase.state !== "error" && (
+          <TargetMeta>
+            No published record yet — this tag will only work in your library.
+          </TargetMeta>
+        )}
 
         {phase.state === "error" && <ErrorText>{phase.message}</ErrorText>}
 

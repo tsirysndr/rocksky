@@ -11,4 +11,10 @@ export const nfcWriteTargetAtom = atom<{
   /** Shown in the dialog so the user knows which tag they are making. */
   label: string;
   sublabel?: string;
+  /**
+   * False when the payload fell back to a library id because the entity has no
+   * published record — the tag then only works in this user's own library, and
+   * the dialog says so rather than promising a portable tag.
+   */
+  portable: boolean;
 } | null>(null);

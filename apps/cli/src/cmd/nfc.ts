@@ -32,15 +32,16 @@ async function describe(payload: string): Promise<string> {
   try {
     const creds = await getCreds(token);
     if (!creds) return `${target.kind}`;
-    if (target.kind === "album") {
-      const { album } = await getAlbum(creds, target.id);
-      return `album · ${album?.name ?? target.id}`;
+    // Both lookups take a record URI or a library id, so the only difference
+    // between a portable tag and a legacy one is which key gets passed.
+    const key = "uri" in target ? target.uri : target.id;
+    const portable = "uri" in target ? chalk.green(" · portable") : "";
+    if (target.kind === "album" || target.kind === "albumUri") {
+      const { album } = await getAlbum(creds, key);
+      return `album · ${album?.name ?? key}${portable}`;
     }
-    if (target.kind === "playlist") {
-      const { playlist } = await getPlaylist(creds, target.id);
-      return `playlist · ${playlist?.name ?? target.id}`;
-    }
-    return `playlist · ${target.uri}`;
+    const { playlist } = await getPlaylist(creds, key);
+    return `playlist · ${playlist?.name ?? key}${portable}`;
   } catch {
     return `${target.kind} (not in your library)`;
   }
@@ -97,24 +98,36 @@ export async function nfcRead(opts: { watch?: boolean } = {}) {
 
 export async function nfcWrite(opts: { album?: string; playlist?: string }) {
   const kind = opts.album ? "album" : opts.playlist ? "playlist" : null;
-  const id = opts.album ?? opts.playlist;
-  if (!kind || !id) {
-    console.error(chalk.red("Pass either --album <id> or --playlist <id>."));
+  const ref = opts.album ?? opts.playlist;
+  if (!kind || !ref) {
+    console.error(chalk.red("Pass either --album <ref> or --playlist <ref>."));
     console.error(
       chalk.dim(
-        "Ids are the library ones — `rocksky` (TUI) → My Music → T writes them for you.",
+        "A ref is the record's AT-URI (at://…/app.rocksky.album/…), which makes\n" +
+          "the tag work on any Rocksky player, or a library id, which does not.\n" +
+          "`rocksky` (TUI) → My Music → T picks the right one for you.",
       ),
     );
     process.exit(1);
   }
 
+  // An at:// ref goes on the tag verbatim; a bare id still gets the
+  // rocksky://library/… wrapper it has always had.
+  const portable = ref.startsWith("at://");
+  const payload = portable ? ref : nfcPayloadFor(kind, { id: ref });
+
   try {
-    const payload = nfcPayloadFor(kind, id);
     const session = await openNfc();
     console.log(violet(`Hold a tag on the reader to write ${cyan(payload)}…`));
     await session.write(payload);
     session.close();
-    console.log(chalk.green("Tag written. Tap it to play."));
+    console.log(
+      chalk.green(
+        portable
+          ? "Tag written. Tap it on any Rocksky player to play."
+          : "Tag written. Tap it to play — this ref is a library id, so the tag only works in your own library.",
+      ),
+    );
     process.exit(0);
   } catch (e) {
     if (e instanceof NfcUnavailableError) fail(e);

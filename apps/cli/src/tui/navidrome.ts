@@ -163,33 +163,6 @@ export async function getAlbum(
   return { album: r.album, entries: asArray<PlaylistEntry>(r.album?.song) };
 }
 
-/**
- * Find the library album behind a title/artist pair. Used when writing an NFC
- * tag: the My Music list comes from the uploads API, which has no Navidrome id,
- * but the tag has to carry one so the desktop app can play the same tag.
- * Deliberately exact (case-insensitive) — a near-miss would burn a tag that
- * silently plays the wrong record.
- */
-export async function findAlbumId(
-  creds: NavidromeCreds,
-  name: string,
-  artist: string,
-): Promise<string | null> {
-  const r = await call("search3", creds, {
-    query: name,
-    albumCount: "50",
-    songCount: "0",
-    artistCount: "0",
-  });
-  const albums = asArray<Album>(r.searchResult3?.album);
-  const eq = (a: string, b: string) =>
-    a?.trim().toLowerCase() === b?.trim().toLowerCase();
-  const matches = albums.filter(
-    (a) => eq(a.name, name) && (!artist || eq(a.artist, artist)),
-  );
-  return matches.length === 1 ? matches[0].id : null;
-}
-
 export async function createPlaylist(
   token: string,
   name: string,

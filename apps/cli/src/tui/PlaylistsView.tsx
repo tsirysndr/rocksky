@@ -171,8 +171,14 @@ export function PlaylistsView({
         const pl = playlists[sel];
         if (pl) {
           setNote(`Hold a tag on the reader to write “${pl.name}”…`);
-          writePlaylistTag(pl.id)
-            .then(() => setNote(`Tag written — it now plays “${pl.name}”`))
+          writePlaylistTag(pl)
+            .then((portable) =>
+              setNote(
+                portable
+                  ? `Tag written — “${pl.name}” now plays on any Rocksky player`
+                  : `Tag written — “${pl.name}” has no published record yet, so the tag only works here`,
+              ),
+            )
             .catch((e: any) => setNote(`NFC: ${e.message}`));
         }
       } else if (input === "d" || input === "x") {

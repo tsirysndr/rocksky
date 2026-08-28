@@ -833,7 +833,7 @@ function AlbumContextMenu({
       <MenuItem onClick={(e) => { e.stopPropagation(); downloadFromNavidrome(creds, album.id); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconDownload size={14} /> Download album</span>
       </MenuItem>
-      <WriteToNfcMenuItem kind="album" id={album.id} label={album.name} sublabel={album.artist} onDone={onClose} />
+      <WriteToNfcMenuItem kind="album" id={album.id} uri={album.uri} label={album.name} sublabel={album.artist} onDone={onClose} />
       {album.artistId && (
         <>
           <MenuDivider />
@@ -918,6 +918,7 @@ function PlaylistContextMenu({
       <WriteToNfcMenuItem
         kind="playlist"
         id={playlist.id}
+        uri={playlist.uri}
         label={playlist.name}
         sublabel={`${playlist.songCount} tracks`}
         onDone={onClose}
