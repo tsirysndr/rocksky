@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::{handlers::songs::track_to_json, repo, response};
 
-fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
+pub(crate) fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
     let mut obj = json!({
         "id": p.xata_id,
         "name": p.name,
@@ -57,7 +57,16 @@ pub async fn handle_get_playlist(
     playlist_id: &str,
     pool: &Arc<Pool<Postgres>>,
 ) -> HttpResponse {
-    match repo::playlist::get_playlist(pool, playlist_id, user_id).await {
+    // `id` may be the Navidrome id or the AT-URI of the playlist's mirrored
+    // record — an NFC tag or a share link carries the URI, since the Navidrome
+    // id means nothing outside this server.
+    let lookup = if playlist_id.starts_with("at://") {
+        repo::playlist::get_playlist_by_uri(pool, playlist_id, user_id).await
+    } else {
+        repo::playlist::get_playlist(pool, playlist_id, user_id).await
+    };
+
+    match lookup {
         Ok(Some((p, tracks))) => {
             let songs: Vec<Value> = tracks.iter().map(|t| track_to_json(t, user_id)).collect();
             let mut obj = playlist_to_json(&p);

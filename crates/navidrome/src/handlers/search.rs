@@ -41,17 +41,10 @@ pub async fn handle_search3(
         .unwrap_or(0);
 
     // An at:// query is a record lookup, not a text search — NFC tags and share
-    // links carry an app.rocksky.album URI, and neither Typesense nor a LIKE
-    // over titles would ever match one.
+    // links carry a record URI, and neither Typesense nor a LIKE over titles
+    // would ever match one.
     if query.starts_with("at://") {
-        let album = match repo::album::get_album_by_uri(pool, query.trim(), user_id).await {
-            Ok(found) => found,
-            Err(e) => {
-                tracing::error!("search3 by uri error: {}", e);
-                return response::err(format, 0, "Internal server error");
-            }
-        };
-        return build_response(format, user_id, None, album.map(|a| vec![a]), None);
+        return resolve_record_uri(format, user_id, pool, query.trim()).await;
     }
 
     // Empty query is the "browse all" path used by the web client's infinite-scroll
@@ -83,7 +76,53 @@ pub async fn handle_search3(
     let songs_fut = repo::track::search_tracks(pool, user_id, query, song_count, song_offset);
 
     let (artists, albums, songs) = tokio::join!(artists_fut, albums_fut, songs_fut);
-    build_response(format, user_id, artists.ok(), albums.ok(), songs.ok())
+    build_response(format, user_id, artists.ok(), albums.ok(), songs.ok(), None)
+}
+
+/// Resolves one record URI to the library entity it names.
+///
+/// The collection segment says what the URI is, so it picks the lookup outright
+/// — running a playlist URI through the album lookup would just report "not
+/// found" for something that is in the library. A URI naming anything else (a
+/// foreign lexicon, a profile) matches nothing, which is the honest answer
+/// rather than an error.
+///
+/// Metadata only, like every other search3 result: the client follows up with
+/// getAlbum / getPlaylist — both of which take a URI too — for the contents.
+async fn resolve_record_uri(
+    format: &str,
+    user_id: &str,
+    pool: &Arc<Pool<Postgres>>,
+    uri: &str,
+) -> HttpResponse {
+    if uri.contains("/app.rocksky.playlist/") {
+        return match repo::playlist::get_playlist_by_uri(pool, uri, user_id).await {
+            Ok(found) => build_response(
+                format,
+                user_id,
+                None,
+                None,
+                None,
+                found.map(|(p, _)| vec![p]),
+            ),
+            Err(e) => {
+                tracing::error!("search3 playlist by uri error: {}", e);
+                response::err(format, 0, "Internal server error")
+            }
+        };
+    }
+
+    if uri.contains("/app.rocksky.album/") {
+        return match repo::album::get_album_by_uri(pool, uri, user_id).await {
+            Ok(found) => build_response(format, user_id, None, found.map(|a| vec![a]), None, None),
+            Err(e) => {
+                tracing::error!("search3 album by uri error: {}", e);
+                response::err(format, 0, "Internal server error")
+            }
+        };
+    }
+
+    build_response(format, user_id, None, None, None, None)
 }
 
 async fn search_via_typesense(
@@ -115,7 +154,14 @@ async fn search_via_typesense(
         repo::artist::get_artists_by_names(pool, user_id, &artist_names),
     );
 
-    build_response(format, user_id, artists.ok(), albums.ok(), tracks.ok())
+    build_response(
+        format,
+        user_id,
+        artists.ok(),
+        albums.ok(),
+        tracks.ok(),
+        None,
+    )
 }
 
 fn build_response(
@@ -124,6 +170,7 @@ fn build_response(
     artists: Option<Vec<crate::xata::artist::ArtistWithStats>>,
     albums: Option<Vec<crate::xata::album::AlbumWithStats>>,
     songs: Option<Vec<crate::xata::track::TrackWithUpload>>,
+    playlists: Option<Vec<crate::repo::playlist::PlaylistRow>>,
 ) -> HttpResponse {
     let artist_list: Vec<Value> = artists
         .unwrap_or_default()
@@ -177,14 +224,22 @@ fn build_response(
         .map(|t| track_to_json(t, user_id))
         .collect();
 
-    response::ok(
-        format,
-        json!({
-            "searchResult3": {
-                "artist": artist_list,
-                "album": album_list,
-                "song": song_list,
-            }
-        }),
-    )
+    let playlist_list: Vec<Value> = playlists
+        .unwrap_or_default()
+        .iter()
+        .map(super::playlists::playlist_to_json)
+        .collect();
+
+    let mut result = json!({
+        "artist": artist_list,
+        "album": album_list,
+        "song": song_list,
+    });
+    // Subsonic's searchResult3 has no playlist field, so it only appears when a
+    // record URI actually resolved to one. Clients that don't know it ignore it.
+    if !playlist_list.is_empty() {
+        result["playlist"] = json!(playlist_list);
+    }
+
+    response::ok(format, json!({ "searchResult3": result }))
 }

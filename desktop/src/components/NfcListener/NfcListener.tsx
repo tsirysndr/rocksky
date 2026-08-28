@@ -14,7 +14,6 @@ import {
   coverArtUrlOf,
   fetchNavidromeAlbum,
   fetchNavidromePlaylist,
-  fetchNavidromePlaylists,
   type NavidromeCredentials,
 } from "../../api/navidrome";
 import type { QueueTrack } from "../../atoms/queue";
@@ -51,17 +50,15 @@ async function resolve(
   }
 
   // A tag written by another Rocksky client carries the playlist's record URI.
-  // Library playlists mirrored to the PDS keep that URI, so the match is exact
-  // — no title guessing.
-  let id = target.kind === "playlist" ? target.id : null;
-  if (target.kind === "playlistUri") {
-    const all = await fetchNavidromePlaylists(creds);
-    id = all.find((p) => p.uri === target.uri)?.id ?? null;
-    if (!id) return null;
-  }
-
-  const playlist = await fetchNavidromePlaylist(creds, id!);
-  if (!playlist) return null;
+  // getPlaylist takes either that or a Navidrome id, and mirrored playlists keep
+  // their URI, so the match is exact — no title guessing and no listing.
+  const playlist = await fetchNavidromePlaylist(
+    creds,
+    target.kind === "playlistUri" ? target.uri : target.id,
+  );
+  // A "not found" comes back as an error body with no playlist in it, which
+  // still destructures into an object — so test a field, not the object.
+  if (!playlist?.id) return null;
   return {
     tracks: (playlist.entry ?? []).map((s) =>
       songToQueueTrack(s, creds, s.coverArt ? coverArtUrlOf(s) : null),

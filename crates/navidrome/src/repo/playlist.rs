@@ -58,11 +58,10 @@ const TRACK_ARTS_SELECT: &str = r#"
 // Navidrome playlists live in their own dedicated tables so they stay isolated
 // from playlists ingested from other sources (atproto, Spotify, …).
 
-pub async fn get_playlists(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Vec<PlaylistRow>, Error> {
-    let rows: Vec<PlaylistRow> = sqlx::query_as(&format!(
+/// The row projection every playlist lookup shares; only the WHERE differs.
+/// `where_clause` is always a literal from this module — never user input.
+fn playlist_select(where_clause: &str) -> String {
+    format!(
         r#"
         SELECT
             p.xata_id,
@@ -77,9 +76,18 @@ pub async fn get_playlists(
             {DURATION_SELECT},
             {TRACK_ARTS_SELECT}
         FROM navidrome_playlists p
-        WHERE p.user_id = $1
-        ORDER BY p.xata_createdat DESC
+        WHERE {where_clause}
         "#,
+    )
+}
+
+pub async fn get_playlists(
+    pool: &Pool<Postgres>,
+    user_id: &str,
+) -> Result<Vec<PlaylistRow>, Error> {
+    let rows: Vec<PlaylistRow> = sqlx::query_as(&format!(
+        "{} ORDER BY p.xata_createdat DESC",
+        playlist_select("p.user_id = $1")
     ))
     .bind(user_id)
     .fetch_all(pool)
@@ -229,29 +237,44 @@ pub async fn get_playlist(
     playlist_id: &str,
     user_id: &str,
 ) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
-    let playlist: Option<PlaylistRow> = sqlx::query_as(&format!(
-        r#"
-        SELECT
-            p.xata_id,
-            p.name,
-            p.description,
-            NULL::text AS picture,
-            p.user_id AS created_by,
-            p.xata_createdat,
-            p.uri,
-            (SELECT COUNT(*) FROM navidrome_playlist_tracks pt
-             WHERE pt.playlist_id = p.xata_id) AS track_count,
-            {DURATION_SELECT},
-            {TRACK_ARTS_SELECT}
-        FROM navidrome_playlists p
-        WHERE p.xata_id = $1 AND p.user_id = $2
-        "#,
-    ))
-    .bind(playlist_id)
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
+    let playlist: Option<PlaylistRow> =
+        sqlx::query_as(&playlist_select("p.xata_id = $1 AND p.user_id = $2"))
+            .bind(playlist_id)
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
 
+    with_tracks(pool, playlist, user_id).await
+}
+
+/// Look a playlist up by the AT-URI of the `app.rocksky.playlist` record
+/// mirroring it.
+///
+/// The Navidrome id is local to this server, so anything that has to name a
+/// playlist durably — an NFC tag, a share link, another client's record —
+/// carries the record URI instead. `uri` is NULL until the mirror publishes the
+/// record, so an unmirrored playlist simply doesn't resolve this way.
+pub async fn get_playlist_by_uri(
+    pool: &Pool<Postgres>,
+    uri: &str,
+    user_id: &str,
+) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
+    let playlist: Option<PlaylistRow> =
+        sqlx::query_as(&playlist_select("p.uri = $1 AND p.user_id = $2"))
+            .bind(uri)
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
+
+    with_tracks(pool, playlist, user_id).await
+}
+
+/// Loads the entries for a playlist row, whichever way it was looked up.
+async fn with_tracks(
+    pool: &Pool<Postgres>,
+    playlist: Option<PlaylistRow>,
+    user_id: &str,
+) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
     let playlist = match playlist {
         Some(p) => p,
         None => return Ok(None),
@@ -269,7 +292,7 @@ pub async fn get_playlist(
     );
 
     let tracks: Vec<TrackWithUpload> = sqlx::query_as(&tracks_sql)
-        .bind(playlist_id)
+        .bind(&playlist.xata_id)
         .bind(user_id)
         .fetch_all(pool)
         .await?;
