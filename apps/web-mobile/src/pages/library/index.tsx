@@ -2,6 +2,7 @@ import {
   IconArrowsShuffle,
   IconDots,
   IconDownload,
+  IconHeart,
   IconMusic,
   IconPlayerPlay,
   IconPlaylist,
@@ -18,11 +19,13 @@ import ContentLoader from "react-content-loader";
 import { Link, useNavigate } from "react-router-dom";
 import {
   downloadFromNavidrome,
+  downloadTracksFromNavidrome,
   fetchNavidromeAlbum,
   fetchNavidromePlaylist,
   coverArtUrlOf,
   type NavidromeAlbum,
   type NavidromeArtist,
+  type NavidromeCredentials,
   type NavidromePlaylist,
   type NavidromeSong,
 } from "../../api/navidrome";
@@ -33,6 +36,7 @@ import {
   useNavidromeAlbumsQuery,
   useNavidromeArtistsQuery,
   useNavidromeCredentials,
+  useNavidromeFavoritesQuery,
   useNavidromePlaylistsQuery,
   useNavidromeTracksQuery,
   useRenamePlaylistMutation,
@@ -175,7 +179,23 @@ function SheetItem({
 // Page
 // ---------------------------------------------------------------------------
 
-type Tab = "tracks" | "albums" | "artists" | "playlists";
+type Tab = "tracks" | "albums" | "artists" | "playlists" | "favorites";
+const TABS: Tab[] = ["tracks", "albums", "artists", "playlists", "favorites"];
+
+// One file per track — there is no favorites id for the server to zip. That is
+// a lot of downloads to start by accident, so a large set asks first.
+const DOWNLOAD_CONFIRM_THRESHOLD = 5;
+
+function downloadFavorites(creds: NavidromeCredentials, songs: NavidromeSong[]) {
+  if (songs.length === 0) return;
+  if (
+    songs.length > DOWNLOAD_CONFIRM_THRESHOLD &&
+    !window.confirm(`Download ${songs.length} favorite tracks as ${songs.length} separate files?`)
+  ) {
+    return;
+  }
+  downloadTracksFromNavidrome(creds, songs.map((s) => s.id));
+}
 
 export default function LibraryPage() {
   const navigate = useNavigate();
@@ -198,15 +218,20 @@ export default function LibraryPage() {
   }, [searchInput]);
 
   // Action sheets
+  // Which list the open track sheet was raised from. Its "Play" has to queue
+  // that list, not whichever one the index happens to land in.
   const [sheetSong, setSheetSong] = useState<NavidromeSong | null>(null);
+  const [sheetSongFrom, setSheetSongFrom] = useState<"tracks" | "favorites">("tracks");
   const [sheetAlbum, setSheetAlbum] = useState<NavidromeAlbum | null>(null);
   const [sheetPlaylist, setSheetPlaylist] = useState<NavidromePlaylist | null>(null);
+  const [favoritesSheetOpen, setFavoritesSheetOpen] = useState(false);
   const [addToPlaylistSongId, setAddToPlaylistSongId] = useState<string | null>(null);
 
   const tracksQuery = useNavidromeTracksQuery(searchQuery);
   const albumsQuery = useNavidromeAlbumsQuery(searchQuery);
   const artistsQuery = useNavidromeArtistsQuery(searchQuery);
   const playlistsQuery = useNavidromePlaylistsQuery();
+  const favoritesQuery = useNavidromeFavoritesQuery();
 
   const allSongs: NavidromeSong[] = useMemo(
     () => tracksQuery.data?.pages.flat() ?? [],
@@ -224,6 +249,18 @@ export default function LibraryPage() {
     () => playlistsQuery.data ?? [],
     [playlistsQuery.data],
   );
+
+  // getStarred2 takes no query, so the search box filters this tab here instead
+  // of server-side — otherwise typing would leave favorites untouched and look
+  // broken next to the tabs that do respond.
+  const favorites: NavidromeSong[] = useMemo(() => {
+    const all = favoritesQuery.data ?? [];
+    const q = searchQuery?.toLowerCase();
+    if (!q) return all;
+    return all.filter((s) =>
+      [s.title, s.artist, s.album].some((f) => (f ?? "").toLowerCase().includes(q)),
+    );
+  }, [favoritesQuery.data, searchQuery]);
 
   const tracksSentinelRef = useInfiniteScrollSentinel(
     tracksQuery.hasNextPage ?? false,
@@ -269,14 +306,30 @@ export default function LibraryPage() {
     [creds, coverUrl],
   );
 
+  const favoriteTracks = useCallback((): QueueTrack[] => {
+    if (!creds) return [];
+    return favorites.map((s) => songToQueueTrack(s, creds, coverUrl(s)));
+  }, [favorites, creds, coverUrl]);
+
+  const playFavorites = useCallback(
+    (shuffle = false, startIndex = 0) => {
+      const tracks = favoriteTracks();
+      if (!tracks.length) return;
+      playNow(shuffle ? [...tracks].sort(() => Math.random() - 0.5) : tracks, shuffle ? 0 : startIndex);
+    },
+    [favoriteTracks, playNow],
+  );
+
   const handleCreatePlaylist = useCallback(async () => {
     const name = window.prompt("New playlist name")?.trim();
     if (!name) return;
     await createPlaylist.mutateAsync({ name });
   }, [createPlaylist]);
 
+  // Five labels no longer divide evenly across a phone, so the strip scrolls
+  // rather than squeezing "Favorites" and "Playlists" into truncation.
   const tabCls = (t: Tab) =>
-    `flex-1 py-2.5 text-sm font-semibold border-none cursor-pointer transition-colors ${
+    `shrink-0 px-4 py-2.5 text-sm font-semibold border-none cursor-pointer transition-colors ${
       tab === t ? "border-b-2" : ""
     }`;
 
@@ -328,8 +381,12 @@ export default function LibraryPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b" style={{ borderColor: "var(--color-border)" }}>
-        {(["tracks", "albums", "artists", "playlists"] as Tab[]).map((t) => (
+      <style>{`.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`}</style>
+      <div
+        className="flex border-b overflow-x-auto no-scrollbar"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -405,7 +462,7 @@ export default function LibraryPage() {
               <button
                 className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg shrink-0"
                 style={{ color: "var(--color-text-muted)" }}
-                onClick={(e) => { e.stopPropagation(); setSheetSong(song); }}
+                onClick={(e) => { e.stopPropagation(); setSheetSongFrom("tracks"); setSheetSong(song); }}
               >
                 <IconDots size={16} />
               </button>
@@ -596,6 +653,124 @@ export default function LibraryPage() {
         </div>
       )}
 
+      {/* Favorites tab */}
+      {tab === "favorites" && (
+        <div>
+          {(favoritesQuery.isLoading || !creds) &&
+            Array.from({ length: 8 }).map((_, i) => <TrackSkeleton key={i} />)}
+          {!favoritesQuery.isLoading && creds && favorites.length === 0 && (
+            <div className="flex flex-col items-center py-20 gap-3 px-4">
+              <IconHeart size={48} color="var(--color-text-muted)" />
+              {/* Loves on tracks with no uploaded file are left out by the
+                  server, so "you have none" and "none of yours are here" look
+                  the same — say which. */}
+              <p className="text-center m-0 text-sm" style={{ color: "var(--color-text-muted)" }}>
+                {searchQuery
+                  ? `No favorites match "${searchQuery}"`
+                  : "Tracks you love that are in your library show up here"}
+              </p>
+            </div>
+          )}
+          {creds && favorites.length > 0 && (
+            <>
+              <div className="flex items-center gap-3 px-4 py-3">
+                <button
+                  onClick={() => playFavorites()}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full border-none cursor-pointer text-sm font-semibold"
+                  style={{ backgroundColor: "var(--color-text)", color: "var(--color-background)" }}
+                >
+                  <IconPlayerPlay size={15} /> Play
+                </button>
+                <button
+                  onClick={() => playFavorites(true)}
+                  className="flex items-center gap-2 px-3 py-2.5 border-none bg-transparent cursor-pointer text-sm font-semibold"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  <IconArrowsShuffle size={15} /> Shuffle
+                </button>
+                <button
+                  onClick={() => setFavoritesSheetOpen(true)}
+                  aria-label="Favorites actions"
+                  className="ml-auto p-1.5 border-none bg-transparent cursor-pointer rounded-lg"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  <IconDots size={18} />
+                </button>
+              </div>
+              {favorites.map((song, idx) => (
+                <div
+                  key={song.id}
+                  className="flex items-center gap-3 px-4 py-2.5 active:opacity-70"
+                  style={{ borderBottom: "1px solid var(--color-border)" }}
+                  onClick={() => playFavorites(false, idx)}
+                >
+                  <span
+                    className="w-6 text-right text-xs shrink-0 tabular-nums"
+                    style={{ color: "var(--color-text-muted)" }}
+                  >
+                    {idx + 1}
+                  </span>
+                  <div
+                    className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
+                    style={{ backgroundColor: "var(--color-menu-hover)" }}
+                  >
+                    {coverUrl(song) ? (
+                      <img src={coverUrl(song)!} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <IconMusic size={16} color="var(--color-text-muted)" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate m-0" style={{ color: "var(--color-text)" }}>
+                      {song.title}
+                    </p>
+                    <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
+                      {song.artist}{song.album ? ` — ${song.album}` : ""}
+                    </p>
+                  </div>
+                  <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+                    {formatDuration(song.duration)}
+                  </span>
+                  <button
+                    className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg shrink-0"
+                    style={{ color: "var(--color-text-muted)" }}
+                    onClick={(e) => { e.stopPropagation(); setSheetSongFrom("favorites"); setSheetSong(song); }}
+                  >
+                    <IconDots size={16} />
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Favorites action sheet */}
+      <ActionSheet open={favoritesSheetOpen} onClose={() => setFavoritesSheetOpen(false)}>
+        {creds && (
+          <>
+            <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
+              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-menu-hover)" }}>
+                <IconHeart size={18} color="var(--color-text-muted)" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate m-0" style={{ color: "var(--color-text)" }}>Favorites</p>
+                <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
+                  {favorites.length} track{favorites.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+            <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={() => { playFavorites(); setFavoritesSheetOpen(false); }} />
+            <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={() => { playFavorites(true); setFavoritesSheetOpen(false); }} />
+            <SheetItem label="Play next" onClick={() => { playNextAll(favoriteTracks()); setFavoritesSheetOpen(false); }} />
+            <SheetItem label="Play last" onClick={() => { playLastAll(favoriteTracks()); setFavoritesSheetOpen(false); }} />
+            <SheetItem label="Insert shuffled" onClick={() => { playNextAll([...favoriteTracks()].sort(() => Math.random() - 0.5)); setFavoritesSheetOpen(false); }} />
+            <SheetItem label="Insert last shuffled" onClick={() => { playLastAll([...favoriteTracks()].sort(() => Math.random() - 0.5)); setFavoritesSheetOpen(false); }} />
+            <SheetItem icon={<IconDownload size={16} />} label="Download" onClick={() => { downloadFavorites(creds, favorites); setFavoritesSheetOpen(false); }} />
+          </>
+        )}
+      </ActionSheet>
+
       {/* Track action sheet */}
       <ActionSheet open={!!sheetSong} onClose={() => setSheetSong(null)}>
         {sheetSong && creds && (
@@ -611,7 +786,18 @@ export default function LibraryPage() {
                 <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{sheetSong.artist}</p>
               </div>
             </div>
-            <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={() => { const i = allSongs.findIndex((s) => s.id === sheetSong.id); handleTrackPlay(i); setSheetSong(null); }} />
+            <SheetItem
+              icon={<IconPlayerPlay size={16} />}
+              label="Play"
+              onClick={() => {
+                if (sheetSongFrom === "favorites") {
+                  playFavorites(false, favorites.findIndex((s) => s.id === sheetSong.id));
+                } else {
+                  handleTrackPlay(allSongs.findIndex((s) => s.id === sheetSong.id));
+                }
+                setSheetSong(null);
+              }}
+            />
             <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong))); setSheetSong(null); }} />
             <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, coverUrl(sheetSong))); setSheetSong(null); }} />
             <SheetItem icon={<IconPlaylist size={16} />} label="Add to playlist" onClick={() => { setAddToPlaylistSongId(sheetSong.id); setSheetSong(null); }} />

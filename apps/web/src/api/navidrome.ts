@@ -89,6 +89,9 @@ function sr(data: unknown) {
   >;
 }
 
+const asArray = <T>(v: T | T[] | undefined): T[] =>
+  Array.isArray(v) ? v : v ? [v] : [];
+
 /**
  * The art to render for an entity.
  *
@@ -151,6 +154,23 @@ export function downloadFromNavidrome(
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+/**
+ * Downloads a set of tracks as separate files.
+ *
+ * Albums and playlists have an id the server can zip; a collection assembled
+ * client-side — favorites, a selection — does not, so the only way to get the
+ * bytes is one request per track. Browsers throttle or block a burst of
+ * navigations, hence the stagger.
+ */
+export function downloadTracksFromNavidrome(
+  creds: NavidromeCredentials,
+  songIds: string[],
+): void {
+  songIds.forEach((id, i) => {
+    setTimeout(() => downloadFromNavidrome(creds, id), i * 400);
+  });
 }
 
 export async function fetchNavidromeAlbums(
@@ -238,10 +258,25 @@ export async function searchNavidrome(
   };
 }
 
-// -- Playlists ---------------------------------------------------------------
+// -- Favorites ---------------------------------------------------------------
 
-const asArray = <T>(v: T | T[] | undefined): T[] =>
-  Array.isArray(v) ? v : v ? [v] : [];
+/**
+ * The user's loved tracks that are actually in their own library.
+ *
+ * The server joins loves against uploads, so a track loved from a Spotify
+ * scrobble — with no file behind it — is left out: everything here plays.
+ * Unpaged by design; the endpoint takes no size/offset and hands back the lot.
+ */
+export async function fetchNavidromeFavorites(
+  creds: NavidromeCredentials,
+): Promise<NavidromeSong[]> {
+  const res = await axios.get(restUrl("getStarred2"), { params: qp(creds) });
+  return asArray<NavidromeSong>(
+    (sr(res.data)?.starred2 as { song?: NavidromeSong | NavidromeSong[] })?.song,
+  );
+}
+
+// -- Playlists ---------------------------------------------------------------
 
 export async function fetchNavidromePlaylists(
   creds: NavidromeCredentials,
