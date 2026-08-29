@@ -229,7 +229,11 @@ function Navbar() {
           overrides={{
             Body: {
               style: {
-                zIndex: 2,
+                // Above the page, not merely above the navbar: the menu drops
+                // over the feed, and at 2 the genre links under it painted on
+                // top. Matches the notification bell beside it, which is the
+                // other top-bar popover and was already at 100.
+                zIndex: 100,
                 backgroundColor: "var(--color-background)",
                 width: "282px",
               },
