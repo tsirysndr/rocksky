@@ -8,6 +8,7 @@ import { fmtDuration } from "./format";
 import { likedIdsAtom, useToggleLike } from "./likes";
 import { List } from "./List";
 import { getCreds, getStarred } from "./navidrome";
+import { writeAlbumCard, writeFavoritesCard } from "./cards";
 import { writeAlbumTag, writeFavoritesTag } from "./nfc";
 import { enqueueAt, streamAndPlay } from "./playback";
 import { INSERT_MODES, type QueueItem } from "./player";
@@ -391,6 +392,37 @@ export function MusicView({
         const cur = items[selected];
         if (cur?.kind === "track" && cur.trackId)
           setAddToPlaylist({ trackId: cur.trackId, title: cur.title });
+      } else if (input === "C" && mode === "favorites") {
+        // Same as T, onto a contact card instead of a tag.
+        if (!token) {
+          setMessage("Sign in (A) to write a favorites card");
+        } else {
+          setMessage("Insert a card to write “Favorites”…");
+          writeFavoritesCard(token)
+            .then((w) =>
+              setMessage(`${w.label} written — it now plays “Favorites”`),
+            )
+            .catch((e: any) => setMessage(`Card: ${e.message}`));
+        }
+      } else if (input === "C") {
+        // The selected album, onto a contact card.
+        const cur = items[selected];
+        const album =
+          cur?.kind === "album"
+            ? { name: cur.album, uri: cur.albumUri }
+            : top?.type === "album" && top.albumName
+              ? { name: top.albumName, uri: top.albumUri }
+              : null;
+        if (!album) {
+          setMessage("Select an album to write to a card");
+        } else {
+          setMessage(`Insert a card to write “${album.name}”…`);
+          writeAlbumCard(album)
+            .then((w) =>
+              setMessage(`${w.label} written — it now plays “${album.name}”`),
+            )
+            .catch((e: any) => setMessage(`Card: ${e.message}`));
+        }
       } else if (input === "T" && mode === "favorites") {
         // On the Favorites list the tag names the whole list, not a row: there
         // is no record to point at, so it carries the user's DID instead.

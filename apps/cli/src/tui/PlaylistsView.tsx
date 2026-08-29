@@ -15,6 +15,7 @@ import {
   removeTrackFromPlaylist,
   type PlaylistEntry,
 } from "./navidrome";
+import { writePlaylistCard } from "./cards";
 import { writePlaylistTag } from "./nfc";
 import { streamAndPlay } from "./playback";
 import { queryClient } from "./queryClient";
@@ -166,6 +167,22 @@ export function PlaylistsView({
       } else if (input === "c") {
         setCreating(true);
         setName("");
+      } else if (input === "C") {
+        // Same as T, onto a contact card instead of a tag. Distinct from the
+        // lowercase c above, which creates a playlist.
+        const pl = playlists[sel];
+        if (pl) {
+          setNote(`Insert a card to write “${pl.name}”…`);
+          writePlaylistCard(pl)
+            .then((w) =>
+              setNote(
+                w.dropped > 0
+                  ? `${w.label} written — “${pl.name}” plays anywhere; the card had no room for the id fallback`
+                  : `${w.label} written — it now plays “${pl.name}”`,
+              ),
+            )
+            .catch((e: any) => setNote(`Card: ${e.message}`));
+        }
       } else if (input === "T") {
         // Burn the selected playlist onto an NFC tag.
         const pl = playlists[sel];

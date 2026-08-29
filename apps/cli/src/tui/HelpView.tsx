@@ -29,6 +29,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       [";", "add to playlist"],
       ["d", "delete track / album"],
       ["T", "write album (or, on Favorites, your favorites) to an NFC tag"],
+      ["C", "same, onto an SLE or ACOS smart card"],
     ],
   },
   {
@@ -38,6 +39,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       ["c", "create playlist"],
       ["d", "delete / remove track"],
       ["T", "write playlist to an NFC tag"],
+      ["C", "write playlist to an SLE or ACOS smart card"],
       ["Q → s", "save queue as playlist"],
     ],
   },
