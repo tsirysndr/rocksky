@@ -131,6 +131,10 @@ pub fn encode_payloads(payloads: &[&str]) -> Result<Vec<u8>, String> {
 
     let mut out = if aturi::looks_like_aturi(first) {
         aturi::encode(first)?
+    } else if let Some(did) = first.strip_prefix(aturi::FAVORITES_PREFIX) {
+        // The webview percent-encodes the DID into the URL; the packing wants
+        // the identifier itself.
+        aturi::encode_favorites(&percent_decode(did))?
     } else {
         first.as_bytes().to_vec()
     };
@@ -178,14 +182,24 @@ pub fn decode_payloads(data: &[u8]) -> Vec<String> {
     }
 
     let mut out = Vec::new();
-    let rest = match aturi::decode(data) {
-        Some((uri, used)) => {
-            out.push(uri);
-            &data[used..]
+    let rest = if aturi::is_favorites(data) {
+        match aturi::decode_favorites(data) {
+            Some((uri, used)) => {
+                out.push(uri);
+                &data[used..]
+            }
+            None => return Vec::new(),
         }
-        // Not ours, or a blob we can't reconstruct — read the lot as text.
-        None if aturi::is_encoded(data) => return Vec::new(),
-        None => data,
+    } else {
+        match aturi::decode(data) {
+            Some((uri, used)) => {
+                out.push(uri);
+                &data[used..]
+            }
+            // Ours, but not reconstructable — better nothing than guesswork.
+            None if aturi::is_encoded(data) => return Vec::new(),
+            None => data,
+        }
     };
 
     // Only now is trimming the tail safe: whatever the blob claimed is already
@@ -200,6 +214,35 @@ pub fn decode_payloads(data: &[u8]) -> Vec<String> {
         }
     }
     out
+}
+
+/// Undo the percent-encoding the webview applies to a DID in a URL. Anything
+/// that isn't a valid escape is left as written.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match (bytes[i], bytes.get(i + 1), bytes.get(i + 2)) {
+            (b'%', Some(h), Some(l)) => {
+                match u8::from_str_radix(&format!("{}{}", *h as char, *l as char), 16) {
+                    Ok(byte) => {
+                        out.push(byte);
+                        i += 3;
+                    }
+                    Err(_) => {
+                        out.push(bytes[i]);
+                        i += 1;
+                    }
+                }
+            }
+            _ => {
+                out.push(bytes[i]);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 #[cfg(test)]
@@ -311,6 +354,31 @@ mod tests {
         assert_eq!(fit_payloads(&[ALBUM, ID], 4), vec![ALBUM]);
     }
 
+    /// Favorites tags are written percent-encoded by the webview, and must come
+    /// back in a form the same parser accepts — it percent-decodes, so the
+    /// unescaped identifier round-trips to the same target.
+    #[test]
+    fn roundtrips_a_favorites_card() {
+        let encoded = "rocksky://favorites/did%3Aplc%3A7vdlgi2bflelz7mmuxoqjfcr";
+        let plain = "rocksky://favorites/did:plc:7vdlgi2bflelz7mmuxoqjfcr";
+
+        let bytes = encode_payloads(&[encoded]).unwrap();
+        assert_eq!(bytes.len(), 17, "must fit a 28-byte ACOS file");
+        assert_eq!(decode_payloads(&bytes), vec![plain.to_string()]);
+
+        // Written unescaped (as the CLI would), it packs identically.
+        assert_eq!(encode_payloads(&[plain]).unwrap(), bytes);
+    }
+
+    #[test]
+    fn percent_decoding_leaves_ordinary_text_alone() {
+        assert_eq!(percent_decode("did%3Aplc%3Aabc"), "did:plc:abc");
+        assert_eq!(percent_decode("did:plc:abc"), "did:plc:abc");
+        // A stray % is not an escape and must not eat the following bytes.
+        assert_eq!(percent_decode("100%"), "100%");
+        assert_eq!(percent_decode("%zz"), "%zz");
+    }
+
     #[test]
     fn knows_what_each_card_asks_for() {
         assert_eq!(CardKind::Sle5528.secret_label(), "PSC");
@@ -408,7 +476,13 @@ mod hardware {
 
         let after = read_back(&mut card, kind);
         println!("  after:  {after:?}");
-        assert_eq!(after.first().map(String::as_str), Some(uri.as_str()));
+        // Compared percent-decoded: a favorites DID goes on percent-encoded (as
+        // the webview writes it) and comes back as the plain identifier, which
+        // is the same target — the reader percent-decodes either way.
+        assert_eq!(
+            after.first().map(String::as_str),
+            Some(percent_decode(&uri).as_str())
+        );
     }
 
     fn read_back(card: &mut pcsc::Card, kind: CardKind) -> Vec<String> {

@@ -43,6 +43,64 @@ pub const COLLECTIONS: &[&str] = &[
     "app.rocksky.artist",
 ];
 
+/// Marker for a compact favorites reference. Distinct from [`MARK`], and like
+/// it a byte plain UTF-8 text cannot start with.
+///
+/// Favorites are a query owned by a person, not a record, so there is no AT-URI
+/// to pack — the card names the person instead. Written as text that is roughly
+/// sixty characters, which an ACOS3 user file (28 bytes on a real card) cannot
+/// hold; packed like a did:plc authority it is 17.
+///
+/// This form is ours alone: card-inspect knows nothing about favorites and will
+/// show such a card as unrecognised rather than mis-decoding it.
+const FAV_MARK: u8 = 0xA6;
+const FAV_PLC: u8 = 0b0000_0001;
+
+pub const FAVORITES_PREFIX: &str = "rocksky://favorites/";
+
+/// Encode `rocksky://favorites/<did>` compactly. `did` is the raw identifier,
+/// percent-decoding already undone.
+pub fn encode_favorites(did: &str) -> Result<Vec<u8>, String> {
+    let mut flags = 0u8;
+    let mut body = Vec::new();
+    if let Some(raw) = plc_bytes(did) {
+        flags |= FAV_PLC;
+        body.extend_from_slice(&raw);
+    } else {
+        push_lit(&mut body, did.as_bytes()).ok_or_else(|| "the DID is too long".to_string())?;
+    }
+
+    let mut out = vec![FAV_MARK, flags];
+    out.extend_from_slice(&body);
+    match decode_favorites(&out) {
+        Some((back, _)) if back == format!("{FAVORITES_PREFIX}{did}") => Ok(out),
+        _ => Err("internal error: favorites did not round-trip".to_string()),
+    }
+}
+
+/// Decode a compact favorites reference and how many bytes it occupied.
+pub fn decode_favorites(data: &[u8]) -> Option<(String, usize)> {
+    if data.first() != Some(&FAV_MARK) {
+        return None;
+    }
+    let flags = *data.get(1)?;
+    let mut p = 2usize;
+    let did = if flags & FAV_PLC != 0 {
+        let raw = data.get(p..p + PLC_LEN)?;
+        p += PLC_LEN;
+        format!("did:plc:{}", b32_encode(raw))
+    } else {
+        let (b, np) = read_lit(data, p)?;
+        p = np;
+        String::from_utf8_lossy(b).into_owned()
+    };
+    Some((format!("{FAVORITES_PREFIX}{did}"), p))
+}
+
+pub fn is_favorites(data: &[u8]) -> bool {
+    data.first() == Some(&FAV_MARK)
+}
+
 pub fn looks_like_aturi(s: &str) -> bool {
     s.starts_with("at://")
 }
@@ -365,6 +423,46 @@ mod tests {
             hex(&encode(PLAYLIST).unwrap()),
             "A51FFD46B323412AC8BCFD8CA5DD049451001967334BF9D68001"
         );
+    }
+
+    /// Favorites have no record to point at, so the card names the person.
+    /// The text form is far too long for an ACOS3 file; the packed one fits.
+    #[test]
+    fn packs_favorites_small_enough_for_an_acos_file() {
+        let did = "did:plc:7vdlgi2bflelz7mmuxoqjfcr";
+        let text = format!("{FAVORITES_PREFIX}{did}");
+        let enc = encode_favorites(did).unwrap();
+
+        assert_eq!(enc.len(), 17, "marker + flags + 15 packed plc bytes");
+        assert!(enc.len() < 28, "must fit a real 4x7 ACOS user file");
+        assert!(
+            text.len() > 28,
+            "the text form does not: {} bytes",
+            text.len()
+        );
+        assert_eq!(decode_favorites(&enc).map(|(u, _)| u), Some(text));
+    }
+
+    /// A handle-style or did:web owner still works, just less compactly.
+    #[test]
+    fn stores_a_non_plc_owner_literally() {
+        let did = "did:web:example.com";
+        let enc = encode_favorites(did).unwrap();
+        assert_eq!(
+            decode_favorites(&enc).map(|(u, _)| u),
+            Some(format!("{FAVORITES_PREFIX}{did}"))
+        );
+    }
+
+    /// The two markers must not be confused for one another.
+    #[test]
+    fn favorites_and_record_uris_stay_distinct() {
+        let fav = encode_favorites("did:plc:7vdlgi2bflelz7mmuxoqjfcr").unwrap();
+        let uri = encode(ALBUM).unwrap();
+        assert!(is_favorites(&fav) && !is_encoded(&fav));
+        assert!(is_encoded(&uri) && !is_favorites(&uri));
+        assert!(decode(&fav).is_none(), "a favorites blob is not an AT-URI");
+        assert!(decode_favorites(&uri).is_none(), "and vice versa");
     }
 
     #[test]
