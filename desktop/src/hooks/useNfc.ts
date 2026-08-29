@@ -33,11 +33,11 @@ export function useNfcStatus(): NfcStatus {
   return data ?? NO_READER;
 }
 
-/** Whether a tag can be written right now, and why not when it can't. */
+/** Whether a tag or card can be written right now, and why not when it can't. */
 export function useNfcReady(): { ready: boolean; reason: string | null } {
   const status = useNfcStatus();
   if (!isTauri()) {
-    return { ready: false, reason: "NFC tags need the Rocksky desktop app" };
+    return { ready: false, reason: "Tags and cards need the Rocksky desktop app" };
   }
   if (!status.available) {
     return {
@@ -46,7 +46,10 @@ export function useNfcReady(): { ready: boolean; reason: string | null } {
     };
   }
   if (status.readers.length === 0) {
-    return { ready: false, reason: "Connect an NFC reader to write tags" };
+    return {
+      ready: false,
+      reason: "Connect an NFC or smart-card reader to write",
+    };
   }
   return { ready: true, reason: null };
 }

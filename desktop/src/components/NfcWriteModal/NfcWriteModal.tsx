@@ -81,7 +81,7 @@ export default function NfcWriteModal() {
         setPhase({ state: "ok" });
         enqueue(
           {
-            message: `Tag ready — it now plays “${target.label}”`,
+            message: `Ready — it now plays “${target.label}”`,
             startEnhancer: NfcGlyph,
           },
           DURATION.medium,
@@ -92,7 +92,7 @@ export default function NfcWriteModal() {
         const message = e instanceof Error ? e.message : String(e);
         setPhase({ state: "error", message });
         enqueue(
-          { message: `Could not write the tag: ${message}`, startEnhancer: FailGlyph },
+          { message: `Could not write it: ${message}`, startEnhancer: FailGlyph },
           DURATION.medium,
         );
       },
@@ -144,7 +144,7 @@ export default function NfcWriteModal() {
               ? "Nothing was written"
               : needsSecret
                 ? `Unlock the ${card.label}`
-                : "Hold a tag on the reader"}
+                : "Hold a tag on the reader, or insert a card"}
         </Title>
         <Subtitle>
           {phase.state === "ok"

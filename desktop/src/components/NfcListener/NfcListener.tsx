@@ -132,11 +132,11 @@ export default function NfcListener() {
 
         const targets = parseNfcPayloads(payloads);
         if (!targets.length) {
-          notify("This tag isn’t a Rocksky album, playlist or favorites tag");
+          notify("This isn’t a Rocksky album, playlist or favorites tag");
           return;
         }
         if (!creds) {
-          notify("Sign in to play tags from your library");
+          notify("Sign in to play tags and cards from your library");
           return;
         }
 
@@ -147,14 +147,14 @@ export default function NfcListener() {
           (t) => t.kind !== "favorites" || t.did === did,
         );
         if (!playable.length) {
-          notify("That tag holds someone else’s favorites");
+          notify("That holds someone else’s favorites");
           return;
         }
 
         try {
           const found = await resolveFirst(playable, creds);
           if (!found) {
-            notify("That tag points at something no longer in your library");
+            notify("That points at something no longer in your library");
             return;
           }
           if (found.tracks.length === 0) {
@@ -165,7 +165,7 @@ export default function NfcListener() {
           navigate(found.route as never);
           notify(`Playing “${found.name}”`);
         } catch {
-          notify("Could not reach your library to play that tag");
+          notify("Could not reach your library to play that");
         }
     });
 

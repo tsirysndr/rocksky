@@ -38,7 +38,7 @@ const Item = styled.button`
 `;
 
 /**
- * What a tag will point at.
+ * What a tag or card will point at.
  *
  * Albums and playlists are records with an id behind them; favorites are a
  * query owned by a person, so the tag carries their DID instead — see
@@ -48,7 +48,7 @@ export type NfcWriteTarget =
   | {
       kind: "album" | "playlist";
       id: string;
-      /** The record's AT-URI, when it has one — this is what makes the tag portable. */
+      /** The record's AT-URI, when it has one — this is what makes it portable. */
       uri?: string | null;
     }
   | { kind: "favorites"; did: string };
@@ -67,8 +67,8 @@ export function WriteToNfcMenuItem({
   const setTarget = useSetAtom(nfcWriteTargetAtom);
   const { ready, reason } = useNfcReady();
 
-  // A favorites tag names a person, not a server row, so it travels with them:
-  // portable in the same sense a record URI is.
+  // A favorites tag or card names a person, not a server row, so it travels
+  // with them: portable in the same sense a record URI is.
   const payloads =
     target.kind === "favorites"
       ? nfcFavoritesPayloads(target.did)
@@ -77,7 +77,7 @@ export function WriteToNfcMenuItem({
     target.kind === "favorites" ? true : isPortableRef({ uri: target.uri });
 
   const unwritable =
-    payloads.length === 0 ? "Nothing to write to a tag yet" : null;
+    payloads.length === 0 ? "Nothing to write yet" : null;
 
   return (
     <Item
@@ -86,10 +86,10 @@ export function WriteToNfcMenuItem({
         reason ??
         unwritable ??
         (target.kind === "favorites"
-          ? `Tap a tag to make it play “${label}” wherever you’re signed in`
+          ? `Tap a tag or insert a card to play “${label}” wherever you’re signed in`
           : portable
-            ? `Tap a tag to make it play “${label}” on any Rocksky player`
-            : `Tap a tag to make it play “${label}”. This ${target.kind} has no published record yet, so the tag will only work in your own library.`)
+            ? `Tap a tag or insert a card to play “${label}” on any Rocksky player`
+            : `Tap a tag or insert a card to play “${label}”. This ${target.kind} has no published record yet, so it will only work in your own library.`)
       }
       onClick={(e) => {
         e.stopPropagation();
@@ -98,7 +98,7 @@ export function WriteToNfcMenuItem({
         onDone();
       }}
     >
-      <IconNfc size={14} /> Write to NFC tag…
+      <IconNfc size={14} /> Write to tag or card…
     </Item>
   );
 }
