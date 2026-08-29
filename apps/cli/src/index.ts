@@ -226,15 +226,25 @@ cardCmd
   .command("write")
   .option("-a, --album <ref>", "album AT-URI or library id to write")
   .option("-p, --playlist <ref>", "playlist AT-URI or library id to write")
+  .option("-f, --favorites", "write your favorites (needs no ref)")
   .option(
     "-s, --secret <code>",
     "the card's PSC (SLE, hex) or PIN (ACOS); defaults to the factory value",
   )
-  .description("write a library album or playlist onto the inserted card")
-  .action(async (opts: { album?: string; playlist?: string; secret?: string }) => {
-    const { cardWrite } = await import("cmd/card");
-    await cardWrite(opts);
-  });
+  .description(
+    "write a library album, playlist or your favorites onto the inserted card",
+  )
+  .action(
+    async (opts: {
+      album?: string;
+      playlist?: string;
+      favorites?: boolean;
+      secret?: string;
+    }) => {
+      const { cardWrite } = await import("cmd/card");
+      await cardWrite(opts);
+    },
+  );
 
 nfcCmd
   .command("write")

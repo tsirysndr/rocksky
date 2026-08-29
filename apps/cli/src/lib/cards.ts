@@ -12,7 +12,16 @@
 // through that library. @pokusew/pcsclite — which nfc-pcsc is built on — does
 // take an explicit protocol, so the card path talks to it directly.
 
-import { decodeAtUri, encodeAtUri, isEncoded, looksLikeAtUri } from "./aturi";
+import {
+  FAVORITES_PREFIX,
+  decodeAtUri,
+  decodeFavorites,
+  encodeAtUri,
+  encodeFavorites,
+  isEncoded,
+  isFavorites,
+  looksLikeAtUri,
+} from "./aturi";
 
 export type CardKind = "sle5528" | "acos3";
 
@@ -82,7 +91,11 @@ export function encodePayloads(payloads: string[]): Buffer {
   if (!first) throw new Error("nothing to write");
   const head = looksLikeAtUri(first)
     ? encodeAtUri(first)
-    : Buffer.from(first, "utf8");
+    : first.startsWith(FAVORITES_PREFIX)
+      ? // The webview percent-encodes the DID into the URL; the packing wants
+        // the identifier itself.
+        encodeFavorites(decodeURIComponent(first.slice(FAVORITES_PREFIX.length)))
+      : Buffer.from(first, "utf8");
   const parts = [head];
   for (const extra of rest) {
     parts.push(Buffer.from(`\n${extra}`, "utf8"));
@@ -126,13 +139,20 @@ export function decodePayloads(data: Buffer): string[] {
 
   const out: string[] = [];
   let rest = data;
-  const decoded = decodeAtUri(data);
-  if (decoded) {
-    out.push(decoded.uri);
-    rest = data.subarray(decoded.used);
-  } else if (isEncoded(data)) {
-    // Ours, but not reconstructable — better to report nothing than guesswork.
-    return [];
+  if (isFavorites(data)) {
+    const fav = decodeFavorites(data);
+    if (!fav) return [];
+    out.push(fav.uri);
+    rest = data.subarray(fav.used);
+  } else {
+    const decoded = decodeAtUri(data);
+    if (decoded) {
+      out.push(decoded.uri);
+      rest = data.subarray(decoded.used);
+    } else if (isEncoded(data)) {
+      // Ours, but not reconstructable — better nothing than guesswork.
+      return [];
+    }
   }
 
   // Only now is trimming the tail safe: the blob has already been consumed.

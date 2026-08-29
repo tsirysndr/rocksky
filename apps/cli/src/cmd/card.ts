@@ -10,8 +10,8 @@ import chalk from "chalk";
 import { loadToken } from "lib/token";
 import { CardUnavailableError, openCard } from "../lib/card-reader";
 import { cardLabel, cardSecret, fitPayloads, readCard, writeCard } from "../lib/cards";
-import { nfcPayloadsFor, parseNfcPayloads } from "../lib/nfc";
-import { getAlbum, getCreds, getPlaylist } from "../tui/navidrome";
+import { nfcFavoritesPayloads, nfcPayloadsFor, parseNfcPayloads } from "../lib/nfc";
+import { getAlbum, getCreds, getDid, getPlaylist } from "../tui/navidrome";
 
 const violet = chalk.hex("#A855F7");
 const cyan = chalk.hex("#22D3EE");
@@ -81,12 +81,15 @@ export async function cardRead() {
 export async function cardWrite(opts: {
   album?: string;
   playlist?: string;
+  favorites?: boolean;
   secret?: string;
 }) {
   const kind = opts.album ? "album" : opts.playlist ? "playlist" : null;
   const ref = opts.album ?? opts.playlist;
-  if (!kind || !ref) {
-    console.error(chalk.red("Pass either --album <ref> or --playlist <ref>."));
+  if (!opts.favorites && (!kind || !ref)) {
+    console.error(
+      chalk.red("Pass --album <ref>, --playlist <ref> or --favorites."),
+    );
     console.error(
       chalk.dim(
         "A ref is the record's AT-URI (at://…/app.rocksky.album/…), which makes\n" +
@@ -96,23 +99,32 @@ export async function cardWrite(opts: {
     process.exit(1);
   }
 
-  // Both halves when we can get them: the record URI plays anywhere, the
-  // library id is the fallback. Whichever the user passed, look up the other.
-  let payloads = ref.startsWith("at://")
-    ? nfcPayloadsFor(kind, { uri: ref })
-    : nfcPayloadsFor(kind, { id: ref });
-  try {
+  // Favorites are a query with no record and no library id, so the card holds
+  // the user's DID. That needs a session — there is nothing to fall back on.
+  let payloads: string[];
+  if (opts.favorites) {
     const token = loadToken();
-    const creds = token ? await getCreds(token) : null;
-    if (creds) {
-      const found =
-        kind === "album"
-          ? (await getAlbum(creds, ref)).album
-          : (await getPlaylist(creds, ref)).playlist;
-      if (found?.id) payloads = nfcPayloadsFor(kind, found);
+    if (!token) fail(new Error("Sign in first: rocksky login"));
+    payloads = nfcFavoritesPayloads(await getDid(token));
+  } else {
+    // Both halves when we can get them: the record URI plays anywhere, the
+    // library id is the fallback. Whichever was passed, look up the other.
+    payloads = ref!.startsWith("at://")
+      ? nfcPayloadsFor(kind!, { uri: ref! })
+      : nfcPayloadsFor(kind!, { id: ref! });
+    try {
+      const token = loadToken();
+      const creds = token ? await getCreds(token) : null;
+      if (creds) {
+        const found =
+          kind === "album"
+            ? (await getAlbum(creds, ref!)).album
+            : (await getPlaylist(creds, ref!)).playlist;
+        if (found?.id) payloads = nfcPayloadsFor(kind!, found);
+      }
+    } catch {
+      // Offline or signed out — write the half we were handed.
     }
-  } catch {
-    // Offline or signed out — write the half we were handed.
   }
 
   let session;

@@ -41,6 +41,66 @@ export const COLLECTIONS = [
   "app.rocksky.artist",
 ];
 
+/**
+ * Marker for a compact favorites reference. Distinct from MARK, and like it a
+ * byte plain UTF-8 text cannot start with.
+ *
+ * Favorites are a query owned by a person, not a record, so there is no AT-URI
+ * to pack — the card names the person instead. Written as text that is roughly
+ * sixty characters, which an ACOS3 user file (28 bytes on a real card) cannot
+ * hold; packed like a did:plc authority it is 17.
+ *
+ * Ours alone: card-inspect knows nothing about favorites and shows such a card
+ * as unrecognised rather than mis-decoding it.
+ */
+const FAV_MARK = 0xa6;
+const FAV_PLC = 0b0000_0001;
+
+export const FAVORITES_PREFIX = "rocksky://favorites/";
+
+export const isFavorites = (data: Buffer) => data[0] === FAV_MARK;
+
+/** Encode `rocksky://favorites/<did>`; `did` is the raw identifier. */
+export function encodeFavorites(did: string): Buffer {
+  let flags = 0;
+  const body: number[] = [];
+  const plc = plcBytes(did);
+  if (plc) {
+    flags |= FAV_PLC;
+    body.push(...plc);
+  } else {
+    pushLit(body, Buffer.from(did, "utf8"));
+  }
+  const out = Buffer.from([FAV_MARK, flags, ...body]);
+  const back = decodeFavorites(out);
+  if (!back || back.uri !== `${FAVORITES_PREFIX}${did}`) {
+    throw new Error("internal error: favorites did not round-trip");
+  }
+  return out;
+}
+
+/** Decode a compact favorites reference and how many bytes it occupied. */
+export function decodeFavorites(
+  data: Buffer,
+): { uri: string; used: number } | null {
+  if (data[0] !== FAV_MARK || data.length < 2) return null;
+  const flags = data[1];
+  let p = 2;
+  let did: string;
+  if (flags & FAV_PLC) {
+    const raw = data.subarray(p, p + PLC_LEN);
+    if (raw.length < PLC_LEN) return null;
+    p += PLC_LEN;
+    did = `did:plc:${b32Encode(raw)}`;
+  } else {
+    const lit = readLit(data, p);
+    if (!lit) return null;
+    did = lit.bytes.toString("utf8");
+    p = lit.next;
+  }
+  return { uri: `${FAVORITES_PREFIX}${did}`, used: p };
+}
+
 export const looksLikeAtUri = (s: string) => s.startsWith("at://");
 export const isEncoded = (data: Buffer) => data[0] === MARK;
 
