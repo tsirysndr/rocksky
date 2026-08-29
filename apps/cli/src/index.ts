@@ -205,6 +205,37 @@ nfcCmd
     await nfcRead(opts);
   });
 
+// Contact cards (SLE, ACOS) carry the same records as an NFC tag but speak
+// entirely different protocols, so they get their own command rather than
+// sharing the reader with the tag watcher.
+const cardCmd = program
+  .command("card")
+  .description(
+    "read and write SLE and ACOS smart cards that play a library album or playlist",
+  );
+
+cardCmd
+  .command("read")
+  .description("show what the inserted card points at")
+  .action(async () => {
+    const { cardRead } = await import("cmd/card");
+    await cardRead();
+  });
+
+cardCmd
+  .command("write")
+  .option("-a, --album <ref>", "album AT-URI or library id to write")
+  .option("-p, --playlist <ref>", "playlist AT-URI or library id to write")
+  .option(
+    "-s, --secret <code>",
+    "the card's PSC (SLE, hex) or PIN (ACOS); defaults to the factory value",
+  )
+  .description("write a library album or playlist onto the inserted card")
+  .action(async (opts: { album?: string; playlist?: string; secret?: string }) => {
+    const { cardWrite } = await import("cmd/card");
+    await cardWrite(opts);
+  });
+
 nfcCmd
   .command("write")
   .option("-a, --album <id>", "library album id to write")

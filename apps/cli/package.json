@@ -1,7 +1,7 @@
 {
   "name": "@rocksky/cli",
   "version": "0.10.1",
-  "description": "Command-line interface for Rocksky – scrobble tracks, view stats, and manage your listening history",
+  "description": "Command-line interface for Rocksky \u2013 scrobble tracks, view stats, and manage your listening history",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
@@ -82,7 +82,8 @@
     "zod": "^3.24.3"
   },
   "optionalDependencies": {
-    "nfc-pcsc": "^0.8.1"
+    "nfc-pcsc": "^0.8.1",
+    "@pokusew/pcsclite": "^0.6.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
