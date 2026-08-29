@@ -98,7 +98,7 @@ export function WriteToNfcMenuItem({
         onDone();
       }}
     >
-      <IconNfc size={14} /> Write to tag or card…
+      <IconNfc size={14} /> Write to NFC tag or card…
     </Item>
   );
 }
