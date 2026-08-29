@@ -130,3 +130,30 @@ export const GhostButton = styled(Button)`
     color: var(--color-primary);
   }
 `;
+
+/** The PSC/PIN field shown for a contact card, which cannot be written
+ *  without one. Monospace because the value is a code, not prose. */
+export const SecretInput = styled.input`
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: JetBrainsMono, monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+`;
+
+export const SecretLabel = styled.label`
+  display: block;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+`;

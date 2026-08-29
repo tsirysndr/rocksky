@@ -1,4 +1,5 @@
 mod cache;
+mod cards;
 mod dsp;
 mod engine;
 mod login;

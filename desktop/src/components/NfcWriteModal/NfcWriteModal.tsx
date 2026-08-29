@@ -12,6 +12,7 @@ import { useAtom } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import { nfcWriteTargetAtom } from "../../atoms/nfc";
 import { nfcCancelWrite, nfcWrite } from "../../lib/nfc";
+import { useNfcStatus } from "../../hooks/useNfc";
 import {
   Actions,
   Button,
@@ -20,6 +21,8 @@ import {
   Halo,
   Overlay,
   Panel,
+  SecretInput,
+  SecretLabel,
   Subtitle,
   TargetMeta,
   TargetName,
@@ -41,17 +44,38 @@ export default function NfcWriteModal() {
   const [phase, setPhase] = useState<Phase>({ state: "waiting" });
   const { enqueue } = useSnackbar();
 
+  // A contact card (SLE/ACOS) is detected by its ATR the moment it is inserted,
+  // and cannot be written without its code. So the write is not armed until the
+  // user confirms one — prefilled with the factory default, which is what an
+  // unused card still has. A contactless tag needs nothing and arms straight
+  // away, exactly as before.
+  const card = useNfcStatus().card;
+  const [secret, setSecret] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const needsSecret = !!card && !confirmed;
+
+  // Prefill when a card appears, and re-prefill if a different one replaces it.
+  useEffect(() => {
+    if (card) setSecret(card.defaultSecret);
+  }, [card?.label, card?.defaultSecret]);
+
+  // A card inserted after the write was already armed would be written without
+  // its code and simply fail, so disarm and ask first.
+  useEffect(() => {
+    if (needsSecret && phase.state === "waiting") void nfcCancelWrite();
+  }, [needsSecret, phase.state]);
+
   const close = useCallback(() => {
     void nfcCancelWrite();
     setTarget(null);
   }, [setTarget]);
 
   useEffect(() => {
-    if (!target) return;
+    if (!target || needsSecret) return;
     let live = true;
     setPhase({ state: "waiting" });
 
-    nfcWrite(target.payloads).then(
+    nfcWrite(target.payloads, card ? secret : undefined).then(
       () => {
         if (!live) return;
         setPhase({ state: "ok" });
@@ -77,7 +101,10 @@ export default function NfcWriteModal() {
     return () => {
       live = false;
     };
-  }, [target, enqueue]);
+    // `secret` is deliberately not a dependency: it is read once when the write
+    // arms, and re-arming on every keystroke would cancel the pending write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, enqueue, needsSecret, card]);
 
   // Esc closes, which also disarms the pending write.
   useEffect(() => {
@@ -91,7 +118,11 @@ export default function NfcWriteModal() {
 
   if (!target) return null;
 
-  const retry = () => setTarget({ ...target });
+  const retry = () => {
+    setConfirmed(false);
+    setPhase({ state: "waiting" });
+    setTarget({ ...target });
+  };
 
   return (
     <Overlay onMouseDown={close}>
@@ -108,10 +139,12 @@ export default function NfcWriteModal() {
 
         <Title>
           {phase.state === "ok"
-            ? "Tag written"
+            ? "Card written"
             : phase.state === "error"
               ? "Nothing was written"
-              : "Hold a tag on the reader"}
+              : needsSecret
+                ? `Unlock the ${card.label}`
+                : "Hold a tag on the reader"}
         </Title>
         <Subtitle>
           {phase.state === "ok"
@@ -119,8 +152,10 @@ export default function NfcWriteModal() {
               ? "Tap it on any Rocksky player to start playing."
               : "Tap it on the reader any time to start playing."
             : phase.state === "error"
-              ? "The tag was left untouched."
-              : "Keep it there until this dialog confirms."}
+              ? "The card was left untouched."
+              : needsSecret
+                ? `Writing needs its ${card.secretLabel}. The factory default is filled in — change it if this card has its own.`
+                : "Keep it there until this dialog confirms."}
         </Subtitle>
 
         <TargetName>{target.label}</TargetName>
@@ -131,12 +166,42 @@ export default function NfcWriteModal() {
           </TargetMeta>
         )}
 
+        {needsSecret && phase.state !== "ok" && phase.state !== "error" && (
+          <>
+            <SecretLabel htmlFor="nfc-secret">{card.secretLabel}</SecretLabel>
+            <SecretInput
+              id="nfc-secret"
+              value={secret}
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
+              onChange={(e) => setSecret(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && secret.trim()) setConfirmed(true);
+              }}
+            />
+            {card.secretLabel === "PSC" && (
+              <TargetMeta>
+                A wrong code counts against the card's retry counter, and enough
+                wrong ones lock it for good.
+              </TargetMeta>
+            )}
+          </>
+        )}
+
         {phase.state === "error" && <ErrorText>{phase.message}</ErrorText>}
 
         <Actions>
           {phase.state === "error" && <Button onClick={retry}>Try again</Button>}
           {phase.state === "ok" ? (
             <Button onClick={close}>Done</Button>
+          ) : needsSecret ? (
+            <>
+              <Button disabled={!secret.trim()} onClick={() => setConfirmed(true)}>
+                Write
+              </Button>
+              <GhostButton onClick={close}>Cancel</GhostButton>
+            </>
           ) : (
             <GhostButton onClick={close}>Cancel</GhostButton>
           )}

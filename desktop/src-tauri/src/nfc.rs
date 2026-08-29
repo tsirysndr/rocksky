@@ -35,6 +35,7 @@ use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender, TryRecvError}
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use crate::cards;
 use pcsc::{Card, Context, Disposition, Protocols, Scope, ShareMode};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -64,6 +65,32 @@ pub struct NfcStatus {
     pub card_present: bool,
     /// Why the reader is unusable, when it is.
     pub error: Option<String>,
+    /// The contact card sitting in a reader, when there is one. Contactless
+    /// tags leave this null: they need no secret, so the write dialog has
+    /// nothing to ask for.
+    pub card: Option<ContactCard>,
+}
+
+/// What the write dialog needs to know about an inserted contact card.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContactCard {
+    /// Human-readable, e.g. "SLE5528 memory card".
+    pub label: String,
+    /// What its secret is called — "PSC" or "PIN".
+    pub secret_label: String,
+    /// The factory default, offered as the prefilled value.
+    pub default_secret: String,
+}
+
+impl From<cards::CardKind> for ContactCard {
+    fn from(kind: cards::CardKind) -> Self {
+        Self {
+            label: kind.label().to_string(),
+            secret_label: kind.secret_label().to_string(),
+            default_secret: kind.default_secret().to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -81,6 +108,9 @@ struct ScanEvent {
 enum Cmd {
     Write {
         payloads: Vec<String>,
+        /// The card's PSC or PIN, when it is a contact card that needs one.
+        /// Contactless tags ignore it.
+        secret: Option<String>,
         reply: Sender<Result<String, String>>,
     },
     CancelWrite,
@@ -133,7 +163,11 @@ pub fn nfc_status(state: tauri::State<'_, Nfc>) -> NfcStatus {
 /// `payloads` becomes one NDEF record each, in order — the URI that should play
 /// first, then any fallbacks.
 #[tauri::command]
-pub async fn nfc_write(app: AppHandle, payloads: Vec<String>) -> Result<String, String> {
+pub async fn nfc_write(
+    app: AppHandle,
+    payloads: Vec<String>,
+    secret: Option<String>,
+) -> Result<String, String> {
     let payloads: Vec<String> = payloads
         .into_iter()
         .map(|p| p.trim().to_string())
@@ -146,7 +180,11 @@ pub async fn nfc_write(app: AppHandle, payloads: Vec<String>) -> Result<String, 
     let (reply, done) = channel();
     app.state::<Nfc>()
         .tx
-        .send(Cmd::Write { payloads, reply })
+        .send(Cmd::Write {
+            payloads,
+            secret,
+            reply,
+        })
         .map_err(|_| "the NFC reader is not running".to_string())?;
 
     // `done.recv_timeout` blocks, so it cannot run on the async runtime.
@@ -187,24 +225,38 @@ pub fn nfc_cancel_write(state: tauri::State<'_, Nfc>) -> Result<(), String> {
 
 struct Pending {
     payloads: Vec<String>,
+    secret: Option<String>,
     reply: Sender<Result<String, String>>,
 }
 
 fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
     let mut pending: Option<Pending> = None;
     let mut last_scan: Option<String> = None;
+    // Contact cards, keyed by reader: what was last handled in each. Separate
+    // from `last_scan` because they arrive on their own reader and identify
+    // differently — by ATR, having no UID to read.
+    let mut contact_scanned: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     let mut ctx: Option<Context> = None;
 
     loop {
         // Drain queued commands first so a write arms before this tick's poll.
         loop {
             match rx.try_recv() {
-                Ok(Cmd::Write { payloads, reply }) => {
+                Ok(Cmd::Write {
+                    payloads,
+                    secret,
+                    reply,
+                }) => {
                     tracing::info!(
-                        "nfc: write armed ({} records), waiting for a tag",
+                        "nfc: write armed ({} records), waiting for a card",
                         payloads.len()
                     );
-                    if let Some(prev) = pending.replace(Pending { payloads, reply }) {
+                    if let Some(prev) = pending.replace(Pending {
+                        payloads,
+                        secret,
+                        reply,
+                    }) {
                         let _ = prev.reply.send(Err("superseded by another write".into()));
                     }
                 }
@@ -255,8 +307,15 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
             }
         };
 
+        // Any reader holding anything — drives the status light.
         let mut card_present = false;
+        // Specifically a contactless tag. Kept apart because it is what decides
+        // whether the tag we last scanned has gone: with a contact reader also
+        // plugged in, a card inserted there would otherwise look like the tag
+        // still being present and suppress removal entirely.
+        let mut tag_present = false;
         let mut context_died = false;
+        let mut contact_card: Option<ContactCard> = None;
         for reader in &readers {
             // A reader name is whatever the driver reports. Skipping one we
             // can't turn into a C string beats taking the whole thread down.
@@ -264,7 +323,7 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 tracing::warn!("nfc: skipping reader with an unusable name: {reader:?}");
                 continue;
             };
-            let card = match context.connect(&name, ShareMode::Shared, Protocols::ANY) {
+            let mut card = match context.connect(&name, ShareMode::Shared, Protocols::ANY) {
                 Ok(card) => card,
                 // An empty reader is the common case and the only one worth
                 // passing over quietly. The rest mean this context is finished —
@@ -272,7 +331,23 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 // yanked — and retrying on it forever would leave the app
                 // silently dead: no scans, and armed writes timing out with the
                 // reader apparently empty. Drop it so the next tick rebuilds it.
-                Err(pcsc::Error::NoSmartcard) | Err(pcsc::Error::RemovedCard) => continue,
+                Err(pcsc::Error::NoSmartcard) | Err(pcsc::Error::RemovedCard) => {
+                    contact_scanned.remove(reader);
+                    continue;
+                }
+                // A synchronous memory card (SLE) cannot negotiate T=0/T=1 and
+                // answers this instead; it only speaks the reader's RAW
+                // protocol. Nothing contactless ever lands here.
+                Err(pcsc::Error::UnresponsiveCard) | Err(pcsc::Error::ProtoMismatch) => {
+                    match context.connect(&name, ShareMode::Shared, Protocols::RAW) {
+                        Ok(card) => card,
+                        Err(e) => {
+                            tracing::debug!("nfc: {reader} holds a card we can't talk to: {e}");
+                            contact_scanned.remove(reader);
+                            continue;
+                        }
+                    }
+                }
                 Err(e) => {
                     tracing::warn!("nfc: connect to {reader} failed ({e}); resetting the context");
                     context_died = true;
@@ -281,6 +356,29 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
             };
             card_present = true;
 
+            // Contact cards (SLE, ACOS) are a different world: no UID, no NDEF,
+            // their own protocols. They identify by ATR, and each reader keeps
+            // its own "already handled" slot so a card inserted here is not
+            // starved by a tag resting on the contactless reader.
+            let atr = card
+                .status2_owned()
+                .map(|s| s.atr().to_vec())
+                .unwrap_or_default();
+            if let Some(kind) = cards::CardKind::from_atr(&atr) {
+                contact_card = Some(kind.into());
+                card_present = true;
+                service_contact_card(
+                    &app,
+                    &mut card,
+                    kind,
+                    reader,
+                    &mut contact_scanned,
+                    &mut pending,
+                );
+                continue;
+            }
+
+            tag_present = true;
             let uid = read_uid(&card).unwrap_or_default();
             // Whether this tick's tag-level work (authenticate, read, write)
             // came off cleanly. A tick that only read the UID leaves it true:
@@ -368,12 +466,16 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 Disposition::ResetCard
             };
             let _ = card.disconnect(disposition);
-            break;
+            // Carry on to the next reader rather than stopping here: a
+            // contactless and a contact reader are routinely plugged in
+            // together, and breaking would let a tag resting on one starve a
+            // card inserted in the other.
+            continue;
         }
 
         // Forget the last tag once it leaves, so re-tapping it plays again
         // without waiting out the cooldown.
-        if !card_present {
+        if !tag_present {
             last_scan = None;
         }
 
@@ -403,11 +505,179 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                 readers,
                 card_present,
                 error: None,
+                card: contact_card,
             },
         );
 
         std::thread::sleep(POLL);
     }
+}
+
+/// Read or write one contact card — SLE or ACOS — on `reader`.
+///
+/// Reads happen once per insertion, as they do for tags: `handled` remembers
+/// what this reader last dealt with, and is cleared when the card leaves.
+/// A write consumes `pending` and needs the card's secret, which the UI has
+/// already collected.
+fn service_contact_card(
+    app: &AppHandle,
+    card: &mut pcsc::Card,
+    kind: cards::CardKind,
+    reader: &str,
+    handled: &mut std::collections::HashMap<String, String>,
+    pending: &mut Option<Pending>,
+) {
+    if let Some(job) = pending.take() {
+        let payloads: Vec<&str> = job.payloads.iter().map(String::as_str).collect();
+        let result = write_contact_card(card, kind, &payloads, job.secret.as_deref())
+            .map(|_| kind.label().to_string());
+        match &result {
+            Ok(_) => tracing::info!("nfc: wrote {:?} to a {}", job.payloads, kind.label()),
+            Err(e) => tracing::warn!("nfc: write to a {} failed: {e}", kind.label()),
+        }
+        let _ = job.reply.send(result);
+        // Written, so don't read it straight back and start playing.
+        handled.insert(reader.to_string(), format!("{kind:?}"));
+        return;
+    }
+
+    if handled.get(reader).map(String::as_str) == Some(&format!("{kind:?}")) {
+        return;
+    }
+
+    match read_contact_card(card, kind) {
+        Ok(payloads) if !payloads.is_empty() => {
+            tracing::info!("nfc: {} → {payloads:?}", kind.label());
+            let _ = app.emit(
+                "nfc://scan",
+                ScanEvent {
+                    payloads,
+                    uid: format!("{kind:?}"),
+                },
+            );
+            // Remembered only on success, so one bad read doesn't silence the
+            // card for as long as it stays inserted.
+            handled.insert(reader.to_string(), format!("{kind:?}"));
+        }
+        Ok(_) => tracing::debug!("nfc: {} holds nothing we can play", kind.label()),
+        Err(e) => tracing::debug!("nfc: reading the {} failed: {e}", kind.label()),
+    }
+}
+
+fn read_contact_card(card: &mut pcsc::Card, kind: cards::CardKind) -> Result<Vec<String>, String> {
+    let data = match kind {
+        cards::CardKind::Sle5528 => {
+            cards::sle::select_type(&*card)?;
+            cards::sle::read(
+                &*card,
+                cards::SLE_DATA_OFFSET,
+                cards::SLE5528_SIZE - cards::SLE_DATA_OFFSET,
+            )?
+        }
+        cards::CardKind::Acos3 => {
+            // One transaction for the whole sequence: on macOS the smartcard
+            // daemon touches a shared card between APDUs and resets it, which
+            // would break a bare SELECT-then-READ.
+            let tx = card.transaction2().map_err(|(_, e)| cards::map_err(e))?;
+            cards::acos::select_file(&tx, &cards::ACOS_USER_FILE)?;
+            let reclen = cards::acos::record_len(&tx)?;
+            cards::acos::read_records(&tx, 0, reclen, None)?
+        }
+    };
+    Ok(cards::decode_payloads(&data))
+}
+
+pub(crate) fn write_contact_card(
+    card: &mut pcsc::Card,
+    kind: cards::CardKind,
+    payloads: &[&str],
+    secret: Option<&str>,
+) -> Result<(), String> {
+    let secret = secret
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            format!(
+                "writing a {} needs its {}",
+                kind.label(),
+                kind.secret_label()
+            )
+        })?;
+    match kind {
+        cards::CardKind::Sle5528 => {
+            // The PSC is hex digits; a wrong one decrements a counter that
+            // locks the card for good once it reaches zero.
+            let psc = parse_hex(secret)
+                .ok_or_else(|| format!("the PSC must be hex digits, got {secret:?}"))?;
+            let fitted = cards::fit_payloads(payloads, cards::SLE_WRITE_SPAN);
+            let mut data = cards::encode_payloads(&fitted)?;
+            // Pad out to the span this write owns. Writing only the payload
+            // leaves the tail of any longer previous write in place, and those
+            // stale bytes read back as an extra record.
+            data.resize(cards::SLE_WRITE_SPAN, 0xFF);
+            cards::sle::select_type(&*card)?;
+            if cards::sle::error_counter(&*card)? == Some(0x00) {
+                return Err("this card's security code is locked; it can't be written".into());
+            }
+            cards::sle::present_psc(&*card, &psc)?;
+            cards::sle::write(&*card, cards::SLE_DATA_OFFSET, &data)?;
+
+            let back = cards::sle::read(&*card, cards::SLE_DATA_OFFSET, data.len())?;
+            if back != data {
+                return Err("the card read back differently from what was written".into());
+            }
+            Ok(())
+        }
+        cards::CardKind::Acos3 => {
+            let tx = card.transaction2().map_err(|(_, e)| cards::map_err(e))?;
+            cards::acos::select_file(&tx, &cards::ACOS_USER_FILE)?;
+            cards::acos::submit_code(&tx, cards::ACOS_ISSUER_CODE_REF, secret.as_bytes())?;
+            let reclen = cards::acos::record_len(&tx)?;
+            let records = cards::acos::record_count(&tx, reclen)?;
+            let capacity = records * reclen;
+
+            // A real ACOS3 user file is 28 bytes, which the 26-byte record URI
+            // very nearly fills — so the fallback is dropped rather than the
+            // write refused.
+            let fitted = cards::fit_payloads(payloads, capacity);
+            if fitted.len() < payloads.len() {
+                tracing::info!(
+                    "nfc: the card's {capacity}-byte file fits {} of {} records",
+                    fitted.len(),
+                    payloads.len()
+                );
+            }
+            let data = cards::encode_payloads(&fitted)?;
+            if data.len() > capacity {
+                return Err(format!(
+                    "this card's data file holds {capacity} bytes and the link needs {}",
+                    data.len()
+                ));
+            }
+
+            cards::acos::write_records(&tx, 0, reclen, &data)?;
+            let used = data.len().div_ceil(reclen);
+            cards::acos::clear_records_from(&tx, used, reclen)?;
+
+            let back = cards::acos::read_records(&tx, 0, reclen, Some(data.len()))?;
+            if back != data {
+                return Err("the card read back differently from what was written".into());
+            }
+            Ok(())
+        }
+    }
+}
+
+/// Parse an even-length string of hex digits.
+fn parse_hex(s: &str) -> Option<Vec<u8>> {
+    let s = s.trim();
+    if s.is_empty() || !s.len().is_multiple_of(2) {
+        return None;
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok())
+        .collect()
 }
 
 /// Whether the tag now on the reader is the one already scanned.

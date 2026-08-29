@@ -12,11 +12,23 @@ import { invoke } from "@tauri-apps/api/core";
 import { type UnlistenFn, listen } from "@tauri-apps/api/event";
 import { isTauri } from "./tauri";
 
+/** A contact card (SLE/ACOS) in a reader. Contactless tags leave this null:
+ *  they need no secret, so there is nothing to ask for. */
+export type ContactCard = {
+  /** Human-readable, e.g. "SLE5528 memory card". */
+  label: string;
+  /** What its secret is called — "PSC" or "PIN". */
+  secretLabel: string;
+  /** The factory default, offered as the prefilled value. */
+  defaultSecret: string;
+};
+
 export type NfcStatus = {
   available: boolean;
   readers: string[];
   cardPresent: boolean;
   error: string | null;
+  card: ContactCard | null;
 };
 
 export const NO_READER: NfcStatus = {
@@ -24,6 +36,7 @@ export const NO_READER: NfcStatus = {
   readers: [],
   cardPresent: false,
   error: null,
+  card: null,
 };
 
 export type NfcTarget =
@@ -133,9 +146,9 @@ export function nfcStatus(): Promise<NfcStatus> {
  * entry becomes one NDEF record, in order; a tag with no room for them all
  * keeps the leading ones.
  */
-export function nfcWrite(payloads: string[]): Promise<string> {
+export function nfcWrite(payloads: string[], secret?: string): Promise<string> {
   if (!isTauri()) return Promise.reject(new Error("NFC needs the desktop app"));
-  return invoke<string>("nfc_write", { payloads });
+  return invoke<string>("nfc_write", { payloads, secret: secret ?? null });
 }
 
 /**
