@@ -13,42 +13,104 @@ Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify,
 
 ![Preview](./.github/assets/preview.png)
 
-## ✨ Key Features
+## Contents
+
+- [Features](#-features)
+  - [Scrobbling](#-scrobbling)
+  - [Your library](#-your-library)
+  - [Playback](#-playback)
+  - [Physical shortcuts](#-physical-shortcuts)
+  - [Social & discovery](#-social--discovery)
+  - [Insights](#-insights)
+  - [Apps & clients](#-apps--clients)
+  - [Build on it](#-build-on-it)
+- [Roadmap](#-roadmap)
+- [Quick Start (for users)](#quick-start-for-users)
+- [Self-Hosting / Development](#-self-hosting--development)
+- [Comparison](#comparison)
+- [Documentation](#-documentation)
+- [Feedback & Contributing](#feedback--contributing)
+
+## ✨ Features
 
 ### 🎵 Scrobbling
-- **Last.fm Compatible API** – Works with almost any existing Last.fm scrobbler
-- **ListenBrainz Compatible API** – Broad client support
-- Automatic Last.fm mirroring (future scrobbles)
 
-### 🕒 Playback & History
-- Recently Played Timeline
-- **Stories View** – See what others are listening to live
-- Daily/weekly stats and visualizations
+- **Last.fm compatible API** — works with almost any existing Last.fm scrobbler
+- **ListenBrainz compatible API** — broad client support
+- **Spotify** — direct "now playing" detection
+- **Jellyfin**, **Navidrome** — media server scrobbling
+- **Pano Scrobbler** (Android/Linux/Windows), **WebScrobbler** (browser)
+- **Rocksky Connect** — scrobble from MPD, Mopidy, VLC, Kodi, and any MPRIS player
+- Automatic **Last.fm mirroring** of new scrobbles
+- Import your history from Last.fm or ListenBrainz
+
+### 📚 Your library
+
+- **Upload your own music** and stream it back from anywhere
+- **Bring your own storage** — keep the files in your own S3 bucket, or use the
+  managed one
+- Import from **Dropbox** and **Google Drive**
+- Browse by track, album, artist, playlist or **favorites**
+- **Playlists** mirrored to your AT Protocol repo, so they travel with your
+  identity rather than living only on a server
+
+### ▶️ Playback
+
+- Plays **in the browser** — decoding and DSP run in WebAssembly, with no
+  streaming server in the middle
+- **Rocksky Connect** — start something on one device and control it from
+  another
+- Queue, shuffle, repeat, crossfade and a parametric **equalizer**
+- Fullscreen player with a live scrobble timeline
+
+### 🏷️ Physical shortcuts
+
+Tap or insert a card and the album, playlist or your favorites starts playing.
+
+- **NFC tags** — NTAG213/215/216, MIFARE Ultralight, and MIFARE Classic
+  (formatted automatically on first write)
+- **Smart cards** — SLE5528 memory cards and ACOS3 processor cards
+- Tags carry the record's AT-URI, so one written on any Rocksky player works on
+  every other — with the library id behind it as a fallback
+- Write them from the desktop app, the CLI, or the terminal UI
+
+### 🌐 Social & discovery
+
+- **Stories** — see what everyone is listening to, live
+- **Shouts** and **likes** on songs, albums, artists and profiles
+- Follow other listeners; see who else plays what you play
+- **Recommendations** precomputed from your history and audio features
+- **Wrapped** — your listening year, summarised
 
 ### 📊 Insights
-- Top Artists, Tracks, and Albums
-- Personalized charts
-- Shoutbox & Likes for community interaction
 
-### 🌐 Integrations
-- **Spotify** – Direct "now playing" detection
-- **Jellyfin** – Media server scrobbling
-- **Pano Scrobbler** (Android/Linux/Windows)
-- **WebScrobbler** (browser)
-- More coming soon
-
-### 🔍 Search
+- Top artists, tracks and albums over any period
+- Charts, listening analytics and daily/weekly visualisations
+- **Explorer** — query your own listening data with RSQL
 - Blazing-fast search powered by Typesense
+
+### 💻 Apps & clients
+
+- **Web** — [rocksky.app](https://rocksky.app), with a dedicated mobile build
+- **Desktop** — native app for macOS, Linux and Windows
+- **CLI** — scrobble, search, browse, upload and import from the terminal,
+  including a full **TUI** player
+- **MCP server** — let Claude and other assistants read your listening history
+
+### 🔧 Build on it
+
+- **SDKs** for TypeScript, Python, Rust, Go, Ruby, Kotlin, Elixir, Erlang,
+  Clojure and Gleam
+- Public **HTTP API** with an OpenAPI spec, plus AT Protocol lexicons
+- **API keys** and long-lived **access tokens** for your own integrations
+- **Embeddable player** for sharing what you are listening to
 
 ## 🚧 Roadmap
 
 - Webhooks (Discord, custom integrations)
-- Personalized discovery feeds
-- Rocksky Connect (remote playback across devices)
-- Multi-source library support (S3, Google Drive, etc.)
-- Built-in streaming + self-uploaded music
 - Extensions system
 - Cross-device settings sync
+- More storage backends and media servers
 
 ## Quick Start (for users)
 
