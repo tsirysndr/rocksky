@@ -6,9 +6,14 @@
 // rather than opening a menu that could not act.
 
 import styled from "@emotion/styled";
-import { IconMusic } from "@tabler/icons-react";
+import { IconDownload, IconMusic } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useAtomValue } from "jotai";
 import { useEffect, useRef } from "react";
+import { downloadFromNavidrome } from "../api/navidrome";
+import { queueAtom, queueIndexAtom } from "../atoms/queue";
+import { useNavidromeCredentials } from "../hooks/useNavidrome";
+import { useUploadPlayer } from "../hooks/useUploadPlayer";
 import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 import { DropdownPortal } from "./DropdownPortal";
 import { atUriToPath } from "./StickyPlayer/StrickyPlayer";
@@ -102,6 +107,13 @@ export function NowPlayingMenu({
 }) {
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
+  const { playNext, playLast } = useUploadPlayer();
+  const { data: creds } = useNavidromeCredentials();
+  // The queue entry for what is playing — the same QueueTrack the library rows
+  // hand to these actions, so re-queueing from here behaves identically.
+  const queue = useAtomValue(queueAtom);
+  const queueIndex = useAtomValue(queueIndexAtom);
+  const queued = queue[queueIndex];
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -141,6 +153,49 @@ export function NowPlayingMenu({
           <MenuHeaderArtist>{track.artist}</MenuHeaderArtist>
         </MenuHeaderInfo>
       </MenuHeader>
+
+      {queued && (
+        <>
+          <MenuDivider />
+          {/* Queueing what is already playing is not a no-op: it schedules the
+              track again, which is the "play this again after" gesture. */}
+          <MenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              playNext(queued);
+              onClose();
+            }}
+          >
+            Play next
+          </MenuItem>
+          <MenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              playLast(queued);
+              onClose();
+            }}
+          >
+            Add to queue
+          </MenuItem>
+        </>
+      )}
+
+      {uploadId && creds && (
+        <>
+          <MenuDivider />
+          <MenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              downloadFromNavidrome(creds, uploadId);
+              onClose();
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <IconDownload size={14} /> Download
+            </span>
+          </MenuItem>
+        </>
+      )}
 
       {uploadId && (
         <>
