@@ -265,7 +265,14 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<NfcStatus>>) {
                         let _ = prev.reply.send(Err("cancelled".into()));
                     }
                 }
-                Ok(Cmd::Rescan) => last_scan = None,
+                // Both slots: a contact card resting in its reader is read once
+                // on insertion exactly as a tag is, so it has the same startup
+                // gap — read and emitted before the webview subscribed, and
+                // never again because it never left.
+                Ok(Cmd::Rescan) => {
+                    last_scan = None;
+                    contact_scanned.clear();
+                }
                 Err(TryRecvError::Empty) => break,
                 // Every handle dropped: the app is shutting down.
                 Err(TryRecvError::Disconnected) => return,
