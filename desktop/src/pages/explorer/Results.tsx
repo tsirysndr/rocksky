@@ -70,6 +70,17 @@ const Mosaic = styled.div`
 const Body = styled.div`
   min-width: 0;
   flex: 1;
+
+  /* Songs and scrobbles link from the title text itself, so the anchor's
+     default underline lands on it — the album, artist and playlist rows link
+     from their artwork with the title outside the anchor, which is why only
+     these two showed it. Styled here rather than as a styled(Link), which
+     loses the router's typed params. The row is the affordance anyway: it
+     highlights on hover. */
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
 `;
 
 const PrimaryText = styled.div`
