@@ -1,10 +1,11 @@
 import styled from "@emotion/styled";
 import { Link as DefaultLink, useNavigate } from "@tanstack/react-router";
-import { IconAdjustmentsHorizontal, IconArrowsShuffle, IconDisc, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsShuffle, IconDisc, IconDots, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
 import type { RepeatMode } from "../../atoms/playback";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
-import { useRef, type RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
+import { NowPlayingMenu } from "../NowPlayingMenu";
 import ScrollingText from "../ScrollingText/ScrollingText";
 import { useTimeFormat } from "../../hooks/useFormat";
 import Heart from "../Icons/Heart";
@@ -251,6 +252,11 @@ export type StickyPlayerProps = {
   onExitFullscreen?: () => void;
   embedded?: boolean;
   isUploadPlayer?: boolean;
+  /** Show the "…" track menu beside the heart. Off for Spotify, whose queue
+   *  and library actions this app does not own. */
+  showTrackMenu?: boolean;
+  /** Library id of the playing track, when it has one — enables Add to playlist. */
+  trackUploadId?: string;
   shuffle?: boolean;
   repeatMode?: RepeatMode;
   onShuffle?: () => void;
@@ -259,6 +265,8 @@ export type StickyPlayerProps = {
 
 function StickyPlayer(props: StickyPlayerProps) {
   const navigate = useNavigate();
+  // Anchor for the "…" track menu; null when it is closed.
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const {
     nowPlaying,
     onPlay,
@@ -275,6 +283,8 @@ function StickyPlayer(props: StickyPlayerProps) {
     onSeek,
     onLike,
     onDislike,
+    showTrackMenu,
+    trackUploadId,
     isPlaying,
     showQueueButton,
     fullscreenOpen,
@@ -373,6 +383,28 @@ function StickyPlayer(props: StickyPlayerProps) {
                   {nowPlaying?.liked && <Heart color="var(--color-primary)" />}
                   {!nowPlaying?.liked && <HeartOutline color={embedded ? "#fff" : "var(--color-text)"} />}
                 </LikeButton>
+                {showTrackMenu && nowPlaying && (
+                  <LikeButton
+                    aria-label="Track options"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuAnchor(menuAnchor ? null : e.currentTarget);
+                    }}
+                  >
+                    <IconDots
+                      size={18}
+                      color={embedded ? "#fff" : "var(--color-text)"}
+                    />
+                  </LikeButton>
+                )}
+                {menuAnchor && nowPlaying && (
+                  <NowPlayingMenu
+                    track={nowPlaying}
+                    uploadId={trackUploadId}
+                    anchorEl={menuAnchor}
+                    onClose={() => setMenuAnchor(null)}
+                  />
+                )}
               </div>
             </div>
             <ScrollingText key={`artist-${nowPlaying?.artistUri}`}>

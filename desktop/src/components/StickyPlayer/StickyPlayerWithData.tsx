@@ -979,6 +979,13 @@ function StickyPlayerWithData() {
   const isRockbox = player === "rockbox";
   // Show the queue button for the local engine OR a remote device with a queue.
   const showQueue = isRockbox || (player === "device" && !!activeDevice?.queue.length);
+  // The "…" track menu belongs to the players this app drives. Spotify is
+  // controlled by Spotify — its queue is not ours to reorder, and the library
+  // ids the menu's entries need do not exist for it.
+  const showTrackMenu = isRockbox || player === "device";
+  // Only an uploaded track has a library id, and only that can go on a
+  // playlist. A remote device sends its queue over, so this covers both.
+  const trackUploadId = queue[queueIndex]?.uploadId || undefined;
 
   return (
     <>
@@ -1152,6 +1159,8 @@ function StickyPlayerWithData() {
         fullscreenOpen={fullscreenOpen}
         onOpenFullscreen={() => setFullscreenOpen(true)}
         isUploadPlayer={isRockbox}
+        showTrackMenu={showTrackMenu}
+        trackUploadId={trackUploadId}
         shuffle={shuffle}
         repeatMode={repeatMode}
         onShuffle={() => setShuffle((s) => !s)}

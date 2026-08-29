@@ -81,7 +81,10 @@ export const Button = styled.button<{ disabled?: boolean }>`
 `;
 
 export const MainWrapper = styled.div`
-  width: clamp(220px, 30vw, 380px);
+  /* Narrower than it was (was 220-380 at 30vw): the transport does not need
+     the room, and giving it back to the flanking columns leaves the title and
+     the right-hand actions — now including the track menu — less cramped. */
+  width: clamp(200px, 26vw, 340px);
   margin-left: 10px;
   margin-right: 10px;
 `;
