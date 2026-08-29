@@ -124,8 +124,18 @@ export default function NfcListener() {
   const handlers = useRef({ creds, did, playNow, navigate, enqueue });
   handlers.current = { creds, did, playNow, navigate, enqueue };
 
+  // Which scan is allowed to start playback. Two readers are read in the same
+  // poll tick, so with a tag on one and a card in the other both resolve at
+  // once and both call playNow — 0.5 ms apart in practice, leaving whichever
+  // library lookup happened to finish last as the winner. Counting the scans
+  // makes the newest one win on purpose instead: it is the one the user just
+  // presented, and an older resolve that lands late is dropped.
+  const latestScan = useRef(0);
+
   useEffect(() => {
     const stop = onNfcScan(async ({ payloads }) => {
+        const scan = ++latestScan.current;
+        const superseded = () => latestScan.current !== scan;
         const { creds, did, playNow, navigate, enqueue } = handlers.current;
         const notify = (message: string) =>
           enqueue({ message, startEnhancer: NfcGlyph }, DURATION.short);
@@ -153,6 +163,9 @@ export default function NfcListener() {
 
         try {
           const found = await resolveFirst(playable, creds);
+          // Another card was presented while this one was resolving; it owns
+          // playback now, and starting this would yank it back.
+          if (superseded()) return;
           if (!found) {
             notify("That points at something no longer in your library");
             return;
