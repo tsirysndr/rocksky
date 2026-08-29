@@ -242,8 +242,8 @@ async function putScrobbleRecord(
     artists: track.artists === null ? undefined : track.artists,
     album: track.album,
     duration: track.duration,
-    trackNumber: track.trackNumber,
-    discNumber: track.discNumber === 0 ? 1 : track.discNumber,
+    trackNumber: track.trackNumber ?? 1,
+    discNumber: track.discNumber ? track.discNumber : 1,
     releaseDate: track.releaseDate
       ? track.releaseDate.toISOString()
       : undefined,
