@@ -49,6 +49,7 @@ import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
+import { useWritable } from "../../hooks/useWritable";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -1103,6 +1104,15 @@ export default function Library() {
   useEffect(() => {
     if (search.tab) setActiveKey(tabKeyFor(search.tab));
   }, [search.tab]);
+
+  // Shift+T on the Favorites tab writes the favorites themselves. The other
+  // tabs are lists rather than a single subject, so it stays inert there —
+  // those rows have their own context-menu entry.
+  useWritable(
+    did && activeKey === tabKeyFor("favorites")
+      ? { target: { kind: "favorites", did }, label: "Favorites" }
+      : null,
+  );
 
   const [openPlaylistMenuId, setOpenPlaylistMenuId] = useState<string | null>(null);
   const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState<HTMLElement | null>(null);

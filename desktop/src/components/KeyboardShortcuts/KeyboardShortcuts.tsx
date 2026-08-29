@@ -17,6 +17,9 @@ import { fullscreenPlayerAtom } from "../../atoms/fullscreenPlayer";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { rightPaneHiddenAtom } from "../../atoms/rightPane";
 import { shortcutsHelpOpenAtom } from "../../atoms/shortcuts";
+import { writableTargetAtom } from "../../atoms/writable";
+import { nfcWriteTargetAtom } from "../../atoms/nfc";
+import { payloadsForTarget } from "../WriteToNfcMenuItem";
 import { themeAtom } from "../../atoms/theme";
 
 // ── Shortcut catalogue (also drives the help modal) ─────────────────────────
@@ -48,6 +51,10 @@ const GROUPS: Group[] = [
       { keys: ["?"], label: "Show this help" },
       { keys: ["Esc"], label: "Close dialog / search" },
       { keys: ["t"], label: "Toggle light / dark theme" },
+      {
+        keys: ["T"],
+        label: "Write this album, playlist or favorites to an NFC tag or card",
+      },
       { keys: ["\\"], label: "Show / hide the side panel" },
       { keys: ["f"], label: "Toggle the fullscreen player" },
       { keys: ["e"], label: "Equalizer (audio settings)" },
@@ -195,6 +202,9 @@ function KeyboardShortcuts() {
   const [libraryPlaylistOpen, setLibraryPlaylistOpen] = useAtom(
     libraryPlaylistModalOpenAtom,
   );
+  // What the page on screen can write, and where a write is parked once armed.
+  const writable = useAtomValue(writableTargetAtom);
+  const setNfcWriteTarget = useSetAtom(nfcWriteTargetAtom);
 
   // The keydown listener is installed once; read the latest values through a
   // ref so it never closes over stale state.
@@ -219,6 +229,8 @@ function KeyboardShortcuts() {
     setCreatePlaylistOpen,
     libraryPlaylistOpen,
     setLibraryPlaylistOpen,
+    writable,
+    setNfcWriteTarget,
   });
   stateRef.current = {
     navigate,
@@ -241,6 +253,8 @@ function KeyboardShortcuts() {
     setCreatePlaylistOpen,
     libraryPlaylistOpen,
     setLibraryPlaylistOpen,
+    writable,
+    setNfcWriteTarget,
   };
 
   useEffect(() => {
@@ -337,6 +351,27 @@ function KeyboardShortcuts() {
           e.preventDefault();
           toggleTheme();
           break;
+        // Shift+T → write what this page is showing to a tag or card. The
+        // pages publish their subject (see useWritable); a page with nothing
+        // writable leaves this inert rather than acting on a stale one.
+        //
+        // One key rather than the TUI's two: an armed write here is taken by
+        // whichever medium turns up, so a tap and an insert are the same
+        // gesture as far as the app is concerned.
+        case "T": {
+          const w = s.writable;
+          if (!w) break;
+          e.preventDefault();
+          const { payloads, portable } = payloadsForTarget(w.target);
+          if (!payloads.length) break;
+          s.setNfcWriteTarget({
+            payloads,
+            label: w.label,
+            sublabel: w.sublabel,
+            portable,
+          });
+          break;
+        }
         case "\\":
           e.preventDefault();
           s.setPaneHidden(!s.paneHidden);

@@ -26,6 +26,7 @@ import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
+import { useWritable } from "../../hooks/useWritable";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -516,6 +517,17 @@ export default function LibraryAlbum() {
   const { data: album, isLoading } = useNavidromeAlbumQuery(id);
 
   const songs: NavidromeSong[] = album?.song ?? [];
+
+  // What Shift+T writes on this page.
+  useWritable(
+    album?.id
+      ? {
+          target: { kind: "album", id: album.id, uri: album.uri },
+          label: album.name,
+          sublabel: songs[0]?.albumArtist ?? songs[0]?.artist,
+        }
+      : null,
+  );
 
   // idx is the position in the flat list, which is what the queue and the
   // context menu index into — grouping must not renumber it.

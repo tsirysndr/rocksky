@@ -53,6 +53,26 @@ export type NfcWriteTarget =
     }
   | { kind: "favorites"; did: string };
 
+/**
+ * The records a target goes on a tag or card as, and whether it will work
+ * outside the owner's library. Shared with the T shortcut so a keyboard write
+ * and a menu write cannot drift apart.
+ */
+export function payloadsForTarget(target: NfcWriteTarget): {
+  payloads: string[];
+  portable: boolean;
+} {
+  // A favorites target names a person, not a server row, so it travels with
+  // them: portable in the same sense a record URI is.
+  if (target.kind === "favorites") {
+    return { payloads: nfcFavoritesPayloads(target.did), portable: true };
+  }
+  return {
+    payloads: nfcPayloadsFor(target.kind, { uri: target.uri, id: target.id }),
+    portable: isPortableRef({ uri: target.uri }),
+  };
+}
+
 export function WriteToNfcMenuItem({
   target,
   label,
@@ -67,14 +87,7 @@ export function WriteToNfcMenuItem({
   const setTarget = useSetAtom(nfcWriteTargetAtom);
   const { ready, reason } = useNfcReady();
 
-  // A favorites tag or card names a person, not a server row, so it travels
-  // with them: portable in the same sense a record URI is.
-  const payloads =
-    target.kind === "favorites"
-      ? nfcFavoritesPayloads(target.did)
-      : nfcPayloadsFor(target.kind, { uri: target.uri, id: target.id });
-  const portable =
-    target.kind === "favorites" ? true : isPortableRef({ uri: target.uri });
+  const { payloads, portable } = payloadsForTarget(target);
 
   const unwritable =
     payloads.length === 0 ? "Nothing to write yet" : null;

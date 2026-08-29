@@ -33,6 +33,7 @@ import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
+import { useWritable } from "../../hooks/useWritable";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { useSetAtom } from "jotai";
@@ -557,6 +558,17 @@ export default function LibraryPlaylist() {
   const setPlaylistModalOpen = useSetAtom(libraryPlaylistModalOpenAtom);
   const setEditingPlaylist = useSetAtom(editingLibraryPlaylistAtom);
   const setAddSongsTarget = useSetAtom(addLibrarySongsTargetAtom);
+
+  // What Shift+T writes on this page.
+  useWritable(
+    playlist?.id
+      ? {
+          target: { kind: "playlist", id: playlist.id, uri: playlist.uri },
+          label: playlist.name,
+          sublabel: `${playlist.songCount} tracks`,
+        }
+      : null,
+  );
 
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
