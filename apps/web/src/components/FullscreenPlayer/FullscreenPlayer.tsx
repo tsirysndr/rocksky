@@ -52,6 +52,36 @@ const CloseButton = styled.button`
   z-index: 2;
 `;
 
+/**
+ * Whether there is an OS window to drag — true only in the desktop shell.
+ *
+ * Detected inline rather than imported from lib/tauri, which the web build does
+ * not have: this component is shared between the two verbatim, and a desktop-only
+ * import would break that.
+ */
+const canDragWindow = () => "__TAURI_INTERNALS__" in window;
+
+/**
+ * Somewhere to grab the window while the overlay is up.
+ *
+ * The app's drag strip (see main.tsx) sits at z-index 1 so toasts and popovers
+ * stay above it, which also puts it under this overlay at z-index 100 — so
+ * fullscreen left nowhere to drag from. This one lives inside the overlay
+ * instead, and stays at z-index 1 so the close button above it keeps its whole
+ * hit area rather than losing its top edge to a drag region.
+ *
+ * Childless on purpose: `data-tauri-drag-region` applies to the element it is
+ * on, not to its descendants.
+ */
+const DragStrip = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 28px;
+  z-index: 1;
+`;
+
 const BigCover = styled.img`
   position: relative;
   z-index: 1;
@@ -129,6 +159,7 @@ function FullscreenPlayer({
 
   return (
     <Overlay>
+      {canDragWindow() && <DragStrip data-tauri-drag-region />}
       {nowPlaying.albumArt && (
         <Backdrop aria-hidden>
           <BackdropArt
