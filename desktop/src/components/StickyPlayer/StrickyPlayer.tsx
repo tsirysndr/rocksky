@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { Link as DefaultLink, useNavigate } from "@tanstack/react-router";
 import { IconAdjustmentsHorizontal, IconArrowsShuffle, IconDisc, IconDots, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
 import type { RepeatMode } from "../../atoms/playback";
+import type { QueueTrack } from "../../atoms/queue";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
 import { useRef, useState, type RefObject } from "react";
@@ -255,8 +256,10 @@ export type StickyPlayerProps = {
   /** Show the "…" track menu beside the heart. Off for Spotify, whose queue
    *  and library actions this app does not own. */
   showTrackMenu?: boolean;
-  /** Library id of the playing track, when it has one — enables Add to playlist. */
-  trackUploadId?: string;
+  /** The queue entry for what is playing, for the menu's queue and library
+   *  actions. The container picks the right queue: a remote device's own, or
+   *  the local one. */
+  trackQueued?: QueueTrack;
   shuffle?: boolean;
   repeatMode?: RepeatMode;
   onShuffle?: () => void;
@@ -284,7 +287,7 @@ function StickyPlayer(props: StickyPlayerProps) {
     onLike,
     onDislike,
     showTrackMenu,
-    trackUploadId,
+    trackQueued,
     isPlaying,
     showQueueButton,
     fullscreenOpen,
@@ -400,7 +403,7 @@ function StickyPlayer(props: StickyPlayerProps) {
                 {menuAnchor && nowPlaying && (
                   <NowPlayingMenu
                     track={nowPlaying}
-                    uploadId={trackUploadId}
+                    queued={trackQueued}
                     anchorEl={menuAnchor}
                     onClose={() => setMenuAnchor(null)}
                   />

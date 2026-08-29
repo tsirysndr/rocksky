@@ -8,10 +8,9 @@
 import styled from "@emotion/styled";
 import { IconDownload, IconMusic } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAtomValue } from "jotai";
 import { useEffect, useRef } from "react";
 import { downloadFromNavidrome } from "../api/navidrome";
-import { queueAtom, queueIndexAtom } from "../atoms/queue";
+import type { QueueTrack } from "../atoms/queue";
 import { useNavidromeCredentials } from "../hooks/useNavidrome";
 import { useUploadPlayer } from "../hooks/useUploadPlayer";
 import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
@@ -94,14 +93,19 @@ export type NowPlayingMenuTrack = {
 
 export function NowPlayingMenu({
   track,
-  uploadId,
+  queued,
   anchorEl,
   onClose,
 }: {
   track: NowPlayingMenuTrack;
-  /** The library id of the playing track, when it has one. Only an uploaded
-   *  track can be put on a playlist, so that entry appears with it. */
-  uploadId?: string;
+  /**
+   * The queue entry for what is playing, supplied by the caller.
+   *
+   * Not read from the queue atom here: that atom holds the *local* queue, and
+   * when a remote device is the player its queue is the authoritative one. The
+   * container knows which source applies, so it passes the entry in.
+   */
+  queued?: QueueTrack;
   anchorEl: HTMLElement | null;
   onClose: () => void;
 }) {
@@ -109,11 +113,6 @@ export function NowPlayingMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const { playNext, playLast } = useUploadPlayer();
   const { data: creds } = useNavidromeCredentials();
-  // The queue entry for what is playing — the same QueueTrack the library rows
-  // hand to these actions, so re-queueing from here behaves identically.
-  const queue = useAtomValue(queueAtom);
-  const queueIndex = useAtomValue(queueIndexAtom);
-  const queued = queue[queueIndex];
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -129,6 +128,9 @@ export function NowPlayingMenu({
   const songPath = atUriToPath(track.songUri);
   const artistPath = atUriToPath(track.artistUri);
   const albumPath = atUriToPath(track.albumUri);
+  // Only an uploaded track has a library id, and only that can be downloaded
+  // or put on a playlist.
+  const uploadId = queued?.uploadId;
   const go = (to: string) => {
     navigate({ to });
     onClose();
