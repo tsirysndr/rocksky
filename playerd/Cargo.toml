@@ -1,0 +1,28 @@
+[package]
+name = "playerd"
+version = "0.1.0"
+authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
+edition = "2021"
+license = "MPL-2.0"
+repository = "https://github.com/tsirysndr/rocksky"
+description = "Rocksky remote player daemon — a headless rockbox-playback device controllable from the web and desktop miniplayers"
+
+# Standalone like desktop/src-tauri: rockbox-metadata/rockbox-dsp use `links`
+# and compile C, so this crate keeps its own lockfile outside the root workspace.
+[workspace]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+dirs = "6"
+gethostname = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+rockbox-metadata = "0.1"
+rockbox-playback = "0.5"
+rocksky-sdk = { path = "../crates/rocksky-sdk", features = ["remote-player"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
