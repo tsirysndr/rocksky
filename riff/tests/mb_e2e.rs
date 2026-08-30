@@ -134,11 +134,14 @@ async fn search_matches_the_scrobbler_query_shape() {
 async fn search_is_case_insensitive() {
     let doc = sample("artist");
     let name = doc["name"].as_str().unwrap().to_uppercase();
-    let (status, body) =
-        get(&format!("/ws/2/artist?query={}", urlencode(&name))).await;
+    let (status, body) = get(&format!("/ws/2/artist?query={}", urlencode(&name))).await;
     assert_eq!(status, StatusCode::OK);
     assert!(
-        body["artists"].as_array().unwrap().iter().any(|a| a["id"] == doc["id"]),
+        body["artists"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["id"] == doc["id"]),
         "uppercased bare query still matches"
     );
 }
@@ -153,7 +156,11 @@ async fn search_finds_artists_through_aliases() {
     .await;
     assert_eq!(status, StatusCode::OK);
     assert!(
-        body["artists"].as_array().unwrap().iter().any(|a| a["id"] == doc["id"]),
+        body["artists"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["id"] == doc["id"]),
         "alias {alias:?} finds its artist"
     );
 }
@@ -190,24 +197,35 @@ async fn isrc_search_and_lookup_agree() {
     let (status, body) = get(&format!("/ws/2/isrc/{}", isrc.to_lowercase())).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["isrc"], isrc.to_uppercase());
-    assert!(body["recordings"].as_array().unwrap().iter().any(|r| r["id"] == recording["id"]));
+    assert!(body["recordings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["id"] == recording["id"]));
 
     let (status, body) = get(&format!("/ws/2/recording?query=isrc:{isrc}")).await;
     assert_eq!(status, StatusCode::OK);
-    assert!(body["recordings"].as_array().unwrap().iter().any(|r| r["id"] == recording["id"]));
+    assert!(body["recordings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["id"] == recording["id"]));
 }
 
 #[actix_web::test]
 async fn browse_release_groups_by_artist() {
     let doc = sample("release-group");
     let artist_id = doc["artist-credit"][0]["artist"]["id"].as_str().unwrap();
-    let (status, body) =
-        get(&format!("/ws/2/release-group?artist={artist_id}&limit=100")).await;
+    let (status, body) = get(&format!("/ws/2/release-group?artist={artist_id}&limit=100")).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body["release-group-count"].as_u64().unwrap() >= 1);
     assert_eq!(body["release-group-offset"], 0);
     assert!(
-        body["release-groups"].as_array().unwrap().iter().any(|r| r["id"] == doc["id"]),
+        body["release-groups"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["id"] == doc["id"]),
         "sampled release group is in its artist's browse"
     );
 }
@@ -220,8 +238,10 @@ async fn paging_clamps_and_offsets() {
     let total = first["release-group-count"].as_u64().unwrap();
     assert_eq!(first["release-groups"].as_array().unwrap().len(), 1);
     if total > 1 {
-        let (_, second) =
-            get(&format!("/ws/2/release-group?artist={artist_id}&limit=1&offset=1")).await;
+        let (_, second) = get(&format!(
+            "/ws/2/release-group?artist={artist_id}&limit=1&offset=1"
+        ))
+        .await;
         assert_ne!(
             first["release-groups"][0]["id"], second["release-groups"][0]["id"],
             "offset pages"
@@ -253,7 +273,11 @@ async fn reimporting_an_entity_is_idempotent() {
     assert_eq!(first, second);
 
     let isrcs: u64 = conn
-        .query_row("SELECT count(DISTINCT recording_id) FROM mb_recording_isrc", [], |r| r.get(0))
+        .query_row(
+            "SELECT count(DISTINCT recording_id) FROM mb_recording_isrc",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     let with_isrcs: u64 = conn
         .query_row(

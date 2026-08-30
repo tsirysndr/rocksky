@@ -48,7 +48,8 @@ fn push(query: &mut Query, field: Option<&str>, value: String) {
     match field.map(|f| f.to_ascii_lowercase()).as_deref() {
         // The entity's own name, whatever the caller called it. `release` is
         // accepted for release-group searches since clients use it loosely.
-        None | Some("recording" | "release" | "releasegroup" | "release-group" | "work")
+        None
+        | Some("recording" | "release" | "releasegroup" | "release-group" | "work")
         | Some("area" | "label" | "place" | "event" | "instrument" | "title" | "name")
         | Some("alias") => query.name.push(value),
         Some("artist" | "artistname" | "creditname") => query.artist.push(value),
@@ -79,17 +80,18 @@ pub fn parse(raw: &str) -> Query {
     let mut token = String::new();
     let mut negated = false;
 
-    let flush = |query: &mut Query, field: &mut Option<String>, token: &mut String, negated: &mut bool| {
-        let word = std::mem::take(token);
-        let f = field.take();
-        let neg = std::mem::take(negated);
-        match word.as_str() {
-            "" | "AND" | "OR" | "&&" | "||" => {}
-            "NOT" | "!" | "-" => {} // negation handled at capture time
-            _ if neg => {}          // drop negated clauses entirely
-            _ => push(query, f.as_deref(), word),
-        }
-    };
+    let flush =
+        |query: &mut Query, field: &mut Option<String>, token: &mut String, negated: &mut bool| {
+            let word = std::mem::take(token);
+            let f = field.take();
+            let neg = std::mem::take(negated);
+            match word.as_str() {
+                "" | "AND" | "OR" | "&&" | "||" => {}
+                "NOT" | "!" | "-" => {} // negation handled at capture time
+                _ if neg => {}          // drop negated clauses entirely
+                _ => push(query, f.as_deref(), word),
+            }
+        };
 
     while let Some(c) = chars.next() {
         match c {

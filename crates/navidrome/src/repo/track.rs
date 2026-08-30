@@ -121,6 +121,8 @@ pub async fn get_stream_track_by_id(
         FROM user_uploads u
         LEFT JOIN user_storage_providers usp ON u.storage_provider_id = usp.xata_id
         WHERE u.track_id = $1 AND u.user_id = $2
+        ORDER BY u.uploaded_at DESC
+        LIMIT 1
         "#,
     )
     .bind(track_id)

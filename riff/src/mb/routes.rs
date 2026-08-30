@@ -180,7 +180,10 @@ pub struct CollectionParams {
 }
 
 fn page(limit: Option<u32>, offset: Option<u32>) -> (u32, u32) {
-    (limit.unwrap_or(DEFAULT_PAGE).clamp(1, MAX_PAGE), offset.unwrap_or(0))
+    (
+        limit.unwrap_or(DEFAULT_PAGE).clamp(1, MAX_PAGE),
+        offset.unwrap_or(0),
+    )
 }
 
 pub async fn collection(
@@ -197,10 +200,10 @@ pub async fn collection(
     if let Some(artist_mbid) = params.artist.clone() {
         return browse_by_artist(catalog, spec, artist_mbid, limit, offset).await;
     }
-    Err(ApiError::BadRequest(
-        "One of `query` (search) or `artist` (browse) is required".into(),
+    Err(
+        ApiError::BadRequest("One of `query` (search) or `artist` (browse) is required".into())
+            .into(),
     )
-    .into())
 }
 
 /// `data` rows → JSON values with a search `score` attached.
@@ -279,9 +282,7 @@ fn search_sql(spec: &EntitySpec, q: &search::Query) -> SearchSql {
         binds.push(arid.clone());
     }
     for isrc in &q.isrc {
-        conds.push(
-            "t.id IN (SELECT recording_id FROM mb_recording_isrc WHERE isrc = ?)".into(),
-        );
+        conds.push("t.id IN (SELECT recording_id FROM mb_recording_isrc WHERE isrc = ?)".into());
         binds.push(isrc.clone());
     }
     for id in &q.id {
@@ -389,7 +390,11 @@ async fn browse_by_artist(
         .iter()
         .map(|d| serde_json::from_str(d))
         .collect::<Result<_, _>>()
-        .map_err(|e| MbError(ApiError::Internal(format!("stored document is not JSON: {e}"))))?;
+        .map_err(|e| {
+            MbError(ApiError::Internal(format!(
+                "stored document is not JSON: {e}"
+            )))
+        })?;
 
     let mut body = Map::new();
     body.insert(format!("{}-count", spec.path), json!(total));
@@ -424,7 +429,11 @@ pub async fn isrc(
         .iter()
         .map(|d| serde_json::from_str(d))
         .collect::<Result<_, _>>()
-        .map_err(|e| MbError(ApiError::Internal(format!("stored document is not JSON: {e}"))))?;
+        .map_err(|e| {
+            MbError(ApiError::Internal(format!(
+                "stored document is not JSON: {e}"
+            )))
+        })?;
 
     Ok(HttpResponse::Ok().json(json!({
         "isrc": code_out,

@@ -17,6 +17,7 @@ import { createHash } from "node:crypto";
 import tables from "schema";
 import { saveTrack } from "tracks/tracks.service";
 import { purgeUploads } from "uploads/delete.service";
+import { ensureReplayGain } from "uploads/replaygain";
 import { indexLibraryTrack, searchLibraryTracks } from "typesense/library";
 
 // ---------------------------------------------------------------------------
@@ -270,9 +271,17 @@ app.post("/track", async (c) => {
   const album = common.album!.trim();
   const albumArtist = common.albumartist?.trim() || artist;
 
-  // --- Content SHA-256: used for upload dedup and R2 storage key ---
-  const fileHash = contentSha256(buf);
+  // --- ReplayGain: tag untagged files so players can normalize loudness ---
+  // The rockbox engine (desktop + wasm) only applies ReplayGain from tags in
+  // the stream itself; without this, every untagged file plays at mastered
+  // loudness regardless of the user's ReplayGain setting.
   const ext = MIME_TO_EXT[mime] ?? "bin";
+  const hasGainTag = common.replaygain_track_gain?.dB != null;
+  const storedBuf = hasGainTag ? buf : await ensureReplayGain(buf, ext);
+
+  // --- Content SHA-256: used for upload dedup and R2 storage key ---
+  // Hash the stored (possibly retagged) bytes so the key matches the object.
+  const fileHash = contentSha256(storedBuf);
   const storageKey = `music/${user.id}/${fileHash}.${ext}`;
 
   const existingUpload = await ctx.db
@@ -419,9 +428,9 @@ app.post("/track", async (c) => {
     new PutObjectCommand({
       Bucket: bucket,
       Key: storageKey,
-      Body: buf,
+      Body: storedBuf,
       ContentType: mime,
-      ContentLength: buf.length,
+      ContentLength: storedBuf.length,
       Metadata: {
         userId: user.id,
         trackId: track.id,
@@ -438,7 +447,7 @@ app.post("/track", async (c) => {
       trackId: track.id,
       r2Key: storageKey,
       mimeType: mime,
-      fileSize: buf.length,
+      fileSize: storedBuf.length,
       originalFilename: file.name,
       storageProviderId,
       sampleRate: format.sampleRate ?? null,
@@ -461,7 +470,7 @@ app.post("/track", async (c) => {
     album_art: track.albumArt ?? undefined,
     r2_key: storageKey,
     mime_type: mime,
-    file_size: buf.length,
+    file_size: storedBuf.length,
     original_filename: file.name,
     uploaded_at: upload.uploadedAt.getTime(),
     mb_id: track.mbId ?? undefined,

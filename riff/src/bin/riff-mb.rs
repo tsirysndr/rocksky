@@ -24,7 +24,12 @@ struct Cli {
     host: String,
 
     /// DuckDB file written by riff-mb-import.
-    #[arg(short, long, env = "RIFF_MB_DB_PATH", default_value = "musicbrainz.duckdb")]
+    #[arg(
+        short,
+        long,
+        env = "RIFF_MB_DB_PATH",
+        default_value = "musicbrainz.duckdb"
+    )]
     db_path: PathBuf,
 
     /// Number of DuckDB connections. Each concurrent request holds one.

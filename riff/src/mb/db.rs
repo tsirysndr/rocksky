@@ -66,8 +66,7 @@ pub fn open(cfg: &Settings) -> Result<(MbCatalog, Vec<String>), String> {
 
     // Point lookups over an indexed file want the OS page cache, not a huge
     // buffer pool — same lesson riff learned in production.
-    let memory_limit =
-        std::env::var("RIFF_MB_MEMORY_LIMIT").unwrap_or_else(|_| "2GB".to_string());
+    let memory_limit = std::env::var("RIFF_MB_MEMORY_LIMIT").unwrap_or_else(|_| "2GB".to_string());
     conn.execute_batch(&format!(
         "SET memory_limit = '{}'",
         memory_limit.replace('\'', "")

@@ -36,7 +36,8 @@
     "likes": "tsx ./src/scripts/likes.ts",
     "backfill:isrc-mbid": "tsx ./src/scripts/backfill-isrc-mbid.ts",
     "riff:backfill": "tsx ./src/scripts/backfill-riff.ts",
-    "backfill:track-uri": "tsx ./src/scripts/backfill-track-uri.ts"
+    "backfill:track-uri": "tsx ./src/scripts/backfill-track-uri.ts",
+    "backfill:replaygain": "tsx ./src/scripts/backfill-replaygain.ts"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",
@@ -91,6 +92,7 @@
     "music-metadata": "^11.12.3",
     "nats": "^2.29.2",
     "node-cron": "^4.2.1",
+    "node-taglib-sharp": "^6.0.3",
     "pg": "^8.13.3",
     "prompts": "^2.4.2",
     "ramda": "^0.30.1",

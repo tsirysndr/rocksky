@@ -17,7 +17,11 @@ use riff::mb::import;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "riff-mb-import", version, about = "MusicBrainz NDJSON dumps → DuckDB")]
+#[command(
+    name = "riff-mb-import",
+    version,
+    about = "MusicBrainz NDJSON dumps → DuckDB"
+)]
 struct Cli {
     /// Directory holding the dumps, either as <entity>/mbdump/<entity> (the
     /// upstream layout) or flat <entity>.jsonl files.
