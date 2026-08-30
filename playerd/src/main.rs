@@ -61,7 +61,11 @@ async fn main() -> Result<()> {
     if let Some(name) = &cli.name {
         config.name = name.clone();
     }
-    if let Some(ws_url) = cli.ws_url.clone().or_else(|| std::env::var("ROCKSKY_WS").ok()) {
+    if let Some(ws_url) = cli
+        .ws_url
+        .clone()
+        .or_else(|| std::env::var("ROCKSKY_WS").ok())
+    {
         config.ws_url = ws_url;
     }
     if let Some(api_url) = &cli.api_url {

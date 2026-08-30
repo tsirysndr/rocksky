@@ -191,7 +191,11 @@ pub fn scan_local(paths: &[PathBuf]) -> Result<(Vec<String>, Vec<RemoteQueueItem
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_default();
         items.push(RemoteQueueItem {
-            title: if meta.title.is_empty() { stem } else { meta.title },
+            title: if meta.title.is_empty() {
+                stem
+            } else {
+                meta.title
+            },
             artist: meta.artist,
             album: meta.album,
             album_artist: meta.albumartist,
