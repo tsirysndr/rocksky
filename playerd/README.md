@@ -39,6 +39,17 @@ socket — then control it from any Rocksky client.
 Reconnects, heartbeats, and re-advertising state after a drop are handled by
 the `rocksky-sdk` `remote-player` client.
 
+## Audio settings from your atproto repo
+
+The web and desktop apps persist your DSP settings (equalizer, tone,
+crossfade, ReplayGain) to the `app.rocksky.rockbox.audio.settings` record in
+your atproto repo. `playerd` fetches that record on startup and re-checks it
+every `audio_settings_refresh_seconds` (default 60), so tweaking the EQ in
+the web player reaches the daemon within a minute — no restart. Fields the
+record specifies override the local `[equalizer]` baseline; anything it
+doesn't specify keeps the TOML value. Set `sync_audio_settings = false` to
+run purely from the local config.
+
 ## Building
 
 `playerd` is a standalone crate (it is excluded from the repo's root
@@ -116,6 +127,13 @@ shuffle = false
 repeat = "off"        # off | one | all
 buffer_seconds = 10.0 # decode-ahead cushion; keep >= 10 for network streams
 
+# Apply the cross-device audio settings from your atproto repo
+# (app.rocksky.rockbox.audio.settings) over the [equalizer] baseline below,
+# refreshed periodically so web/desktop EQ tweaks reach the daemon live.
+sync_audio_settings = true
+audio_settings_refresh_seconds = 60
+
+# Local DSP baseline; fields present in the synced atproto record win.
 [equalizer]
 enabled = false
 # dB gain for the 10 bands at 32, 64, 125, 250, 500, 1k, 2k, 4k, 8k, 16k Hz.

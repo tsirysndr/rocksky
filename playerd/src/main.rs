@@ -8,6 +8,7 @@ mod config;
 mod engine;
 mod remote;
 mod resolver;
+mod settings;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -74,7 +75,19 @@ async fn main() -> Result<()> {
 
     let (uris, items) = resolver::scan_local(&cli.paths)?;
 
-    let engine = Arc::new(Engine::start(config.player_config()?).map_err(|e| anyhow!(e))?);
+    let player_config = config.player_config()?;
+    let audio_baseline = settings::Baseline::from_player_config(&player_config);
+    let engine = Arc::new(Engine::start(player_config).map_err(|e| anyhow!(e))?);
+
+    if config.sync_audio_settings {
+        tokio::spawn(settings::sync_loop(
+            engine.clone(),
+            audio_baseline,
+            config.api_url.trim_end_matches('/').to_string(),
+            token.clone(),
+            std::time::Duration::from_secs(config.audio_settings_refresh_seconds.max(5)),
+        ));
+    }
 
     tracing::info!("registering \"{name}\" on {}", config.ws_url);
     let remote = Arc::new(RemotePlayer::connect(

@@ -66,6 +66,11 @@ pub struct Config {
     pub repeat: String,
     #[serde(deserialize_with = "lenient_f32")]
     pub buffer_seconds: f32,
+    /// Apply (and keep applying) the cross-device audio settings stored in
+    /// the user's atproto repo (app.rocksky.rockbox.audio.settings) over the
+    /// `[equalizer]` baseline below.
+    pub sync_audio_settings: bool,
+    pub audio_settings_refresh_seconds: u64,
     pub equalizer: EqualizerConfig,
 }
 
@@ -132,6 +137,8 @@ impl Default for Config {
             shuffle: false,
             repeat: "off".to_string(),
             buffer_seconds: 10.0,
+            sync_audio_settings: true,
+            audio_settings_refresh_seconds: 60,
             equalizer: EqualizerConfig::default(),
         }
     }

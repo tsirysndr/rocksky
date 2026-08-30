@@ -10,7 +10,10 @@ use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rockbox_playback::{PlaybackState, Player, PlayerConfig, RepeatMode, Status};
+use rockbox_playback::{
+    ChannelMode, CrossfadeSettings, Equalizer, PlaybackState, Player, PlayerConfig, RepeatMode,
+    ReplayGainMode, Status, ToneControls,
+};
 
 pub enum EngineCmd {
     /// Replace the queue and start playback at `start_index` ("play now").
@@ -28,6 +31,16 @@ pub enum EngineCmd {
     Seek(Duration),
     SkipTo(usize),
     Remove(usize),
+    SetEqualizer(Equalizer),
+    SetTone(ToneControls),
+    SetBalance(i32),
+    SetChannelMode(ChannelMode),
+    SetCrossfade(CrossfadeSettings),
+    SetReplaygain {
+        mode: ReplayGainMode,
+        preamp_db: f32,
+        noclip: bool,
+    },
 }
 
 /// A `Send + Clone` snapshot of the engine, refreshed by the engine thread.
@@ -140,5 +153,15 @@ fn apply(player: &Player, cmd: EngineCmd) {
         EngineCmd::Seek(pos) => player.seek(pos),
         EngineCmd::SkipTo(index) => player.skip_to(index),
         EngineCmd::Remove(index) => player.remove(index),
+        EngineCmd::SetEqualizer(equalizer) => player.set_equalizer(equalizer),
+        EngineCmd::SetTone(tone) => player.set_tone(tone),
+        EngineCmd::SetBalance(balance) => player.set_balance(balance),
+        EngineCmd::SetChannelMode(mode) => player.set_channel_mode(mode),
+        EngineCmd::SetCrossfade(settings) => player.set_crossfade(settings),
+        EngineCmd::SetReplaygain {
+            mode,
+            preamp_db,
+            noclip,
+        } => player.set_replaygain(mode, preamp_db, noclip),
     }
 }
