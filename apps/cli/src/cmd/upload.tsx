@@ -1,6 +1,11 @@
 import { Box, render, Text, useApp } from "ink";
 import { loadToken } from "lib/token";
-import { collectAudioFiles, uploadTrack } from "lib/uploadTrack";
+import {
+  collectAudioFiles,
+  resolveStorageProvider,
+  type StorageProvider,
+  uploadTrack,
+} from "lib/uploadTrack";
 import path from "path";
 import React, { useEffect, useState } from "react";
 
@@ -75,7 +80,16 @@ function Row({ s }: { s: FileState }) {
   );
 }
 
-function UploadApp({ token, files }: { token: string; files: string[] }) {
+function UploadApp({
+  token,
+  files,
+  storage,
+}: {
+  token: string;
+  files: string[];
+  /** Resolved BYO destination; undefined = Rocksky managed storage. */
+  storage?: StorageProvider;
+}) {
   const { exit } = useApp();
   const [states, setStates] = useState<FileState[]>(
     files.map((f) => ({ file: f, pct: 0, status: "pending" })),
@@ -93,8 +107,11 @@ function UploadApp({ token, files }: { token: string; files: string[] }) {
         if (i >= files.length) return;
         update(i, { status: "uploading", pct: 0 });
         try {
-          await uploadTrack(token, files[i], (pct) =>
-            !cancelled && update(i, { status: "uploading", pct }),
+          await uploadTrack(
+            token,
+            files[i],
+            (pct) => !cancelled && update(i, { status: "uploading", pct }),
+            storage?.id,
           );
           update(i, { status: "done", pct: 100 });
         } catch (e: any) {
@@ -124,7 +141,9 @@ function UploadApp({ token, files }: { token: string; files: string[] }) {
   return (
     <Box flexDirection="column" padding={1}>
       <Text bold color={BLUE}>
-        {`♫ Uploading ${files.length} file${files.length === 1 ? "" : "s"} to Rocksky`}
+        {`♫ Uploading ${files.length} file${files.length === 1 ? "" : "s"} to ${
+          storage ? `${storage.label} · ${storage.bucket}` : "Rocksky"
+        }`}
       </Text>
       <Box flexDirection="column" marginTop={1}>
         {states.map((s, i) => (
@@ -142,13 +161,25 @@ function UploadApp({ token, files }: { token: string; files: string[] }) {
   );
 }
 
-export async function upload(files: string[]) {
+export async function upload(files: string[], opts: { storage?: string } = {}) {
   const token = loadToken();
   if (!token) {
     console.error(
       "You are not logged in. Run `rocksky login <handle>` first.",
     );
     process.exit(1);
+  }
+
+  // Resolve the destination BEFORE rendering: a typo'd --storage should fail
+  // with the list of what exists, not upload anything anywhere.
+  let storage: StorageProvider | undefined;
+  if (opts.storage) {
+    try {
+      storage = await resolveStorageProvider(token, opts.storage);
+    } catch (e: any) {
+      console.error(e?.message ?? "Failed to resolve storage");
+      process.exit(1);
+    }
   }
 
   const collected = collectAudioFiles(files);
@@ -160,7 +191,7 @@ export async function upload(files: string[]) {
   }
 
   const { waitUntilExit } = render(
-    <UploadApp token={token} files={collected} />,
+    <UploadApp token={token} files={collected} storage={storage} />,
   );
   await waitUntilExit();
   process.exit(0);

@@ -294,10 +294,14 @@ program
 program
   .command("upload")
   .argument("<files...>", "audio files or directories to upload")
+  .option(
+    "-s, --storage <ref>",
+    "upload into your own connected storage (name, bucket or id) instead of Rocksky's",
+  )
   .description("upload audio files to your Rocksky library")
-  .action(async (files: string[]) => {
+  .action(async (files: string[], opts: { storage?: string }) => {
     const { upload } = await import("cmd/upload");
-    await upload(files);
+    await upload(files, opts);
   });
 
 // The TUI needs no local database, so it skips `ensureDb()` entirely.

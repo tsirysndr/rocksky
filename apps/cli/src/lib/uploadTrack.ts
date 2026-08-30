@@ -60,6 +60,8 @@ export async function uploadTrack(
   token: string,
   filePath: string,
   onProgress: (percent: number) => void,
+  /** BYO storage provider to upload into; omitted = Rocksky managed storage. */
+  storageProviderId?: string,
 ): Promise<UploadResult> {
   const size = fs.statSync(filePath).size;
   const form = new FormData();
@@ -68,6 +70,9 @@ export async function uploadTrack(
     contentType: MIME[path.extname(filePath).toLowerCase()] || "application/octet-stream",
     knownLength: size,
   });
+  if (storageProviderId) {
+    form.append("storage_provider_id", storageProviderId);
+  }
 
   const response = await axios.post<UploadResult>(
     `${ROCKSKY_API_URL}/uploads/track`,
@@ -87,4 +92,53 @@ export async function uploadTrack(
   );
 
   return response.data;
+}
+
+export interface StorageProvider {
+  id: string;
+  label: string;
+  endpoint: string;
+  bucket: string;
+}
+
+/**
+ * Resolve a `--storage` ref to a provider id. Matches the provider's label,
+ * bucket or id, case-insensitively; a miss or an ambiguous match throws with
+ * the available providers listed, which is also how a user discovers them.
+ */
+export async function resolveStorageProvider(
+  token: string,
+  ref: string,
+): Promise<StorageProvider> {
+  const { data: providers } = await axios.get<StorageProvider[]>(
+    `${ROCKSKY_API_URL}/storage/providers`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+
+  if (providers.length === 0) {
+    throw new Error(
+      "You have no storage connected. Add one under Storage in the app, then retry.",
+    );
+  }
+
+  const q = ref.trim().toLowerCase();
+  const matches = providers.filter(
+    (p) =>
+      p.id === ref ||
+      p.label.toLowerCase() === q ||
+      p.bucket.toLowerCase() === q,
+  );
+
+  const list = providers
+    .map((p) => `  ${p.label} · ${p.bucket} (${p.id})`)
+    .join("\n");
+  if (matches.length === 0) {
+    throw new Error(`No storage matches "${ref}". Connected storage:\n${list}`);
+  }
+  if (matches.length > 1) {
+    throw new Error(
+      `"${ref}" matches more than one storage — use the id instead:\n${list}`,
+    );
+  }
+  return matches[0];
 }
