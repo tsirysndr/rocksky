@@ -15,6 +15,7 @@ pub mod catalog;
 pub mod db;
 pub mod error;
 pub mod fixtures;
+pub mod mb;
 pub mod models;
 pub mod ratelimit;
 pub mod routes;

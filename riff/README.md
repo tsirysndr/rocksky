@@ -316,3 +316,65 @@ not. It deliberately includes the awkward cases — a year-precision release dat
 an album with no label or copyright, a narrower market set, a featured artist, a
 compilation with `appears_on` credits, and one track whose `null_response` says
 Spotify had no analysis for it.
+
+## riff-mb — the same trick for MusicBrainz
+
+`riff-mb` serves the **MusicBrainz ws/2 API** out of the MusicBrainz JSON
+dumps, imported once into a DuckDB file. Same crate, its own binary, its own
+port:
+
+```sh
+MUSICBRAINZ_API_URL=http://localhost:8094/ws/2
+```
+
+Like riff, most callers do not talk to it directly: the
+[`musicbrainz/`](../musicbrainz) Go proxy queries riff-mb first —
+unrate-limited — and only falls back to the real, 1 rps musicbrainz.org when
+riff-mb has nothing (`MBRIFF_URL`, default `http://localhost:8094`).
+
+### Import
+
+The dumps at metabrainz.org ship one NDJSON file per entity
+(`<entity>/mbdump/<entity>`), each line already in the ws/2 lookup shape with
+every `inc=` expansion inlined. `riff-mb-import` keeps each line verbatim and
+extracts only what lookups and searches filter on (ids, names, aliases, ISRCs,
+artist credits):
+
+```sh
+cargo run --release --bin riff-mb-import -- \
+    --dumps-dir /root/musicbrainz --db /root/musicbrainz-db/musicbrainz.duckdb
+```
+
+Entities import independently (`--only artist`), and re-importing one replaces
+its table, so a failed run resumes where it left off and each dump can be
+deleted as soon as its row count checks out — the dump set and the database
+never need to fit on disk together.
+
+### Endpoints
+
+```
+GET /ws/2/{entity}/{mbid}              lookup: area artist event instrument
+                                       label place recording release-group work
+GET /ws/2/{entity}?query=&limit=&offset=
+                                       search (the Lucene dialect Rocksky emits)
+GET /ws/2/recording?artist={mbid}      browse recordings by artist
+GET /ws/2/release-group?artist={mbid}  browse release groups by artist
+GET /ws/2/isrc/{isrc}                  recordings carrying an ISRC
+```
+
+Matching is **exact** (case-insensitive, aliases included), like riff's search
+and for the same reason. `fmt` and `inc` are accepted and ignored — responses
+are always JSON and already carry everything the dump had. Two honest gaps,
+both dump-shaped: there is **no release dump**, so `releases` is never in a
+response, and the **recording dump only holds standalone recordings** (~133K,
+not the ~34M attached to releases) — which is exactly why the Go proxy keeps
+the real API as fallback.
+
+### Deployment
+
+`rocksky-riff-mb.service` mirrors `rocksky-riff.service`: loopback only, port
+8094, database path in `RIFF_MB_DB_PATH`, overrides in
+`/etc/default/rocksky-riff-mb`.
+
+`tests/mb_e2e.rs` runs the real routes over a real import of
+`testdata/musicbrainz/`, 300 actual dump lines per entity.

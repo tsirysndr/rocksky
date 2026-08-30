@@ -1,0 +1,36 @@
+[Unit]
+Description=Rocksky riff-mb Service (MusicBrainz ws/2 API served from DuckDB)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+# riff is its own cargo workspace (excluded from the root one), so its binary
+# lives under riff/target, not the shared target/.
+#   cd /root/github/rocksky/riff && cargo build --release --bin riff-mb
+ExecStart=/root/github/rocksky/riff/target/release/riff-mb
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-riff-mb
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+# Loopback only, on purpose: the only caller is the musicbrainz Go proxy on
+# the same host, and riff-mb exposes the whole catalog with no auth of its own.
+Environment=RIFF_MB_HOST=127.0.0.1
+Environment=RIFF_MB_PORT=8094
+
+# The DuckDB file written by riff-mb-import. riff-mb refuses to start if it is
+# missing. Override in /etc/default/rocksky-riff-mb rather than editing this
+# unit.
+Environment=RIFF_MB_DB_PATH=/root/musicbrainz-db/musicbrainz.duckdb
+EnvironmentFile=-/etc/default/rocksky-riff-mb
+
+[Install]
+WantedBy=multi-user.target

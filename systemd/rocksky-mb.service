@@ -17,6 +17,10 @@ SyslogIdentifier=rocksky-mb
 # Environment
 Environment=HOME=/root
 Environment=USER=root
+# MBRIFF_URL lives here (default http://localhost:8094): the local riff-mb is
+# queried first on every request, the real rate-limited MusicBrainz API only
+# when it has nothing.
+EnvironmentFile=-/etc/default/rocksky-mb
 
 [Install]
 WantedBy=multi-user.target
