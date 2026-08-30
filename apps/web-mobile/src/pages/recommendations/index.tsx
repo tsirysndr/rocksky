@@ -1,6 +1,6 @@
 import ContentLoader from "react-content-loader";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
@@ -14,6 +14,38 @@ import type {
   ArtistRecommendation,
   TrackRecommendation,
 } from "../../api/recommendations";
+
+const PAGE_SIZE = 25;
+
+// The API returns the whole precomputed list at once (up to 100 rows), so
+// "infinite scroll" is progressive reveal: render PAGE_SIZE more rows every
+// time the sentinel under the list scrolls into view.
+function useInfiniteReveal(total: number) {
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const done = visible >= total;
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || done) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisible((v) => v + PAGE_SIZE);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [done]);
+
+  return { visible, done, sentinelRef };
+}
+
+function RevealSentinel({
+  reveal,
+}: {
+  reveal: ReturnType<typeof useInfiniteReveal>;
+}) {
+  if (reveal.done) return null;
+  return <div ref={reveal.sentinelRef} className="h-[1px]" />;
+}
 
 function sourceLabel(source?: string): { text: string; color: string } {
   switch (source) {
@@ -318,6 +350,10 @@ export default function Recommendations() {
   const { data: albums, isLoading: albumsLoading, isFetching: albumsFetching } =
     useAlbumRecommendationsQuery(did);
 
+  const tracksReveal = useInfiniteReveal(tracks?.length ?? 0);
+  const artistsReveal = useInfiniteReveal(artists?.length ?? 0);
+  const albumsReveal = useInfiniteReveal(albums?.length ?? 0);
+
   if (!profile || !jwt) {
     return (
       <Main>
@@ -390,25 +426,28 @@ export default function Recommendations() {
 
         {!loading && items.length > 0 && tab === "tracks" && (
           <div>
-            {(tracks ?? []).map((item, i) => (
+            {(tracks ?? []).slice(0, tracksReveal.visible).map((item, i) => (
               <TrackRow key={item.trackUri ?? i} item={item} index={i} />
             ))}
+            <RevealSentinel reveal={tracksReveal} />
           </div>
         )}
 
         {!loading && items.length > 0 && tab === "artists" && (
           <div>
-            {(artists ?? []).map((item, i) => (
+            {(artists ?? []).slice(0, artistsReveal.visible).map((item, i) => (
               <ArtistRow key={item.id ?? i} item={item} index={i} />
             ))}
+            <RevealSentinel reveal={artistsReveal} />
           </div>
         )}
 
         {!loading && items.length > 0 && tab === "albums" && (
           <div>
-            {(albums ?? []).map((item, i) => (
+            {(albums ?? []).slice(0, albumsReveal.visible).map((item, i) => (
               <AlbumRow key={item.id ?? i} item={item} index={i} />
             ))}
+            <RevealSentinel reveal={albumsReveal} />
           </div>
         )}
       </div>

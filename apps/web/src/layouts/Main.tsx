@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { displayDrawerAtom } from "../atoms/drawer";
 import { rightPaneHiddenAtom } from "../atoms/rightPane";
 import RightPaneToggle from "../components/RightPaneToggle";
+import RecommendationsWidget from "../components/RecommendationsWidget";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";
@@ -229,6 +230,7 @@ function Main(props: MainProps) {
             <div className="mb-[30px]">
               <Search />
             </div>
+            {jwt && profile && <RecommendationsWidget />}
             {jwt && profile && (
               <div className="mb-[20px]">
                 <Link

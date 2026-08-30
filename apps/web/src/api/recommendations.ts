@@ -38,7 +38,7 @@ export type AlbumRecommendation = {
 
 export const getTrackRecommendations = (
   did: string,
-  limit = 50,
+  limit = 100,
 ): Promise<TrackRecommendation[]> =>
   rocksky()
     .recommendations(did, limit)
@@ -46,7 +46,7 @@ export const getTrackRecommendations = (
 
 export const getArtistRecommendations = (
   did: string,
-  limit = 50,
+  limit = 100,
 ): Promise<ArtistRecommendation[]> =>
   rocksky()
     .artistRecommendations(did, limit)
@@ -54,7 +54,7 @@ export const getArtistRecommendations = (
 
 export const getAlbumRecommendations = (
   did: string,
-  limit = 50,
+  limit = 100,
 ): Promise<AlbumRecommendation[]> =>
   rocksky()
     .albumRecommendations(did, limit)

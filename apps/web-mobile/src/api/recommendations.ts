@@ -36,19 +36,19 @@ export type AlbumRecommendation = {
   source?: string;
 };
 
-export const getTrackRecommendations = (did: string, limit = 50) =>
+export const getTrackRecommendations = (did: string, limit = 100) =>
   rocksky()
     .recommendations(did, limit)
     .then(
       (r) => (r.recommendations ?? []) as unknown as TrackRecommendation[],
     );
 
-export const getArtistRecommendations = (did: string, limit = 50) =>
+export const getArtistRecommendations = (did: string, limit = 100) =>
   rocksky()
     .artistRecommendations(did, limit)
     .then((r) => (r.artists ?? []) as unknown as ArtistRecommendation[]);
 
-export const getAlbumRecommendations = (did: string, limit = 50) =>
+export const getAlbumRecommendations = (did: string, limit = 100) =>
   rocksky()
     .albumRecommendations(did, limit)
     .then((r) => (r.albums ?? []) as unknown as AlbumRecommendation[]);

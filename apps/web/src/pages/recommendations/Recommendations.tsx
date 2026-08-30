@@ -7,7 +7,7 @@ import { HeadingMedium } from "baseui/typography";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { useAtomValue } from "jotai";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
 import {
@@ -24,9 +24,22 @@ import type {
 const Link = styled(DefaultLink)`
   color: inherit;
   text-decoration: none;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   &:hover {
     text-decoration: underline;
   }
+`;
+
+const Ellipsis = styled.span`
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const TABLE_OVERRIDES = {
@@ -197,9 +210,42 @@ type AlbumRow = AlbumRecommendation & { index: number };
 const EMPTY_MSG =
   "Scrobble more tracks to unlock personalised recommendations.";
 
+const PAGE_SIZE = 25;
+
+// The API returns the whole precomputed list at once (up to 100 rows), so
+// "infinite scroll" is progressive reveal: render PAGE_SIZE more rows every
+// time the sentinel under the table scrolls into view.
+function useInfiniteReveal(total: number) {
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const done = visible >= total;
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || done) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisible((v) => v + PAGE_SIZE);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [done]);
+
+  return { visible, done, sentinelRef };
+}
+
+function RevealSentinel({
+  reveal,
+}: {
+  reveal: ReturnType<typeof useInfiniteReveal>;
+}) {
+  if (reveal.done) return null;
+  return <div ref={reveal.sentinelRef} className="h-[1px]" />;
+}
+
 function Recommendations() {
   const profile = useAtomValue(profileAtom);
   const [activeKey, setActiveKey] = useState<React.Key>("0");
+  const jwt = localStorage.getItem("token");
 
   const did = profile?.did;
   const {
@@ -225,18 +271,41 @@ function Recommendations() {
   const showAlbumsSkeleton =
     albumsLoading || (albumsFetching && !albums?.length);
 
-  const trackRows: TrackRow[] = (tracks ?? []).map((item, index) => ({
-    ...item,
-    index,
-  }));
-  const artistRows: ArtistRow[] = (artists ?? []).map((item, index) => ({
-    ...item,
-    index,
-  }));
-  const albumRows: AlbumRow[] = (albums ?? []).map((item, index) => ({
-    ...item,
-    index,
-  }));
+  const tracksReveal = useInfiniteReveal(tracks?.length ?? 0);
+  const artistsReveal = useInfiniteReveal(artists?.length ?? 0);
+  const albumsReveal = useInfiniteReveal(albums?.length ?? 0);
+
+  const trackRows: TrackRow[] = (tracks ?? [])
+    .map((item, index) => ({ ...item, index }))
+    .slice(0, tracksReveal.visible);
+  const artistRows: ArtistRow[] = (artists ?? [])
+    .map((item, index) => ({ ...item, index }))
+    .slice(0, artistsReveal.visible);
+  const albumRows: AlbumRow[] = (albums ?? [])
+    .map((item, index) => ({ ...item, index }))
+    .slice(0, albumsReveal.visible);
+
+  if (!jwt) {
+    return (
+      <Main>
+        <div className="mt-[60px] mb-[100px] flex flex-col items-center text-center">
+          <HeadingMedium
+            marginTop="0px"
+            marginBottom="15px"
+            className="!text-[var(--color-text)]"
+          >
+            Recommendations
+          </HeadingMedium>
+          <div className="text-[var(--color-text)] font-semibold">
+            Sign in to see your personalised recommendations
+          </div>
+          <div className="text-[var(--color-text-muted)] mt-[8px]">
+            Recommendations are based on your scrobble history.
+          </div>
+        </div>
+      </Main>
+    );
+  }
 
   return (
     <Main>
@@ -276,7 +345,7 @@ function Recommendations() {
                       ? uriToPath(row.artistUri)
                       : null;
                     return (
-                      <div className="flex flex-row items-center">
+                      <div className="flex flex-row items-center min-w-0">
                         <div className="mr-[20px] text-[var(--color-text)]">
                           {row.index + 1}
                         </div>
@@ -284,43 +353,39 @@ function Recommendations() {
                           <img
                             src={row.albumArt}
                             alt={row.title}
-                            className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                            className="w-[60px] h-[60px] mr-[20px] rounded-[5px] shrink-0"
                           />
                         ) : (
-                          <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)]">
+                          <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)] shrink-0">
                             <IconMusic size={20} className="opacity-20" />
                           </div>
                         )}
-                        <div className="flex flex-col min-w-0">
+                        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                           {href ? (
                             <Link
                               to={href as any}
-                              className="!text-[var(--color-text)] truncate"
+                              className="!text-[var(--color-text)]"
                             >
                               {row.title}
                             </Link>
                           ) : (
-                            <span
-                              className="truncate"
-                              style={{ color: "var(--color-text)" }}
-                            >
+                            <Ellipsis style={{ color: "var(--color-text)" }}>
                               {row.title}
-                            </span>
+                            </Ellipsis>
                           )}
                           {artistHref ? (
                             <Link
                               to={artistHref as any}
-                              className="!text-[var(--color-text-muted)] truncate"
+                              className="!text-[var(--color-text-muted)]"
                             >
                               {row.artist}
                             </Link>
                           ) : (
-                            <span
-                              className="truncate"
+                            <Ellipsis
                               style={{ color: "var(--color-text-muted)" }}
                             >
                               {row.artist}
-                            </span>
+                            </Ellipsis>
                           )}
                         </div>
                       </div>
@@ -335,6 +400,7 @@ function Recommendations() {
                 </TableBuilderColumn>
               </TableBuilder>
             )}
+            {!showTracksSkeleton && <RevealSentinel reveal={tracksReveal} />}
           </Tab>
 
           {/* ── Artists ── */}
@@ -352,7 +418,7 @@ function Recommendations() {
                   {(row: ArtistRow) => {
                     const href = row.uri ? uriToPath(row.uri) : null;
                     return (
-                      <div className="flex flex-row items-center">
+                      <div className="flex flex-row items-center min-w-0">
                         <div className="mr-[20px] text-[var(--color-text)]">
                           {row.index + 1}
                         </div>
@@ -360,33 +426,32 @@ function Recommendations() {
                           <img
                             src={row.picture}
                             alt={row.name}
-                            className="w-[60px] h-[60px] rounded-full mr-[20px]"
+                            className="w-[60px] h-[60px] rounded-full mr-[20px] shrink-0"
                           />
                         ) : (
-                          <div className="w-[60px] h-[60px] rounded-full mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)]">
+                          <div className="w-[60px] h-[60px] rounded-full mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)] shrink-0">
                             <span className="text-xl opacity-20">♬</span>
                           </div>
                         )}
-                        <div className="flex flex-col min-w-0">
+                        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                           {href ? (
                             <Link
                               to={href as any}
-                              className="!text-[var(--color-text)] truncate"
+                              className="!text-[var(--color-text)]"
                             >
                               {row.name}
                             </Link>
                           ) : (
-                            <span
-                              className="truncate"
-                              style={{ color: "var(--color-text)" }}
-                            >
+                            <Ellipsis style={{ color: "var(--color-text)" }}>
                               {row.name}
-                            </span>
+                            </Ellipsis>
                           )}
                           {row.genres && row.genres.length > 0 && (
-                            <span style={{ color: "var(--color-text-muted)" }}>
+                            <Ellipsis
+                              style={{ color: "var(--color-text-muted)" }}
+                            >
                               {row.genres.slice(0, 3).join(", ")}
-                            </span>
+                            </Ellipsis>
                           )}
                         </div>
                       </div>
@@ -401,6 +466,7 @@ function Recommendations() {
                 </TableBuilderColumn>
               </TableBuilder>
             )}
+            {!showArtistsSkeleton && <RevealSentinel reveal={artistsReveal} />}
           </Tab>
 
           {/* ── Albums ── */}
@@ -421,7 +487,7 @@ function Recommendations() {
                       ? uriToPath(row.artistUri)
                       : null;
                     return (
-                      <div className="flex flex-row items-center">
+                      <div className="flex flex-row items-center min-w-0">
                         <div className="mr-[20px] text-[var(--color-text)]">
                           {row.index + 1}
                         </div>
@@ -429,47 +495,44 @@ function Recommendations() {
                           <img
                             src={row.albumArt}
                             alt={row.title}
-                            className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                            className="w-[60px] h-[60px] mr-[20px] rounded-[5px] shrink-0"
                           />
                         ) : (
-                          <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)]">
+                          <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)] shrink-0">
                             <span className="text-xl opacity-20">💿</span>
                           </div>
                         )}
-                        <div className="flex flex-col min-w-0">
+                        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                           {href ? (
                             <Link
                               to={href as any}
-                              className="!text-[var(--color-text)] truncate"
+                              className="!text-[var(--color-text)]"
                             >
                               {row.title}
                             </Link>
                           ) : (
-                            <span
-                              className="truncate"
-                              style={{ color: "var(--color-text)" }}
-                            >
+                            <Ellipsis style={{ color: "var(--color-text)" }}>
                               {row.title}
-                            </span>
+                            </Ellipsis>
                           )}
-                          <div className="flex items-center gap-[6px]">
+                          <div className="flex items-center gap-[6px] min-w-0">
                             {artistHref ? (
                               <Link
                                 to={artistHref as any}
-                                className="!text-[var(--color-text-muted)] truncate"
+                                className="!text-[var(--color-text-muted)]"
                               >
                                 {row.artist}
                               </Link>
                             ) : (
-                              <span
-                                className="truncate"
+                              <Ellipsis
                                 style={{ color: "var(--color-text-muted)" }}
                               >
                                 {row.artist}
-                              </span>
+                              </Ellipsis>
                             )}
                             {row.year && (
                               <span
+                                className="whitespace-nowrap shrink-0"
                                 style={{ color: "var(--color-text-muted)" }}
                               >
                                 · {row.year}
@@ -489,6 +552,7 @@ function Recommendations() {
                 </TableBuilderColumn>
               </TableBuilder>
             )}
+            {!showAlbumsSkeleton && <RevealSentinel reveal={albumsReveal} />}
           </Tab>
         </Tabs>
       </div>
