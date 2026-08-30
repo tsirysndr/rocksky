@@ -22,7 +22,7 @@ use crate::xata::album::AlbumWithStats;
 /// MATERIALIZED is load-bearing: inlined, the planner is free to push these
 /// back into the outer query per-row and rebuild the shape this avoids.
 ///
-/// `tr.album = albums.title AND tr.album_artist = albums.artist` stays on the
+/// `lower(tr.album) = lower(albums.title) AND lower(tr.album_artist) = lower(albums.artist)` stays on the
 /// junction join: album_tracks has polluted entries linking tracks to albums
 /// they don't belong to (a different release with the same title from another
 /// user, stale links from re-ingestion), and without the guard a single stray
@@ -42,8 +42,8 @@ album_stats AS MATERIALIZED (
     FROM mine m
     JOIN album_tracks atr ON atr.track_id = m.track_id
     JOIN albums al ON al.xata_id = atr.album_id
-                  AND al.title  = m.album
-                  AND al.artist = m.album_artist
+                  AND lower(al.title)  = lower(m.album)
+                  AND lower(al.artist) = lower(m.album_artist)
     GROUP BY atr.album_id
 )
 "#;
@@ -70,8 +70,8 @@ pub async fn get_albums_by_artist(
         JOIN artist_albums ON albums.xata_id = artist_albums.album_id
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND tracks.album = albums.title
-                    AND tracks.album_artist = albums.artist
+                    AND lower(tracks.album) = lower(albums.title)
+                    AND lower(tracks.album_artist) = lower(albums.artist)
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE artist_albums.artist_id = $2
           AND user_uploads.user_id = $1
@@ -108,8 +108,8 @@ pub async fn get_album_by_id(
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND tracks.album = albums.title
-                    AND tracks.album_artist = albums.artist
+                    AND lower(tracks.album) = lower(albums.title)
+                    AND lower(tracks.album_artist) = lower(albums.artist)
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND albums.xata_id = $2
@@ -150,8 +150,8 @@ pub async fn get_album_by_uri(
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND tracks.album = albums.title
-                    AND tracks.album_artist = albums.artist
+                    AND lower(tracks.album) = lower(albums.title)
+                    AND lower(tracks.album_artist) = lower(albums.artist)
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND albums.uri = $2
@@ -377,8 +377,8 @@ pub async fn get_albums_by_names(
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND tracks.album = albums.title
-                    AND tracks.album_artist = albums.artist
+                    AND lower(tracks.album) = lower(albums.title)
+                    AND lower(tracks.album_artist) = lower(albums.artist)
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND albums.title = ANY($2)

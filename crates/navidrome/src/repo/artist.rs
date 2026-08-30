@@ -18,7 +18,7 @@ use crate::xata::artist::{ArtistRow, ArtistWithStats};
 /// the driving position, merge-joins 64k of them against the library and
 /// rebuilds a 245k-row intermediate — the exact shape this avoids.
 ///
-/// `tr.album_artist = artists.name` on every junction join stays: artist_tracks
+/// `lower(tr.album_artist) = lower(artists.name)` on every junction join stays: artist_tracks
 /// has polluted entries linking tracks to artists they don't credit, and
 /// without the guard a single stray row puts a stranger's artist in the
 /// caller's library. See commit 8f06a470.
@@ -38,14 +38,14 @@ album_counts AS MATERIALIZED (
     SELECT aa.artist_id, COUNT(DISTINCT aa.album_id) AS album_count
     FROM mine_albums ma
     JOIN artist_albums aa ON aa.album_id = ma.album_id
-    JOIN artists ar ON ar.xata_id = aa.artist_id AND ar.name = ma.album_artist
+    JOIN artists ar ON ar.xata_id = aa.artist_id AND lower(ar.name) = lower(ma.album_artist)
     GROUP BY aa.artist_id
 ),
 mine_artists AS MATERIALIZED (
     SELECT DISTINCT atk.artist_id
     FROM mine m
     JOIN artist_tracks atk ON atk.track_id = m.track_id
-    JOIN artists ar ON ar.xata_id = atk.artist_id AND ar.name = m.album_artist
+    JOIN artists ar ON ar.xata_id = atk.artist_id AND lower(ar.name) = lower(m.album_artist)
 )
 "#;
 
@@ -90,7 +90,7 @@ pub async fn get_artist_by_id(
           AND EXISTS (
               SELECT 1 FROM artist_tracks atk
               JOIN tracks tr ON tr.xata_id = atk.track_id
-                            AND tr.album_artist = artists.name
+                            AND lower(tr.album_artist) = lower(artists.name)
               JOIN user_uploads uu ON uu.track_id = atk.track_id
               WHERE atk.artist_id = artists.xata_id AND uu.user_id = $2
           )
@@ -162,8 +162,8 @@ pub async fn get_artists_by_names(
                 JOIN artist_albums aa  ON alb.xata_id   = aa.album_id
                 JOIN album_tracks  atr ON alb.xata_id   = atr.album_id
                 JOIN tracks        tr  ON atr.track_id  = tr.xata_id
-                                      AND tr.album       = alb.title
-                                      AND tr.album_artist = alb.artist
+                                      AND lower(tr.album)        = lower(alb.title)
+                                      AND lower(tr.album_artist) = lower(alb.artist)
                 JOIN user_uploads  uu  ON tr.xata_id    = uu.track_id
                 WHERE aa.artist_id = artists.xata_id
                   AND uu.user_id   = $1
@@ -171,7 +171,7 @@ pub async fn get_artists_by_names(
         FROM artists
         JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
         JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
-                          AND tracks.album_artist = artists.name
+                          AND lower(tracks.album_artist) = lower(artists.name)
         JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND artists.name = ANY($2)

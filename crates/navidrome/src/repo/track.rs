@@ -42,15 +42,15 @@ const TRACK_JOINS: &str = r#"
         SELECT at2.album_id FROM album_tracks at2
         JOIN albums a ON at2.album_id = a.xata_id
         WHERE at2.track_id = tracks.xata_id
-          AND tracks.album = a.title
-          AND tracks.album_artist = a.artist
+          AND lower(tracks.album) = lower(a.title)
+          AND lower(tracks.album_artist) = lower(a.artist)
         LIMIT 1
     ) alb ON true
     LEFT JOIN LATERAL (
         SELECT at3.artist_id FROM artist_tracks at3
         JOIN artists ar ON at3.artist_id = ar.xata_id
         WHERE at3.track_id = tracks.xata_id
-          AND tracks.album_artist = ar.name
+          AND lower(tracks.album_artist) = lower(ar.name)
         LIMIT 1
     ) art ON true
 "#;
@@ -72,8 +72,8 @@ pub async fn get_tracks_by_album(
         {}
         JOIN album_tracks ON tracks.xata_id = album_tracks.track_id
         JOIN albums ON album_tracks.album_id = albums.xata_id
-                    AND tracks.album = albums.title
-                    AND tracks.album_artist = albums.artist
+                    AND lower(tracks.album) = lower(albums.title)
+                    AND lower(tracks.album_artist) = lower(albums.artist)
         WHERE album_tracks.album_id = $1
           AND user_uploads.user_id = $2
         ORDER BY tracks.disc_number ASC NULLS FIRST, tracks.track_number ASC NULLS FIRST, tracks.xata_id ASC
@@ -310,8 +310,8 @@ pub async fn get_album_id_for_track(
            JOIN albums a ON at2.album_id = a.xata_id
            JOIN tracks t ON at2.track_id = t.xata_id
            WHERE at2.track_id = $1
-             AND t.album = a.title
-             AND t.album_artist = a.artist
+             AND lower(t.album) = lower(a.title)
+             AND lower(t.album_artist) = lower(a.artist)
            LIMIT 1"#,
     )
     .bind(track_id)
@@ -330,7 +330,7 @@ pub async fn get_artist_id_for_track(
            JOIN artists ar ON at3.artist_id = ar.xata_id
            JOIN tracks t ON at3.track_id = t.xata_id
            WHERE at3.track_id = $1
-             AND t.album_artist = ar.name
+             AND lower(t.album_artist) = lower(ar.name)
            LIMIT 1"#,
     )
     .bind(track_id)
