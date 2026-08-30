@@ -26,9 +26,14 @@ export interface UploadError {
 export const uploadTrack = async (
   file: File,
   onProgress?: (percent: number) => void,
+  /** BYO storage provider to upload into; omitted = Rocksky managed storage. */
+  storageProviderId?: string,
 ): Promise<UploadResult> => {
   const formData = new FormData();
   formData.append("file", file);
+  if (storageProviderId) {
+    formData.append("storage_provider_id", storageProviderId);
+  }
 
   const response = await axios.post<UploadResult>(
     `${API_URL}/uploads/track`,

@@ -68,8 +68,27 @@ app.post("/providers", async (c) => {
   try {
     await client.send(new HeadBucketCommand({ Bucket: bucket }));
   } catch (e: unknown) {
+    // HeadBucket failures mostly surface as bare status codes ("UnknownError"),
+    // which tells the person debugging their bucket nothing. Name the cause.
+    const err = e as {
+      name?: string;
+      message?: string;
+      code?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+    const status = err.$metadata?.httpStatusCode;
     const message =
-      e instanceof Error ? e.message : "Failed to connect to S3 bucket";
+      status === 403 || err.name === "Forbidden"
+        ? "The bucket refused these credentials (403). Check the access key, secret key, and that they have permission on this bucket."
+        : status === 404 || err.name === "NotFound"
+          ? `Bucket "${bucket}" was not found at that endpoint (404). Check the bucket name and endpoint URL.`
+          : status === 301
+            ? "The bucket exists but in a different region (301). Set the region this bucket actually lives in."
+            : err.code === "ENOTFOUND" || err.code === "ECONNREFUSED"
+              ? "Could not reach that endpoint. Check the endpoint URL."
+              : err.message && err.message !== "UnknownError"
+                ? err.message
+                : "Failed to connect to the S3 bucket with these credentials.";
     return c.json({ error: "CONNECTIVITY_FAILED", message }, 422);
   }
 

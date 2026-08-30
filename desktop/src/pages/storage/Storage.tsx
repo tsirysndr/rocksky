@@ -1,13 +1,25 @@
-import { IconCloud, IconLock, IconPlus, IconTrash } from "@tabler/icons-react";
+// Bring-your-own S3 storage.
+//
+// Connecting a provider here is what makes "Your storage" selectable on the
+// upload page. Everything is additive to the managed default: a user with no
+// provider uploads exactly as before, and nothing on this page can change
+// where existing files live — the server refuses to delete a provider that
+// uploads still reference.
+//
+// The API verifies the bucket (HeadBucket with the given credentials) before
+// persisting anything, so a listed provider is one that worked at least once.
+
+import styled from "@emotion/styled";
+import {
+  IconCloud,
+  IconLock,
+  IconPlus,
+  IconTrash,
+} from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button } from "baseui/button";
-import { FormControl } from "baseui/form-control";
-import { Input } from "baseui/input";
-import { Modal, ModalBody, ModalFooter, ModalHeader } from "baseui/modal";
-import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import {
   StorageProvider,
   createStorageProvider,
@@ -16,22 +28,363 @@ import {
 } from "../../api/storage";
 import Main from "../../layouts/Main";
 
-const inputOverrides = {
-  Root: {
-    style: {
-      backgroundColor: "var(--color-input-background)",
-      borderColor: "var(--color-input-background)",
-    },
-  },
-  InputContainer: {
-    style: { backgroundColor: "var(--color-input-background)" },
-  },
-  Input: {
-    style: { color: "var(--color-text)", caretColor: "var(--color-text)" },
-  },
-};
+// ---------------------------------------------------------------------------
+// Styled components — same idiom as the library and upload pages.
+// ---------------------------------------------------------------------------
 
-interface FormValues {
+const Page = styled.div`
+  margin-top: 70px;
+  margin-bottom: 150px;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+`;
+
+const PageTitle = styled.h1`
+  margin: 0;
+  font-size: 1.5rem;
+  font-family: RockfordSansBold;
+  color: var(--color-text);
+`;
+
+const PageSubtitle = styled.p`
+  margin: 0 0 24px;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+`;
+
+const SecurityNote = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--color-menu-hover);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+`;
+
+const PrimaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    opacity: 0.9;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+/* The header action, styled like the library's "Upload Music" button —
+   quiet at rest, primary-tinted on hover — rather than a solid primary slab. */
+const HeaderButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  background: var(--color-menu-hover);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  }
+`;
+
+const GhostButton = styled.button`
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-menu-hover);
+    color: var(--color-text);
+  }
+`;
+
+const DangerButton = styled(PrimaryButton)`
+  background: #e55;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 72px 0;
+  color: var(--color-text-muted);
+`;
+
+const EmptyTitle = styled.p`
+  margin: 0;
+  font-size: 1rem;
+  font-family: RockfordSansMedium;
+  color: var(--color-text);
+`;
+
+const EmptySubtitle = styled.p`
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.6;
+`;
+
+const ProviderList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const ProviderCard = styled.div`
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--color-menu-hover);
+`;
+
+const ProviderTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const ProviderIdentity = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+`;
+
+const ProviderInfo = styled.div`
+  min-width: 0;
+`;
+
+const ProviderLabel = styled.p`
+  margin: 0;
+  font-size: 0.9375rem;
+  font-family: RockfordSansMedium;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ProviderMeta = styled.p`
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ProviderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+`;
+
+const VerifiedBadge = styled.span`
+  font-size: 0.6875rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-family: RockfordSansMedium;
+  color: #4caf50;
+  background: color-mix(in srgb, #4caf50 12%, transparent);
+`;
+
+const IconButton = styled.button`
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  display: flex;
+
+  &:hover {
+    background: var(--color-background);
+    color: #e55;
+  }
+`;
+
+// ---------------------------------------------------------------------------
+// Dialog — the app's own overlay/panel, not baseui's Modal.
+// ---------------------------------------------------------------------------
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.55);
+`;
+
+const Panel = styled.div`
+  &,
+  & *,
+  & *::before,
+  & *::after {
+    box-sizing: border-box;
+  }
+  width: 460px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  border-radius: 16px;
+  background: var(--color-background);
+  border: 1px solid var(--color-menu-hover);
+  padding: 24px;
+`;
+
+const FormPanel = styled(Panel)`
+  /* Wide enough that two columns of URL-ish fields don't feel cramped; the
+     base panel's max-width still caps it on small windows. */
+  width: 640px;
+`;
+
+/* Two columns keeps the seven fields to four rows; long URLs span both. */
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+`;
+
+const SpanBoth = styled.div`
+  grid-column: 1 / -1;
+`;
+
+const DialogTitle = styled.h2`
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+  font-family: RockfordSansBold;
+  color: var(--color-text);
+`;
+
+const DialogSubtitle = styled.p`
+  margin: 0 0 20px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+`;
+
+const Field = styled.div`
+  margin-bottom: 14px;
+`;
+
+const FieldLabel = styled.label`
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+  font-family: RockfordSansMedium;
+  color: var(--color-text);
+`;
+
+const FieldInput = styled.input<{ invalid?: boolean }>`
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid
+    ${({ invalid }) => (invalid ? "#e55" : "var(--color-menu-hover)")};
+  background: var(--color-menu-hover);
+  color: var(--color-text);
+  font-size: 0.875rem;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+  &:focus {
+    outline: none;
+    border-color: ${({ invalid }) => (invalid ? "#e55" : "var(--color-primary)")};
+  }
+`;
+
+const FieldHint = styled.p`
+  margin: 5px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+`;
+
+const FieldError = styled.p`
+  margin: 5px 0 0;
+  font-size: 0.75rem;
+  color: #e55;
+`;
+
+const ApiError = styled.div`
+  margin: 4px 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #e55;
+  background: color-mix(in srgb, #e55 10%, transparent);
+  overflow-wrap: anywhere;
+`;
+
+const DialogActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+`;
+
+const ConfirmText = styled.p`
+  margin: 0 0 20px;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+
+  strong {
+    color: var(--color-text);
+  }
+`;
+
+// ---------------------------------------------------------------------------
+// Connect dialog
+// ---------------------------------------------------------------------------
+
+type FormValues = {
   label: string;
   endpoint: string;
   region: string;
@@ -39,359 +392,372 @@ interface FormValues {
   access_key: string;
   secret_key: string;
   public_url: string;
-}
+};
 
-function ProviderRow({
-  provider,
-  onDelete,
+const URL_RULE = {
+  value: /^https?:\/\//i,
+  message: "Must be a URL, e.g. https://…",
+};
+
+export function ConnectStorageDialog({
+  onClose,
+  onConnected,
 }: {
-  provider: StorageProvider;
-  onDelete: (id: string) => void;
+  onClose: () => void;
+  /** Called with the new provider once the server has verified the bucket. */
+  onConnected?: (provider: StorageProvider) => void;
 }) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: {
+      label: "",
+      endpoint: "",
+      region: "auto",
+      bucket: "",
+      access_key: "",
+      secret_key: "",
+      public_url: "",
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: createStorageProvider,
+    onSuccess: (provider) => {
+      queryClient.invalidateQueries({ queryKey: ["storage-providers"] });
+      onConnected?.(provider);
+      onClose();
+    },
+    onError: (err: unknown) => {
+      const data = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data;
+      setApiError(
+        data?.message && data.message !== "UnknownError"
+          ? data.message
+          : "Could not reach that bucket with these credentials. Check the endpoint, bucket name and keys, then try again.",
+      );
+    },
+  });
+
+  const submit = handleSubmit((values) => {
+    setApiError(null);
+    create.mutate({
+      label: values.label.trim(),
+      endpoint: values.endpoint.trim(),
+      region: values.region.trim() || "auto",
+      bucket: values.bucket.trim(),
+      access_key: values.access_key.trim(),
+      secret_key: values.secret_key.trim(),
+      public_url: values.public_url.trim() || undefined,
+    });
+  });
+
+  // Esc closes, matching the app's other dialogs.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
-    <>
-      <div
-        className="rounded-xl p-4 mb-3"
-        style={{
-          backgroundColor: "var(--color-surface)",
-          border: "1px solid var(--color-border)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <IconCloud size={20} color="var(--color-primary)" className="shrink-0" />
-            <div className="min-w-0">
-              <p className="font-semibold text-base m-0 truncate" style={{ color: "var(--color-text)" }}>
-                {provider.label}
-              </p>
-              <p className="text-sm m-0 truncate" style={{ color: "var(--color-text-muted)" }}>
-                {provider.endpoint} · {provider.bucket}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {provider.verified_at && (
-              <span
-                className="text-xs px-2 py-0.5 rounded-full font-medium"
-                style={{ backgroundColor: "#14532d33", color: "#4ade80" }}
-              >
-                Verified
-              </span>
-            )}
-            <button
-              onClick={() => setConfirmOpen(true)}
-              className="border-none bg-transparent cursor-pointer p-1"
-            >
-              <IconTrash size={18} color="var(--color-text-muted)" />
-            </button>
-          </div>
-        </div>
+    <Overlay onMouseDown={onClose}>
+      <FormPanel onMouseDown={(e) => e.stopPropagation()}>
+        <form onSubmit={submit}>
+          <DialogTitle>Connect your storage</DialogTitle>
+          <DialogSubtitle>
+            Any S3-compatible service works — Cloudflare R2, Backblaze B2,
+            MinIO, AWS S3, … The bucket is checked with these credentials
+            before anything is saved.
+          </DialogSubtitle>
 
-        {provider.public_url && (
-          <p className="text-xs mt-2 mb-0" style={{ color: "var(--color-text-muted)" }}>
-            CDN: {provider.public_url}
-          </p>
-        )}
-      </div>
+          <FormGrid>
+            <Field>
+              <FieldLabel htmlFor="st-label">Name</FieldLabel>
+              <FieldInput
+                id="st-label"
+                placeholder="e.g. My Cloudflare R2"
+                invalid={!!errors.label}
+                autoFocus
+                {...register("label", { required: "Give this storage a name" })}
+              />
+              {errors.label && <FieldError>{errors.label.message}</FieldError>}
+            </Field>
 
-      <Modal
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        overrides={{
-          Root: { style: { zIndex: 50 } },
-          Dialog: { style: { backgroundColor: "var(--color-background)" } },
-          Close: { style: { color: "var(--color-text)" } },
-        }}
-      >
-        <ModalHeader className="!text-[var(--color-text)]">Remove storage provider?</ModalHeader>
-        <ModalBody>
-          <LabelMedium className="!text-[var(--color-text-muted)]">
-            This will only remove the connection. Files already uploaded to{" "}
-            <strong style={{ color: "var(--color-text)" }}>{provider.bucket}</strong> are not deleted.
-          </LabelMedium>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            kind="tertiary"
-            onClick={() => setConfirmOpen(false)}
-            overrides={{
-              BaseButton: {
-                style: {
-                  marginRight: "10px",
-                  backgroundColor: "var(--color-background) !important",
-                  color: "var(--color-text) !important",
-                },
-              },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={() => { onDelete(provider.id); setConfirmOpen(false); }}
-            overrides={{
-              BaseButton: {
-                style: {
-                  backgroundColor: "#dc2626 !important",
-                  color: "#fff !important",
-                },
-              },
-            }}
-          >
-            Remove
-          </Button>
-        </ModalFooter>
-      </Modal>
-    </>
+            <Field>
+              <FieldLabel htmlFor="st-bucket">Bucket</FieldLabel>
+              <FieldInput
+                id="st-bucket"
+                placeholder="my-music"
+                invalid={!!errors.bucket}
+                spellCheck={false}
+                {...register("bucket", { required: "The bucket name is required" })}
+              />
+              {errors.bucket && <FieldError>{errors.bucket.message}</FieldError>}
+            </Field>
+
+            <SpanBoth>
+              <Field>
+                <FieldLabel htmlFor="st-endpoint">S3 endpoint</FieldLabel>
+                <FieldInput
+                  id="st-endpoint"
+                  placeholder="https://<account>.r2.cloudflarestorage.com"
+                  invalid={!!errors.endpoint}
+                  spellCheck={false}
+                  {...register("endpoint", {
+                    required: "The S3 endpoint is required",
+                    pattern: URL_RULE,
+                  })}
+                />
+                {errors.endpoint && (
+                  <FieldError>{errors.endpoint.message}</FieldError>
+                )}
+              </Field>
+            </SpanBoth>
+
+            <Field>
+              <FieldLabel htmlFor="st-access">Access key ID</FieldLabel>
+              <FieldInput
+                id="st-access"
+                invalid={!!errors.access_key}
+                spellCheck={false}
+                autoComplete="off"
+                {...register("access_key", { required: "Required" })}
+              />
+              {errors.access_key && (
+                <FieldError>{errors.access_key.message}</FieldError>
+              )}
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="st-secret">Secret access key</FieldLabel>
+              <FieldInput
+                id="st-secret"
+                type="password"
+                invalid={!!errors.secret_key}
+                autoComplete="off"
+                {...register("secret_key", { required: "Required" })}
+              />
+              {errors.secret_key ? (
+                <FieldError>{errors.secret_key.message}</FieldError>
+              ) : (
+                <FieldHint>Encrypted at rest, never returned.</FieldHint>
+              )}
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="st-region">Region</FieldLabel>
+              <FieldInput
+                id="st-region"
+                placeholder="auto"
+                spellCheck={false}
+                {...register("region")}
+              />
+              <FieldHint>Most services accept "auto".</FieldHint>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="st-cdn">Public CDN URL (optional)</FieldLabel>
+              <FieldInput
+                id="st-cdn"
+                placeholder="https://cdn.example.com"
+                invalid={!!errors.public_url}
+                spellCheck={false}
+                {...register("public_url", {
+                  validate: (v) =>
+                    !v.trim() ||
+                    URL_RULE.value.test(v.trim()) ||
+                    URL_RULE.message,
+                })}
+              />
+              {errors.public_url ? (
+                <FieldError>{errors.public_url.message}</FieldError>
+              ) : (
+                <FieldHint>
+                  If set, audio streams straight from your CDN; otherwise
+                  Rocksky serves presigned URLs.
+                </FieldHint>
+              )}
+            </Field>
+          </FormGrid>
+
+          {apiError && <ApiError>{apiError}</ApiError>}
+
+          <DialogActions>
+            <GhostButton type="button" onClick={onClose}>
+              Cancel
+            </GhostButton>
+            <PrimaryButton type="submit" disabled={create.isPending}>
+              {create.isPending ? "Verifying bucket…" : "Connect & verify"}
+            </PrimaryButton>
+          </DialogActions>
+        </form>
+      </FormPanel>
+    </Overlay>
   );
 }
 
-export default function StoragePage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const jwt = localStorage.getItem("token");
+// ---------------------------------------------------------------------------
+// Delete confirmation
+// ---------------------------------------------------------------------------
 
-  const [isOpen, setIsOpen] = useState(false);
+function DeleteDialog({
+  provider,
+  onClose,
+}: {
+  provider: StorageProvider;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    defaultValues: { region: "auto" },
+  const remove = useMutation({
+    mutationFn: () => deleteStorageProvider(provider.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["storage-providers"] });
+      onClose();
+    },
+    onError: (err: unknown) => {
+      const data = (err as {
+        response?: { data?: { error?: string; message?: string } };
+      })?.response?.data;
+      setApiError(
+        data?.error === "PROVIDER_IN_USE"
+          ? "This storage still holds uploads, so it can't be disconnected — the files would become unplayable."
+          : (data?.message ?? "Could not disconnect the storage."),
+      );
+    },
   });
 
-  const { data: providers = [] } = useQuery({
+  return (
+    <Overlay onMouseDown={onClose}>
+      <Panel onMouseDown={(e) => e.stopPropagation()}>
+        <DialogTitle>Disconnect this storage?</DialogTitle>
+        <ConfirmText>
+          Rocksky forgets the connection to{" "}
+          <strong>{provider.bucket}</strong>. Nothing in the bucket is deleted.
+        </ConfirmText>
+        {apiError && <ApiError>{apiError}</ApiError>}
+        <DialogActions>
+          <GhostButton onClick={onClose}>Cancel</GhostButton>
+          <DangerButton onClick={() => remove.mutate()} disabled={remove.isPending}>
+            {remove.isPending ? "Disconnecting…" : "Disconnect"}
+          </DangerButton>
+        </DialogActions>
+      </Panel>
+    </Overlay>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+export default function StoragePage() {
+  const navigate = useNavigate();
+  const jwt = localStorage.getItem("token");
+
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [deleting, setDeleting] = useState<StorageProvider | null>(null);
+
+  const { data: providers = [], isLoading } = useQuery({
     queryKey: ["storage-providers"],
     queryFn: getStorageProviders,
     enabled: !!jwt,
   });
 
-  const createMutation = useMutation({
-    mutationFn: createStorageProvider,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["storage-providers"] });
-      setIsOpen(false);
-      setApiError(null);
-      reset();
-    },
-    onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to connect. Check your credentials and try again.";
-      setApiError(msg);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteStorageProvider,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["storage-providers"] }),
-  });
-
-  // Redirect home only when genuinely signed out — NOT when `profile` is null.
-  // The profile is fetched by <Main>'s useProfile after mount, so on a direct
-  // load it is briefly null; gating on it bounced to home / blanked the page
-  // before <Main> could mount and load it. The content only needs `jwt`.
+  // Redirect home only when genuinely signed out — NOT when the profile is
+  // still loading. The content only needs the token.
   useEffect(() => {
     if (!jwt) navigate({ to: "/" });
   }, [jwt, navigate]);
 
   if (!jwt) return null;
 
-  const onSubmit = (values: FormValues) => {
-    setApiError(null);
-    createMutation.mutate({
-      label: values.label,
-      endpoint: values.endpoint,
-      region: values.region || "auto",
-      bucket: values.bucket,
-      access_key: values.access_key,
-      secret_key: values.secret_key,
-      public_url: values.public_url || undefined,
-    });
-  };
-
   return (
     <Main>
-      <div className="px-4 pt-4 pb-24 max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold m-0" style={{ color: "var(--color-text)" }}>
-            Storage
-          </h2>
-          <Button
-            startEnhancer={() => <IconPlus size={18} color="#fff" />}
-            onClick={() => { setApiError(null); setIsOpen(true); }}
-            size="compact"
-            overrides={{
-              BaseButton: {
-                style: {
-                  backgroundColor: "var(--color-primary)",
-                  ":hover": { backgroundColor: "var(--color-primary)", opacity: 0.8 },
-                },
-              },
-            }}
-          >
-            Connect storage
-          </Button>
-        </div>
+      <Page>
+        <Header>
+          <PageTitle>Storage</PageTitle>
+          <HeaderButton onClick={() => setConnectOpen(true)}>
+            <IconPlus size={15} /> Connect storage
+          </HeaderButton>
+        </Header>
+        <PageSubtitle>
+          Keep your uploads in your own S3-compatible bucket instead of
+          Rocksky's managed storage.
+        </PageSubtitle>
 
-        <div
-          className="rounded-xl p-4 mb-4 flex items-start gap-3"
-          style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-        >
-          <IconLock size={18} color="var(--color-text-muted)" className="shrink-0 mt-0.5" />
-          <LabelSmall className="!text-[var(--color-text-muted)] m-0">
-            Your access key and secret key are encrypted at rest using XSalsa20-Poly1305 before being stored. They are never returned by the API.
-          </LabelSmall>
-        </div>
+        <SecurityNote>
+          <IconLock size={18} />
+          <span>
+            Access keys are encrypted at rest (XSalsa20-Poly1305) and never
+            returned by the API. Rocksky only uses them to write and stream
+            your own uploads.
+          </span>
+        </SecurityNote>
 
-        {providers.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
+        {!isLoading && providers.length === 0 && (
+          <EmptyState>
             <IconCloud size={48} color="var(--color-text-muted)" strokeWidth={1.2} />
-            <p className="text-sm text-center m-0" style={{ color: "var(--color-text-muted)" }}>
-              No storage providers connected yet.
-              <br />
-              Uploads will use Rocksky's managed storage.
-            </p>
-          </div>
+            <div style={{ textAlign: "center" }}>
+              <EmptyTitle>No storage connected</EmptyTitle>
+              <EmptySubtitle>
+                Uploads go to Rocksky's managed storage until you connect your
+                own bucket.
+              </EmptySubtitle>
+            </div>
+            <HeaderButton onClick={() => setConnectOpen(true)}>
+              <IconPlus size={15} /> Connect your storage
+            </HeaderButton>
+          </EmptyState>
         )}
 
-        {providers.map((p) => (
-          <ProviderRow key={p.id} provider={p} onDelete={(id) => deleteMutation.mutate(id)} />
-        ))}
-      </div>
+        {providers.length > 0 && (
+          <ProviderList>
+            {providers.map((p) => (
+              <ProviderCard key={p.id}>
+                <ProviderTop>
+                  <ProviderIdentity>
+                    <IconCloud size={20} color="var(--color-primary)" />
+                    <ProviderInfo>
+                      <ProviderLabel>{p.label}</ProviderLabel>
+                      <ProviderMeta>
+                        {p.endpoint} · {p.bucket}
+                      </ProviderMeta>
+                      {p.public_url && (
+                        <ProviderMeta>CDN: {p.public_url}</ProviderMeta>
+                      )}
+                    </ProviderInfo>
+                  </ProviderIdentity>
+                  <ProviderActions>
+                    {p.verified_at && <VerifiedBadge>Verified</VerifiedBadge>}
+                    <IconButton
+                      aria-label={`Disconnect ${p.label}`}
+                      onClick={() => setDeleting(p)}
+                    >
+                      <IconTrash size={17} />
+                    </IconButton>
+                  </ProviderActions>
+                </ProviderTop>
+              </ProviderCard>
+            ))}
+          </ProviderList>
+        )}
+      </Page>
 
-      <Modal
-        isOpen={isOpen}
-        onClose={() => { setIsOpen(false); setApiError(null); reset(); }}
-        overrides={{
-          Root: { style: { zIndex: 50 } },
-          Dialog: { style: { backgroundColor: "var(--color-background)" } },
-          Close: { style: { color: "var(--color-text)", ":hover": { color: "var(--color-text)", opacity: 0.8 } } },
-        }}
-      >
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <ModalHeader className="!text-[var(--color-text)]">Connect S3 storage</ModalHeader>
-          <ModalBody>
-            <div className="flex flex-col gap-3">
-              <FormControl label="Label" error={errors.label?.message}>
-                <Controller
-                  name="label"
-                  control={control}
-                  rules={{ required: "Required" }}
-                  render={({ field }) => (
-                    <Input {...field} placeholder="e.g. My Cloudflare R2" overrides={inputOverrides} error={!!errors.label} />
-                  )}
-                />
-              </FormControl>
-              <FormControl label="S3 Endpoint" error={errors.endpoint?.message}>
-                <Controller
-                  name="endpoint"
-                  control={control}
-                  rules={{ required: "Required" }}
-                  render={({ field }) => (
-                    <Input {...field} placeholder="https://…" overrides={inputOverrides} error={!!errors.endpoint} />
-                  )}
-                />
-              </FormControl>
-              <div className="grid grid-cols-2 gap-3">
-                <FormControl label="Region" caption="Default: auto">
-                  <Controller
-                    name="region"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="auto" overrides={inputOverrides} />
-                    )}
-                  />
-                </FormControl>
-                <FormControl label="Bucket" error={errors.bucket?.message}>
-                  <Controller
-                    name="bucket"
-                    control={control}
-                    rules={{ required: "Required" }}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="my-bucket" overrides={inputOverrides} error={!!errors.bucket} />
-                    )}
-                  />
-                </FormControl>
-              </div>
-              <FormControl label="Access Key ID" error={errors.access_key?.message}>
-                <Controller
-                  name="access_key"
-                  control={control}
-                  rules={{ required: "Required" }}
-                  render={({ field }) => (
-                    <Input {...field} placeholder="Access key ID" overrides={inputOverrides} error={!!errors.access_key} />
-                  )}
-                />
-              </FormControl>
-              <FormControl
-                label="Secret Access Key"
-                error={errors.secret_key?.message}
-                caption="Encrypted at rest — never stored in plaintext"
-              >
-                <Controller
-                  name="secret_key"
-                  control={control}
-                  rules={{ required: "Required" }}
-                  render={({ field }) => (
-                    <Input {...field} type="password" placeholder="Secret access key" overrides={inputOverrides} error={!!errors.secret_key} />
-                  )}
-                />
-              </FormControl>
-              <FormControl
-                label="Public CDN URL"
-                caption="Optional — e.g. https://cdn.example.com. If set, audio streams directly from your CDN. If omitted, Rocksky generates presigned URLs."
-              >
-                <Controller
-                  name="public_url"
-                  control={control}
-                  render={({ field }) => (
-                    <Input {...field} placeholder="https://cdn.example.com" overrides={inputOverrides} />
-                  )}
-                />
-              </FormControl>
-
-              {apiError && (
-                <p className="text-sm m-0" style={{ color: "#ef4444" }}>
-                  {apiError}
-                </p>
-              )}
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              kind="tertiary"
-              type="button"
-              onClick={() => { setIsOpen(false); setApiError(null); reset(); }}
-              overrides={{
-                BaseButton: {
-                  style: {
-                    marginRight: "10px",
-                    backgroundColor: "var(--color-background) !important",
-                    color: "var(--color-text) !important",
-                  },
-                },
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              isLoading={isSubmitting || createMutation.isPending}
-              shape="pill"
-              overrides={{
-                BaseButton: {
-                  style: {
-                    backgroundColor: "var(--color-primary) !important",
-                    color: "#fff !important",
-                  },
-                },
-              }}
-            >
-              Connect & verify
-            </Button>
-          </ModalFooter>
-        </form>
-      </Modal>
+      {connectOpen && (
+        <ConnectStorageDialog onClose={() => setConnectOpen(false)} />
+      )}
+      {deleting && (
+        <DeleteDialog provider={deleting} onClose={() => setDeleting(null)} />
+      )}
     </Main>
   );
 }

@@ -1,16 +1,20 @@
 import styled from "@emotion/styled";
 import {
   IconCheck,
+  IconCloud,
   IconCloudUpload,
   IconMusic,
   IconServer,
   IconX,
 } from "@tabler/icons-react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { getStorageProviders } from "../../api/storage";
 import { uploadTrack } from "../../api/uploads";
 import Main from "../../layouts/Main";
+import { ConnectStorageDialog } from "../storage/Storage";
 
 // ---------------------------------------------------------------------------
 // Accepted formats
@@ -109,6 +113,81 @@ const StreamIcon = styled.div`
   flex-shrink: 0;
   margin-top: 1px;
   color: var(--color-primary);
+`;
+
+const DestinationSection = styled.div`
+  margin: 0 0 16px;
+`;
+
+const DestinationLabel = styled.p`
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  font-family: RockfordSansMedium;
+  color: var(--color-text);
+`;
+
+const DestinationOptions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+`;
+
+const DestinationCard = styled.button<{ selected: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  background: ${({ selected }) =>
+    selected
+      ? "color-mix(in srgb, var(--color-primary) 8%, transparent)"
+      : "var(--color-menu-hover)"};
+  border: 1px solid
+    ${({ selected }) =>
+      selected ? "var(--color-primary)" : "var(--color-menu-hover)"};
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  }
+`;
+
+const DestinationText = styled.div`
+  min-width: 0;
+`;
+
+const DestinationName = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  color: var(--color-text);
+`;
+
+const DestinationHint = styled.p`
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ProviderSelect = styled.select`
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-menu-hover);
+  background: var(--color-menu-hover);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
 `;
 
 const DropZone = styled.div<{ active: boolean }>`
@@ -306,6 +385,42 @@ export default function UploadPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Where the files go. "managed" is the default and the path that existed
+  // before BYO storage — it must keep working untouched for users with no
+  // provider. "own" is only reachable once a provider exists.
+  const [destination, setDestination] = useState<"managed" | "own">("managed");
+  const [providerId, setProviderId] = useState<string | null>(null);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const jwt = localStorage.getItem("token");
+
+  const { data: providers = [] } = useQuery({
+    queryKey: ["storage-providers"],
+    queryFn: getStorageProviders,
+    enabled: !!jwt,
+  });
+
+  // Keep the selection honest against the provider list: default to the first
+  // provider, and fall back to managed if the selected one was disconnected.
+  useEffect(() => {
+    if (providers.length === 0) {
+      setDestination("managed");
+      setProviderId(null);
+      return;
+    }
+    if (!providerId || !providers.some((p) => p.id === providerId)) {
+      setProviderId(providers[0].id);
+    }
+  }, [providers, providerId]);
+
+  const chooseOwn = () => {
+    // No storage yet: prompt to set one up before the option can be chosen.
+    if (providers.length === 0) {
+      setConnectOpen(true);
+      return;
+    }
+    setDestination("own");
+  };
+
   const updateItem = (id: string, status: FileStatus) =>
     setQueue((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status } : item)),
@@ -318,9 +433,13 @@ export default function UploadPage() {
         if (item.status.state !== "pending") continue;
         updateItem(item.id, { state: "uploading", progress: 0 });
         try {
-          const result = await uploadTrack(item.file, (progress) => {
-            updateItem(item.id, { state: "uploading", progress });
-          });
+          const result = await uploadTrack(
+            item.file,
+            (progress) => {
+              updateItem(item.id, { state: "uploading", progress });
+            },
+            destination === "own" ? (providerId ?? undefined) : undefined,
+          );
           updateItem(item.id, {
             state: "done",
             title: result.track.title,
@@ -338,7 +457,7 @@ export default function UploadPage() {
       }
       setIsProcessing(false);
     },
-    [],
+    [destination, providerId],
   );
 
   const onDrop = useCallback((accepted: File[], rejected: any[]) => {
@@ -419,6 +538,53 @@ export default function UploadPage() {
             </MetaLink>
           </div>
         </StreamNote>
+
+        <DestinationSection>
+          <DestinationLabel>Upload to</DestinationLabel>
+          <DestinationOptions>
+            <DestinationCard
+              type="button"
+              selected={destination === "managed"}
+              onClick={() => setDestination("managed")}
+            >
+              <IconServer size={20} color="var(--color-primary)" />
+              <DestinationText>
+                <DestinationName>Rocksky storage</DestinationName>
+                <DestinationHint>Managed for you — no setup needed</DestinationHint>
+              </DestinationText>
+            </DestinationCard>
+            <DestinationCard
+              type="button"
+              selected={destination === "own"}
+              onClick={chooseOwn}
+            >
+              <IconCloud size={20} color="var(--color-primary)" />
+              <DestinationText>
+                <DestinationName>Your storage</DestinationName>
+                <DestinationHint>
+                  {providers.length === 0
+                    ? "Connect an S3-compatible bucket first"
+                    : providers.length === 1
+                      ? `${providers[0].label} · ${providers[0].bucket}`
+                      : `${providers.length} buckets connected`}
+                </DestinationHint>
+              </DestinationText>
+            </DestinationCard>
+          </DestinationOptions>
+          {destination === "own" && providers.length > 1 && (
+            <ProviderSelect
+              value={providerId ?? ""}
+              onChange={(e) => setProviderId(e.target.value)}
+              aria-label="Choose which storage to upload into"
+            >
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label} · {p.bucket}
+                </option>
+              ))}
+            </ProviderSelect>
+          )}
+        </DestinationSection>
 
         <DropZone {...getRootProps()} active={isDragActive}>
           <input {...getInputProps()} />
@@ -522,6 +688,17 @@ export default function UploadPage() {
           </GhostButton>
         </Actions>
       </Page>
+
+      {connectOpen && (
+        <ConnectStorageDialog
+          onClose={() => setConnectOpen(false)}
+          onConnected={(provider) => {
+            // They set storage up in order to use it — select it right away.
+            setProviderId(provider.id);
+            setDestination("own");
+          }}
+        />
+      )}
     </Main>
   );
 }
