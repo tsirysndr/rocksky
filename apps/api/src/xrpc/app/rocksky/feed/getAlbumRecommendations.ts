@@ -14,34 +14,70 @@ const DECAY_LAMBDA = 0.02 as const;
 const NEIGHBOUR_LIMIT = 50;
 const RESULT_LIMIT = 50;
 
+// When set, album recommendations come from drift's precomputed snapshot —
+// the legacy per-request pipeline below is kept only as a fallback for when
+// drift is unreachable.
+const DRIFT_URL = process.env.DRIFT_URL;
+
+const fromDrift = (
+  params: QueryParams,
+): Effect.Effect<RecommendedAlbumsView, Error> =>
+  Effect.tryPromise({
+    try: async () => {
+      const url = new URL("/v1/recommendations/albums", DRIFT_URL);
+      url.searchParams.set("did", params.did);
+      url.searchParams.set(
+        "limit",
+        String(Math.min(params.limit ?? RESULT_LIMIT, 100)),
+      );
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (!res.ok) throw new Error(`drift responded ${res.status}`);
+      // drift emits recommendedAlbumView-shaped rows verbatim
+      return (await res.json()) as RecommendedAlbumsView;
+    },
+    catch: (err) => new Error(`drift request failed: ${err}`),
+  });
+
 const cacheKey = (params: QueryParams) =>
   `${params.did}|${params.limit ?? RESULT_LIMIT}`;
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 200,
-    timeToLive: Duration.minutes(5),
-    lookup: (key: string) => {
-      const sep = key.lastIndexOf("|");
-      const params: QueryParams = {
-        did: key.slice(0, sep),
-        limit: Number(key.slice(sep + 1)),
-      };
-      return pipe(
-        { params, ctx },
-        retrieve,
-        Effect.flatMap(hydrate),
-        Effect.flatMap(presentation),
-        Effect.retry({ times: 3 }),
-        Effect.timeout("30 seconds"),
-      );
-    },
-  });
+  // Materialized once: Cache.make returns an Effect that *builds* a cache, so
+  // running it per request would hand every request a fresh empty cache.
+  const cache = Effect.runSync(
+    Cache.make({
+      capacity: 200,
+      timeToLive: Duration.minutes(5),
+      lookup: (key: string) => {
+        const sep = key.lastIndexOf("|");
+        const params: QueryParams = {
+          did: key.slice(0, sep),
+          limit: Number(key.slice(sep + 1)),
+        };
+        const legacy = pipe(
+          { params, ctx },
+          retrieve,
+          Effect.flatMap(hydrate),
+          Effect.flatMap(presentation),
+          Effect.retry({ times: 3 }),
+          Effect.timeout("30 seconds"),
+        );
+        return DRIFT_URL
+          ? pipe(
+              fromDrift(params),
+              Effect.catchAll((err) => {
+                consola.warn("drift unavailable, using legacy pipeline:", err);
+                return legacy;
+              }),
+            )
+          : legacy;
+      },
+    }),
+  );
 
   const getAlbumRecommendations = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(cacheKey(params))),
+      cache.get(cacheKey(params)),
       Effect.catchAll((err) => {
         consola.error("getAlbumRecommendations error:", err);
         return Effect.succeed({ albums: [] });

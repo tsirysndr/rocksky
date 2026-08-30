@@ -1,5 +1,7 @@
 use crate::error::{ApiError, ApiResult};
-use crate::models::{Recommendation, RecommendationsResponse, StatusResponse};
+use crate::models::{
+    RecommendationsResponse, RecommendedAlbumsResponse, RecommendedArtistsResponse, StatusResponse,
+};
 use crate::store::Store;
 use crate::{refresh, Config};
 use actix_web::{get, post, web, HttpResponse};
@@ -18,6 +20,8 @@ Precomputed music recommendations for Rocksky.
 GET  /health
 GET  /v1/status
 GET  /v1/recommendations?did=<did-or-handle>&limit=50
+GET  /v1/recommendations/artists?did=<did-or-handle>&limit=50
+GET  /v1/recommendations/albums?did=<did-or-handle>&limit=50
 POST /v1/refresh
 "#;
 
@@ -57,20 +61,24 @@ pub struct RecommendationsQuery {
     limit: Option<usize>,
 }
 
+impl RecommendationsQuery {
+    fn key(&self) -> ApiResult<String> {
+        self.did
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+            .ok_or_else(|| ApiError::BadRequest("missing required parameter: did".into()))
+    }
+}
+
 #[get("/v1/recommendations")]
 pub async fn recommendations(
     query: web::Query<RecommendationsQuery>,
     store: web::Data<Arc<Store>>,
     cfg: web::Data<Config>,
 ) -> ApiResult<HttpResponse> {
-    let key = query
-        .did
-        .as_deref()
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| ApiError::BadRequest("missing required parameter: did".into()))?
-        .to_string();
-
+    let key = query.key()?;
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let ratio = cfg.serendipity_ratio;
 
@@ -85,7 +93,7 @@ pub async fn recommendations(
         if recs.is_empty() {
             return Err(ApiError::NotFound(format!("no recommendations for {key}")));
         }
-        Ok(blend(&recs, limit, ratio))
+        Ok(blend(&recs, limit, ratio, |r| r.source == "serendipity"))
     })
     .await
     .map_err(|e| ApiError::Internal(format!("query task panicked: {e}")))??;
@@ -95,17 +103,86 @@ pub async fn recommendations(
     }))
 }
 
+#[get("/v1/recommendations/artists")]
+pub async fn artist_recommendations(
+    query: web::Query<RecommendationsQuery>,
+    store: web::Data<Arc<Store>>,
+    cfg: web::Data<Config>,
+) -> ApiResult<HttpResponse> {
+    let key = query.key()?;
+    let limit = query.limit.unwrap_or(50).clamp(1, 100);
+    let ratio = cfg.serendipity_ratio;
+
+    let store = Arc::clone(&store);
+    let artists = web::block(move || {
+        if !store.has_table("artist_recommendations") {
+            return Err(ApiError::Unavailable(
+                "no artist snapshot yet — first refresh has not completed".into(),
+            ));
+        }
+        let recs = store.get_artists(&key).map_err(ApiError::Internal)?;
+        if recs.is_empty() {
+            return Err(ApiError::NotFound(format!(
+                "no artist recommendations for {key}"
+            )));
+        }
+        Ok(blend(&recs, limit, ratio, |r| r.source == "serendipity"))
+    })
+    .await
+    .map_err(|e| ApiError::Internal(format!("query task panicked: {e}")))??;
+
+    Ok(HttpResponse::Ok().json(RecommendedArtistsResponse { artists }))
+}
+
+#[get("/v1/recommendations/albums")]
+pub async fn album_recommendations(
+    query: web::Query<RecommendationsQuery>,
+    store: web::Data<Arc<Store>>,
+) -> ApiResult<HttpResponse> {
+    let key = query.key()?;
+    let limit = query.limit.unwrap_or(50).clamp(1, 100);
+
+    let store = Arc::clone(&store);
+    let albums = web::block(move || {
+        if !store.has_table("album_recommendations") {
+            return Err(ApiError::Unavailable(
+                "no album snapshot yet — first refresh has not completed".into(),
+            ));
+        }
+        let recs = store.get_albums(&key).map_err(ApiError::Internal)?;
+        if recs.is_empty() {
+            return Err(ApiError::NotFound(format!(
+                "no album recommendations for {key}"
+            )));
+        }
+        // Albums have no serendipity pool — plain rank-order truncation.
+        Ok(recs.into_iter().take(limit).collect::<Vec<_>>())
+    })
+    .await
+    .map_err(|e| ApiError::Internal(format!("query task panicked: {e}")))??;
+
+    Ok(HttpResponse::Ok().json(RecommendedAlbumsResponse { albums }))
+}
+
 /// Trims the precomputed list to the requested size: mostly ranked picks, a
 /// fixed ratio of serendipity at the tail, then whatever is left if either
 /// pool runs short.
-fn blend(recs: &[Recommendation], limit: usize, serendipity_ratio: f64) -> Vec<Recommendation> {
+fn blend<T: Clone>(
+    recs: &[T],
+    limit: usize,
+    serendipity_ratio: f64,
+    is_ser: impl Fn(&T) -> bool,
+) -> Vec<T> {
     let ser_target = ((limit as f64) * serendipity_ratio).ceil() as usize;
     let main_target = limit.saturating_sub(ser_target);
 
-    let (main, ser): (Vec<&Recommendation>, Vec<&Recommendation>) =
-        recs.iter().partition(|r| r.source != "serendipity");
+    let (main, ser): (Vec<&T>, Vec<&T>) = recs.iter().partition(|r| !is_ser(r));
 
-    let mut out: Vec<Recommendation> = main.iter().take(main_target).map(|r| (*r).clone()).collect();
+    let mut out: Vec<T> = main
+        .iter()
+        .take(main_target)
+        .map(|r| (*r).clone())
+        .collect();
     out.extend(ser.iter().take(ser_target).map(|r| (*r).clone()));
     if out.len() < limit {
         out.extend(

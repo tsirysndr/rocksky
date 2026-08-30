@@ -30,6 +30,20 @@ Users with too little history for collaborative filtering get the decayed
 global chart (one track per artist, heard tracks excluded, `source: "chart"`)
 instead of an empty list.
 
+The same refresh also precomputes **artist** and **album** recommendations:
+
+- **Artists** reuse the track machinery — CF over the neighbour graph
+  (artists the user has never played), a content term from the artist's mean
+  audio-feature vector, the soft genre gate, popularity de-bias, a daily-rotated
+  serendipity quota, and a chart fallback (`source: "neighbour" | "serendipity"
+  | "chart"`).
+- **Albums** mirror the legacy endpoint's two pools: unheard albums by artists
+  the user already plays (`source: "known-artist"`, scored by artist
+  familiarity) and albums by the CF-recommended new artists
+  (`source: "new-artist"`), with a per-artist diversity cap and a chart
+  fallback. "Heard" covers both `scrobbles.album_id` and albums reached through
+  the scrobbled tracks' `album_uri`.
+
 ## Architecture
 
 ```
@@ -46,11 +60,12 @@ users, tracks, artists                  │
    │  serendipity → chart fallback           │
    └────────────────────┬────────────────────┘
                         ▼
-      recommendations.ddb: `recommendations` + `meta` tables
+      recommendations.ddb: `recommendations` +
+      `artist_recommendations` + `album_recommendations` + `meta`
                         │  (CREATE OR REPLACE swap; MVCC keeps
                         │   readers on the old version mid-refresh)
                         ▼
-        GET /v1/recommendations  — one indexed query, sub-ms
+        GET /v1/recommendations[/artists|/albums]  — one indexed query, sub-ms
 ```
 
 User history comes from **Postgres directly** (not the parquet dump), so
@@ -90,19 +105,22 @@ The snapshot itself is written sorted by `(did, final_rank)` alongside a tiny
 first, so the query against `recommendations` is a zone-map-pruned equality on
 the sort key rather than an `OR handle = ?` scan.
 
-Responses are shaped exactly like `app.rocksky.feed.defs#recommendationView`,
-so `apps/api` returns drift's body verbatim (set `DRIFT_URL` there; it falls
+Responses are shaped exactly like the `app.rocksky.feed.defs` views
+(`recommendationView`, `recommendedArtistView`, `recommendedAlbumView`), so
+`apps/api` returns drift's body verbatim (set `DRIFT_URL` there; it falls
 back to the legacy path if drift is unreachable).
 
 ## Endpoints
 
-| Endpoint                   | Notes                                                  |
-| -------------------------- | ------------------------------------------------------ |
-| `GET /`                    | ASCII banner, endpoint list (plain text)               |
-| `GET /health`              | `{"status":"ok"}`                                      |
-| `GET /v1/status`           | Last refresh time/duration, user and row counts        |
-| `GET /v1/recommendations`  | `?did=<did-or-handle>&limit=50` (limit clamped to 100) |
-| `POST /v1/refresh`         | Forces a refresh (bypasses the nothing-changed skip); 409 if one is already running |
+| Endpoint                          | Notes                                                  |
+| --------------------------------- | ------------------------------------------------------ |
+| `GET /`                           | ASCII banner, endpoint list (plain text)               |
+| `GET /health`                     | `{"status":"ok"}`                                      |
+| `GET /v1/status`                  | Last refresh time/duration, user and row counts        |
+| `GET /v1/recommendations`         | `?did=<did-or-handle>&limit=50` (limit clamped to 100) |
+| `GET /v1/recommendations/artists` | Same parameters; `{"artists":[...]}`                   |
+| `GET /v1/recommendations/albums`  | Same parameters; `{"albums":[...]}`                    |
+| `POST /v1/refresh`                | Forces a refresh (bypasses the nothing-changed skip); 409 if one is already running |
 
 Errors use the same envelope as riff:
 `{ "error": { "status": 404, "message": "..." } }`.

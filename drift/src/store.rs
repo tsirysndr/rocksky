@@ -1,4 +1,4 @@
-use crate::models::Recommendation;
+use crate::models::{Recommendation, RecommendedAlbum, RecommendedArtist};
 use duckdb::DuckdbConnectionManager;
 
 pub type Pool = r2d2::Pool<DuckdbConnectionManager>;
@@ -32,12 +32,19 @@ impl Store {
     }
 
     pub fn is_ready(&self) -> bool {
+        self.has_table("recommendations")
+    }
+
+    /// Whether a snapshot table exists — per-kind, because a pre-upgrade
+    /// database file holds `recommendations` but not the artist/album tables
+    /// until its first refresh under the new pipeline lands.
+    pub fn has_table(&self, name: &str) -> bool {
         self.conn()
             .and_then(|c| {
                 c.query_row(
                     "SELECT count(*) FROM information_schema.tables
-                     WHERE table_name = 'recommendations'",
-                    [],
+                     WHERE table_name = ?1",
+                    [name],
                     |r| r.get::<_, i64>(0),
                 )
                 .map_err(|e| e.to_string())
@@ -74,6 +81,72 @@ impl Store {
             ),
         }
     }
+    /// Full precomputed artist list for a DID or handle, in rank order.
+    /// The artist/album tables only exist in post-upgrade snapshots, which
+    /// always carry `rec_users` — so there is no legacy-scan fallback here.
+    pub fn get_artists(&self, key: &str) -> Result<Vec<RecommendedArtist>, String> {
+        let conn = self.conn()?;
+        let Some(did) = resolve_did(&conn, key).map_err(|e| e.to_string())? else {
+            return Ok(Vec::new());
+        };
+        let mut stmt = conn
+            .prepare(
+                "SELECT artist_id, artist_uri, name, picture, genres_json, score, source
+                 FROM artist_recommendations WHERE did = ?1 ORDER BY final_rank",
+            )
+            .map_err(|e| format!("artist recommendations query failed: {e}"))?;
+        let rows = stmt
+            .query_map([&did], |row| {
+                let genres_json: Option<String> = row.get(4)?;
+                Ok(RecommendedArtist {
+                    id: row.get(0)?,
+                    uri: row.get(1)?,
+                    name: row.get(2)?,
+                    picture: row.get(3)?,
+                    genres: genres_json
+                        .and_then(|j| serde_json::from_str(&j).ok())
+                        .unwrap_or_default(),
+                    recommendation_score: row.get(5)?,
+                    source: row.get(6)?,
+                })
+            })
+            .map_err(|e| format!("artist recommendations read failed: {e}"))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("artist recommendations row failed: {e}"))
+    }
+
+    /// Full precomputed album list for a DID or handle, in rank order.
+    pub fn get_albums(&self, key: &str) -> Result<Vec<RecommendedAlbum>, String> {
+        let conn = self.conn()?;
+        let Some(did) = resolve_did(&conn, key).map_err(|e| e.to_string())? else {
+            return Ok(Vec::new());
+        };
+        let mut stmt = conn
+            .prepare(
+                "SELECT album_id, album_uri, title, artist, artist_uri, year, album_art,
+                        score, source
+                 FROM album_recommendations WHERE did = ?1 ORDER BY final_rank",
+            )
+            .map_err(|e| format!("album recommendations query failed: {e}"))?;
+        let rows = stmt
+            .query_map([&did], |row| {
+                Ok(RecommendedAlbum {
+                    id: row.get(0)?,
+                    uri: row.get(1)?,
+                    title: row.get(2)?,
+                    artist: row.get(3)?,
+                    artist_uri: row.get(4)?,
+                    year: row.get(5)?,
+                    album_art: row.get(6)?,
+                    recommendation_score: row.get(7)?,
+                    source: row.get(8)?,
+                })
+            })
+            .map_err(|e| format!("album recommendations read failed: {e}"))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("album recommendations row failed: {e}"))
+    }
+
     /// (refreshed_at_epoch, took_ms, users, rows)
     pub fn status(&self) -> Option<(u64, u128, usize, usize)> {
         let conn = self.conn().ok()?;

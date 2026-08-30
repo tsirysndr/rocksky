@@ -25,6 +25,19 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 /// Every transient object a refresh creates, in reverse-dependency order.
 /// Dropped before a run (a crashed refresh leaves leftovers) and after.
 const STAGING_TABLES: &[&str] = &[
+    "album_final",
+    "album_fallback",
+    "album_picks",
+    "album_pool",
+    "heard_albums",
+    "artist_final",
+    "artist_fallback",
+    "artist_ser",
+    "artist_picks",
+    "artist_scored",
+    "artist_cf",
+    "artist_vec",
+    "heard_artists",
     "final",
     "fallback",
     "ser",
@@ -40,6 +53,8 @@ const STAGING_TABLES: &[&str] = &[
     "user_artists",
     "user_tracks",
     "artist_genres",
+    "artists",
+    "albums",
     "tracks",
     "loved",
     "scrobbles",
@@ -118,6 +133,10 @@ pub fn refresh(
         "SET preserve_insertion_order = true;
          CREATE OR REPLACE TABLE recommendations AS
          SELECT * FROM final ORDER BY did, final_rank;
+         CREATE OR REPLACE TABLE artist_recommendations AS
+         SELECT * FROM artist_final ORDER BY did, final_rank;
+         CREATE OR REPLACE TABLE album_recommendations AS
+         SELECT * FROM album_final ORDER BY did, final_rank;
          CREATE OR REPLACE TABLE rec_users AS SELECT did, handle FROM users;",
     )
     .map_err(|e| format!("persisting recommendations failed: {e}"))?;
@@ -129,6 +148,14 @@ pub fn refresh(
             |r| Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as usize)),
         )
         .map_err(|e| format!("counting recommendations failed: {e}"))?;
+    let (artist_rows, album_rows) = conn
+        .query_row(
+            "SELECT (SELECT count(*) FROM artist_recommendations),
+                    (SELECT count(*) FROM album_recommendations)",
+            [],
+            |r| Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as usize)),
+        )
+        .map_err(|e| format!("counting artist/album recommendations failed: {e}"))?;
 
     let took_ms = t0.elapsed().as_millis();
     conn.execute_batch(&format!(
@@ -153,7 +180,9 @@ pub fn refresh(
     conn.execute_batch("CHECKPOINT;")
         .map_err(|e| format!("checkpoint failed: {e}"))?;
 
-    tracing::info!("refresh done: {users} users, {rows} rows, {took_ms} ms");
+    tracing::info!(
+        "refresh done: {users} users, {rows} track rows, {artist_rows} artist rows, {album_rows} album rows, {took_ms} ms"
+    );
     Ok(RefreshOutcome::Completed {
         users,
         rows,
@@ -182,14 +211,15 @@ fn fetch_fingerprint(cfg: &Config, db_url: &str, day: i64) -> Result<String, Str
                     (SELECT count(*) FROM loved_tracks),
                     (SELECT count(*) FROM users),
                     (SELECT count(*) FROM tracks),
-                    (SELECT count(*) FROM artists WHERE genres IS NOT NULL)",
+                    (SELECT count(*) FROM artists WHERE genres IS NOT NULL),
+                    (SELECT count(*) FROM albums)",
             history_cutoff(cfg.history_days)
         ))
         .fetch_one(&mut conn)
         .await
         .map_err(|e| format!("fingerprint query failed: {e}"))?;
 
-        let counts: Vec<String> = (0..6)
+        let counts: Vec<String> = (0..7)
             .map(|i| {
                 if i == 1 {
                     row.get::<f64, _>(i).to_string()
@@ -199,7 +229,7 @@ fn fetch_fingerprint(cfg: &Config, db_url: &str, day: i64) -> Result<String, Str
             })
             .collect();
         let fp = format!(
-            "v1|{}|day={day}|cfg={},{},{},{},{},{},{},{}",
+            "v2|{}|day={day}|cfg={},{},{},{},{},{},{},{}",
             counts.join("|"),
             cfg.decay_lambda,
             cfg.content_weight,
@@ -227,7 +257,7 @@ fn history_cutoff(history_days: u32) -> String {
 
 /// Everything drift needs from Postgres, fetched in one session.
 struct PgData {
-    scrobbles: Vec<(String, String, Option<String>, f64)>,
+    scrobbles: Vec<(String, String, Option<String>, Option<String>, f64)>,
     loved: Vec<(String, String)>,
     users: Vec<(String, String, String, bool)>,
     #[allow(clippy::type_complexity)]
@@ -242,7 +272,24 @@ struct PgData {
         Option<String>,
         Option<String>,
     )>,
-    artist_genres: Vec<(String, Option<String>, Vec<String>)>,
+    #[allow(clippy::type_complexity)]
+    artists: Vec<(
+        String,
+        Option<String>,
+        String,
+        Option<String>,
+        Option<Vec<String>>,
+    )>,
+    #[allow(clippy::type_complexity)]
+    albums: Vec<(
+        String,
+        String,
+        String,
+        Option<i32>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )>,
 }
 
 /// sqlx is async (TLS is negotiated from sslmode in the URL); refresh always
@@ -258,21 +305,26 @@ fn fetch_postgres(db_url: &str, history_days: u32) -> Result<PgData, String> {
 
     rt.block_on(async {
         let t = Instant::now();
-        tracing::info!("postgres: fetching 5 relations concurrently");
-        let (scrobbles, loved, users, tracks, artist_genres) = tokio::try_join!(
+        tracing::info!("postgres: fetching 6 relations concurrently");
+        let (scrobbles, loved, users, tracks, artists, albums) = tokio::try_join!(
             fetch_scrobbles(db_url, history_days),
             fetch_loved(db_url),
             fetch_users(db_url),
             fetch_tracks(db_url),
-            fetch_artist_genres(db_url),
+            fetch_artists(db_url),
+            fetch_albums(db_url),
         )?;
-        tracing::info!("postgres: all fetches done in {} ms", t.elapsed().as_millis());
+        tracing::info!(
+            "postgres: all fetches done in {} ms",
+            t.elapsed().as_millis()
+        );
         Ok(PgData {
             scrobbles,
             loved,
             users,
             tracks,
-            artist_genres,
+            artists,
+            albums,
         })
     })
 }
@@ -291,11 +343,11 @@ async fn pg_connect(db_url: &str) -> Result<sqlx::postgres::PgConnection, String
 async fn fetch_scrobbles(
     db_url: &str,
     history_days: u32,
-) -> Result<Vec<(String, String, Option<String>, f64)>, String> {
+) -> Result<Vec<(String, String, Option<String>, Option<String>, f64)>, String> {
     let t = Instant::now();
     let mut conn = pg_connect(db_url).await?;
-    let rows: Vec<(String, String, Option<String>, f64)> = sqlx::query(&format!(
-        "SELECT user_id, track_id, artist_id, extract(epoch FROM \"timestamp\")::float8 AS ts
+    let rows: Vec<(String, String, Option<String>, Option<String>, f64)> = sqlx::query(&format!(
+        "SELECT user_id, track_id, artist_id, album_id, extract(epoch FROM \"timestamp\")::float8 AS ts
          FROM scrobbles WHERE user_id IS NOT NULL AND track_id IS NOT NULL{}",
         history_cutoff(history_days)
     ))
@@ -303,7 +355,7 @@ async fn fetch_scrobbles(
     .await
     .map_err(|e| format!("scrobbles query failed: {e}"))?
     .into_iter()
-    .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3)))
+    .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3), r.get(4)))
     .collect();
     tracing::info!(
         "postgres: scrobbles — {} rows in {} ms",
@@ -399,21 +451,73 @@ async fn fetch_tracks(
     Ok(rows)
 }
 
-async fn fetch_artist_genres(
+#[allow(clippy::type_complexity)]
+async fn fetch_artists(
     db_url: &str,
-) -> Result<Vec<(String, Option<String>, Vec<String>)>, String> {
+) -> Result<
+    Vec<(
+        String,
+        Option<String>,
+        String,
+        Option<String>,
+        Option<Vec<String>>,
+    )>,
+    String,
+> {
     let t = Instant::now();
     let mut conn = pg_connect(db_url).await?;
-    let rows: Vec<(String, Option<String>, Vec<String>)> =
-        sqlx::query("SELECT xata_id, uri, genres FROM artists WHERE genres IS NOT NULL")
+    let rows: Vec<_> = sqlx::query("SELECT xata_id, uri, name, picture, genres FROM artists")
+        .fetch_all(&mut conn)
+        .await
+        .map_err(|e| format!("artists query failed: {e}"))?
+        .into_iter()
+        .map(|r| (r.get(0), r.get(1), r.get(2), r.get(3), r.get(4)))
+        .collect();
+    tracing::info!(
+        "postgres: artists — {} rows in {} ms",
+        rows.len(),
+        t.elapsed().as_millis()
+    );
+    Ok(rows)
+}
+
+#[allow(clippy::type_complexity)]
+async fn fetch_albums(
+    db_url: &str,
+) -> Result<
+    Vec<(
+        String,
+        String,
+        String,
+        Option<i32>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )>,
+    String,
+> {
+    let t = Instant::now();
+    let mut conn = pg_connect(db_url).await?;
+    let rows: Vec<_> =
+        sqlx::query("SELECT xata_id, title, artist, year, album_art, uri, artist_uri FROM albums")
             .fetch_all(&mut conn)
             .await
-            .map_err(|e| format!("artists query failed: {e}"))?
+            .map_err(|e| format!("albums query failed: {e}"))?
             .into_iter()
-            .map(|r| (r.get(0), r.get(1), r.get(2)))
+            .map(|r| {
+                (
+                    r.get(0),
+                    r.get(1),
+                    r.get(2),
+                    r.get(3),
+                    r.get(4),
+                    r.get(5),
+                    r.get(6),
+                )
+            })
             .collect();
     tracing::info!(
-        "postgres: artists with genres — {} rows in {} ms",
+        "postgres: albums — {} rows in {} ms",
         rows.len(),
         t.elapsed().as_millis()
     );
@@ -432,12 +536,17 @@ fn drop_staging(conn: &duckdb::Connection) -> Result<(), String> {
 fn create_staging(conn: &duckdb::Connection) -> Result<(), String> {
     conn.execute_batch(
         "CREATE TABLE users (id VARCHAR, did VARCHAR, handle VARCHAR, is_bot BOOLEAN);
-         CREATE TABLE scrobbles (user_id VARCHAR, track_id VARCHAR, artist_id VARCHAR, ts DOUBLE);
+         CREATE TABLE scrobbles (
+             user_id VARCHAR, track_id VARCHAR, artist_id VARCHAR, album_id VARCHAR, ts DOUBLE);
          CREATE TABLE loved (user_id VARCHAR, track_id VARCHAR);
          CREATE TABLE tracks (
              id VARCHAR, title VARCHAR, artist VARCHAR, album VARCHAR, album_art VARCHAR,
              uri VARCHAR, artist_uri VARCHAR, album_uri VARCHAR,
              spotify_link VARCHAR, spotify_id VARCHAR);
+         CREATE TABLE artists (id VARCHAR, uri VARCHAR, name VARCHAR, picture VARCHAR);
+         CREATE TABLE albums (
+             id VARCHAR, title VARCHAR, artist VARCHAR, year INTEGER,
+             album_art VARCHAR, uri VARCHAR, artist_uri VARCHAR);
          CREATE TABLE artist_genres (artist_id VARCHAR, artist_uri VARCHAR, genre VARCHAR);",
     )
     .map_err(|e| format!("staging schema failed: {e}"))
@@ -455,11 +564,12 @@ fn load_duckdb(conn: &duckdb::Connection, data: &PgData) -> Result<(), String> {
     let mut app = conn
         .appender("scrobbles")
         .map_err(|e| format!("appender failed: {e}"))?;
-    for (i, (user_id, track_id, artist_id, ts)) in data.scrobbles.iter().enumerate() {
+    for (i, (user_id, track_id, artist_id, album_id, ts)) in data.scrobbles.iter().enumerate() {
         app.append_row(params![
             user_id.as_str(),
             track_id.as_str(),
             artist_id.as_deref(),
+            album_id.as_deref(),
             *ts
         ])
         .map_err(|e| format!("scrobbles append failed: {e}"))?;
@@ -517,10 +627,22 @@ fn load_duckdb(conn: &duckdb::Connection, data: &PgData) -> Result<(), String> {
     tracing::info!("duckdb: tracks loaded in {} ms", t.elapsed().as_millis());
 
     let t = Instant::now();
+    tracing::info!("duckdb: loading {} artists", data.artists.len());
+    let mut app = conn.appender("artists").map_err(|e| e.to_string())?;
+    for (id, uri, name, picture, _) in &data.artists {
+        app.append_row(params![
+            id.as_str(),
+            uri.as_deref(),
+            name.as_str(),
+            picture.as_deref()
+        ])
+        .map_err(|e| format!("artists append failed: {e}"))?;
+    }
+    drop(app);
     let mut app = conn.appender("artist_genres").map_err(|e| e.to_string())?;
     let mut n_genres = 0usize;
-    for (id, uri, genres) in &data.artist_genres {
-        for g in genres {
+    for (id, uri, _, _, genres) in &data.artists {
+        for g in genres.iter().flatten() {
             app.append_row(params![id.as_str(), uri.as_deref(), g.as_str()])
                 .map_err(|e| format!("artist_genres append failed: {e}"))?;
             n_genres += 1;
@@ -528,10 +650,28 @@ fn load_duckdb(conn: &duckdb::Connection, data: &PgData) -> Result<(), String> {
     }
     drop(app);
     tracing::info!(
-        "duckdb: {} artist-genre rows loaded in {} ms",
+        "duckdb: artists + {} artist-genre rows loaded in {} ms",
         n_genres,
         t.elapsed().as_millis()
     );
+
+    let t = Instant::now();
+    tracing::info!("duckdb: loading {} albums", data.albums.len());
+    let mut app = conn.appender("albums").map_err(|e| e.to_string())?;
+    for (id, title, artist, year, album_art, uri, artist_uri) in &data.albums {
+        app.append_row(params![
+            id.as_str(),
+            title.as_str(),
+            artist.as_str(),
+            *year,
+            album_art.as_deref(),
+            uri.as_deref(),
+            artist_uri.as_deref()
+        ])
+        .map_err(|e| format!("albums append failed: {e}"))?;
+    }
+    drop(app);
+    tracing::info!("duckdb: albums loaded in {} ms", t.elapsed().as_millis());
 
     conn.execute_batch(
         "UPDATE tracks
@@ -1008,6 +1148,284 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
              JOIN tracks t ON t.id = r.track_id
              LEFT JOIN likes ON likes.track_id = r.track_id
              LEFT JOIN tg ON tg.artist_uri = t.artist_uri;"
+                .to_string(),
+        ),
+        // ───────────────────────── artists ─────────────────────────
+        // Full-history exclusion set: user_artists is profile-capped, so
+        // recommending from its complement would resurface artists the user
+        // played outside the top-{profile_limit}.
+        (
+            "heard_artists",
+            "CREATE TABLE heard_artists AS
+             SELECT DISTINCT user_id, artist_id FROM scrobbles WHERE artist_id IS NOT NULL;"
+                .to_string(),
+        ),
+        // An artist's sound = mean of its tracks' z-scored feature vectors.
+        (
+            "artist_vec",
+            "CREATE TABLE artist_vec AS
+             SELECT t.artist_uri,
+                    [avg(v.vec[1]), avg(v.vec[2]), avg(v.vec[3]), avg(v.vec[4]),
+                     avg(v.vec[5]), avg(v.vec[6]), avg(v.vec[7]), avg(v.vec[8]),
+                     avg(v.vec[9])]::DOUBLE[] AS vec
+             FROM tracks t
+             JOIN track_vec v ON v.track_id = t.id
+             WHERE t.artist_uri IS NOT NULL
+             GROUP BY t.artist_uri;"
+                .to_string(),
+        ),
+        (
+            "artist_cf",
+            format!(
+                "CREATE TABLE artist_cf AS
+                 SELECT n.u AS user_id, ua.artist_id, sum(n.sim * ua.w) AS cf_score
+                 FROM neighbours n
+                 JOIN user_artists ua ON ua.user_id = n.v
+                 ANTI JOIN heard_artists h ON h.user_id = n.u AND h.artist_id = ua.artist_id
+                 GROUP BY n.u, ua.artist_id
+                 QUALIFY row_number() OVER (
+                     PARTITION BY n.u ORDER BY sum(n.sim * ua.w) DESC
+                 ) <= {cand_limit};"
+            ),
+        ),
+        // Same recipe as track `scored`: CF × content^β × soft genre gate ÷
+        // popularity de-bias — with the artist's mean feature vector standing
+        // in for the track vector.
+        (
+            "artist_scored",
+            format!(
+                "CREATE TABLE artist_scored AS
+                 WITH gp AS (
+                     SELECT artist_id, count(*) AS c FROM scrobbles
+                     WHERE artist_id IS NOT NULL GROUP BY artist_id
+                 ),
+                 cand AS (
+                     SELECT c.user_id, c.artist_id, c.cf_score, a.uri AS artist_uri,
+                            list_cosine_similarity(ta.vec, av.vec) AS cs
+                     FROM artist_cf c
+                     JOIN artists a ON a.id = c.artist_id
+                     LEFT JOIN taste ta ON ta.user_id = c.user_id
+                     LEFT JOIN artist_vec av ON av.artist_uri = a.uri
+                     WHERE lower(a.name) <> 'various artists'
+                 )
+                 SELECT c.user_id, c.artist_id, c.artist_uri, c.cs,
+                        c.cf_score
+                            * pow(coalesce((1 + c.cs) / 2.0, 0.5), {beta})
+                            * (CASE WHEN gh.artist_uri IS NOT NULL THEN 1.0
+                                    WHEN c.cs >= 0.5 THEN 0.9
+                                    ELSE 0.35 END)
+                            / ln(2.718281828459045 + coalesce(gp.c, 0)) AS score
+                 FROM cand c
+                 LEFT JOIN genre_hits gh
+                        ON gh.user_id = c.user_id AND gh.artist_uri = c.artist_uri
+                 LEFT JOIN gp ON gp.artist_id = c.artist_id;"
+            ),
+        ),
+        (
+            "artist_picks",
+            format!(
+                "CREATE TABLE artist_picks AS
+                 SELECT user_id, artist_id, score, 'neighbour' AS source,
+                        row_number() OVER (PARTITION BY user_id ORDER BY score DESC) AS rn
+                 FROM artist_scored
+                 QUALIFY rn <= {main_count};"
+            ),
+        ),
+        // Serendipity from the scored tail: not picked, but genre- or
+        // sound-adjacent; rotated daily by the hash salt.
+        (
+            "artist_ser",
+            format!(
+                "CREATE TABLE artist_ser AS
+                 SELECT user_id, artist_id, 0.0 AS score, 'serendipity' AS source,
+                        row_number() OVER (
+                            PARTITION BY user_id
+                            ORDER BY hash(user_id || artist_id || '{day}')
+                        ) AS rn
+                 FROM (
+                     SELECT s.user_id, s.artist_id
+                     FROM artist_scored s
+                     ANTI JOIN artist_picks p
+                          ON p.user_id = s.user_id AND p.artist_id = s.artist_id
+                     LEFT JOIN genre_hits gh
+                            ON gh.user_id = s.user_id AND gh.artist_uri = s.artist_uri
+                     WHERE gh.artist_uri IS NOT NULL OR s.cs >= 0.3
+                 )
+                 QUALIFY rn <= {ser_count};"
+            ),
+        ),
+        (
+            "artist_fallback",
+            format!(
+                "CREATE TABLE artist_fallback AS
+                 WITH gp AS (
+                     SELECT s.artist_id,
+                            sum(exp(-{lambda} * greatest(({now_epoch} - s.ts) / 86400.0, 0))) AS w
+                     FROM scrobbles s
+                     JOIN users su ON su.id = s.user_id AND NOT su.is_bot
+                     WHERE s.artist_id IS NOT NULL
+                     GROUP BY s.artist_id
+                 ),
+                 chart AS (
+                     SELECT gp.artist_id, gp.w
+                     FROM gp
+                     JOIN artists a ON a.id = gp.artist_id
+                     WHERE lower(a.name) <> 'various artists'
+                     ORDER BY gp.w DESC LIMIT 200
+                 )
+                 SELECT u.id AS user_id, c.artist_id, 0.0 AS score, 'chart' AS source,
+                        row_number() OVER (PARTITION BY u.id ORDER BY c.w DESC) AS rn
+                 FROM users u
+                 CROSS JOIN chart c
+                 ANTI JOIN heard_artists h ON h.user_id = u.id AND h.artist_id = c.artist_id
+                 WHERE u.id NOT IN (SELECT user_id FROM artist_picks)
+                 QUALIFY row_number() OVER (PARTITION BY u.id ORDER BY c.w DESC) <= {limit};"
+            ),
+        ),
+        (
+            "artist_final",
+            "CREATE TABLE artist_final AS
+             WITH allrecs AS (
+                 SELECT user_id, artist_id, score, source, rn, 0 AS grp FROM artist_picks
+                 UNION ALL
+                 SELECT user_id, artist_id, score, source, rn, 1 FROM artist_ser
+                 UNION ALL
+                 SELECT user_id, artist_id, score, source, rn, 2 FROM artist_fallback
+             ),
+             ag AS (
+                 SELECT artist_id, list(DISTINCT genre) AS g
+                 FROM artist_genres GROUP BY artist_id
+             )
+             SELECT u.did, u.handle,
+                    a.id AS artist_id, a.uri AS artist_uri, a.name, a.picture,
+                    to_json(ag.g)::VARCHAR AS genres_json,
+                    r.score, r.source,
+                    row_number() OVER (PARTITION BY r.user_id ORDER BY r.grp, r.rn) AS final_rank
+             FROM allrecs r
+             JOIN users u ON u.id = r.user_id
+             JOIN artists a ON a.id = r.artist_id
+             LEFT JOIN ag ON ag.artist_id = r.artist_id;"
+                .to_string(),
+        ),
+        // ───────────────────────── albums ─────────────────────────
+        // Heard = scrobbles with an album_id, plus albums reached through the
+        // scrobbled tracks' album_uri (album_id is nullable on old scrobbles).
+        (
+            "heard_albums",
+            "CREATE TABLE heard_albums AS
+             SELECT DISTINCT user_id, album_id FROM scrobbles WHERE album_id IS NOT NULL
+             UNION
+             SELECT DISTINCT s.user_id, al.id
+             FROM scrobbles s
+             JOIN tracks t ON t.id = s.track_id
+             JOIN albums al ON al.uri = t.album_uri
+             WHERE t.album_uri IS NOT NULL;"
+                .to_string(),
+        ),
+        // Two pools, as in the legacy endpoint: unheard albums by artists the
+        // user already plays (scored by artist familiarity), and albums by the
+        // CF-recommended new artists (scored by the artist's gated CF score).
+        (
+            "album_pool",
+            format!(
+                "CREATE TABLE album_pool AS
+                 SELECT user_id, album_id, score, source, artist_uri FROM (
+                     SELECT *,
+                            row_number() OVER (
+                                PARTITION BY user_id, album_id
+                                ORDER BY CASE source WHEN 'known-artist' THEN 0 ELSE 1 END
+                            ) AS dup
+                     FROM (
+                         SELECT ua.user_id, al.id AS album_id, ua.w AS score,
+                                'known-artist' AS source, al.artist_uri
+                         FROM user_artists ua
+                         JOIN artists a ON a.id = ua.artist_id
+                                       AND lower(a.name) <> 'various artists'
+                         JOIN albums al ON al.artist_uri = a.uri
+                         ANTI JOIN heard_albums h
+                              ON h.user_id = ua.user_id AND h.album_id = al.id
+                         UNION ALL
+                         SELECT s.user_id, al.id, s.score, 'new-artist', al.artist_uri
+                         FROM artist_scored s
+                         JOIN albums al ON al.artist_uri = s.artist_uri
+                         ANTI JOIN heard_albums h
+                              ON h.user_id = s.user_id AND h.album_id = al.id
+                     )
+                 )
+                 WHERE dup = 1
+                 QUALIFY row_number() OVER (
+                     PARTITION BY user_id ORDER BY score DESC
+                 ) <= {cand_limit};"
+            ),
+        ),
+        // Artist diversity cap, same as track picks: each artist's best album
+        // first, runner-ups fill leftover slots.
+        (
+            "album_picks",
+            format!(
+                "CREATE TABLE album_picks AS
+                 SELECT user_id, album_id, score, source,
+                        row_number() OVER (
+                            PARTITION BY user_id
+                            ORDER BY CASE WHEN ar = 1 THEN 0 ELSE 1 END, score DESC
+                        ) AS rn
+                 FROM (
+                     SELECT *,
+                            row_number() OVER (
+                                PARTITION BY user_id, coalesce(artist_uri, album_id)
+                                ORDER BY score DESC
+                            ) AS ar
+                     FROM album_pool
+                 )
+                 QUALIFY rn <= {limit};"
+            ),
+        ),
+        (
+            "album_fallback",
+            format!(
+                "CREATE TABLE album_fallback AS
+                 WITH gp AS (
+                     SELECT al.id AS album_id, any_value(al.artist_uri) AS artist_uri,
+                            sum(exp(-{lambda} * greatest(({now_epoch} - s.ts) / 86400.0, 0))) AS w
+                     FROM scrobbles s
+                     JOIN users su ON su.id = s.user_id AND NOT su.is_bot
+                     JOIN tracks t ON t.id = s.track_id
+                     JOIN albums al ON al.uri = t.album_uri
+                     WHERE lower(al.artist) <> 'various artists'
+                     GROUP BY al.id
+                 ),
+                 chart AS (
+                     SELECT album_id, w FROM gp
+                     QUALIFY row_number() OVER (
+                         PARTITION BY coalesce(artist_uri, album_id) ORDER BY w DESC
+                     ) = 1
+                     ORDER BY w DESC LIMIT 200
+                 )
+                 SELECT u.id AS user_id, c.album_id, 0.0 AS score, 'chart' AS source,
+                        row_number() OVER (PARTITION BY u.id ORDER BY c.w DESC) AS rn
+                 FROM users u
+                 CROSS JOIN chart c
+                 ANTI JOIN heard_albums h ON h.user_id = u.id AND h.album_id = c.album_id
+                 WHERE u.id NOT IN (SELECT user_id FROM album_picks)
+                 QUALIFY row_number() OVER (PARTITION BY u.id ORDER BY c.w DESC) <= {limit};"
+            ),
+        ),
+        (
+            "album_final",
+            "CREATE TABLE album_final AS
+             WITH allrecs AS (
+                 SELECT user_id, album_id, score, source, rn, 0 AS grp FROM album_picks
+                 UNION ALL
+                 SELECT user_id, album_id, score, source, rn, 1 FROM album_fallback
+             )
+             SELECT u.did, u.handle,
+                    al.id AS album_id, al.uri AS album_uri, al.title, al.artist,
+                    al.artist_uri, al.year, al.album_art,
+                    r.score, r.source,
+                    row_number() OVER (PARTITION BY r.user_id ORDER BY r.grp, r.rn) AS final_rank
+             FROM allrecs r
+             JOIN users u ON u.id = r.user_id
+             JOIN albums al ON al.id = r.album_id;"
                 .to_string(),
         ),
     ];

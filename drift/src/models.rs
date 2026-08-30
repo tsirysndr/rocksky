@@ -32,6 +32,54 @@ pub struct RecommendationsResponse {
     pub recommendations: Vec<Recommendation>,
 }
 
+/// One recommended artist, shaped exactly like
+/// `app.rocksky.feed.defs#recommendedArtistView`.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendedArtist {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture: Option<String>,
+    pub genres: Vec<String>,
+    pub recommendation_score: f64,
+    /// "neighbour" | "serendipity" | "chart"
+    pub source: String,
+}
+
+#[derive(Serialize)]
+pub struct RecommendedArtistsResponse {
+    pub artists: Vec<RecommendedArtist>,
+}
+
+/// One recommended album, shaped exactly like
+/// `app.rocksky.feed.defs#recommendedAlbumView`.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendedAlbum {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    pub title: String,
+    pub artist: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist_uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    pub recommendation_score: f64,
+    /// "known-artist" | "new-artist" | "chart"
+    pub source: String,
+}
+
+#[derive(Serialize)]
+pub struct RecommendedAlbumsResponse {
+    pub albums: Vec<RecommendedAlbum>,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusResponse {
