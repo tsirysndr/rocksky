@@ -76,9 +76,17 @@ pub async fn presign_get_with_creds(
 
 // Decrypts a credential encrypted by the Node.js libsodium-wrappers secretbox.
 //
-// Node.js stores: base64(nonce[24] || MAC[16] || ciphertext[n])
-// libsodium format:  MAC before ciphertext
-// RustCrypto format: ciphertext then TAG — so bytes are rearranged before decryption.
+// Node.js stores: base64(nonce[24] || MAC[16] || ciphertext[n]), and the
+// xsalsa20poly1305 crate expects exactly that MAC-first layout too — its
+// encrypt "prepends" the tag, same as libsodium. An earlier version of this
+// function rearranged the bytes to a supposed tag-last "RustCrypto format",
+// which scrambled every valid credential.
+//
+// The base64 variant matters: libsodium's `to_base64` defaults to URL-safe
+// *without* padding, so every credential the API stores uses `-`/`_` and no
+// `=`. Decoding with the standard alphabet rejected all of them, which is how
+// BYO uploads worked while BYO streaming failed with "Failed to resolve audio
+// URL" — upload and playback sat on opposite sides of this mismatch.
 pub fn decrypt_credential(encoded: &str, key_hex: &str) -> Result<String, Error> {
     use base64::{engine::general_purpose, Engine as _};
     use xsalsa20poly1305::{
@@ -94,8 +102,11 @@ pub fn decrypt_credential(encoded: &str, key_hex: &str) -> Result<String, Error>
         ));
     }
 
-    let combined = general_purpose::STANDARD
+    // URL-safe unpadded first (what the API writes); standard kept as a
+    // fallback so a value from any other tooling still decodes.
+    let combined = general_purpose::URL_SAFE_NO_PAD
         .decode(encoded)
+        .or_else(|_| general_purpose::STANDARD.decode(encoded))
         .map_err(|_| Error::msg("Failed to base64-decode credential"))?;
 
     if combined.len() < 24 + 16 {
@@ -104,17 +115,51 @@ pub fn decrypt_credential(encoded: &str, key_hex: &str) -> Result<String, Error>
 
     let nonce = Nonce::from_slice(&combined[..24]);
 
-    // Rearrange from libsodium format (MAC||CT) to RustCrypto format (CT||TAG)
-    let mac = &combined[24..40];
-    let ct = &combined[40..];
-    let mut rustcrypto_ct = ct.to_vec();
-    rustcrypto_ct.extend_from_slice(mac);
-
     let cipher = XSalsa20Poly1305::new(Key::from_slice(&key_bytes));
     let plaintext = cipher
-        .decrypt(nonce, rustcrypto_ct.as_slice())
+        .decrypt(nonce, &combined[24..])
         .map_err(|_| Error::msg("Credential decryption failed"))?;
 
     String::from_utf8(plaintext)
         .map_err(|e| Error::msg(format!("Decrypted value is not UTF-8: {e}")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Produced by the API's own encryptCredential (libsodium-wrappers) with
+    /// key 000102…1e1f and a fixed all-zero-counting nonce. Pinned so the two
+    /// implementations cannot drift apart again: libsodium's to_base64 is
+    /// URL-safe unpadded by default, and decoding with the standard alphabet
+    /// rejected every credential the API had ever stored.
+    const NODE_VECTOR: &str =
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXNRpm4w7WtX4FEag-4c5M2y3MWz2ivo973kWgSQH7IrwxzSet_w";
+    const KEY: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+
+    #[test]
+    fn decrypts_what_the_node_api_encrypts() {
+        assert_eq!(
+            decrypt_credential(NODE_VECTOR, KEY).unwrap(),
+            "s3cret-key/with+chars"
+        );
+    }
+
+    /// The same bytes in standard padded base64 must still decode — the
+    /// fallback for anything not written by libsodium.
+    #[test]
+    fn accepts_standard_base64_too() {
+        let std_form =
+            "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXNRpm4w7WtX4FEag+4c5M2y3MWz2ivo973kWgSQH7IrwxzSet/w==";
+        assert_eq!(
+            decrypt_credential(std_form, KEY).unwrap(),
+            "s3cret-key/with+chars"
+        );
+    }
+
+    #[test]
+    fn rejects_a_wrong_key() {
+        let wrong = "f".repeat(64);
+        assert!(decrypt_credential(NODE_VECTOR, &wrong).is_err());
+    }
 }
