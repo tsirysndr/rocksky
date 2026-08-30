@@ -542,6 +542,17 @@ pub fn albums_by_ids(conn: &PooledConn, ids: &[String]) -> ApiResult<Vec<Option<
         })?
         .collect::<Result<_, _>>()?;
 
+    // `/albums/{id}` embeds the first page of tracks. The pages for the whole
+    // batch come from one windowed scan, and every embedded track hydrates in
+    // one `simplified_tracks` pass — a track belongs to exactly one album, so
+    // the union has no duplicates and `remove` hands each track to its album.
+    let mut pages = album_first_track_pages(conn, &rowids, 50)?;
+    let all_track_rowids: Vec<i64> = pages
+        .values()
+        .flat_map(|(t, _)| t.iter().copied())
+        .collect();
+    let mut simple = simplified_tracks(conn, &all_track_rowids)?;
+
     let mut out = HashMap::new();
     for rid in &rowids {
         let Some(mut b) = base.remove(rid) else {
@@ -556,9 +567,7 @@ pub fn albums_by_ids(conn: &PooledConn, ids: &[String]) -> ApiResult<Vec<Option<
             popularity,
         } = extras.get(rid).cloned().unwrap_or_default();
 
-        // `/albums/{id}` embeds the first page of tracks.
-        let (track_rowids, total) = album_track_rowids(conn, *rid, 50, 0)?;
-        let mut simple = simplified_tracks(conn, &track_rowids)?;
+        let (track_rowids, total) = pages.remove(rid).unwrap_or_default();
         let items: Vec<SimplifiedTrack> = track_rowids
             .iter()
             .filter_map(|t| simple.remove(t))
@@ -592,6 +601,48 @@ pub fn albums_by_ids(conn: &PooledConn, ids: &[String]) -> ApiResult<Vec<Option<
         .collect())
 }
 
+/// The first `per_album` track row ids of every album in the batch, in
+/// disc/track order, plus each album's total — one windowed scan instead of a
+/// page query and a count query per album. `/albums?ids=` embeds a track page
+/// in every album, and doing that per album held the pooled connection for
+/// 100+ sequential statements at the 20-id maximum.
+fn album_first_track_pages(
+    conn: &PooledConn,
+    album_rowids: &[i64],
+    per_album: u32,
+) -> ApiResult<HashMap<i64, (Vec<i64>, i64)>> {
+    let _t = QTimer::new("album_first_track_pages");
+    if album_rowids.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let sql = format!(
+        "SELECT album_rowid, row_id, total FROM ( \
+             SELECT album_rowid, row_id, \
+                    ROW_NUMBER() OVER (PARTITION BY album_rowid \
+                        ORDER BY COALESCE(disc_number, 1), COALESCE(track_number, 0), row_id) AS n, \
+                    COUNT(*) OVER (PARTITION BY album_rowid) AS total \
+             FROM tracks WHERE album_rowid IN ({}) \
+         ) WHERE n <= {per_album} ORDER BY album_rowid, n",
+        inline(album_rowids)
+    );
+    let mut stmt = timed(&sql, || Ok(conn.prepare(&sql)?))?;
+    let rows = stmt.query_map([], |r| {
+        Ok((
+            r.get::<_, i64>(0)?,
+            r.get::<_, i64>(1)?,
+            r.get::<_, i64>(2)?,
+        ))
+    })?;
+    let mut out: HashMap<i64, (Vec<i64>, i64)> = HashMap::new();
+    for row in rows {
+        let (album, track, total) = row?;
+        let entry = out.entry(album).or_default();
+        entry.0.push(track);
+        entry.1 = total;
+    }
+    Ok(out)
+}
+
 /// Row ids of an album's tracks, in disc/track order, plus the album's total.
 pub fn album_track_rowids(
     conn: &PooledConn,
@@ -604,19 +655,29 @@ pub fn album_track_rowids(
     // i64 and the page bounds are server-computed. Bound parameters — LIMIT and
     // OFFSET especially — kept the engine from planning these as pruned scans,
     // which on the 256M-row tracks relation meant a full scan per album page.
+    //
+    // `COUNT(*) OVER ()` rides along on the page rows so the total costs no
+    // second scan; an album has at most a few hundred tracks, so materializing
+    // the matches before the LIMIT is free.
     let mut stmt = conn.prepare(&format!(
-        "SELECT row_id FROM tracks WHERE album_rowid = {album_rowid} \
+        "SELECT row_id, COUNT(*) OVER () FROM tracks WHERE album_rowid = {album_rowid} \
          ORDER BY COALESCE(disc_number, 1), COALESCE(track_number, 0), row_id \
          LIMIT {limit} OFFSET {offset}"
     ))?;
-    let rowids: Vec<i64> = stmt
-        .query_map([], |r| r.get(0))?
+    let rows: Vec<(i64, i64)> = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
         .collect::<Result<_, _>>()?;
+    let mut total = rows.first().map(|(_, t)| *t).unwrap_or(0);
+    let rowids: Vec<i64> = rows.into_iter().map(|(r, _)| r).collect();
 
-    let mut count = conn.prepare(&format!(
-        "SELECT COUNT(*) FROM tracks WHERE album_rowid = {album_rowid}"
-    ))?;
-    let total: i64 = count.query_row([], |r| r.get(0))?;
+    // An empty page carries no window row: the album may have no tracks, or the
+    // offset may sit past the end. Only then is the count worth its own scan.
+    if rowids.is_empty() && offset > 0 {
+        let mut count = conn.prepare(&format!(
+            "SELECT COUNT(*) FROM tracks WHERE album_rowid = {album_rowid}"
+        ))?;
+        total = count.query_row([], |r| r.get(0))?;
+    }
     Ok((rowids, total))
 }
 

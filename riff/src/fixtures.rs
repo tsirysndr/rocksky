@@ -6,7 +6,9 @@
 //! features for real artists would produce fixtures that look authoritative and
 //! are not. The *schema* is what has to match, and it does, column for column.
 //!
-//!     cargo run --bin riff-fixtures -- --out testdata
+//! ```sh
+//! cargo run --bin riff-fixtures -- --out testdata
+//! ```
 //!
 //! Internally the tables use `row_id`; each `COPY` renames it back to `rowid` so
 //! the emitted files are indistinguishable from prod's.
