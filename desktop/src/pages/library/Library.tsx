@@ -1125,6 +1125,7 @@ export default function Library() {
   const [openFavoriteMenuId, setOpenFavoriteMenuId] = useState<string | null>(null);
   const [favoriteMenuAnchor, setFavoriteMenuAnchor] = useState<HTMLElement | null>(null);
   const [playlistFilter, setPlaylistFilter] = useState("");
+  const [favoritesFilter, setFavoritesFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
@@ -1156,14 +1157,22 @@ export default function Library() {
   // getStarred2 takes no query, so the search box filters this tab here instead
   // of server-side — otherwise typing would leave favorites untouched and look
   // broken next to the three tabs that do respond.
-  const favorites: NavidromeSong[] = useMemo(() => {
+  const matches = (s: NavidromeSong, q: string) =>
+    [s.title, s.artist, s.album].some((f) => (f ?? "").toLowerCase().includes(q));
+
+  // What the tab holds before the quick filter. Kept apart so the filter box
+  // stays on screen when it matches nothing — otherwise it would unmount with
+  // the list and leave no way to clear the term.
+  const favoritesAll: NavidromeSong[] = useMemo(() => {
     const all = favoritesQuery.data ?? [];
     const q = searchQuery?.toLowerCase();
-    if (!q) return all;
-    return all.filter((s) =>
-      [s.title, s.artist, s.album].some((f) => (f ?? "").toLowerCase().includes(q)),
-    );
+    return q ? all.filter((s) => matches(s, q)) : all;
   }, [favoritesQuery.data, searchQuery]);
+
+  const favorites: NavidromeSong[] = useMemo(() => {
+    const q = favoritesFilter.trim().toLowerCase();
+    return q ? favoritesAll.filter((s) => matches(s, q)) : favoritesAll;
+  }, [favoritesAll, favoritesFilter]);
 
   const tracksSentinelRef = useInfiniteScrollSentinel(tracksQuery.hasNextPage, tracksQuery.isFetchingNextPage, tracksQuery.fetchNextPage);
   const albumsSentinelRef = useInfiniteScrollSentinel(albumsQuery.hasNextPage, albumsQuery.isFetchingNextPage, albumsQuery.fetchNextPage);
@@ -1547,7 +1556,7 @@ export default function Library() {
 
             {favoritesFailed && favorites.length === 0 && <LoadFailed onRetry={retry} />}
 
-            {!favoritesFailed && !favoritesQuery.isLoading && creds && favorites.length === 0 && (
+            {!favoritesFailed && !favoritesQuery.isLoading && creds && favoritesAll.length === 0 && (
               <EmptyState>
                 <IconHeart size={48} color="var(--color-text-muted)" />
                 <div style={{ textAlign: "center" }}>
@@ -1571,9 +1580,10 @@ export default function Library() {
               </EmptyState>
             )}
 
-            {creds && favorites.length > 0 && (
+            {creds && favoritesAll.length > 0 && (
               <>
-                <PlayButtons>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", marginBottom: 16 }}>
+                <PlayButtons style={{ marginBottom: 0 }}>
                   <PlayBtn onClick={() => playFavorites()}>
                     <IconPlayerPlay size={15} /> Play
                   </PlayBtn>
@@ -1605,6 +1615,22 @@ export default function Library() {
                     )}
                   </MenuWrap>
                 </PlayButtons>
+                <PlaylistSearch
+                  onChange={setFavoritesFilter}
+                  label="Search your favorites"
+                  placeholder="Search your favorites"
+                />
+                </div>
+
+                {favorites.length === 0 && (
+                  <EmptyState>
+                    <IconHeart size={48} color="var(--color-text-muted)" />
+                    <div style={{ textAlign: "center" }}>
+                      <EmptyTitle>No favorites match "{favoritesFilter.trim()}"</EmptyTitle>
+                      <EmptySubtitle>Try a different search term</EmptySubtitle>
+                    </div>
+                  </EmptyState>
+                )}
 
                 <TrackList>
                   {favorites.map((song, idx) => {
