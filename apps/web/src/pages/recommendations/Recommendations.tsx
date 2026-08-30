@@ -15,6 +15,7 @@ import {
   useArtistRecommendationsQuery,
   useTrackRecommendationsQuery,
 } from "../../hooks/useRecommendations";
+import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 import type {
   AlbumRecommendation,
   ArtistRecommendation,
@@ -264,26 +265,39 @@ function Recommendations() {
     isFetching: albumsFetching,
   } = useAlbumRecommendationsQuery(did);
 
+  // A user with no listening history only gets chart-fallback rows —
+  // show the "scrobble more" empty state instead of pretending those are
+  // personalised.
+  const ownStats = useProfileStatsByDidQuery(did ?? "");
+  const noHistory =
+    ownStats.isFetched && ((ownStats.data?.scrobbles as number) ?? 0) === 0;
+
   const showTracksSkeleton =
-    tracksLoading || (tracksFetching && !tracks?.length);
+    !noHistory && (tracksLoading || (tracksFetching && !tracks?.length));
   const showArtistsSkeleton =
-    artistsLoading || (artistsFetching && !artists?.length);
+    !noHistory && (artistsLoading || (artistsFetching && !artists?.length));
   const showAlbumsSkeleton =
-    albumsLoading || (albumsFetching && !albums?.length);
+    !noHistory && (albumsLoading || (albumsFetching && !albums?.length));
 
   const tracksReveal = useInfiniteReveal(tracks?.length ?? 0);
   const artistsReveal = useInfiniteReveal(artists?.length ?? 0);
   const albumsReveal = useInfiniteReveal(albums?.length ?? 0);
 
-  const trackRows: TrackRow[] = (tracks ?? [])
-    .map((item, index) => ({ ...item, index }))
-    .slice(0, tracksReveal.visible);
-  const artistRows: ArtistRow[] = (artists ?? [])
-    .map((item, index) => ({ ...item, index }))
-    .slice(0, artistsReveal.visible);
-  const albumRows: AlbumRow[] = (albums ?? [])
-    .map((item, index) => ({ ...item, index }))
-    .slice(0, albumsReveal.visible);
+  const trackRows: TrackRow[] = noHistory
+    ? []
+    : (tracks ?? [])
+        .map((item, index) => ({ ...item, index }))
+        .slice(0, tracksReveal.visible);
+  const artistRows: ArtistRow[] = noHistory
+    ? []
+    : (artists ?? [])
+        .map((item, index) => ({ ...item, index }))
+        .slice(0, artistsReveal.visible);
+  const albumRows: AlbumRow[] = noHistory
+    ? []
+    : (albums ?? [])
+        .map((item, index) => ({ ...item, index }))
+        .slice(0, albumsReveal.visible);
 
   if (!jwt) {
     return (

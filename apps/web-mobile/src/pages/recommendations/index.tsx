@@ -9,6 +9,7 @@ import {
   useArtistRecommendationsQuery,
   useTrackRecommendationsQuery,
 } from "../../hooks/useRecommendations";
+import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 import type {
   AlbumRecommendation,
   ArtistRecommendation,
@@ -354,6 +355,13 @@ export default function Recommendations() {
   const artistsReveal = useInfiniteReveal(artists?.length ?? 0);
   const albumsReveal = useInfiniteReveal(albums?.length ?? 0);
 
+  // A user with no listening history only gets chart-fallback rows —
+  // show the "scrobble more" empty state instead of pretending those are
+  // personalised.
+  const ownStats = useProfileStatsByDidQuery(did);
+  const noHistory =
+    ownStats.isFetched && ((ownStats.data?.scrobbles as number) ?? 0) === 0;
+
   if (!profile || !jwt) {
     return (
       <Main>
@@ -373,14 +381,16 @@ export default function Recommendations() {
   }
 
   const loading =
-    tab === "tracks"
+    !noHistory &&
+    (tab === "tracks"
       ? tracksLoading || (tracksFetching && !tracks?.length)
       : tab === "artists"
         ? artistsLoading || (artistsFetching && !artists?.length)
-        : albumsLoading || (albumsFetching && !albums?.length);
+        : albumsLoading || (albumsFetching && !albums?.length));
 
-  const items =
-    tab === "tracks"
+  const items = noHistory
+    ? []
+    : tab === "tracks"
       ? (tracks ?? [])
       : tab === "artists"
         ? (artists ?? [])

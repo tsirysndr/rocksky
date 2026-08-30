@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { IconDisc } from "@tabler/icons-react";
+import { IconDisc, IconSparkles } from "@tabler/icons-react";
 import { Link, useSearch } from "@tanstack/react-router";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
 import { consola } from "consola";
@@ -8,12 +8,11 @@ import { useEffect, useState } from "react";
 import { displayDrawerAtom } from "../atoms/drawer";
 import { rightPaneHiddenAtom } from "../atoms/rightPane";
 import RightPaneToggle from "../components/RightPaneToggle";
-import RecommendationsWidget from "../components/RecommendationsWidget";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";
 import { API_URL } from "../consts";
-import useProfile from "../hooks/useProfile";
+import useProfile, { useProfileStatsByDidQuery } from "../hooks/useProfile";
 import Navbar from "./Navbar";
 import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
@@ -71,6 +70,11 @@ function Main(props: MainProps) {
   const [token, setToken] = useState<string | null>(null);
   const { did, cli } = useSearch({ strict: false });
   const [passwordLogin, setPasswordLogin] = useState(false);
+
+  // Recommendations need listening history — hide the link until the
+  // signed-in user has scrobbled at least once.
+  const ownStats = useProfileStatsByDidQuery(profile?.did ?? "");
+  const hasScrobbles = ((ownStats.data?.scrobbles as number) ?? 0) > 0;
 
   useEffect(() => {
     if (did && did !== "null") {
@@ -226,11 +230,21 @@ function Main(props: MainProps) {
       </Flex>
       {withRightPane && (
         <RightPane className="relative w-[300px]">
-          <div className="fixed top-[100px] h-[calc(100vh-100px)] w-[300px] bg-white p-[20px] overflow-y-auto pt-[0px]">
+          <div className="fixed top-[100px] h-[calc(100vh-100px)] w-[300px] bg-white p-[20px] overflow-y-auto pt-[0px] pb-[40px]">
             <div className="mb-[30px]">
               <Search />
             </div>
-            {jwt && profile && <RecommendationsWidget />}
+            {jwt && profile && hasScrobbles && (
+              <div className="mb-[20px]">
+                <Link
+                  to="/recommendations"
+                  className="flex items-center text-[var(--color-text)] text-[15px] font-bold no-underline opacity-80 hover:opacity-100"
+                >
+                  <IconSparkles size={18} style={{ marginRight: "6px" }} />
+                  Recommendations
+                </Link>
+              </div>
+            )}
             {jwt && profile && (
               <div className="mb-[20px]">
                 <Link
