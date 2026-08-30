@@ -50,18 +50,10 @@ function RevealSentinel({
 
 function sourceLabel(source?: string): { text: string; color: string } {
   switch (source) {
-    case "neighbour":
     case "known-artist":
-      return {
-        text: source === "neighbour" ? "Neighbour" : "Known artist",
-        color: "#16a34a",
-      };
+      return { text: "Known artist", color: "#16a34a" };
     case "new-artist":
-    case "social":
-      return {
-        text: source === "new-artist" ? "New artist" : "Social",
-        color: "#2563eb",
-      };
+      return { text: "New artist", color: "#2563eb" };
     case "serendipity":
       return { text: "Serendipity", color: "#7c3aed" };
     default:

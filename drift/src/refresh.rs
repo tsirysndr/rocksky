@@ -3,10 +3,12 @@
 //! the durable `recommendations` table of the serving database file.
 //!
 //! Nothing here runs at request time. The legacy TypeScript endpoint recomputed
-//! neighbours and candidates per request with ~10 sequential Postgres queries;
-//! drift computes all users together — the neighbour graph, taste vectors and
-//! candidate scoring are joins over the full corpus, which DuckDB does in
-//! seconds — and serving becomes an indexed lookup on the result table.
+//! candidates per request with ~10 sequential Postgres queries; drift computes
+//! all users together — taste vectors, genre profiles and candidate scoring
+//! are joins over the full corpus, which DuckDB does in seconds — and serving
+//! becomes an indexed lookup on the result table. Scoring is purely
+//! content-based (the user's own genres + audio-feature taste); no other
+//! user's listening influences the list.
 //!
 //! Everything below runs on one pooled connection to the serving database.
 //! Intermediates are ordinary tables (the Appender only reaches the main
@@ -35,21 +37,22 @@ const STAGING_TABLES: &[&str] = &[
     "artist_ser",
     "artist_picks",
     "artist_scored",
-    "artist_cf",
-    "artist_vec",
-    "heard_artists",
     "final",
     "fallback",
     "ser",
     "picks",
     "scored",
+    "disc_pool",
+    "artist_vec",
+    "track_pool",
+    "artist_pop",
+    "track_pop",
+    "heard_artists",
     "user_top_genres",
     "taste",
     "track_vec",
     "genre_hits",
-    "cf",
     "heard",
-    "neighbours",
     "user_artists",
     "user_tracks",
     "artist_genres",
@@ -229,11 +232,10 @@ fn fetch_fingerprint(cfg: &Config, db_url: &str, day: i64) -> Result<String, Str
             })
             .collect();
         let fp = format!(
-            "v2|{}|day={day}|cfg={},{},{},{},{},{},{},{}",
+            "v3|{}|day={day}|cfg={},{},{},{},{},{},{}",
             counts.join("|"),
             cfg.decay_lambda,
             cfg.content_weight,
-            cfg.neighbours,
             cfg.limit_per_user,
             cfg.serendipity_ratio,
             cfg.candidate_limit,
@@ -768,7 +770,6 @@ fn sync_features(conn: &duckdb::Connection, path: &str) -> Result<(), String> {
 fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Result<(), String> {
     let lambda = cfg.decay_lambda;
     let beta = cfg.content_weight;
-    let neighbours = cfg.neighbours;
     let ser_count = ((cfg.limit_per_user as f64) * cfg.serendipity_ratio).ceil() as usize;
     let main_count = cfg.limit_per_user.saturating_sub(ser_count);
     let limit = cfg.limit_per_user;
@@ -785,9 +786,9 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
         // what they play *now*, not their all-time histogram), plus their
         // loved tracks, which count like a few recent plays so an explicit
         // endorsement stays in the profile even when rarely played. Capped at
-        // the top {profile_limit} per user: neighbours, taste vectors and CF
-        // candidates all build on this table, so bounding it here bounds the
-        // whole pipeline. greatest(...,0) guards clock skew.
+        // the top {profile_limit} per user: taste vectors and genre profiles
+        // build on this table, so bounding it here bounds the whole pipeline.
+        // greatest(...,0) guards clock skew.
         (
             "user_tracks",
             format!(
@@ -821,29 +822,6 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
              GROUP BY user_id, artist_id;"
                 .to_string(),
         ),
-        // Proper cosine over decay-weighted artist vectors (the legacy system
-        // used raw shared-artist counts, which over-weights big libraries).
-        // Bot-flagged accounts are cut out of the neighbour graph entirely.
-        (
-            "neighbours",
-            format!(
-                "CREATE TABLE neighbours AS
-                 WITH norms AS (
-                     SELECT user_id, sqrt(sum(w * w)) AS n FROM user_artists GROUP BY user_id
-                 )
-                 SELECT u, v, sim FROM (
-                     SELECT a.user_id AS u, b.user_id AS v,
-                            sum(a.w * b.w) / (any_value(na.n) * any_value(nb.n)) AS sim
-                     FROM user_artists a
-                     JOIN user_artists b ON b.artist_id = a.artist_id AND b.user_id <> a.user_id
-                     JOIN users bu ON bu.id = b.user_id AND NOT bu.is_bot
-                     JOIN norms na ON na.user_id = a.user_id
-                     JOIN norms nb ON nb.user_id = b.user_id
-                     GROUP BY a.user_id, b.user_id
-                 )
-                 QUALIFY row_number() OVER (PARTITION BY u ORDER BY sim DESC) <= {neighbours};"
-            ),
-        ),
         (
             "heard",
             "CREATE TABLE heard AS
@@ -852,29 +830,52 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
              SELECT user_id, track_id FROM loved;"
                 .to_string(),
         ),
-        // Collaborative-filtering candidates: what neighbours play, weighted by
-        // neighbour similarity and their decayed play counts; a neighbour's
-        // loved track is an explicit 5× endorsement. Capped per user right
-        // here — the final output keeps only the top ~limit_per_user, and an
-        // unbounded candidate set is what made the downstream scoring steps
-        // take minutes and run out of memory.
+        // Full-history artist exclusion set (user_artists is profile-capped, so
+        // its complement would resurface artists played outside the top-N).
+        // Also labels main picks: known-artist vs new-artist.
         (
-            "cf",
+            "heard_artists",
+            "CREATE TABLE heard_artists AS
+             SELECT DISTINCT user_id, artist_id FROM scrobbles WHERE artist_id IS NOT NULL;"
+                .to_string(),
+        ),
+        // Global decayed play weight per track / per artist (bot plays
+        // excluded). With no collaborative signal these act as a quality
+        // prior: within the user's taste, better-known beats random.
+        (
+            "track_pop",
             format!(
-                "CREATE TABLE cf AS
-                 SELECT n.u AS user_id, ut.track_id,
-                        sum(n.sim * ut.w * (CASE WHEN l.track_id IS NOT NULL THEN 5 ELSE 1 END)) AS cf_score,
-                        max(CASE WHEN l.track_id IS NOT NULL THEN 1 ELSE 0 END) AS loved
-                 FROM neighbours n
-                 JOIN user_tracks ut ON ut.user_id = n.v
-                 ANTI JOIN heard h ON h.user_id = n.u AND h.track_id = ut.track_id
-                 LEFT JOIN loved l ON l.user_id = n.v AND l.track_id = ut.track_id
-                 GROUP BY n.u, ut.track_id
-                 QUALIFY row_number() OVER (
-                     PARTITION BY n.u
-                     ORDER BY sum(n.sim * ut.w * (CASE WHEN l.track_id IS NOT NULL THEN 5 ELSE 1 END)) DESC
-                 ) <= {cand_limit};"
+                "CREATE TABLE track_pop AS
+                 SELECT s.track_id,
+                        sum(exp(-{lambda} * greatest(({now_epoch} - s.ts) / 86400.0, 0))) AS w
+                 FROM scrobbles s
+                 JOIN users su ON su.id = s.user_id AND NOT su.is_bot
+                 GROUP BY s.track_id;"
             ),
+        ),
+        (
+            "artist_pop",
+            format!(
+                "CREATE TABLE artist_pop AS
+                 SELECT s.artist_id,
+                        sum(exp(-{lambda} * greatest(({now_epoch} - s.ts) / 86400.0, 0))) AS w
+                 FROM scrobbles s
+                 JOIN users su ON su.id = s.user_id AND NOT su.is_bot
+                 WHERE s.artist_id IS NOT NULL
+                 GROUP BY s.artist_id;"
+            ),
+        ),
+        // Candidate tracks: each artist's 5 strongest tracks by decayed global
+        // plays. Bounds every downstream user × track join.
+        (
+            "track_pool",
+            "CREATE TABLE track_pool AS
+             SELECT t.id AS track_id, t.artist_uri, tp.w
+             FROM tracks t
+             JOIN track_pop tp ON tp.track_id = t.id
+             WHERE t.artist_uri IS NOT NULL AND lower(t.artist) <> 'various artists'
+             QUALIFY row_number() OVER (PARTITION BY t.artist_uri ORDER BY tp.w DESC) <= 5;"
+                .to_string(),
         ),
         // Audio-feature vectors, z-scored per dimension across the catalog.
         // Raw Spotify features are all non-negative and correlated, so raw
@@ -974,41 +975,62 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
              WHERE ag.artist_uri IS NOT NULL;"
                 .to_string(),
         ),
-        // Final score. Each factor targets a known Last.fm failure mode:
-        //   × content^β        — sound-alike ranking from audio features
-        //   × genre gate       — soft, with a content escape hatch: a track
-        //     outside the user's genres still passes when it *sounds* like
-        //     their taste (cos ≥ 0.5). Cross-genre discovery a genre-only
-        //     filter can never make.
-        //   ÷ ln(e + plays)    — popularity de-bias, so the globally obvious
-        //     doesn't drown the personally right.
+        // An artist's sound = mean of its tracks' z-scored feature vectors.
+        (
+            "artist_vec",
+            "CREATE TABLE artist_vec AS
+             SELECT t.artist_uri,
+                    [avg(v.vec[1]), avg(v.vec[2]), avg(v.vec[3]), avg(v.vec[4]),
+                     avg(v.vec[5]), avg(v.vec[6]), avg(v.vec[7]), avg(v.vec[8]),
+                     avg(v.vec[9])]::DOUBLE[] AS vec
+             FROM tracks t
+             JOIN track_vec v ON v.track_id = t.id
+             WHERE t.artist_uri IS NOT NULL
+             GROUP BY t.artist_uri;"
+                .to_string(),
+        ),
+        // Discovery pool: the 2000 most-played artists that carry a feature
+        // vector. Serendipity scans this against every taste vector (a bounded
+        // ~2M-row cosine pass) instead of the whole catalog.
+        (
+            "disc_pool",
+            "CREATE TABLE disc_pool AS
+             SELECT a.uri AS artist_uri, a.id AS artist_id, av.vec, ap.w
+             FROM artist_pop ap
+             JOIN artists a ON a.id = ap.artist_id AND lower(a.name) <> 'various artists'
+             JOIN artist_vec av ON av.artist_uri = a.uri
+             ORDER BY ap.w DESC LIMIT 2000;"
+                .to_string(),
+        ),
+        // Purely content-based scoring — no other users involved. Candidates
+        // are unheard tracks by artists that match the user's own genre
+        // profile, ranked by how much they *sound* like the user's taste
+        // vector (content^β) times a mild popularity prior (ln(1 + decayed
+        // plays)) so better-known beats random within the same taste fit.
+        // Labeled known-artist / new-artist by whether the user has played
+        // the artist before.
         (
             "scored",
             format!(
                 "CREATE TABLE scored AS
-                 WITH gp AS (SELECT track_id, count(*) AS c FROM scrobbles GROUP BY track_id),
-                 cand AS (
-                     SELECT c.user_id, c.track_id, c.cf_score, c.loved,
-                            t.artist_uri, t.artist,
-                            list_cosine_similarity(ta.vec, tv.vec) AS cs
-                     FROM cf c
-                     JOIN tracks t ON t.id = c.track_id
-                     LEFT JOIN taste ta ON ta.user_id = c.user_id
-                     LEFT JOIN track_vec tv ON tv.track_id = c.track_id
-                     WHERE lower(t.artist) <> 'various artists'
+                 SELECT user_id, track_id, artist_uri, score, source FROM (
+                     SELECT gh.user_id, p.track_id, p.artist_uri,
+                            pow(coalesce((1 + list_cosine_similarity(ta.vec, tv.vec)) / 2.0, 0.5), {beta})
+                                * ln(1 + p.w) AS score,
+                            CASE WHEN ha.artist_id IS NOT NULL
+                                 THEN 'known-artist' ELSE 'new-artist' END AS source
+                     FROM genre_hits gh
+                     JOIN track_pool p ON p.artist_uri = gh.artist_uri
+                     JOIN artists a ON a.uri = p.artist_uri
+                     ANTI JOIN heard h ON h.user_id = gh.user_id AND h.track_id = p.track_id
+                     LEFT JOIN taste ta ON ta.user_id = gh.user_id
+                     LEFT JOIN track_vec tv ON tv.track_id = p.track_id
+                     LEFT JOIN heard_artists ha
+                            ON ha.user_id = gh.user_id AND ha.artist_id = a.id
                  )
-                 SELECT c.user_id, c.track_id, c.artist_uri,
-                        c.cf_score
-                            * pow(coalesce((1 + c.cs) / 2.0, 0.5), {beta})
-                            * (CASE WHEN gh.artist_uri IS NOT NULL THEN 1.0
-                                    WHEN c.cs >= 0.5 THEN 0.9
-                                    ELSE 0.35 END)
-                            / ln(2.718281828459045 + coalesce(gp.c, 0)) AS score,
-                        CASE WHEN c.loved = 1 THEN 'social' ELSE 'neighbour' END AS source
-                 FROM cand c
-                 LEFT JOIN genre_hits gh
-                        ON gh.user_id = c.user_id AND gh.artist_uri = c.artist_uri
-                 LEFT JOIN gp ON gp.track_id = c.track_id;"
+                 QUALIFY row_number() OVER (
+                     PARTITION BY user_id ORDER BY score DESC
+                 ) <= {cand_limit};"
             ),
         ),
         // Top-N with an artist diversity cap: each artist's best track ranks
@@ -1035,82 +1057,55 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
                  WHERE rn <= {main_count};"
             ),
         ),
-        // Serendipity: artists the user has never played, drawn from the
-        // neighbour graph, gated on genre overlap OR audio-feature similarity,
-        // one track per artist, rotated daily by the hash salt.
+        // Serendipity: artists the user has never played whose *sound* is
+        // close to their taste (cos ≥ 0.3), drawn from the discovery pool —
+        // cross-genre by nature, one track per artist, rotated daily by the
+        // hash salt.
         (
             "ser",
             format!(
                 "CREATE TABLE ser AS
-                 WITH pool AS (
-                     SELECT n.u AS user_id, ut.track_id,
-                            any_value(t.artist_uri) AS artist_uri
-                     FROM neighbours n
-                     JOIN user_tracks ut ON ut.user_id = n.v
-                     JOIN tracks t ON t.id = ut.track_id
-                     ANTI JOIN user_artists ua
-                          ON ua.user_id = n.u AND ua.artist_id = ut.artist_id
-                     ANTI JOIN heard h ON h.user_id = n.u AND h.track_id = ut.track_id
-                     ANTI JOIN picks p ON p.user_id = n.u AND p.track_id = ut.track_id
-                     WHERE lower(t.artist) <> 'various artists'
-                     GROUP BY n.u, ut.track_id
-                     QUALIFY row_number() OVER (
-                         PARTITION BY n.u
-                         ORDER BY hash(n.u || ut.track_id || '{day}')
-                     ) <= {cand_limit}
-                 ),
-                 eligible AS (
-                     SELECT p.user_id, p.track_id, p.artist_uri,
-                            (gh.artist_uri IS NOT NULL) AS hit,
-                            coalesce(list_cosine_similarity(ta.vec, tv.vec), -1) AS cs
-                     FROM pool p
-                     LEFT JOIN genre_hits gh
-                            ON gh.user_id = p.user_id AND gh.artist_uri = p.artist_uri
-                     LEFT JOIN taste ta ON ta.user_id = p.user_id
-                     LEFT JOIN track_vec tv ON tv.track_id = p.track_id
-                 )
                  SELECT user_id, track_id, 0.0 AS score, 'serendipity' AS source,
                         row_number() OVER (
                             PARTITION BY user_id
                             ORDER BY hash(user_id || track_id || '{day}')
                         ) AS rn
                  FROM (
-                     SELECT user_id, track_id, artist_uri FROM eligible
-                     WHERE hit OR cs >= 0.3
+                     SELECT user_id, track_id FROM (
+                         SELECT ta.user_id, p.track_id, dp.artist_uri
+                         FROM taste ta
+                         JOIN disc_pool dp
+                              ON list_cosine_similarity(ta.vec, dp.vec) >= 0.3
+                         ANTI JOIN heard_artists ha
+                              ON ha.user_id = ta.user_id AND ha.artist_id = dp.artist_id
+                         JOIN track_pool p ON p.artist_uri = dp.artist_uri
+                         ANTI JOIN heard h ON h.user_id = ta.user_id AND h.track_id = p.track_id
+                         ANTI JOIN picks pk ON pk.user_id = ta.user_id AND pk.track_id = p.track_id
+                     )
                      QUALIFY row_number() OVER (
-                         PARTITION BY user_id, coalesce(artist_uri, track_id)
+                         PARTITION BY user_id, artist_uri
                          ORDER BY hash(user_id || track_id || '{day}')
                      ) = 1
                  )
-                 QUALIFY row_number() OVER (
-                     PARTITION BY user_id
-                     ORDER BY hash(user_id || track_id || '{day}')
-                 ) <= {ser_count};"
+                 QUALIFY rn <= {ser_count};"
             ),
         ),
-        // Cold start: users with no CF candidates get the decayed global chart
+        // Cold start: users with no candidates get the decayed global chart
         // (bot plays excluded, one track per artist) minus anything they've heard.
         (
             "fallback",
             format!(
                 "CREATE TABLE fallback AS
-                 WITH gp AS (
-                     SELECT s.track_id,
-                            sum(exp(-{lambda} * greatest(({now_epoch} - s.ts) / 86400.0, 0))) AS w
-                     FROM scrobbles s
-                     JOIN users su ON su.id = s.user_id AND NOT su.is_bot
-                     GROUP BY s.track_id
-                 ),
-                 chart AS (
-                     SELECT gp.track_id, gp.w
-                     FROM gp
-                     JOIN tracks t ON t.id = gp.track_id
+                 WITH chart AS (
+                     SELECT tp.track_id, tp.w
+                     FROM track_pop tp
+                     JOIN tracks t ON t.id = tp.track_id
                      WHERE lower(t.artist) <> 'various artists'
                      QUALIFY row_number() OVER (
-                         PARTITION BY coalesce(t.artist_uri, gp.track_id)
-                         ORDER BY gp.w DESC
+                         PARTITION BY coalesce(t.artist_uri, tp.track_id)
+                         ORDER BY tp.w DESC
                      ) = 1
-                     ORDER BY gp.w DESC LIMIT 200
+                     ORDER BY tp.w DESC LIMIT 200
                  )
                  SELECT u.id AS user_id, c.track_id, 0.0 AS score, 'chart' AS source,
                         row_number() OVER (PARTITION BY u.id ORDER BY c.w DESC) AS rn
@@ -1151,88 +1146,42 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
                 .to_string(),
         ),
         // ───────────────────────── artists ─────────────────────────
-        // Full-history exclusion set: user_artists is profile-capped, so
-        // recommending from its complement would resurface artists the user
-        // played outside the top-{profile_limit}.
-        (
-            "heard_artists",
-            "CREATE TABLE heard_artists AS
-             SELECT DISTINCT user_id, artist_id FROM scrobbles WHERE artist_id IS NOT NULL;"
-                .to_string(),
-        ),
-        // An artist's sound = mean of its tracks' z-scored feature vectors.
-        (
-            "artist_vec",
-            "CREATE TABLE artist_vec AS
-             SELECT t.artist_uri,
-                    [avg(v.vec[1]), avg(v.vec[2]), avg(v.vec[3]), avg(v.vec[4]),
-                     avg(v.vec[5]), avg(v.vec[6]), avg(v.vec[7]), avg(v.vec[8]),
-                     avg(v.vec[9])]::DOUBLE[] AS vec
-             FROM tracks t
-             JOIN track_vec v ON v.track_id = t.id
-             WHERE t.artist_uri IS NOT NULL
-             GROUP BY t.artist_uri;"
-                .to_string(),
-        ),
-        (
-            "artist_cf",
-            format!(
-                "CREATE TABLE artist_cf AS
-                 SELECT n.u AS user_id, ua.artist_id, sum(n.sim * ua.w) AS cf_score
-                 FROM neighbours n
-                 JOIN user_artists ua ON ua.user_id = n.v
-                 ANTI JOIN heard_artists h ON h.user_id = n.u AND h.artist_id = ua.artist_id
-                 GROUP BY n.u, ua.artist_id
-                 QUALIFY row_number() OVER (
-                     PARTITION BY n.u ORDER BY sum(n.sim * ua.w) DESC
-                 ) <= {cand_limit};"
-            ),
-        ),
-        // Same recipe as track `scored`: CF × content^β × soft genre gate ÷
-        // popularity de-bias — with the artist's mean feature vector standing
-        // in for the track vector.
+        // Unheard artists matching the user's own genre profile, ranked by
+        // sound similarity to their taste vector times the popularity prior.
         (
             "artist_scored",
             format!(
                 "CREATE TABLE artist_scored AS
-                 WITH gp AS (
-                     SELECT artist_id, count(*) AS c FROM scrobbles
-                     WHERE artist_id IS NOT NULL GROUP BY artist_id
-                 ),
-                 cand AS (
-                     SELECT c.user_id, c.artist_id, c.cf_score, a.uri AS artist_uri,
-                            list_cosine_similarity(ta.vec, av.vec) AS cs
-                     FROM artist_cf c
-                     JOIN artists a ON a.id = c.artist_id
-                     LEFT JOIN taste ta ON ta.user_id = c.user_id
-                     LEFT JOIN artist_vec av ON av.artist_uri = a.uri
-                     WHERE lower(a.name) <> 'various artists'
+                 SELECT user_id, artist_id, artist_uri, score FROM (
+                     SELECT gh.user_id, a.id AS artist_id, gh.artist_uri,
+                            pow(coalesce((1 + list_cosine_similarity(ta.vec, av.vec)) / 2.0, 0.5), {beta})
+                                * ln(1 + coalesce(ap.w, 0)) AS score
+                     FROM genre_hits gh
+                     JOIN artists a ON a.uri = gh.artist_uri
+                                   AND lower(a.name) <> 'various artists'
+                     ANTI JOIN heard_artists ha
+                          ON ha.user_id = gh.user_id AND ha.artist_id = a.id
+                     LEFT JOIN taste ta ON ta.user_id = gh.user_id
+                     LEFT JOIN artist_vec av ON av.artist_uri = gh.artist_uri
+                     LEFT JOIN artist_pop ap ON ap.artist_id = a.id
                  )
-                 SELECT c.user_id, c.artist_id, c.artist_uri, c.cs,
-                        c.cf_score
-                            * pow(coalesce((1 + c.cs) / 2.0, 0.5), {beta})
-                            * (CASE WHEN gh.artist_uri IS NOT NULL THEN 1.0
-                                    WHEN c.cs >= 0.5 THEN 0.9
-                                    ELSE 0.35 END)
-                            / ln(2.718281828459045 + coalesce(gp.c, 0)) AS score
-                 FROM cand c
-                 LEFT JOIN genre_hits gh
-                        ON gh.user_id = c.user_id AND gh.artist_uri = c.artist_uri
-                 LEFT JOIN gp ON gp.artist_id = c.artist_id;"
+                 QUALIFY row_number() OVER (
+                     PARTITION BY user_id ORDER BY score DESC
+                 ) <= {cand_limit};"
             ),
         ),
         (
             "artist_picks",
             format!(
                 "CREATE TABLE artist_picks AS
-                 SELECT user_id, artist_id, score, 'neighbour' AS source,
+                 SELECT user_id, artist_id, score, 'for-you' AS source,
                         row_number() OVER (PARTITION BY user_id ORDER BY score DESC) AS rn
                  FROM artist_scored
                  QUALIFY rn <= {main_count};"
             ),
         ),
-        // Serendipity from the scored tail: not picked, but genre- or
-        // sound-adjacent; rotated daily by the hash salt.
+        // Serendipity: unheard artists from the discovery pool whose sound is
+        // close to the user's taste, regardless of genre; rotated daily.
         (
             "artist_ser",
             format!(
@@ -1243,13 +1192,14 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
                             ORDER BY hash(user_id || artist_id || '{day}')
                         ) AS rn
                  FROM (
-                     SELECT s.user_id, s.artist_id
-                     FROM artist_scored s
+                     SELECT ta.user_id, dp.artist_id
+                     FROM taste ta
+                     JOIN disc_pool dp
+                          ON list_cosine_similarity(ta.vec, dp.vec) >= 0.3
+                     ANTI JOIN heard_artists ha
+                          ON ha.user_id = ta.user_id AND ha.artist_id = dp.artist_id
                      ANTI JOIN artist_picks p
-                          ON p.user_id = s.user_id AND p.artist_id = s.artist_id
-                     LEFT JOIN genre_hits gh
-                            ON gh.user_id = s.user_id AND gh.artist_uri = s.artist_uri
-                     WHERE gh.artist_uri IS NOT NULL OR s.cs >= 0.3
+                          ON p.user_id = ta.user_id AND p.artist_id = dp.artist_id
                  )
                  QUALIFY rn <= {ser_count};"
             ),
@@ -1258,20 +1208,12 @@ fn run_pipeline(conn: &duckdb::Connection, cfg: &Config, now_epoch: f64) -> Resu
             "artist_fallback",
             format!(
                 "CREATE TABLE artist_fallback AS
-                 WITH gp AS (
-                     SELECT s.artist_id,
-                            sum(exp(-{lambda} * greatest(({now_epoch} - s.ts) / 86400.0, 0))) AS w
-                     FROM scrobbles s
-                     JOIN users su ON su.id = s.user_id AND NOT su.is_bot
-                     WHERE s.artist_id IS NOT NULL
-                     GROUP BY s.artist_id
-                 ),
-                 chart AS (
-                     SELECT gp.artist_id, gp.w
-                     FROM gp
-                     JOIN artists a ON a.id = gp.artist_id
+                 WITH chart AS (
+                     SELECT ap.artist_id, ap.w
+                     FROM artist_pop ap
+                     JOIN artists a ON a.id = ap.artist_id
                      WHERE lower(a.name) <> 'various artists'
-                     ORDER BY gp.w DESC LIMIT 200
+                     ORDER BY ap.w DESC LIMIT 200
                  )
                  SELECT u.id AS user_id, c.artist_id, 0.0 AS score, 'chart' AS source,
                         row_number() OVER (PARTITION BY u.id ORDER BY c.w DESC) AS rn

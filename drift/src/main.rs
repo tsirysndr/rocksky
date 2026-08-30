@@ -48,9 +48,6 @@ pub struct Config {
     #[arg(long, env = "DRIFT_LIMIT_PER_USER", default_value_t = 100)]
     pub limit_per_user: usize,
 
-    #[arg(long, env = "DRIFT_NEIGHBOURS", default_value_t = 50)]
-    pub neighbours: usize,
-
     /// Per-day recency decay; 0.02 ≈ 35-day half-life.
     #[arg(long, env = "DRIFT_DECAY_LAMBDA", default_value_t = 0.02)]
     pub decay_lambda: f64,

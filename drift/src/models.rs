@@ -22,7 +22,7 @@ pub struct Recommendation {
     pub album_uri: Option<String>,
     pub genres: Vec<String>,
     pub recommendation_score: f64,
-    /// "neighbour" | "social" | "serendipity" | "chart"
+    /// "known-artist" | "new-artist" | "serendipity" | "chart"
     pub source: String,
     pub likes_count: i64,
 }
@@ -45,7 +45,7 @@ pub struct RecommendedArtist {
     pub picture: Option<String>,
     pub genres: Vec<String>,
     pub recommendation_score: f64,
-    /// "neighbour" | "serendipity" | "chart"
+    /// "for-you" | "serendipity" | "chart"
     pub source: String,
 }
 

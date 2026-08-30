@@ -11,20 +11,21 @@ interval and lands the results in a dedicated DuckDB database file
 (`recommendations.ddb`); serving is a sub-millisecond lookup on that table —
 Postgres is never on the request path.
 
-## Why it beats Last.fm
+## How it recommends
 
-Last.fm's recommender is pure collaborative filtering over all-time play
-counts. Each of drift's scoring terms targets one of its known failure modes:
+Scoring is **purely content-based**: nothing another user plays ever
+influences your list. Candidates are unheard tracks by artists matching your
+own scrobble-weighted genre profile, ranked by how much they *sound* like
+your listening:
 
-| Last.fm failure mode | drift's answer |
+| Design point | drift's answer |
 | --- | --- |
-| No audio signal — only co-listening | Cosine similarity between the user's **taste vector** and each candidate's Spotify audio features (danceability, energy, valence, acousticness, instrumentalness, liveness, speechiness, tempo, loudness). Features are **z-scored across the catalog** first — raw Spotify features are all-positive and correlated, so raw cosine saturates near 1; standardized cosine actually discriminates. |
-| Popularity bias — recommends what everyone already knows | Scores are divided by `ln(e + global plays)`, so the globally obvious doesn't drown the personally right. |
+| Sound similarity | Cosine similarity between the user's **taste vector** and each candidate's Spotify audio features (danceability, energy, valence, acousticness, instrumentalness, liveness, speechiness, tempo, loudness). Features are **z-scored across the catalog** first — raw Spotify features are all-positive and correlated, so raw cosine saturates near 1; standardized cosine actually discriminates. |
+| Quality prior | With no collaborative signal, a mild `ln(1 + decayed global plays)` factor keeps better-known material ahead of random sound-alikes within the same taste fit. |
 | Fossilized profiles — that ska phase in 2009 still haunts you | Exponential recency decay (λ = 0.02/day ≈ 35-day half-life) on every play weight. Taste is what you play *now*. |
-| Genre echo chamber *or* genre chaos | Soft genre gate with a content escape hatch: a track outside the user's top genres still passes when it *sounds* like their taste (cos ≥ 0.5). Cross-genre discovery a genre-only filter can never make. |
-| Artist echo — ten tracks by the same artist | Diversity cap: each artist's best track ranks first, runner-ups only fill leftover slots. Plus a 15 % serendipity quota from artists the user has **never** played, rotated daily. |
-| Play-count-only signal | A neighbour's loved track is an explicit 5× endorsement (`source: "social"`); neighbour similarity is proper cosine over decay-weighted artist vectors, not raw shared counts. |
-| Scrobble spam pollutes the graph | `users.is_bot` (written by the scrobble-abuse sweep) excludes flagged accounts from the neighbour graph and the charts. |
+| Genre echo chamber | Main picks come from the user's own top genres; the 15 % serendipity quota is **cross-genre by design** — unheard artists whose sound is close to the taste vector (cos ≥ 0.3), rotated daily. |
+| Artist echo — ten tracks by the same artist | Diversity cap: each artist's best track ranks first, runner-ups only fill leftover slots; candidates are each artist's 5 strongest tracks. |
+| Scrobble spam pollutes the charts | `users.is_bot` (written by the scrobble-abuse sweep) excludes flagged accounts from the popularity priors and charts. |
 
 Users with too little history for collaborative filtering get the decayed
 global chart (one track per artist, heard tracks excluded, `source: "chart"`)
@@ -32,17 +33,16 @@ instead of an empty list.
 
 The same refresh also precomputes **artist** and **album** recommendations:
 
-- **Artists** reuse the track machinery — CF over the neighbour graph
-  (artists the user has never played), a content term from the artist's mean
-  audio-feature vector, the soft genre gate, popularity de-bias, a daily-rotated
-  serendipity quota, and a chart fallback (`source: "neighbour" | "serendipity"
-  | "chart"`).
-- **Albums** mirror the legacy endpoint's two pools: unheard albums by artists
-  the user already plays (`source: "known-artist"`, scored by artist
-  familiarity) and albums by the CF-recommended new artists
-  (`source: "new-artist"`), with a per-artist diversity cap and a chart
-  fallback. "Heard" covers both `scrobbles.album_id` and albums reached through
-  the scrobbled tracks' `album_uri`.
+- **Artists**: unheard artists matching the user's genre profile, ranked by
+  the sound similarity of the artist's mean feature vector to the user's
+  taste, plus the cross-genre serendipity quota and a chart fallback
+  (`source: "for-you" | "serendipity" | "chart"`).
+- **Albums** keep two pools: unheard albums by artists the user already plays
+  (`source: "known-artist"`, scored by artist familiarity) and albums by the
+  content-recommended new artists (`source: "new-artist"`), with a per-artist
+  diversity cap and a chart fallback. "Heard" covers both
+  `scrobbles.album_id` and albums reached through the scrobbled tracks'
+  `album_uri`.
 
 ## Architecture
 
@@ -55,8 +55,8 @@ users, tracks, artists                  │
    ┌─────────────────────────────────────────┐
    │  refresh (every 30 min, or POST-ed)     │
    │  one set-based DuckDB pass:             │
-   │  decay → neighbours → CF candidates →   │
-   │  taste vectors → score → diversify →    │
+   │  decay → genre profile → taste vector → │
+   │  content-score candidates → diversify → │
    │  serendipity → chart fallback           │
    └────────────────────┬────────────────────┘
                         ▼
@@ -144,7 +144,6 @@ Every option takes a flag **or** an environment variable:
 | `--features-parquet`      | `DRIFT_FEATURES_PARQUET`      | `track_audio_features.parquet` | riff's audio-features parquet                |
 | `--refresh-interval-secs` | `DRIFT_REFRESH_INTERVAL_SECS` | `1800`                         | Seconds between automatic refreshes          |
 | `--limit-per-user`        | `DRIFT_LIMIT_PER_USER`        | `100`                          | Rows precomputed per user                    |
-| `--neighbours`            | `DRIFT_NEIGHBOURS`            | `50`                           | Neighbour graph fan-out                      |
 | `--decay-lambda`          | `DRIFT_DECAY_LAMBDA`          | `0.02`                         | Per-day recency decay                        |
 | `--content-weight`        | `DRIFT_CONTENT_WEIGHT`        | `0.6`                          | Exponent on audio-feature similarity (0 off) |
 | `--serendipity-ratio`     | `DRIFT_SERENDIPITY_RATIO`     | `0.15`                         | Serendipity share of each response           |
