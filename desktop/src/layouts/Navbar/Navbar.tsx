@@ -327,18 +327,14 @@ function Navbar() {
                         </LabelMedium>
                       ),
                     },
-                    ...(profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
-                      ? [
-                          {
-                            id: "storage",
-                            label: (
-                              <LabelMedium className="!text-[var(--color-text)]">
-                                Storage
-                              </LabelMedium>
-                            ),
-                          },
-                        ]
-                      : []),
+                    {
+                      id: "storage",
+                      label: (
+                        <LabelMedium className="!text-[var(--color-text)]">
+                          Storage
+                        </LabelMedium>
+                      ),
+                    },
                     ...(profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
                       ? [
                           {
