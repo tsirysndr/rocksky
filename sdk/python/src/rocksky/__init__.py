@@ -12,23 +12,21 @@ Build a Rocksky-controllable player or a remote UI with the ``RemotePlayer`` /
     from rocksky import RemotePlayer, RemoteController
 """
 
-import typing
+import contextlib
 
 from .filter import Filter, FilterValue  # noqa: F401
-from .rocksky_uniffi import *  # noqa: F401,F403
+from .rocksky_uniffi import *  # noqa: F403
 from .rocksky_uniffi import AppView as _AppView
 
 # Ergonomic poll-loop wrappers over the generated RemotePlayer/RemoteController
 # (they shadow the raw generated classes brought in by the star-import above).
 # Guarded so a core built without the (default) `remote-player` feature still
 # imports — the wrappers are simply absent then.
-try:
+with contextlib.suppress(ImportError, AttributeError):  # pragma: no cover - feature-gated
     from .remote import RemoteController, RemotePlayer  # noqa: F401
-except (ImportError, AttributeError):  # pragma: no cover - feature-gated
-    pass
 
 
-class AppView(_AppView):  # noqa: F811 — thin facade over the generated class
+class AppView(_AppView):
     """Read client over the public Rocksky AppView.
 
     ``base`` defaults to ``None`` (the public AppView at
@@ -39,7 +37,7 @@ class AppView(_AppView):  # noqa: F811 — thin facade over the generated class
 
     def __init__(
         self,
-        base: typing.Optional[str] = None,
-        token: typing.Optional[str] = None,
+        base: str | None = None,
+        token: str | None = None,
     ):
         super().__init__(base, token)

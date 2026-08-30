@@ -1159,7 +1159,7 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_loved_songs(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_rocksky_uniffi_fn_method_appview_match_song(`ptr`: Pointer,`title`: RustBuffer.ByValue,`artist`: RustBuffer.ByValue,`mbId`: RustBuffer.ByValue,`isrc`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_method_appview_match_song(`ptr`: Pointer,`title`: RustBuffer.ByValue,`artist`: RustBuffer.ByValue,`album`: RustBuffer.ByValue,`mbId`: RustBuffer.ByValue,`isrc`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_mirror_sources(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1961,7 +1961,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs() != 22860.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 2316.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 58118.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources() != 4801.toShort()) {
@@ -3336,8 +3336,10 @@ public interface AppViewInterface {
     /**
      * Resolve full canonical metadata for a bare title + artist
      * (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+     * `album` steers the match toward that release (case-insensitive) so a
+     * remaster/live/single edition doesn't shadow the intended album.
      */
-    fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String
+    fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String
     
     fun `mirrorSources`(): kotlin.String
     
@@ -3963,13 +3965,15 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     /**
      * Resolve full canonical metadata for a bare title + artist
      * (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+     * `album` steers the match toward that release (case-insensitive) so a
+     * remaster/live/single edition doesn't shadow the intended album.
      */
-    @Throws(RockskyException::class)override fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String {
+    @Throws(RockskyException::class)override fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String {
             return FfiConverterString.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_match_song(
-        it, FfiConverterString.lower(`title`),FfiConverterString.lower(`artist`),FfiConverterOptionalString.lower(`mbId`),FfiConverterOptionalString.lower(`isrc`),_status)
+        it, FfiConverterString.lower(`title`),FfiConverterString.lower(`artist`),FfiConverterOptionalString.lower(`album`),FfiConverterOptionalString.lower(`mbId`),FfiConverterOptionalString.lower(`isrc`),_status)
 }
     }
     )

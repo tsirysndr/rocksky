@@ -134,6 +134,10 @@ program
   .command("scrobble")
   .argument("<track>", "the title of the track")
   .argument("<artist>", "the artist of the track")
+  .option(
+    "-a, --album <album>",
+    "the album of the track — matching prefers this release over remaster/live/single editions",
+  )
   .option("-t, --timestamp <timestamp>", "the timestamp of the scrobble")
   .option("-d, --dry-run", "simulate the scrobble without actually sending it")
   .description("scrobble a track to your profile")

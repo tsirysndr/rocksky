@@ -19,21 +19,27 @@ export type MatchTrackResult = SelectTrack & {
 export async function matchTrack(
   track: string,
   artist: string,
+  album?: string,
 ): Promise<MatchTrackResult | null> {
   let match;
-  const cached = await ctx.kv.getItem(`${track} - ${artist}`);
+  // The album narrows the match, so it must narrow the cache key too — the
+  // same title/artist can resolve to different editions per requested album.
+  const cacheKey = album
+    ? `${track} - ${artist} - ${album}`
+    : `${track} - ${artist}`;
+  const cached = await ctx.kv.getItem(cacheKey);
   const client = new RockskyClient();
 
   if (cached) {
     match = cached;
-    client.matchSong(track, artist).then((newMatch) => {
+    client.matchSong(track, artist, album).then((newMatch) => {
       if (newMatch) {
-        ctx.kv.setItem(`${track} - ${artist}`.toLowerCase(), newMatch);
+        ctx.kv.setItem(cacheKey.toLowerCase(), newMatch);
       }
     });
   } else {
-    match = await client.matchSong(track, artist);
-    await ctx.kv.setItem(`${track} - ${artist}`.toLowerCase(), match);
+    match = await client.matchSong(track, artist, album);
+    await ctx.kv.setItem(cacheKey.toLowerCase(), match);
   }
 
   if (!match.title || !match.artist) {

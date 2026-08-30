@@ -8329,6 +8329,11 @@ export const schemaDict = {
               type: "string",
               description: "The artist of the song to retrieve",
             },
+            album: {
+              type: "string",
+              description:
+                "Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release",
+            },
             mbId: {
               type: "string",
               description:

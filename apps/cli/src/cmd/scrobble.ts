@@ -4,9 +4,9 @@ import { publishScrobble } from "scrobble";
 export async function scrobble(
   track: string,
   artist: string,
-  { timestamp, dryRun },
+  { album, timestamp, dryRun },
 ) {
-  const match = await matchTrack(track, artist);
+  const match = await matchTrack(track, artist, album);
 
   if (!match) {
     process.exit(1);

@@ -108,9 +108,10 @@ export async function scrobbleApi({ port }) {
     (async () => {
       const track = submission["t[0]"];
       const artist = submission["a[0]"];
+      const album = submission["b[0]"];
       const timestamp = parseInt(submission["i[0]"]);
 
-      const match = await matchTrack(track, artist);
+      const match = await matchTrack(track, artist, album);
 
       if (!match) {
         log.warn`No match found for ${track} by ${artist}`;
@@ -227,13 +228,14 @@ export async function scrobbleApi({ port }) {
 
       const track = params["track[0]"] || params.track;
       const artist = params["artist[0]"] || params.artist;
+      const album = params["album[0]"] || params.album;
       const timestamp = params["timestamp[0]"] || params.timestamp;
 
       log.info`Received Last.fm scrobble: ${track} by ${artist}`;
 
       // Process scrobble asynchronously
       (async () => {
-        const match = await matchTrack(track, artist);
+        const match = await matchTrack(track, artist, album);
 
         if (!match) {
           log.warn`No match found for ${track} by ${artist}`;
@@ -331,10 +333,11 @@ export async function scrobbleApi({ port }) {
       for (const listen of submitRequest.payload) {
         const title = listen.track_metadata.track_name;
         const artist = listen.track_metadata.artist_name;
+        const album = listen.track_metadata.release_name;
 
         log.info`Processing listen: ${title} by ${artist}`;
 
-        const match = await matchTrack(title, artist);
+        const match = await matchTrack(title, artist, album);
 
         if (!match) {
           log.warn`No match found for ${title} by ${artist}`;
@@ -440,7 +443,8 @@ export async function scrobbleApi({ port }) {
 
     const title = scrobble.data?.song?.parsed?.track;
     const artist = scrobble.data?.song?.parsed?.artist;
-    const match = await matchTrack(title, artist);
+    const album = scrobble.data?.song?.parsed?.album;
+    const match = await matchTrack(title, artist, album);
 
     if (!match) {
       log.warn`No match found for ${title} by ${artist}`;

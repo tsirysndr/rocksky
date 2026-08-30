@@ -77,6 +77,7 @@ impl<'a> SongApi<'a> {
             params: MatchParams {
                 title: title.into(),
                 artist: artist.into(),
+                album: None,
                 mb_id: None,
                 isrc: None,
             },
@@ -258,6 +259,8 @@ struct MatchParams {
     title: String,
     artist: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    album: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     mb_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     isrc: Option<String>,
@@ -270,6 +273,12 @@ pub struct MatchSong<'a> {
 }
 
 impl<'a> MatchSong<'a> {
+    /// Steer the match toward this release (case-insensitive) so a
+    /// remaster/live/single edition doesn't shadow the intended album.
+    pub fn album(mut self, album: impl Into<String>) -> Self {
+        self.params.album = Some(album.into());
+        self
+    }
     pub fn mb_id(mut self, mb_id: impl Into<String>) -> Self {
         self.params.mb_id = Some(mb_id.into());
         self

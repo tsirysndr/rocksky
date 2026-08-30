@@ -614,11 +614,12 @@ export class RockskyClient {
     return data.albums || [];
   }
 
-  async matchSong(title: string, artist: string) {
+  async matchSong(title: string, artist: string, album?: string) {
     const q = new URLSearchParams({
       title,
       artist,
     });
+    if (album) q.set("album", album);
     const response = await fetch(
       `${ROCKSKY_API_URL}/xrpc/app.rocksky.song.matchSong?${q.toString()}`,
     );

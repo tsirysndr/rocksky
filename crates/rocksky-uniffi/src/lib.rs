@@ -1026,19 +1026,23 @@ impl AppView {
 
     /// Resolve full canonical metadata for a bare title + artist
     /// (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+    /// `album` steers the match toward that release (case-insensitive) so a
+    /// remaster/live/single edition doesn't shadow the intended album.
     pub fn match_song(
         &self,
         title: String,
         artist: String,
+        album: Option<String>,
         mb_id: Option<String>,
         isrc: Option<String>,
     ) -> Result<String, RockskyError> {
-        json(
-            RT.block_on(
-                self.inner
-                    .match_song(&title, &artist, mb_id.as_deref(), isrc.as_deref()),
-            ),
-        )
+        json(RT.block_on(self.inner.match_song(
+            &title,
+            &artist,
+            album.as_deref(),
+            mb_id.as_deref(),
+            isrc.as_deref(),
+        )))
     }
 
     pub fn song(
@@ -2348,26 +2352,22 @@ impl Library {
 
     /// `app.rocksky.library.getPlaylists` — returns the raw JSON payload.
     pub fn get_playlists(&self) -> Result<String, RockskyError> {
-        Ok(RT
-            .block_on(self.inner.get_playlists())
-            .map_err(err)?
-            .to_string())
+        let v = RT.block_on(self.inner.get_playlists()).map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
     }
 
     /// `app.rocksky.library.getPlaylist` — returns the raw JSON payload.
     pub fn get_playlist(&self, id: String) -> Result<String, RockskyError> {
-        Ok(RT
-            .block_on(self.inner.get_playlist(&id))
-            .map_err(err)?
-            .to_string())
+        let v = RT.block_on(self.inner.get_playlist(&id)).map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
     }
 
     /// `app.rocksky.library.createPlaylist` — returns the raw JSON payload.
     pub fn create_playlist(&self, name: String) -> Result<String, RockskyError> {
-        Ok(RT
+        let v = RT
             .block_on(self.inner.create_playlist(&name))
-            .map_err(err)?
-            .to_string())
+            .map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
     }
 
     /// `app.rocksky.library.updatePlaylist` — returns the raw JSON payload.
@@ -2379,7 +2379,7 @@ impl Library {
         song_id_to_add: Option<String>,
         song_index_to_remove: Option<i64>,
     ) -> Result<String, RockskyError> {
-        Ok(RT
+        let v = RT
             .block_on(self.inner.update_playlist(
                 &playlist_id,
                 name.as_deref(),
@@ -2387,16 +2387,14 @@ impl Library {
                 song_id_to_add.as_deref(),
                 song_index_to_remove,
             ))
-            .map_err(err)?
-            .to_string())
+            .map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
     }
 
     /// `app.rocksky.library.deletePlaylist` — returns the raw JSON payload.
     pub fn delete_playlist(&self, id: String) -> Result<String, RockskyError> {
-        Ok(RT
-            .block_on(self.inner.delete_playlist(&id))
-            .map_err(err)?
-            .to_string())
+        let v = RT.block_on(self.inner.delete_playlist(&id)).map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
     }
 
     /// `app.rocksky.library.deleteSong` — returns the raw JSON payload.

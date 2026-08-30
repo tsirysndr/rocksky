@@ -37,7 +37,10 @@ def main() -> None:
     player.on("seek", lambda position_ms: print(f"[player] seek -> {position_ms}ms"))
     player.on("queue_jump", lambda index: print(f"[player] queue jump -> {index}"))
     player.on("queue_remove", lambda index: print(f"[player] queue remove -> {index}"))
-    player.on("enqueue", lambda cmd: print(f"[player] enqueue {len(cmd.tracks)} track(s), mode={cmd.mode}"))
+    player.on(
+        "enqueue",
+        lambda cmd: print(f"[player] enqueue {len(cmd.tracks)} track(s), mode={cmd.mode}"),
+    )
     player.listen()
 
     # Advertise a track + queue so controllers have something to show.
@@ -60,8 +63,14 @@ def main() -> None:
 
     # ── controller: observe + drive the user's players ──────────────────────
     controller = RemoteController(token, "Python Example Controller")
-    controller.on("devices", lambda e: print(f"[controller] {len(e.devices)} device(s), primary={e.primary_device}"))
-    controller.on("now_playing", lambda e: print(f"[controller] {e.device_name}: {e.track.artist} — {e.track.title}"))
+    controller.on(
+        "devices",
+        lambda e: print(f"[controller] {len(e.devices)} device(s), primary={e.primary_device}"),
+    )
+    controller.on(
+        "now_playing",
+        lambda e: print(f"[controller] {e.device_name}: {e.track.artist} — {e.track.title}"),
+    )
     controller.on("status", lambda e: print(f"[controller] {e.device_name}: {e.status}"))
     controller.on("queue", lambda e: print(f"[controller] {e.device_name}: queue index {e.index}"))
     controller.listen()

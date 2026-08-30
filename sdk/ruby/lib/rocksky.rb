@@ -31,7 +31,7 @@ module Rocksky
       "char* rocksky_update_seen(const char*, const char*, const char*)",
       "char* rocksky_library_get(const char*, const char*, const char*, const char*)",
       "char* rocksky_library_post(const char*, const char*, const char*, const char*)",
-      "char* rocksky_match_song(const char*, const char*, const char*, const char*, const char*)",
+      "char* rocksky_match_song(const char*, const char*, const char*, const char*, const char*, const char*)",
       "char* rocksky_top_tracks_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
       "char* rocksky_top_artists_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
       "char* rocksky_song_hash(const char*, const char*, const char*)",
@@ -217,8 +217,10 @@ module Rocksky
   end
 
   # Resolve full canonical metadata for a bare title + artist (matchSong).
-  def self.match_song(title, artist, mb_id: nil, isrc: nil, base: nil)
-    unwrap(C.rocksky_match_song(base.to_s, title, artist, mb_id.to_s, isrc.to_s))
+  # +album+ steers the match toward that release (case-insensitive) so a
+  # remaster/live/single edition doesn't shadow the intended album.
+  def self.match_song(title, artist, album: nil, mb_id: nil, isrc: nil, base: nil)
+    unwrap(C.rocksky_match_song(base.to_s, title, artist, album.to_s, mb_id.to_s, isrc.to_s))
   end
 
   # Top tracks chart over a typed date window. +interval+ is +:all+, or a pair

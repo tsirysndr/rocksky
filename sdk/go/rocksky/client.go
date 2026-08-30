@@ -415,10 +415,12 @@ func (c *Client) Artist(ctx context.Context, uri string) (json.RawMessage, error
 
 // MatchSong resolves full canonical metadata for a bare title + artist against
 // Rocksky's database and external providers (app.rocksky.song.matchSong).
-// Optionally anchor with mbId / isrc. This is what [Agent.ScrobbleMatch] uses.
-func (c *Client) MatchSong(ctx context.Context, title, artist, mbID, isrc string) (json.RawMessage, error) {
+// Optionally anchor with mbId / isrc; album steers the match toward that
+// release (case-insensitive) so a remaster/live/single edition doesn't shadow
+// the intended album. This is what [Agent.ScrobbleMatch] uses.
+func (c *Client) MatchSong(ctx context.Context, title, artist, album, mbID, isrc string) (json.RawMessage, error) {
 	return c.Get(ctx, "app.rocksky.song.matchSong",
-		map[string]any{"title": title, "artist": artist, "mbId": mbID, "isrc": isrc})
+		map[string]any{"title": title, "artist": artist, "album": album, "mbId": mbID, "isrc": isrc})
 }
 
 // Song returns a single song by at:// uri (or pass mbid/isrc/spotifyId).

@@ -1,6 +1,6 @@
 [project]
 name = "rocksky"
-version = "0.11.0"
+version = "0.11.1"
 description = "Python SDK for Rocksky — native bindings to the shared Rust core"
 readme = "README.md"
 license = { text = "MIT" }
@@ -68,6 +68,9 @@ filterwarnings = ["error"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# UniFFI codegen output — regenerated wholesale by sdk/scripts/gen-bindings.sh,
+# so lint fixes there would be overwritten on the next regen.
+extend-exclude = ["src/rocksky/rocksky_uniffi.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]

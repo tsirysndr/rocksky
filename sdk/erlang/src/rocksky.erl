@@ -18,7 +18,7 @@
          catalog_songs/2, catalog_songs/3, catalog_artists/2, catalog_artists/3,
          catalog_albums/2, catalog_albums/3, scrobble_feed/2, scrobble_feed/3,
          library_get/4, library_post/4, library_get_raw/4, library_post_raw/4,
-         match_song/2, match_song/5,
+         match_song/2, match_song/3, match_song/6,
          top_tracks_interval/3, top_tracks_interval/4, top_tracks_interval_raw/7,
          top_artists_interval/3, top_artists_interval/4, top_artists_interval_raw/7,
          song_hash/3, album_hash/2, artist_hash/1,
@@ -214,9 +214,12 @@ library_post_raw(Base, Token, Nsid, BodyJson) ->
     unwrap(rocksky_nif:library_post(b(Base), b(Token), b(Nsid), b(BodyJson))).
 
 %% Resolve full canonical metadata for a bare title + artist (matchSong).
-match_song(Title, Artist) -> match_song(<<>>, Title, Artist, <<>>, <<>>).
-match_song(Base, Title, Artist, MbId, Isrc) ->
-    unwrap(rocksky_nif:match_song(b(Base), b(Title), b(Artist), b(MbId), b(Isrc))).
+%% Album steers the match toward that release (case-insensitive) so a
+%% remaster/live/single edition doesn't shadow the intended album.
+match_song(Title, Artist) -> match_song(<<>>, Title, Artist, <<>>, <<>>, <<>>).
+match_song(Title, Artist, Album) -> match_song(<<>>, Title, Artist, Album, <<>>, <<>>).
+match_song(Base, Title, Artist, Album, MbId, Isrc) ->
+    unwrap(rocksky_nif:match_song(b(Base), b(Title), b(Artist), b(Album), b(MbId), b(Isrc))).
 
 %% Top charts over a typed date window. `Interval` is one of: all | {days, N} |
 %% {weeks, N} | {months, N} | {years, N} | {range, StartRfc3339, EndRfc3339}.

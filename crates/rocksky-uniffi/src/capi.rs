@@ -327,16 +327,24 @@ pub extern "C" fn rocksky_top_artists_interval(
 }
 
 /// Resolve full canonical metadata for a bare title + artist
-/// (`app.rocksky.song.matchSong`). Empty `mb_id`/`isrc` mean none.
+/// (`app.rocksky.song.matchSong`). Empty `album`/`mb_id`/`isrc` mean none;
+/// `album` steers the match toward that release (case-insensitive) so a
+/// remaster/live/single edition doesn't shadow the intended album.
 #[no_mangle]
 pub extern "C" fn rocksky_match_song(
     base: *const c_char,
     title: *const c_char,
     artist: *const c_char,
+    album: *const c_char,
     mb_id: *const c_char,
     isrc: *const c_char,
 ) -> *mut c_char {
-    let (mb, is) = (cstr(mb_id), cstr(isrc));
+    let (al, mb, is) = (cstr(album), cstr(mb_id), cstr(isrc));
+    let al = if al.is_empty() {
+        None
+    } else {
+        Some(al.as_str())
+    };
     let mb = if mb.is_empty() {
         None
     } else {
@@ -348,7 +356,7 @@ pub extern "C" fn rocksky_match_song(
         Some(is.as_str())
     };
     respond(
-        RT.block_on(appview(base).match_song(&cstr(title), &cstr(artist), mb, is))
+        RT.block_on(appview(base).match_song(&cstr(title), &cstr(artist), al, mb, is))
             .map_err(|e| e.to_string()),
     )
 }

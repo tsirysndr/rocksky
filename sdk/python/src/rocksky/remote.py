@@ -43,14 +43,14 @@ from .rocksky_uniffi import RemoteQueueItem as RemoteQueueItem
 from .rocksky_uniffi import RemoteStatus as RemoteStatus
 
 __all__ = [
-    "RemotePlayer",
-    "RemoteController",
-    "RemoteNowPlaying",
-    "RemoteQueueItem",
-    "RemoteStatus",
     "RemoteCommand",
+    "RemoteController",
     "RemoteDevice",
     "RemoteEvent",
+    "RemoteNowPlaying",
+    "RemotePlayer",
+    "RemoteQueueItem",
+    "RemoteStatus",
 ]
 
 Handler = typing.Callable[..., None]
@@ -74,9 +74,9 @@ def _noop(*_args: object, **_kwargs: object) -> None:
 class _Poller:
     """Shared handler registry + background poll-loop machinery."""
 
-    def __init__(self, debug: typing.Optional[Debug]) -> None:
-        self._handlers: typing.Dict[str, Handler] = {}
-        self._thread: typing.Optional[threading.Thread] = None
+    def __init__(self, debug: Debug | None) -> None:
+        self._handlers: dict[str, Handler] = {}
+        self._thread: threading.Thread | None = None
         self._running = False
         self._debug: Debug = debug or _noop
 
@@ -119,8 +119,8 @@ class RemotePlayer(_Poller):
         self,
         token: str,
         name: str,
-        url: typing.Optional[str] = None,
-        debug: typing.Optional[Debug] = None,
+        url: str | None = None,
+        debug: Debug | None = None,
     ) -> None:
         super().__init__(debug)
         self._inner = _RemotePlayer.connect(token, name, url)
@@ -135,7 +135,7 @@ class RemotePlayer(_Poller):
         return self
 
     # ── raw passthrough ────────────────────────────────────────────────────
-    def next_command(self) -> typing.Optional[RemoteCommand]:
+    def next_command(self) -> RemoteCommand | None:
         """Block for the next command (advanced; :meth:`listen` is easier)."""
         return self._inner.next_command()
 
@@ -196,8 +196,8 @@ class RemoteController(_Poller):
         self,
         token: str,
         name: str,
-        url: typing.Optional[str] = None,
-        debug: typing.Optional[Debug] = None,
+        url: str | None = None,
+        debug: Debug | None = None,
     ) -> None:
         super().__init__(debug)
         self._inner = _RemoteController.connect(token, name, url)
@@ -212,7 +212,7 @@ class RemoteController(_Poller):
         return self
 
     # ── raw passthrough ────────────────────────────────────────────────────
-    def next_event(self) -> typing.Optional[RemoteEvent]:
+    def next_event(self) -> RemoteEvent | None:
         """Block for the next event (advanced; :meth:`listen` is easier)."""
         return self._inner.next_event()
 
@@ -220,30 +220,30 @@ class RemoteController(_Poller):
     def set_primary(self, device_id: str) -> None:
         self._inner.set_primary(device_id)
 
-    def play(self, target: typing.Optional[str] = None) -> None:
+    def play(self, target: str | None = None) -> None:
         self._inner.play(target)
 
-    def pause(self, target: typing.Optional[str] = None) -> None:
+    def pause(self, target: str | None = None) -> None:
         self._inner.pause(target)
 
-    def next(self, target: typing.Optional[str] = None) -> None:
+    def next(self, target: str | None = None) -> None:
         self._inner.next(target)
 
-    def previous(self, target: typing.Optional[str] = None) -> None:
+    def previous(self, target: str | None = None) -> None:
         self._inner.previous(target)
 
-    def seek(self, target: typing.Optional[str], position_ms: int) -> None:
+    def seek(self, target: str | None, position_ms: int) -> None:
         self._inner.seek(target, position_ms)
 
-    def queue_jump(self, target: typing.Optional[str], index: int) -> None:
+    def queue_jump(self, target: str | None, index: int) -> None:
         self._inner.queue_jump(target, index)
 
-    def queue_remove(self, target: typing.Optional[str], index: int) -> None:
+    def queue_remove(self, target: str | None, index: int) -> None:
         self._inner.queue_remove(target, index)
 
     def enqueue(
         self,
-        target: typing.Optional[str],
+        target: str | None,
         tracks: typing.Sequence[RemoteQueueItem],
         mode: str = "now",
         shuffle: bool = False,

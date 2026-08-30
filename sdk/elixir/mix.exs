@@ -1,7 +1,7 @@
 defmodule Rocksky.MixProject do
   use Mix.Project
 
-  @version "0.11.0"
+  @version "0.11.1"
   @source_url "https://github.com/tsirysndr/rocksky"
 
   def project do
@@ -37,7 +37,7 @@ defmodule Rocksky.MixProject do
 
   defp rocksky_erl_dep do
     case System.get_env("ROCKSKY_ERL_PATH") do
-      nil -> "~> 0.8"
+      nil -> "~> 0.8.1"
       path -> [path: path]
     end
   end

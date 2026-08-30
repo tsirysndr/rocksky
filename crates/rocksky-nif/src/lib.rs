@@ -354,8 +354,21 @@ fn artist(base: String, uri: String) -> String {
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
-fn match_song(base: String, title: String, artist: String, mb_id: String, isrc: String) -> String {
-    envelope(RT.block_on(appview(&base).match_song(&title, &artist, opt(&mb_id), opt(&isrc))))
+fn match_song(
+    base: String,
+    title: String,
+    artist: String,
+    album: String,
+    mb_id: String,
+    isrc: String,
+) -> String {
+    envelope(RT.block_on(appview(&base).match_song(
+        &title,
+        &artist,
+        opt(&album),
+        opt(&mb_id),
+        opt(&isrc),
+    )))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]

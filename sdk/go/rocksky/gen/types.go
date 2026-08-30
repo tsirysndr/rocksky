@@ -1647,6 +1647,8 @@ type MatchSongParams struct {
 	Title string `json:"title,omitempty"`
 	// The artist of the song to retrieve
 	Artist string `json:"artist,omitempty"`
+	// Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release
+	Album string `json:"album,omitempty"`
 	// Optional MusicBrainz recording ID to anchor the match
 	MbID string `json:"mbId,omitempty"`
 	// Optional International Standard Recording Code (ISRC) to anchor the match

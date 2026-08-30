@@ -319,9 +319,18 @@ pub fn update_seen(token: String, ids_json: String) -> Dynamic {
 @external(erlang, "rocksky", "match_song")
 fn match_song_ffi(title: String, artist: String) -> Dynamic
 
+@external(erlang, "rocksky", "match_song")
+fn match_song_album_ffi(title: String, artist: String, album: String) -> Dynamic
+
 /// Resolve full canonical metadata for a bare title + artist (matchSong).
 pub fn match_song(title: String, artist: String) -> Dynamic {
   match_song_ffi(title, artist)
+}
+
+/// Like `match_song`, but steer the match toward this album (case-insensitive)
+/// so a remaster/live/single edition doesn't shadow the intended release.
+pub fn match_song_album(title: String, artist: String, album: String) -> Dynamic {
+  match_song_album_ffi(title, artist, album)
 }
 
 /// A typed date window for the `top_*_interval` charts.

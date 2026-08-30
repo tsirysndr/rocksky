@@ -89,7 +89,7 @@ def resolve() -> str:
         f"https://github.com/{manifest['repo']}/releases/download/"
         f"{tag}/librocksky_uniffi-{triple}.{ext}"
     )
-    with urllib.request.urlopen(url) as resp:  # noqa: S310 (github.com, sha256-verified)
+    with urllib.request.urlopen(url) as resp:
         body = resp.read()
     got = _sha256(body)
     if got != sha:

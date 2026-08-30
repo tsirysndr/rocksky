@@ -722,7 +722,13 @@ impl RockskyAgent {
         } = input;
         let matched = self
             .appview
-            .match_song(title, artist, mb_id.as_deref(), isrc.as_deref())
+            .match_song(
+                title,
+                artist,
+                album.as_deref(),
+                mb_id.as_deref(),
+                isrc.as_deref(),
+            )
             .await
             .ok();
         let mut draft = match matched

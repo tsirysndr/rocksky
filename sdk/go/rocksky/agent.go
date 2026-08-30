@@ -256,7 +256,7 @@ func (a *Agent) ScrobbleMatch(ctx context.Context, appview string, in ScrobbleMa
 		SpotifyLink, YoutubeLink, TidalLink             string
 		AppleMusicLink                                  string
 	}
-	raw, err := NewClient(appview).MatchSong(ctx, in.Title, in.Artist, strval(in.MbID), strval(in.ISRC))
+	raw, err := NewClient(appview).MatchSong(ctx, in.Title, in.Artist, strval(in.Album), strval(in.MbID), strval(in.ISRC))
 	if err == nil {
 		// json field names are camelCase; remap the few that differ.
 		var j map[string]any

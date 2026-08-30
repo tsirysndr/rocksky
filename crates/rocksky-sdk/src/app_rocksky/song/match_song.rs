@@ -23,6 +23,8 @@ use serde::{Deserialize, Serialize};
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct MatchSong<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album: Option<S>,
     pub artist: S,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub isrc: Option<S>,
@@ -118,7 +120,7 @@ pub mod match_song_state {
 /// Builder for constructing an instance of this type.
 pub struct MatchSongBuilder<St: match_song_state::State, S: BosStr = DefaultStr> {
     _state: PhantomData<fn() -> St>,
-    _fields: (Option<S>, Option<S>, Option<S>, Option<S>),
+    _fields: (Option<S>, Option<S>, Option<S>, Option<S>, Option<S>),
     _type: PhantomData<fn() -> S>,
 }
 
@@ -141,7 +143,7 @@ impl MatchSongBuilder<match_song_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         MatchSongBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -152,9 +154,22 @@ impl<S: BosStr> MatchSongBuilder<match_song_state::Empty, S> {
     pub fn builder() -> Self {
         MatchSongBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None),
             _type: PhantomData,
         }
+    }
+}
+
+impl<St: match_song_state::State, S: BosStr> MatchSongBuilder<St, S> {
+    /// Set the `album` field (optional)
+    pub fn album(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.0 = value.into();
+        self
+    }
+    /// Set the `album` field to an Option value (optional)
+    pub fn maybe_album(mut self, value: Option<S>) -> Self {
+        self._fields.0 = value;
+        self
     }
 }
 
@@ -168,7 +183,7 @@ where
         mut self,
         value: impl Into<S>,
     ) -> MatchSongBuilder<match_song_state::SetArtist<St>, S> {
-        self._fields.0 = Option::Some(value.into());
+        self._fields.1 = Option::Some(value.into());
         MatchSongBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -180,12 +195,12 @@ where
 impl<St: match_song_state::State, S: BosStr> MatchSongBuilder<St, S> {
     /// Set the `isrc` field (optional)
     pub fn isrc(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.1 = value.into();
+        self._fields.2 = value.into();
         self
     }
     /// Set the `isrc` field to an Option value (optional)
     pub fn maybe_isrc(mut self, value: Option<S>) -> Self {
-        self._fields.1 = value;
+        self._fields.2 = value;
         self
     }
 }
@@ -193,12 +208,12 @@ impl<St: match_song_state::State, S: BosStr> MatchSongBuilder<St, S> {
 impl<St: match_song_state::State, S: BosStr> MatchSongBuilder<St, S> {
     /// Set the `mbId` field (optional)
     pub fn mb_id(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.2 = value.into();
+        self._fields.3 = value.into();
         self
     }
     /// Set the `mbId` field to an Option value (optional)
     pub fn maybe_mb_id(mut self, value: Option<S>) -> Self {
-        self._fields.2 = value;
+        self._fields.3 = value;
         self
     }
 }
@@ -213,7 +228,7 @@ where
         mut self,
         value: impl Into<S>,
     ) -> MatchSongBuilder<match_song_state::SetTitle<St>, S> {
-        self._fields.3 = Option::Some(value.into());
+        self._fields.4 = Option::Some(value.into());
         MatchSongBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -231,10 +246,11 @@ where
     /// Build the final struct.
     pub fn build(self) -> MatchSong<S> {
         MatchSong {
-            artist: self._fields.0.unwrap(),
-            isrc: self._fields.1,
-            mb_id: self._fields.2,
-            title: self._fields.3.unwrap(),
+            album: self._fields.0,
+            artist: self._fields.1.unwrap(),
+            isrc: self._fields.2,
+            mb_id: self._fields.3,
+            title: self._fields.4.unwrap(),
         }
     }
 }

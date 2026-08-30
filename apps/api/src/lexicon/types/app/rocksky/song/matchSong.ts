@@ -14,6 +14,8 @@ export interface QueryParams {
   title: string;
   /** The artist of the song to retrieve */
   artist: string;
+  /** Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release */
+  album?: string;
   /** Optional MusicBrainz recording ID to anchor the match */
   mbId?: string;
   /** Optional International Standard Recording Code (ISRC) to anchor the match */

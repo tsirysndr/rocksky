@@ -418,7 +418,7 @@ export class Agent {
     // matchSong hits the shared Rocksky AppView; always throttle it, regardless
     // of the write-throttle policy (a self-hosted PDS grants no AppView capacity).
     await this.matchGate.take();
-    const m = (await new RockskyClient(appview).matchSong(title, artist, mbId, isrc)) as Record<
+    const m = (await new RockskyClient(appview).matchSong(title, artist, mbId, isrc, album)) as Record<
       string,
       unknown
     > | null;

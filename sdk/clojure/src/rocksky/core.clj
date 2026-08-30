@@ -43,7 +43,7 @@
 (def ^:private h-update-seen (delay (downcall "rocksky_update_seen" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-lib-get  (delay (downcall "rocksky_library_get" ADDR [ADDR ADDR ADDR ADDR])))
 (def ^:private h-lib-post (delay (downcall "rocksky_library_post" ADDR [ADDR ADDR ADDR ADDR])))
-(def ^:private h-match    (delay (downcall "rocksky_match_song" ADDR [ADDR ADDR ADDR ADDR ADDR])))
+(def ^:private h-match    (delay (downcall "rocksky_match_song" ADDR [ADDR ADDR ADDR ADDR ADDR ADDR])))
 (def ^:private h-tt-iv    (delay (downcall "rocksky_top_tracks_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
 (def ^:private h-ta-iv    (delay (downcall "rocksky_top_artists_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
 (def ^:private h-songhash (delay (downcall "rocksky_song_hash" ADDR [ADDR ADDR ADDR])))
@@ -259,14 +259,18 @@
                                                   (.allocateFrom a (json/generate-string (or ids [])))]))))))
 
 (defn match-song
-  "Resolve full canonical metadata for a bare title + artist (matchSong)."
-  ([title artist] (match-song title artist nil nil nil))
-  ([title artist mb-id isrc base]
+  "Resolve full canonical metadata for a bare title + artist (matchSong).
+  `album` steers the match toward that release (case-insensitive) so a
+  remaster/live/single edition doesn't shadow the intended album."
+  ([title artist] (match-song title artist nil nil nil nil))
+  ([title artist album] (match-song title artist album nil nil nil))
+  ([title artist album mb-id isrc base]
    (with-open [^Arena a (Arena/ofConfined)]
      (unwrap (.invokeWithArguments ^MethodHandle @h-match
                                    (object-array [(.allocateFrom a (str (or base "")))
                                                   (.allocateFrom a (str title))
                                                   (.allocateFrom a (str artist))
+                                                  (.allocateFrom a (str (or album "")))
                                                   (.allocateFrom a (str (or mb-id "")))
                                                   (.allocateFrom a (str (or isrc "")))]))))))
 

@@ -648,12 +648,15 @@ impl AppView {
     /// Match a bare `title` + `artist` against Rocksky's database and external
     /// metadata providers, resolving the best canonical track — full album,
     /// artwork, duration, track/disc number, MBID, ISRC, links
-    /// (`app.rocksky.song.matchSong`). Optionally anchor with `mb_id` / `isrc`.
+    /// (`app.rocksky.song.matchSong`). Optionally anchor with `mb_id` / `isrc`;
+    /// `album` steers the match toward that release (case-insensitive) so a
+    /// remaster/live/single edition doesn't shadow the intended album.
     /// This is what [`RockskyAgent::scrobble_match`] uses to enrich a scrobble.
     pub async fn match_song(
         &self,
         title: &str,
         artist: &str,
+        album: Option<&str>,
         mb_id: Option<&str>,
         isrc: Option<&str>,
     ) -> Result<serde_json::Value> {
@@ -662,6 +665,7 @@ impl AppView {
             &[
                 ("title", title.to_string()),
                 ("artist", artist.to_string()),
+                ("album", album.unwrap_or_default().to_string()),
                 ("mbId", mb_id.unwrap_or_default().to_string()),
                 ("isrc", isrc.unwrap_or_default().to_string()),
             ],

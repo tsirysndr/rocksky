@@ -118,9 +118,21 @@ defmodule Rocksky do
   def update_seen(token, ids \\ [], base \\ ""),
     do: :rocksky.update_seen(to_bin(token), ids, to_bin(base))
 
-  @doc "Resolve full canonical metadata for a bare title + artist (matchSong)."
-  def match_song(title, artist, mb_id \\ "", isrc \\ "", base \\ ""),
-    do: :rocksky.match_song(to_bin(base), to_bin(title), to_bin(artist), to_bin(mb_id), to_bin(isrc))
+  @doc """
+  Resolve full canonical metadata for a bare title + artist (matchSong).
+  `album` steers the match toward that release (case-insensitive) so a
+  remaster/live/single edition doesn't shadow the intended album.
+  """
+  def match_song(title, artist, album \\ "", mb_id \\ "", isrc \\ "", base \\ ""),
+    do:
+      :rocksky.match_song(
+        to_bin(base),
+        to_bin(title),
+        to_bin(artist),
+        to_bin(album),
+        to_bin(mb_id),
+        to_bin(isrc)
+      )
 
   @doc """
   Top tracks chart over a typed date window.

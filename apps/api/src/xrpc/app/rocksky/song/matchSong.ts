@@ -20,13 +20,9 @@ import type {
 } from "./types";
 import type { MusicbrainzTrack } from "types/track";
 
-const MATCH_SONG_CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
+import { getCacheKey, pickByAlbum, pickRowByAlbum } from "./albumFilter";
 
-const getCacheKey = (params: QueryParams): string => {
-  if (params.mbId) return `matchSong:mbId:${params.mbId}`;
-  if (params.isrc) return `matchSong:isrc:${params.isrc}`;
-  return `matchSong:${params.title.toLowerCase()}:${params.artist.toLowerCase()}`;
-};
+const MATCH_SONG_CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 export default function (server: Server, ctx: Context) {
   const matchSong = (params: QueryParams) =>
@@ -98,7 +94,19 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           )
           .where(whereCondition)
           .execute()
-          .then(([row]) => row);
+          .then((rows) => {
+            // A row from another album than the requested one is not a hit:
+            // the flow falls through to the album-filtered external providers
+            // instead, so a remaster/live/single edition that happens to sort
+            // first can't shadow the requested release. The rejected row is
+            // kept: if the providers find nothing either, degrading to it
+            // beats returning no match at all.
+            const { match, rejected } = pickRowByAlbum(rows, params.album);
+            if (rejected && !dbFallback) dbFallback = rejected;
+            return match;
+          });
+
+      let dbFallback: Awaited<ReturnType<typeof queryRecord>>;
 
       const byTitleArtist = or(
         and(
@@ -144,6 +152,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             ctx,
             params.title,
             params.artist,
+            params.album,
           );
           if (!spotifyTrack) {
             consola.debug(
@@ -289,7 +298,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         ctx,
         params.title,
         params.artist,
-        track?.album,
+        params.album ?? track?.album,
       );
 
       if (deezerData) {
@@ -347,6 +356,18 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           if ((!genres || genres.length === 0) && d.genres?.length)
             genres = d.genres;
         }
+      }
+
+      // The album filter came up empty everywhere — no DB row from that album
+      // and neither Spotify nor Deezer produced a track. Fall back to the best
+      // unfiltered DB row (the pre-album behavior) instead of returning no
+      // match; the caller's own album title still wins in what it publishes.
+      if (!track && dbFallback) {
+        track = dbFallback.tracks;
+        artistPicture = dbFallback.artists?.picture ?? null;
+        genres = dbFallback.artists?.genres ?? null;
+        releaseDate = dbFallback.albums?.releaseDate ?? null;
+        year = dbFallback.albums?.year ?? null;
       }
 
       if (track && !track.mbId) {
@@ -561,6 +582,7 @@ const searchOnSpotify = async (
   ctx: Context,
   title: string,
   artist: string,
+  album?: string,
 ): Promise<Track | undefined> => {
   const spotifyTokens = await ctx.db
     .select()
@@ -648,7 +670,7 @@ const searchOnSpotify = async (
     "search",
   );
 
-  const track = response.tracks?.items?.[0];
+  const track = pickByAlbum(response.tracks?.items ?? [], album);
 
   if (track) {
     const normalize = (s: string): string => {

@@ -2340,6 +2340,9 @@ pub struct MatchSongParams {
     pub title: String,
     /// The artist of the song to retrieve
     pub artist: String,
+    /// Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<String>,
     /// Optional MusicBrainz recording ID to anchor the match
     #[serde(rename = "mbId", default, skip_serializing_if = "Option::is_none")]
     pub mb_id: Option<String>,

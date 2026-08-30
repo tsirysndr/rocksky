@@ -457,9 +457,11 @@ export class RockskyClient {
     return this.query("app.rocksky.artist.getArtist", { uri });
   }
   /** Resolve full canonical metadata for a bare title + artist
-   * (`app.rocksky.song.matchSong`); optionally anchor with `mbId` / `isrc`. */
-  matchSong(title: string, artist: string, mbId?: string, isrc?: string): Promise<SongViewDetailed> {
-    return this.query("app.rocksky.song.matchSong", { title, artist, mbId, isrc });
+   * (`app.rocksky.song.matchSong`); optionally anchor with `mbId` / `isrc`.
+   * `album` steers the match toward that release (case-insensitive) so a
+   * remaster/live/single edition doesn't shadow the intended album. */
+  matchSong(title: string, artist: string, mbId?: string, isrc?: string, album?: string): Promise<SongViewDetailed> {
+    return this.query("app.rocksky.song.matchSong", { title, artist, mbId, isrc, album });
   }
   /** A single song by at:// `uri` (or by `mbid` / `isrc` / `spotifyId`). */
   song(opts: {
