@@ -47,41 +47,33 @@ impl Store {
     }
 
     /// Full precomputed list for a DID or handle, in rank order.
+    ///
+    /// The snapshot is sorted by (did, final_rank), so an equality on `did` is
+    /// a zone-map-pruned lookup — while `did = ? OR handle = ?` can only be a
+    /// full scan, since handles are not clustered under a DID sort. The handle
+    /// case therefore resolves through the tiny `rec_users` map first. A
+    /// snapshot written before `rec_users` existed (a restart on an old file,
+    /// until its first refresh lands) falls back to the old scan.
     pub fn get(&self, key: &str) -> Result<Vec<Recommendation>, String> {
         let conn = self.conn()?;
-        let mut stmt = conn
-            .prepare(
+        match resolve_did(&conn, key) {
+            Ok(Some(did)) => query_recommendations(
+                &conn,
                 "SELECT title, artist, album, album_art, track_uri, artist_uri,
                         album_uri, genres_json, score, source, likes_count
-                 FROM recommendations
-                 WHERE did = ?1 OR handle = ?1
-                 ORDER BY final_rank",
-            )
-            .map_err(|e| format!("recommendations query failed: {e}"))?;
-        let rows = stmt
-            .query_map([key], |row| {
-                let genres_json: Option<String> = row.get(7)?;
-                Ok(Recommendation {
-                    title: row.get(0)?,
-                    artist: row.get(1)?,
-                    album: row.get(2)?,
-                    album_art: row.get(3)?,
-                    track_uri: row.get(4)?,
-                    artist_uri: row.get(5)?,
-                    album_uri: row.get(6)?,
-                    genres: genres_json
-                        .and_then(|j| serde_json::from_str(&j).ok())
-                        .unwrap_or_default(),
-                    recommendation_score: row.get(8)?,
-                    source: row.get(9)?,
-                    likes_count: row.get(10)?,
-                })
-            })
-            .map_err(|e| format!("recommendations read failed: {e}"))?;
-        rows.collect::<Result<Vec<_>, _>>()
-            .map_err(|e| format!("recommendations row failed: {e}"))
+                 FROM recommendations WHERE did = ?1 ORDER BY final_rank",
+                &did,
+            ),
+            Ok(None) => Ok(Vec::new()),
+            Err(_) => query_recommendations(
+                &conn,
+                "SELECT title, artist, album, album_art, track_uri, artist_uri,
+                        album_uri, genres_json, score, source, likes_count
+                 FROM recommendations WHERE did = ?1 OR handle = ?1 ORDER BY final_rank",
+                key,
+            ),
+        }
     }
-
     /// (refreshed_at_epoch, took_ms, users, rows)
     pub fn status(&self) -> Option<(u64, u128, usize, usize)> {
         let conn = self.conn().ok()?;
@@ -99,4 +91,46 @@ impl Store {
         )
         .ok()
     }
+}
+
+/// The DID behind a DID-or-handle key, from the per-refresh `rec_users` map.
+/// Errors (most likely: the table does not exist yet) tell the caller to use
+/// the legacy scan instead.
+fn resolve_did(conn: &PooledConn, key: &str) -> Result<Option<String>, duckdb::Error> {
+    let mut stmt =
+        conn.prepare("SELECT did FROM rec_users WHERE did = ?1 OR handle = ?1 LIMIT 1")?;
+    let mut rows = stmt.query_map([key], |r| r.get::<_, String>(0))?;
+    rows.next().transpose()
+}
+
+fn query_recommendations(
+    conn: &PooledConn,
+    sql: &str,
+    key: &str,
+) -> Result<Vec<Recommendation>, String> {
+    let mut stmt = conn
+        .prepare(sql)
+        .map_err(|e| format!("recommendations query failed: {e}"))?;
+    let rows = stmt
+        .query_map([key], |row| {
+            let genres_json: Option<String> = row.get(7)?;
+            Ok(Recommendation {
+                title: row.get(0)?,
+                artist: row.get(1)?,
+                album: row.get(2)?,
+                album_art: row.get(3)?,
+                track_uri: row.get(4)?,
+                artist_uri: row.get(5)?,
+                album_uri: row.get(6)?,
+                genres: genres_json
+                    .and_then(|j| serde_json::from_str(&j).ok())
+                    .unwrap_or_default(),
+                recommendation_score: row.get(8)?,
+                source: row.get(9)?,
+                likes_count: row.get(10)?,
+            })
+        })
+        .map_err(|e| format!("recommendations read failed: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("recommendations row failed: {e}"))
 }

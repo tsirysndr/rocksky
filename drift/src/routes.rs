@@ -136,20 +136,30 @@ pub async fn trigger_refresh(
     let refresher = Arc::clone(&refresher);
     let cfg = cfg.get_ref().clone();
 
-    let (users, rows, took_ms) = web::block(move || {
+    // POST is an explicit ask, so it forces past the nothing-changed skip.
+    let outcome = web::block(move || {
         let Ok(_guard) = refresher.running.try_lock() else {
             return Err(ApiError::Conflict("a refresh is already running".into()));
         };
-        refresh::refresh(&cfg, &refresher.db_url, &store)
+        refresh::refresh(&cfg, &refresher.db_url, &store, true)
             .map_err(|e| ApiError::Internal(format!("refresh failed: {e}")))
     })
     .await
     .map_err(|e| ApiError::Internal(format!("refresh task panicked: {e}")))??;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "status": "refreshed",
-        "users": users,
-        "rows": rows,
-        "tookMs": took_ms,
-    })))
+    Ok(match outcome {
+        refresh::RefreshOutcome::Completed {
+            users,
+            rows,
+            took_ms,
+        } => HttpResponse::Ok().json(serde_json::json!({
+            "status": "refreshed",
+            "users": users,
+            "rows": rows,
+            "tookMs": took_ms,
+        })),
+        refresh::RefreshOutcome::Skipped => {
+            HttpResponse::Ok().json(serde_json::json!({ "status": "skipped" }))
+        }
+    })
 }

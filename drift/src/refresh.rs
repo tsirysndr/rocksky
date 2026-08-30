@@ -46,17 +46,50 @@ const STAGING_TABLES: &[&str] = &[
     "users",
 ];
 
-/// Returns (users, rows, took_ms).
-pub fn refresh(cfg: &Config, db_url: &str, store: &Store) -> Result<(usize, usize, u128), String> {
+pub enum RefreshOutcome {
+    Completed {
+        users: usize,
+        rows: usize,
+        took_ms: u128,
+    },
+    /// Nothing changed since the last run — no new plays, same day (the
+    /// serendipity salt rotates daily), same config — so the standing snapshot
+    /// is already what a rebuild would produce.
+    Skipped,
+}
+
+pub fn refresh(
+    cfg: &Config,
+    db_url: &str,
+    store: &Store,
+    force: bool,
+) -> Result<RefreshOutcome, String> {
     let t0 = Instant::now();
     let now_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_secs_f64();
 
-    tracing::info!("refresh: starting");
-    let data = fetch_postgres(db_url)?;
     let conn = store.conn()?;
+
+    // One cheap Postgres round trip decides whether the full rebuild is worth
+    // it. Computed *before* the fetch on purpose: a scrobble landing between
+    // fingerprint and fetch makes it into the snapshot anyway and simply
+    // re-runs the next refresh — stale-skips are the failure mode to avoid,
+    // and this ordering cannot produce one.
+    let fingerprint = fetch_fingerprint(cfg, db_url, (now_epoch as i64) / 86400)?;
+    if !force {
+        let stored: Option<String> = conn
+            .query_row("SELECT value FROM fingerprint", [], |r| r.get(0))
+            .ok();
+        if stored.as_deref() == Some(fingerprint.as_str()) {
+            tracing::info!("refresh: nothing changed since the last run — skipping");
+            return Ok(RefreshOutcome::Skipped);
+        }
+    }
+
+    tracing::info!("refresh: starting");
+    let data = fetch_postgres(db_url, cfg.history_days)?;
 
     // A hard ceiling on DuckDB memory: without it, a heavy join (the features
     // parquet is the full catalog dump) grows until the kernel OOM-kills the
@@ -75,9 +108,19 @@ pub fn refresh(cfg: &Config, db_url: &str, store: &Store) -> Result<(usize, usiz
     run_pipeline(&conn, cfg, now_epoch)?;
 
     // The swap: readers keep the old `recommendations` until this commits.
+    // Sorted by (did, final_rank) so serving's `did = ?` is a zone-map-pruned
+    // lookup, not a scan — which needs preserve_insertion_order back on, or
+    // the ORDER BY is not guaranteed to survive into the table. `rec_users`
+    // is the tiny handle → DID map serving resolves through, so the snapshot
+    // query never carries the unprunable `OR handle = ?` disjunct.
     tracing::info!("refresh: persisting snapshot");
-    conn.execute_batch("CREATE OR REPLACE TABLE recommendations AS SELECT * FROM final;")
-        .map_err(|e| format!("persisting recommendations failed: {e}"))?;
+    conn.execute_batch(
+        "SET preserve_insertion_order = true;
+         CREATE OR REPLACE TABLE recommendations AS
+         SELECT * FROM final ORDER BY did, final_rank;
+         CREATE OR REPLACE TABLE rec_users AS SELECT did, handle FROM users;",
+    )
+    .map_err(|e| format!("persisting recommendations failed: {e}"))?;
 
     let (users, rows) = conn
         .query_row(
@@ -96,13 +139,90 @@ pub fn refresh(cfg: &Config, db_url: &str, store: &Store) -> Result<(usize, usiz
     ))
     .map_err(|e| format!("persisting meta failed: {e}"))?;
 
+    // Written only after everything else committed: a crashed refresh leaves
+    // the old fingerprint behind, so the next interval retries instead of
+    // skipping over a half-done run.
+    conn.execute_batch(&format!(
+        "CREATE OR REPLACE TABLE fingerprint AS SELECT '{}' AS value;",
+        fingerprint.replace('\'', "''")
+    ))
+    .map_err(|e| format!("persisting fingerprint failed: {e}"))?;
+
     tracing::info!("refresh: dropping staging + checkpoint");
     drop_staging(&conn)?;
     conn.execute_batch("CHECKPOINT;")
         .map_err(|e| format!("checkpoint failed: {e}"))?;
 
     tracing::info!("refresh done: {users} users, {rows} rows, {took_ms} ms");
-    Ok((users, rows, took_ms))
+    Ok(RefreshOutcome::Completed {
+        users,
+        rows,
+        took_ms,
+    })
+}
+
+/// A cheap summary of everything a rebuild would read: row counts and the
+/// newest scrobble (counts catch backfills and un-loves that `max` alone
+/// would miss), the day number (the serendipity salt rotates daily), and the
+/// scoring config (so a restart with new flags never skips into a snapshot
+/// built with the old ones). Equal fingerprint ⇒ identical rebuild.
+fn fetch_fingerprint(cfg: &Config, db_url: &str, day: i64) -> Result<String, String> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("tokio runtime failed: {e}"))?;
+
+    rt.block_on(async {
+        let t = Instant::now();
+        let mut conn = pg_connect(db_url).await?;
+        let row = sqlx::query(&format!(
+            "SELECT (SELECT count(*) FROM scrobbles
+                     WHERE user_id IS NOT NULL AND track_id IS NOT NULL{}),
+                    (SELECT coalesce(extract(epoch FROM max(\"timestamp\")), 0)::float8 FROM scrobbles),
+                    (SELECT count(*) FROM loved_tracks),
+                    (SELECT count(*) FROM users),
+                    (SELECT count(*) FROM tracks),
+                    (SELECT count(*) FROM artists WHERE genres IS NOT NULL)",
+            history_cutoff(cfg.history_days)
+        ))
+        .fetch_one(&mut conn)
+        .await
+        .map_err(|e| format!("fingerprint query failed: {e}"))?;
+
+        let counts: Vec<String> = (0..6)
+            .map(|i| {
+                if i == 1 {
+                    row.get::<f64, _>(i).to_string()
+                } else {
+                    row.get::<i64, _>(i).to_string()
+                }
+            })
+            .collect();
+        let fp = format!(
+            "v1|{}|day={day}|cfg={},{},{},{},{},{},{},{}",
+            counts.join("|"),
+            cfg.decay_lambda,
+            cfg.content_weight,
+            cfg.neighbours,
+            cfg.limit_per_user,
+            cfg.serendipity_ratio,
+            cfg.candidate_limit,
+            cfg.profile_limit,
+            cfg.history_days,
+        );
+        tracing::info!("postgres: fingerprint in {} ms", t.elapsed().as_millis());
+        Ok(fp)
+    })
+}
+
+/// SQL tail bounding scrobble reads to the configured window; empty when the
+/// window is 0 (unlimited).
+fn history_cutoff(history_days: u32) -> String {
+    if history_days == 0 {
+        String::new()
+    } else {
+        format!(" AND \"timestamp\" > now() - interval '1 day' * {history_days}")
+    }
 }
 
 /// Everything drift needs from Postgres, fetched in one session.
@@ -130,7 +250,7 @@ struct PgData {
 /// current-thread runtime here is safe. The five relations are fetched
 /// concurrently on separate connections — over a WAN link the fetch phase
 /// costs one round trip of the slowest relation, not the sum of all five.
-fn fetch_postgres(db_url: &str) -> Result<PgData, String> {
+fn fetch_postgres(db_url: &str, history_days: u32) -> Result<PgData, String> {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -140,7 +260,7 @@ fn fetch_postgres(db_url: &str) -> Result<PgData, String> {
         let t = Instant::now();
         tracing::info!("postgres: fetching 5 relations concurrently");
         let (scrobbles, loved, users, tracks, artist_genres) = tokio::try_join!(
-            fetch_scrobbles(db_url),
+            fetch_scrobbles(db_url, history_days),
             fetch_loved(db_url),
             fetch_users(db_url),
             fetch_tracks(db_url),
@@ -163,13 +283,22 @@ async fn pg_connect(db_url: &str) -> Result<sqlx::postgres::PgConnection, String
         .map_err(|e| format!("postgres connect failed: {e}"))
 }
 
-async fn fetch_scrobbles(db_url: &str) -> Result<Vec<(String, String, Option<String>, f64)>, String> {
+/// With λ = 0.02/day, a play older than the default 548-day window carries
+/// weight e^-11 ≈ 2e-5 — nothing any score can see — so the cutoff bounds
+/// what will otherwise become an ever-growing full-history fetch every
+/// refresh interval. The decayed global chart reads the same window, where
+/// old plays vanish just as completely.
+async fn fetch_scrobbles(
+    db_url: &str,
+    history_days: u32,
+) -> Result<Vec<(String, String, Option<String>, f64)>, String> {
     let t = Instant::now();
     let mut conn = pg_connect(db_url).await?;
-    let rows: Vec<(String, String, Option<String>, f64)> = sqlx::query(
+    let rows: Vec<(String, String, Option<String>, f64)> = sqlx::query(&format!(
         "SELECT user_id, track_id, artist_id, extract(epoch FROM \"timestamp\")::float8 AS ts
-         FROM scrobbles WHERE user_id IS NOT NULL AND track_id IS NOT NULL",
-    )
+         FROM scrobbles WHERE user_id IS NOT NULL AND track_id IS NOT NULL{}",
+        history_cutoff(history_days)
+    ))
     .fetch_all(&mut conn)
     .await
     .map_err(|e| format!("scrobbles query failed: {e}"))?

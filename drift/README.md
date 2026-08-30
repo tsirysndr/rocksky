@@ -72,6 +72,24 @@ duckdb recommendations.ddb "SELECT title, artist, score, source
 Refresh intermediates are staged in the same file and dropped at the end of
 each run, followed by a `CHECKPOINT` to keep it compact.
 
+Two things keep the loop cheap:
+
+- **Nothing-changed refreshes are skipped.** Each run starts by fingerprinting
+  Postgres (row counts + newest scrobble), the day number (the serendipity salt
+  rotates daily) and the scoring config in one cheap query; when the
+  fingerprint matches the last successful run's, the rebuild is skipped —
+  a quiet interval costs one round trip instead of a full fetch and pipeline.
+  `POST /v1/refresh` forces past the skip.
+- **Only the last `--history-days` (default 548 ≈ 18 months) of scrobbles are
+  fetched.** At the default decay a play that old carries weight ~2e-5 —
+  invisible to every score — so the window bounds the fetch as history grows
+  with no observable change to the output. Set it to 0 to fetch everything.
+
+The snapshot itself is written sorted by `(did, final_rank)` alongside a tiny
+`rec_users` (did, handle) map: serving resolves a handle to its DID there
+first, so the query against `recommendations` is a zone-map-pruned equality on
+the sort key rather than an `OR handle = ?` scan.
+
 Responses are shaped exactly like `app.rocksky.feed.defs#recommendationView`,
 so `apps/api` returns drift's body verbatim (set `DRIFT_URL` there; it falls
 back to the legacy path if drift is unreachable).
@@ -84,7 +102,7 @@ back to the legacy path if drift is unreachable).
 | `GET /health`              | `{"status":"ok"}`                                      |
 | `GET /v1/status`           | Last refresh time/duration, user and row counts        |
 | `GET /v1/recommendations`  | `?did=<did-or-handle>&limit=50` (limit clamped to 100) |
-| `POST /v1/refresh`         | Forces a refresh; 409 if one is already running        |
+| `POST /v1/refresh`         | Forces a refresh (bypasses the nothing-changed skip); 409 if one is already running |
 
 Errors use the same envelope as riff:
 `{ "error": { "status": 404, "message": "..." } }`.
@@ -115,6 +133,7 @@ Every option takes a flag **or** an environment variable:
 | `--memory-limit`          | `DRIFT_MEMORY_LIMIT`          | `2GB`                          | DuckDB memory ceiling (spills instead of OOM) |
 | `--candidate-limit`       | `DRIFT_CANDIDATE_LIMIT`       | `500`                          | Candidates scored per user before ranking    |
 | `--profile-limit`         | `DRIFT_PROFILE_LIMIT`         | `500`                          | Most-played + loved tracks the profile uses  |
+| `--history-days`          | `DRIFT_HISTORY_DAYS`          | `548`                          | Scrobble window fetched per refresh (0 = all) |
 
 The first refresh runs before the server accepts traffic; if it fails (e.g.
 Postgres briefly down) drift still starts, answers `503` until a refresh

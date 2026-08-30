@@ -78,6 +78,13 @@ pub struct Config {
     /// neighbours, taste vectors, CF — derives from this set.
     #[arg(long, env = "DRIFT_PROFILE_LIMIT", default_value_t = 500)]
     pub profile_limit: usize,
+
+    /// Only scrobbles newer than this many days feed a refresh. At the default
+    /// decay a play this old carries weight ~2e-5 — invisible to every score —
+    /// so the window bounds the Postgres fetch as history grows, with no
+    /// observable change to the output. 0 fetches all history.
+    #[arg(long, env = "DRIFT_HISTORY_DAYS", default_value_t = 548)]
+    pub history_days: u32,
 }
 
 #[actix_web::main]
@@ -134,7 +141,7 @@ async fn main() -> std::io::Result<()> {
             let Ok(_guard) = refresher.running.try_lock() else {
                 return;
             };
-            if let Err(e) = refresh::refresh(&cfg, &db_url, &store) {
+            if let Err(e) = refresh::refresh(&cfg, &db_url, &store, false) {
                 tracing::error!("initial refresh failed (will retry on the interval): {e}");
             }
         });
@@ -150,7 +157,7 @@ async fn main() -> std::io::Result<()> {
                 tracing::info!("skipping scheduled refresh: one is already running");
                 continue;
             };
-            if let Err(e) = refresh::refresh(&cfg, &refresher.db_url, &store) {
+            if let Err(e) = refresh::refresh(&cfg, &refresher.db_url, &store, false) {
                 tracing::error!("scheduled refresh failed: {e}");
             }
         });
