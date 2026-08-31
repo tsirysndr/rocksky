@@ -78,6 +78,11 @@ pub struct Config {
 #[serde(default, rename_all = "camelCase")]
 pub struct EqualizerConfig {
     pub enabled: bool,
+    /// Saved EQ preset to load at startup: an AT URI to an
+    /// `app.rocksky.equalizer` record, or the name/rkey of one of the
+    /// logged-in user's presets. When set, its bands/precut replace
+    /// `enabled`/`bands` below as the EQ baseline.
+    pub preset: Option<String>,
     /// Gain in dB for the 10 bands at 32..16k Hz.
     #[serde(deserialize_with = "lenient_f32_vec")]
     pub bands: Vec<f32>,
@@ -107,6 +112,7 @@ impl Default for EqualizerConfig {
     fn default() -> Self {
         EqualizerConfig {
             enabled: false,
+            preset: None,
             bands: vec![0.0; EQ_BAND_FREQUENCIES.len()],
             bass: 0,
             treble: 0,

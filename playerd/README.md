@@ -50,6 +50,22 @@ record specifies override the local `[equalizer]` baseline; anything it
 doesn't specify keeps the TOML value. Set `sync_audio_settings = false` to
 run purely from the local config.
 
+You can also load a saved EQ preset (an `app.rocksky.equalizer` record) at
+startup with `preset` in the `[equalizer]` section — either an AT URI, or
+the name/rkey of one of your own presets:
+
+```toml
+[equalizer]
+preset = "Bass Boost"                                          # your preset, by name or rkey
+# preset = "at://did:plc:xyz/app.rocksky.equalizer/bass-boost" # anyone's, by AT URI
+```
+
+The preset's bands and precut replace `enabled`/`bands` below as the EQ
+baseline (the EQ is switched on). It is fetched once at startup; if it can't
+be resolved, playerd warns and falls back to the TOML bands. Note that with
+`sync_audio_settings = true` an equalizer section in the synced record still
+wins over the preset — set it to `false` to pin the preset.
+
 ## Building
 
 `playerd` is a standalone crate (it is excluded from the repo's root
@@ -135,6 +151,11 @@ audio_settings_refresh_seconds = 60
 
 # Local DSP baseline; fields present in the synced atproto record win.
 [equalizer]
+# Saved EQ preset to load at startup: an AT URI to an app.rocksky.equalizer
+# record, or the name/rkey of one of your own presets. Replaces
+# enabled/bands below as the EQ baseline.
+# preset = "at://did:plc:xyz/app.rocksky.equalizer/bass-boost"
+# preset = "Bass Boost"
 enabled = false
 # dB gain for the 10 bands at 32, 64, 125, 250, 500, 1k, 2k, 4k, 8k, 16k Hz.
 bands = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

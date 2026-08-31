@@ -79,7 +79,25 @@ async fn main() -> Result<()> {
 
     let (uris, items) = resolver::scan_local(&cli.paths)?;
 
-    let player_config = config.player_config()?;
+    let mut player_config = config.player_config()?;
+    if let Some(spec) = config
+        .equalizer
+        .preset
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        let spec = settings::PresetSpec::parse(spec)?;
+        let http = reqwest::Client::new();
+        let api_url = config.api_url.trim_end_matches('/');
+        match settings::fetch_preset(&http, api_url, &token, &spec).await {
+            Ok((preset_name, equalizer)) => {
+                tracing::info!("loaded equalizer preset \"{preset_name}\"");
+                player_config.dsp.equalizer = equalizer;
+            }
+            Err(e) => tracing::warn!("equalizer preset not applied: {e:#}"),
+        }
+    }
     let audio_baseline = settings::Baseline::from_player_config(&player_config);
     let engine = Arc::new(Engine::start(player_config).map_err(|e| anyhow!(e))?);
 

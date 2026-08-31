@@ -7,6 +7,10 @@
 //! engine — at startup and on a periodic refresh, so an EQ tweak in the web
 //! player reaches this daemon without a restart.
 //!
+//! Saved EQ presets (`app.rocksky.equalizer` records) can be loaded at
+//! startup via `equalizer.preset` in the TOML; they are resolved through
+//! `app.rocksky.equalizer.listPresets` and become the EQ baseline.
+//!
 //! Wire units (same as rockbox internals): EQ gain and precut in tenths of a
 //! dB (precut ≤ 0), Q ×10, tone in whole dB, fade times in ms, ReplayGain
 //! preamp in tenths of a dB.
@@ -14,6 +18,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use anyhow::{bail, Context, Result};
 use rockbox_playback::{
     ChannelMode, CrossfadeMode, CrossfadeSettings, EqBand, Equalizer, MixMode, PlayerConfig,
     ReplayGainMode, ToneControls, EQ_BAND_FREQUENCIES,
@@ -73,6 +78,148 @@ pub struct LexReplayGain {
     pub mode: Option<String>,
     pub preamp: Option<i32>,
     pub prevent_clipping: Option<bool>,
+}
+
+/// The `equalizer.preset` config value: either an AT URI to an
+/// `app.rocksky.equalizer` record, or a name/rkey of one of the logged-in
+/// user's own presets.
+pub enum PresetSpec {
+    Record { repo: String, rkey: String },
+    Named(String),
+}
+
+impl PresetSpec {
+    pub fn parse(spec: &str) -> Result<Self> {
+        let Some(rest) = spec.strip_prefix("at://") else {
+            return Ok(PresetSpec::Named(spec.to_string()));
+        };
+        let mut parts = rest.split('/');
+        let repo = parts.next().unwrap_or_default();
+        let collection = parts.next().unwrap_or_default();
+        let rkey = parts.next().unwrap_or_default();
+        if repo.is_empty() || rkey.is_empty() || parts.next().is_some() {
+            bail!(
+                "invalid equalizer preset URI {spec:?}: expected at://<did-or-handle>/app.rocksky.equalizer/<rkey>"
+            );
+        }
+        if collection != "app.rocksky.equalizer" {
+            bail!(
+                "equalizer preset URI {spec:?} points at collection {collection:?}, expected app.rocksky.equalizer"
+            );
+        }
+        Ok(PresetSpec::Record {
+            repo: repo.to_string(),
+            rkey: rkey.to_string(),
+        })
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LexPreset {
+    rkey: String,
+    name: String,
+    precut: Option<i32>,
+    #[serde(default)]
+    bands: Vec<LexEqBand>,
+}
+
+/// Preset rkeys are the display name slugified (same rule as putPreset).
+fn slugify(name: &str) -> String {
+    name.trim()
+        .to_lowercase()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
+/// Resolve an EQ preset through `app.rocksky.equalizer.listPresets` — public
+/// with `did` for AT-URI specs, authenticated for the user's own — and
+/// return it as an enabled native equalizer.
+pub async fn fetch_preset(
+    http: &reqwest::Client,
+    api_url: &str,
+    token: &str,
+    spec: &PresetSpec,
+) -> Result<(String, Equalizer)> {
+    let mut req = http.get(format!("{api_url}/xrpc/app.rocksky.equalizer.listPresets"));
+    req = match spec {
+        PresetSpec::Record { repo, .. } => req.query(&[("did", repo.as_str())]),
+        PresetSpec::Named(_) => req.bearer_auth(token),
+    };
+    let res = req.send().await.context("fetching equalizer presets")?;
+    if !res.status().is_success() {
+        bail!("listPresets returned HTTP {}", res.status());
+    }
+    #[derive(Deserialize)]
+    struct PresetsOutput {
+        presets: Vec<LexPreset>,
+    }
+    let out: PresetsOutput = res.json().await.context("parsing listPresets response")?;
+    let preset = match spec {
+        PresetSpec::Record { rkey, .. } => out.presets.iter().find(|p| &p.rkey == rkey),
+        PresetSpec::Named(name) => out
+            .presets
+            .iter()
+            .find(|p| p.rkey == slugify(name) || p.name.eq_ignore_ascii_case(name.trim())),
+    };
+    let Some(preset) = preset else {
+        let available = out
+            .presets
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        bail!(
+            "equalizer preset not found (available: {})",
+            if available.is_empty() { "none" } else { available.as_str() }
+        );
+    };
+    let equalizer = Equalizer {
+        enabled: true,
+        precut_db: -(preset.precut.unwrap_or(0) as f32) / 10.0,
+        bands: preset
+            .bands
+            .iter()
+            .enumerate()
+            .map(|(i, b)| EqBand {
+                cutoff_hz: EQ_BAND_FREQUENCIES.get(i).copied().unwrap_or(b.frequency),
+                q: b.q as f32 / 10.0,
+                gain_db: b.gain as f32 / 10.0,
+            })
+            .collect(),
+    };
+    Ok((preset.name.clone(), equalizer))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_preset_spec() {
+        match PresetSpec::parse("at://did:plc:xyz/app.rocksky.equalizer/bass-boost").unwrap() {
+            PresetSpec::Record { repo, rkey } => {
+                assert_eq!(repo, "did:plc:xyz");
+                assert_eq!(rkey, "bass-boost");
+            }
+            _ => panic!("expected Record"),
+        }
+        match PresetSpec::parse("Bass Boost").unwrap() {
+            PresetSpec::Named(name) => assert_eq!(name, "Bass Boost"),
+            _ => panic!("expected Named"),
+        }
+        assert!(PresetSpec::parse("at://did:plc:xyz/app.rocksky.scrobble/abc").is_err());
+        assert!(PresetSpec::parse("at://did:plc:xyz/app.rocksky.equalizer").is_err());
+        assert!(PresetSpec::parse("at://did:plc:xyz/app.rocksky.equalizer/a/b").is_err());
+    }
+
+    #[test]
+    fn slugify_matches_rkey_rule() {
+        assert_eq!(slugify("Bass Boost"), "bass-boost");
+        assert_eq!(slugify("  Rock  "), "rock");
+        assert_eq!(slugify("bass-boost"), "bass-boost");
+    }
 }
 
 /// The startup DSP baseline from the TOML config, kept so lexicon overlays
