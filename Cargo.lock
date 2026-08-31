@@ -6469,7 +6469,7 @@ dependencies = [
 
 [[package]]
 name = "rocksky-nif"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "once_cell",
  "rocksky-sdk",
@@ -6555,7 +6555,7 @@ dependencies = [
 
 [[package]]
 name = "rocksky-sdk"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "chrono",
  "cid",
@@ -6644,7 +6644,7 @@ dependencies = [
 
 [[package]]
 name = "rocksky-uniffi"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "once_cell",
  "rocksky-sdk",

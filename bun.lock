@@ -407,7 +407,7 @@
     },
     "sdk/typescript": {
       "name": "@rocksky/sdk",
-      "version": "0.14.2",
+      "version": "0.15.0",
       "dependencies": {
         "@atcute/car": "^6.0.2",
         "@atcute/cbor": "^2.3.6",
