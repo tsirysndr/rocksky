@@ -50,6 +50,9 @@ pub struct MirrorSourceView<S: BosStr = DefaultStr> {
     pub last_scrobble_seen_at: Option<Datetime>,
     ///One of: lastfm, listenbrainz, tealfm
     pub provider: S,
+    ///Whether Rocksky scrobbles are mirrored out to this source. Enabled unless the user turned it off. teal.fm only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub push_enabled: Option<bool>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -137,6 +140,7 @@ pub struct MirrorSourceViewBuilder<St: mirror_source_view_state::State, S: BosSt
         Option<Datetime>,
         Option<Datetime>,
         Option<S>,
+        Option<bool>,
     ),
     _type: PhantomData<fn() -> S>,
 }
@@ -160,7 +164,7 @@ impl MirrorSourceViewBuilder<mirror_source_view_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         MirrorSourceViewBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -171,7 +175,7 @@ impl<S: BosStr> MirrorSourceViewBuilder<mirror_source_view_state::Empty, S> {
     pub fn builder() -> Self {
         MirrorSourceViewBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None, None, None),
+            _fields: (None, None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -273,6 +277,19 @@ where
     }
 }
 
+impl<St: mirror_source_view_state::State, S: BosStr> MirrorSourceViewBuilder<St, S> {
+    /// Set the `pushEnabled` field (optional)
+    pub fn push_enabled(mut self, value: impl Into<Option<bool>>) -> Self {
+        self._fields.6 = value.into();
+        self
+    }
+    /// Set the `pushEnabled` field to an Option value (optional)
+    pub fn maybe_push_enabled(mut self, value: Option<bool>) -> Self {
+        self._fields.6 = value;
+        self
+    }
+}
+
 impl<St, S: BosStr> MirrorSourceViewBuilder<St, S>
 where
     St: mirror_source_view_state::State,
@@ -289,6 +306,7 @@ where
             last_polled_at: self._fields.3,
             last_scrobble_seen_at: self._fields.4,
             provider: self._fields.5.unwrap(),
+            push_enabled: self._fields.6,
             extra_data: Default::default(),
         }
     }
@@ -301,6 +319,7 @@ where
             last_polled_at: self._fields.3,
             last_scrobble_seen_at: self._fields.4,
             provider: self._fields.5.unwrap(),
+            push_enabled: self._fields.6,
             extra_data: Some(extra_data),
         }
     }
@@ -382,6 +401,12 @@ fn lexicon_doc_app_rocksky_mirror_defs() -> LexiconDoc<'static> {
                                 description: Some(
                                     CowStr::new_static("One of: lastfm, listenbrainz, tealfm"),
                                 ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("pushEnabled"),
+                            LexObjectProperty::Boolean(LexBoolean {
                                 ..Default::default()
                             }),
                         );

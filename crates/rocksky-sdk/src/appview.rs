@@ -1148,6 +1148,45 @@ impl AppView {
         .await
     }
 
+    /// Equalizer presets (`app.rocksky.equalizer.listPresets`). Pass an actor
+    /// (handle or DID) for a public read of that user's presets; pass `None`
+    /// to list the authenticated viewer's own presets (auth-gated — attach a
+    /// token first).
+    pub async fn equalizer_presets(&self, actor: Option<&str>) -> Result<Vec<EqualizerPresetView>> {
+        let out: EqualizerPresetsOutput = self
+            .query(
+                "app.rocksky.equalizer.listPresets",
+                &[("did", actor.unwrap_or_default().to_string())],
+            )
+            .await?;
+        Ok(out.presets)
+    }
+
+    /// Create or update an equalizer preset (`app.rocksky.equalizer.putPreset`,
+    /// procedure, auth-gated). The record key is the name slugified, so saving
+    /// with an existing name overwrites that preset (preserving its
+    /// `createdAt`). Returns the saved preset view.
+    pub async fn put_equalizer_preset(
+        &self,
+        input: &EqualizerPresetInput,
+    ) -> Result<EqualizerPresetView> {
+        let body = serde_json::to_value(input)
+            .map_err(|e| SdkError::Other(format!("encode preset: {e}")))?;
+        self.mutate("app.rocksky.equalizer.putPreset", body).await
+    }
+
+    /// Delete an equalizer preset by record key
+    /// (`app.rocksky.equalizer.deletePreset`, procedure, auth-gated).
+    pub async fn delete_equalizer_preset(&self, rkey: &str) -> Result<()> {
+        let _: serde_json::Value = self
+            .procedure(
+                "app.rocksky.equalizer.deletePreset",
+                &[("rkey", rkey.to_string())],
+            )
+            .await?;
+        Ok(())
+    }
+
     /// The viewer's API keys (`app.rocksky.apikey.getApikeys`, auth-gated).
     pub async fn apikeys(&self, limit: u32, offset: u32) -> Result<serde_json::Value> {
         self.query(
@@ -1523,7 +1562,66 @@ pub struct UpdateSeenResult {
     pub unread_count: i64,
 }
 
+/// `app.rocksky.rockbox.defs#equalizerBand`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EqualizerBandView {
+    /// Center frequency in Hz.
+    #[serde(default)]
+    pub frequency: i64,
+    /// Band gain in tenths of dB (e.g. 30 = +3.0 dB).
+    #[serde(default)]
+    pub gain: i64,
+    /// Q factor × 10 (e.g. 7 = Q 0.7).
+    #[serde(default)]
+    pub q: i64,
+}
+
+/// `app.rocksky.equalizer.defs#presetView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EqualizerPresetView {
+    /// AT URI of the preset record.
+    #[serde(default)]
+    pub uri: String,
+    /// Record key: the preset name slugified (lower case, dashes, no spaces).
+    #[serde(default)]
+    pub rkey: String,
+    /// Display name of the preset.
+    #[serde(default)]
+    pub name: String,
+    /// Pre-amplification cut in tenths of dB (e.g. -60 = -6.0 dB).
+    #[serde(default)]
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands.
+    #[serde(default)]
+    pub bands: Vec<EqualizerBandView>,
+    #[serde(default)]
+    pub created_at: String,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+}
+
+/// Input for `app.rocksky.equalizer.putPreset`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EqualizerPresetInput {
+    /// Display name; the record key is this name slugified.
+    pub name: String,
+    /// Pre-amplification cut in tenths of dB (−240..=0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands.
+    pub bands: Vec<EqualizerBandView>,
+}
+
 // ---- output envelopes ----------------------------------------------------
+
+#[derive(Deserialize)]
+struct EqualizerPresetsOutput {
+    #[serde(default)]
+    presets: Vec<EqualizerPresetView>,
+}
 
 #[derive(Deserialize)]
 struct ScrobblesOutput {

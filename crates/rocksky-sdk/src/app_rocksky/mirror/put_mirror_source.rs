@@ -34,6 +34,9 @@ pub struct PutMirrorSource<S: BosStr = DefaultStr> {
     pub external_username: Option<S>,
     ///One of: lastfm, listenbrainz, tealfm
     pub provider: S,
+    ///Enable or disable mirroring Rocksky scrobbles out to this provider. teal.fm only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub push_enabled: Option<bool>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

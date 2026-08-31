@@ -119,6 +119,27 @@ defmodule Rocksky do
     do: :rocksky.update_seen(to_bin(token), ids, to_bin(base))
 
   @doc """
+  Saved equalizer presets (`app.rocksky.equalizer.listPresets`). An empty
+  `actor` lists the token holder's own presets (`token` required); a handle or
+  DID is a public read (no token needed).
+  """
+  def equalizer_presets(token \\ "", actor \\ "", base \\ ""),
+    do: :rocksky.equalizer_presets_raw(to_bin(token), to_bin(actor), to_bin(base))
+
+  @doc """
+  Create or update an equalizer preset (`token` required). `input` is a map with
+  camelCase string keys: required `"name"` and `"bands"` (`[%{"frequency" => _,
+  "gain" => _, "q" => _}]`); optional `"precut"` (-240..0). The rkey is the
+  slugified name, so re-saving a name overwrites. Returns the saved preset.
+  """
+  def put_equalizer_preset(token, input, base \\ "") when is_map(input),
+    do: :rocksky.put_equalizer_preset(to_bin(token), input, to_bin(base))
+
+  @doc "Delete an equalizer preset by rkey (`token` required). Returns `true`."
+  def delete_equalizer_preset(token, rkey, base \\ ""),
+    do: :rocksky.delete_equalizer_preset(to_bin(token), to_bin(rkey), to_bin(base))
+
+  @doc """
   Resolve full canonical metadata for a bare title + artist (matchSong).
   `album` steers the match toward that release (case-insensitive) so a
   remaster/live/single edition doesn't shadow the intended album.

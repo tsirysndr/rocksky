@@ -80,13 +80,14 @@ pub mod remote_controller;
 pub mod remote_player;
 
 pub use agent::{
-    AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, RockskyAgentBuilder, ScrobbleDraft,
-    ScrobbleMatch, ScrobbleResult, ShoutGif, SongDraft,
+    AlbumDraft, ArtistDraft, EqualizerPresetDraft, NowPlaying, RockskyAgent, RockskyAgentBuilder,
+    ScrobbleDraft, ScrobbleMatch, ScrobbleResult, ShoutGif, SongDraft,
 };
 pub use appview::{
-    AlbumView, AppView, ArtistView, DateInterval, FeedItem, FeedView, GlobalStats,
-    NotificationActor, NotificationList, NotificationView, ProfileView, ScrobbleInput,
-    ScrobbleView, SearchResults, SongView, UnreadCount, UpdateSeenResult,
+    AlbumView, AppView, ArtistView, DateInterval, EqualizerBandView, EqualizerPresetInput,
+    EqualizerPresetView, FeedItem, FeedView, GlobalStats, NotificationActor, NotificationList,
+    NotificationView, ProfileView, ScrobbleInput, ScrobbleView, SearchResults, SongView,
+    UnreadCount, UpdateSeenResult,
 };
 pub use auth::Profile;
 #[cfg(feature = "dedup")]

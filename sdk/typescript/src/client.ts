@@ -37,8 +37,10 @@ import type {
   GetMirrorSourcesOutput,
   GetProfileShoutsOutput,
   GetShoutRepliesOutput,
+  EqualizerPresetView,
   GetSongRecentListenersOutput,
   GetTrackShoutsOutput,
+  ListPresetsOutput,
   GetUnreadCountOutput,
   ListNotificationsOutput,
   MirrorSourceView,
@@ -48,6 +50,7 @@ import type {
   PlaylistViewDetailed,
   PutAudioSettingsInput,
   PutMirrorSourceInput,
+  PutPresetInput,
   RockboxSettingsView,
   ScrobbleViewBasic,
   SongViewBasic,
@@ -702,5 +705,28 @@ export class RockskyClient {
    * Auth required. */
   putAudioSettings(input: PutAudioSettingsInput): Promise<RockboxSettingsView> {
     return this.post("app.rocksky.rockbox.putAudioSettings", { body: input });
+  }
+
+  /** An actor's saved equalizer presets (`app.rocksky.equalizer.listPresets`).
+   * Omit `actor` to list the authenticated viewer's own presets (auth). */
+  async equalizerPresets(actor?: string): Promise<EqualizerPresetView[]> {
+    const out = await this.query<ListPresetsOutput>(
+      "app.rocksky.equalizer.listPresets",
+      actor ? { did: actor } : {},
+    );
+    return out.presets ?? [];
+  }
+
+  /** Create or update an equalizer preset (`app.rocksky.equalizer.putPreset`).
+   * The rkey is the name slugified (lower case, dashed), so saving with an
+   * existing name overwrites that preset. Auth required. */
+  putEqualizerPreset(input: PutPresetInput): Promise<EqualizerPresetView> {
+    return this.post("app.rocksky.equalizer.putPreset", { body: input });
+  }
+
+  /** Delete an equalizer preset by rkey (`app.rocksky.equalizer.deletePreset`).
+   * Auth required. */
+  async deleteEqualizerPreset(rkey: string): Promise<void> {
+    await this.post("app.rocksky.equalizer.deletePreset", { params: { rkey } });
   }
 }

@@ -29,6 +29,11 @@
          agent_reply_shout_with_gif/7, agent_refresh_session/1,
          unread_count/1, unread_count/2, notifications/1, notifications/2,
          notifications/3, update_seen/2, update_seen/3, update_seen_raw/3,
+         equalizer_presets/1, equalizer_presets/2,
+         actor_equalizer_presets/1, actor_equalizer_presets/2,
+         equalizer_presets_raw/3, put_equalizer_preset/2, put_equalizer_preset/3,
+         put_equalizer_preset_raw/3,
+         delete_equalizer_preset/2, delete_equalizer_preset/3,
          agent_shout_with_gif_raw/5, agent_reply_shout_with_gif_raw/7]).
 
 %% Decode a NIF JSON-envelope binary into {ok, Value} | {error, Message}.
@@ -193,6 +198,41 @@ update_seen(Token, Ids, Base) ->
 %% Flat form for cross-language callers passing a pre-encoded JSON ids array.
 update_seen_raw(Token, IdsJson, Base) ->
     unwrap(rocksky_nif:update_seen(b(Base), b(Token), b(IdsJson))).
+
+%% ---- equalizer presets (app.rocksky.equalizer.*) ----
+
+%% The token holder's saved equalizer presets (`Token` required). Returns
+%% {ok, [#{<<"uri">> := _, <<"rkey">> := _, <<"name">> := _, <<"bands">> := _, ...}]}.
+equalizer_presets(Token) -> equalizer_presets(Token, <<>>).
+equalizer_presets(Token, Base) ->
+    unwrap(rocksky_nif:equalizer_presets(b(Base), b(Token), <<>>)).
+
+%% An actor's presets (handle or DID) — a public read, no token needed.
+actor_equalizer_presets(Actor) -> actor_equalizer_presets(Actor, <<>>).
+actor_equalizer_presets(Actor, Base) ->
+    unwrap(rocksky_nif:equalizer_presets(b(Base), <<>>, b(Actor))).
+
+%% Flat form for cross-language callers (empty Actor = the token holder's own).
+equalizer_presets_raw(Token, Actor, Base) ->
+    unwrap(rocksky_nif:equalizer_presets(b(Base), b(Token), b(Actor))).
+
+%% Create or update a preset (`Token` required). `Input` is a map with camelCase
+%% binary keys: required <<"name">> and <<"bands">> ([#{<<"frequency">>,
+%% <<"gain">>, <<"q">>}]); optional <<"precut">> (-240..0). The rkey is the
+%% slugified name, so re-saving a name overwrites. Returns the saved preset.
+put_equalizer_preset(Token, Input) -> put_equalizer_preset(Token, Input, <<>>).
+put_equalizer_preset(Token, Input, Base) ->
+    unwrap(rocksky_nif:put_equalizer_preset(b(Base), b(Token),
+                                            iolist_to_binary(json:encode(Input)))).
+
+%% Flat form for cross-language callers passing a pre-encoded JSON input object.
+put_equalizer_preset_raw(Token, InputJson, Base) ->
+    unwrap(rocksky_nif:put_equalizer_preset(b(Base), b(Token), b(InputJson))).
+
+%% Delete a preset by rkey (`Token` required). Returns {ok, true}.
+delete_equalizer_preset(Token, Rkey) -> delete_equalizer_preset(Token, Rkey, <<>>).
+delete_equalizer_preset(Token, Rkey, Base) ->
+    unwrap(rocksky_nif:delete_equalizer_preset(b(Base), b(Token), b(Rkey))).
 
 %% ---- authenticated library.* (uploaded-music) escape hatches ----
 %% Every app.rocksky.library.* call requires auth — `Token` must be non-empty.

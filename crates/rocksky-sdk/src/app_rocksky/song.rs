@@ -278,6 +278,12 @@ pub struct SongViewBasic<S: BosStr = DefaultStr> {
     ///The International Standard Recording Code (ISRC) of the song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub isrc: Option<S>,
+    ///Whether the authenticated user has loved this song. False when unauthenticated.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    ///The number of users who have loved this song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
     ///The MusicBrainz ID of the song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mbid: Option<S>,
@@ -349,6 +355,12 @@ pub struct SongViewDetailed<S: BosStr = DefaultStr> {
     ///The International Standard Recording Code (ISRC) of the song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub isrc: Option<S>,
+    ///Whether the authenticated user has loved this song. False when unauthenticated.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    ///The number of users who have loved this song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
     ///Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub matches: Option<Vec<song::SongMatchView<S>>>,
@@ -741,6 +753,15 @@ impl<S: BosStr> LexiconSchema for SongViewBasic<S> {
         lexicon_doc_app_rocksky_song_defs()
     }
     fn validate(&self) -> Result<(), ConstraintError> {
+        if let Some(ref value) = self.likes_count {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("likes_count"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
         if let Some(ref value) = self.play_count {
             if *value < 0i64 {
                 return Err(ConstraintError::Minimum {
@@ -774,6 +795,15 @@ impl<S: BosStr> LexiconSchema for SongViewDetailed<S> {
         lexicon_doc_app_rocksky_song_defs()
     }
     fn validate(&self) -> Result<(), ConstraintError> {
+        if let Some(ref value) = self.likes_count {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("likes_count"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
         if let Some(ref value) = self.play_count {
             if *value < 0i64 {
                 return Err(ConstraintError::Minimum {
@@ -2092,6 +2122,19 @@ fn lexicon_doc_app_rocksky_song_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("liked"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("likesCount"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("mbid"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
@@ -2287,6 +2330,19 @@ fn lexicon_doc_app_rocksky_song_defs() -> LexiconDoc<'static> {
                                         "The International Standard Recording Code (ISRC) of the song.",
                                     ),
                                 ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("liked"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("likesCount"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
                                 ..Default::default()
                             }),
                         );

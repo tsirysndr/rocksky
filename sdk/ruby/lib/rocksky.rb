@@ -357,6 +357,7 @@ module Rocksky
   end
 end
 
+require_relative "rocksky/equalizer"
 require_relative "rocksky/filter"
 require_relative "rocksky/library"
 require_relative "rocksky/playlist"

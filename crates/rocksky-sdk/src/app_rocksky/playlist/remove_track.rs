@@ -23,7 +23,11 @@ use serde::{Deserialize, Serialize};
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct RemoveTrackParams<S: BosStr = DefaultStr> {
-    pub song_uri: AtUri<S>,
+    /// (min: 0)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub song_uri: Option<AtUri<S>>,
     pub uri: AtUri<S>,
 }
 
@@ -73,35 +77,23 @@ pub mod remove_track_params_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type SongUri;
         type Uri;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type SongUri = Unset;
         type Uri = Unset;
-    }
-    ///State transition - sets the `song_uri` field to Set
-    pub struct SetSongUri<St: State = Empty>(PhantomData<fn() -> St>);
-    impl<St: State> sealed::Sealed for SetSongUri<St> {}
-    impl<St: State> State for SetSongUri<St> {
-        type SongUri = Set<members::song_uri>;
-        type Uri = St::Uri;
     }
     ///State transition - sets the `uri` field to Set
     pub struct SetUri<St: State = Empty>(PhantomData<fn() -> St>);
     impl<St: State> sealed::Sealed for SetUri<St> {}
     impl<St: State> State for SetUri<St> {
-        type SongUri = St::SongUri;
         type Uri = Set<members::uri>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `song_uri` field
-        pub struct song_uri(());
         ///Marker type for the `uri` field
         pub struct uri(());
     }
@@ -110,7 +102,7 @@ pub mod remove_track_params_state {
 /// Builder for constructing an instance of this type.
 pub struct RemoveTrackParamsBuilder<St: remove_track_params_state::State, S: BosStr = DefaultStr> {
     _state: PhantomData<fn() -> St>,
-    _fields: (Option<AtUri<S>>, Option<AtUri<S>>),
+    _fields: (Option<i64>, Option<AtUri<S>>, Option<AtUri<S>>),
     _type: PhantomData<fn() -> S>,
 }
 
@@ -133,7 +125,7 @@ impl RemoveTrackParamsBuilder<remove_track_params_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         RemoveTrackParamsBuilder {
             _state: PhantomData,
-            _fields: (None, None),
+            _fields: (None, None, None),
             _type: PhantomData,
         }
     }
@@ -144,28 +136,35 @@ impl<S: BosStr> RemoveTrackParamsBuilder<remove_track_params_state::Empty, S> {
     pub fn builder() -> Self {
         RemoveTrackParamsBuilder {
             _state: PhantomData,
-            _fields: (None, None),
+            _fields: (None, None, None),
             _type: PhantomData,
         }
     }
 }
 
-impl<St, S: BosStr> RemoveTrackParamsBuilder<St, S>
-where
-    St: remove_track_params_state::State,
-    St::SongUri: remove_track_params_state::IsUnset,
-{
-    /// Set the `songUri` field (required)
-    pub fn song_uri(
-        mut self,
-        value: impl Into<AtUri<S>>,
-    ) -> RemoveTrackParamsBuilder<remove_track_params_state::SetSongUri<St>, S> {
-        self._fields.0 = Option::Some(value.into());
-        RemoveTrackParamsBuilder {
-            _state: PhantomData,
-            _fields: self._fields,
-            _type: PhantomData,
-        }
+impl<St: remove_track_params_state::State, S: BosStr> RemoveTrackParamsBuilder<St, S> {
+    /// Set the `index` field (optional)
+    pub fn index(mut self, value: impl Into<Option<i64>>) -> Self {
+        self._fields.0 = value.into();
+        self
+    }
+    /// Set the `index` field to an Option value (optional)
+    pub fn maybe_index(mut self, value: Option<i64>) -> Self {
+        self._fields.0 = value;
+        self
+    }
+}
+
+impl<St: remove_track_params_state::State, S: BosStr> RemoveTrackParamsBuilder<St, S> {
+    /// Set the `songUri` field (optional)
+    pub fn song_uri(mut self, value: impl Into<Option<AtUri<S>>>) -> Self {
+        self._fields.1 = value.into();
+        self
+    }
+    /// Set the `songUri` field to an Option value (optional)
+    pub fn maybe_song_uri(mut self, value: Option<AtUri<S>>) -> Self {
+        self._fields.1 = value;
+        self
     }
 }
 
@@ -179,7 +178,7 @@ where
         mut self,
         value: impl Into<AtUri<S>>,
     ) -> RemoveTrackParamsBuilder<remove_track_params_state::SetUri<St>, S> {
-        self._fields.1 = Option::Some(value.into());
+        self._fields.2 = Option::Some(value.into());
         RemoveTrackParamsBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -191,14 +190,14 @@ where
 impl<St, S: BosStr> RemoveTrackParamsBuilder<St, S>
 where
     St: remove_track_params_state::State,
-    St::SongUri: remove_track_params_state::IsSet,
     St::Uri: remove_track_params_state::IsSet,
 {
     /// Build the final struct.
     pub fn build(self) -> RemoveTrackParams<S> {
         RemoveTrackParams {
-            song_uri: self._fields.0.unwrap(),
-            uri: self._fields.1.unwrap(),
+            index: self._fields.0,
+            song_uri: self._fields.1,
+            uri: self._fields.2.unwrap(),
         }
     }
 }

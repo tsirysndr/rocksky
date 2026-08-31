@@ -10,6 +10,7 @@ pub mod apikey;
 pub mod artist;
 pub mod charts;
 pub mod dropbox;
+pub mod equalizer;
 pub mod feed;
 pub mod googledrive;
 pub mod graph;

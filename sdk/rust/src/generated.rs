@@ -751,6 +751,12 @@ pub struct DeletePlaylistOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeletePresetParams {
+    /// Record key of the preset to delete.
+    pub rkey: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DeleteSongInput {
     /// The song id (track xata_id, as exposed by the library API).
     pub id: String,
@@ -836,6 +842,44 @@ pub struct DropboxTemporaryLinkView {
     /// The temporary link to access the file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EqualizerPresetView {
+    /// AT URI of the preset record.
+    pub uri: String,
+    /// Record key: the preset name slugified (lower case, dashes, no spaces).
+    pub rkey: String,
+    /// Display name of the preset.
+    pub name: String,
+    /// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands
+    pub bands: Vec<RockboxEqualizerBand>,
+    /// When this preset was first created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// When this preset was last updated.
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EqualizerRecord {
+    /// Display name of the preset.
+    pub name: String,
+    /// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands
+    pub bands: Vec<RockboxEqualizerBand>,
+    /// When this preset was first created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// When this preset was last updated.
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2335,6 +2379,18 @@ pub struct ListNotificationsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListPresetsOutput {
+    pub presets: Vec<EqualizerPresetView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListPresetsParams {
+    /// DID or handle of the user whose presets to fetch. Required for unauthenticated requests.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MatchSongParams {
     /// The title of the song to retrieve
     pub title: String,
@@ -2780,6 +2836,17 @@ pub struct PutMirrorSourceInput {
     /// API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it.
     #[serde(rename = "apiKey", default, skip_serializing_if = "Option::is_none")]
     pub api_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PutPresetInput {
+    /// Display name of the preset.
+    pub name: String,
+    /// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands
+    pub bands: Vec<RockboxEqualizerBand>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

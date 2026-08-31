@@ -6,18 +6,20 @@
 // Any manual changes will be overwritten on the next regeneration.
 
 //! Generated bindings for the `app.rocksky.charts` Lexicon namespace/module.
+pub mod get_decades;
 pub mod get_scrobbles_chart;
 pub mod get_top_artists;
+pub mod get_top_scrobblers;
 pub mod get_top_tracks;
 
 #[allow(unused_imports)]
 use alloc::collections::BTreeMap;
-use jacquard_common::{BosStr, DefaultStr, FromStaticStr};
+use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
 
 #[allow(unused_imports)]
 use jacquard_common::deps::codegen::unicode_segmentation::UnicodeSegmentation;
 use jacquard_common::deps::smol_str::SmolStr;
-use jacquard_common::types::string::Datetime;
+use jacquard_common::types::string::{Datetime, UriValue};
 use jacquard_common::types::value::Data;
 use jacquard_derive::IntoStatic;
 use jacquard_lexicon::lexicon::LexiconDoc;
@@ -45,6 +47,25 @@ pub struct ChartsView<S: BosStr = DefaultStr> {
     rename_all = "camelCase",
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
+pub struct DecadeViewBasic<S: BosStr = DefaultStr> {
+    ///The first year of the decade, e.g. 1990.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decade: Option<i64>,
+    ///The number of scrobbles of music released in this decade.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scrobbles: Option<i64>,
+    ///The number of distinct albums scrobbled from this decade.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unique_albums: Option<i64>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
 pub struct ScrobbleViewBasic<S: BosStr = DefaultStr> {
     ///The number of scrobbles on this date.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +73,40 @@ pub struct ScrobbleViewBasic<S: BosStr = DefaultStr> {
     ///The date of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<Datetime>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct ScrobblerViewBasic<S: BosStr = DefaultStr> {
+    ///The URL of the actor's avatar image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<UriValue<S>>,
+    ///The DID of the actor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did: Option<S>,
+    ///The display name of the actor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<S>,
+    ///The handle of the actor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub handle: Option<S>,
+    ///The unique identifier of the actor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<S>,
+    ///The number of scrobbles in the requested window.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scrobbles: Option<i64>,
+    ///The number of distinct artists scrobbled in the window.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unique_artists: Option<i64>,
+    ///The number of distinct tracks scrobbled in the window.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unique_tracks: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -71,12 +126,42 @@ impl<S: BosStr> LexiconSchema for ChartsView<S> {
     }
 }
 
+impl<S: BosStr> LexiconSchema for DecadeViewBasic<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.charts.defs"
+    }
+    fn def_name() -> &'static str {
+        "decadeViewBasic"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_charts_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
 impl<S: BosStr> LexiconSchema for ScrobbleViewBasic<S> {
     fn nsid() -> &'static str {
         "app.rocksky.charts.defs"
     }
     fn def_name() -> &'static str {
         "scrobbleViewBasic"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_charts_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for ScrobblerViewBasic<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.charts.defs"
+    }
+    fn def_name() -> &'static str {
+        "scrobblerViewBasic"
     }
     fn lexicon_doc() -> LexiconDoc<'static> {
         lexicon_doc_app_rocksky_charts_defs()
@@ -120,6 +205,35 @@ fn lexicon_doc_app_rocksky_charts_defs() -> LexiconDoc<'static> {
                 }),
             );
             map.insert(
+                SmolStr::new_static("decadeViewBasic"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("decade"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("scrobbles"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uniqueAlbums"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
                 SmolStr::new_static("scrobbleViewBasic"),
                 LexUserType::Object(LexObject {
                     properties: {
@@ -136,6 +250,77 @@ fn lexicon_doc_app_rocksky_charts_defs() -> LexiconDoc<'static> {
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The date of the scrobble.")),
                                 format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("scrobblerViewBasic"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("avatar"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The URL of the actor's avatar image.",
+                                )),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("did"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The DID of the actor.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("displayName"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The display name of the actor.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("handle"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The handle of the actor.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("id"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The unique identifier of the actor.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("scrobbles"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uniqueArtists"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uniqueTracks"),
+                            LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
                         );

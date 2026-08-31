@@ -93,6 +93,8 @@ pub(crate) fn rocksky_scopes() -> Result<jacquard::oauth::scopes::Scopes<smol_st
         .map_err(auth_err)?
         .repo_collection("app.rocksky.rockbox.audio.settings")
         .map_err(auth_err)?
+        .repo_collection("app.rocksky.equalizer")
+        .map_err(auth_err)?
         .build()
         .map_err(auth_err)
 }

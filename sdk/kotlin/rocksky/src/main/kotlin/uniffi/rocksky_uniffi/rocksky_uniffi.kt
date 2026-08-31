@@ -1024,6 +1024,12 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -1141,6 +1147,10 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_currently_playing(`ptr`: Pointer,`playerId`: RustBuffer.ByValue,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_delete_equalizer_preset(`ptr`: Pointer,`rkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_appview_equalizer_presets(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_feed(`ptr`: Pointer,`feed`: RustBuffer.ByValue,`limit`: Int,`cursor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_feed_generator(`ptr`: Pointer,`feed`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1178,6 +1188,8 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_fn_method_appview_profile(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_profile_shouts(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_put_equalizer_preset(`ptr`: Pointer,`name`: RustBuffer.ByValue,`precut`: RustBuffer.ByValue,`bands`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_recommendations(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1569,6 +1581,10 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_currently_playing(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_delete_equalizer_preset(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_equalizer_presets(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_feed(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_feed_generator(
@@ -1606,6 +1622,8 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_checksum_method_appview_profile(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_put_equalizer_preset(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_recommendations(
     ): Short
@@ -1934,6 +1952,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing() != 29450.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_delete_equalizer_preset() != 41537.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_equalizer_presets() != 56418.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_feed() != 45348.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1989,6 +2013,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts() != 27333.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_put_equalizer_preset() != 32860.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations() != 8253.toShort()) {
@@ -3312,6 +3339,18 @@ public interface AppViewInterface {
     
     fun `currentlyPlaying`(`playerId`: kotlin.String?, `actor`: kotlin.String?): kotlin.String
     
+    /**
+     * Delete an equalizer preset by rkey (`app.rocksky.equalizer.deletePreset`).
+     * Token required.
+     */
+    fun `deleteEqualizerPreset`(`rkey`: kotlin.String)
+    
+    /**
+     * Saved equalizer presets (`app.rocksky.equalizer.listPresets`). Empty
+     * `actor` lists the authenticated viewer's own presets (token required).
+     */
+    fun `equalizerPresets`(`actor`: kotlin.String): List<EqualizerPreset>
+    
     fun `feed`(`feed`: kotlin.String, `limit`: kotlin.UInt, `cursor`: kotlin.String?): kotlin.String
     
     fun `feedGenerator`(`feed`: kotlin.String): kotlin.String
@@ -3366,6 +3405,13 @@ public interface AppViewInterface {
     fun `profile`(`actor`: kotlin.String): ProfileView
     
     fun `profileShouts`(`actor`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): kotlin.String
+    
+    /**
+     * Create or update an equalizer preset (`app.rocksky.equalizer.putPreset`).
+     * The record key is the name slugified, so an existing name overwrites that
+     * preset. Token required.
+     */
+    fun `putEqualizerPreset`(`name`: kotlin.String, `precut`: kotlin.Long?, `bands`: List<EqualizerBand>): EqualizerPreset
     
     fun `recommendations`(`actor`: kotlin.String, `limit`: kotlin.UInt?): kotlin.String
     
@@ -3842,6 +3888,39 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
+    /**
+     * Delete an equalizer preset by rkey (`app.rocksky.equalizer.deletePreset`).
+     * Token required.
+     */
+    @Throws(RockskyException::class)override fun `deleteEqualizerPreset`(`rkey`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_delete_equalizer_preset(
+        it, FfiConverterString.lower(`rkey`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Saved equalizer presets (`app.rocksky.equalizer.listPresets`). Empty
+     * `actor` lists the authenticated viewer's own presets (token required).
+     */
+    @Throws(RockskyException::class)override fun `equalizerPresets`(`actor`: kotlin.String): List<EqualizerPreset> {
+            return FfiConverterSequenceTypeEqualizerPreset.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_equalizer_presets(
+        it, FfiConverterString.lower(`actor`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(RockskyException::class)override fun `feed`(`feed`: kotlin.String, `limit`: kotlin.UInt, `cursor`: kotlin.String?): kotlin.String {
             return FfiConverterString.lift(
     callWithPointer {
@@ -4099,6 +4178,24 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_profile_shouts(
         it, FfiConverterString.lower(`actor`),FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Create or update an equalizer preset (`app.rocksky.equalizer.putPreset`).
+     * The record key is the name slugified, so an existing name overwrites that
+     * preset. Token required.
+     */
+    @Throws(RockskyException::class)override fun `putEqualizerPreset`(`name`: kotlin.String, `precut`: kotlin.Long?, `bands`: List<EqualizerBand>): EqualizerPreset {
+            return FfiConverterTypeEqualizerPreset.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_put_equalizer_preset(
+        it, FfiConverterString.lower(`name`),FfiConverterOptionalLong.lower(`precut`),FfiConverterSequenceTypeEqualizerBand.lower(`bands`),_status)
 }
     }
     )
@@ -6590,6 +6687,125 @@ public object FfiConverterTypeArtistView: FfiConverterRustBuffer<ArtistView> {
 
 
 /**
+ * One EQ band (`app.rocksky.rockbox.defs#equalizerBand`). Same units rockbox
+ * uses internally: gain in tenths of dB, Q × 10.
+ */
+data class EqualizerBand (
+    /**
+     * Center frequency in Hz.
+     */
+    var `frequency`: kotlin.Long, 
+    /**
+     * Band gain in tenths of dB (e.g. 30 = +3.0 dB).
+     */
+    var `gain`: kotlin.Long, 
+    /**
+     * Q factor × 10 (e.g. 7 = Q 0.7).
+     */
+    var `q`: kotlin.Long
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEqualizerBand: FfiConverterRustBuffer<EqualizerBand> {
+    override fun read(buf: ByteBuffer): EqualizerBand {
+        return EqualizerBand(
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EqualizerBand) = (
+            FfiConverterLong.allocationSize(value.`frequency`) +
+            FfiConverterLong.allocationSize(value.`gain`) +
+            FfiConverterLong.allocationSize(value.`q`)
+    )
+
+    override fun write(value: EqualizerBand, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`frequency`, buf)
+            FfiConverterLong.write(value.`gain`, buf)
+            FfiConverterLong.write(value.`q`, buf)
+    }
+}
+
+
+
+/**
+ * A saved equalizer preset (`app.rocksky.equalizer` record).
+ */
+data class EqualizerPreset (
+    /**
+     * AT URI of the preset record.
+     */
+    var `uri`: kotlin.String, 
+    /**
+     * Record key: the preset name slugified (lower case, dashes, no spaces).
+     */
+    var `rkey`: kotlin.String, 
+    /**
+     * Display name of the preset.
+     */
+    var `name`: kotlin.String, 
+    /**
+     * Pre-amplification cut in tenths of dB (e.g. -60 = -6.0 dB).
+     */
+    var `precut`: kotlin.Long?, 
+    /**
+     * Up to 10 EQ bands.
+     */
+    var `bands`: List<EqualizerBand>, 
+    var `createdAt`: kotlin.String, 
+    var `updatedAt`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEqualizerPreset: FfiConverterRustBuffer<EqualizerPreset> {
+    override fun read(buf: ByteBuffer): EqualizerPreset {
+        return EqualizerPreset(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterSequenceTypeEqualizerBand.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EqualizerPreset) = (
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterString.allocationSize(value.`rkey`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterOptionalLong.allocationSize(value.`precut`) +
+            FfiConverterSequenceTypeEqualizerBand.allocationSize(value.`bands`) +
+            FfiConverterString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`)
+    )
+
+    override fun write(value: EqualizerPreset, buf: ByteBuffer) {
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterString.write(value.`rkey`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterOptionalLong.write(value.`precut`, buf)
+            FfiConverterSequenceTypeEqualizerBand.write(value.`bands`, buf)
+            FfiConverterString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`updatedAt`, buf)
+    }
+}
+
+
+
+/**
  * Platform-wide totals.
  */
 data class GlobalStats (
@@ -8835,6 +9051,62 @@ public object FfiConverterSequenceTypeArtistView: FfiConverterRustBuffer<List<Ar
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeArtistView.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeEqualizerBand: FfiConverterRustBuffer<List<EqualizerBand>> {
+    override fun read(buf: ByteBuffer): List<EqualizerBand> {
+        val len = buf.getInt()
+        return List<EqualizerBand>(len) {
+            FfiConverterTypeEqualizerBand.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<EqualizerBand>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeEqualizerBand.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<EqualizerBand>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeEqualizerBand.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeEqualizerPreset: FfiConverterRustBuffer<List<EqualizerPreset>> {
+    override fun read(buf: ByteBuffer): List<EqualizerPreset> {
+        val len = buf.getInt()
+        return List<EqualizerPreset>(len) {
+            FfiConverterTypeEqualizerPreset.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<EqualizerPreset>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeEqualizerPreset.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<EqualizerPreset>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeEqualizerPreset.write(it, buf)
         }
     }
 }

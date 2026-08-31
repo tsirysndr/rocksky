@@ -10,9 +10,9 @@ use serde_json::Value;
 use crate::error::{Error, Result};
 use crate::http::{DEFAULT_BASE_URL, Shared, Transport};
 use crate::resources::{
-    ActorApi, AlbumApi, ApikeyApi, ArtistApi, ChartsApi, DropboxApi, FeedApi, GoogleDriveApi,
-    GraphApi, LikeApi, MirrorApi, PlayerApi, PlaylistApi, RockboxApi, ScrobbleApi, ShoutApi,
-    SongApi, SpotifyApi, StatsApi,
+    ActorApi, AlbumApi, ApikeyApi, ArtistApi, ChartsApi, DropboxApi, EqualizerApi, FeedApi,
+    GoogleDriveApi, GraphApi, LikeApi, MirrorApi, PlayerApi, PlaylistApi, RockboxApi, ScrobbleApi,
+    ShoutApi, SongApi, SpotifyApi, StatsApi,
 };
 
 /// Default user agent (`rocksky-rust/<version>`).
@@ -102,6 +102,11 @@ impl Client {
     /// `app.rocksky.dropbox.*`
     pub fn dropbox(&self) -> DropboxApi<'_> {
         DropboxApi::new(self)
+    }
+
+    /// `app.rocksky.equalizer.*`
+    pub fn equalizer(&self) -> EqualizerApi<'_> {
+        EqualizerApi::new(self)
     }
 
     /// `app.rocksky.feed.*`

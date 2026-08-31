@@ -23,6 +23,7 @@
          remove_playlist_track/4, remove_playlist/3,
          album_shouts/4, artist_shouts/4, profile_shouts/4, track_shouts/2,
          shout_replies/4, audio_settings/2, apikeys/3,
+         equalizer_presets/3, put_equalizer_preset/3, delete_equalizer_preset/3,
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/5, agent_did/1, agent_refresh_session/1, agent_scrobble/2,
          agent_scrobble_match/2, agent_sync_repo/1, agent_hydrate_from_jetstream/1,
@@ -283,6 +284,9 @@ track_shouts(_Base, _Uri) -> ?NOT_LOADED.
 shout_replies(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
 audio_settings(_Base, _Did) -> ?NOT_LOADED.
 apikeys(_Base, _Limit, _Offset) -> ?NOT_LOADED.
+equalizer_presets(_Base, _Token, _Actor) -> ?NOT_LOADED.
+put_equalizer_preset(_Base, _Token, _InputJson) -> ?NOT_LOADED.
+delete_equalizer_preset(_Base, _Token, _Rkey) -> ?NOT_LOADED.
 song_hash(_Title, _Artist, _Album) -> ?NOT_LOADED.
 album_hash(_Album, _AlbumArtist) -> ?NOT_LOADED.
 artist_hash(_AlbumArtist) -> ?NOT_LOADED.

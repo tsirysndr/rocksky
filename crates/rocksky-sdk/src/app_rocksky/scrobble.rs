@@ -263,6 +263,9 @@ pub struct ScrobbleViewDetailed<S: BosStr = DefaultStr> {
     ///The title of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
+    ///The URI of the track (song) this scrobble is of.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_uri: Option<S>,
     ///The URI of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<UriValue<S>>,
@@ -1861,6 +1864,15 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             SmolStr::new_static("title"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The title of the scrobble.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackUri"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The URI of the track (song) this scrobble is of.",
+                                )),
                                 ..Default::default()
                             }),
                         );

@@ -510,6 +510,69 @@ impl From<rocksky_sdk::appview::UpdateSeenResult> for UpdateSeenResult {
     }
 }
 
+/// One EQ band (`app.rocksky.rockbox.defs#equalizerBand`). Same units rockbox
+/// uses internally: gain in tenths of dB, Q × 10.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EqualizerBand {
+    /// Center frequency in Hz.
+    pub frequency: i64,
+    /// Band gain in tenths of dB (e.g. 30 = +3.0 dB).
+    pub gain: i64,
+    /// Q factor × 10 (e.g. 7 = Q 0.7).
+    pub q: i64,
+}
+
+impl From<rocksky_sdk::EqualizerBandView> for EqualizerBand {
+    fn from(b: rocksky_sdk::EqualizerBandView) -> Self {
+        EqualizerBand {
+            frequency: b.frequency,
+            gain: b.gain,
+            q: b.q,
+        }
+    }
+}
+
+impl From<EqualizerBand> for rocksky_sdk::EqualizerBandView {
+    fn from(b: EqualizerBand) -> Self {
+        rocksky_sdk::EqualizerBandView {
+            frequency: b.frequency,
+            gain: b.gain,
+            q: b.q,
+        }
+    }
+}
+
+/// A saved equalizer preset (`app.rocksky.equalizer` record).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EqualizerPreset {
+    /// AT URI of the preset record.
+    pub uri: String,
+    /// Record key: the preset name slugified (lower case, dashes, no spaces).
+    pub rkey: String,
+    /// Display name of the preset.
+    pub name: String,
+    /// Pre-amplification cut in tenths of dB (e.g. -60 = -6.0 dB).
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands.
+    pub bands: Vec<EqualizerBand>,
+    pub created_at: String,
+    pub updated_at: Option<String>,
+}
+
+impl From<rocksky_sdk::EqualizerPresetView> for EqualizerPreset {
+    fn from(p: rocksky_sdk::EqualizerPresetView) -> Self {
+        EqualizerPreset {
+            uri: p.uri,
+            rkey: p.rkey,
+            name: p.name,
+            precut: p.precut,
+            bands: p.bands.into_iter().map(Into::into).collect(),
+            created_at: p.created_at,
+            updated_at: p.updated_at,
+        }
+    }
+}
+
 /// A scrobble from the AppView.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ScrobbleView {
@@ -1310,6 +1373,45 @@ impl AppView {
 
     pub fn audio_settings(&self, actor: String) -> Result<String, RockskyError> {
         json(RT.block_on(self.inner.audio_settings(&actor)))
+    }
+
+    /// Saved equalizer presets (`app.rocksky.equalizer.listPresets`). Empty
+    /// `actor` lists the authenticated viewer's own presets (token required).
+    pub fn equalizer_presets(&self, actor: String) -> Result<Vec<EqualizerPreset>, RockskyError> {
+        let actor = Some(actor).filter(|a| !a.is_empty());
+        Ok(RT
+            .block_on(self.inner.equalizer_presets(actor.as_deref()))
+            .map_err(err)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
+    }
+
+    /// Create or update an equalizer preset (`app.rocksky.equalizer.putPreset`).
+    /// The record key is the name slugified, so an existing name overwrites that
+    /// preset. Token required.
+    pub fn put_equalizer_preset(
+        &self,
+        name: String,
+        precut: Option<i64>,
+        bands: Vec<EqualizerBand>,
+    ) -> Result<EqualizerPreset, RockskyError> {
+        let input = rocksky_sdk::EqualizerPresetInput {
+            name,
+            precut,
+            bands: bands.into_iter().map(Into::into).collect(),
+        };
+        Ok(RT
+            .block_on(self.inner.put_equalizer_preset(&input))
+            .map_err(err)?
+            .into())
+    }
+
+    /// Delete an equalizer preset by rkey (`app.rocksky.equalizer.deletePreset`).
+    /// Token required.
+    pub fn delete_equalizer_preset(&self, rkey: String) -> Result<(), RockskyError> {
+        RT.block_on(self.inner.delete_equalizer_preset(&rkey))
+            .map_err(err)
     }
 
     pub fn apikeys(&self, limit: u32, offset: u32) -> Result<String, RockskyError> {

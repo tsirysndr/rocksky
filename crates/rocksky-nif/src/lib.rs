@@ -616,6 +616,44 @@ fn audio_settings(base: String, actor: String) -> String {
     envelope(RT.block_on(appview(&base).audio_settings(&actor)))
 }
 
+/// Saved equalizer presets (`app.rocksky.equalizer.listPresets`). Empty `actor`
+/// lists the token holder's own presets (token required then).
+#[rustler::nif(schedule = "DirtyIo")]
+fn equalizer_presets(base: String, token: String, actor: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.equalizer_presets(opt(&actor))))
+}
+
+/// Create or update an equalizer preset (`app.rocksky.equalizer.putPreset`).
+/// `input_json` is `{"name", "precut"?, "bands": [{"frequency","gain","q"}]}`
+/// (rockbox units: gain/precut in tenths of dB, Q × 10). The record key is the
+/// name slugified, so an existing name overwrites. `token` is required.
+#[rustler::nif(schedule = "DirtyIo")]
+fn put_equalizer_preset(base: String, token: String, input_json: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    match parse::<rocksky_sdk::EqualizerPresetInput>(&input_json) {
+        Ok(input) => envelope(RT.block_on(av.put_equalizer_preset(&input))),
+        Err(e) => envelope(Err::<serde_json::Value, _>(e)),
+    }
+}
+
+/// Delete an equalizer preset by rkey (`app.rocksky.equalizer.deletePreset`).
+/// `token` is required.
+#[rustler::nif(schedule = "DirtyIo")]
+fn delete_equalizer_preset(base: String, token: String, rkey: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.delete_equalizer_preset(&rkey)).map(|_| true))
+}
+
 #[rustler::nif(schedule = "DirtyIo")]
 fn apikeys(base: String, limit: u32, offset: u32) -> String {
     envelope(RT.block_on(appview(&base).apikeys(limit, offset)))

@@ -12,6 +12,7 @@ use crate::app_rocksky::song::SongViewBasic;
 #[allow(unused_imports)]
 use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
+use jacquard_common::types::ident::AtIdentifier;
 use jacquard_common::types::string::Datetime;
 use jacquard_common::types::value::Data;
 use jacquard_common::{BosStr, DefaultStr, FromStaticStr};
@@ -19,8 +20,13 @@ use jacquard_derive::IntoStatic;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
-#[serde(rename_all = "camelCase")]
-pub struct GetTopTracks {
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct GetTopTracks<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did: Option<AtIdentifier<S>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_date: Option<Datetime>,
     /// (min: 1)
@@ -56,7 +62,7 @@ impl jacquard_common::xrpc::XrpcResp for GetTopTracksResponse {
     type Err = jacquard_common::xrpc::GenericError;
 }
 
-impl jacquard_common::xrpc::XrpcRequest for GetTopTracks {
+impl<S: BosStr> jacquard_common::xrpc::XrpcRequest for GetTopTracks<S> {
     const NSID: &'static str = "app.rocksky.charts.getTopTracks";
     const METHOD: jacquard_common::xrpc::XrpcMethod = jacquard_common::xrpc::XrpcMethod::Query;
     type Response = GetTopTracksResponse;
@@ -64,12 +70,12 @@ impl jacquard_common::xrpc::XrpcRequest for GetTopTracks {
 
 /** Endpoint marker for the `app.rocksky.charts.getTopTracks` query.
 
-Path: `/xrpc/app.rocksky.charts.getTopTracks`. The request payload type is `GetTopTracks`; send that request with `jacquard::Client` or use this marker through lower-level `XrpcEndpoint` APIs.*/
+Path: `/xrpc/app.rocksky.charts.getTopTracks`. The request payload type is `GetTopTracks<S>`; send that request with `jacquard::Client` or use this marker through lower-level `XrpcEndpoint` APIs.*/
 pub struct GetTopTracksRequest;
 impl jacquard_common::xrpc::XrpcEndpoint for GetTopTracksRequest {
     const PATH: &'static str = "/xrpc/app.rocksky.charts.getTopTracks";
     const METHOD: jacquard_common::xrpc::XrpcMethod = jacquard_common::xrpc::XrpcMethod::Query;
-    type Request<S: BosStr> = GetTopTracks;
+    type Request<S: BosStr> = GetTopTracks<S>;
     type Response = GetTopTracksResponse;
 }
 
@@ -93,101 +99,131 @@ pub mod get_top_tracks_state {
 }
 
 /// Builder for constructing an instance of this type.
-pub struct GetTopTracksBuilder<St: get_top_tracks_state::State> {
+pub struct GetTopTracksBuilder<St: get_top_tracks_state::State, S: BosStr = DefaultStr> {
     _state: PhantomData<fn() -> St>,
-    _fields: (Option<Datetime>, Option<i64>, Option<i64>, Option<Datetime>),
+    _fields: (
+        Option<AtIdentifier<S>>,
+        Option<Datetime>,
+        Option<i64>,
+        Option<i64>,
+        Option<Datetime>,
+    ),
+    _type: PhantomData<fn() -> S>,
 }
 
-impl GetTopTracks {
-    /// Create a new builder for this type.
-    pub fn new() -> GetTopTracksBuilder<get_top_tracks_state::Empty> {
+impl GetTopTracks<DefaultStr> {
+    /// Create a new builder for this type, using the default string type (DefaultStr = SmolStr) if needed
+    pub fn new() -> GetTopTracksBuilder<get_top_tracks_state::Empty, DefaultStr> {
         GetTopTracksBuilder::new()
     }
 }
 
-impl GetTopTracksBuilder<get_top_tracks_state::Empty> {
+impl<S: BosStr> GetTopTracks<S> {
+    /// Create a new builder for this type
+    pub fn builder() -> GetTopTracksBuilder<get_top_tracks_state::Empty, S> {
+        GetTopTracksBuilder::builder()
+    }
+}
+
+impl GetTopTracksBuilder<get_top_tracks_state::Empty, DefaultStr> {
     /// Create a new builder with all fields unset, using the default string type, if needed
     pub fn new() -> Self {
         GetTopTracksBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None),
+            _type: PhantomData,
         }
     }
 }
 
-impl GetTopTracksBuilder<get_top_tracks_state::Empty> {
+impl<S: BosStr> GetTopTracksBuilder<get_top_tracks_state::Empty, S> {
     /// Create a new builder with all fields unset
     pub fn builder() -> Self {
         GetTopTracksBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None),
+            _type: PhantomData,
         }
     }
 }
 
-impl<St: get_top_tracks_state::State> GetTopTracksBuilder<St> {
-    /// Set the `endDate` field (optional)
-    pub fn end_date(mut self, value: impl Into<Option<Datetime>>) -> Self {
+impl<St: get_top_tracks_state::State, S: BosStr> GetTopTracksBuilder<St, S> {
+    /// Set the `did` field (optional)
+    pub fn did(mut self, value: impl Into<Option<AtIdentifier<S>>>) -> Self {
         self._fields.0 = value.into();
         self
     }
-    /// Set the `endDate` field to an Option value (optional)
-    pub fn maybe_end_date(mut self, value: Option<Datetime>) -> Self {
+    /// Set the `did` field to an Option value (optional)
+    pub fn maybe_did(mut self, value: Option<AtIdentifier<S>>) -> Self {
         self._fields.0 = value;
         self
     }
 }
 
-impl<St: get_top_tracks_state::State> GetTopTracksBuilder<St> {
-    /// Set the `limit` field (optional)
-    pub fn limit(mut self, value: impl Into<Option<i64>>) -> Self {
+impl<St: get_top_tracks_state::State, S: BosStr> GetTopTracksBuilder<St, S> {
+    /// Set the `endDate` field (optional)
+    pub fn end_date(mut self, value: impl Into<Option<Datetime>>) -> Self {
         self._fields.1 = value.into();
         self
     }
-    /// Set the `limit` field to an Option value (optional)
-    pub fn maybe_limit(mut self, value: Option<i64>) -> Self {
+    /// Set the `endDate` field to an Option value (optional)
+    pub fn maybe_end_date(mut self, value: Option<Datetime>) -> Self {
         self._fields.1 = value;
         self
     }
 }
 
-impl<St: get_top_tracks_state::State> GetTopTracksBuilder<St> {
-    /// Set the `offset` field (optional)
-    pub fn offset(mut self, value: impl Into<Option<i64>>) -> Self {
+impl<St: get_top_tracks_state::State, S: BosStr> GetTopTracksBuilder<St, S> {
+    /// Set the `limit` field (optional)
+    pub fn limit(mut self, value: impl Into<Option<i64>>) -> Self {
         self._fields.2 = value.into();
         self
     }
-    /// Set the `offset` field to an Option value (optional)
-    pub fn maybe_offset(mut self, value: Option<i64>) -> Self {
+    /// Set the `limit` field to an Option value (optional)
+    pub fn maybe_limit(mut self, value: Option<i64>) -> Self {
         self._fields.2 = value;
         self
     }
 }
 
-impl<St: get_top_tracks_state::State> GetTopTracksBuilder<St> {
-    /// Set the `startDate` field (optional)
-    pub fn start_date(mut self, value: impl Into<Option<Datetime>>) -> Self {
+impl<St: get_top_tracks_state::State, S: BosStr> GetTopTracksBuilder<St, S> {
+    /// Set the `offset` field (optional)
+    pub fn offset(mut self, value: impl Into<Option<i64>>) -> Self {
         self._fields.3 = value.into();
         self
     }
-    /// Set the `startDate` field to an Option value (optional)
-    pub fn maybe_start_date(mut self, value: Option<Datetime>) -> Self {
+    /// Set the `offset` field to an Option value (optional)
+    pub fn maybe_offset(mut self, value: Option<i64>) -> Self {
         self._fields.3 = value;
         self
     }
 }
 
-impl<St> GetTopTracksBuilder<St>
+impl<St: get_top_tracks_state::State, S: BosStr> GetTopTracksBuilder<St, S> {
+    /// Set the `startDate` field (optional)
+    pub fn start_date(mut self, value: impl Into<Option<Datetime>>) -> Self {
+        self._fields.4 = value.into();
+        self
+    }
+    /// Set the `startDate` field to an Option value (optional)
+    pub fn maybe_start_date(mut self, value: Option<Datetime>) -> Self {
+        self._fields.4 = value;
+        self
+    }
+}
+
+impl<St, S: BosStr> GetTopTracksBuilder<St, S>
 where
     St: get_top_tracks_state::State,
 {
     /// Build the final struct.
-    pub fn build(self) -> GetTopTracks {
+    pub fn build(self) -> GetTopTracks<S> {
         GetTopTracks {
-            end_date: self._fields.0,
-            limit: self._fields.1,
-            offset: self._fields.2,
-            start_date: self._fields.3,
+            did: self._fields.0,
+            end_date: self._fields.1,
+            limit: self._fields.2,
+            offset: self._fields.3,
+            start_date: self._fields.4,
         }
     }
 }

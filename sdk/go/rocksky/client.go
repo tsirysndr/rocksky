@@ -619,6 +619,33 @@ func (c *Client) AudioSettings(ctx context.Context, actor string) (json.RawMessa
 	return c.Get(ctx, "app.rocksky.rockbox.getAudioSettings", map[string]any{"did": actor})
 }
 
+// EqualizerPresets returns an actor's saved equalizer presets. Pass "" for
+// actor to list the authenticated viewer's own presets (auth).
+func (c *Client) EqualizerPresets(ctx context.Context, actor string) ([]gen.EqualizerPresetView, error) {
+	var out gen.ListPresetsOutput
+	err := c.query(ctx, "app.rocksky.equalizer.listPresets", map[string]any{"did": actor}, &out)
+	return out.Presets, err
+}
+
+// PutEqualizerPreset creates or updates one of the viewer's equalizer presets
+// (auth). The rkey is the name slugified, so saving an existing name overwrites
+// that preset. precut is tenths of dB (-240..0); nil leaves it unset.
+func (c *Client) PutEqualizerPreset(ctx context.Context, name string, precut *int, bands []gen.RockboxEqualizerBand) (*gen.EqualizerPresetView, error) {
+	body := map[string]any{"name": name, "bands": bands}
+	if precut != nil {
+		body["precut"] = *precut
+	}
+	var out gen.EqualizerPresetView
+	err := c.xrpc.Do(ctx, xrpc.Procedure, "application/json",
+		"app.rocksky.equalizer.putPreset", nil, body, &out)
+	return &out, err
+}
+
+// DeleteEqualizerPreset deletes one of the viewer's equalizer presets by rkey (auth).
+func (c *Client) DeleteEqualizerPreset(ctx context.Context, rkey string) error {
+	return c.procedure(ctx, "app.rocksky.equalizer.deletePreset", map[string]any{"rkey": rkey}, nil)
+}
+
 // Apikeys returns the viewer's API keys (auth).
 func (c *Client) Apikeys(ctx context.Context, limit, offset int) (json.RawMessage, error) {
 	return c.Get(ctx, "app.rocksky.apikey.getApikeys", map[string]any{"limit": limit, "offset": offset})

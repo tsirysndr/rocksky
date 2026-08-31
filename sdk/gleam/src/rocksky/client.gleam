@@ -316,6 +316,50 @@ pub fn update_seen(token: String, ids_json: String) -> Dynamic {
   update_seen_ffi(token, ids_json, "")
 }
 
+// ---- equalizer presets (app.rocksky.equalizer.*) --------------------------
+
+@external(erlang, "rocksky", "equalizer_presets_raw")
+fn equalizer_presets_ffi(token: String, actor: String, base: String) -> Dynamic
+
+/// The token holder's saved equalizer presets. Returns a list of preset views
+/// (`uri`, `rkey`, `name`, `bands`, optional `precut`, timestamps).
+pub fn equalizer_presets(token: String) -> Dynamic {
+  equalizer_presets_ffi(token, "", "")
+}
+
+/// An actor's equalizer presets (handle or DID) — a public read, no token
+/// needed.
+pub fn actor_equalizer_presets(actor: String) -> Dynamic {
+  equalizer_presets_ffi("", actor, "")
+}
+
+@external(erlang, "rocksky", "put_equalizer_preset_raw")
+fn put_equalizer_preset_ffi(
+  token: String,
+  input_json: String,
+  base: String,
+) -> Dynamic
+
+/// Create or update an equalizer preset. `input_json` is a JSON object with
+/// required `"name"` and `"bands"` (`[{"frequency","gain","q"}]`) and optional
+/// `"precut"` (-240..0). The rkey is the slugified name, so re-saving a name
+/// overwrites. Returns the saved preset.
+pub fn put_equalizer_preset(token: String, input_json: String) -> Dynamic {
+  put_equalizer_preset_ffi(token, input_json, "")
+}
+
+@external(erlang, "rocksky", "delete_equalizer_preset")
+fn delete_equalizer_preset_ffi(
+  token: String,
+  rkey: String,
+  base: String,
+) -> Dynamic
+
+/// Delete an equalizer preset by rkey. Returns `true` on success.
+pub fn delete_equalizer_preset(token: String, rkey: String) -> Dynamic {
+  delete_equalizer_preset_ffi(token, rkey, "")
+}
+
 @external(erlang, "rocksky", "match_song")
 fn match_song_ffi(title: String, artist: String) -> Dynamic
 

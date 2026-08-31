@@ -516,6 +516,11 @@ type DeletePlaylistInput struct {
 type DeletePlaylistOutput struct {
 }
 
+type DeletePresetParams struct {
+	// Record key of the preset to delete.
+	Rkey string `json:"rkey,omitempty"`
+}
+
 type DeleteSongInput struct {
 	// The song id (track xata_id, as exposed by the library API).
 	ID string `json:"id,omitempty"`
@@ -578,6 +583,36 @@ type DropboxGetFilesParams struct {
 type DropboxTemporaryLinkView struct {
 	// The temporary link to access the file.
 	Link string `json:"link,omitempty"`
+}
+
+type EqualizerPresetView struct {
+	// AT URI of the preset record.
+	URI string `json:"uri,omitempty"`
+	// Record key: the preset name slugified (lower case, dashes, no spaces).
+	Rkey string `json:"rkey,omitempty"`
+	// Display name of the preset.
+	Name string `json:"name,omitempty"`
+	// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
+	Precut int `json:"precut,omitempty"`
+	// Up to 10 EQ bands
+	Bands []RockboxEqualizerBand `json:"bands,omitempty"`
+	// When this preset was first created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// When this preset was last updated.
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
+type EqualizerRecord struct {
+	// Display name of the preset.
+	Name string `json:"name,omitempty"`
+	// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
+	Precut int `json:"precut,omitempty"`
+	// Up to 10 EQ bands
+	Bands []RockboxEqualizerBand `json:"bands,omitempty"`
+	// When this preset was first created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// When this preset was last updated.
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 type FeedGeneratorsView struct {
@@ -1642,6 +1677,15 @@ type ListNotificationsParams struct {
 	Cursor string `json:"cursor,omitempty"`
 }
 
+type ListPresetsOutput struct {
+	Presets []EqualizerPresetView `json:"presets,omitempty"`
+}
+
+type ListPresetsParams struct {
+	// DID or handle of the user whose presets to fetch. Required for unauthenticated requests.
+	DID string `json:"did,omitempty"`
+}
+
 type MatchSongParams struct {
 	// The title of the song to retrieve
 	Title string `json:"title,omitempty"`
@@ -1959,6 +2003,15 @@ type PutMirrorSourceInput struct {
 	ExternalUsername string `json:"externalUsername,omitempty"`
 	// API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it.
 	APIKey string `json:"apiKey,omitempty"`
+}
+
+type PutPresetInput struct {
+	// Display name of the preset.
+	Name string `json:"name,omitempty"`
+	// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
+	Precut int `json:"precut,omitempty"`
+	// Up to 10 EQ bands
+	Bands []RockboxEqualizerBand `json:"bands,omitempty"`
 }
 
 type RadioRecord struct {

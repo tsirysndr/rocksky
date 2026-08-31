@@ -23,12 +23,14 @@ use crate::app_rocksky::actor::status::Status as ActorStatus;
 use crate::app_rocksky::actor::TrackView;
 use crate::app_rocksky::album::Album;
 use crate::app_rocksky::artist::Artist;
+use crate::app_rocksky::equalizer::Equalizer;
 use crate::app_rocksky::graph::follow::Follow;
 use crate::app_rocksky::like::Like;
+use crate::app_rocksky::rockbox::EqualizerBand;
 use crate::app_rocksky::scrobble::Scrobble;
 use crate::app_rocksky::shout::{Gif, Shout};
 use crate::app_rocksky::song::Song;
-use crate::appview::AppView;
+use crate::appview::{AppView, EqualizerBandView};
 use crate::auth::{fetch_profile, rocksky_scopes, Profile};
 use crate::com_atproto::repo::strong_ref::StrongRef;
 use crate::error::{auth_err, Result, SdkError};
@@ -238,6 +240,19 @@ pub struct NowPlaying {
     pub recording_mb_id: Option<String>,
     /// When the status should expire. Defaults to `started_at + duration + idle`.
     pub expires_at: Option<Datetime>,
+}
+
+/// A draft equalizer preset for [`RockskyAgent::put_equalizer_preset`]
+/// (`app.rocksky.equalizer`).
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct EqualizerPresetDraft {
+    /// Display name; the record key is this name slugified.
+    pub name: String,
+    /// Pre-amplification cut in tenths of dB (e.g. -60 = -6.0 dB).
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands.
+    pub bands: Vec<EqualizerBandView>,
 }
 
 /// The Rocksky agent: owns credential material, a handle resolver, and a
@@ -977,6 +992,45 @@ impl RockskyAgent {
             .await
     }
 
+    /// Save an equalizer preset record directly on the user's PDS
+    /// (`app.rocksky.equalizer`, rkey = the name slugified). Upserts, so saving
+    /// with an existing name overwrites that preset — note this write resets
+    /// `createdAt`; the AppView procedure
+    /// ([`AppView::put_equalizer_preset`](crate::appview::AppView::put_equalizer_preset))
+    /// preserves the original instead. Returns the record key.
+    pub async fn put_equalizer_preset(&self, draft: &EqualizerPresetDraft) -> Result<String> {
+        let rkey = preset_rkey(&draft.name);
+        let rk: RecordKey<Rkey> = rkey
+            .parse()
+            .map_err(|e| SdkError::Auth(format!("rkey: {e}")))?;
+        let bands: Vec<EqualizerBand> = draft
+            .bands
+            .iter()
+            .map(|b| {
+                EqualizerBand::new()
+                    .frequency(b.frequency)
+                    .gain(b.gain)
+                    .q(b.q)
+                    .build()
+            })
+            .collect();
+        let record = Equalizer::new()
+            .name(draft.name.trim().to_string())
+            .maybe_precut(draft.precut)
+            .bands(bands)
+            .created_at(Datetime::now())
+            .updated_at(Datetime::now())
+            .build();
+        self.put(rk, record, "put equalizer preset").await?;
+        Ok(rkey)
+    }
+
+    /// Delete an equalizer preset record from the user's PDS by rkey.
+    pub async fn delete_equalizer_preset(&self, rkey: &str) -> Result<()> {
+        self.delete::<Equalizer>(rkey, "delete equalizer preset")
+            .await
+    }
+
     /// Like a record by strong reference (`app.rocksky.like`). `uri`/`cid`
     /// identify the target (a scrobble, song, artist, album, …). Returns the
     /// like record URI.
@@ -1202,6 +1256,23 @@ fn self_rkey() -> Result<RecordKey<Rkey>> {
         .map_err(|e| SdkError::Auth(format!("rkey: {e}")))
 }
 
+/// Preset name → rkey: lower case, dashed, no spaces (e.g. "Bass Boost" →
+/// "bass-boost"). Mirrors the AppView's `presetRkey` (apps/api slug.ts) so
+/// direct PDS writes and `putPreset` land on the same record.
+fn preset_rkey(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    for c in name.trim().to_lowercase().chars() {
+        if c.is_whitespace() || c == '_' || c == '-' {
+            if !out.ends_with('-') {
+                out.push('-');
+            }
+        } else if c.is_ascii_lowercase() || c.is_ascii_digit() || c == '.' {
+            out.push(c);
+        }
+    }
+    out.trim_matches('-').to_string()
+}
+
 /// Build a `com.atproto.repo.strongRef` from a URI + CID pair.
 fn strong_ref(uri: &str, cid: &str) -> Result<StrongRef> {
     let uri = AtUri::new_owned(uri).map_err(|e| SdkError::Auth(format!("uri: {e}")))?;
@@ -1327,6 +1398,22 @@ mod tests {
             spotify_link: Some("https://open.spotify.com/track/xyz".into()),
             ..Default::default()
         }
+    }
+
+    /// Mirrors apps/api/src/xrpc/app/rocksky/equalizer/slug.test.ts — the two
+    /// slug implementations must agree so direct PDS writes and `putPreset`
+    /// land on the same record.
+    #[test]
+    fn preset_rkey_matches_the_appview_slug() {
+        assert_eq!(preset_rkey("Bass Boost"), "bass-boost");
+        assert_eq!(preset_rkey("Treble  Boost"), "treble-boost");
+        assert_eq!(preset_rkey("Rock 'n' Roll!"), "rock-n-roll");
+        assert_eq!(preset_rkey("Café Vibes"), "caf-vibes");
+        assert_eq!(preset_rkey("--My - Preset--"), "my-preset");
+        assert_eq!(preset_rkey("a_b_c"), "a-b-c");
+        assert_eq!(preset_rkey("bass-boost"), "bass-boost");
+        assert_eq!(preset_rkey("!!!"), "");
+        assert_eq!(preset_rkey("   "), "");
     }
 
     #[test]

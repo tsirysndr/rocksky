@@ -517,6 +517,11 @@ export interface DeletePlaylistOutput {
 
 }
 
+export interface DeletePresetParams {
+  /** Record key of the preset to delete. */
+  rkey: string;
+}
+
 export interface DeleteSongInput {
   /** The song id (track xata_id, as exposed by the library API). */
   id: string;
@@ -579,6 +584,36 @@ export interface DropboxGetFilesParams {
 export interface DropboxTemporaryLinkView {
   /** The temporary link to access the file. */
   link?: Uri;
+}
+
+export interface EqualizerPresetView {
+  /** AT URI of the preset record. */
+  uri: AtUri;
+  /** Record key: the preset name slugified (lower case, dashes, no spaces). */
+  rkey: string;
+  /** Display name of the preset. */
+  name: string;
+  /** Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB) */
+  precut?: number;
+  /** Up to 10 EQ bands */
+  bands: RockboxEqualizerBand[];
+  /** When this preset was first created. */
+  createdAt: DateTime;
+  /** When this preset was last updated. */
+  updatedAt?: DateTime;
+}
+
+export interface EqualizerRecord {
+  /** Display name of the preset. */
+  name: string;
+  /** Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB) */
+  precut?: number;
+  /** Up to 10 EQ bands */
+  bands: RockboxEqualizerBand[];
+  /** When this preset was first created. */
+  createdAt: DateTime;
+  /** When this preset was last updated. */
+  updatedAt?: DateTime;
 }
 
 export interface FeedGeneratorsView {
@@ -1685,6 +1720,15 @@ export interface ListNotificationsParams {
   cursor?: string;
 }
 
+export interface ListPresetsOutput {
+  presets: EqualizerPresetView[];
+}
+
+export interface ListPresetsParams {
+  /** DID or handle of the user whose presets to fetch. Required for unauthenticated requests. */
+  did?: AtIdentifier;
+}
+
 export interface MatchSongParams {
   /** The title of the song to retrieve */
   title: string;
@@ -2004,6 +2048,15 @@ export interface PutMirrorSourceInput {
   externalUsername?: string;
   /** API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it. */
   apiKey?: string;
+}
+
+export interface PutPresetInput {
+  /** Display name of the preset. */
+  name: string;
+  /** Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB) */
+  precut?: number;
+  /** Up to 10 EQ bands */
+  bands: RockboxEqualizerBand[];
 }
 
 export interface RadioRecord {
@@ -2916,6 +2969,9 @@ export interface Endpoints {
   "app.rocksky.dropbox.getFiles": DropboxFileListView;
   "app.rocksky.dropbox.getMetadata": DropboxFileView;
   "app.rocksky.dropbox.getTemporaryLink": DropboxTemporaryLinkView;
+  "app.rocksky.equalizer.deletePreset": void;
+  "app.rocksky.equalizer.listPresets": ListPresetsOutput;
+  "app.rocksky.equalizer.putPreset": EqualizerPresetView;
   "app.rocksky.feed.describeFeedGenerator": DescribeFeedGeneratorOutput;
   "app.rocksky.feed.getAlbumRecommendations": FeedRecommendedAlbumsView;
   "app.rocksky.feed.getArtistRecommendations": FeedRecommendedArtistsView;
