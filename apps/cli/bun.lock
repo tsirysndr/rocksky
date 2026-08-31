@@ -20,7 +20,7 @@
         "@logtape/logtape": "^1.3.6",
         "@modelcontextprotocol/sdk": "^1.10.2",
         "@paralleldrive/cuid2": "^3.0.6",
-        "@rocksky/sdk": "0.11.0",
+        "@rocksky/sdk": "0.15.0",
         "@tanstack/react-query": "^5.101.3",
         "@types/better-sqlite3": "^7.6.13",
         "axios": "^1.8.4",
@@ -60,6 +60,10 @@
         "@types/node": "^22.14.1",
         "tsx": "^4.19.3",
         "typescript": "^5.8.3",
+      },
+      "optionalDependencies": {
+        "@pokusew/pcsclite": "^0.6.0",
+        "nfc-pcsc": "^0.8.1",
       },
     },
   },
@@ -226,6 +230,8 @@
 
     "@paralleldrive/cuid2": ["@paralleldrive/cuid2@3.3.0", "", { "dependencies": { "@noble/hashes": "^2.0.1", "bignumber.js": "^9.3.1", "error-causes": "^3.0.2" }, "bin": { "cuid2": "bin/cuid2.js" } }, "sha512-OqiFvSOF0dBSesELYY2CAMa4YINvlLpvKOz/rv6NeZEqiyttlHgv98Juwv4Ch+GrEV7IZ8jfI2VcEoYUjXXCjw=="],
 
+    "@pokusew/pcsclite": ["@pokusew/pcsclite@0.6.0", "", { "dependencies": { "bindings": "^1.5.0", "nan": "^2.14.0" } }, "sha512-jX7zRXM2Or5Pms1AFjNtawsXDjLiZOzOUo7Sf0put7Pnq/EKIR9g0KvTx62HtwdPpVP6hWHGydUTHgIi9PxodQ=="],
+
     "@rockbox-ffi/darwin-arm64": ["@rockbox-ffi/darwin-arm64@0.6.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-WpMiY09rNYIINUU6YbFwg3ppHf704dghmr213f0+TYRcEAg6daOS7volGhICWFF3dl8+CGF8TCSnWQDxHvu6Cw=="],
 
     "@rockbox-ffi/darwin-x64": ["@rockbox-ffi/darwin-x64@0.6.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-lXYcONhyQR9xjsoZYRTE4oEq2KxbMtjm+opYYWX1ZSNkfFqPA8AZxrSkKNVX0Ryoz4DF5vxgQ/MpgKiXrUL6ew=="],
@@ -238,7 +244,7 @@
 
     "@rockbox-ffi/netbsd-x64": ["@rockbox-ffi/netbsd-x64@0.6.0", "", { "os": "none", "cpu": "x64" }, "sha512-FDuuSqcAKgQaPRyx6GJirNgG0f2LQtcBNJdmTihoIUwu5mAyH54NLRG/BQF+BzxB/JRIJEbtpgUwj96/dFv/7w=="],
 
-    "@rocksky/sdk": ["@rocksky/sdk@0.11.0", "", { "dependencies": { "@atcute/car": "^6.0.2", "@atcute/cbor": "^2.3.6", "@atcute/cid": "^2.4.2", "@atcute/client": "^5.1.1", "@atcute/identity": "^2.0.2", "@atcute/identity-resolver": "^2.0.1", "@atcute/password-session": "^1.0.2", "classic-level": "^3.0.0" } }, "sha512-LYxo1RjeTPfPFWlqeJuQl3heYXPW9KxHzKBBfB6GgGCy+N8pPRO7Z+MvQeOof5JLBDyLCPu+q40DyFbOU2bFkA=="],
+    "@rocksky/sdk": ["@rocksky/sdk@0.15.0", "", { "dependencies": { "@atcute/car": "^6.0.2", "@atcute/cbor": "^2.3.6", "@atcute/cid": "^2.4.2", "@atcute/client": "^5.1.1", "@atcute/identity": "^2.0.2", "@atcute/identity-resolver": "^2.0.1", "@atcute/password-session": "^1.0.2", "@noble/hashes": "^2.3.0", "classic-level": "^3.0.0" } }, "sha512-cRrnfTmivyOoYRLscjgGGPD6sLgciwyWrWAdR7dk/qtOt2WeXtac3JqogZpNEJDK0bnQ0WkIdTccoIp9QQEvsA=="],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
@@ -682,6 +688,8 @@
 
     "negotiator": ["negotiator@1.0.0", "", {}, "sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg=="],
 
+    "nfc-pcsc": ["nfc-pcsc@0.8.1", "", { "dependencies": { "@pokusew/pcsclite": "^0.6.0" } }, "sha512-wEfacG0dwPVZOG/WY28Mk3P4Q+yz6q7LnjpnZvdFddx3iXavEXiGhftRZXBtudr0NrzH1MrGWSkWq77tef7BMA=="],
+
     "node-abi": ["node-abi@3.94.0", "", { "dependencies": { "semver": "^7.3.5" } }, "sha512-W5ZNO5KRPB5TkYmGVD9F6YqhsglXJzE6etpbmT+f6EQElhiX/UTG551cnsRGvLG3fyZEg9HwaDmNmj5nwJ4z9g=="],
 
     "node-fetch-native": ["node-fetch-native@1.6.7", "", {}, "sha512-g9yhqoedzIUm0nTnTqAQvueMPVOuIY16bqgAJJC8XOOubYFNwz6IER9qs0Gq2Xd0+CecCKFjtdDTMA4u4xG06Q=="],
@@ -999,6 +1007,8 @@
     "@ipld/dag-cbor/multiformats": ["multiformats@13.4.2", "", {}, "sha512-eh6eHCrRi1+POZ3dA+Dq1C6jhP1GNtr9CRINMb67OKzqW9I5DUuZM/3jLPlzhgpGeiNUlEGEbkCYChXMCc/8DQ=="],
 
     "@noble/curves/@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
+
+    "@rocksky/sdk/@noble/hashes": ["@noble/hashes@2.4.0", "", {}, "sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA=="],
 
     "abstract-level/is-buffer": ["is-buffer@2.0.5", "", {}, "sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ=="],
 
