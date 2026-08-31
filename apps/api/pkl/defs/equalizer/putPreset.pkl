@@ -1,0 +1,46 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.equalizer.putPreset"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Create or update one of the authenticated user's equalizer presets. The record key is derived from the name (lower case, dashes, no spaces), so saving with an existing name overwrites that preset."
+    input {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("name", "bands")
+        properties {
+          ["name"] = new StringType {
+            type = "string"
+            minLength = 1
+            maxLength = 64
+            description = "Display name of the preset."
+          }
+          ["precut"] = new IntegerType {
+            type = "integer"
+            minimum = -240
+            maximum = 0
+            description = "Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)"
+          }
+          ["bands"] = new Array {
+            type = "array"
+            description = "Up to 10 EQ bands"
+            items = new Ref {
+              type = "ref"
+              ref = "app.rocksky.rockbox.defs#equalizerBand"
+            }
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.equalizer.defs#presetView"
+      }
+    }
+  }
+}

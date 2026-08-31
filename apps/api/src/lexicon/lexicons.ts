@@ -2296,6 +2296,213 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyEqualizerDefs: {
+    lexicon: 1,
+    id: "app.rocksky.equalizer.defs",
+    defs: {
+      presetView: {
+        type: "object",
+        required: ["uri", "rkey", "name", "bands", "createdAt"],
+        properties: {
+          uri: {
+            type: "string",
+            description: "AT URI of the preset record.",
+            format: "at-uri",
+          },
+          rkey: {
+            type: "string",
+            description:
+              "Record key: the preset name slugified (lower case, dashes, no spaces).",
+          },
+          name: {
+            type: "string",
+            description: "Display name of the preset.",
+          },
+          precut: {
+            type: "integer",
+            description:
+              "Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)",
+            maximum: 0,
+            minimum: -240,
+          },
+          bands: {
+            type: "array",
+            description: "Up to 10 EQ bands",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.rockbox.defs#equalizerBand",
+            },
+          },
+          createdAt: {
+            type: "string",
+            description: "When this preset was first created.",
+            format: "datetime",
+          },
+          updatedAt: {
+            type: "string",
+            description: "When this preset was last updated.",
+            format: "datetime",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEqualizerDeletePreset: {
+    lexicon: 1,
+    id: "app.rocksky.equalizer.deletePreset",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Delete one of the authenticated user's equalizer presets.",
+        parameters: {
+          type: "params",
+          required: ["rkey"],
+          properties: {
+            rkey: {
+              type: "string",
+              description: "Record key of the preset to delete.",
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEqualizer: {
+    lexicon: 1,
+    id: "app.rocksky.equalizer",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          'A saved equalizer preset. The rkey is the preset name slugified: lower case, dashes, no spaces (e.g. "Bass Boost" -> "bass-boost").',
+        key: "any",
+        record: {
+          type: "object",
+          required: ["name", "bands", "createdAt"],
+          properties: {
+            name: {
+              type: "string",
+              description: "Display name of the preset.",
+              minLength: 1,
+              maxLength: 64,
+            },
+            precut: {
+              type: "integer",
+              description:
+                "Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)",
+              maximum: 0,
+              minimum: -240,
+            },
+            bands: {
+              type: "array",
+              description: "Up to 10 EQ bands",
+              items: {
+                type: "ref",
+                ref: "lex:app.rocksky.rockbox.defs#equalizerBand",
+              },
+            },
+            createdAt: {
+              type: "string",
+              description: "When this preset was first created.",
+              format: "datetime",
+            },
+            updatedAt: {
+              type: "string",
+              description: "When this preset was last updated.",
+              format: "datetime",
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEqualizerListPresets: {
+    lexicon: 1,
+    id: "app.rocksky.equalizer.listPresets",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "List equalizer presets. If `did` is provided the request is public; otherwise an auth token is required and the caller's own presets are returned.",
+        parameters: {
+          type: "params",
+          properties: {
+            did: {
+              type: "string",
+              description:
+                "DID or handle of the user whose presets to fetch. Required for unauthenticated requests.",
+              format: "at-identifier",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["presets"],
+            properties: {
+              presets: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.equalizer.defs#presetView",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEqualizerPutPreset: {
+    lexicon: 1,
+    id: "app.rocksky.equalizer.putPreset",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Create or update one of the authenticated user's equalizer presets. The record key is derived from the name (lower case, dashes, no spaces), so saving with an existing name overwrites that preset.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["name", "bands"],
+            properties: {
+              name: {
+                type: "string",
+                description: "Display name of the preset.",
+                minLength: 1,
+                maxLength: 64,
+              },
+              precut: {
+                type: "integer",
+                description:
+                  "Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)",
+                maximum: 0,
+                minimum: -240,
+              },
+              bands: {
+                type: "array",
+                description: "Up to 10 EQ bands",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.rockbox.defs#equalizerBand",
+                },
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.equalizer.defs#presetView",
+          },
+        },
+      },
+    },
+  },
   AppRockskyFeedDefs: {
     lexicon: 1,
     id: "app.rocksky.feed.defs",
@@ -10010,6 +10217,11 @@ export const ids = {
   AppRockskyDropboxGetFiles: "app.rocksky.dropbox.getFiles",
   AppRockskyDropboxGetMetadata: "app.rocksky.dropbox.getMetadata",
   AppRockskyDropboxGetTemporaryLink: "app.rocksky.dropbox.getTemporaryLink",
+  AppRockskyEqualizerDefs: "app.rocksky.equalizer.defs",
+  AppRockskyEqualizerDeletePreset: "app.rocksky.equalizer.deletePreset",
+  AppRockskyEqualizer: "app.rocksky.equalizer",
+  AppRockskyEqualizerListPresets: "app.rocksky.equalizer.listPresets",
+  AppRockskyEqualizerPutPreset: "app.rocksky.equalizer.putPreset",
   AppRockskyFeedDefs: "app.rocksky.feed.defs",
   AppRockskyFeedDescribeFeedGenerator: "app.rocksky.feed.describeFeedGenerator",
   AppRockskyFeedGenerator: "app.rocksky.feed.generator",

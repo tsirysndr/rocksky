@@ -135,6 +135,7 @@ function applyLexiconToSettings(
   const out: GlobalSettings = { ...base };
   if (lex.equalizer) {
     if (lex.equalizer.enabled !== undefined) out.eqEnabled = lex.equalizer.enabled;
+    if (lex.equalizer.precut !== undefined) out.eqPrecut = lex.equalizer.precut;
     if (lex.equalizer.bands) out.eqBandSettings = lex.equalizer.bands.map(bandLexToRockbox);
   }
   if (lex.tone) {
@@ -277,9 +278,12 @@ export function useAudioSettings(): {
           next.eqBandSettings = patch.bands;
           lexicon.bands = patch.bands.map(bandRockboxToLex);
         }
+        if (patch.precut !== undefined) {
+          next.eqPrecut = patch.precut;
+          lexicon.precut = patch.precut;
+        }
         return next;
       });
-      if (patch.precut !== undefined) lexicon.precut = patch.precut;
       scheduleLexiconFlush("equalizer", lexicon);
     },
 

@@ -21,7 +21,7 @@ const metadata = {
 	// metadata the PDS actually reads, so a collection missing here is rejected
 	// at write time even though the API asked for it.
 	scope:
-		'atproto repo:app.rocksky.album repo:app.rocksky.artist repo:app.rocksky.graph.follow repo:app.rocksky.like repo:app.rocksky.playlist repo:app.rocksky.playlist.song repo:app.rocksky.scrobble repo:app.rocksky.shout repo:app.rocksky.song repo:app.rocksky.feed.generator repo:fm.teal.feed.play repo:fm.teal.actor.status repo:fm.teal.alpha.feed.play repo:fm.teal.alpha.actor.status repo:app.rocksky.actor.status repo:app.rocksky.rockbox.audio.settings',
+		'atproto repo:app.rocksky.album repo:app.rocksky.artist repo:app.rocksky.graph.follow repo:app.rocksky.like repo:app.rocksky.playlist repo:app.rocksky.playlist.song repo:app.rocksky.scrobble repo:app.rocksky.shout repo:app.rocksky.song repo:app.rocksky.feed.generator repo:fm.teal.feed.play repo:fm.teal.actor.status repo:fm.teal.alpha.feed.play repo:fm.teal.alpha.actor.status repo:app.rocksky.actor.status repo:app.rocksky.rockbox.audio.settings repo:app.rocksky.equalizer',
 	token_endpoint_auth_method: 'private_key_jwt',
 	token_endpoint_auth_signing_alg: 'ES256',
 	jwks_uri: 'https://rocksky.app/jwks.json',

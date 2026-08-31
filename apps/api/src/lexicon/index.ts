@@ -40,6 +40,9 @@ import type * as AppRockskyDropboxDownloadFile from "./types/app/rocksky/dropbox
 import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/getFiles";
 import type * as AppRockskyDropboxGetMetadata from "./types/app/rocksky/dropbox/getMetadata";
 import type * as AppRockskyDropboxGetTemporaryLink from "./types/app/rocksky/dropbox/getTemporaryLink";
+import type * as AppRockskyEqualizerDeletePreset from "./types/app/rocksky/equalizer/deletePreset";
+import type * as AppRockskyEqualizerListPresets from "./types/app/rocksky/equalizer/listPresets";
+import type * as AppRockskyEqualizerPutPreset from "./types/app/rocksky/equalizer/putPreset";
 import type * as AppRockskyFeedDescribeFeedGenerator from "./types/app/rocksky/feed/describeFeedGenerator";
 import type * as AppRockskyFeedGetAlbumRecommendations from "./types/app/rocksky/feed/getAlbumRecommendations";
 import type * as AppRockskyFeedGetArtistRecommendations from "./types/app/rocksky/feed/getArtistRecommendations";
@@ -201,6 +204,7 @@ export class AppRockskyNS {
   artist: AppRockskyArtistNS;
   charts: AppRockskyChartsNS;
   dropbox: AppRockskyDropboxNS;
+  equalizer: AppRockskyEqualizerNS;
   feed: AppRockskyFeedNS;
   googledrive: AppRockskyGoogledriveNS;
   graph: AppRockskyGraphNS;
@@ -225,6 +229,7 @@ export class AppRockskyNS {
     this.artist = new AppRockskyArtistNS(server);
     this.charts = new AppRockskyChartsNS(server);
     this.dropbox = new AppRockskyDropboxNS(server);
+    this.equalizer = new AppRockskyEqualizerNS(server);
     this.feed = new AppRockskyFeedNS(server);
     this.googledrive = new AppRockskyGoogledriveNS(server);
     this.graph = new AppRockskyGraphNS(server);
@@ -628,6 +633,47 @@ export class AppRockskyDropboxNS {
     >,
   ) {
     const nsid = "app.rocksky.dropbox.getTemporaryLink"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class AppRockskyEqualizerNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  deletePreset<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyEqualizerDeletePreset.Handler<ExtractAuth<AV>>,
+      AppRockskyEqualizerDeletePreset.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.equalizer.deletePreset"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  listPresets<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyEqualizerListPresets.Handler<ExtractAuth<AV>>,
+      AppRockskyEqualizerListPresets.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.equalizer.listPresets"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  putPreset<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyEqualizerPutPreset.Handler<ExtractAuth<AV>>,
+      AppRockskyEqualizerPutPreset.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.equalizer.putPreset"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

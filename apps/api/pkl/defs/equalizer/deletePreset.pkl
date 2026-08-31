@@ -1,0 +1,20 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.equalizer.deletePreset"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Delete one of the authenticated user's equalizer presets."
+    parameters {
+      type = "params"
+      required = List("rkey")
+      properties {
+        ["rkey"] = new StringType {
+          type = "string"
+          description = "Record key of the preset to delete."
+        }
+      }
+    }
+  }
+}

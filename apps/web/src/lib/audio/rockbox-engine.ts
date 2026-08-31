@@ -186,6 +186,7 @@ export interface GlobalSettings {
   playerName: string;
   eqEnabled: boolean;
   eqBandSettings: EqBand[];
+  eqPrecut: number; // tenths of dB, ≤ 0 (lexicon units)
   replaygainSettings: ReplayGainSettings;
 }
 
@@ -252,6 +253,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
     gain: 0,
     q: 10,
   })),
+  eqPrecut: 0,
   replaygainSettings: { noclip: false, type: 0, preamp: 0 },
 };
 
@@ -270,6 +272,8 @@ export function applyAudioSettings(
   s.eqBandSettings.forEach((b, i) =>
     p.setEqBand(i, EQ_BANDS_HZ[i] ?? b.cutoff, b.q / 10, b.gain / 10),
   );
+  // Snapshots persisted before eqPrecut existed lack the field.
+  p.setEqPrecut(Math.abs(s.eqPrecut ?? 0) / 10);
   p.setTone(s.bass, s.treble);
   p.setToneCutoffs(s.bassCutoff, s.trebleCutoff);
   p.setCrossfade(CROSSFADE_TO_WASM[s.crossfade] ?? 0, {

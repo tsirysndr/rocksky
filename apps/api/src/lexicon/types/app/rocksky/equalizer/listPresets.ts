@@ -6,26 +6,35 @@ import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import { type HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type * as AppRockskyEqualizerDefs from "./defs";
 
 export interface QueryParams {
-  /** The URI of the playlist to remove the track from */
-  uri: string;
-  /** The URI of the app.rocksky.song record to remove. Removes every copy of it; pass `index` instead to remove one. */
-  songUri?: string;
-  /** 0-based position of the entry to remove, in the order getPlaylist returns. */
-  index?: number;
+  /** DID or handle of the user whose presets to fetch. Required for unauthenticated requests. */
+  did?: string;
 }
 
 export type InputSchema = undefined;
+
+export interface OutputSchema {
+  presets: AppRockskyEqualizerDefs.PresetView[];
+  [k: string]: unknown;
+}
+
 export type HandlerInput = undefined;
+
+export interface HandlerSuccess {
+  encoding: "application/json";
+  body: OutputSchema;
+  headers?: { [key: string]: string };
+}
 
 export interface HandlerError {
   status: number;
   message?: string;
 }
 
-export type HandlerOutput = HandlerError | void;
+export type HandlerOutput = HandlerError | HandlerSuccess | HandlerPipeThrough;
 export type HandlerReqCtx<HA extends HandlerAuth = never> = {
   auth: HA;
   params: QueryParams;

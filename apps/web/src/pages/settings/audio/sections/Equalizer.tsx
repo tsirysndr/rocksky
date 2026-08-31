@@ -1,6 +1,15 @@
 import styled from "@emotion/styled";
-import { useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAtomValue } from "jotai";
+import { useMemo, useState } from "react";
+import {
+  deleteEqualizerPreset,
+  type EqualizerPresetView,
+  listEqualizerPresets,
+  saveEqualizerPreset,
+} from "../../../../api/equalizer-presets";
 import { EQ_BANDS, EQ_BANDS_HZ, EQ_Q } from "../../../../atoms/equalizer";
+import { profileAtom } from "../../../../atoms/profile";
 import { useAudioSettings } from "../../../../hooks/useAudioSettings";
 import {
   Card,
@@ -102,8 +111,17 @@ const PRESETS: { name: string; gains: number[] }[] = [
   { name: "Electronic",   gains: [40, 30, 0, -20, -20, 0, 10, 20, 40, 50] },
 ];
 
-function detectPreset(rockboxBands: { cutoff: number; gain: number }[]): string {
+function detectPreset(
+  rockboxBands: { cutoff: number; gain: number }[],
+  saved: EqualizerPresetView[],
+): string {
   const gains = rockboxBands.map((b) => b.gain);
+  const savedMatch = saved.find(
+    (p) =>
+      p.bands.length === gains.length &&
+      p.bands.every((b, i) => b.gain === gains[i]),
+  );
+  if (savedMatch) return savedMatch.name;
   for (const p of PRESETS) {
     if (p.gains.every((g, i) => g === gains[i])) return p.name;
   }
@@ -191,13 +209,68 @@ function EqCurve({
 
 export function Equalizer() {
   const { data, actions } = useAudioSettings();
+  const profile = useAtomValue(profileAtom);
+  const queryClient = useQueryClient();
   const enabled = data?.eqEnabled ?? false;
   // Frequency is fixed by band index — ignore any stale persisted cutoff so the
   // labels are always the canonical 32 Hz … 16 kHz set.
   const bands = (
     data?.eqBandSettings ?? EQ_BANDS.map((b) => ({ ...b, q: EQ_Q * 10 }))
   ).map((b, i) => ({ ...b, cutoff: EQ_BANDS_HZ[i] ?? b.cutoff }));
-  const currentPreset = detectPreset(bands);
+
+  const presetsQ = useQuery({
+    queryKey: ["equalizer-presets"],
+    queryFn: listEqualizerPresets,
+    enabled: !!profile?.did,
+    staleTime: 60_000,
+  });
+  const savedPresets = presetsQ.data ?? [];
+  const currentPreset = detectPreset(bands, savedPresets);
+
+  const [presetFilter, setPresetFilter] = useState("");
+  const [presetName, setPresetName] = useState("");
+
+  const filterQ = presetFilter.trim().toLowerCase();
+  const visibleSaved = savedPresets.filter((p) =>
+    p.name.toLowerCase().includes(filterQ),
+  );
+  const visibleBuiltin = PRESETS.filter((p) =>
+    p.name.toLowerCase().includes(filterQ),
+  );
+
+  const savePreset = useMutation({
+    mutationFn: () =>
+      saveEqualizerPreset({
+        name: presetName.trim(),
+        precut: data?.eqPrecut,
+        bands: bands.map((b) => ({
+          frequency: b.cutoff,
+          gain: b.gain,
+          q: b.q,
+        })),
+      }),
+    onSuccess: () => {
+      setPresetName("");
+      queryClient.invalidateQueries({ queryKey: ["equalizer-presets"] });
+    },
+  });
+
+  const removePreset = useMutation({
+    mutationFn: (rkey: string) => deleteEqualizerPreset(rkey),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["equalizer-presets"] }),
+  });
+
+  const applySavedPreset = (preset: EqualizerPresetView) => {
+    actions.setEqualizer({
+      bands: preset.bands.map((b) => ({
+        cutoff: b.frequency,
+        gain: b.gain,
+        q: b.q,
+      })),
+      ...(preset.precut !== undefined && { precut: preset.precut }),
+    });
+  };
 
   const setBand = (index: number, gainDb: number) => {
     // Round to nearest tenth so float drift doesn't accumulate (e.g. 0.30000000004).
@@ -249,18 +322,80 @@ export function Equalizer() {
             Preset
             <LabelHintInline>{currentPreset}</LabelHintInline>
           </Label>
-          <PresetButtons>
-            {PRESETS.map((p) => (
-              <PresetChip
-                key={p.name}
-                active={p.name === currentPreset}
-                onClick={() => applyPreset(p.name)}
-              >
-                {p.name}
-              </PresetChip>
-            ))}
-          </PresetButtons>
+          <PresetPicker>
+            <FilterInput
+              type="search"
+              placeholder="Filter presets…"
+              aria-label="Filter presets"
+              value={presetFilter}
+              onChange={(e) => setPresetFilter(e.target.value)}
+            />
+            <PresetButtons>
+              {visibleSaved.map((p) => (
+                <PresetChip
+                  key={p.uri}
+                  active={p.name === currentPreset}
+                  onClick={() => applySavedPreset(p)}
+                  title={`Saved preset — ${p.rkey}`}
+                >
+                  {p.name}
+                  <DeleteX
+                    role="button"
+                    aria-label={`Delete preset ${p.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removePreset.mutate(p.rkey);
+                    }}
+                  >
+                    ×
+                  </DeleteX>
+                </PresetChip>
+              ))}
+              {visibleBuiltin.map((p) => (
+                <PresetChip
+                  key={p.name}
+                  active={p.name === currentPreset}
+                  onClick={() => applyPreset(p.name)}
+                >
+                  {p.name}
+                </PresetChip>
+              ))}
+              {visibleSaved.length === 0 && visibleBuiltin.length === 0 && (
+                <LabelHintInline>No presets match "{presetFilter}"</LabelHintInline>
+              )}
+            </PresetButtons>
+          </PresetPicker>
         </Row>
+
+        {!!profile?.did && (
+          <Row>
+            <Label>
+              Save as preset
+              <LabelHintInline>
+                Saved to your account, synced across devices
+              </LabelHintInline>
+            </Label>
+            <SaveControls>
+              <NameInput
+                type="text"
+                placeholder="Preset name"
+                aria-label="Preset name"
+                maxLength={64}
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && presetName.trim()) savePreset.mutate();
+                }}
+              />
+              <SaveButton
+                disabled={!presetName.trim() || savePreset.isPending}
+                onClick={() => savePreset.mutate()}
+              >
+                {savePreset.isPending ? "Saving…" : "Save"}
+              </SaveButton>
+            </SaveControls>
+          </Row>
+        )}
 
         <CurveBox>
           <EqCurve bands={bands} enabled={enabled} />
@@ -293,12 +428,75 @@ export function Equalizer() {
   );
 }
 
+const PresetPicker = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 70%;
+`;
+
 const PresetButtons = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
-  max-width: 70%;
+`;
+
+const TextInput = styled.input`
+  background: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: RockfordSansMedium;
+  font-size: 0.75rem;
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+`;
+
+const FilterInput = styled(TextInput)`
+  width: 180px;
+`;
+
+const NameInput = styled(TextInput)`
+  width: 180px;
+`;
+
+const SaveControls = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: center;
+`;
+
+const SaveButton = styled.button`
+  background: var(--color-primary);
+  color: #fff;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: RockfordSansMedium;
+  font-size: 0.75rem;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const DeleteX = styled.span`
+  margin-left: 6px;
+  font-size: 0.8rem;
+  line-height: 1;
+  opacity: 0.6;
+  &:hover {
+    opacity: 1;
+  }
 `;
 
 const PresetChip = styled.button<{ active: boolean }>`

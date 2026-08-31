@@ -1,0 +1,49 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.equalizer.defs"
+defs = new Mapping<String, ObjectType> {
+  ["presetView"] {
+    type = "object"
+    required = List("uri", "rkey", "name", "bands", "createdAt")
+    properties {
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "AT URI of the preset record."
+      }
+      ["rkey"] = new StringType {
+        type = "string"
+        description = "Record key: the preset name slugified (lower case, dashes, no spaces)."
+      }
+      ["name"] = new StringType {
+        type = "string"
+        description = "Display name of the preset."
+      }
+      ["precut"] = new IntegerType {
+        type = "integer"
+        minimum = -240
+        maximum = 0
+        description = "Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)"
+      }
+      ["bands"] = new Array {
+        type = "array"
+        description = "Up to 10 EQ bands"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.rockbox.defs#equalizerBand"
+        }
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "When this preset was first created."
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "When this preset was last updated."
+      }
+    }
+  }
+}

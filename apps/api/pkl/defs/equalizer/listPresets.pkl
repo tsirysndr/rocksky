@@ -1,0 +1,36 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.equalizer.listPresets"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "List equalizer presets. If `did` is provided the request is public; otherwise an auth token is required and the caller's own presets are returned."
+    parameters {
+      type = "params"
+      properties {
+        ["did"] = new StringType {
+          type = "string"
+          format = "at-identifier"
+          description = "DID or handle of the user whose presets to fetch. Required for unauthenticated requests."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("presets")
+        properties = new Mapping<String, Array> {
+          ["presets"] = new Array {
+            type = "array"
+            items = new Ref {
+              type = "ref"
+              ref = "app.rocksky.equalizer.defs#presetView"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,12 +9,8 @@ import { CID } from "multiformats/cid";
 import { type HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 
 export interface QueryParams {
-  /** The URI of the playlist to remove the track from */
-  uri: string;
-  /** The URI of the app.rocksky.song record to remove. Removes every copy of it; pass `index` instead to remove one. */
-  songUri?: string;
-  /** 0-based position of the entry to remove, in the order getPlaylist returns. */
-  index?: number;
+  /** Record key of the preset to delete. */
+  rkey: string;
 }
 
 export type InputSchema = undefined;

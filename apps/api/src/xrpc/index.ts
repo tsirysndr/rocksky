@@ -57,6 +57,9 @@ import getUnreadCount from "./app/rocksky/notification/getUnreadCount";
 import listNotifications from "./app/rocksky/notification/listNotifications";
 import updateSeen from "./app/rocksky/notification/updateSeen";
 import registerLibrary from "./app/rocksky/library";
+import deleteEqualizerPreset from "./app/rocksky/equalizer/deletePreset";
+import listEqualizerPresets from "./app/rocksky/equalizer/listPresets";
+import putEqualizerPreset from "./app/rocksky/equalizer/putPreset";
 import getAudioSettings from "./app/rocksky/rockbox/getAudioSettings";
 import putAudioSettings from "./app/rocksky/rockbox/putAudioSettings";
 import addItemsToQueue from "./app/rocksky/player/addItemsToQueue";
@@ -212,6 +215,9 @@ export default function (server: Server, ctx: Context) {
   updateSeen(server, ctx);
   getAudioSettings(server, ctx);
   putAudioSettings(server, ctx);
+  listEqualizerPresets(server, ctx);
+  putEqualizerPreset(server, ctx);
+  deleteEqualizerPreset(server, ctx);
 
   // app.rocksky.library.* — Subsonic/navidrome-compat surface for uploaded music
   registerLibrary(server, ctx);
