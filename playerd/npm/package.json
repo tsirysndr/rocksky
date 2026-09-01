@@ -1,0 +1,46 @@
+{
+  "name": "@rocksky/playerd",
+  "version": "0.2.0",
+  "description": "Rocksky remote player daemon — a headless rockbox-playback device controllable from the web and desktop miniplayers",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsirysndr/rocksky.git",
+    "directory": "playerd/npm"
+  },
+  "homepage": "https://github.com/tsirysndr/rocksky/tree/main/playerd#readme",
+  "keywords": [
+    "rocksky",
+    "scrobbling",
+    "music",
+    "player",
+    "rockbox",
+    "atproto",
+    "headless"
+  ],
+  "bin": {
+    "playerd": "bin/playerd.js"
+  },
+  "files": [
+    "bin/playerd.js",
+    "lib/",
+    "install.js",
+    "check-version.js",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node install.js",
+    "prepublishOnly": "node check-version.js"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -97,6 +97,12 @@ binary from the [latest playerd release](https://github.com/tsirysndr/rocksky/re
 curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh | sh
 ```
 
+Or via npm — same binaries, fetched and checksum-verified at install time:
+
+```sh
+npm install -g @rocksky/playerd
+```
+
 Prebuilt targets: macOS arm64 (Apple Silicon), Linux x86_64 and Linux aarch64.
 Anything else (e.g. an Intel Mac) builds from source — see below. On Linux the
 binary needs ALSA at runtime (`sudo apt-get install libasound2` on
