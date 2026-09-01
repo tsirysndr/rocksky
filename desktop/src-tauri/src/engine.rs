@@ -91,6 +91,9 @@ pub enum EngineCmd {
     },
     SetCompressor(CompressorOpts),
     SetSurround(SurroundOpts),
+    /// Reply with a snapshot taken NOW, on the engine thread — the live read
+    /// path behind [`Engine::snapshot`].
+    GetSnapshot(Sender<Snapshot>),
 }
 
 /// A `Send + Clone` snapshot of the engine, refreshed by the engine thread.
@@ -162,21 +165,14 @@ impl Engine {
                 let mut dsp = DspState::default();
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
+                        Ok(EngineCmd::GetSnapshot(reply)) => {
+                            let _ = reply.send(snapshot_of(&player));
+                        }
                         Ok(cmd) => apply(&player, &mut dsp, cmd),
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
-                    let snap = Snapshot {
-                        status: player.status(),
-                        volume: player.volume(),
-                        queue: player
-                            .queue()
-                            .iter()
-                            .map(|p| p.to_string_lossy().into_owned())
-                            .collect(),
-                        taken: Instant::now(),
-                    };
-                    *shared.lock().unwrap() = snap;
+                    *shared.lock().unwrap() = snapshot_of(&player);
                 }
             })
             .map_err(|e| e.to_string())?;
@@ -195,18 +191,31 @@ impl Engine {
         let _ = self.tx.lock().unwrap().send(cmd);
     }
 
-    /// The engine state, with the position extrapolated to NOW.
+    /// The engine state, read LIVE on the engine thread — no cache.
     ///
-    /// The stored snapshot is refreshed on the engine thread's ~250ms tick, but
-    /// consumers poll on their own cadence (the webview every 500ms, the native
-    /// session every 1s, remote pushes every 2s). Handing them the stored value
-    /// makes every reading 0–250ms stale — and the staleness sweeps as the two
-    /// timers drift, so a displayed second lasts anywhere from ~750ms to
-    /// ~1250ms. That was the miniplayer's unstable clock. Adding the wall time
-    /// since capture makes the position exact at read time, whatever the
-    /// cadence; rockbox-wasm is smooth for the same reason (it computes elapsed
-    /// at emit time).
+    /// `Player` is `!Send` (it owns the audio stream), so consumers can't call
+    /// `status()` themselves; a round-trip to the engine thread gets a snapshot
+    /// computed at read time. Reading the shared cache instead made every value
+    /// 0–250ms stale, and the staleness swept as the timers drifted — measured
+    /// as 500ms polls advancing by anywhere from 261 to 522ms (see
+    /// examples/position_probe.rs), the miniplayer's unstable clock.
+    ///
+    /// The cache survives only as a fallback for when the engine thread cannot
+    /// answer within 100ms, extrapolated by the wall time since capture so even
+    /// the fallback ticks evenly.
     pub fn snapshot(&self) -> Snapshot {
+        let (reply_tx, reply_rx) = channel();
+        if self
+            .tx
+            .lock()
+            .unwrap()
+            .send(EngineCmd::GetSnapshot(reply_tx))
+            .is_ok()
+        {
+            if let Ok(snap) = reply_rx.recv_timeout(Duration::from_millis(100)) {
+                return snap;
+            }
+        }
         let mut snap = self.snapshot.lock().unwrap().clone();
         if snap.status.state == PlaybackState::Playing {
             let pos = snap.status.position + snap.taken.elapsed();
@@ -217,6 +226,20 @@ impl Engine {
             };
         }
         snap
+    }
+}
+
+/// A snapshot computed right now. Runs on the engine thread only.
+fn snapshot_of(player: &Player) -> Snapshot {
+    Snapshot {
+        status: player.status(),
+        volume: player.volume(),
+        queue: player
+            .queue()
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect(),
+        taken: Instant::now(),
     }
 }
 
@@ -360,5 +383,8 @@ fn apply(player: &Player, dsp: &mut DspState, cmd: EngineCmd) {
         }
         EngineCmd::SetCompressor(opts) => player.set_compressor(dsp::compressor(opts)),
         EngineCmd::SetSurround(opts) => player.set_surround(dsp::surround(opts)),
+        // Answered in the loop before apply() is reached; kept here only so the
+        // match stays exhaustive.
+        EngineCmd::GetSnapshot(_) => {}
     }
 }

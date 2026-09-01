@@ -51,6 +51,9 @@ pub enum EngineCmd {
     SetVolume(f32),
     SetShuffle(bool),
     SetRepeat(RepeatMode),
+    /// Reply with a snapshot taken NOW, on the engine thread — the live read
+    /// path behind [`Engine::snapshot`].
+    GetSnapshot(Sender<Snapshot>),
     /// Restore the persisted queue + position from the resume file. Cues the
     /// track paused with the seek deferred until it opens — a bare `Seek` would
     /// be dropped, since there is no decoder open yet.
@@ -115,15 +118,14 @@ impl Engine {
                 };
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
+                        Ok(EngineCmd::GetSnapshot(reply)) => {
+                            let _ = reply.send(snapshot_of(&player));
+                        }
                         Ok(cmd) => apply(&player, cmd),
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
-                    *shared.lock().unwrap() = Snapshot {
-                        status: player.status(),
-                        volume: player.volume(),
-                        taken: Instant::now(),
-                    };
+                    *shared.lock().unwrap() = snapshot_of(&player);
                 }
             })
             .map_err(|e| e.to_string())?;
@@ -142,11 +144,23 @@ impl Engine {
         let _ = self.tx.lock().unwrap().send(cmd);
     }
 
-    /// The engine state, with the position extrapolated to NOW — the stored
-    /// snapshot is up to ~250ms stale and consumers poll on their own cadence,
-    /// which read raw would make elapsed time tick unevenly (see the desktop
-    /// engine for the full story).
+    /// The engine state, read LIVE on the engine thread — no cache. The shared
+    /// snapshot is only a fallback for when the thread cannot answer within
+    /// 100ms, extrapolated to read time so even the fallback ticks evenly (see
+    /// the desktop engine for the full story).
     pub fn snapshot(&self) -> Snapshot {
+        let (reply_tx, reply_rx) = channel();
+        if self
+            .tx
+            .lock()
+            .unwrap()
+            .send(EngineCmd::GetSnapshot(reply_tx))
+            .is_ok()
+        {
+            if let Ok(snap) = reply_rx.recv_timeout(Duration::from_millis(100)) {
+                return snap;
+            }
+        }
         let mut snap = self.snapshot.lock().unwrap().clone();
         if snap.status.state == PlaybackState::Playing {
             let pos = snap.status.position + snap.taken.elapsed();
@@ -157,6 +171,15 @@ impl Engine {
             };
         }
         snap
+    }
+}
+
+/// A snapshot computed right now. Runs on the engine thread only.
+fn snapshot_of(player: &Player) -> Snapshot {
+    Snapshot {
+        status: player.status(),
+        volume: player.volume(),
+        taken: Instant::now(),
     }
 }
 
@@ -207,6 +230,9 @@ fn apply(player: &Player, cmd: EngineCmd) {
         EngineCmd::SetVolume(volume) => player.set_volume(volume),
         EngineCmd::SetShuffle(enabled) => player.set_shuffle(enabled),
         EngineCmd::SetRepeat(mode) => player.set_repeat(mode),
+        // Answered in the loop before apply() is reached; kept here only so the
+        // match stays exhaustive.
+        EngineCmd::GetSnapshot(_) => {}
         EngineCmd::Resume => {
             match player.resume() {
                 Some(state) => tracing::info!(

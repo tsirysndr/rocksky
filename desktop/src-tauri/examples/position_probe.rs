@@ -1,68 +1,90 @@
-//! Measures the position through the SAME read path the app uses — a cached
-//! snapshot refreshed on a 250ms tick, polled on an independent 500ms timer —
-//! with and without extrapolation to read time. The first probe version read
-//! `player.status()` directly and (correctly) found it clean, which is exactly
-//! why the cache staleness went unnoticed: the bug is in the read path, not
-//! the engine.
+//! Measures the position through each read path the app has used, so changes
+//! here are judged on data:
+//!
+//!  - cached: a snapshot refreshed on a ~250ms tick, polled at 500ms — the
+//!            original path; staleness sweeps as the timers drift, so 500ms
+//!            polls advance unevenly.
+//!  - live:   a channel round-trip to the engine thread that computes
+//!            `status()` at request time — the current path.
 //!
 //! Run: cargo run --example position_probe -- <audio-file>
 
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
 
 use rockbox_playback::{Player, PlayerConfig};
+
+enum Req {
+    Get(std::sync::mpsc::Sender<Duration>),
+}
 
 fn main() {
     let path = std::env::args()
         .nth(1)
         .expect("usage: position_probe <file>");
-    let config = PlayerConfig::builder().buffer_seconds(10.0).build();
-    let player = Player::with_config(config).expect("audio engine");
-    player.set_queue([path.as_str()].into_iter());
-    player.play();
+    let (tx, rx) = channel::<Req>();
 
-    // The app's engine thread: refresh a shared snapshot every ~250ms.
-    let cache: Arc<Mutex<(Duration, Instant)>> =
-        Arc::new(Mutex::new((Duration::ZERO, Instant::now())));
-    std::thread::sleep(Duration::from_millis(1200)); // let playback start
-
-    let mut prev_raw: i64 = -1;
-    let mut prev_ext: i64 = -1;
-    let (mut raw_min, mut raw_max) = (i64::MAX, i64::MIN);
-    let (mut ext_min, mut ext_max) = (i64::MAX, i64::MIN);
-    let start = Instant::now();
-    let mut next_refresh = Instant::now();
-    let mut next_poll = Instant::now() + Duration::from_millis(500);
-    while start.elapsed() < Duration::from_secs(20) {
-        let now = Instant::now();
-        if now >= next_refresh {
-            *cache.lock().unwrap() = (player.status().position, Instant::now());
-            next_refresh += Duration::from_millis(251); // drifts vs the 500ms poll
-        }
-        if now >= next_poll {
-            let (pos, taken) = *cache.lock().unwrap();
-            let raw = pos.as_millis() as i64;
-            let ext = (pos + taken.elapsed()).as_millis() as i64;
-            if prev_raw >= 0 {
-                let dr = raw - prev_raw;
-                let de = ext - prev_ext;
-                raw_min = raw_min.min(dr);
-                raw_max = raw_max.max(dr);
-                ext_min = ext_min.min(de);
-                ext_max = ext_max.max(de);
+    // Engine thread: owns the Player, answers live reads, refreshes a cache —
+    // the same loop shape as src/engine.rs.
+    let cache = std::sync::Arc::new(std::sync::Mutex::new(Duration::ZERO));
+    let shared = cache.clone();
+    std::thread::spawn(move || {
+        let config = PlayerConfig::builder().buffer_seconds(10.0).build();
+        let player = Player::with_config(config).expect("audio engine");
+        player.set_queue([path.as_str()].into_iter());
+        player.play();
+        loop {
+            match rx.recv_timeout(Duration::from_millis(250)) {
+                Ok(Req::Get(reply)) => {
+                    let _ = reply.send(player.status().position);
+                }
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return,
             }
-            prev_raw = raw;
-            prev_ext = ext;
-            next_poll += Duration::from_millis(500);
+            *shared.lock().unwrap() = player.status().position;
         }
-        std::thread::sleep(Duration::from_millis(5));
+    });
+
+    std::thread::sleep(Duration::from_millis(1500)); // let playback start
+
+    let mut prev_cached: i64 = -1;
+    let mut prev_live: i64 = -1;
+    let (mut c_min, mut c_max) = (i64::MAX, i64::MIN);
+    let (mut l_min, mut l_max) = (i64::MAX, i64::MIN);
+    let mut worst_rtt_us: u128 = 0;
+    let start = Instant::now();
+    while start.elapsed() < Duration::from_secs(15) {
+        std::thread::sleep(Duration::from_millis(500));
+
+        let cached = cache.lock().unwrap().as_millis() as i64;
+
+        let t0 = Instant::now();
+        let (rtx, rrx) = channel();
+        tx.send(Req::Get(rtx)).unwrap();
+        let live = rrx
+            .recv_timeout(Duration::from_millis(100))
+            .expect("engine thread answered")
+            .as_millis() as i64;
+        worst_rtt_us = worst_rtt_us.max(t0.elapsed().as_micros());
+
+        if prev_cached >= 0 {
+            let dc = cached - prev_cached;
+            let dl = live - prev_live;
+            c_min = c_min.min(dc);
+            c_max = c_max.max(dc);
+            l_min = l_min.min(dl);
+            l_max = l_max.max(dl);
+        }
+        prev_cached = cached;
+        prev_live = live;
     }
     println!(
-        "raw cached reads:   delta {raw_min}..{raw_max}ms (spread {}ms)",
-        raw_max - raw_min
+        "cached reads: delta {c_min}..{c_max}ms (spread {}ms)",
+        c_max - c_min
     );
     println!(
-        "extrapolated reads: delta {ext_min}..{ext_max}ms (spread {}ms)",
-        ext_max - ext_min
+        "live reads:   delta {l_min}..{l_max}ms (spread {}ms)",
+        l_max - l_min
     );
+    println!("worst live round-trip: {worst_rtt_us}us");
 }
