@@ -309,6 +309,13 @@ function StickyPlayerWithData() {
   // Local volume/mute mirror of the engine's output gain.
   const [volume, setVolumeState] = useState(1);
   const [muted, setMutedState] = useState(false);
+  // The active remote device's reported volume (0–1). `null` means the device
+  // doesn't advertise one — the protocol omits the field for players with no
+  // volume control, and the slider is hidden rather than shown wrong.
+  const [deviceVolume, setDeviceVolume] = useState<number | null>(null);
+  // Suppress the device's echo briefly after a local slider move, so a stale
+  // ~2s-old push can't snap the thumb back mid-drag.
+  const lastLocalVolumeAt = useRef(0);
 
   // Player selector
   const [playerSelectorOpen, setPlayerSelectorOpen] = useState(false);
@@ -324,6 +331,12 @@ function StickyPlayerWithData() {
     devicesRef.current = devices;
     activeDeviceIdRef.current = activeDeviceId;
   }, [nowPlaying, player, liked, devices, activeDeviceId]);
+
+  // A different device's volume means nothing here — hide the slider until the
+  // newly-picked device's first push reports its own.
+  useEffect(() => {
+    setDeviceVolume(null);
+  }, [activeDeviceId]);
 
   // Publish shuffle/repeat to whichever player is the source. For the local
   // engine there is no player/ready guard: publish* remembers the value and
@@ -532,6 +545,9 @@ function StickyPlayerWithData() {
           setNowPlaying(np);
           if (playerRef.current === null) setPlayer("device");
           lastFetchedRef.current = Date.now();
+          if (Date.now() - lastLocalVolumeAt.current > 2500) {
+            setDeviceVolume(track.volume ?? null);
+          }
         }
       })
       // Transport status for a device.
@@ -714,6 +730,8 @@ function StickyPlayerWithData() {
     // A remote device has its own output — drive it over the protocol rather
     // than spinning up the local engine (which isn't the thing making sound).
     if (player === "device") {
+      lastLocalVolumeAt.current = Date.now();
+      setDeviceVolume(v);
       sendDeviceCommand("volume", { volume: muted ? 0 : v });
       return;
     }
@@ -725,7 +743,8 @@ function StickyPlayerWithData() {
     const nextMuted = !muted;
     setMutedState(nextMuted);
     if (player === "device") {
-      sendDeviceCommand("volume", { volume: nextMuted ? 0 : volume });
+      lastLocalVolumeAt.current = Date.now();
+      sendDeviceCommand("volume", { volume: nextMuted ? 0 : (deviceVolume ?? volume) });
       return;
     }
     const p = getRockboxPlayer();
@@ -1119,9 +1138,10 @@ function StickyPlayerWithData() {
           onPlaylist={() => setQueuePanelOpen((o) => !o)}
           onClose={() => setFullscreenOpen(false)}
           isUploadPlayer={isRockbox}
+          showVolume={isRockbox || (player === "device" && deviceVolume !== null)}
           showTrackMenu={showTrackMenu}
           trackQueued={trackQueued}
-          volume={volume}
+          volume={player === "device" ? (deviceVolume ?? volume) : volume}
           muted={muted}
           onVolumeChange={onVolumeChange}
           onToggleMute={onToggleMute}
@@ -1212,13 +1232,14 @@ function StickyPlayerWithData() {
         fullscreenOpen={fullscreenOpen}
         onOpenFullscreen={() => setFullscreenOpen(true)}
         isUploadPlayer={isRockbox}
+          showVolume={isRockbox || (player === "device" && deviceVolume !== null)}
         showTrackMenu={showTrackMenu}
         trackQueued={trackQueued}
         shuffle={shuffle}
         repeatMode={repeatMode}
         onShuffle={() => setShuffle((s) => !s)}
         onRepeat={() => setRepeatMode((r: RepeatMode) => r === "off" ? "all" : r === "all" ? "one" : "off")}
-        volume={volume}
+        volume={player === "device" ? (deviceVolume ?? volume) : volume}
         muted={muted}
         onVolumeChange={onVolumeChange}
         onToggleMute={onToggleMute}

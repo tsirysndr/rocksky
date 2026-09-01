@@ -369,6 +369,12 @@ function trackFromJson(d: Json): RemoteNowPlaying {
     isPlaying: d.is_playing,
     codec: d.codec,
     sampleRate: d.sample_rate,
+    // Transport state the player chose to advertise. Absent means the player
+    // has no such control — keep it undefined so a controller can hide the
+    // matching UI instead of rendering a wrong default.
+    shuffle: typeof d.shuffle === "boolean" ? d.shuffle : undefined,
+    repeat: d.repeat === "all" || d.repeat === "one" || d.repeat === "off" ? d.repeat : undefined,
+    volume: typeof d.volume === "number" ? Math.min(1, Math.max(0, d.volume)) : undefined,
     // Server-enriched fields (present on the broadcast a controller receives).
     songUri: d.song_uri,
     albumUri: d.album_uri,

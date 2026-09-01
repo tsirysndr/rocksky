@@ -253,6 +253,9 @@ export type StickyPlayerProps = {
   onExitFullscreen?: () => void;
   embedded?: boolean;
   isUploadPlayer?: boolean;
+  /** Show the mute + volume slider. Defaults to `isUploadPlayer`; a remote
+   *  device sets it explicitly when (and only when) it reports a volume. */
+  showVolume?: boolean;
   /** Show the "…" track menu beside the heart. Off for Spotify, whose queue
    *  and library actions this app does not own. */
   showTrackMenu?: boolean;
@@ -295,6 +298,7 @@ function StickyPlayer(props: StickyPlayerProps) {
     onExitFullscreen,
     embedded,
     isUploadPlayer,
+    showVolume,
     shuffle,
     repeatMode,
     onShuffle,
@@ -557,7 +561,7 @@ function StickyPlayer(props: StickyPlayerProps) {
             >
               <Speaker />
             </Button>
-            {isUploadPlayer && (
+            {(showVolume ?? isUploadPlayer) && (
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
                   onClick={onToggleMute}
