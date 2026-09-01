@@ -761,14 +761,22 @@ export default function MiniPlayer() {
     }
   }, [nowPlaying?.progress, nowPlaying?.duration]);
 
-  if (!nowPlaying) return null;
+  // Registered remote devices make the bar worth showing even with nothing
+  // playing — it is how you reach the source sheet to adopt one. With no
+  // track AND no devices there is nothing to show or do.
+  if (!nowPlaying && !rockboxAvailable) return null;
+
+  // No title and no artist means no current track — the bar is only up for
+  // the device picker, so the like button (and track link) have nothing to
+  // act on and are hidden.
+  const hasTrack = !!(nowPlaying && (nowPlaying.title || nowPlaying.artist));
 
   const progress =
-    nowPlaying.duration > 0
+    nowPlaying && nowPlaying.duration > 0
       ? (nowPlaying.progress / nowPlaying.duration) * 100
       : 0;
 
-  const songPath = nowPlaying.songUri
+  const songPath = nowPlaying?.songUri
     ? `/${nowPlaying.songUri.split("at://")[1]?.replace("app.rocksky.", "")}`
     : null;
 
@@ -857,9 +865,9 @@ export default function MiniPlayer() {
           style={{ cursor: (player === "upload" || player === "rockbox") ? "pointer" : "default" }}
         >
           {/* Album art */}
-          {nowPlaying.albumArt ? (
+          {nowPlaying?.albumArt ? (
             <img
-              src={nowPlaying.albumArt}
+              src={nowPlaying?.albumArt}
               alt="album"
               className="w-12 h-12 rounded-lg object-cover shrink-0"
             />
@@ -880,15 +888,15 @@ export default function MiniPlayer() {
                 className="block font-semibold text-sm truncate no-underline"
                 style={{ color: "var(--color-text)" }}
               >
-                {nowPlaying.title}
+                {nowPlaying?.title}
               </Link>
             ) : (
               <p className="font-semibold text-sm truncate m-0" style={{ color: "var(--color-text)" }}>
-                {nowPlaying.title}
+                {nowPlaying?.title}
               </p>
             )}
             <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
-              {nowPlaying.artist}
+              {nowPlaying?.artist}
             </p>
           </div>
 
@@ -918,25 +926,25 @@ export default function MiniPlayer() {
               >
                 <IconPlayerSkipBackFilled size={20} color="var(--color-text-muted)" />
               </button>
-            ) : (
+            ) : hasTrack ? (
               <button
-                onClick={nowPlaying.liked ? onDislike : onLike}
+                onClick={nowPlaying?.liked ? onDislike : onLike}
                 className="p-1 border-none bg-transparent cursor-pointer"
               >
-                {nowPlaying.liked ? (
+                {nowPlaying?.liked ? (
                   <IconHeartFilled size={20} color="var(--color-primary)" />
                 ) : (
                   <IconHeart size={20} color="var(--color-text-muted)" />
                 )}
               </button>
-            )}
+            ) : null}
 
             <button
               onClick={onPlayPause}
               className="w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              {nowPlaying.isPlaying ? (
+              {nowPlaying?.isPlaying ? (
                 <IconPlayerPauseFilled size={18} color="#fff" />
               ) : (
                 <IconPlayerPlayFilled size={18} color="#fff" />

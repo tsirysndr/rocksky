@@ -995,7 +995,11 @@ function StickyPlayerWithData() {
     if (!nowPlaying) setFullscreenOpen(false);
   }, [nowPlaying, setFullscreenOpen]);
 
-  if (!nowPlaying) return <></>;
+  // Registered remote devices make the bar worth showing even with nothing
+  // playing — it is how you reach the device picker to adopt one. With no
+  // track AND no devices there is nothing to show or do.
+  const hasDevices = Object.keys(devices).length > 0;
+  if (!nowPlaying && !hasDevices) return <></>;
 
   const isRockbox = player === "rockbox";
   // The "…" track menu belongs to the players this app drives. Spotify is
@@ -1078,7 +1082,7 @@ function StickyPlayerWithData() {
         </>
       )}
 
-      {fullscreenOpen && (
+      {fullscreenOpen && nowPlaying && (
         <FullscreenPlayer
           nowPlaying={nowPlaying}
           onPlay={onPlay}
@@ -1088,7 +1092,7 @@ function StickyPlayerWithData() {
           onSpeaker={() => setPlayerSelectorOpen((o) => !o)}
           speakerRef={fullscreenSpeakerRef}
           onSeek={onSeek}
-          isPlaying={nowPlaying.isPlaying}
+          isPlaying={nowPlaying?.isPlaying ?? false}
           onLike={onLike}
           onDislike={onDislike}
           showQueueButton={showQueue}
@@ -1184,7 +1188,7 @@ function StickyPlayerWithData() {
         speakerRef={speakerRef}
         onPlaylist={() => setQueuePanelOpen((o) => !o)}
         onSeek={onSeek}
-        isPlaying={nowPlaying.isPlaying}
+        isPlaying={nowPlaying?.isPlaying ?? false}
         onLike={onLike}
         onDislike={onDislike}
         showQueueButton={showQueue}

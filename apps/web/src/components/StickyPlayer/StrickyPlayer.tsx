@@ -309,6 +309,10 @@ function StickyPlayer(props: StickyPlayerProps) {
     onShuffle,
     onRepeat,
   } = props;
+  // An empty now-playing (no title, no artist — e.g. the bar shown only
+  // because remote devices exist) has nothing to like and no menu entries
+  // that could work; hide both instead of rendering dead buttons.
+  const hasTrack = !!(nowPlaying && (nowPlaying.title || nowPlaying.artist));
   const progressbarRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useTimeFormat();
 
@@ -383,19 +387,21 @@ function StickyPlayer(props: StickyPlayerProps) {
                 </ScrollingText>
               </div>
               <div className="ml-[8px] flex-shrink-0 flex items-center">
-                <LikeButton
-                  onClick={() => {
-                    if (nowPlaying?.liked) {
-                      onDislike(nowPlaying!.songUri);
-                      return;
-                    }
-                    onLike(nowPlaying!.songUri);
-                  }}
-                >
-                  {nowPlaying?.liked && <Heart color="var(--color-primary)" />}
-                  {!nowPlaying?.liked && <HeartOutline color={embedded ? "#fff" : "var(--color-text)"} />}
-                </LikeButton>
-                {showTrackMenu && nowPlaying && (
+                {hasTrack && (
+                  <LikeButton
+                    onClick={() => {
+                      if (nowPlaying?.liked) {
+                        onDislike(nowPlaying!.songUri);
+                        return;
+                      }
+                      onLike(nowPlaying!.songUri);
+                    }}
+                  >
+                    {nowPlaying?.liked && <Heart color="var(--color-primary)" />}
+                    {!nowPlaying?.liked && <HeartOutline color={embedded ? "#fff" : "var(--color-text)"} />}
+                  </LikeButton>
+                )}
+                {showTrackMenu && hasTrack && nowPlaying && (
                   <LikeButton
                     aria-label="Track options"
                     onClick={(e) => {
@@ -409,7 +415,7 @@ function StickyPlayer(props: StickyPlayerProps) {
                     />
                   </LikeButton>
                 )}
-                {menuAnchor && nowPlaying && (
+                {menuAnchor && hasTrack && nowPlaying && (
                   <NowPlayingMenu
                     track={nowPlaying}
                     queued={trackQueued}
