@@ -12,7 +12,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { Cache, Duration, Effect, pipe } from "effect";
+import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorArtists";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
@@ -36,7 +36,7 @@ export default function (server: Server, ctx: Context) {
   const getActorArtists = (params: QueryParams) =>
     pipe(
       cache,
-      Effect.flatMap((c) => c.get(params)),
+      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ artists: [] });

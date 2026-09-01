@@ -1,7 +1,7 @@
 import type { Context } from "context";
 import { consola } from "consola";
 import { and, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
-import { Cache, Duration, Effect, pipe } from "effect";
+import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorSongs";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
@@ -25,7 +25,7 @@ export default function (server: Server, ctx: Context) {
   const getActorSongs = (params: QueryParams) =>
     pipe(
       cache,
-      Effect.flatMap((c) => c.get(params)),
+      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ tracks: [] });

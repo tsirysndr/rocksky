@@ -12,7 +12,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { Cache, Duration, Effect, pipe } from "effect";
+import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/stats/getWrapped";
 import type { WrappedView } from "lexicon/types/app/rocksky/stats/defs";
@@ -34,7 +34,7 @@ export default function (server: Server, ctx: Context) {
   const getWrapped = (params: QueryParams) =>
     pipe(
       cache,
-      Effect.flatMap((c) => c.get(params)),
+      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed(

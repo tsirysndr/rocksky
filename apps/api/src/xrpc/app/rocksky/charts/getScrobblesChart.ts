@@ -1,7 +1,7 @@
 import type { Context } from "context";
 import { consola } from "consola";
 import { and, between, count, eq, or, sql } from "drizzle-orm";
-import { Cache, Duration, Effect, pipe } from "effect";
+import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getScrobblesChart";
@@ -24,7 +24,7 @@ export default function (server: Server, ctx: Context) {
   const getScrobblesChart = (params: QueryParams) =>
     pipe(
       getScrobblesCache,
-      Effect.flatMap((cache) => cache.get(params)),
+      Effect.flatMap((cache) => cache.get(Data.struct({ ...params }))),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ scrobbles: [] });

@@ -1,7 +1,7 @@
 import type { Context } from "context";
 import { consola } from "consola";
 import { and, count, desc, eq, inArray, ne, or } from "drizzle-orm";
-import { Cache, Duration, Effect, pipe } from "effect";
+import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Server } from "lexicon";
 import type { CompatibilityViewBasic } from "lexicon/types/app/rocksky/actor/defs";
@@ -31,7 +31,14 @@ export default function (server: Server, ctx: Context) {
   const getActorCompatibility = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
       cache,
-      Effect.flatMap((c) => c.get({ params, did: auth.credentials?.did })),
+      Effect.flatMap((c) =>
+        c.get(
+          Data.struct({
+            params: Data.struct({ ...params }),
+            did: auth.credentials?.did,
+          }),
+        ),
+      ),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ compatibility: null });

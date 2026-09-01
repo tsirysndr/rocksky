@@ -23,14 +23,12 @@ export default function (server: Server, ctx: Context) {
   const storiesCache = Cache.make({
     capacity: 100,
     timeToLive: Duration.seconds(30),
-    lookup: (
-      key: Data.Data<{
-        feed?: string;
-        following?: boolean;
-        size?: number;
-        did?: string;
-      }>,
-    ) =>
+    lookup: (key: {
+      readonly feed?: string;
+      readonly following?: boolean;
+      readonly size?: number;
+      readonly did?: string;
+    }) =>
       pipe(
         {
           params: { feed: key.feed, following: key.following, size: key.size },
