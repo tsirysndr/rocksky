@@ -66,6 +66,13 @@ export function useRockboxEngine() {
   // snapped it forward again. rockbox-wasm has no such re-emit, which is why
   // only the desktop app showed this.
   const lastTrackKey = useRef<string | null>(null);
+  // The display clock's anchor: the engine's last reported position and when it
+  // arrived. The UI ticks `anchor.pos + (now - anchor.at)` locally and every
+  // engine report re-anchors — so the displayed time is always fresh even if a
+  // poll runs late, and a throttled/backgrounded timer recovers instantly on
+  // wake (the projection includes the whole gap). Unlike incremental ticking
+  // (+delta per tick), a projection can't accumulate error.
+  const anchorRef = useRef<{ pos: number; at: number; playing: boolean } | null>(null);
   const setNowPlaying = useSetAtom(nowPlayingAtom);
   const setQueue = useSetAtom(queueAtom);
   const setQueueIndex = useSetAtom(queueIndexAtom);
@@ -95,6 +102,7 @@ export function useRockboxEngine() {
       const key = `${e.index}\u0001${e.url}`;
       const isNewTrack = key !== lastTrackKey.current;
       lastTrackKey.current = key;
+      if (isNewTrack) anchorRef.current = { pos: 0, at: Date.now(), playing: true };
       setNowPlaying((prev) => ({
         title: known?.title ?? md?.title ?? e.url.split("/").pop() ?? "",
         artist: known?.artist ?? md?.artist ?? "",
@@ -125,6 +133,11 @@ export function useRockboxEngine() {
       elapsed_ms: number;
       duration_ms: number;
     }) => {
+      anchorRef.current = {
+        pos: e.elapsed_ms,
+        at: Date.now(),
+        playing: e.state === "playing",
+      };
       setNowPlaying((prev) =>
         prev
           ? {
@@ -150,6 +163,18 @@ export function useRockboxEngine() {
       queue_len: number;
     }) => {
       if (e.index >= 0) setQueueIndex(effectiveQueueIndex(e.index));
+      // Freeze or resume the display clock on a transport change so the
+      // interval below never runs the bar during a pause (or projects across
+      // one after resume).
+      const a = anchorRef.current;
+      const playing = e.state === "playing";
+      if (a && a.playing !== playing) {
+        anchorRef.current = {
+          pos: a.playing ? a.pos + (Date.now() - a.at) : a.pos,
+          at: Date.now(),
+          playing,
+        };
+      }
       setNowPlaying((prev) =>
         prev ? { ...prev, isPlaying: e.state === "playing" } : prev,
       );
@@ -169,6 +194,24 @@ export function useRockboxEngine() {
     p.on("status", onStatus);
     p.on("queue", onQueue);
 
+    // The display tick: project from the anchor 4x a second so the bar glides
+    // between the engine's 500ms reports instead of stepping with them.
+    const tick = window.setInterval(() => {
+      const a = anchorRef.current;
+      if (!a || !a.playing) return;
+      const pos = a.pos + (Date.now() - a.at);
+      setNowPlaying((prev) => {
+        if (!prev || !prev.isPlaying) return prev;
+        const capped = prev.duration > 0 ? Math.min(pos, prev.duration) : pos;
+        // A seek writes progress optimistically before the engine confirms it;
+        // projecting from the pre-seek anchor would yank the bar back. When the
+        // clock moved out from under the anchor, hold until the next engine
+        // report re-anchors (within 500ms).
+        if (Math.abs(capped - prev.progress) > 1500) return prev;
+        return capped > prev.progress ? { ...prev, progress: capped } : prev;
+      });
+    }, 250);
+
     // Seed the atoms from the engine's current snapshot on (re)mount.
     if (p.queue.length) {
       setQueue(p.queue.map(urlToQueueTrack));
@@ -176,6 +219,8 @@ export function useRockboxEngine() {
     }
 
     return () => {
+      clearInterval(tick);
+      anchorRef.current = null;
       p.off("track", onTrack);
       p.off("progress", onProgress);
       p.off("status", onStatus);
