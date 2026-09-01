@@ -1074,7 +1074,12 @@ function StickyPlayerWithData() {
     if (!nowPlaying) setFullscreenOpen(false);
   }, [nowPlaying, setFullscreenOpen]);
 
-  if (!nowPlaying) return <></>;
+  // Registered remote devices make the bar worth showing even with nothing
+  // playing — it is how you reach the device picker to adopt one. With no
+  // track AND no devices there is nothing to show or do. (The devices map
+  // already excludes this app's own registration.)
+  const hasDevices = Object.keys(devices).length > 0;
+  if (!nowPlaying && !hasDevices) return <></>;
 
   const isRockbox = player === "rockbox";
   // Show the queue button for the local engine OR a remote device with a queue.
@@ -1154,7 +1159,7 @@ function StickyPlayerWithData() {
         </>
       )}
 
-      {fullscreenOpen && (
+      {fullscreenOpen && nowPlaying && (
         <FullscreenPlayer
           nowPlaying={nowPlaying}
           onPlay={onPlay}
@@ -1164,7 +1169,7 @@ function StickyPlayerWithData() {
           onSpeaker={() => setPlayerSelectorOpen((o) => !o)}
           speakerRef={fullscreenSpeakerRef}
           onSeek={onSeek}
-          isPlaying={nowPlaying.isPlaying}
+          isPlaying={nowPlaying?.isPlaying ?? false}
           onLike={onLike}
           onDislike={onDislike}
           showQueueButton={showQueue}
@@ -1260,7 +1265,7 @@ function StickyPlayerWithData() {
         speakerRef={speakerRef}
         onPlaylist={() => setQueuePanelOpen((o) => !o)}
         onSeek={onSeek}
-        isPlaying={nowPlaying.isPlaying}
+        isPlaying={nowPlaying?.isPlaying ?? false}
         onLike={onLike}
         onDislike={onDislike}
         showQueueButton={showQueue}
