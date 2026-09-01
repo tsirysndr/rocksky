@@ -226,18 +226,30 @@ pub struct PositionFilter {
 struct Anchor {
     /// Queue index the anchor belongs to; a change means a different track.
     index: Option<usize>,
-    reported_ms: u64,
+    reported_ms: f64,
     at: Instant,
 }
 
-/// How far the engine may disagree with the wall clock before we believe it.
-/// Above the jitter the subtraction produces, below a seek worth following.
-const RESYNC_MS: u64 = 1_500;
+/// Past this the engine is not disagreeing, it is somewhere else: a seek, a
+/// track restart, a long stall. Below it, the difference is drift to be
+/// absorbed rather than a position to jump to.
+const STEP_MS: f64 = 3_000.0;
+
+/// Fraction of the remaining error to take out per sample. The rate limits
+/// below cap it, so this only sets how eagerly it converges within them.
+const SLEW_GAIN: f64 = 0.5;
+
+/// Rate limits for the correction, as a fraction of real time: the clock may
+/// run at 1.5x to catch up or 0.5x to fall back, never faster or slower. The
+/// slow limit is what guarantees it still moves FORWARD while correcting —
+/// which is the whole point, a progress bar must never step back.
+const MAX_SPEEDUP: f64 = 0.5;
+const MAX_SLOWDOWN: f64 = 0.5;
 
 impl PositionFilter {
     /// The position to report for `status`, in place of `status.position`.
     pub fn smooth(&mut self, status: &Status) -> Duration {
-        let raw_ms = status.position.as_millis() as u64;
+        let raw_ms = status.position.as_millis() as f64;
         let duration_ms = status.duration.as_millis() as u64;
 
         // Only playback moves the clock. While paused or stopped the engine's
@@ -253,24 +265,23 @@ impl PositionFilter {
         }
 
         let now = Instant::now();
-        let expected_ms = match &self.anchor {
-            Some(a) if a.index == status.index => {
-                a.reported_ms + now.duration_since(a.at).as_millis() as u64
-            }
+        let Some(anchor) = self.anchor.as_ref().filter(|a| a.index == status.index) else {
             // No anchor, or a different track: take the engine at its word.
-            _ => {
-                self.anchor = Some(Anchor {
-                    index: status.index,
-                    reported_ms: raw_ms,
-                    at: now,
-                });
-                return status.position;
-            }
+            self.anchor = Some(Anchor {
+                index: status.index,
+                reported_ms: raw_ms,
+                at: now,
+            });
+            return status.position;
         };
 
-        if raw_ms.abs_diff(expected_ms) > RESYNC_MS {
-            // A seek, a track restart, or the decoder genuinely stalled — the
-            // engine is right and our clock is not.
+        let dt_ms = now.duration_since(anchor.at).as_secs_f64() * 1000.0;
+        let expected_ms = anchor.reported_ms + dt_ms;
+        let error_ms = raw_ms - expected_ms;
+
+        if error_ms.abs() > STEP_MS {
+            // Genuinely somewhere else — following it is right, and no amount of
+            // slewing would hide a jump that large anyway.
             self.anchor = Some(Anchor {
                 index: status.index,
                 reported_ms: raw_ms,
@@ -279,14 +290,22 @@ impl PositionFilter {
             return status.position;
         }
 
+        // Slew: bend the clock toward the engine instead of snapping to it, so
+        // the correction is spread over the next second or two and reads as the
+        // bar moving rather than jumping.
+        let correction = (error_ms * SLEW_GAIN).clamp(-dt_ms * MAX_SLOWDOWN, dt_ms * MAX_SPEEDUP);
+        let mut reported = (expected_ms + correction).max(anchor.reported_ms);
         // Never run past the end: the track ends and the index changes a moment
         // later, and a progress bar that overshoots looks broken.
-        let capped = if duration_ms > 0 {
-            expected_ms.min(duration_ms)
-        } else {
-            expected_ms
-        };
-        Duration::from_millis(capped)
+        if duration_ms > 0 {
+            reported = reported.min(duration_ms as f64);
+        }
+        self.anchor = Some(Anchor {
+            index: status.index,
+            reported_ms: reported,
+            at: now,
+        });
+        Duration::from_millis(reported as u64)
     }
 }
 
@@ -322,6 +341,61 @@ mod position_tests {
                 .smooth(&status(PlaybackState::Playing, Some(0), r))
                 .as_millis() as u64;
             assert!(out + 1 >= last, "went backwards: {last} -> {out} (raw {r})");
+            last = out;
+        }
+    }
+
+    /// The point of slewing: a drift the engine reports is absorbed gradually,
+    /// so no single sample moves the clock by a visible jump.
+    #[test]
+    fn drift_is_absorbed_without_a_visible_jump() {
+        let mut f = PositionFilter::default();
+        f.smooth(&status(PlaybackState::Playing, Some(0), 10_000));
+        // The engine now says we are 2s ahead of where our clock thinks it is —
+        // under the step threshold, so it must be slewed, not snapped.
+        let mut last = 10_000i64;
+        let error_before = (12_000 - last).abs();
+        for _ in 0..40 {
+            std::thread::sleep(Duration::from_millis(25));
+            let out = f
+                .smooth(&status(PlaybackState::Playing, Some(0), 12_000))
+                .as_millis() as i64;
+            let step = out - last;
+            assert!(step >= 0, "clock went backwards: {last} -> {out}");
+            // No single sample may move the bar by a visible amount: at 1.5x
+            // the cap, a ~25ms sample is worth ~40ms.
+            assert!(step < 200, "visible jump of {step}ms");
+            last = out;
+        }
+        // Convergence is deliberately rate-limited, so what matters is that the
+        // error is being eaten steadily — not that it vanishes in one go.
+        let error_after = (12_000 - last).abs();
+        assert!(
+            error_after < error_before / 2,
+            "drift barely moved: {error_before}ms -> {error_after}ms"
+        );
+    }
+
+    /// Slewing must not be able to stall the clock, let alone reverse it: even
+    /// while correcting downward it keeps moving forward.
+    #[test]
+    fn correcting_downward_still_moves_forward() {
+        let mut f = PositionFilter::default();
+        f.smooth(&status(PlaybackState::Playing, Some(0), 60_000));
+        std::thread::sleep(Duration::from_millis(50));
+        // Engine reports BEHIND our clock (a stall), within the step threshold.
+        let mut last = f
+            .smooth(&status(PlaybackState::Playing, Some(0), 58_500))
+            .as_millis() as i64;
+        for _ in 0..10 {
+            std::thread::sleep(Duration::from_millis(25));
+            let out = f
+                .smooth(&status(PlaybackState::Playing, Some(0), 58_500))
+                .as_millis() as i64;
+            assert!(
+                out >= last,
+                "went backwards while correcting: {last} -> {out}"
+            );
             last = out;
         }
     }

@@ -119,6 +119,12 @@ const PlayerSelectorLabel = styled.span`
 // authoritative push corrects it within a couple of seconds anyway.
 const MAX_TICK_MS = 2000;
 
+// Reconciling the local progress estimate with a device's pushes: absorb this
+// share of the error per push, and treat anything past the threshold as a seek
+// to follow rather than drift to smooth out.
+const DEVICE_SLEW_GAIN = 0.25;
+const DEVICE_RESYNC_MS = 2000;
+
 // ---------------------------------------------------------------------------
 // StickyPlayerWithData
 // ---------------------------------------------------------------------------
@@ -135,10 +141,19 @@ function toRemoteNowPlaying(
   const artist = track.albumArtist || track.artist;
   const incoming = track.elapsedMs ?? 0;
   const sameTrack = !!prev && prev.title === title && prev.artist === artist;
-  const progress =
-    sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
-      ? (prev?.progress ?? incoming)
-      : incoming;
+  // Reconcile the locally-ticked estimate against the device's authoritative
+  // elapsed by BENDING toward it, not by choosing one or the other. Holding the
+  // local value (as this used to) leaves a permanent offset that never
+  // converges; snapping to the device's makes the bar visibly jump every push.
+  // Take a fraction of the error instead, and never let it move backwards.
+  const local = prev?.progress ?? incoming;
+  const error = incoming - local;
+  const progress = !sameTrack
+    ? incoming
+    : Math.abs(error) > DEVICE_RESYNC_MS
+      // Too far out to be drift — somebody seeked on the device.
+      ? incoming
+      : Math.max(local, local + error * DEVICE_SLEW_GAIN);
   const isPlaying =
     typeof track.isPlaying === "boolean" ? track.isPlaying : (prev?.isPlaying ?? true);
   const songUri = track.songUri ?? "";
