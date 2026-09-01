@@ -45,6 +45,7 @@ import {
 } from "../../lib/audio/rockbox-engine";
 import { ensureStreamToken } from "../../api/uploads";
 import { onMediaControl, pushNowPlaying } from "../../lib/native-media";
+import { setSessionSource } from "../../lib/native-session";
 import { useRockboxEngine } from "../../hooks/useRockboxEngine";
 import { useAudioSettingsPublisher } from "../../hooks/useAudioSettings";
 import { useUploadResume } from "../../hooks/useUploadResume";
@@ -889,12 +890,21 @@ function StickyPlayerWithData() {
     }
   }, []);
 
-  // Push exactly what the miniplayer renders. Every source (local engine,
-  // remote device, Spotify) lands in `nowPlaying`, so mirroring that atom is
-  // what keeps the OS controls in step with the UI — deriving them natively
-  // from the local engine (as this used to) leaves them stale the moment
-  // something else is the source.
+  // Tell the native session which player is the source. It drives the OS
+  // controls and scrobbling from the engine for local playback (which keeps
+  // working while this webview's timers are throttled in the background), and
+  // stands down for the sources only we can see.
   useEffect(() => {
+    setSessionSource(player);
+  }, [player]);
+
+  // Push exactly what the miniplayer renders. Spotify and remote devices land
+  // in `nowPlaying` and nowhere else, so mirroring that atom is what keeps the
+  // OS controls in step with the UI. Local playback is deliberately excluded:
+  // src-tauri/src/session.rs publishes it from the engine instead, and two
+  // writers would fight — ours would also freeze whenever the window is.
+  useEffect(() => {
+    if (isTauri() && player === "rockbox") return;
     pushNowPlaying(
       nowPlaying
         ? {
@@ -917,6 +927,7 @@ function StickyPlayerWithData() {
     nowPlaying?.progress,
     nowPlaying?.isPlaying,
     album,
+    player,
   ]);
 
   // Clear the OS controls when the player goes away, so nothing lingers in

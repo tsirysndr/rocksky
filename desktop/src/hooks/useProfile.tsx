@@ -12,6 +12,7 @@ import {
   getRecentTracksByDid,
 } from "../api/profile";
 import { profileAtom } from "../atoms/profile";
+import { syncSessionToken } from "../lib/native-session";
 import { rocksky } from "../lib/rocksky";
 
 export const useProfileByDidQuery = (did: string) =>
@@ -101,6 +102,7 @@ function useProfile(token?: string | null) {
       const profile = JSON.parse(data);
       if (Object.keys(profile).length === 0) {
         localStorage.removeItem("token");
+        syncSessionToken();
         window.location.href = "/";
         return;
       }
@@ -137,6 +139,7 @@ function useProfile(token?: string | null) {
       if (data === "Unauthorized") {
         consola.log(">> Unauthorized");
         localStorage.removeItem("token");
+        syncSessionToken();
       }
     }
 

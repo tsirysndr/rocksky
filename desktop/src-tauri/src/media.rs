@@ -3,12 +3,12 @@
 //! notifications and desktop applets). Windows would need an hwnd and is
 //! currently a no-op.
 //!
-//! The webview is the single source of truth. The sticky player pushes the
-//! exact state it renders through [`media_set_now_playing`], so the OS controls
-//! can never drift from the miniplayer — whatever is driving playback (the
-//! local engine, a remote device, or Spotify). Reading the engine snapshot
-//! here instead would only ever describe local playback, and would show a
-//! stale track whenever another source is active.
+//! Two writers, never at once. While Spotify or a remote device is the source,
+//! only the webview knows what is playing, so the sticky player pushes the
+//! exact state it renders through [`media_set_now_playing`]. While the local
+//! engine is the source, [`crate::session`] publishes from the engine snapshot
+//! instead — the webview's timers stop running when the window is backgrounded,
+//! which used to leave the OS controls frozen on the last visible track.
 //!
 //! Control events travel the same way, as a `media-control` event the player
 //! dispatches through its own transport routing — so a media key hits whatever
@@ -136,6 +136,13 @@ fn signed_ms(dir: SeekDirection, ms: i64) -> i64 {
 pub fn media_set_now_playing(app: AppHandle, state: Option<NowPlaying>) -> Result<(), String> {
     app.run_on_main_thread(move || update(state))
         .map_err(|e| e.to_string())
+}
+
+/// Same, from any thread and infallible — used by the native session loop
+/// (see [`crate::session`]), which owns the controls while the local engine
+/// is the source.
+pub fn publish(app: &AppHandle, state: Option<NowPlaying>) {
+    let _ = app.run_on_main_thread(move || update(state));
 }
 
 fn update(state: Option<NowPlaying>) {

@@ -5,6 +5,7 @@ import { submitScrobble } from "../api/scrobbles";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom } from "../atoms/queue";
+import { isTauri } from "../lib/tauri";
 import { consola } from "consola";
 
 // Submit scrobble when the user has listened to at least 50% of the track
@@ -47,6 +48,10 @@ export function useUploadScrobble() {
   }, [currentTrackKey]);
 
   useEffect(() => {
+    // Under Tauri the native session owns this (src-tauri/src/session.rs): it
+    // reads the engine directly, so it still scrobbles when the window is
+    // backgrounded and this effect's `progress` has stopped advancing.
+    if (isTauri()) return;
     if (player !== "rockbox" || !nowPlaying) return;
 
     const { sha256, title, artist, albumArt, duration, progress } = nowPlaying;

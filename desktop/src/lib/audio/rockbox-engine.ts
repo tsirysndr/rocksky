@@ -2,6 +2,7 @@ import { RockboxPlayer } from "rockbox-wasm";
 import { getStreamUrl } from "../../api/uploads";
 import { EQ_BANDS_HZ } from "../../atoms/equalizer";
 import type { QueueTrack } from "../../atoms/queue";
+import { registerSessionTracks } from "../native-session";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // In-browser Rockbox engine (decoders + DSP in WebAssembly).
@@ -126,6 +127,7 @@ export function streamUrlFor(track: QueueTrack): string {
 /** Remember tracks keyed by the exact URL they'll be enqueued as, so queue/
  *  track events can be mapped back to full metadata. */
 export function registerTracks(tracks: QueueTrack[]): void {
+  const mirrored: { url: string; track: QueueTrack }[] = [];
   tracks.forEach((t) => {
     const url = streamUrlFor(t);
     registry.set(url, t);
@@ -134,7 +136,12 @@ export function registerTracks(tracks: QueueTrack[]): void {
     // stream URL so lookups survive credential/token differences.
     const urlId = uploadIdFromUrl(url);
     if (urlId) registryById.set(urlId, t);
+    mirrored.push({ url, track: t });
   });
+  // The native session builds scrobbles from the engine queue, which holds only
+  // URLs — give it the same registry so a scrobble decided while the window is
+  // backgrounded still carries real metadata.
+  registerSessionTracks(mirrored);
 }
 
 /** Rich QueueTrack for a queue/track URL, if we enqueued it ourselves. */

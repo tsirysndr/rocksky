@@ -16,6 +16,7 @@ import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";
 import { API_URL } from "../consts";
 import useProfile, { useProfileStatsByDidQuery } from "../hooks/useProfile";
+import { syncSessionToken } from "../lib/native-session";
 import { isTauri } from "../lib/tauri";
 import Navbar from "./Navbar";
 import Search from "./Search";
@@ -148,6 +149,13 @@ function Main(props: MainProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The native session scrobbles on its own (src-tauri/src/session.rs), so it
+  // needs its own copy of the token — it can't read localStorage, and it has to
+  // keep working while this webview is backgrounded and frozen.
+  useEffect(() => {
+    syncSessionToken();
+  }, [token]);
 
   // Tauri: auto-register this app as a remotely-controllable player on
   // startup so it appears in the miniplayer device picker without visiting

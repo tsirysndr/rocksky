@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use rocksky_sdk::{RemotePlayer, RemoteQueueItem};
 
 use crate::engine::Engine;
+use crate::session::Session;
 
 /// Everything the Tauri commands share. The playback engine itself lives on
 /// its own thread (see [`Engine`]); this is all `Send + Sync` handles.
@@ -14,6 +15,8 @@ pub struct AppState {
     /// carry full track info, local file opens are derived from tags/filenames.
     /// Kept in lockstep with the engine queue so controllers see real titles.
     pub queue_meta: Mutex<Vec<RemoteQueueItem>>,
+    /// What the native OS-media/scrobble loop needs from the webview.
+    pub session: Session,
 }
 
 pub struct RemoteHandle {
@@ -28,6 +31,7 @@ impl AppState {
             engine,
             remote: Mutex::new(None),
             queue_meta: Mutex::new(Vec::new()),
+            session: Session::default(),
         }
     }
 }

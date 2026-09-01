@@ -8,6 +8,7 @@ mod nfc;
 mod player;
 mod remote;
 mod rocksky;
+mod session;
 mod state;
 
 use tauri::Manager;
@@ -52,6 +53,11 @@ pub fn run() {
 
             // NFC tag reader. Idles harmlessly when no reader is plugged in.
             app.manage(nfc::Nfc::start(app.handle()));
+
+            // OS media session + scrobbling driven off the engine, so both keep
+            // working while the window is minimized and the webview's timers
+            // are throttled to a standstill.
+            session::start(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -102,6 +108,9 @@ pub fn run() {
             rocksky::rocksky_feed,
             rocksky::rocksky_profile,
             rocksky::rocksky_search,
+            session::session_set_token,
+            session::session_set_source,
+            session::session_register_tracks,
             nfc::nfc_status,
             nfc::nfc_write,
             nfc::nfc_cancel_write,
