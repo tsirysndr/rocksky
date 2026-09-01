@@ -71,6 +71,33 @@ be resolved, playerd warns and falls back to the TOML bands. Note that with
 `sync_audio_settings = true` an equalizer section in the synced record still
 wins over the preset — set it to `false` to pin the preset.
 
+## Install
+
+One command — detects your OS and CPU architecture and installs the matching
+binary from the [latest playerd release](https://github.com/tsirysndr/rocksky/releases):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh | sh
+```
+
+Prebuilt targets: macOS arm64 (Apple Silicon), Linux x86_64 and Linux aarch64.
+Anything else (e.g. an Intel Mac) builds from source — see below. On Linux the
+binary needs ALSA at runtime (`sudo apt-get install libasound2` on
+Debian/Ubuntu).
+
+The script verifies the release's SHA-256 checksum and installs to
+`/usr/local/bin` when writable, else `~/.local/bin`. To customize:
+
+```sh
+# Pin a version
+curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh \
+  | PLAYERD_VERSION=v0.2.0 sh
+
+# Choose the install directory
+curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh \
+  | PLAYERD_INSTALL_DIR="$HOME/bin" sh
+```
+
 ## Building
 
 `playerd` is a standalone crate (it is excluded from the repo's root
