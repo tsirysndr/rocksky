@@ -12,6 +12,23 @@ Think "Spotify Connect target", but for Rocksky: run it on a headphone rig, a
 Raspberry Pi wired to the living-room amp, or a server piping audio into a
 socket — then control it from any Rocksky client.
 
+## Contents
+
+- [How it works](#how-it-works)
+- [Audio settings from your atproto repo](#audio-settings-from-your-atproto-repo)
+- [Install](#install)
+- [Building](#building)
+- [Authentication](#authentication)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+  - [Environment variables](#environment-variables)
+  - [CLI](#cli)
+- [Audio output](#audio-output)
+- [Local playback](#local-playback)
+- [What is (and isn't) remotely controllable](#what-is-and-isnt-remotely-controllable)
+- [Running as a service](#running-as-a-service)
+- [Troubleshooting](#troubleshooting)
+
 ## How it works
 
 - On start, `playerd` connects to `wss://api.rocksky.app/ws` and registers
