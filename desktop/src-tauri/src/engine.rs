@@ -163,16 +163,22 @@ impl Engine {
                     }
                 };
                 let mut dsp = DspState::default();
+                let mut smoother = BoundarySmoother::default();
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
                         Ok(EngineCmd::GetSnapshot(reply)) => {
-                            let _ = reply.send(snapshot_of(&player));
+                            let _ = reply.send(snapshot_of(&player, &mut smoother));
                         }
-                        Ok(cmd) => apply(&player, &mut dsp, cmd),
+                        Ok(cmd) => {
+                            if intentional_jump(&cmd) {
+                                smoother.expect_jump = true;
+                            }
+                            apply(&player, &mut dsp, cmd);
+                        }
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
-                    *shared.lock().unwrap() = snapshot_of(&player);
+                    *shared.lock().unwrap() = snapshot_of(&player, &mut smoother);
                 }
             })
             .map_err(|e| e.to_string())?;
@@ -230,9 +236,9 @@ impl Engine {
 }
 
 /// A snapshot computed right now. Runs on the engine thread only.
-fn snapshot_of(player: &Player) -> Snapshot {
+fn snapshot_of(player: &Player, smoother: &mut BoundarySmoother) -> Snapshot {
     Snapshot {
-        status: player.status(),
+        status: smoother.filter(player.status()),
         volume: player.volume(),
         queue: player
             .queue()
@@ -241,6 +247,138 @@ fn snapshot_of(player: &Player) -> Snapshot {
             .collect(),
         taken: Instant::now(),
     }
+}
+
+/// Smooths over the playback crate's decode-side track flip.
+///
+/// `Player::status()` reports the DECODER's track. With a deep decode-ahead
+/// buffer the index, duration and position all flip to the next track
+/// ~buffer_seconds before the current one audibly ends, and the position
+/// collapses to zero — measured: a 15s track "flipped" at wall 5.0s with the
+/// 10s buffer (see the desktop crate's examples/boundary_probe.rs). Read raw,
+/// every track change made the clock jump back several seconds, seconds early.
+///
+/// So until the audible track has run its duration out, keep reporting it:
+/// same index, same duration, position projected on the wall clock from the
+/// last pre-flip sample. Release at the old duration — the real boundary,
+/// where the raw position is ≈0 again and correct. Deliberate jumps (seek,
+/// skip, queue edits) are flagged by the command loop and pass through.
+#[derive(Default)]
+struct BoundarySmoother {
+    /// The next discontinuity is intentional (a transport/queue command).
+    expect_jump: bool,
+    last: Option<LastSample>,
+    hold: Option<Hold>,
+}
+
+struct LastSample {
+    index: Option<usize>,
+    position: Duration,
+    at: Instant,
+    duration: Duration,
+}
+
+struct Hold {
+    index: Option<usize>,
+    duration: Duration,
+    position: Duration,
+    since: Instant,
+}
+
+impl BoundarySmoother {
+    fn filter(&mut self, mut status: Status) -> Status {
+        let now = Instant::now();
+        let playing = status.state == PlaybackState::Playing;
+
+        if status.state == PlaybackState::Stopped {
+            self.last = None;
+            self.hold = None;
+            self.expect_jump = false;
+            return status;
+        }
+        if self.expect_jump {
+            self.expect_jump = false;
+            self.hold = None;
+            self.remember(&status, now);
+            return status;
+        }
+
+        if let Some(hold) = self.hold.as_mut() {
+            if playing {
+                hold.position += now - hold.since;
+            }
+            hold.since = now;
+            // The engine caught back up on the held track (a decode hiccup,
+            // not a flip) — believe it again.
+            let caught_up = status.index == hold.index
+                && status.position + Duration::from_millis(1000) >= hold.position;
+            // The audible track has run out; from here the raw status (≈0 into
+            // the next track) is the truth.
+            let ended = hold.position + Duration::from_millis(150) >= hold.duration;
+            if caught_up || ended {
+                self.hold = None;
+                self.remember(&status, now);
+                return status;
+            }
+            status.index = hold.index;
+            status.position = hold.position.min(hold.duration);
+            status.duration = hold.duration;
+            self.remember(&status, now);
+            return status;
+        }
+
+        if let Some(last) = &self.last {
+            let projected = if playing {
+                last.position + (now - last.at)
+            } else {
+                last.position
+            };
+            let dropped = status.position + Duration::from_millis(1000) < projected;
+            if playing && dropped && last.duration > Duration::ZERO {
+                let position = projected.min(last.duration);
+                self.hold = Some(Hold {
+                    index: last.index,
+                    duration: last.duration,
+                    position,
+                    since: now,
+                });
+                status.index = self.hold.as_ref().unwrap().index;
+                status.position = position;
+                status.duration = self.hold.as_ref().unwrap().duration;
+                self.remember(&status, now);
+                return status;
+            }
+        }
+        self.remember(&status, now);
+        status
+    }
+
+    fn remember(&mut self, status: &Status, at: Instant) {
+        self.last = Some(LastSample {
+            index: status.index,
+            position: status.position,
+            at,
+            duration: status.duration,
+        });
+    }
+}
+
+/// Commands after which a position/index discontinuity is the user's own doing
+/// and must pass through the smoother untouched.
+fn intentional_jump(cmd: &EngineCmd) -> bool {
+    matches!(
+        cmd,
+        EngineCmd::Seek(_)
+            | EngineCmd::SkipTo(_)
+            | EngineCmd::Next
+            | EngineCmd::Previous
+            | EngineCmd::Open(_)
+            | EngineCmd::SetQueue { .. }
+            | EngineCmd::OpenAt { .. }
+            | EngineCmd::Remove(_)
+            | EngineCmd::ClearQueue
+            | EngineCmd::Stop
+    )
 }
 
 fn insert_position(mode: u8, index: usize) -> InsertPosition {

@@ -116,16 +116,22 @@ impl Engine {
                         return;
                     }
                 };
+                let mut smoother = BoundarySmoother::default();
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
                         Ok(EngineCmd::GetSnapshot(reply)) => {
-                            let _ = reply.send(snapshot_of(&player));
+                            let _ = reply.send(snapshot_of(&player, &mut smoother));
                         }
-                        Ok(cmd) => apply(&player, cmd),
+                        Ok(cmd) => {
+                            if intentional_jump(&cmd) {
+                                smoother.expect_jump = true;
+                            }
+                            apply(&player, cmd);
+                        }
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
-                    *shared.lock().unwrap() = snapshot_of(&player);
+                    *shared.lock().unwrap() = snapshot_of(&player, &mut smoother);
                 }
             })
             .map_err(|e| e.to_string())?;
@@ -175,12 +181,141 @@ impl Engine {
 }
 
 /// A snapshot computed right now. Runs on the engine thread only.
-fn snapshot_of(player: &Player) -> Snapshot {
+fn snapshot_of(player: &Player, smoother: &mut BoundarySmoother) -> Snapshot {
     Snapshot {
-        status: player.status(),
+        status: smoother.filter(player.status()),
         volume: player.volume(),
         taken: Instant::now(),
     }
+}
+
+/// Smooths over the playback crate's decode-side track flip.
+///
+/// `Player::status()` reports the DECODER's track. With a deep decode-ahead
+/// buffer the index, duration and position all flip to the next track
+/// ~buffer_seconds before the current one audibly ends, and the position
+/// collapses to zero — measured: a 15s track "flipped" at wall 5.0s with the
+/// 10s buffer (see the desktop crate's examples/boundary_probe.rs). Read raw,
+/// every track change made the clock jump back several seconds, seconds early.
+///
+/// So until the audible track has run its duration out, keep reporting it:
+/// same index, same duration, position projected on the wall clock from the
+/// last pre-flip sample. Release at the old duration — the real boundary,
+/// where the raw position is ≈0 again and correct. Deliberate jumps (seek,
+/// skip, queue edits) are flagged by the command loop and pass through.
+#[derive(Default)]
+struct BoundarySmoother {
+    /// The next discontinuity is intentional (a transport/queue command).
+    expect_jump: bool,
+    last: Option<LastSample>,
+    hold: Option<Hold>,
+}
+
+struct LastSample {
+    index: Option<usize>,
+    position: Duration,
+    at: Instant,
+    duration: Duration,
+}
+
+struct Hold {
+    index: Option<usize>,
+    duration: Duration,
+    position: Duration,
+    since: Instant,
+}
+
+impl BoundarySmoother {
+    fn filter(&mut self, mut status: Status) -> Status {
+        let now = Instant::now();
+        let playing = status.state == PlaybackState::Playing;
+
+        if status.state == PlaybackState::Stopped {
+            self.last = None;
+            self.hold = None;
+            self.expect_jump = false;
+            return status;
+        }
+        if self.expect_jump {
+            self.expect_jump = false;
+            self.hold = None;
+            self.remember(&status, now);
+            return status;
+        }
+
+        if let Some(hold) = self.hold.as_mut() {
+            if playing {
+                hold.position += now - hold.since;
+            }
+            hold.since = now;
+            // The engine caught back up on the held track (a decode hiccup,
+            // not a flip) — believe it again.
+            let caught_up = status.index == hold.index
+                && status.position + Duration::from_millis(1000) >= hold.position;
+            // The audible track has run out; from here the raw status (≈0 into
+            // the next track) is the truth.
+            let ended = hold.position + Duration::from_millis(150) >= hold.duration;
+            if caught_up || ended {
+                self.hold = None;
+                self.remember(&status, now);
+                return status;
+            }
+            status.index = hold.index;
+            status.position = hold.position.min(hold.duration);
+            status.duration = hold.duration;
+            self.remember(&status, now);
+            return status;
+        }
+
+        if let Some(last) = &self.last {
+            let projected = if playing {
+                last.position + (now - last.at)
+            } else {
+                last.position
+            };
+            let dropped = status.position + Duration::from_millis(1000) < projected;
+            if playing && dropped && last.duration > Duration::ZERO {
+                let position = projected.min(last.duration);
+                self.hold = Some(Hold {
+                    index: last.index,
+                    duration: last.duration,
+                    position,
+                    since: now,
+                });
+                status.index = self.hold.as_ref().unwrap().index;
+                status.position = position;
+                status.duration = self.hold.as_ref().unwrap().duration;
+                self.remember(&status, now);
+                return status;
+            }
+        }
+        self.remember(&status, now);
+        status
+    }
+
+    fn remember(&mut self, status: &Status, at: Instant) {
+        self.last = Some(LastSample {
+            index: status.index,
+            position: status.position,
+            at,
+            duration: status.duration,
+        });
+    }
+}
+
+/// Commands after which a position/index discontinuity is the user's own doing
+/// and must pass through the smoother untouched.
+fn intentional_jump(cmd: &EngineCmd) -> bool {
+    matches!(
+        cmd,
+        EngineCmd::Seek(_)
+            | EngineCmd::SkipTo(_)
+            | EngineCmd::Next
+            | EngineCmd::Previous
+            | EngineCmd::OpenAt { .. }
+            | EngineCmd::Remove(_)
+            | EngineCmd::Resume
+    )
 }
 
 fn apply(player: &Player, cmd: EngineCmd) {
@@ -244,5 +379,98 @@ fn apply(player: &Player, cmd: EngineCmd) {
                 None => tracing::debug!("nothing to resume"),
             };
         }
+    }
+}
+
+#[cfg(test)]
+mod boundary_tests {
+    use super::*;
+    use rockbox_playback::{PlaybackState, RepeatMode};
+
+    fn status(state: PlaybackState, index: Option<usize>, pos_ms: u64, dur_ms: u64) -> Status {
+        Status {
+            state,
+            index,
+            position: Duration::from_millis(pos_ms),
+            duration: Duration::from_millis(dur_ms),
+            metadata: None,
+            queue_len: 2,
+            shuffle: false,
+            repeat: RepeatMode::Off,
+        }
+    }
+
+    /// The measured pathology: mid-track, the crate flips to the next track's
+    /// index with position ≈0. The smoother must keep reporting the audible
+    /// track — same index, same duration, position still advancing.
+    #[test]
+    fn decode_side_flip_is_held() {
+        let mut sm = BoundarySmoother::default();
+        sm.filter(status(PlaybackState::Playing, Some(0), 5_000, 15_000));
+        std::thread::sleep(Duration::from_millis(30));
+        let out = sm.filter(status(PlaybackState::Playing, Some(1), 0, 12_000));
+        assert_eq!(out.index, Some(0), "index must stay on the audible track");
+        assert_eq!(out.duration.as_millis(), 15_000, "duration must stay too");
+        assert!(
+            out.position.as_millis() >= 5_000,
+            "position went backwards: {}ms",
+            out.position.as_millis()
+        );
+    }
+
+    /// Once the held track's duration runs out, the raw status (≈0 into the
+    /// next track) is the truth and must be released to.
+    #[test]
+    fn hold_releases_at_the_audible_boundary() {
+        let mut sm = BoundarySmoother::default();
+        sm.filter(status(PlaybackState::Playing, Some(0), 14_950, 15_000));
+        std::thread::sleep(Duration::from_millis(30));
+        // Flip arrives; held for the last few ms...
+        let held = sm.filter(status(PlaybackState::Playing, Some(1), 0, 12_000));
+        assert_eq!(held.index, Some(0));
+        std::thread::sleep(Duration::from_millis(120));
+        // ...and released once the old duration is spent.
+        let out = sm.filter(status(PlaybackState::Playing, Some(1), 150, 12_000));
+        assert_eq!(out.index, Some(1), "must release at the boundary");
+        assert_eq!(out.duration.as_millis(), 12_000);
+    }
+
+    /// A user seek backwards is intentional and must NOT be held.
+    #[test]
+    fn an_intentional_jump_passes_through() {
+        let mut sm = BoundarySmoother::default();
+        sm.filter(status(PlaybackState::Playing, Some(0), 60_000, 180_000));
+        sm.expect_jump = true; // what the command loop sets on Seek
+        let out = sm.filter(status(PlaybackState::Playing, Some(0), 5_000, 180_000));
+        assert_eq!(out.position.as_millis(), 5_000, "seek must be followed");
+    }
+
+    /// Pausing while held freezes the projected position.
+    #[test]
+    fn pause_freezes_a_hold() {
+        let mut sm = BoundarySmoother::default();
+        sm.filter(status(PlaybackState::Playing, Some(0), 5_000, 15_000));
+        std::thread::sleep(Duration::from_millis(20));
+        sm.filter(status(PlaybackState::Playing, Some(1), 0, 12_000));
+        let a = sm
+            .filter(status(PlaybackState::Paused, Some(1), 0, 12_000))
+            .position;
+        std::thread::sleep(Duration::from_millis(40));
+        let b = sm
+            .filter(status(PlaybackState::Paused, Some(1), 0, 12_000))
+            .position;
+        assert_eq!(a.as_millis(), b.as_millis(), "held clock ran while paused");
+    }
+
+    /// Stopped clears everything — the next play starts from the raw truth.
+    #[test]
+    fn stopped_resets() {
+        let mut sm = BoundarySmoother::default();
+        sm.filter(status(PlaybackState::Playing, Some(0), 5_000, 15_000));
+        sm.filter(status(PlaybackState::Playing, Some(1), 0, 12_000)); // held
+        sm.filter(status(PlaybackState::Stopped, None, 0, 0));
+        let out = sm.filter(status(PlaybackState::Playing, Some(1), 100, 12_000));
+        assert_eq!(out.index, Some(1));
+        assert_eq!(out.position.as_millis(), 100);
     }
 }

@@ -1,7 +1,9 @@
 mod cache;
 mod cards;
-mod dsp;
-mod engine;
+// dsp/engine are pub so examples/boundary_probe.rs can drive the shipped
+// snapshot path (smoother included) across a real track boundary.
+pub mod dsp;
+pub mod engine;
 mod login;
 mod media;
 mod nfc;
