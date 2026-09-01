@@ -51,6 +51,10 @@ pub enum EngineCmd {
     SetVolume(f32),
     SetShuffle(bool),
     SetRepeat(RepeatMode),
+    /// Restore the persisted queue + position from the resume file. Cues the
+    /// track paused with the seek deferred until it opens — a bare `Seek` would
+    /// be dropped, since there is no decoder open yet.
+    Resume,
 }
 
 /// A `Send + Clone` snapshot of the engine, refreshed by the engine thread.
@@ -185,5 +189,16 @@ fn apply(player: &Player, cmd: EngineCmd) {
         EngineCmd::SetVolume(volume) => player.set_volume(volume),
         EngineCmd::SetShuffle(enabled) => player.set_shuffle(enabled),
         EngineCmd::SetRepeat(mode) => player.set_repeat(mode),
+        EngineCmd::Resume => {
+            match player.resume() {
+                Some(state) => tracing::info!(
+                    tracks = state.tracks.len(),
+                    index = state.index,
+                    elapsed_ms = state.elapsed.as_millis() as u64,
+                    "resumed queue"
+                ),
+                None => tracing::debug!("nothing to resume"),
+            };
+        }
     }
 }

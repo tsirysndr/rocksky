@@ -8,7 +8,9 @@
 //! the miniplayer device picker.
 
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -19,6 +21,7 @@ use rocksky_sdk::{
 
 use crate::engine::{Engine, EngineCmd};
 use crate::resolver::Resolver;
+use crate::resume;
 use crate::settings::{self, Baseline};
 
 pub struct Shared {
@@ -28,20 +31,52 @@ pub struct Shared {
     /// the same baseline the atproto settings record does.
     pub audio_baseline: Baseline,
     pub queue_meta: Mutex<Vec<RemoteQueueItem>>,
+    /// Every URI this daemon has enqueued, with the item it was enqueued as.
+    /// Keyed by URI rather than position because the engine's queue is what
+    /// gets persisted, and it reorders (shuffle) and shrinks (remove) freely.
+    pub uri_meta: Mutex<HashMap<String, RemoteQueueItem>>,
+    /// Where the metadata sidecar lives; empty disables persistence.
+    pub sidecar_path: Option<PathBuf>,
     /// Hash of the last queue push, so the full track list is only re-sent
     /// when the queue or the current index actually changes.
     queue_sig: Mutex<u64>,
 }
 
 impl Shared {
-    pub fn new(engine: Arc<Engine>, remote: Arc<RemotePlayer>, audio_baseline: Baseline) -> Self {
+    pub fn new(
+        engine: Arc<Engine>,
+        remote: Arc<RemotePlayer>,
+        audio_baseline: Baseline,
+        sidecar_path: Option<PathBuf>,
+    ) -> Self {
         Shared {
             engine,
             remote,
             audio_baseline,
             queue_meta: Mutex::new(Vec::new()),
+            uri_meta: Mutex::new(HashMap::new()),
+            sidecar_path,
             queue_sig: Mutex::new(0),
         }
+    }
+
+    /// Remember what each URI was enqueued as, and persist it so a restart can
+    /// rebuild the queue's metadata and re-mint expired stream URLs.
+    pub fn remember_uris(&self, pairs: impl IntoIterator<Item = (String, RemoteQueueItem)>) {
+        let Some(path) = &self.sidecar_path else {
+            return;
+        };
+        let sidecar = {
+            let mut uri_meta = self.uri_meta.lock().unwrap();
+            uri_meta.extend(pairs);
+            resume::Sidecar {
+                items: uri_meta
+                    .iter()
+                    .map(|(uri, item)| (uri.clone(), item.into()))
+                    .collect(),
+            }
+        };
+        sidecar.save(path);
     }
 }
 
@@ -102,6 +137,13 @@ async fn apply(shared: &Shared, resolver: &mut Resolver, cmd: RemoteCommand) {
                 return;
             }
             let uris: Vec<String> = playable.iter().map(|(_, uri)| uri.clone()).collect();
+            // Record before the move: this is the only point where the URI the
+            // engine will hold and the item it means are both in hand.
+            shared.remember_uris(
+                playable
+                    .iter()
+                    .map(|(item, uri)| (uri.clone(), item.clone())),
+            );
             let items: Vec<RemoteQueueItem> = playable.into_iter().map(|(t, _)| t).collect();
             let mut meta = shared.queue_meta.lock().unwrap();
             match mode.as_str() {

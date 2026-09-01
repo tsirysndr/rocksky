@@ -8,6 +8,7 @@ mod config;
 mod engine;
 mod remote;
 mod resolver;
+mod resume;
 mod scrobble;
 mod settings;
 
@@ -117,16 +118,56 @@ async fn main() -> Result<()> {
         RemotePlayerConfig::new(token.clone(), name).url(config.ws_url.clone()),
     ));
 
-    let shared = Arc::new(Shared::new(engine, remote.clone(), audio_baseline));
+    let sidecar_path = config.resume.then(|| config.resume_sidecar_path());
+    let shared = Arc::new(Shared::new(
+        engine,
+        remote.clone(),
+        audio_baseline,
+        sidecar_path,
+    ));
 
     if !uris.is_empty() {
+        // Explicit paths win over a restore: the user asked for these.
         tracing::info!("queueing {} local track(s)", uris.len());
+        shared.remember_uris(uris.iter().cloned().zip(items.iter().cloned()));
         *shared.queue_meta.lock().unwrap() = items;
         shared.engine.send(EngineCmd::OpenAt {
             paths: uris,
             start_index: 0,
             shuffle: config.shuffle,
         });
+    } else if config.resume {
+        let mut resolver = Resolver::new(&config, token.clone());
+        match resume::restore(
+            &config.resume_file_path(),
+            &config.resume_sidecar_path(),
+            &mut resolver,
+        )
+        .await
+        {
+            Some(restored) => {
+                tracing::info!(
+                    "resuming {} track(s) at #{} ({}s in)",
+                    restored.items.len(),
+                    restored.index,
+                    restored.elapsed_ms / 1000
+                );
+                // Re-record: the URIs are freshly minted, so the sidecar's old
+                // keys no longer match what the engine is about to persist.
+                shared.remember_uris(
+                    restored
+                        .uris
+                        .iter()
+                        .cloned()
+                        .zip(restored.items.iter().cloned()),
+                );
+                *shared.queue_meta.lock().unwrap() = restored.items;
+                // Cued paused — a daemon that started blaring music on boot
+                // would be a surprise, and a controller is one tap away.
+                shared.engine.send(EngineCmd::Resume);
+            }
+            None => tracing::debug!("no queue to resume"),
+        }
     }
 
     if config.scrobble {

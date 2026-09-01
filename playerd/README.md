@@ -26,6 +26,8 @@ socket — then control it from any Rocksky client.
 - `playerd` pushes now-playing (title, artist, album, codec, sample rate,
   position), transport state, and the queue back every couple of seconds, so
   the miniplayer stays live.
+- The queue and the exact position survive a restart (`resume`, on by default):
+  the daemon comes back cued paused where it left off.
 - If no other device is primary, the server adopts `playerd` as the primary
   device: its now-playing drives your public profile status. That stream only
   writes the status record, though — scrobbles come from `playerd` itself (see
@@ -156,6 +158,14 @@ audio_settings_refresh_seconds = 60
 # 4 minutes (whichever comes first). On by default — nothing is watching a
 # headless player, so there is no UI to make the decision for it.
 scrobble = true
+
+# Remember the queue and the exact position, and pick up there on the next
+# start — cued PAUSED, never auto-playing. Stream URLs carry a short-lived
+# token, so remote tracks are re-resolved from their ids on restore; entries
+# that no longer resolve (a deleted upload, a moved local file) are dropped.
+# Passing paths on the command line skips the restore.
+resume = true
+resume_path = "~/.rocksky/playerd-queue.m3u8"  # + a .meta.json sidecar beside it
 
 # Local DSP baseline; fields present in the synced atproto record win.
 [equalizer]
