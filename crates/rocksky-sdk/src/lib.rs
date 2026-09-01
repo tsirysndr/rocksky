@@ -75,6 +75,8 @@ pub mod jetstream;
 pub mod library;
 pub mod namespaces;
 #[cfg(feature = "remote-player")]
+pub mod remote_audio;
+#[cfg(feature = "remote-player")]
 pub mod remote_controller;
 #[cfg(feature = "remote-player")]
 pub mod remote_player;
@@ -99,6 +101,11 @@ pub use jetstream::JetstreamConfig;
 pub use library::{
     Library, LibraryPlaylist, LibraryPlaylistMutation, LibraryPlaylistResponse, LibraryPlaylists,
     LibraryPlaylistsResponse, LibrarySong,
+};
+#[cfg(feature = "remote-player")]
+pub use remote_audio::{
+    RemoteAudioSettings, RemoteCompressor, RemoteCrossfade, RemoteCrossfeed, RemoteEqBand,
+    RemoteEqualizer, RemotePbe, RemoteRepeat, RemoteReplayGain, RemoteSurround, RemoteTone,
 };
 #[cfg(feature = "remote-player")]
 pub use remote_controller::{RemoteController, RemoteControllerConfig, RemoteDevice, RemoteEvent};

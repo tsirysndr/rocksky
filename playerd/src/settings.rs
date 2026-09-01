@@ -20,8 +20,13 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use rockbox_playback::{
-    ChannelMode, CrossfadeMode, CrossfadeSettings, EqBand, Equalizer, MixMode, PlayerConfig,
-    ReplayGainMode, ToneControls, EQ_BAND_FREQUENCIES,
+    BassEnhancement, ChannelMode, Compressor, CrossfadeMode, CrossfadeSettings, Crossfeed,
+    CrossfeedMode, EqBand, Equalizer, MixMode, PlayerConfig, ReplayGainMode, Surround,
+    ToneControls, EQ_BAND_FREQUENCIES,
+};
+use rocksky_sdk::{
+    RemoteAudioSettings, RemoteCrossfade, RemoteEqBand, RemoteEqualizer, RemoteReplayGain,
+    RemoteTone,
 };
 use serde::Deserialize;
 
@@ -172,7 +177,11 @@ pub async fn fetch_preset(
             .join(", ");
         bail!(
             "equalizer preset not found (available: {})",
-            if available.is_empty() { "none" } else { available.as_str() }
+            if available.is_empty() {
+                "none"
+            } else {
+                available.as_str()
+            }
         );
     };
     let equalizer = Equalizer {
@@ -247,8 +256,55 @@ impl Baseline {
     }
 }
 
-/// Apply the sections the record specifies, each overlaid on the baseline.
-fn apply(engine: &Engine, baseline: &Baseline, view: &AudioSettingsView) {
+impl From<&AudioSettingsView> for RemoteAudioSettings {
+    fn from(v: &AudioSettingsView) -> Self {
+        RemoteAudioSettings {
+            equalizer: v.equalizer.as_ref().map(|e| RemoteEqualizer {
+                enabled: e.enabled,
+                precut: e.precut,
+                bands: e.bands.as_ref().map(|bands| {
+                    bands
+                        .iter()
+                        .map(|b| RemoteEqBand {
+                            frequency: b.frequency,
+                            gain: b.gain,
+                            q: b.q,
+                        })
+                        .collect()
+                }),
+            }),
+            tone: v.tone.as_ref().map(|t| RemoteTone {
+                bass: t.bass,
+                treble: t.treble,
+                balance: t.balance,
+                channels: t.channels.clone(),
+                ..Default::default()
+            }),
+            crossfade: v.crossfade.as_ref().map(|c| RemoteCrossfade {
+                mode: c.mode.clone(),
+                fade_in_delay: c.fade_in_delay,
+                fade_in_duration: c.fade_in_duration,
+                fade_out_delay: c.fade_out_delay,
+                fade_out_duration: c.fade_out_duration,
+                fade_out_mix_mode: c.fade_out_mix_mode.clone(),
+            }),
+            replay_gain: v.replay_gain.as_ref().map(|r| RemoteReplayGain {
+                mode: r.mode.clone(),
+                preamp: r.preamp,
+                prevent_clipping: r.prevent_clipping,
+            }),
+            ..Default::default()
+        }
+    }
+}
+
+/// Apply the sections the document specifies, each overlaid on the baseline.
+///
+/// Shared by the atproto settings record and the remote `audio_settings`
+/// command — same units, same mappings, so a controller tweaking the EQ and the
+/// user's saved record can never disagree about what a value means. Sections
+/// this engine has no control for are simply not read.
+pub fn apply(engine: &Engine, baseline: &Baseline, view: &RemoteAudioSettings) {
     if let Some(eq) = &view.equalizer {
         let mut equalizer = baseline.equalizer.clone();
         if let Some(enabled) = eq.enabled {
@@ -284,6 +340,12 @@ fn apply(engine: &Engine, baseline: &Baseline, view: &AudioSettingsView) {
         if let Some(treble) = tone.treble {
             controls.treble_db = treble;
         }
+        if let Some(hz) = tone.bass_cutoff {
+            controls.bass_cutoff_hz = hz;
+        }
+        if let Some(hz) = tone.treble_cutoff {
+            controls.treble_cutoff_hz = hz;
+        }
         engine.send(EngineCmd::SetTone(controls));
         if let Some(balance) = tone.balance {
             engine.send(EngineCmd::SetBalance(balance.clamp(-100, 100)));
@@ -294,9 +356,13 @@ fn apply(engine: &Engine, baseline: &Baseline, view: &AudioSettingsView) {
                 "monoLeft" => ChannelMode::MonoLeft,
                 "monoRight" => ChannelMode::MonoRight,
                 "karaoke" => ChannelMode::Karaoke,
-                "wide" => ChannelMode::Custom,
+                "wide" | "custom" => ChannelMode::Custom,
+                "swap" => ChannelMode::Swap,
                 _ => ChannelMode::Stereo,
             }));
+        }
+        if let Some(percent) = tone.stereo_width {
+            engine.send(EngineCmd::SetStereoWidth(percent));
         }
     }
 
@@ -355,6 +421,60 @@ fn apply(engine: &Engine, baseline: &Baseline, view: &AudioSettingsView) {
             noclip,
         });
     }
+
+    if let Some(cf) = &view.crossfeed {
+        let mut crossfeed = Crossfeed::default();
+        if let Some(mode) = &cf.mode {
+            crossfeed.mode = match mode.as_str() {
+                "meier" => CrossfeedMode::Meier,
+                "custom" => CrossfeedMode::Custom,
+                _ => CrossfeedMode::Off,
+            };
+        }
+        if let Some(gain) = cf.direct_gain {
+            crossfeed.direct_gain = gain;
+        }
+        if let Some(gain) = cf.cross_gain {
+            crossfeed.cross_gain = gain;
+        }
+        if let Some(gain) = cf.high_frequency_gain {
+            crossfeed.high_freq_gain = gain;
+        }
+        if let Some(hz) = cf.cutoff {
+            crossfeed.high_freq_cutoff = hz;
+        }
+        engine.send(EngineCmd::SetCrossfeed(crossfeed));
+    }
+
+    if let Some(c) = &view.compressor {
+        let d = Compressor::default();
+        engine.send(EngineCmd::SetCompressor(Compressor {
+            threshold_db: c.threshold.unwrap_or(d.threshold_db),
+            makeup_gain: c.makeup.unwrap_or(d.makeup_gain),
+            ratio: c.ratio.unwrap_or(d.ratio),
+            knee: c.knee.unwrap_or(d.knee),
+            attack_ms: c.attack.unwrap_or(d.attack_ms),
+            release_ms: c.release.unwrap_or(d.release_ms),
+        }));
+    }
+
+    if let Some(sr) = &view.surround {
+        let d = Surround::default();
+        engine.send(EngineCmd::SetSurround(Surround {
+            delay_ms: sr.delay.unwrap_or(d.delay_ms),
+            balance: sr.balance.unwrap_or(d.balance),
+            cutoff_low_hz: sr.fx1.unwrap_or(d.cutoff_low_hz),
+            cutoff_high_hz: sr.fx2.unwrap_or(d.cutoff_high_hz),
+        }));
+    }
+
+    if let Some(pbe) = &view.pbe {
+        let d = BassEnhancement::default();
+        engine.send(EngineCmd::SetBassEnhancement(BassEnhancement {
+            strength: pbe.strength.unwrap_or(d.strength),
+            precut: pbe.precut.unwrap_or(d.precut),
+        }));
+    }
 }
 
 async fn fetch(
@@ -404,7 +524,7 @@ pub async fn sync_loop(
                         updated_at = view.updated_at.as_deref().unwrap_or("unknown"),
                         "applying audio settings from atproto repo"
                     );
-                    apply(&engine, &baseline, &view);
+                    apply(&engine, &baseline, &(&view).into());
                     last = Some(view);
                 }
             }

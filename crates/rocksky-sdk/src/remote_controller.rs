@@ -40,6 +40,7 @@ use tokio::sync::{mpsc, watch, Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 
+use crate::remote_audio::{RemoteAudioSettings, RemoteRepeat};
 use crate::remote_player::{RemoteNowPlaying, RemoteQueueItem, RemoteStatus, DEFAULT_REMOTE_WS};
 
 const HEARTBEAT: Duration = Duration::from_secs(10);
@@ -222,6 +223,35 @@ impl RemoteController {
             "startIndex": start_index,
         });
         self.command("enqueue", target, Some(args));
+    }
+
+    /// Turn queue shuffle on or off. Ignored by a player without shuffle.
+    pub fn set_shuffle(&self, target: Option<String>, enabled: bool) {
+        self.command("shuffle", target, Some(json!({ "enabled": enabled })));
+    }
+
+    /// Set the queue repeat mode. Ignored by a player without repeat.
+    pub fn set_repeat(&self, target: Option<String>, mode: RemoteRepeat) {
+        self.command("repeat", target, Some(json!({ "mode": mode.as_wire() })));
+    }
+
+    /// Set output volume, 0.0..=1.0. Ignored by a player without volume control.
+    pub fn set_volume(&self, target: Option<String>, volume: f32) {
+        self.command(
+            "volume",
+            target,
+            Some(json!({ "volume": volume.clamp(0.0, 1.0) })),
+        );
+    }
+
+    /// Apply a partial audio-settings document. Every section is optional and a
+    /// player applies only the ones its engine implements, so this is safe to
+    /// send verbatim to any device.
+    pub fn set_audio_settings(&self, target: Option<String>, settings: &RemoteAudioSettings) {
+        let Ok(args) = serde_json::to_value(settings) else {
+            return;
+        };
+        self.command("audio_settings", target, Some(args));
     }
 
     /// Send an arbitrary command (escape hatch).
@@ -492,6 +522,17 @@ fn track_from_value(v: &Value) -> RemoteNowPlaying {
             .get("sample_rate")
             .and_then(|x| x.as_u64())
             .map(|n| n as u32),
+        // Absent means the player has no such control — keep it None so a
+        // controller can hide the toggle instead of rendering a wrong default.
+        shuffle: v.get("shuffle").and_then(|x| x.as_bool()),
+        repeat: v
+            .get("repeat")
+            .and_then(|x| x.as_str())
+            .map(RemoteRepeat::from_wire),
+        volume: v
+            .get("volume")
+            .and_then(|x| x.as_f64())
+            .map(|n| n.clamp(0.0, 1.0) as f32),
     }
 }
 

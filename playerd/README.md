@@ -19,14 +19,17 @@ socket — then control it from any Rocksky client.
   and every controller (web miniplayer, desktop app, mobile) sees it in its
   device list.
 - Controllers send commands — play, pause, next, previous, seek, queue jump,
-  queue remove, and enqueue (play now / play next / add to queue, with
-  shuffle and start index). `playerd` applies them to the local engine.
+  queue remove, enqueue (play now / play next / add to queue, with shuffle and
+  start index), shuffle, repeat, volume, and the full DSP surface via
+  `audio_settings` (EQ, tone, crossfade, ReplayGain, crossfeed, compressor,
+  surround, PBE). `playerd` applies them all to the local engine.
 - `playerd` pushes now-playing (title, artist, album, codec, sample rate,
   position), transport state, and the queue back every couple of seconds, so
   the miniplayer stays live.
 - If no other device is primary, the server adopts `playerd` as the primary
-  device: its now-playing drives your public profile status and **scrobbles
-  are recorded server-side** — no extra scrobbler needed.
+  device: its now-playing drives your public profile status. That stream only
+  writes the status record, though — scrobbles come from `playerd` itself (see
+  `scrobble` below), which submits at half the track or 4 minutes.
 - Enqueued tracks resolve to audio like this:
   1. tracks you uploaded to Rocksky stream from
      `https://api.rocksky.app/uploads/<id>/stream` (via a short-lived stream
@@ -148,6 +151,11 @@ buffer_seconds = 10.0 # decode-ahead cushion; keep >= 10 for network streams
 # refreshed periodically so web/desktop EQ tweaks reach the daemon live.
 sync_audio_settings = true
 audio_settings_refresh_seconds = 60
+
+# Scrobble what this daemon plays to your Rocksky account, at half the track or
+# 4 minutes (whichever comes first). On by default — nothing is watching a
+# headless player, so there is no UI to make the decision for it.
+scrobble = true
 
 # Local DSP baseline; fields present in the synced atproto record win.
 [equalizer]

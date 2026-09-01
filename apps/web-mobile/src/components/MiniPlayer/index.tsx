@@ -250,16 +250,27 @@ export default function MiniPlayer() {
     activeDeviceIdRef.current = activeDeviceId;
   }, [nowPlaying, player, liked, queue, queueIndex, devices, activeDeviceId]);
 
-  // Publish shuffle/repeat to the engine. No player/ready guard: publish*
-  // remembers the value and (re)applies it on the engine's next init, so
-  // repeat "all" set before the first play still loops the queue.
+  // Publish shuffle/repeat to whichever player is the source. For the local
+  // engine there is no player/ready guard: publish* remembers the value and
+  // (re)applies it on the engine's next init, so repeat "all" set before the
+  // first play still loops the queue.
   useEffect(() => {
+    if (playerRef.current === "rockbox" && activeDeviceIdRef.current) {
+      sendDeviceCommand("shuffle", { enabled: shuffle });
+      return;
+    }
     publishShuffle(shuffle);
-  }, [shuffle]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shuffle, player, activeDeviceId]);
 
   useEffect(() => {
+    if (playerRef.current === "rockbox" && activeDeviceIdRef.current) {
+      sendDeviceCommand("repeat", { mode: repeatMode === "one" ? "one" : repeatMode === "all" ? "all" : "off" });
+      return;
+    }
     publishRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
-  }, [repeatMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repeatMode, player, activeDeviceId]);
 
   /** Ensure the wasm engine has the current queue loaded, then return it.
    *  Used when (re)activating the upload player — e.g. after a restore or when

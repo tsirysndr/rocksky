@@ -12,10 +12,10 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rockbox_playback::PlaybackState;
+use rockbox_playback::{PlaybackState, RepeatMode};
 use rocksky_sdk::{
     RemoteCommand, RemoteNowPlaying, RemotePlayer, RemotePlayerConfig, RemoteQueueItem,
-    RemoteStatus, DEFAULT_REMOTE_WS,
+    RemoteRepeat, RemoteStatus, DEFAULT_REMOTE_WS,
 };
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -323,13 +323,28 @@ fn apply(
                 }
             }
         }
+        RemoteCommand::SetShuffle { enabled } => engine.send(EngineCmd::SetShuffle(enabled)),
+        RemoteCommand::SetRepeat { mode } => engine.send(EngineCmd::SetRepeat(match mode {
+            RemoteRepeat::All => RepeatMode::All,
+            RemoteRepeat::One => RepeatMode::One,
+            RemoteRepeat::Off => RepeatMode::Off,
+        })),
+        RemoteCommand::SetVolume { volume } => {
+            engine.send(EngineCmd::SetVolume(volume.clamp(0.0, 1.0)))
+        }
+        RemoteCommand::SetAudioSettings(audio) => {
+            for cmd in crate::dsp::remote_audio_commands(&audio) {
+                engine.send(cmd);
+            }
+        }
     }
     push_state(&state, remote);
 }
 
 /// Push now-playing + transport state + queue to controllers.
 pub fn push_state(state: &AppState, remote: &RemotePlayer) {
-    let status = state.engine.snapshot().status;
+    let snapshot = state.engine.snapshot();
+    let status = snapshot.status;
     let meta = state.queue_meta.lock().unwrap();
     let current = status.index.and_then(|i| meta.get(i));
 
@@ -337,6 +352,15 @@ pub fn push_state(state: &AppState, remote: &RemotePlayer) {
         duration_ms: status.duration.as_millis() as u64,
         elapsed_ms: status.position.as_millis() as u64,
         is_playing: status.state == PlaybackState::Playing,
+        // Advertised because this engine has all three — that is the signal a
+        // controller uses to decide whether to show the controls at all.
+        shuffle: Some(status.shuffle),
+        repeat: Some(match status.repeat {
+            RepeatMode::All => RemoteRepeat::All,
+            RepeatMode::One => RemoteRepeat::One,
+            _ => RemoteRepeat::Off,
+        }),
+        volume: Some(snapshot.volume),
         ..Default::default()
     };
     if let Some(m) = &status.metadata {

@@ -20,7 +20,13 @@
  * ```
  */
 
-import { DEFAULT_REMOTE_WS, type RemoteNowPlaying, type RemoteQueueItem } from "./remote-player.js";
+import {
+  DEFAULT_REMOTE_WS,
+  type RemoteAudioSettings,
+  type RemoteNowPlaying,
+  type RemoteQueueItem,
+  type RemoteRepeat,
+} from "./remote-player.js";
 
 export { DEFAULT_REMOTE_WS, type RemoteNowPlaying, type RemoteQueueItem };
 
@@ -184,6 +190,35 @@ export class RemoteController {
       shuffle,
       startIndex,
     });
+  }
+
+  /** Turn queue shuffle on/off. A player without shuffle ignores it. */
+  setShuffle(target: string | undefined, enabled: boolean): void {
+    this.command("shuffle", target, { enabled });
+  }
+
+  /** Set the queue repeat mode. A player without repeat ignores it. */
+  setRepeat(target: string | undefined, mode: RemoteRepeat): void {
+    this.command("repeat", target, { mode });
+  }
+
+  /** Set output volume, 0–1. A player without volume control ignores it. */
+  setVolume(target: string | undefined, volume: number): void {
+    this.command("volume", target, {
+      volume: Math.min(1, Math.max(0, volume)),
+    });
+  }
+
+  /**
+   * Apply a partial audio-settings document. Safe to send verbatim to any
+   * device: every section is optional and a player applies only the ones its
+   * engine implements, so there is nothing to probe or negotiate first.
+   */
+  setAudioSettings(
+    target: string | undefined,
+    settings: RemoteAudioSettings,
+  ): void {
+    this.command("audio_settings", target, settings as unknown as Json);
   }
 
   /** Send an arbitrary command (escape hatch). */

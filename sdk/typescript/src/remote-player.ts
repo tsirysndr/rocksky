@@ -41,6 +41,14 @@ export interface RemoteNowPlaying {
   codec?: string;
   /** Audio sample rate in Hz (e.g. 44100), when the player knows it. */
   sampleRate?: number;
+  /** Queue shuffle state. Leave undefined when the player has no shuffle —
+   *  that is how a controller tells "no such control" from "off", and hides
+   *  the toggle instead of rendering it wrong. */
+  shuffle?: boolean;
+  /** Queue repeat mode. Undefined when the player has none. */
+  repeat?: RemoteRepeat;
+  /** Output volume 0–1. Undefined when the player has no volume control. */
+  volume?: number;
   // The following are filled in by the server on the broadcast a controller
   // receives (a player leaves them unset — the server resolves them from the
   // library). They let a controller UI deep-link and show like state.
@@ -54,6 +62,93 @@ export interface RemoteNowPlaying {
   sha256?: string;
   /** Whether the current user has liked this track. */
   liked?: boolean;
+}
+
+/** Queue repeat mode. */
+export type RemoteRepeat = "off" | "all" | "one";
+
+/**
+ * A partial audio-settings document (protocol §6.1).
+ *
+ * Every section, and every field in it, is optional — a controller sends only
+ * what it wants changed, and a player applies only the sections its engine
+ * implements and ignores the rest. Units are the lexicon's: tenths of a dB for
+ * EQ gain/precut and ReplayGain preamp, Q x10, milliseconds for fade times.
+ */
+export interface RemoteAudioSettings {
+  equalizer?: {
+    enabled?: boolean;
+    /** Tenths of a dB, <= 0. */
+    precut?: number;
+    /** Positional — index 0 is the lowest band. */
+    bands?: { frequency: number; gain: number; q: number }[];
+  };
+  tone?: {
+    /** Whole dB. */
+    bass?: number;
+    /** Whole dB. */
+    treble?: number;
+    bassCutoff?: number;
+    trebleCutoff?: number;
+    /** Percent, -100 (left) to 100 (right). */
+    balance?: number;
+    channels?:
+      | "stereo"
+      | "mono"
+      | "custom"
+      | "monoLeft"
+      | "monoRight"
+      | "karaoke"
+      | "swap";
+    /** Percent. Only meaningful with `channels: "custom"`. */
+    stereoWidth?: number;
+  };
+  crossfade?: {
+    mode?: "off" | "enabled" | "shuffle" | "albumChange" | "trackChange";
+    /** Milliseconds. */
+    fadeInDelay?: number;
+    fadeInDuration?: number;
+    fadeOutDelay?: number;
+    fadeOutDuration?: number;
+    fadeOutMixMode?: "crossfade" | "mix";
+  };
+  replayGain?: {
+    mode?: "off" | "track" | "album" | "trackIfShuffling";
+    /** Tenths of a dB. */
+    preamp?: number;
+    preventClipping?: boolean;
+  };
+  crossfeed?: {
+    mode?: "off" | "meier" | "custom";
+    /** Tenths of a dB. */
+    directGain?: number;
+    crossGain?: number;
+    highFrequencyGain?: number;
+    /** Hz. */
+    cutoff?: number;
+  };
+  compressor?: {
+    threshold?: number;
+    makeup?: number;
+    ratio?: number;
+    knee?: number;
+    /** Milliseconds. */
+    attack?: number;
+    release?: number;
+  };
+  surround?: {
+    /** Milliseconds. */
+    delay?: number;
+    balance?: number;
+    fx1?: number;
+    fx2?: number;
+  };
+  pbe?: {
+    /** Percent. */
+    strength?: number;
+    /** Tenths of a dB. */
+    precut?: number;
+  };
 }
 
 /** One queue entry. `uploadId` (Rocksky uploads) or `trackId` (Navidrome id). */
@@ -89,6 +184,13 @@ export interface RemotePlayerHandlers {
   enqueue(cmd: EnqueueCommand): void;
   queueJump(index: number): void;
   queueRemove(index: number): void;
+  /** Every handler below is optional — leaving one out IS how a player
+   *  declines a capability. The command is dropped, never errored. */
+  setShuffle(enabled: boolean): void;
+  setRepeat(mode: RemoteRepeat): void;
+  /** Volume 0–1. */
+  setVolume(volume: number): void;
+  setAudioSettings(settings: RemoteAudioSettings): void;
 }
 
 type Handler<K extends keyof RemotePlayerHandlers> = RemotePlayerHandlers[K];
@@ -193,6 +295,11 @@ export class RemotePlayer {
         is_playing: track.isPlaying ?? true,
         codec: track.codec,
         sample_rate: track.sampleRate,
+        // Omitted when undefined, so "no such control" stays distinguishable
+        // from "off" on the wire.
+        ...(track.shuffle !== undefined ? { shuffle: track.shuffle } : {}),
+        ...(track.repeat !== undefined ? { repeat: track.repeat } : {}),
+        ...(track.volume !== undefined ? { volume: track.volume } : {}),
         device_name: this.opts.name,
       },
     });
@@ -362,6 +469,26 @@ export class RemotePlayer {
         });
         break;
       }
+      case "shuffle": {
+        const a = msg.args as { enabled?: boolean } | boolean | undefined;
+        h.setShuffle?.(typeof a === "boolean" ? a : !!a?.enabled);
+        break;
+      }
+      case "repeat": {
+        const a = msg.args as { mode?: string } | string | undefined;
+        const mode = typeof a === "string" ? a : a?.mode;
+        h.setRepeat?.(mode === "all" || mode === "one" ? mode : "off");
+        break;
+      }
+      case "volume": {
+        const a = msg.args as { volume?: number } | number | undefined;
+        const v = typeof a === "number" ? a : (a?.volume ?? 1);
+        h.setVolume?.(Math.min(1, Math.max(0, v)));
+        break;
+      }
+      case "audio_settings":
+        h.setAudioSettings?.((msg.args ?? {}) as RemoteAudioSettings);
+        break;
       default:
         this.debug("unknown command", msg.action);
     }

@@ -8,6 +8,7 @@ mod config;
 mod engine;
 mod remote;
 mod resolver;
+mod scrobble;
 mod settings;
 
 use std::path::PathBuf;
@@ -104,7 +105,7 @@ async fn main() -> Result<()> {
     if config.sync_audio_settings {
         tokio::spawn(settings::sync_loop(
             engine.clone(),
-            audio_baseline,
+            audio_baseline.clone(),
             config.api_url.trim_end_matches('/').to_string(),
             token.clone(),
             std::time::Duration::from_secs(config.audio_settings_refresh_seconds.max(5)),
@@ -116,7 +117,7 @@ async fn main() -> Result<()> {
         RemotePlayerConfig::new(token.clone(), name).url(config.ws_url.clone()),
     ));
 
-    let shared = Arc::new(Shared::new(engine, remote.clone()));
+    let shared = Arc::new(Shared::new(engine, remote.clone(), audio_baseline));
 
     if !uris.is_empty() {
         tracing::info!("queueing {} local track(s)", uris.len());
@@ -126,6 +127,16 @@ async fn main() -> Result<()> {
             start_index: 0,
             shuffle: config.shuffle,
         });
+    }
+
+    if config.scrobble {
+        tokio::spawn(scrobble::scrobble_loop(
+            shared.clone(),
+            config.api_url.trim_end_matches('/').to_string(),
+            token.clone(),
+        ));
+    } else {
+        tracing::info!("scrobbling disabled by config");
     }
 
     tokio::spawn(remote::command_loop(

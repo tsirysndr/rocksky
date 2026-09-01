@@ -647,6 +647,13 @@ struct NowPlayingJson {
     is_playing: bool,
     codec: Option<String>,
     sample_rate: Option<u32>,
+    /// Omit when the player has no such control — a controller uses the absence
+    /// to hide the toggle rather than render a wrong default.
+    shuffle: Option<bool>,
+    /// "off" | "all" | "one".
+    repeat: Option<String>,
+    /// 0.0..=1.0.
+    volume: Option<f32>,
 }
 
 #[cfg(feature = "remote-player")]
@@ -661,6 +668,9 @@ impl Default for NowPlayingJson {
             duration_ms: 0,
             elapsed_ms: 0,
             is_playing: true,
+            shuffle: None,
+            repeat: None,
+            volume: None,
             codec: None,
             sample_rate: None,
         }
@@ -719,6 +729,15 @@ fn command_to_json(cmd: &rocksky_sdk::RemoteCommand) -> serde_json::Value {
         C::QueueRemove { index } => {
             serde_json::json!({ "action": "queue_remove", "index": index })
         }
+        C::SetShuffle { enabled } => serde_json::json!({ "action": "shuffle", "enabled": enabled }),
+        C::SetRepeat { mode } => {
+            serde_json::json!({ "action": "repeat", "mode": mode.as_wire() })
+        }
+        C::SetVolume { volume } => serde_json::json!({ "action": "volume", "volume": volume }),
+        C::SetAudioSettings(settings) => serde_json::json!({
+            "action": "audio_settings",
+            "settings": settings,
+        }),
         C::Enqueue {
             tracks,
             mode,
@@ -809,6 +828,12 @@ pub unsafe extern "C" fn rocksky_remote_player_set_now_playing(
                 is_playing: t.is_playing,
                 codec: t.codec,
                 sample_rate: t.sample_rate,
+                shuffle: t.shuffle,
+                repeat: t
+                    .repeat
+                    .as_deref()
+                    .map(rocksky_sdk::RemoteRepeat::from_wire),
+                volume: t.volume,
             });
             respond(Ok(true))
         }

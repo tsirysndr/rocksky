@@ -11,8 +11,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use rockbox_playback::{
-    ChannelMode, CrossfadeSettings, Equalizer, PlaybackState, Player, PlayerConfig, RepeatMode,
-    ReplayGainMode, Status, ToneControls,
+    BassEnhancement, ChannelMode, Compressor, CrossfadeSettings, Crossfeed, Equalizer,
+    PlaybackState, Player, PlayerConfig, RepeatMode, ReplayGainMode, Status, Surround,
+    ToneControls,
 };
 
 pub enum EngineCmd {
@@ -41,12 +42,23 @@ pub enum EngineCmd {
         preamp_db: f32,
         noclip: bool,
     },
+    SetStereoWidth(i32),
+    SetCrossfeed(Crossfeed),
+    SetCompressor(Compressor),
+    SetSurround(Surround),
+    SetBassEnhancement(BassEnhancement),
+    /// 0.0..=1.0.
+    SetVolume(f32),
+    SetShuffle(bool),
+    SetRepeat(RepeatMode),
 }
 
 /// A `Send + Clone` snapshot of the engine, refreshed by the engine thread.
 #[derive(Clone)]
 pub struct Snapshot {
     pub status: Status,
+    /// Output volume 0.0..=1.0.
+    pub volume: f32,
 }
 
 impl Default for Snapshot {
@@ -62,6 +74,7 @@ impl Default for Snapshot {
                 shuffle: false,
                 repeat: RepeatMode::Off,
             },
+            volume: 1.0,
         }
     }
 }
@@ -100,6 +113,7 @@ impl Engine {
                     }
                     *shared.lock().unwrap() = Snapshot {
                         status: player.status(),
+                        volume: player.volume(),
                     };
                 }
             })
@@ -163,5 +177,13 @@ fn apply(player: &Player, cmd: EngineCmd) {
             preamp_db,
             noclip,
         } => player.set_replaygain(mode, preamp_db, noclip),
+        EngineCmd::SetStereoWidth(percent) => player.set_stereo_width(percent),
+        EngineCmd::SetCrossfeed(crossfeed) => player.set_crossfeed(crossfeed),
+        EngineCmd::SetCompressor(compressor) => player.set_compressor(compressor),
+        EngineCmd::SetSurround(surround) => player.set_surround(surround),
+        EngineCmd::SetBassEnhancement(pbe) => player.set_bass_enhancement(pbe),
+        EngineCmd::SetVolume(volume) => player.set_volume(volume),
+        EngineCmd::SetShuffle(enabled) => player.set_shuffle(enabled),
+        EngineCmd::SetRepeat(mode) => player.set_repeat(mode),
     }
 }

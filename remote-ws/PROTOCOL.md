@@ -142,12 +142,20 @@ seconds so controllers can reconcile elapsed time.
   "is_playing": true,
   "codec": "flac",         // optional: audio codec/container, when the player knows it
   "sample_rate": 44100,    // optional: audio sample rate in Hz
+  "shuffle": false,        // optional: queue shuffle state
+  "repeat": "off",         // optional: "off" | "all" | "one"
+  "volume": 0.8,           // optional: 0.0–1.0
   "device_name": "My Player"   // optional; lets clients label the source even
 }                              // before the server's device_name is known
 ```
 
 `codec` and `sample_rate` are passed through verbatim on the broadcast;
 controller UIs (the web/mobile miniplayers) render them as audio-format badges.
+
+`shuffle`, `repeat` and `volume` report the player's own transport state so a
+controller can render the toggles in the right position. **Omit a field you have
+no control for** — that is how a controller tells "this player has no shuffle"
+from "shuffle is off", and it hides the control rather than showing it wrong.
 
 Fields the server fills in on the broadcast (you don't send them): `album_art`
 (canonical, from the library), `song_uri`, `album_uri`, `artist_uri`, `liked`,
@@ -270,6 +278,10 @@ Player devices execute these (see §6).
 | `queue_jump`   | `{ "index": <n> }`                                               | Jump to queue index |
 | `queue_remove` | `{ "index": <n> }`                                               | Remove queue item |
 | `enqueue`      | `{ "tracks": [descriptor…], "mode": "now"\|"next"\|"last", "shuffle"?: bool, "startIndex"?: <n> }` | Play / play-next / append tracks (an album or a single track) |
+| `shuffle`      | `{ "enabled": bool }`                                            | Turn queue shuffle on/off |
+| `repeat`       | `{ "mode": "off"\|"all"\|"one" }`                                | Set queue repeat mode |
+| `volume`       | `{ "volume": 0.0–1.0 }`                                          | Set output volume |
+| `audio_settings` | a partial settings document — see §6.1                         | Apply DSP settings |
 
 An `enqueue` **descriptor** is a track the controller resolved for you:
 
@@ -285,6 +297,65 @@ whichever is present.
 
 After executing any command, push fresh `track` / `status` / `queue` state so all
 clients update promptly.
+
+### 6.1 `audio_settings` — DSP
+
+One command carries the whole DSP surface as a **partial document**: every
+section, and every field inside it, is optional.
+
+```json
+{ "type": "command", "action": "audio_settings", "args": {
+  "equalizer": { "enabled": true, "precut": -60,
+                 "bands": [{ "frequency": 32, "gain": 30, "q": 7 }] },
+  "tone":      { "bass": 0, "treble": 0, "bassCutoff": 200, "trebleCutoff": 3500,
+                 "balance": 0, "channels": "stereo", "stereoWidth": 100 },
+  "crossfade": { "mode": "off", "fadeInDelay": 0, "fadeInDuration": 0,
+                 "fadeOutDelay": 0, "fadeOutDuration": 0,
+                 "fadeOutMixMode": "crossfade" },
+  "replayGain":{ "mode": "off", "preamp": 0, "preventClipping": true },
+  "crossfeed": { "mode": "off", "directGain": -15, "crossGain": -60,
+                 "highFrequencyGain": -30, "cutoff": 700 },
+  "compressor":{ "threshold": 0, "makeup": 0, "ratio": 4, "knee": 1,
+                 "attack": 5, "release": 500 },
+  "surround":  { "delay": 0, "balance": 0, "fx1": 0, "fx2": 0 },
+  "pbe":       { "strength": 0, "precut": 0 }
+} }
+```
+
+**A player applies the sections its engine implements and ignores the rest.** It
+must not error on a section it doesn't know — that is what lets a newer
+controller talk to an older player, and a settings UI send one document to every
+device without asking what each supports. An absent section means "leave alone",
+so a controller changing only the EQ sends only `equalizer`.
+
+Enumerated values: `channels` is `stereo` | `mono` | `custom` | `monoLeft` |
+`monoRight` | `karaoke` | `swap`; `crossfade.mode` is `off` | `enabled` |
+`shuffle` | `albumChange` | `trackChange`; `fadeOutMixMode` is `crossfade` |
+`mix`; `replayGain.mode` is `off` | `track` | `album` | `trackIfShuffling`;
+`crossfeed.mode` is `off` | `meier` | `custom`. Treat an unknown value as the
+`off`/default member rather than rejecting the document.
+
+Units are the same as the `app.rocksky.rockbox.audio.settings` record, so a
+settings UI can put its saved document straight on the wire:
+
+| field | unit |
+|---|---|
+| EQ `gain`, `precut` | tenths of a dB (`precut` ≤ 0) |
+| EQ `q` | Q × 10 |
+| EQ `frequency` | Hz |
+| `bass`, `treble` | whole dB |
+| `bassCutoff`, `trebleCutoff` | Hz |
+| crossfade fade times | milliseconds |
+| `balance`, `stereoWidth` | percent |
+| ReplayGain `preamp` | tenths of a dB |
+| crossfeed gains | tenths of a dB |
+| `cutoff` | Hz |
+| compressor `attack`, `release` | milliseconds |
+| surround `delay` | milliseconds |
+
+EQ `bands` is positional — index 0 is the lowest band. Band centre frequencies
+are the fixed rockbox band table keyed by index, so a player should trust the
+index over a `frequency` that may have been persisted from an older table.
 
 ---
 
@@ -309,6 +380,9 @@ Building a **player device**? Make sure you:
 - [ ] Push `status` on play/pause/stop transitions.
 - [ ] Push `queue` on queue change (optional but enables the remote queue UI).
 - [ ] Handle every command in §6 (at minimum play/pause/next/previous/seek).
+- [ ] Ignore commands and `audio_settings` sections you don't implement — never
+      error on them. Report `shuffle`/`repeat`/`volume` in `track` only for the
+      controls you actually have.
 - [ ] Send `"ping"` every ~10s; auto-reconnect (with re-register) on close.
 - [ ] Ignore `message` echoes of your own pushes and other devices' broadcasts.
 
@@ -320,6 +394,8 @@ Building a **controller**? You:
       `message` (track/status/queue), `device_unregistered`, and
       `primary_changed`.
 - [ ] Send `command` (optionally `target`ed) and `set_primary`.
+- [ ] Show shuffle/repeat/volume only when the device reports them, and send the
+      whole `audio_settings` document without probing what the device supports.
 - [ ] Reconnect + re-register on close to resync.
 
 ---

@@ -48,6 +48,8 @@ pub enum EngineCmd {
     SetVolume(f32),
     SetShuffle(bool),
     SetRepeat(RepeatMode),
+    /// Stereo balance, -100 (full left) ..= 100 (full right).
+    SetBalance(i32),
     // ── DSP (wasm RockboxPlayer parity) ─────────────────────────────────────
     SetEqEnabled(bool),
     SetEqBand {
@@ -263,6 +265,7 @@ fn apply(player: &Player, dsp: &mut DspState, cmd: EngineCmd) {
         EngineCmd::SetVolume(volume) => player.set_volume(volume),
         EngineCmd::SetShuffle(enabled) => player.set_shuffle(enabled),
         EngineCmd::SetRepeat(mode) => player.set_repeat(mode),
+        EngineCmd::SetBalance(balance) => player.set_balance(balance.clamp(-100, 100)),
         EngineCmd::SetEqEnabled(enabled) => {
             dsp.eq_enabled = enabled;
             player.set_eq_enabled(enabled);

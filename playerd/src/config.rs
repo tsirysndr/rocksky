@@ -71,6 +71,10 @@ pub struct Config {
     /// `[equalizer]` baseline below.
     pub sync_audio_settings: bool,
     pub audio_settings_refresh_seconds: u64,
+    /// Scrobble what this daemon plays to the user's Rocksky account. On by
+    /// default — a headless player nobody is watching is exactly the case
+    /// where scrobbling has to happen without a UI driving it.
+    pub scrobble: bool,
     pub equalizer: EqualizerConfig,
 }
 
@@ -145,6 +149,7 @@ impl Default for Config {
             buffer_seconds: 10.0,
             sync_audio_settings: true,
             audio_settings_refresh_seconds: 60,
+            scrobble: true,
             equalizer: EqualizerConfig::default(),
         }
     }

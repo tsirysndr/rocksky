@@ -1718,6 +1718,16 @@ pub struct RemoteNowPlaying {
     /// Audio sample rate in Hz (e.g. 44100), when the player knows it.
     #[uniffi(default = None)]
     pub sample_rate: Option<u32>,
+    /// Queue shuffle state. Leave `None` when the player has no shuffle — that
+    /// is how a controller knows to hide the toggle instead of showing it wrong.
+    #[uniffi(default = None)]
+    pub shuffle: Option<bool>,
+    /// Queue repeat mode: "off" | "all" | "one". `None` when the player has none.
+    #[uniffi(default = None)]
+    pub repeat: Option<String>,
+    /// Output volume 0.0..=1.0. `None` when the player has no volume control.
+    #[uniffi(default = None)]
+    pub volume: Option<f32>,
 }
 
 /// Transport status advertised to controllers.
@@ -1780,6 +1790,24 @@ pub enum RemoteCommand {
         shuffle: bool,
         start_index: u32,
     },
+    SetShuffle {
+        enabled: bool,
+    },
+    SetRepeat {
+        /// "off" | "all" | "one".
+        mode: String,
+    },
+    /// 0.0..=1.0.
+    SetVolume {
+        volume: f32,
+    },
+    /// A partial audio-settings document, as the JSON of the protocol's
+    /// `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1). Carried as
+    /// JSON rather than eight more mirrored records: every binding already has
+    /// a JSON parser, and a player only reads the sections it implements.
+    SetAudioSettings {
+        settings_json: String,
+    },
 }
 
 #[cfg(feature = "remote-player")]
@@ -1796,6 +1824,12 @@ impl From<RemoteNowPlaying> for rocksky_sdk::RemoteNowPlaying {
             is_playing: v.is_playing,
             codec: v.codec,
             sample_rate: v.sample_rate,
+            shuffle: v.shuffle,
+            repeat: v
+                .repeat
+                .as_deref()
+                .map(rocksky_sdk::RemoteRepeat::from_wire),
+            volume: v.volume,
         }
     }
 }
@@ -1871,6 +1905,14 @@ impl From<rocksky_sdk::RemoteCommand> for RemoteCommand {
                 mode,
                 shuffle,
                 start_index,
+            },
+            C::SetShuffle { enabled } => Self::SetShuffle { enabled },
+            C::SetRepeat { mode } => Self::SetRepeat {
+                mode: mode.as_wire().to_string(),
+            },
+            C::SetVolume { volume } => Self::SetVolume { volume },
+            C::SetAudioSettings(settings) => Self::SetAudioSettings {
+                settings_json: serde_json::to_string(&settings).unwrap_or_else(|_| "{}".into()),
             },
         }
     }
@@ -1997,6 +2039,9 @@ impl From<rocksky_sdk::RemoteNowPlaying> for RemoteNowPlaying {
             is_playing: v.is_playing,
             codec: v.codec,
             sample_rate: v.sample_rate,
+            shuffle: v.shuffle,
+            repeat: v.repeat.map(|r| r.as_wire().to_string()),
+            volume: v.volume,
         }
     }
 }

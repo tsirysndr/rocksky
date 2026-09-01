@@ -35,6 +35,8 @@ use std::time::Duration;
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::json;
+
+use crate::remote_audio::{RemoteAudioSettings, RemoteRepeat};
 use tokio::sync::{mpsc, watch, Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
@@ -91,6 +93,13 @@ pub struct RemoteNowPlaying {
     pub codec: Option<String>,
     /// Audio sample rate in Hz (e.g. 44100), when the player knows it.
     pub sample_rate: Option<u32>,
+    /// Queue shuffle state. `None` from a player that has no shuffle, which is
+    /// how a controller knows to hide the toggle rather than show it wrong.
+    pub shuffle: Option<bool>,
+    /// Queue repeat mode. `None` when the player has none.
+    pub repeat: Option<RemoteRepeat>,
+    /// Output volume 0.0..=1.0. `None` when the player has no volume control.
+    pub volume: Option<f32>,
 }
 
 /// Transport state.
@@ -151,6 +160,21 @@ pub enum RemoteCommand {
         shuffle: bool,
         start_index: u32,
     },
+    /// Turn queue shuffle on or off.
+    SetShuffle {
+        enabled: bool,
+    },
+    /// Set the queue repeat mode.
+    SetRepeat {
+        mode: RemoteRepeat,
+    },
+    /// Set output volume, 0.0..=1.0.
+    SetVolume {
+        volume: f32,
+    },
+    /// Apply a partial audio-settings document. Sections the player's engine
+    /// does not implement are simply not read — see [`RemoteAudioSettings`].
+    SetAudioSettings(Box<RemoteAudioSettings>),
 }
 
 // Outbound state pushes carried from the handle to the background task, which
@@ -398,6 +422,17 @@ where
             if let Some(sample_rate) = t.sample_rate {
                 data["sample_rate"] = json!(sample_rate);
             }
+            // Omitted, not defaulted: a controller must be able to tell "this
+            // player has no shuffle" from "shuffle is off".
+            if let Some(shuffle) = t.shuffle {
+                data["shuffle"] = json!(shuffle);
+            }
+            if let Some(repeat) = t.repeat {
+                data["repeat"] = json!(repeat.as_wire());
+            }
+            if let Some(volume) = t.volume {
+                data["volume"] = json!(volume);
+            }
             data
         }
         OutMsg::Status(s) => json!({ "type": "status", "status": s }),
@@ -502,6 +537,39 @@ fn parse_command(msg: &Inbound) -> Option<RemoteCommand> {
                     .unwrap_or(false),
                 start_index: args.get("startIndex").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
             }
+        }
+        "shuffle" => RemoteCommand::SetShuffle {
+            enabled: args
+                .get("enabled")
+                .and_then(|v| v.as_bool())
+                .or_else(|| args.as_bool())
+                .unwrap_or(false),
+        },
+        "repeat" => RemoteCommand::SetRepeat {
+            mode: RemoteRepeat::from_wire(
+                args.get("mode")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| args.as_str())
+                    .unwrap_or("off"),
+            ),
+        },
+        "volume" => RemoteCommand::SetVolume {
+            volume: args
+                .get("volume")
+                .and_then(|v| v.as_f64())
+                .or_else(|| args.as_f64())
+                .unwrap_or(1.0)
+                .clamp(0.0, 1.0) as f32,
+        },
+        // A document that fails to parse, or carries only sections this build
+        // has never heard of, is dropped rather than delivered empty — the host
+        // should not be woken to apply nothing.
+        "audio_settings" => {
+            let settings: RemoteAudioSettings = serde_json::from_value(args).ok()?;
+            if settings.is_empty() {
+                return None;
+            }
+            RemoteCommand::SetAudioSettings(Box::new(settings))
         }
         _ => return None,
     })

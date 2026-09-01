@@ -65,6 +65,14 @@ async fn run_player(token: String) {
             RemoteCommand::Enqueue { tracks, mode, .. } => {
                 println!("+ enqueue {} track(s) ({mode})", tracks.len())
             }
+            RemoteCommand::SetShuffle { enabled } => println!("🔀 shuffle {enabled}"),
+            RemoteCommand::SetRepeat { mode } => println!("🔁 repeat {}", mode.as_wire()),
+            RemoteCommand::SetVolume { volume } => println!("🔊 volume {volume:.2}"),
+            // A real player applies the sections its engine has and ignores the
+            // rest — no negotiation, no error for an unknown one.
+            RemoteCommand::SetAudioSettings(settings) => {
+                println!("🎛 audio settings {settings:?}")
+            }
         }
     }
 }

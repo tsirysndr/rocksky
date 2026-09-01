@@ -42,6 +42,8 @@ export {
   type RemoteNowPlaying,
   type RemoteQueueItem,
   type EnqueueCommand,
+  type RemoteAudioSettings,
+  type RemoteRepeat,
 } from "./remote-player.js";
 export {
   RemoteController,

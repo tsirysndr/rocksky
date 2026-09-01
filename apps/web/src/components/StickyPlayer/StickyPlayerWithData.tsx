@@ -271,17 +271,27 @@ function StickyPlayerWithData() {
     activeDeviceIdRef.current = activeDeviceId;
   }, [nowPlaying, player, liked, devices, activeDeviceId]);
 
-  // Publish shuffle/repeat to the engine. No player/ready guard: publish*
-  // remembers the value and (re)applies it on the engine's next init, so
-  // repeat "all" set before the first play still loops the queue instead of
-  // stopping at the end.
+  // Publish shuffle/repeat to whichever player is the source. For the local
+  // engine there is no player/ready guard: publish* remembers the value and
+  // (re)applies it on the engine's next init, so repeat "all" set before the
+  // first play still loops the queue instead of stopping at the end.
   useEffect(() => {
+    if (playerRef.current === "device") {
+      sendDeviceCommand("shuffle", { enabled: shuffle });
+      return;
+    }
     publishShuffle(shuffle);
-  }, [shuffle]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shuffle, player]);
 
   useEffect(() => {
+    if (playerRef.current === "device") {
+      sendDeviceCommand("repeat", { mode: repeatMode === "one" ? "one" : repeatMode === "all" ? "all" : "off" });
+      return;
+    }
     publishRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
-  }, [repeatMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repeatMode, player]);
 
   // Progress ticker for Spotify and remote devices — rockbox progress comes
   // from the engine's own `progress` events, so skip it there to avoid double-
@@ -632,8 +642,12 @@ function StickyPlayerWithData() {
   const onVolumeChange = (v: number) => {
     setVolumeState(v);
     if (v > 0 && muted) setMutedState(false);
-    // A remote device manages its own volume — don't spin up the local engine.
-    if (player === "device") return;
+    // A remote device has its own output — drive it over the protocol rather
+    // than spinning up the local engine (which isn't the thing making sound).
+    if (player === "device") {
+      sendDeviceCommand("volume", { volume: muted ? 0 : v });
+      return;
+    }
     const p = getRockboxPlayer();
     if (p.ready) p.setVolume(muted ? 0 : v);
   };
@@ -641,7 +655,10 @@ function StickyPlayerWithData() {
   const onToggleMute = () => {
     const nextMuted = !muted;
     setMutedState(nextMuted);
-    if (player === "device") return;
+    if (player === "device") {
+      sendDeviceCommand("volume", { volume: nextMuted ? 0 : volume });
+      return;
+    }
     const p = getRockboxPlayer();
     if (p.ready) p.setVolume(nextMuted ? 0 : volume);
   };

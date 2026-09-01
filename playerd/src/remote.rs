@@ -12,15 +12,21 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rockbox_playback::PlaybackState;
-use rocksky_sdk::{RemoteCommand, RemoteNowPlaying, RemotePlayer, RemoteQueueItem, RemoteStatus};
+use rockbox_playback::{PlaybackState, RepeatMode};
+use rocksky_sdk::{
+    RemoteCommand, RemoteNowPlaying, RemotePlayer, RemoteQueueItem, RemoteRepeat, RemoteStatus,
+};
 
 use crate::engine::{Engine, EngineCmd};
 use crate::resolver::Resolver;
+use crate::settings::{self, Baseline};
 
 pub struct Shared {
     pub engine: Arc<Engine>,
     pub remote: Arc<RemotePlayer>,
+    /// Startup DSP defaults, so a partial `audio_settings` document overlays
+    /// the same baseline the atproto settings record does.
+    pub audio_baseline: Baseline,
     pub queue_meta: Mutex<Vec<RemoteQueueItem>>,
     /// Hash of the last queue push, so the full track list is only re-sent
     /// when the queue or the current index actually changes.
@@ -28,10 +34,11 @@ pub struct Shared {
 }
 
 impl Shared {
-    pub fn new(engine: Arc<Engine>, remote: Arc<RemotePlayer>) -> Self {
+    pub fn new(engine: Arc<Engine>, remote: Arc<RemotePlayer>, audio_baseline: Baseline) -> Self {
         Shared {
             engine,
             remote,
+            audio_baseline,
             queue_meta: Mutex::new(Vec::new()),
             queue_sig: Mutex::new(0),
         }
@@ -125,13 +132,26 @@ async fn apply(shared: &Shared, resolver: &mut Resolver, cmd: RemoteCommand) {
                 }
             }
         }
+        RemoteCommand::SetShuffle { enabled } => engine.send(EngineCmd::SetShuffle(enabled)),
+        RemoteCommand::SetRepeat { mode } => engine.send(EngineCmd::SetRepeat(match mode {
+            RemoteRepeat::All => RepeatMode::All,
+            RemoteRepeat::One => RepeatMode::One,
+            RemoteRepeat::Off => RepeatMode::Off,
+        })),
+        RemoteCommand::SetVolume { volume } => {
+            engine.send(EngineCmd::SetVolume(volume.clamp(0.0, 1.0)))
+        }
+        RemoteCommand::SetAudioSettings(audio) => {
+            settings::apply(engine, &shared.audio_baseline, &audio)
+        }
     }
 }
 
 /// Push now-playing + transport state to controllers, and the queue when it
 /// changed.
 pub fn push_state(shared: &Shared) {
-    let status = shared.engine.snapshot().status;
+    let snapshot = shared.engine.snapshot();
+    let status = snapshot.status;
     let meta = shared.queue_meta.lock().unwrap();
     let current = status.index.and_then(|i| meta.get(i));
 
@@ -139,6 +159,15 @@ pub fn push_state(shared: &Shared) {
         duration_ms: status.duration.as_millis() as u64,
         elapsed_ms: status.position.as_millis() as u64,
         is_playing: status.state == PlaybackState::Playing,
+        // This engine has all three, so advertise them — that is what tells a
+        // controller it may show the shuffle/repeat/volume controls.
+        shuffle: Some(status.shuffle),
+        repeat: Some(match status.repeat {
+            RepeatMode::All => RemoteRepeat::All,
+            RepeatMode::One => RemoteRepeat::One,
+            _ => RemoteRepeat::Off,
+        }),
+        volume: Some(snapshot.volume),
         ..Default::default()
     };
     if let Some(m) = &status.metadata {

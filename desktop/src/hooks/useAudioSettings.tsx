@@ -23,6 +23,8 @@ import {
   type GlobalSettings,
   publishAudioSettings,
 } from "../lib/audio/rockbox-engine";
+import type { RemoteAudioSettings } from "@rocksky/sdk";
+import { deviceCommandAtom } from "../atoms/devices";
 
 // useAudioSettings — single source of truth for audio (DSP) settings.
 //
@@ -120,9 +122,17 @@ const settingsAtom = audioSettingsAtom;
  *  new (publishAudioSettings is idempotent) and there's no audible flicker. */
 export function useAudioSettingsPublisher(): void {
   const settings = useAtomValue(audioSettingsAtom);
+  const device = useAtomValue(deviceCommandAtom);
   useEffect(() => {
+    // While a remote device is the source, the local engine isn't the thing
+    // making sound — send the settings to the device instead. It applies the
+    // sections its engine implements and ignores the rest.
+    if (device.active) {
+      device.send("audio_settings", toRemoteAudioSettings(settings));
+      return;
+    }
     publishAudioSettings(settings);
-  }, [settings]);
+  }, [settings, device]);
 }
 
 /** Merge a lexicon record into a GlobalSettings snapshot. Anything the lexicon
@@ -370,3 +380,52 @@ export {
   CHANNELS_INT_TO_NAME,
   REPEAT_MODE_NAMES,
 };
+
+// ── Remote devices ───────────────────────────────────────────────────────────
+
+/**
+ * Project the settings snapshot onto the remote-control protocol's audio
+ * document (see remote-ws/PROTOCOL.md §6.1), so the same settings the local
+ * engine gets can be sent verbatim to whichever device is playing.
+ *
+ * The vocabularies differ where the protocol follows the lexicon: `disabled`
+ * is `off` there, and the `wide` channel mode is `custom`. Fade times are
+ * seconds here and milliseconds on the wire.
+ *
+ * Every section is sent; a player applies the ones its engine implements and
+ * ignores the rest, so there is nothing to negotiate first.
+ */
+export function toRemoteAudioSettings(s: GlobalSettings): RemoteAudioSettings {
+  const crossfade = CROSSFADE_INT_TO_MODE[s.crossfade] ?? "disabled";
+  const channels = CHANNELS_INT_TO_NAME[s.channelConfig] ?? "stereo";
+  const replaygain = REPLAYGAIN_INT_TO_MODE[s.replaygainSettings.type] ?? "disabled";
+  return {
+    equalizer: {
+      enabled: s.eqEnabled,
+      precut: s.eqPrecut,
+      bands: s.eqBandSettings.map(bandRockboxToLex),
+    },
+    tone: {
+      bass: s.bass,
+      treble: s.treble,
+      bassCutoff: s.bassCutoff,
+      trebleCutoff: s.trebleCutoff,
+      balance: s.balance,
+      channels: channels === "wide" ? "custom" : channels,
+      stereoWidth: s.stereoWidth,
+    },
+    crossfade: {
+      mode: crossfade === "disabled" ? "off" : crossfade,
+      fadeInDelay: Math.round(s.crossfadeFadeInDelay * 1000),
+      fadeInDuration: Math.round(s.crossfadeFadeInDuration * 1000),
+      fadeOutDelay: Math.round(s.crossfadeFadeOutDelay * 1000),
+      fadeOutDuration: Math.round(s.crossfadeFadeOutDuration * 1000),
+      fadeOutMixMode: s.crossfadeFadeOutMixmode === 1 ? "mix" : "crossfade",
+    },
+    replayGain: {
+      mode: replaygain === "disabled" ? "off" : replaygain,
+      preamp: s.replaygainSettings.preamp,
+      preventClipping: s.replaygainSettings.noclip,
+    },
+  };
+}
