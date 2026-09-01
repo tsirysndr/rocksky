@@ -1,6 +1,8 @@
 use anyhow::Error;
 use sqlx::{Pool, Postgres};
 
+use crate::repo::track::one_upload_join;
+
 use crate::xata::track::TrackWithUpload;
 
 pub struct GenreRow {
@@ -51,7 +53,7 @@ pub async fn get_songs_by_genre(
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
-    let rows: Vec<TrackWithUpload> = sqlx::query_as(
+    let rows: Vec<TrackWithUpload> = sqlx::query_as(&format!(
         r#"
         SELECT
             tracks.xata_id,
@@ -72,16 +74,19 @@ pub async fn get_songs_by_genre(
             user_uploads.sample_rate,
             (SELECT at2.album_id FROM album_tracks at2 WHERE at2.track_id = tracks.xata_id LIMIT 1) AS album_id,
             (SELECT at3.artist_id FROM artist_tracks at3 WHERE at3.track_id = tracks.xata_id LIMIT 1) AS artist_id
-        FROM tracks
-        JOIN artist_tracks ON tracks.xata_id = artist_tracks.track_id
-        JOIN artists ON artist_tracks.artist_id = artists.xata_id
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-          AND $2 = ANY(artists.genres)
+        FROM tracks{upload_join}
+        WHERE EXISTS (
+            SELECT 1
+            FROM artist_tracks
+            JOIN artists ON artist_tracks.artist_id = artists.xata_id
+            WHERE artist_tracks.track_id = tracks.xata_id
+              AND $2 = ANY(artists.genres)
+        )
         ORDER BY tracks.title ASC
         LIMIT $3 OFFSET $4
         "#,
-    )
+        upload_join = one_upload_join("$1")
+    ))
     .bind(user_id)
     .bind(genre)
     .bind(count)

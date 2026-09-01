@@ -167,10 +167,13 @@ export async function likeTrack(
     .then((rows) => rows[0]);
 
   if (!existingAlbumTrack) {
-    await ctx.db.insert(albumTracks).values({
-      albumId,
-      trackId,
-    });
+    await ctx.db
+      .insert(albumTracks)
+      .values({
+        albumId,
+        trackId,
+      })
+      .onConflictDoNothing();
   }
 
   // Create or update artist_tracks relationship
@@ -187,10 +190,13 @@ export async function likeTrack(
     .then((rows) => rows[0]);
 
   if (!existingArtistTrack) {
-    await ctx.db.insert(artistTracks).values({
-      artistId,
-      trackId,
-    });
+    await ctx.db
+      .insert(artistTracks)
+      .values({
+        artistId,
+        trackId,
+      })
+      .onConflictDoNothing();
   }
 
   // Create or update artist_albums relationship
@@ -207,10 +213,13 @@ export async function likeTrack(
     .then((rows) => rows[0]);
 
   if (!existingArtistAlbum) {
-    await ctx.db.insert(artistAlbums).values({
-      artistId,
-      albumId,
-    });
+    await ctx.db
+      .insert(artistAlbums)
+      .values({
+        artistId,
+        albumId,
+      })
+      .onConflictDoNothing();
   }
 
   // Create or update loved track

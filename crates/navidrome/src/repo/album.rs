@@ -27,33 +27,94 @@ use crate::xata::album::AlbumWithStats;
 /// they don't belong to (a different release with the same title from another
 /// user, stale links from re-ingestion), and without the guard a single stray
 /// row puts a stranger's album in the caller's library. See commit ffcbfc3b.
+///
+/// The stats must count each position on the record once, and three things each
+/// used to multiply them — the grid said 15 songs / 97 min where the album page
+/// said 14 / 48. `mine` is DISTINCT ON the track (a user can have several
+/// uploads of one track, from re-uploading); the junction lookup is DISTINCT (a
+/// track can have several `album_tracks` rows for one album, from re-ingestion);
+/// and `album_members` is DISTINCT ON the slot (a re-upload whose tags differ at
+/// all hashes to a whole new `tracks` row for the same track number). The slot
+/// keeps the oldest track and `mine` the earliest upload, matching what
+/// `member_tracks` and `get_tracks_by_album` pick, so the three agree.
 const ALBUM_STATS_CTE: &str = r#"
 WITH mine AS MATERIALIZED (
-    SELECT uu.track_id, uu.uploaded_at, t.album, t.album_artist, t.duration
+    SELECT DISTINCT ON (uu.track_id)
+           uu.track_id, uu.uploaded_at, t.album, t.album_artist, t.duration,
+           t.disc_number, t.track_number, t.xata_createdat,
+           CASE WHEN t.track_number IS NULL THEN t.xata_id ELSE '' END AS unnumbered
     FROM user_uploads uu
     JOIN tracks t ON t.xata_id = uu.track_id
     WHERE uu.user_id = $1
+    ORDER BY uu.track_id, uu.uploaded_at ASC, uu.xata_id ASC
 ),
-album_stats AS MATERIALIZED (
-    SELECT atr.album_id,
-           COUNT(DISTINCT m.track_id)      AS song_count,
-           SUM(m.duration)::bigint         AS total_duration,
-           MIN(m.uploaded_at)::timestamptz AS created_at
+album_members AS MATERIALIZED (
+    SELECT DISTINCT ON (atr.album_id, m.disc_number, m.track_number, m.unnumbered)
+           atr.album_id, m.duration, m.uploaded_at
     FROM mine m
-    JOIN album_tracks atr ON atr.track_id = m.track_id
+    JOIN LATERAL (
+        SELECT DISTINCT atr0.album_id
+        FROM album_tracks atr0
+        WHERE atr0.track_id = m.track_id
+    ) atr ON true
     JOIN albums al ON al.xata_id = atr.album_id
                   AND lower(al.title)  = lower(m.album)
                   AND lower(al.artist) = lower(m.album_artist)
-    GROUP BY atr.album_id
+    ORDER BY atr.album_id, m.disc_number, m.track_number, m.unnumbered,
+             m.xata_createdat ASC, m.track_id ASC
+),
+album_stats AS MATERIALIZED (
+    SELECT album_id,
+           COUNT(*)                      AS song_count,
+           SUM(duration)::bigint         AS total_duration,
+           MIN(uploaded_at)::timestamptz AS created_at
+    FROM album_members
+    GROUP BY album_id
 )
 "#;
+
+/// One row per track ON the record, for the header's song count / running time.
+///
+/// Three things each used to multiply these rows, and `SUM(duration)` reported
+/// "I'M REALLY LIKE THAT" as 97 minutes instead of 51: a track can have several
+/// `user_uploads` rows for one user (re-uploading), several `album_tracks` rows
+/// for one album (re-ingestion), and — when a re-upload's tags differ at all —
+/// a whole second `tracks` row for the same position on the record. EXISTS
+/// handles the first two; DISTINCT ON the slot handles the third, keeping the
+/// oldest row so the header agrees with `get_tracks_by_album`.
+///
+/// `user_param` is the bind placeholder holding the user id.
+fn member_tracks(user_param: &str) -> String {
+    format!(
+        r#"        JOIN LATERAL (
+            SELECT DISTINCT ON (tracks.disc_number, tracks.track_number, unnumbered)
+                   tracks.xata_id,
+                   tracks.duration,
+                   (SELECT MIN(uu.uploaded_at) FROM user_uploads uu
+                     WHERE uu.track_id = tracks.xata_id AND uu.user_id = {user_param}) AS uploaded_at
+            FROM tracks
+            CROSS JOIN LATERAL (
+                SELECT CASE WHEN tracks.track_number IS NULL THEN tracks.xata_id ELSE '' END
+            ) AS k(unnumbered)
+            WHERE lower(tracks.album) = lower(albums.title)
+              AND lower(tracks.album_artist) = lower(albums.artist)
+              AND EXISTS (SELECT 1 FROM album_tracks atr
+                           WHERE atr.album_id = albums.xata_id
+                             AND atr.track_id = tracks.xata_id)
+              AND EXISTS (SELECT 1 FROM user_uploads uu
+                           WHERE uu.track_id = tracks.xata_id AND uu.user_id = {user_param})
+            ORDER BY tracks.disc_number, tracks.track_number, unnumbered,
+                     tracks.xata_createdat ASC, tracks.xata_id ASC
+        ) member ON true"#
+    )
+}
 
 pub async fn get_albums_by_artist(
     pool: &Pool<Postgres>,
     artist_id: &str,
     user_id: &str,
 ) -> Result<Vec<AlbumWithStats>, Error> {
-    let rows: Vec<AlbumWithStats> = sqlx::query_as(
+    let rows: Vec<AlbumWithStats> = sqlx::query_as(&format!(
         r#"
         SELECT
             albums.xata_id,
@@ -62,23 +123,19 @@ pub async fn get_albums_by_artist(
             albums.year,
             albums.album_art,
             albums.uri,
-            COUNT(DISTINCT album_tracks.track_id) AS song_count,
-            SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            COUNT(*) AS song_count,
+            SUM(member.duration)::bigint AS total_duration,
+            MIN(member.uploaded_at)::timestamptz AS created_at,
             $2::text AS artist_id
         FROM albums
         JOIN artist_albums ON albums.xata_id = artist_albums.album_id
-        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-        JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND lower(tracks.album) = lower(albums.title)
-                    AND lower(tracks.album_artist) = lower(albums.artist)
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
+{member}
         WHERE artist_albums.artist_id = $2
-          AND user_uploads.user_id = $1
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
         ORDER BY albums.year DESC NULLS LAST, albums.xata_id ASC
         "#,
-    )
+        member = member_tracks("$1")
+    ))
     .bind(user_id)
     .bind(artist_id)
     .fetch_all(pool)
@@ -92,7 +149,7 @@ pub async fn get_album_by_id(
     album_id: &str,
     user_id: &str,
 ) -> Result<Option<AlbumWithStats>, Error> {
-    let row: Option<AlbumWithStats> = sqlx::query_as(
+    let row: Option<AlbumWithStats> = sqlx::query_as(&format!(
         r#"
         SELECT
             albums.xata_id,
@@ -101,21 +158,17 @@ pub async fn get_album_by_id(
             albums.year,
             albums.album_art,
             albums.uri,
-            COUNT(DISTINCT album_tracks.track_id) AS song_count,
-            SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            COUNT(*) AS song_count,
+            SUM(member.duration)::bigint AS total_duration,
+            MIN(member.uploaded_at)::timestamptz AS created_at,
             (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
         FROM albums
-        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-        JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND lower(tracks.album) = lower(albums.title)
-                    AND lower(tracks.album_artist) = lower(albums.artist)
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-          AND albums.xata_id = $2
+{member}
+        WHERE albums.xata_id = $2
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
         "#,
-    )
+        member = member_tracks("$1")
+    ))
     .bind(user_id)
     .bind(album_id)
     .fetch_optional(pool)
@@ -134,7 +187,7 @@ pub async fn get_album_by_uri(
     uri: &str,
     user_id: &str,
 ) -> Result<Option<AlbumWithStats>, Error> {
-    let row: Option<AlbumWithStats> = sqlx::query_as(
+    let row: Option<AlbumWithStats> = sqlx::query_as(&format!(
         r#"
         SELECT
             albums.xata_id,
@@ -143,21 +196,17 @@ pub async fn get_album_by_uri(
             albums.year,
             albums.album_art,
             albums.uri,
-            COUNT(DISTINCT album_tracks.track_id) AS song_count,
-            SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            COUNT(*) AS song_count,
+            SUM(member.duration)::bigint AS total_duration,
+            MIN(member.uploaded_at)::timestamptz AS created_at,
             (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
         FROM albums
-        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-        JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND lower(tracks.album) = lower(albums.title)
-                    AND lower(tracks.album_artist) = lower(albums.artist)
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-          AND albums.uri = $2
+{member}
+        WHERE albums.uri = $2
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
         "#,
-    )
+        member = member_tracks("$1")
+    ))
     .bind(user_id)
     .bind(uri)
     .fetch_optional(pool)
@@ -361,7 +410,7 @@ pub async fn get_albums_by_names(
     }
     let titles: Vec<&str> = pairs.iter().map(|(t, _)| t.as_str()).collect();
     let artists: Vec<&str> = pairs.iter().map(|(_, a)| a.as_str()).collect();
-    let rows: Vec<AlbumWithStats> = sqlx::query_as(
+    let rows: Vec<AlbumWithStats> = sqlx::query_as(&format!(
         r#"
         SELECT
             albums.xata_id,
@@ -370,23 +419,19 @@ pub async fn get_albums_by_names(
             albums.year,
             albums.album_art,
             albums.uri,
-            COUNT(DISTINCT album_tracks.track_id) AS song_count,
-            SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            COUNT(*) AS song_count,
+            SUM(member.duration)::bigint AS total_duration,
+            MIN(member.uploaded_at)::timestamptz AS created_at,
             (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
         FROM albums
-        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-        JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND lower(tracks.album) = lower(albums.title)
-                    AND lower(tracks.album_artist) = lower(albums.artist)
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-          AND albums.title = ANY($2)
+{member}
+        WHERE albums.title = ANY($2)
           AND albums.artist = ANY($3)
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art, albums.uri
         ORDER BY albums.title ASC, albums.xata_id ASC
         "#,
-    )
+        member = member_tracks("$1")
+    ))
     .bind(user_id)
     .bind(&titles[..])
     .bind(&artists[..])

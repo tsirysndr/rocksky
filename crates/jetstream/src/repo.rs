@@ -666,6 +666,7 @@ pub async fn save_album_track(
     ) VALUES (
       $1, $2
     )
+    ON CONFLICT DO NOTHING
   "#,
     )
     .bind(album_id)
@@ -702,6 +703,7 @@ pub async fn save_artist_track(
     ) VALUES (
       $1, $2
     )
+    ON CONFLICT DO NOTHING
   "#,
     )
     .bind(artist_id)
@@ -738,6 +740,7 @@ pub async fn save_artist_album(
     ) VALUES (
       $1, $2
     )
+    ON CONFLICT DO NOTHING
   "#,
     )
     .bind(artist_id)

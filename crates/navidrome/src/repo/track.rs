@@ -55,10 +55,36 @@ const TRACK_JOINS: &str = r#"
     ) art ON true
 "#;
 
-/// Every track column, joined from `tracks`. Callers append their own WHERE.
-pub fn track_select() -> String {
+/// Join `tracks` to exactly ONE upload row per (user, track).
+///
+/// Re-uploading a track adds a `user_uploads` row rather than replacing one —
+/// 625 (user, track) pairs in production have more than one, and re-uploading an
+/// album gives every track on it a second row. A plain equi-join then emits the
+/// track once per upload: the album page showed all 14 songs twice and reported
+/// 97 minutes instead of 51. Take the newest upload and nothing else.
+///
+/// `user_param` is the bind placeholder holding the user id (e.g. `"$2"`), so
+/// the pick is scoped to the caller — picking globally and filtering afterwards
+/// would drop tracks whose newest upload belongs to somebody else.
+pub fn one_upload_join(user_param: &str) -> String {
     format!(
-        "{TRACK_COLUMNS}\n    FROM tracks\n    JOIN user_uploads ON tracks.xata_id = user_uploads.track_id\n{TRACK_JOINS}"
+        r#"
+    JOIN LATERAL (
+        SELECT uu.*
+        FROM user_uploads uu
+        WHERE uu.track_id = tracks.xata_id
+          AND uu.user_id = {user_param}
+        ORDER BY uu.uploaded_at DESC, uu.xata_id DESC
+        LIMIT 1
+    ) user_uploads ON true"#
+    )
+}
+
+/// Every track column, joined from `tracks`. Callers append their own WHERE.
+pub fn track_select(user_param: &str) -> String {
+    format!(
+        "{TRACK_COLUMNS}\n    FROM tracks{}\n{TRACK_JOINS}",
+        one_upload_join(user_param)
     )
 }
 
@@ -67,18 +93,48 @@ pub async fn get_tracks_by_album(
     album_id: &str,
     user_id: &str,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    // `slot` picks exactly one track per position on the record, which is what
+    // kills all three ways this listing used to double up:
+    //
+    //  - EXISTS rather than a join on `album_tracks`: 647 (album, track) pairs
+    //    have duplicate junction rows (20,969 extra) from re-ingestion;
+    //  - `one_upload_join` inside track_select: re-uploading adds a
+    //    `user_uploads` row rather than replacing one;
+    //  - DISTINCT ON the slot: a re-upload whose tags differ at all hashes to a
+    //    NEW `tracks` row, so the same song sits on track 13 twice under two
+    //    spellings ("I Ain’t Gon Hold Ya" / "I Ain't Gone Hold Ya"). Oldest
+    //    wins — that is the row scrobbles and likes already point at.
+    //
+    // Unnumbered tracks keep their row id in the key so they never collapse
+    // into each other; on a real record (disc, track) is unique by definition.
     let rows: Vec<TrackWithUpload> = sqlx::query_as(&format!(
         r#"
+        WITH slot AS (
+            SELECT DISTINCT ON (tr.disc_number, tr.track_number, unnumbered)
+                   tr.xata_id
+            FROM tracks tr
+            JOIN albums al ON al.xata_id = $1
+                          AND lower(tr.album) = lower(al.title)
+                          AND lower(tr.album_artist) = lower(al.artist)
+            CROSS JOIN LATERAL (
+                SELECT CASE WHEN tr.track_number IS NULL THEN tr.xata_id ELSE '' END
+            ) AS k(unnumbered)
+            WHERE EXISTS (
+                SELECT 1 FROM album_tracks atr
+                WHERE atr.album_id = $1 AND atr.track_id = tr.xata_id
+            )
+              AND EXISTS (
+                SELECT 1 FROM user_uploads uu
+                WHERE uu.track_id = tr.xata_id AND uu.user_id = $2
+            )
+            ORDER BY tr.disc_number, tr.track_number, unnumbered,
+                     tr.xata_createdat ASC, tr.xata_id ASC
+        )
         {}
-        JOIN album_tracks ON tracks.xata_id = album_tracks.track_id
-        JOIN albums ON album_tracks.album_id = albums.xata_id
-                    AND lower(tracks.album) = lower(albums.title)
-                    AND lower(tracks.album_artist) = lower(albums.artist)
-        WHERE album_tracks.album_id = $1
-          AND user_uploads.user_id = $2
+        WHERE tracks.xata_id IN (SELECT xata_id FROM slot)
         ORDER BY tracks.disc_number ASC NULLS FIRST, tracks.track_number ASC NULLS FIRST, tracks.xata_id ASC
         "#,
-        track_select()
+        track_select("$2")
     ))
     .bind(album_id)
     .bind(user_id)
@@ -142,9 +198,8 @@ pub async fn get_track_by_id(
         r#"
         {}
         WHERE tracks.xata_id = $1
-          AND user_uploads.user_id = $2
         "#,
-        track_select()
+        track_select("$2")
     ))
     .bind(track_id)
     .bind(user_id)
@@ -162,7 +217,7 @@ pub async fn get_random_songs(
     from_year: Option<i32>,
     to_year: Option<i32>,
 ) -> Result<Vec<TrackWithUpload>, Error> {
-    let mut filters = vec!["user_uploads.user_id = $1".to_string()];
+    let mut filters = vec!["TRUE".to_string()];
 
     if let Some(g) = genre {
         filters.push(format!(
@@ -189,7 +244,7 @@ pub async fn get_random_songs(
         ORDER BY RANDOM()
         LIMIT $2
         "#,
-        track_select(),
+        track_select("$1"),
         where_clause
     );
 
@@ -212,9 +267,10 @@ pub async fn get_random_songs(
 /// grew with how far the user had scrolled: at offset 5000 of a 7.2k-track
 /// library, 840ms against 40ms for this.
 ///
-/// Paging on `user_uploads.xata_id` rather than the track is deliberate: 576
-/// (user, track) pairs have more than one upload row, and paging on the track
-/// would multiply those rows a second time when the outer query rejoined.
+/// The page is a set of DISTINCT track ids. It used to be a page of upload ids
+/// — one row per upload, so a re-uploaded track appeared twice in the list and
+/// consumed two slots of the page. `one_upload_join` collapses the rejoin, so
+/// the track is now the right unit to page on.
 pub async fn search_tracks(
     pool: &Pool<Postgres>,
     user_id: &str,
@@ -231,10 +287,11 @@ pub async fn search_tracks(
         "AND LOWER(tracks.title) LIKE LOWER($4)"
     };
 
+    let upload_join = one_upload_join("$1");
     let sql = format!(
         r#"
         WITH page AS MATERIALIZED (
-            SELECT user_uploads.xata_id AS upload_id
+            SELECT DISTINCT tracks.title, tracks.xata_id AS track_id
             FROM tracks
             JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
             WHERE user_uploads.user_id = $1
@@ -244,8 +301,8 @@ pub async fn search_tracks(
         )
         {TRACK_COLUMNS}
         FROM page
-        JOIN user_uploads ON user_uploads.xata_id = page.upload_id
-        JOIN tracks ON tracks.xata_id = user_uploads.track_id
+        JOIN tracks ON tracks.xata_id = page.track_id
+        {upload_join}
         {TRACK_JOINS}
         ORDER BY tracks.title ASC, tracks.xata_id ASC
         "#
@@ -275,9 +332,8 @@ pub async fn get_tracks_by_ids(
         r#"
         {}
         WHERE tracks.xata_id = ANY($1)
-          AND user_uploads.user_id = $2
         "#,
-        track_select()
+        track_select("$2")
     ))
     .bind(ids)
     .bind(user_id)

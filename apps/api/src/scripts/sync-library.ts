@@ -93,6 +93,7 @@ for (let i = 0; i < total; i += size) {
           artistId: artist.id,
           albumId: album.id,
         } as InsertArtistAlbum)
+        .onConflictDoNothing()
         .execute();
     }
   }

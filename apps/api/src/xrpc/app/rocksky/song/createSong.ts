@@ -536,6 +536,7 @@ const ensureRelationships = (
                     albumId: album.id,
                     trackId: track.id,
                   } as InsertAlbumTrack)
+                  .onConflictDoNothing()
                   .returning()
                   .execute()
                   .then(([row]) => row),
@@ -552,6 +553,7 @@ const ensureRelationships = (
                     artistId: artist.id,
                     trackId: track.id,
                   } as InsertArtistTrack)
+                  .onConflictDoNothing()
                   .returning()
                   .execute()
                   .then(([row]) => row),
@@ -568,6 +570,7 @@ const ensureRelationships = (
                     artistId: artist.id,
                     albumId: album.id,
                   } as InsertArtistAlbum)
+                  .onConflictDoNothing()
                   .returning()
                   .execute()
                   .then(([row]) => row),

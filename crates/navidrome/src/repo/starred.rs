@@ -2,6 +2,8 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres};
 
+use crate::repo::track::one_upload_join;
+
 pub struct StarredTrack {
     pub xata_id: String,
     pub title: String,
@@ -55,7 +57,7 @@ pub async fn get_starred_tracks(
     pool: &Pool<Postgres>,
     user_id: &str,
 ) -> Result<Vec<StarredTrack>, Error> {
-    let rows: Vec<StarredTrack> = sqlx::query_as(
+    let rows: Vec<StarredTrack> = sqlx::query_as(&format!(
         r#"
         SELECT
             tracks.xata_id,
@@ -78,13 +80,12 @@ pub async fn get_starred_tracks(
             (SELECT at3.artist_id FROM artist_tracks at3 WHERE at3.track_id = tracks.xata_id LIMIT 1) AS artist_id,
             loved_tracks.xata_createdat AS starred_at
         FROM loved_tracks
-        JOIN tracks ON loved_tracks.track_id = tracks.xata_id
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
+        JOIN tracks ON loved_tracks.track_id = tracks.xata_id{upload_join}
         WHERE loved_tracks.user_id = $1
-          AND user_uploads.user_id = $1
         ORDER BY loved_tracks.xata_createdat DESC
         "#,
-    )
+        upload_join = one_upload_join("$1")
+    ))
     .bind(user_id)
     .fetch_all(pool)
     .await?;

@@ -286,10 +286,10 @@ async fn with_tracks(
         r#"
         {}
         JOIN navidrome_playlist_tracks npt ON npt.track_id = tracks.xata_id
-        WHERE npt.playlist_id = $1 AND user_uploads.user_id = $2
+        WHERE npt.playlist_id = $1
         ORDER BY npt.xata_createdat ASC
         "#,
-        track_select()
+        track_select("$2")
     );
 
     let tracks: Vec<TrackWithUpload> = sqlx::query_as(&tracks_sql)

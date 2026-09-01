@@ -1,5 +1,12 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
-import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+} from "drizzle-orm/pg-core";
 import albums from "./albums";
 import artists from "./artists";
 
@@ -20,6 +27,7 @@ const artistAlbums = pgTable(
   (t) => [
     index("artist_albums_artist_id_idx").on(t.artistId),
     index("artist_albums_album_id_idx").on(t.albumId),
+    unique("artist_albums_artist_id_album_id_unique").on(t.artistId, t.albumId),
   ],
 );
 

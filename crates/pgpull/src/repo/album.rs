@@ -94,7 +94,7 @@ pub async fn insert_album_track(
         album_id,
         track_id
     ) VALUES ($1, $2, $3)
-      ON CONFLICT (xata_id) DO NOTHING"#,
+      ON CONFLICT DO NOTHING"#,
     )
     .bind(&album_track.xata_id)
     .bind(&album_track.album_id)

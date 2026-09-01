@@ -112,7 +112,7 @@ pub async fn insert_artist_album(
         album_id,
         xata_createdat
     ) VALUES ($1, $2, $3, $4)
-      ON CONFLICT (xata_id) DO NOTHING"#,
+      ON CONFLICT DO NOTHING"#,
     )
     .bind(&artist_album.xata_id)
     .bind(&artist_album.artist_id)
@@ -134,7 +134,7 @@ pub async fn insert_artist_track(
         track_id,
         xata_createdat
     ) VALUES ($1, $2, $3, $4)
-      ON CONFLICT (xata_id) DO NOTHING"#,
+      ON CONFLICT DO NOTHING"#,
     )
     .bind(&artist_track.xata_id)
     .bind(&artist_track.artist_id)

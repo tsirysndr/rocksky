@@ -191,24 +191,33 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .then((results) => results[0]);
 
     if (!album_track) {
-      await ctx.db.insert(albumTracks).values({
-        albumId: album_id.id,
-        trackId: track_id.id,
-      });
+      await ctx.db
+        .insert(albumTracks)
+        .values({
+          albumId: album_id.id,
+          trackId: track_id.id,
+        })
+        .onConflictDoNothing();
     }
 
     if (!artist_track) {
-      await ctx.db.insert(artistTracks).values({
-        artistId: artist_id.id,
-        trackId: track_id.id,
-      });
+      await ctx.db
+        .insert(artistTracks)
+        .values({
+          artistId: artist_id.id,
+          trackId: track_id.id,
+        })
+        .onConflictDoNothing();
     }
 
     if (!artist_album) {
-      await ctx.db.insert(artistAlbums).values({
-        artistId: artist_id.id,
-        albumId: album_id.id,
-      });
+      await ctx.db
+        .insert(artistAlbums)
+        .values({
+          artistId: artist_id.id,
+          albumId: album_id.id,
+        })
+        .onConflictDoNothing();
     }
 
     if (track_id && !track_id.albumUri) {
