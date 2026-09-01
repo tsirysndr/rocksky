@@ -316,6 +316,13 @@ function StickyPlayerWithData() {
   // Suppress the device's echo briefly after a local slider move, so a stale
   // ~2s-old push can't snap the thumb back mid-drag.
   const lastLocalVolumeAt = useRef(0);
+  // Same pattern for shuffle and repeat: the device's own state, mirrored from
+  // its pushes; `null` means the device doesn't advertise the control and the
+  // button is hidden rather than shown wrong.
+  const [deviceShuffle, setDeviceShuffle] = useState<boolean | null>(null);
+  const [deviceRepeat, setDeviceRepeat] = useState<"off" | "all" | "one" | null>(null);
+  const lastLocalShuffleAt = useRef(0);
+  const lastLocalRepeatAt = useRef(0);
 
   // Player selector
   const [playerSelectorOpen, setPlayerSelectorOpen] = useState(false);
@@ -336,6 +343,8 @@ function StickyPlayerWithData() {
   // newly-picked device's first push reports its own.
   useEffect(() => {
     setDeviceVolume(null);
+    setDeviceShuffle(null);
+    setDeviceRepeat(null);
   }, [activeDeviceId]);
 
   // Publish shuffle/repeat to whichever player is the source. For the local
@@ -343,19 +352,15 @@ function StickyPlayerWithData() {
   // (re)applies it on the engine's next init, so repeat "all" set before the
   // first play still loops the queue instead of stopping at the end.
   useEffect(() => {
-    if (playerRef.current === "device") {
-      sendDeviceCommand("shuffle", { enabled: shuffle });
-      return;
-    }
+    // A device's shuffle is its own state, mirrored from its pushes and driven
+    // by onToggleShuffle — don't impose the local atom on it.
+    if (playerRef.current === "device") return;
     publishShuffle(shuffle);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shuffle, player]);
 
   useEffect(() => {
-    if (playerRef.current === "device") {
-      sendDeviceCommand("repeat", { mode: repeatMode === "one" ? "one" : repeatMode === "all" ? "all" : "off" });
-      return;
-    }
+    if (playerRef.current === "device") return;
     publishRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repeatMode, player]);
@@ -548,6 +553,12 @@ function StickyPlayerWithData() {
           if (Date.now() - lastLocalVolumeAt.current > 2500) {
             setDeviceVolume(track.volume ?? null);
           }
+          if (Date.now() - lastLocalShuffleAt.current > 2500) {
+            setDeviceShuffle(track.shuffle ?? null);
+          }
+          if (Date.now() - lastLocalRepeatAt.current > 2500) {
+            setDeviceRepeat(track.repeat ?? null);
+          }
         }
       })
       // Transport status for a device.
@@ -737,6 +748,29 @@ function StickyPlayerWithData() {
     }
     const p = getRockboxPlayer();
     if (p.ready) p.setVolume(muted ? 0 : v);
+  };
+
+  const onToggleShuffle = () => {
+    if (player === "device") {
+      const next = !(deviceShuffle ?? false);
+      lastLocalShuffleAt.current = Date.now();
+      setDeviceShuffle(next);
+      sendDeviceCommand("shuffle", { enabled: next });
+      return;
+    }
+    setShuffle((s) => !s);
+  };
+
+  const onCycleRepeat = () => {
+    if (player === "device") {
+      const cur = deviceRepeat ?? "off";
+      const next = cur === "off" ? "all" : cur === "all" ? "one" : "off";
+      lastLocalRepeatAt.current = Date.now();
+      setDeviceRepeat(next);
+      sendDeviceCommand("repeat", { mode: next });
+      return;
+    }
+    setRepeatMode((r: RepeatMode) => (r === "off" ? "all" : r === "all" ? "one" : "off"));
   };
 
   const onToggleMute = () => {
@@ -1139,16 +1173,18 @@ function StickyPlayerWithData() {
           onClose={() => setFullscreenOpen(false)}
           isUploadPlayer={isRockbox}
           showVolume={isRockbox || (player === "device" && deviceVolume !== null)}
+          showShuffle={isRockbox || (player === "device" && deviceShuffle !== null)}
+          showRepeat={isRockbox || (player === "device" && deviceRepeat !== null)}
           showTrackMenu={showTrackMenu}
           trackQueued={trackQueued}
           volume={player === "device" ? (deviceVolume ?? volume) : volume}
           muted={muted}
           onVolumeChange={onVolumeChange}
           onToggleMute={onToggleMute}
-          shuffle={shuffle}
-          repeatMode={repeatMode}
-          onShuffle={() => setShuffle((s) => !s)}
-          onRepeat={() => setRepeatMode((r: RepeatMode) => r === "off" ? "all" : r === "all" ? "one" : "off")}
+          shuffle={player === "device" ? (deviceShuffle ?? false) : shuffle}
+          repeatMode={player === "device" ? (deviceRepeat ?? "off") : repeatMode}
+          onShuffle={onToggleShuffle}
+          onRepeat={onCycleRepeat}
         />
       )}
 
@@ -1233,12 +1269,14 @@ function StickyPlayerWithData() {
         onOpenFullscreen={() => setFullscreenOpen(true)}
         isUploadPlayer={isRockbox}
           showVolume={isRockbox || (player === "device" && deviceVolume !== null)}
+          showShuffle={isRockbox || (player === "device" && deviceShuffle !== null)}
+          showRepeat={isRockbox || (player === "device" && deviceRepeat !== null)}
         showTrackMenu={showTrackMenu}
         trackQueued={trackQueued}
-        shuffle={shuffle}
-        repeatMode={repeatMode}
-        onShuffle={() => setShuffle((s) => !s)}
-        onRepeat={() => setRepeatMode((r: RepeatMode) => r === "off" ? "all" : r === "all" ? "one" : "off")}
+        shuffle={player === "device" ? (deviceShuffle ?? false) : shuffle}
+        repeatMode={player === "device" ? (deviceRepeat ?? "off") : repeatMode}
+        onShuffle={onToggleShuffle}
+        onRepeat={onCycleRepeat}
         volume={player === "device" ? (deviceVolume ?? volume) : volume}
         muted={muted}
         onVolumeChange={onVolumeChange}

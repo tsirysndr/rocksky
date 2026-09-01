@@ -256,6 +256,9 @@ export type StickyPlayerProps = {
   /** Show the mute + volume slider. Defaults to `isUploadPlayer`; a remote
    *  device sets it explicitly when (and only when) it reports a volume. */
   showVolume?: boolean;
+  /** Same contract for the shuffle and repeat buttons. */
+  showShuffle?: boolean;
+  showRepeat?: boolean;
   /** Show the "…" track menu beside the heart. Off for Spotify, whose queue
    *  and library actions this app does not own. */
   showTrackMenu?: boolean;
@@ -299,6 +302,8 @@ function StickyPlayer(props: StickyPlayerProps) {
     embedded,
     isUploadPlayer,
     showVolume,
+    showShuffle,
+    showRepeat,
     shuffle,
     repeatMode,
     onShuffle,
@@ -485,7 +490,7 @@ function StickyPlayer(props: StickyPlayerProps) {
           </div>
           <MainWrapper>
             <Controls>
-              {isUploadPlayer && (
+              {(showShuffle ?? isUploadPlayer) && (
                 <button
                   onClick={onShuffle}
                   style={{ background: "transparent", border: "none", cursor: "pointer", width: 36, display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -511,7 +516,7 @@ function StickyPlayer(props: StickyPlayerProps) {
               <NextButton onClick={onNext} style={{ backgroundColor: "transparent" }}>
                 <Next color={embedded ? "#fff" : "var(--color-text)"} />
               </NextButton>
-              {isUploadPlayer && (
+              {(showRepeat ?? isUploadPlayer) && (
                 <button
                   onClick={onRepeat}
                   style={{ background: "transparent", border: "none", cursor: "pointer", width: 36, display: "flex", alignItems: "center", justifyContent: "center" }}

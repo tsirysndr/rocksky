@@ -133,6 +133,8 @@ function FullscreenPlayer({
   onClose,
   isUploadPlayer,
   showVolume,
+  showShuffle,
+  showRepeat,
   showTrackMenu,
   trackQueued,
   shuffle,
@@ -208,6 +210,8 @@ function FullscreenPlayer({
           queuePanelOpen={queuePanelOpen}
           isUploadPlayer={isUploadPlayer}
           showVolume={showVolume}
+          showShuffle={showShuffle}
+          showRepeat={showRepeat}
           showTrackMenu={showTrackMenu}
           trackQueued={trackQueued}
           shuffle={shuffle}
