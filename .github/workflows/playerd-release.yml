@@ -1,0 +1,94 @@
+name: playerd-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (default playerd-v<version> from playerd/Cargo.toml)"
+        type: string
+        required: false
+  push:
+    tags:
+      - "playerd-v*"
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: playerd
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            VER="$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -1)"
+            [ -n "$VER" ] || { echo "could not read version from playerd/Cargo.toml" >&2; exit 1; }
+            TAG="playerd-v$VER"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved release tag: $TAG"
+      - name: Ensure release exists (auto-creates the tag)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "playerd $TAG" \
+              --notes "Rocksky remote player daemon. Managed by playerd-release.yml." \
+              --target "$GITHUB_SHA"
+          fi
+
+  build:
+    needs: prepare-release
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: playerd
+          shared-key: playerd-${{ matrix.target }}
+          cache-on-failure: true
+      - name: cargo build --release
+        run: cargo build --release
+      - name: Package tarball
+        run: |
+          TAG="${{ needs.prepare-release.outputs.tag }}"
+          ASSET="playerd-$TAG-${{ matrix.target }}.tar.gz"
+          tar -C target/release -czf "$ASSET" playerd
+          shasum -a 256 "$ASSET" > "$ASSET.sha256"
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.prepare-release.outputs.tag }}" \
+            playerd-*.tar.gz playerd-*.tar.gz.sha256 --clobber
