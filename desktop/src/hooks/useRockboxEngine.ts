@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { setQueueMetaResolver } from "../lib/tauri-rockbox";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { reconcileProgress } from "../lib/audio/progress";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
@@ -58,6 +59,14 @@ setQueueMetaResolver((url: string) => {
 
 export function useRockboxEngine() {
   const player = useAtomValue(playerAtom);
+  // The (index, url) the last `track` event was for. The native shim emits
+  // `track` a SECOND time for the same song, once the decoder fills in real
+  // tags a moment after playback starts (see titleReEmitted in
+  // lib/tauri-rockbox) — that is a metadata refresh, not a new track. Zeroing
+  // progress on it threw the bar back to 0:00 mid-song, and the next poll
+  // snapped it forward again. rockbox-wasm has no such re-emit, which is why
+  // only the desktop app showed this.
+  const lastTrackKey = useRef<string | null>(null);
   const setNowPlaying = useSetAtom(nowPlayingAtom);
   const setQueue = useSetAtom(queueAtom);
   const setQueueIndex = useSetAtom(queueIndexAtom);
@@ -84,6 +93,9 @@ export function useRockboxEngine() {
     }) => {
       const known = trackForUrl(e.url);
       const md = e.metadata;
+      const key = `${e.index}\u0001${e.url}`;
+      const isNewTrack = key !== lastTrackKey.current;
+      lastTrackKey.current = key;
       setNowPlaying((prev) => ({
         title: known?.title ?? md?.title ?? e.url.split("/").pop() ?? "",
         artist: known?.artist ?? md?.artist ?? "",
@@ -92,7 +104,7 @@ export function useRockboxEngine() {
         albumUri: "",
         album: known?.album ?? md?.album ?? undefined,
         duration: known?.duration ?? md?.duration_ms ?? prev?.duration ?? 0,
-        progress: 0,
+        progress: isNewTrack ? 0 : (prev?.progress ?? 0),
         albumArt: known?.albumArt ?? prev?.albumArt ?? undefined,
         isPlaying: true,
         sha256: known?.sha256 ?? "",
@@ -118,7 +130,10 @@ export function useRockboxEngine() {
         prev
           ? {
               ...prev,
-              progress: e.elapsed_ms,
+              // The UI ticks at 100ms between these 500ms reports, so treat the
+              // engine as the authority to converge on rather than a value to
+              // snap to — see reconcileProgress.
+              progress: reconcileProgress(prev.progress, e.elapsed_ms),
               duration: e.duration_ms || prev.duration,
               isPlaying: e.state === "playing",
             }

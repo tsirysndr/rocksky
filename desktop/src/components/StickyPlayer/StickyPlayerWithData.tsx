@@ -44,6 +44,7 @@ import {
   streamUrlFor,
 } from "../../lib/audio/rockbox-engine";
 import { ensureStreamToken } from "../../api/uploads";
+import { reconcileProgress } from "../../lib/audio/progress";
 import { onMediaControl, pushNowPlaying } from "../../lib/native-media";
 import { setSessionSource } from "../../lib/native-session";
 import { useRockboxEngine } from "../../hooks/useRockboxEngine";
@@ -119,12 +120,6 @@ const PlayerSelectorLabel = styled.span`
 // authoritative push corrects it within a couple of seconds anyway.
 const MAX_TICK_MS = 2000;
 
-// Reconciling the local progress estimate with a device's pushes: absorb this
-// share of the error per push, and treat anything past the threshold as a seek
-// to follow rather than drift to smooth out.
-const DEVICE_SLEW_GAIN = 0.25;
-const DEVICE_RESYNC_MS = 2000;
-
 // ---------------------------------------------------------------------------
 // StickyPlayerWithData
 // ---------------------------------------------------------------------------
@@ -146,14 +141,9 @@ function toRemoteNowPlaying(
   // local value (as this used to) leaves a permanent offset that never
   // converges; snapping to the device's makes the bar visibly jump every push.
   // Take a fraction of the error instead, and never let it move backwards.
-  const local = prev?.progress ?? incoming;
-  const error = incoming - local;
-  const progress = !sameTrack
-    ? incoming
-    : Math.abs(error) > DEVICE_RESYNC_MS
-      // Too far out to be drift — somebody seeked on the device.
-      ? incoming
-      : Math.max(local, local + error * DEVICE_SLEW_GAIN);
+  const progress = sameTrack
+    ? reconcileProgress(prev?.progress ?? incoming, incoming)
+    : incoming;
   const isPlaying =
     typeof track.isPlaying === "boolean" ? track.isPlaying : (prev?.isPlaying ?? true);
   const songUri = track.songUri ?? "";
@@ -357,10 +347,12 @@ function StickyPlayerWithData() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repeatMode, player]);
 
-  // Progress ticker for Spotify and remote devices — rockbox progress comes
-  // from the engine's own `progress` events, so skip it there to avoid double-
-  // counting. For a remote device we tick locally between the device's periodic
-  // now-playing pushes (which reconcile any drift).
+  // Progress ticker for every source. Each reports elapsed time on its own
+  // schedule — the local engine every 500ms, a remote device every ~2s, Spotify
+  // every 15s — so the bar is interpolated at 100ms in between and each report
+  // slews it back into line (see reconcileProgress). Ticking local playback too
+  // is what makes it as smooth as Spotify; it is not double-counting, because
+  // the engine's reports correct this estimate rather than add to it.
   useEffect(() => {
     let last = Date.now();
     const id = window.setInterval(() => {
@@ -374,7 +366,7 @@ function StickyPlayerWithData() {
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
         const p = playerRef.current;
-        if (p !== "spotify" && p !== "device") return prev;
+        if (p !== "spotify" && p !== "device" && p !== "rockbox") return prev;
         if (prev.progress >= prev.duration) {
           if (p === "spotify") setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
