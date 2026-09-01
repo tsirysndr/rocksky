@@ -1,7 +1,6 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { setQueueMetaResolver } from "../lib/tauri-rockbox";
 import { useEffect, useRef } from "react";
-import { reconcileProgress } from "../lib/audio/progress";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
@@ -130,10 +129,7 @@ export function useRockboxEngine() {
         prev
           ? {
               ...prev,
-              // The UI ticks at 100ms between these 500ms reports, so treat the
-              // engine as the authority to converge on rather than a value to
-              // snap to — see reconcileProgress.
-              progress: reconcileProgress(prev.progress, e.elapsed_ms),
+              progress: e.elapsed_ms,
               duration: e.duration_ms || prev.duration,
               isPlaying: e.state === "playing",
             }

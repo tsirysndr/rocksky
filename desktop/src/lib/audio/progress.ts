@@ -14,11 +14,17 @@ const RESYNC_MS = 2000;
 
 /**
  * The progress to show, given what we've ticked to locally and what the source
- * says. Never returns less than `local`: a progress bar may stall for a moment
- * while it corrects, but it must never run backwards.
+ * says.
+ *
+ * Corrects in BOTH directions. Clamping this to forward-only (as it first did)
+ * looks safer and is worse: the local tick can overshoot — one slow render and
+ * `delta` covers 500ms in a single tick — and a forward-only correction can
+ * never take that back, so the estimate ratchets ahead until it trips the
+ * resync threshold and snaps back. Ratchet, snap, repeat. A small backward
+ * nudge every report is invisible; the snap is not.
  */
 export function reconcileProgress(local: number, authoritative: number): number {
   const error = authoritative - local;
   if (Math.abs(error) > RESYNC_MS) return authoritative;
-  return Math.max(local, local + error * SLEW_GAIN);
+  return local + error * SLEW_GAIN;
 }

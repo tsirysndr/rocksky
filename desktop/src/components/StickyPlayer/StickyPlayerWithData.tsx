@@ -347,12 +347,11 @@ function StickyPlayerWithData() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repeatMode, player]);
 
-  // Progress ticker for every source. Each reports elapsed time on its own
-  // schedule — the local engine every 500ms, a remote device every ~2s, Spotify
-  // every 15s — so the bar is interpolated at 100ms in between and each report
-  // slews it back into line (see reconcileProgress). Ticking local playback too
-  // is what makes it as smooth as Spotify; it is not double-counting, because
-  // the engine's reports correct this estimate rather than add to it.
+  // Progress ticker for the sources that report rarely: Spotify (every 15s) and
+  // remote devices (every ~2s). The local engine reports twice a second and its
+  // position is monotonic to within ~30ms (measured — see
+  // src-tauri/examples/position_probe.rs), so interpolating on top of it only
+  // added a second estimate to disagree with it.
   useEffect(() => {
     let last = Date.now();
     const id = window.setInterval(() => {
@@ -366,7 +365,7 @@ function StickyPlayerWithData() {
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
         const p = playerRef.current;
-        if (p !== "spotify" && p !== "device" && p !== "rockbox") return prev;
+        if (p !== "spotify" && p !== "device") return prev;
         if (prev.progress >= prev.duration) {
           if (p === "spotify") setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
