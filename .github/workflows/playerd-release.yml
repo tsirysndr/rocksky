@@ -46,7 +46,7 @@ jobs:
           TAG="${{ steps.tag.outputs.tag }}"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
-              --title "playerd $TAG" \
+              --title "playerd ${TAG#playerd-}" \
               --notes "Rocksky remote player daemon. Managed by playerd-release.yml." \
               --target "$GITHUB_SHA"
           fi
@@ -83,7 +83,7 @@ jobs:
       - name: Package tarball
         run: |
           TAG="${{ needs.prepare-release.outputs.tag }}"
-          ASSET="playerd-$TAG-${{ matrix.target }}.tar.gz"
+          ASSET="playerd-${TAG#playerd-}-${{ matrix.target }}.tar.gz"
           tar -C target/release -czf "$ASSET" playerd
           shasum -a 256 "$ASSET" > "$ASSET.sha256"
       - name: Upload to release
