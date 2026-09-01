@@ -3,7 +3,7 @@ import axios from "axios";
 import type { Context } from "context";
 import { consola } from "consola";
 import { desc, eq, inArray, sql } from "drizzle-orm";
-import { Cache, Duration, Effect, pipe } from "effect";
+import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { StoriesView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getStories";
@@ -18,12 +18,25 @@ import tracks from "schema/tracks";
 import users from "schema/users";
 
 export default function (server: Server, ctx: Context) {
+  // The cache key must be a Data.struct — a plain object is compared by
+  // reference, so every request would miss and rerun the queries.
   const storiesCache = Cache.make({
     capacity: 100,
     timeToLive: Duration.seconds(30),
-    lookup: (key: { params: QueryParams; did?: string }) =>
+    lookup: (
+      key: Data.Data<{
+        feed?: string;
+        following?: boolean;
+        size?: number;
+        did?: string;
+      }>,
+    ) =>
       pipe(
-        { params: key.params, ctx, did: key.did },
+        {
+          params: { feed: key.feed, following: key.following, size: key.size },
+          ctx,
+          did: key.did,
+        },
         retrieve,
         Effect.map((data) => ({ data })),
         Effect.flatMap(presentation),
@@ -41,7 +54,16 @@ export default function (server: Server, ctx: Context) {
     }
     return pipe(
       storiesCache,
-      Effect.flatMap((cache) => cache.get({ params, did })),
+      Effect.flatMap((cache) =>
+        cache.get(
+          Data.struct({
+            feed: params.feed,
+            following: params.following,
+            size: params.size,
+            did,
+          }),
+        ),
+      ),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({});
@@ -112,34 +134,47 @@ const retrieve = ({
         }
       }
 
-      const innerFilters = [
-        feedUris ? sql`inner_s.uri IN ${feedUris}` : null,
-        followedUserIds ? sql`inner_s.user_id IN ${followedUserIds}` : null,
-      ].filter((c): c is NonNullable<typeof c> => c !== null);
+      const fetchRows = (windowDays?: number) => {
+        const innerFilters = [
+          feedUris ? sql`inner_s.uri IN ${feedUris}` : null,
+          followedUserIds ? sql`inner_s.user_id IN ${followedUserIds}` : null,
+          windowDays
+            ? sql`inner_s.timestamp > now() - make_interval(days => ${windowDays})`
+            : null,
+        ].filter((c): c is NonNullable<typeof c> => c !== null);
 
-      const innerWhere =
-        innerFilters.length > 0
-          ? sql`WHERE ${sql.join(innerFilters, sql` AND `)}`
-          : sql``;
+        const innerWhere =
+          innerFilters.length > 0
+            ? sql`WHERE ${sql.join(innerFilters, sql` AND `)}`
+            : sql``;
 
-      const rows = await ctx.db
-        .select(baseSelect)
-        .from(scrobbles)
-        .leftJoin(artists, eq(scrobbles.artistId, artists.id))
-        .leftJoin(albums, eq(scrobbles.albumId, albums.id))
-        .leftJoin(tracks, eq(scrobbles.trackId, tracks.id))
-        .leftJoin(users, eq(scrobbles.userId, users.id))
-        .where(
-          sql`${scrobbles.id} IN (
-            SELECT DISTINCT ON (inner_s.user_id) inner_s.xata_id
-            FROM scrobbles inner_s
-            ${innerWhere}
-            ORDER BY inner_s.user_id, inner_s.timestamp DESC, inner_s.xata_id DESC
-          )`,
-        )
-        .orderBy(desc(scrobbles.timestamp))
-        .limit(size)
-        .execute();
+        return ctx.db
+          .select(baseSelect)
+          .from(scrobbles)
+          .leftJoin(artists, eq(scrobbles.artistId, artists.id))
+          .leftJoin(albums, eq(scrobbles.albumId, albums.id))
+          .leftJoin(tracks, eq(scrobbles.trackId, tracks.id))
+          .leftJoin(users, eq(scrobbles.userId, users.id))
+          .where(
+            sql`${scrobbles.id} IN (
+              SELECT DISTINCT ON (inner_s.user_id) inner_s.xata_id
+              FROM scrobbles inner_s
+              ${innerWhere}
+              ORDER BY inner_s.user_id, inner_s.timestamp DESC, inner_s.xata_id DESC
+            )`,
+          )
+          .orderBy(desc(scrobbles.timestamp))
+          .limit(size)
+          .execute();
+      };
+
+      // Latest-scrobble-per-user over the whole table is a full sort of
+      // scrobbles; bound it to recent activity and only pay the unbounded
+      // scan when the window can't fill the page.
+      let rows = await fetchRows(30);
+      if (rows.length < size) {
+        rows = await fetchRows();
+      }
 
       // Like state per story, same shape as getFeed: total count + whether the
       // viewer (did) liked the track. Skipped entirely for anonymous requests
@@ -148,18 +183,22 @@ const retrieve = ({
       const likesMap = new Map<string, { count: number; liked: boolean }>();
       if (trackIds.length > 0) {
         const likes = await ctx.db
-          .select()
+          .select({
+            trackId: lovedTracks.trackId,
+            count: sql<number>`count(*)::int`,
+            liked: did
+              ? sql<boolean>`coalesce(bool_or(${users.did} = ${did}), false)`
+              : sql<boolean>`false`,
+          })
           .from(lovedTracks)
           .leftJoin(users, eq(lovedTracks.userId, users.id))
           .where(inArray(lovedTracks.trackId, trackIds))
+          .groupBy(lovedTracks.trackId)
           .execute();
-        for (const trackId of trackIds) {
-          const trackLikes = likes.filter(
-            (l) => l.loved_tracks.trackId === trackId,
-          );
-          likesMap.set(trackId, {
-            count: trackLikes.length,
-            liked: trackLikes.some((l) => l.users?.did === did),
+        for (const like of likes) {
+          likesMap.set(like.trackId, {
+            count: like.count,
+            liked: like.liked,
           });
         }
       }
