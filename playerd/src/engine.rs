@@ -8,7 +8,7 @@
 
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rockbox_playback::{
     BassEnhancement, ChannelMode, Compressor, CrossfadeSettings, Crossfeed, Equalizer,
@@ -63,6 +63,9 @@ pub struct Snapshot {
     pub status: Status,
     /// Output volume 0.0..=1.0.
     pub volume: f32,
+    /// When `status` was captured, so [`Engine::snapshot`] can extrapolate the
+    /// position to read time.
+    taken: Instant,
 }
 
 impl Default for Snapshot {
@@ -79,6 +82,7 @@ impl Default for Snapshot {
                 repeat: RepeatMode::Off,
             },
             volume: 1.0,
+            taken: Instant::now(),
         }
     }
 }
@@ -118,6 +122,7 @@ impl Engine {
                     *shared.lock().unwrap() = Snapshot {
                         status: player.status(),
                         volume: player.volume(),
+                        taken: Instant::now(),
                     };
                 }
             })
@@ -137,8 +142,21 @@ impl Engine {
         let _ = self.tx.lock().unwrap().send(cmd);
     }
 
+    /// The engine state, with the position extrapolated to NOW — the stored
+    /// snapshot is up to ~250ms stale and consumers poll on their own cadence,
+    /// which read raw would make elapsed time tick unevenly (see the desktop
+    /// engine for the full story).
     pub fn snapshot(&self) -> Snapshot {
-        self.snapshot.lock().unwrap().clone()
+        let mut snap = self.snapshot.lock().unwrap().clone();
+        if snap.status.state == PlaybackState::Playing {
+            let pos = snap.status.position + snap.taken.elapsed();
+            snap.status.position = if snap.status.duration > Duration::ZERO {
+                pos.min(snap.status.duration)
+            } else {
+                pos
+            };
+        }
+        snap
     }
 }
 

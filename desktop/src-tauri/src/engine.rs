@@ -7,7 +7,7 @@
 
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rockbox_playback::{EqBand, InsertPosition, PlaybackState, Player, RepeatMode, Status};
 
@@ -101,6 +101,9 @@ pub struct Snapshot {
     /// The queue's URLs/paths, verbatim — the frontend shim keys track
     /// metadata by exact queue string (like rockbox-wasm's queue events).
     pub queue: Vec<String>,
+    /// When `status` was captured, so [`Engine::snapshot`] can extrapolate the
+    /// position to read time.
+    taken: Instant,
 }
 
 impl Default for Snapshot {
@@ -118,6 +121,7 @@ impl Default for Snapshot {
             },
             volume: 1.0,
             queue: Vec::new(),
+            taken: Instant::now(),
         }
     }
 }
@@ -170,6 +174,7 @@ impl Engine {
                             .iter()
                             .map(|p| p.to_string_lossy().into_owned())
                             .collect(),
+                        taken: Instant::now(),
                     };
                     *shared.lock().unwrap() = snap;
                 }
@@ -190,8 +195,28 @@ impl Engine {
         let _ = self.tx.lock().unwrap().send(cmd);
     }
 
+    /// The engine state, with the position extrapolated to NOW.
+    ///
+    /// The stored snapshot is refreshed on the engine thread's ~250ms tick, but
+    /// consumers poll on their own cadence (the webview every 500ms, the native
+    /// session every 1s, remote pushes every 2s). Handing them the stored value
+    /// makes every reading 0–250ms stale — and the staleness sweeps as the two
+    /// timers drift, so a displayed second lasts anywhere from ~750ms to
+    /// ~1250ms. That was the miniplayer's unstable clock. Adding the wall time
+    /// since capture makes the position exact at read time, whatever the
+    /// cadence; rockbox-wasm is smooth for the same reason (it computes elapsed
+    /// at emit time).
     pub fn snapshot(&self) -> Snapshot {
-        self.snapshot.lock().unwrap().clone()
+        let mut snap = self.snapshot.lock().unwrap().clone();
+        if snap.status.state == PlaybackState::Playing {
+            let pos = snap.status.position + snap.taken.elapsed();
+            snap.status.position = if snap.status.duration > Duration::ZERO {
+                pos.min(snap.status.duration)
+            } else {
+                pos
+            };
+        }
+        snap
     }
 }
 
