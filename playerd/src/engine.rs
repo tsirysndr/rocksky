@@ -8,7 +8,7 @@
 
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rockbox_playback::{
     BassEnhancement, ChannelMode, Compressor, CrossfadeSettings, Crossfeed, Equalizer,
@@ -109,14 +109,17 @@ impl Engine {
                         return;
                     }
                 };
+                let mut position = PositionFilter::default();
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
                         Ok(cmd) => apply(&player, cmd),
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
+                    let mut status = player.status();
+                    status.position = position.smooth(&status);
                     *shared.lock().unwrap() = Snapshot {
-                        status: player.status(),
+                        status,
                         volume: player.volume(),
                     };
                 }
@@ -200,5 +203,183 @@ fn apply(player: &Player, cmd: EngineCmd) {
                 None => tracing::debug!("nothing to resume"),
             };
         }
+    }
+}
+
+/// Smooths the engine's reported playback position.
+///
+/// `Player::status()` derives position as `decode_pos_ms - ring_fill`, and the
+/// two terms are sampled independently: the decoder advances a block at a time
+/// while the output drains the ring continuously, so their difference jitters
+/// in BOTH directions by roughly a decode block. Read straight through, the
+/// miniplayer's clock stutters and slides backwards — with a 10 s buffer the
+/// ring term is big enough for that to be seconds.
+///
+/// So anchor to the wall clock and let the position advance in real time,
+/// re-syncing only when the engine disagrees by more than jitter can explain —
+/// a seek, a track change, or a genuine stall.
+#[derive(Default)]
+pub struct PositionFilter {
+    anchor: Option<Anchor>,
+}
+
+struct Anchor {
+    /// Queue index the anchor belongs to; a change means a different track.
+    index: Option<usize>,
+    reported_ms: u64,
+    at: Instant,
+}
+
+/// How far the engine may disagree with the wall clock before we believe it.
+/// Above the jitter the subtraction produces, below a seek worth following.
+const RESYNC_MS: u64 = 1_500;
+
+impl PositionFilter {
+    /// The position to report for `status`, in place of `status.position`.
+    pub fn smooth(&mut self, status: &Status) -> Duration {
+        let raw_ms = status.position.as_millis() as u64;
+        let duration_ms = status.duration.as_millis() as u64;
+
+        // Only playback moves the clock. While paused or stopped the engine's
+        // value is static, so there is nothing to smooth and re-anchoring keeps
+        // a resume from inheriting a stale anchor.
+        if status.state != PlaybackState::Playing {
+            self.anchor = Some(Anchor {
+                index: status.index,
+                reported_ms: raw_ms,
+                at: Instant::now(),
+            });
+            return status.position;
+        }
+
+        let now = Instant::now();
+        let expected_ms = match &self.anchor {
+            Some(a) if a.index == status.index => {
+                a.reported_ms + now.duration_since(a.at).as_millis() as u64
+            }
+            // No anchor, or a different track: take the engine at its word.
+            _ => {
+                self.anchor = Some(Anchor {
+                    index: status.index,
+                    reported_ms: raw_ms,
+                    at: now,
+                });
+                return status.position;
+            }
+        };
+
+        if raw_ms.abs_diff(expected_ms) > RESYNC_MS {
+            // A seek, a track restart, or the decoder genuinely stalled — the
+            // engine is right and our clock is not.
+            self.anchor = Some(Anchor {
+                index: status.index,
+                reported_ms: raw_ms,
+                at: now,
+            });
+            return status.position;
+        }
+
+        // Never run past the end: the track ends and the index changes a moment
+        // later, and a progress bar that overshoots looks broken.
+        let capped = if duration_ms > 0 {
+            expected_ms.min(duration_ms)
+        } else {
+            expected_ms
+        };
+        Duration::from_millis(capped)
+    }
+}
+
+#[cfg(test)]
+mod position_tests {
+    use super::*;
+    use rockbox_playback::{PlaybackState, RepeatMode};
+
+    fn status(state: PlaybackState, index: Option<usize>, pos_ms: u64) -> Status {
+        Status {
+            state,
+            index,
+            position: Duration::from_millis(pos_ms),
+            duration: Duration::from_millis(300_000),
+            metadata: None,
+            queue_len: 1,
+            shuffle: false,
+            repeat: RepeatMode::Off,
+        }
+    }
+
+    /// The bug: `decode_pos_ms - ring_fill` jitters both ways, so a raw read
+    /// slides backwards. The filter must never report a position lower than the
+    /// one before it, for jitter within the resync window.
+    #[test]
+    fn jitter_never_moves_the_clock_backwards() {
+        let mut f = PositionFilter::default();
+        // A raw sequence that dips and spikes the way the subtraction does.
+        let raw = [10_000u64, 10_400, 9_900, 10_800, 10_100, 11_200, 10_600];
+        let mut last = 0u64;
+        for r in raw {
+            let out = f
+                .smooth(&status(PlaybackState::Playing, Some(0), r))
+                .as_millis() as u64;
+            assert!(out + 1 >= last, "went backwards: {last} -> {out} (raw {r})");
+            last = out;
+        }
+    }
+
+    /// A real seek is bigger than jitter and must be followed immediately.
+    #[test]
+    fn a_seek_is_followed_not_smoothed() {
+        let mut f = PositionFilter::default();
+        f.smooth(&status(PlaybackState::Playing, Some(0), 10_000));
+        let out = f
+            .smooth(&status(PlaybackState::Playing, Some(0), 120_000))
+            .as_millis() as u64;
+        assert_eq!(out, 120_000, "seek forward should snap");
+        let back = f
+            .smooth(&status(PlaybackState::Playing, Some(0), 5_000))
+            .as_millis() as u64;
+        assert_eq!(back, 5_000, "seek backward should snap");
+    }
+
+    /// A track change resets the anchor — otherwise the new track would inherit
+    /// the old one's clock and start part-way through.
+    #[test]
+    fn a_track_change_resets_the_anchor() {
+        let mut f = PositionFilter::default();
+        f.smooth(&status(PlaybackState::Playing, Some(0), 200_000));
+        let out = f
+            .smooth(&status(PlaybackState::Playing, Some(1), 0))
+            .as_millis() as u64;
+        assert_eq!(out, 0, "next track starts at its own position");
+    }
+
+    /// Paused is reported verbatim: nothing is moving, so there is nothing to
+    /// interpolate, and the clock must not creep while the user is paused.
+    #[test]
+    fn paused_does_not_advance() {
+        let mut f = PositionFilter::default();
+        f.smooth(&status(PlaybackState::Playing, Some(0), 30_000));
+        std::thread::sleep(Duration::from_millis(30));
+        let a = f
+            .smooth(&status(PlaybackState::Paused, Some(0), 30_000))
+            .as_millis() as u64;
+        std::thread::sleep(Duration::from_millis(30));
+        let b = f
+            .smooth(&status(PlaybackState::Paused, Some(0), 30_000))
+            .as_millis() as u64;
+        assert_eq!(a, 30_000);
+        assert_eq!(b, 30_000, "a paused clock must not creep");
+    }
+
+    /// The reported position must not run past the end of the track.
+    #[test]
+    fn never_overshoots_the_duration() {
+        let mut f = PositionFilter::default();
+        let mut s = status(PlaybackState::Playing, Some(0), 299_900);
+        s.duration = Duration::from_millis(300_000);
+        f.smooth(&s);
+        std::thread::sleep(Duration::from_millis(250));
+        let out = f.smooth(&s).as_millis() as u64;
+        assert!(out <= 300_000, "overshot the track: {out}");
     }
 }

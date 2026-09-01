@@ -200,6 +200,11 @@ function toRemoteQueueTrack(q: SdkQueueItem): QueueTrack {
 // MiniPlayer
 // ---------------------------------------------------------------------------
 
+// A tick longer than this means the timer was throttled (backgrounded window)
+// rather than merely late. Leaping the whole gap would overshoot; the next
+// authoritative push corrects it within a couple of seconds anyway.
+const MAX_TICK_MS = 2000;
+
 export default function MiniPlayer() {
   useQueuePersistence();
   // Bridge the in-browser rockbox-wasm engine → jotai atoms + push EQ/crossfade.
@@ -349,7 +354,15 @@ export default function MiniPlayer() {
   // Progress ticker (Spotify only — upload progress comes from engine events,
   // the WebSocket rockbox device reports its own elapsed).
   useEffect(() => {
+    let last = Date.now();
     progressInterval.current = window.setInterval(() => {
+      // Advance by the time that actually passed, not by the interval we asked
+      // for. setInterval fires late under render load, so a fixed +100 drifts
+      // BEHIND real time — and every authoritative push from the device then
+      // yanked the bar forward to catch up.
+      const now = Date.now();
+      const delta = Math.min(now - last, MAX_TICK_MS);
+      last = now;
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
         if (playerRef.current === "upload") return prev;
@@ -357,7 +370,7 @@ export default function MiniPlayer() {
           if (playerRef.current === "spotify") setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
         }
-        return { ...prev, progress: prev.progress + 100 };
+        return { ...prev, progress: Math.min(prev.progress + delta, prev.duration) };
       });
     }, 100);
     return () => { if (progressInterval.current) clearInterval(progressInterval.current); };

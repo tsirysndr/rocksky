@@ -7,7 +7,7 @@
 
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rockbox_playback::{EqBand, InsertPosition, PlaybackState, Player, RepeatMode, Status};
 
@@ -156,14 +156,17 @@ impl Engine {
                     }
                 };
                 let mut dsp = DspState::default();
+                let mut position = PositionFilter::default();
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
                         Ok(cmd) => apply(&player, &mut dsp, cmd),
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
+                    let mut status = player.status();
+                    status.position = position.smooth(&status);
                     let snap = Snapshot {
-                        status: player.status(),
+                        status,
                         volume: player.volume(),
                         queue: player
                             .queue()
@@ -335,5 +338,89 @@ fn apply(player: &Player, dsp: &mut DspState, cmd: EngineCmd) {
         }
         EngineCmd::SetCompressor(opts) => player.set_compressor(dsp::compressor(opts)),
         EngineCmd::SetSurround(opts) => player.set_surround(dsp::surround(opts)),
+    }
+}
+
+/// Smooths the engine's reported playback position.
+///
+/// `Player::status()` derives position as `decode_pos_ms - ring_fill`, and the
+/// two terms are sampled independently: the decoder advances a block at a time
+/// while the output drains the ring continuously, so their difference jitters
+/// in BOTH directions by roughly a decode block. Read straight through, the
+/// miniplayer's clock stutters and slides backwards — with a 10 s buffer the
+/// ring term is big enough for that to be seconds.
+///
+/// So anchor to the wall clock and let the position advance in real time,
+/// re-syncing only when the engine disagrees by more than jitter can explain —
+/// a seek, a track change, or a genuine stall.
+#[derive(Default)]
+pub struct PositionFilter {
+    anchor: Option<Anchor>,
+}
+
+struct Anchor {
+    /// Queue index the anchor belongs to; a change means a different track.
+    index: Option<usize>,
+    reported_ms: u64,
+    at: Instant,
+}
+
+/// How far the engine may disagree with the wall clock before we believe it.
+/// Above the jitter the subtraction produces, below a seek worth following.
+const RESYNC_MS: u64 = 1_500;
+
+impl PositionFilter {
+    /// The position to report for `status`, in place of `status.position`.
+    pub fn smooth(&mut self, status: &Status) -> Duration {
+        let raw_ms = status.position.as_millis() as u64;
+        let duration_ms = status.duration.as_millis() as u64;
+
+        // Only playback moves the clock. While paused or stopped the engine's
+        // value is static, so there is nothing to smooth and re-anchoring keeps
+        // a resume from inheriting a stale anchor.
+        if status.state != PlaybackState::Playing {
+            self.anchor = Some(Anchor {
+                index: status.index,
+                reported_ms: raw_ms,
+                at: Instant::now(),
+            });
+            return status.position;
+        }
+
+        let now = Instant::now();
+        let expected_ms = match &self.anchor {
+            Some(a) if a.index == status.index => {
+                a.reported_ms + now.duration_since(a.at).as_millis() as u64
+            }
+            // No anchor, or a different track: take the engine at its word.
+            _ => {
+                self.anchor = Some(Anchor {
+                    index: status.index,
+                    reported_ms: raw_ms,
+                    at: now,
+                });
+                return status.position;
+            }
+        };
+
+        if raw_ms.abs_diff(expected_ms) > RESYNC_MS {
+            // A seek, a track restart, or the decoder genuinely stalled — the
+            // engine is right and our clock is not.
+            self.anchor = Some(Anchor {
+                index: status.index,
+                reported_ms: raw_ms,
+                at: now,
+            });
+            return status.position;
+        }
+
+        // Never run past the end: the track ends and the index changes a moment
+        // later, and a progress bar that overshoots looks broken.
+        let capped = if duration_ms > 0 {
+            expected_ms.min(duration_ms)
+        } else {
+            expected_ms
+        };
+        Duration::from_millis(capped)
     }
 }

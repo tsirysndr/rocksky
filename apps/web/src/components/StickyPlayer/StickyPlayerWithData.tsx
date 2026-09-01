@@ -112,6 +112,11 @@ const PlayerSelectorLabel = styled.span`
   white-space: nowrap;
 `;
 
+// A tick longer than this means the timer was throttled (backgrounded window)
+// rather than merely late. Leaping the whole gap would overshoot; the next
+// authoritative push corrects it within a couple of seconds anyway.
+const MAX_TICK_MS = 2000;
+
 // ---------------------------------------------------------------------------
 // StickyPlayerWithData
 // ---------------------------------------------------------------------------
@@ -298,7 +303,15 @@ function StickyPlayerWithData() {
   // counting. For a remote device we tick locally between the device's periodic
   // now-playing pushes (which reconcile any drift).
   useEffect(() => {
+    let last = Date.now();
     const id = window.setInterval(() => {
+      // Advance by the time that actually passed, not by the interval we asked
+      // for. setInterval fires late under render load, so a fixed +100 drifts
+      // BEHIND real time — and every authoritative push from the device then
+      // yanked the bar forward to catch up.
+      const now = Date.now();
+      const delta = Math.min(now - last, MAX_TICK_MS);
+      last = now;
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
         const p = playerRef.current;
@@ -307,7 +320,7 @@ function StickyPlayerWithData() {
           if (p === "spotify") setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
         }
-        return { ...prev, progress: prev.progress + 100 };
+        return { ...prev, progress: Math.min(prev.progress + delta, prev.duration) };
       });
     }, 100);
     return () => clearInterval(id);
