@@ -75,6 +75,12 @@ pub struct Config {
     /// default — a headless player nobody is watching is exactly the case
     /// where scrobbling has to happen without a UI driving it.
     pub scrobble: bool,
+    /// Persist the queue and the exact position, and pick up where the daemon
+    /// left off on the next start (cued paused, never auto-playing).
+    pub resume: bool,
+    /// Where the queue + position live. A sidecar `.json` next to it holds the
+    /// track metadata and the ids needed to re-mint expired stream URLs.
+    pub resume_path: String,
     pub equalizer: EqualizerConfig,
 }
 
@@ -150,6 +156,8 @@ impl Default for Config {
             sync_audio_settings: true,
             audio_settings_refresh_seconds: 60,
             scrobble: true,
+            resume: true,
+            resume_path: "~/.rocksky/playerd-queue.m3u8".to_string(),
             equalizer: EqualizerConfig::default(),
         }
     }
@@ -262,15 +270,23 @@ impl Config {
             _ => ReplayGainMode::Off,
         };
 
-        let mut config = PlayerConfig::builder()
+        let builder = PlayerConfig::builder()
             .output(output)
             .buffer_seconds(self.buffer_seconds.max(1.0))
             .volume(self.volume.clamp(0.0, 1.0))
             .shuffle(self.shuffle)
             .repeat(repeat)
             .crossfade(crossfade)
-            .replaygain(replaygain, eq.replaygain_preamp, eq.replaygain_clip)
-            .build();
+            .replaygain(replaygain, eq.replaygain_preamp, eq.replaygain_clip);
+        // Let the engine own the resume file: it writes atomically and saves at
+        // the moments that matter (track change, pause, stop, shutdown) as well
+        // as periodically, which a poll of our own would only approximate.
+        let builder = if self.resume {
+            builder.resume_file(self.resume_file_path())
+        } else {
+            builder
+        };
+        let mut config = builder.build();
         config.dsp.tone.bass_db = eq.bass;
         config.dsp.tone.treble_db = eq.treble;
         config.dsp.equalizer = Equalizer {
@@ -287,5 +303,15 @@ impl Config {
                 .collect(),
         };
         Ok(config)
+    }
+
+    /// Absolute path of the engine's resume file.
+    pub fn resume_file_path(&self) -> PathBuf {
+        expand_tilde(&self.resume_path)
+    }
+
+    /// Absolute path of the metadata sidecar that sits beside it.
+    pub fn resume_sidecar_path(&self) -> PathBuf {
+        self.resume_file_path().with_extension("meta.json")
     }
 }
