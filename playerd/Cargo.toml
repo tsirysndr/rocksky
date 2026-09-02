@@ -1,6 +1,6 @@
 [package]
 name = "playerd"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -19,7 +19,7 @@ gethostname = "1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 rockbox-metadata = "0.1"
 rockbox-playback = "0.5"
-rocksky-sdk = {version = "0.11.0", path = "../crates/rocksky-sdk", features = ["remote-player"] }
+rocksky-sdk = {version = "0.11.1", path = "../crates/rocksky-sdk", features = ["remote-player", "jetstream-core"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }

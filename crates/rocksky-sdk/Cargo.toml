@@ -1,6 +1,6 @@
 [package]
 name = "rocksky-sdk"
-version = "0.11.0"
+version = "0.11.1"
 description = "Official Rust SDK for Rocksky — a music scrobbling & discovery platform on the AT Protocol"
 authors.workspace = true
 edition.workspace = true
@@ -65,9 +65,12 @@ appview = []
 # Duplicate-prevention index: mirror the user's repo into RocksDB and check it
 # before writing scrobble / song / album / artist records to the PDS.
 dedup = ["dep:redb", "dep:serde_ipld_dagcbor", "dep:ipld-core", "dep:cid", "dep:serde_bytes"]
+# Multi-server Jetstream firehose watcher (all four public servers at once,
+# shared watermark dedup) with a generic per-commit callback — no index needed.
+jetstream-core = ["dep:tokio-tungstenite"]
 # Keep the dedup index continuously hydrated from the Bluesky Jetstream firehose
 # (all four servers at once), filtered to `app.rocksky.*` for the user's DID.
-jetstream = ["dedup", "dep:tokio-tungstenite"]
+jetstream = ["jetstream-core", "dedup"]
 # Build a Rocksky-controllable player over the remote-control WebSocket
 # (register, advertise now-playing/status/queue, receive commands). See
 # remote-ws/PROTOCOL.md.

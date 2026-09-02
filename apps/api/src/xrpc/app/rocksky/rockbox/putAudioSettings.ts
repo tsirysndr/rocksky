@@ -65,13 +65,22 @@ const upsert = ({
         if (status !== 400 && status !== 404) throw err;
       }
 
+      // Merge patches INTO the stored section rather than replacing it: the
+      // apps send sparse patches (a precut tweak arrives as {precut} alone),
+      // and wholesale replacement wiped every other field of the section —
+      // devices syncing from the record then fell back to defaults for them.
+      const mergeSection = <T extends object>(
+        patch: T | undefined,
+        stored: T | undefined,
+      ): T | undefined => (patch ? { ...stored, ...patch } : stored);
+
       const now = new Date().toISOString();
       const record: AudioSettings.Record = {
         $type: COLLECTION,
-        crossfade: input.crossfade ?? existing?.crossfade,
-        equalizer: input.equalizer ?? existing?.equalizer,
-        replayGain: input.replayGain ?? existing?.replayGain,
-        tone: input.tone ?? existing?.tone,
+        crossfade: mergeSection(input.crossfade, existing?.crossfade),
+        equalizer: mergeSection(input.equalizer, existing?.equalizer),
+        replayGain: mergeSection(input.replayGain, existing?.replayGain),
+        tone: mergeSection(input.tone, existing?.tone),
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       };

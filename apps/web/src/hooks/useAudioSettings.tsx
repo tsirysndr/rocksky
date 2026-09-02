@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { profileAtom } from "../atoms/profile";
 import type {
   AudioSettingsPatch,
@@ -123,14 +123,29 @@ const settingsAtom = audioSettingsAtom;
 export function useAudioSettingsPublisher(): void {
   const settings = useAtomValue(audioSettingsAtom);
   const device = useAtomValue(deviceCommandAtom);
+  // The last document sent to a device. Starts as the on-load snapshot WITHOUT
+  // sending: the device's baseline is the atproto record (playerd syncs it
+  // itself), so a device only ever gets what changed here after load. Pushing
+  // the whole local snapshot on every open made every open client re-impose
+  // its own (possibly stale) copy — with two clients open the device's DSP
+  // flipped between the two, and each re-apply audibly dipped the volume.
+  const lastSentToDevice = useRef<string | null>(null);
   useEffect(() => {
     // While a remote device is the source, the local engine isn't the thing
     // making sound — send the settings to the device instead. It applies the
     // sections its engine implements and ignores the rest.
     if (device.active) {
-      device.send("audio_settings", toRemoteAudioSettings(settings));
+      const doc = toRemoteAudioSettings(settings);
+      const json = JSON.stringify(doc);
+      if (lastSentToDevice.current === null || lastSentToDevice.current === json) {
+        lastSentToDevice.current = json;
+        return;
+      }
+      lastSentToDevice.current = json;
+      device.send("audio_settings", doc);
       return;
     }
+    lastSentToDevice.current = null;
     publishAudioSettings(settings);
   }, [settings, device]);
 }

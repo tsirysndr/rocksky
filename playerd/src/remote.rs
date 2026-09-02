@@ -22,14 +22,14 @@ use rocksky_sdk::{
 use crate::engine::{Engine, EngineCmd};
 use crate::resolver::Resolver;
 use crate::resume;
-use crate::settings::{self, Baseline};
+use crate::settings::SettingsSync;
 
 pub struct Shared {
     pub engine: Arc<Engine>,
     pub remote: Arc<RemotePlayer>,
-    /// Startup DSP defaults, so a partial `audio_settings` document overlays
-    /// the same baseline the atproto settings record does.
-    pub audio_baseline: Baseline,
+    /// Section-diffing settings applier, shared with the atproto/Jetstream
+    /// sync so every source dedupes against the same last-applied document.
+    pub settings_sync: Arc<SettingsSync>,
     pub queue_meta: Mutex<Vec<RemoteQueueItem>>,
     /// Every URI this daemon has enqueued, with the item it was enqueued as.
     /// Keyed by URI rather than position because the engine's queue is what
@@ -46,13 +46,13 @@ impl Shared {
     pub fn new(
         engine: Arc<Engine>,
         remote: Arc<RemotePlayer>,
-        audio_baseline: Baseline,
+        settings_sync: Arc<SettingsSync>,
         sidecar_path: Option<PathBuf>,
     ) -> Self {
         Shared {
             engine,
             remote,
-            audio_baseline,
+            settings_sync,
             queue_meta: Mutex::new(Vec::new()),
             uri_meta: Mutex::new(HashMap::new()),
             sidecar_path,
@@ -183,9 +183,7 @@ async fn apply(shared: &Shared, resolver: &mut Resolver, cmd: RemoteCommand) {
         RemoteCommand::SetVolume { volume } => {
             engine.send(EngineCmd::SetVolume(volume.clamp(0.0, 1.0)))
         }
-        RemoteCommand::SetAudioSettings(audio) => {
-            settings::apply(engine, &shared.audio_baseline, &audio)
-        }
+        RemoteCommand::SetAudioSettings(audio) => shared.settings_sync.apply(engine, &audio),
     }
 }
 

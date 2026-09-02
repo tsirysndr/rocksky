@@ -102,14 +102,15 @@ async fn main() -> Result<()> {
     }
     let audio_baseline = settings::Baseline::from_player_config(&player_config);
     let engine = Arc::new(Engine::start(player_config).map_err(|e| anyhow!(e))?);
+    let settings_sync = Arc::new(settings::SettingsSync::new(audio_baseline));
 
     if config.sync_audio_settings {
-        tokio::spawn(settings::sync_loop(
+        tokio::spawn(settings::sync(
             engine.clone(),
-            audio_baseline.clone(),
+            settings_sync.clone(),
             config.api_url.trim_end_matches('/').to_string(),
             token.clone(),
-            std::time::Duration::from_secs(config.audio_settings_refresh_seconds.max(5)),
+            config.jetstream_urls.clone(),
         ));
     }
 
@@ -122,7 +123,7 @@ async fn main() -> Result<()> {
     let shared = Arc::new(Shared::new(
         engine,
         remote.clone(),
-        audio_baseline,
+        settings_sync,
         sidecar_path,
     ));
 

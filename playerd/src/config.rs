@@ -68,9 +68,13 @@ pub struct Config {
     pub buffer_seconds: f32,
     /// Apply (and keep applying) the cross-device audio settings stored in
     /// the user's atproto repo (app.rocksky.rockbox.audio.settings) over the
-    /// `[equalizer]` baseline below.
+    /// `[equalizer]` baseline below. Live updates arrive over the Jetstream
+    /// firehose; there is no polling.
     pub sync_audio_settings: bool,
-    pub audio_settings_refresh_seconds: u64,
+    /// Jetstream servers to watch for settings commits, all connected at
+    /// once (`wss://…` URLs or bare hosts). Empty means the four public
+    /// Bluesky servers.
+    pub jetstream_urls: Vec<String>,
     /// Scrobble what this daemon plays to the user's Rocksky account. On by
     /// default — a headless player nobody is watching is exactly the case
     /// where scrobbling has to happen without a UI driving it.
@@ -154,7 +158,7 @@ impl Default for Config {
             repeat: "off".to_string(),
             buffer_seconds: 10.0,
             sync_audio_settings: true,
-            audio_settings_refresh_seconds: 60,
+            jetstream_urls: Vec::new(),
             scrobble: true,
             resume: true,
             resume_path: "~/.rocksky/playerd-queue.m3u8".to_string(),

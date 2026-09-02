@@ -9,13 +9,13 @@
 //! - the status loop pushes now-playing (title/artist/album + codec and
 //!   sample rate), transport state, and the queue back to controllers.
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
 use rockbox_playback::{PlaybackState, RepeatMode};
 use rocksky_sdk::{
-    RemoteCommand, RemoteNowPlaying, RemotePlayer, RemotePlayerConfig, RemoteQueueItem,
-    RemoteRepeat, RemoteStatus, DEFAULT_REMOTE_WS,
+    RemoteAudioSettings, RemoteCommand, RemoteNowPlaying, RemotePlayer, RemotePlayerConfig,
+    RemoteQueueItem, RemoteRepeat, RemoteStatus, DEFAULT_REMOTE_WS,
 };
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -333,7 +333,34 @@ fn apply(
             engine.send(EngineCmd::SetVolume(volume.clamp(0.0, 1.0)))
         }
         RemoteCommand::SetAudioSettings(audio) => {
-            for cmd in crate::dsp::remote_audio_commands(&audio) {
+            // Re-applying an unchanged section recomputes filter coefficients
+            // and audibly disturbs playback (controllers re-push their whole
+            // snapshot on reconnect). Diff per section against the last
+            // applied document; an identical or echoed push costs nothing,
+            // so settings traffic between controllers can never cycle.
+            static LAST_AUDIO: LazyLock<Mutex<RemoteAudioSettings>> =
+                LazyLock::new(|| Mutex::new(RemoteAudioSettings::default()));
+            let mut changed = RemoteAudioSettings::default();
+            {
+                let mut last = LAST_AUDIO.lock().unwrap();
+                macro_rules! diff_section {
+                    ($field:ident) => {
+                        if audio.$field.is_some() && audio.$field != last.$field {
+                            changed.$field = audio.$field.clone();
+                            last.$field = audio.$field.clone();
+                        }
+                    };
+                }
+                diff_section!(equalizer);
+                diff_section!(tone);
+                diff_section!(crossfade);
+                diff_section!(replay_gain);
+                diff_section!(crossfeed);
+                diff_section!(compressor);
+                diff_section!(surround);
+                diff_section!(pbe);
+            }
+            for cmd in crate::dsp::remote_audio_commands(&changed) {
                 engine.send(cmd);
             }
         }

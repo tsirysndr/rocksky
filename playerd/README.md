@@ -65,12 +65,16 @@ the `rocksky-sdk` `remote-player` client.
 
 The web and desktop apps persist your DSP settings (equalizer, tone,
 crossfade, ReplayGain) to the `app.rocksky.rockbox.audio.settings` record in
-your atproto repo. `playerd` fetches that record on startup and re-checks it
-every `audio_settings_refresh_seconds` (default 60), so tweaking the EQ in
-the web player reaches the daemon within a minute — no restart. Fields the
-record specifies override the local `[equalizer]` baseline; anything it
-doesn't specify keeps the TOML value. Set `sync_audio_settings = false` to
-run purely from the local config.
+your atproto repo. `playerd` fetches that record once on startup and then
+listens for record commits on the Jetstream firehose (all four public
+servers at once, deduplicated by a shared watermark — the same pattern the
+SDK uses for repo hydration), so tweaking the EQ in the web player reaches
+the daemon in real time; there is no polling. Only the sections that
+actually changed are re-applied — re-pushing an identical EQ would recompute
+the filter coefficients and audibly disturb playback. Fields the record
+specifies override the local `[equalizer]` baseline; anything it doesn't
+specify keeps the TOML value. Set `sync_audio_settings = false` to run
+purely from the local config.
 
 You can also load a saved EQ preset (an `app.rocksky.equalizer` record) at
 startup with `preset` in the `[equalizer]` section — either an AT URI, or
@@ -200,9 +204,12 @@ buffer_seconds = 10.0 # decode-ahead cushion; keep >= 10 for network streams
 
 # Apply the cross-device audio settings from your atproto repo
 # (app.rocksky.rockbox.audio.settings) over the [equalizer] baseline below,
-# refreshed periodically so web/desktop EQ tweaks reach the daemon live.
+# updated live from the Jetstream firehose so web/desktop EQ tweaks reach
+# the daemon in real time (no polling).
 sync_audio_settings = true
-audio_settings_refresh_seconds = 60
+# Jetstream servers to watch, all connected at once (deduplicated).
+# Empty/omitted = the four public Bluesky servers.
+# jetstream_urls = ["wss://jetstream1.us-east.bsky.network"]
 
 # Scrobble what this daemon plays to your Rocksky account, at half the track or
 # 4 minutes (whichever comes first). On by default — nothing is watching a

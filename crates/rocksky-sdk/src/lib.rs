@@ -70,7 +70,7 @@ pub mod dedup;
 pub mod error;
 pub mod facets;
 pub mod filter;
-#[cfg(feature = "jetstream")]
+#[cfg(feature = "jetstream-core")]
 pub mod jetstream;
 pub mod library;
 pub mod namespaces;
@@ -96,8 +96,8 @@ pub use auth::Profile;
 pub use dedup::{IndexStats, RepoIndex};
 pub use error::{Result, SdkError};
 pub use filter::{Filter, FilterValue};
-#[cfg(feature = "jetstream")]
-pub use jetstream::JetstreamConfig;
+#[cfg(feature = "jetstream-core")]
+pub use jetstream::{JetstreamConfig, WatchEvent};
 pub use library::{
     Library, LibraryPlaylist, LibraryPlaylistMutation, LibraryPlaylistResponse, LibraryPlaylists,
     LibraryPlaylistsResponse, LibrarySong,

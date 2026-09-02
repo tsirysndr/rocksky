@@ -2,10 +2,17 @@
 //!
 //! The web/desktop apps persist DSP settings to the
 //! `app.rocksky.rockbox.audio.settings` record (served by
-//! `app.rocksky.rockbox.getAudioSettings`). This module fetches that record,
-//! overlays it on the TOML `[equalizer]` baseline, and applies it to the
-//! engine — at startup and on a periodic refresh, so an EQ tweak in the web
-//! player reaches this daemon without a restart.
+//! `app.rocksky.rockbox.getAudioSettings`). This module fetches that record
+//! once at startup, overlays it on the TOML `[equalizer]` baseline, applies
+//! it to the engine, and then listens on the Jetstream firehose (all public
+//! servers at once, like the SDK's repo-index hydration) for record commits —
+//! an EQ tweak in the web player reaches this daemon in real time, with no
+//! periodic polling.
+//!
+//! This daemon is strictly a *consumer* of the record: it never writes it
+//! back, and [`SettingsSync`] applies only the sections whose content
+//! actually changed — so a re-delivered or echoed document converges to zero
+//! engine commands instead of looping.
 //!
 //! Saved EQ presets (`app.rocksky.equalizer` records) can be loaded at
 //! startup via `equalizer.preset` in the TOML; they are resolved through
@@ -15,7 +22,7 @@
 //! dB (precut ≤ 0), Q ×10, tone in whole dB, fade times in ms, ReplayGain
 //! preamp in tenths of a dB.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
@@ -25,12 +32,15 @@ use rockbox_playback::{
     ToneControls, EQ_BAND_FREQUENCIES,
 };
 use rocksky_sdk::{
-    RemoteAudioSettings, RemoteCrossfade, RemoteEqBand, RemoteEqualizer, RemoteReplayGain,
+    jetstream, JetstreamConfig, RemoteAudioSettings, RemoteCrossfade, RemoteCrossfeed,
+    RemoteCompressor, RemoteEqBand, RemoteEqualizer, RemotePbe, RemoteReplayGain, RemoteSurround,
     RemoteTone,
 };
 use serde::Deserialize;
 
 use crate::engine::{Engine, EngineCmd};
+
+const SETTINGS_COLLECTION: &str = "app.rocksky.rockbox.audio.settings";
 
 #[derive(Deserialize, Clone, PartialEq, Default)]
 #[serde(default, rename_all = "camelCase")]
@@ -502,43 +512,154 @@ async fn fetch(
         .map_err(|e| e.to_string())
 }
 
-/// Keep the engine's DSP in sync with the atproto record. Re-applying only on
-/// record change matters: re-pushing an identical EQ recomputes the IIR
-/// coefficients and audibly disturbs playback.
-pub async fn sync_loop(
-    engine: Arc<Engine>,
+/// Section-diffing applier shared by every settings source (the atproto
+/// record, Jetstream commits, and the remote `audio_settings` command).
+///
+/// Re-applying an identical EQ recomputes the IIR coefficients and audibly
+/// disturbs playback — every controller that (re)connected and re-pushed its
+/// snapshot caused a volume dip. Diffing per section means an unchanged or
+/// echoed document costs zero engine commands, which also makes update
+/// cycles between sources impossible: they converge instead of looping.
+pub struct SettingsSync {
     baseline: Baseline,
+    last: Mutex<RemoteAudioSettings>,
+}
+
+impl SettingsSync {
+    pub fn new(baseline: Baseline) -> Self {
+        SettingsSync {
+            baseline,
+            last: Mutex::new(RemoteAudioSettings::default()),
+        }
+    }
+
+    /// Apply only the sections of `view` that are present AND differ from the
+    /// last applied document.
+    pub fn apply(&self, engine: &Engine, view: &RemoteAudioSettings) {
+        let mut changed = RemoteAudioSettings::default();
+        {
+            let mut last = self.last.lock().unwrap();
+            macro_rules! diff_section {
+                ($field:ident) => {
+                    if view.$field.is_some() && view.$field != last.$field {
+                        changed.$field = view.$field.clone();
+                        last.$field = view.$field.clone();
+                    }
+                };
+            }
+            diff_section!(equalizer);
+            diff_section!(tone);
+            diff_section!(crossfade);
+            diff_section!(replay_gain);
+            diff_section!(crossfeed);
+            diff_section!(compressor);
+            diff_section!(surround);
+            diff_section!(pbe);
+        }
+        if changed.is_empty() {
+            return;
+        }
+        apply(engine, &self.baseline, &changed);
+    }
+
+    /// The document that resets every section to the TOML baseline (each
+    /// section present but empty, so [`apply`] overlays pure baseline).
+    fn baseline_doc() -> RemoteAudioSettings {
+        RemoteAudioSettings {
+            equalizer: Some(RemoteEqualizer::default()),
+            tone: Some(RemoteTone::default()),
+            crossfade: Some(RemoteCrossfade::default()),
+            replay_gain: Some(RemoteReplayGain::default()),
+            crossfeed: Some(RemoteCrossfeed::default()),
+            compressor: Some(RemoteCompressor::default()),
+            surround: Some(RemoteSurround::default()),
+            pbe: Some(RemotePbe::default()),
+        }
+    }
+}
+
+/// The authenticated user's DID, for the Jetstream `wantedDids` filter.
+async fn fetch_did(http: &reqwest::Client, api_url: &str, token: &str) -> Result<String> {
+    #[derive(Deserialize)]
+    struct Profile {
+        did: String,
+    }
+    let res = http
+        .get(format!("{api_url}/xrpc/app.rocksky.actor.getProfile"))
+        .bearer_auth(token)
+        .send()
+        .await
+        .context("fetching own profile")?;
+    if !res.status().is_success() {
+        bail!("getProfile returned HTTP {}", res.status());
+    }
+    let profile: Profile = res.json().await.context("parsing getProfile response")?;
+    Ok(profile.did)
+}
+
+/// Keep the engine's DSP in sync with the atproto record: one fetch at
+/// startup, then live Jetstream commits — never a periodic poll. This task is
+/// read-only towards the repo; it only ever sends engine commands.
+/// `jetstream_urls` overrides the default public servers when non-empty.
+pub async fn sync(
+    engine: Arc<Engine>,
+    sync: Arc<SettingsSync>,
     api_url: String,
     token: String,
-    refresh: Duration,
+    jetstream_urls: Vec<String>,
 ) {
     let http = reqwest::Client::new();
-    let mut last: Option<AudioSettingsView> = None;
-    let mut logged_error = false;
-    loop {
-        match fetch(&http, &api_url, &token).await {
-            Ok(Some(view)) => {
-                logged_error = false;
-                if last.as_ref() != Some(&view) {
-                    tracing::info!(
-                        updated_at = view.updated_at.as_deref().unwrap_or("unknown"),
-                        "applying audio settings from atproto repo"
-                    );
-                    apply(&engine, &baseline, &(&view).into());
-                    last = Some(view);
-                }
-            }
-            Ok(None) => {
-                logged_error = false;
-                tracing::debug!("no audio settings record; keeping local config");
-            }
-            Err(e) => {
-                if !logged_error {
-                    tracing::warn!("audio settings fetch failed: {e}");
-                    logged_error = true;
-                }
-            }
+
+    match fetch(&http, &api_url, &token).await {
+        Ok(Some(view)) => {
+            tracing::info!(
+                updated_at = view.updated_at.as_deref().unwrap_or("unknown"),
+                "applying audio settings from atproto repo"
+            );
+            sync.apply(&engine, &(&view).into());
         }
-        tokio::time::sleep(refresh).await;
+        Ok(None) => tracing::debug!("no audio settings record; keeping local config"),
+        Err(e) => tracing::warn!("audio settings fetch failed: {e}"),
     }
+
+    let did = match fetch_did(&http, &api_url, &token).await {
+        Ok(did) => did,
+        Err(e) => {
+            tracing::warn!("cannot resolve own DID, audio settings will not live-sync: {e:#}");
+            return;
+        }
+    };
+
+    let config = if jetstream_urls.is_empty() {
+        JetstreamConfig::default()
+    } else {
+        JetstreamConfig::with_servers(jetstream_urls)
+    }
+    .wanted_collections(SETTINGS_COLLECTION);
+    jetstream::watch(did, config, move |event| {
+        if event.collection != SETTINGS_COLLECTION || event.rkey != "self" {
+            return;
+        }
+        match event.operation.as_str() {
+            "create" | "update" => {
+                let Some(record) = event.record else { return };
+                match serde_json::from_value::<AudioSettingsView>(record) {
+                    Ok(view) => {
+                        tracing::info!(
+                            updated_at = view.updated_at.as_deref().unwrap_or("unknown"),
+                            "applying audio settings from jetstream"
+                        );
+                        sync.apply(&engine, &(&view).into());
+                    }
+                    Err(e) => tracing::warn!("unparsable audio settings record: {e}"),
+                }
+            }
+            "delete" => {
+                tracing::info!("audio settings record deleted; reverting to local config");
+                sync.apply(&engine, &SettingsSync::baseline_doc());
+            }
+            _ => {}
+        }
+    })
+    .await;
 }
