@@ -1,4 +1,5 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { InvalidRequestError } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { consola } from "consola";
 import { asc, count, eq } from "drizzle-orm";
@@ -20,9 +21,16 @@ export default function (server: Server, ctx: Context) {
       { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      // Not-found is definitive; only transient failures are worth retrying.
+      Effect.retry({
+        times: 3,
+        while: (err) => !(err instanceof InvalidRequestError),
+      }),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
+        if (err instanceof InvalidRequestError) {
+          return Effect.fail(err);
+        }
         consola.error(err);
         return Effect.succeed({});
       }),
@@ -52,7 +60,7 @@ const retrieve = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
-      const { albums: album, artists: artist } = await ctx.db
+      const row = await ctx.db
         .select()
         .from(tables.albums)
         .leftJoin(
@@ -62,6 +70,14 @@ const retrieve = ({
         .where(eq(tables.albums.uri, params.uri))
         .execute()
         .then((rows) => rows[0]);
+
+      if (!row?.albums) {
+        throw new InvalidRequestError(
+          `Album not found: ${params.uri}`,
+          "NotFound",
+        );
+      }
+      const { albums: album, artists: artist } = row;
       return Promise.all([
         Promise.resolve(album),
         Promise.resolve(artist),
@@ -102,10 +118,10 @@ const retrieve = ({
           .then((rows) => rows[0]?.count || 0),
       ]);
     },
-    catch: (error) => {
-      consola.info("Error retrieving album:", error);
-      return new Error(`Failed to retrieve album: ${error}`);
-    },
+    catch: (error) =>
+      error instanceof InvalidRequestError
+        ? error
+        : new Error(`Failed to retrieve album: ${error}`),
   });
 };
 

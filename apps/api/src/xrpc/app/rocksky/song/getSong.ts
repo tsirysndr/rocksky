@@ -1,4 +1,5 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { InvalidRequestError } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { consola } from "consola";
 import { type SQL, asc, count, eq, or } from "drizzle-orm";
@@ -17,9 +18,16 @@ export default function (server: Server, ctx: Context) {
       { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      // Not-found is definitive; only transient failures are worth retrying.
+      Effect.retry({
+        times: 3,
+        while: (err) => !(err instanceof InvalidRequestError),
+      }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
+        if (err instanceof InvalidRequestError) {
+          return Effect.fail(err);
+        }
         consola.error(err);
         return Effect.succeed({});
       }),
@@ -73,7 +81,7 @@ const retrieve = ({
       }
       const where = clauses.length > 1 ? or(...clauses) : clauses[0];
 
-      const { tracks: track, artists: artist } = await ctx.db
+      const row = await ctx.db
         .select()
         .from(tables.userTracks)
         .leftJoin(
@@ -87,6 +95,14 @@ const retrieve = ({
         .where(where)
         .execute()
         .then(([row]) => row);
+
+      if (!row?.tracks) {
+        throw new InvalidRequestError(
+          `Song not found: ${uri ?? mbid ?? isrc ?? spotifyId}`,
+          "NotFound",
+        );
+      }
+      const { tracks: track, artists: artist } = row;
 
       const artists = await Promise.all(
         track.artist.split(",").map((name) =>
@@ -134,7 +150,10 @@ const retrieve = ({
           .then(([row]) => row ?? null),
       ]);
     },
-    catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
+    catch: (error) =>
+      error instanceof InvalidRequestError
+        ? error
+        : new Error(`Failed to retrieve song: ${error}`),
   });
 };
 
