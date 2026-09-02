@@ -92,12 +92,23 @@ pub type Command {
   Seek(position_ms: Int)
   QueueJump(index: Int)
   QueueRemove(index: Int)
+  /// Move the queue item at `from` to position `to` (arrayMove semantics).
+  QueueMove(from: Int, to: Int)
   Enqueue(
     tracks: List(QueueItem),
     mode: String,
     shuffle: Bool,
     start_index: Int,
   )
+  /// Turn queue shuffle on or off.
+  SetShuffle(enabled: Bool)
+  /// Set the queue repeat mode: `"off"` | `"all"` | `"one"`.
+  SetRepeat(mode: String)
+  /// Set output volume 0.0..=1.0.
+  SetVolume(volume: Float)
+  /// A partial audio-settings document (`remote-ws/PROTOCOL.md` §6.1), raw —
+  /// a player reads only the sections its engine implements.
+  SetAudioSettings(settings: Dynamic)
 }
 
 /// Why a poll or state push failed.
@@ -379,6 +390,11 @@ fn command_decoder() -> decode.Decoder(Command) {
       use index <- decode.field("index", decode.int)
       decode.success(QueueRemove(index: index))
     }
+    "queue_move" -> {
+      use from <- decode.field("from", decode.int)
+      use to <- decode.field("to", decode.int)
+      decode.success(QueueMove(from: from, to: to))
+    }
     "enqueue" -> {
       use tracks <- decode.field("tracks", decode.list(queue_item_decoder()))
       use mode <- decode.optional_field("mode", "now", decode.string)
@@ -390,6 +406,22 @@ fn command_decoder() -> decode.Decoder(Command) {
         shuffle: shuffle,
         start_index: start_index,
       ))
+    }
+    "shuffle" -> {
+      use enabled <- decode.optional_field("enabled", False, decode.bool)
+      decode.success(SetShuffle(enabled: enabled))
+    }
+    "repeat" -> {
+      use mode <- decode.optional_field("mode", "off", decode.string)
+      decode.success(SetRepeat(mode: mode))
+    }
+    "volume" -> {
+      use volume <- decode.optional_field("volume", 1.0, decode.float)
+      decode.success(SetVolume(volume: volume))
+    }
+    "audio_settings" -> {
+      use settings <- decode.field("settings", decode.dynamic)
+      decode.success(SetAudioSettings(settings: settings))
     }
     _ -> decode.failure(Play, "Command")
   }

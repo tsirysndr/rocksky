@@ -2211,6 +2211,38 @@ impl RemoteController {
         );
     }
 
+    /// Turn queue shuffle on or off. A player without shuffle ignores it.
+    pub fn set_shuffle(&self, target: Option<String>, enabled: bool) {
+        self.inner.set_shuffle(target, enabled);
+    }
+
+    /// Set the queue repeat mode: `"off"` | `"all"` | `"one"` (anything else
+    /// reads as `"off"`). A player without repeat ignores it.
+    pub fn set_repeat(&self, target: Option<String>, mode: String) {
+        self.inner
+            .set_repeat(target, rocksky_sdk::RemoteRepeat::from_wire(&mode));
+    }
+
+    /// Set output volume, 0.0..=1.0. A player without volume control ignores it.
+    pub fn set_volume(&self, target: Option<String>, volume: f32) {
+        self.inner.set_volume(target, volume);
+    }
+
+    /// Apply a partial audio-settings document, as the JSON of the protocol's
+    /// `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1) — same JSON
+    /// carriage as [`RemoteCommand::SetAudioSettings`]. Errors on invalid JSON
+    /// rather than silently sending nothing.
+    pub fn set_audio_settings(
+        &self,
+        target: Option<String>,
+        settings_json: String,
+    ) -> Result<(), RockskyError> {
+        let settings: rocksky_sdk::RemoteAudioSettings =
+            serde_json::from_str(&settings_json).map_err(err)?;
+        self.inner.set_audio_settings(target, &settings);
+        Ok(())
+    }
+
     /// Disconnect and stop the background task.
     pub fn disconnect(&self) {
         self.inner.disconnect();

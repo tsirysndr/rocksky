@@ -1395,6 +1395,70 @@ fn remote_controller_queue_move(
     envelope::<_, String>(Ok(true))
 }
 
+/// Turn queue shuffle on or off on the target device (empty `target` =
+/// broadcast). A player without shuffle ignores it.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_set_shuffle(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    enabled: bool,
+) -> String {
+    controller.0.set_shuffle(opt_target(target), enabled);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Set the queue repeat mode: `"off"` | `"all"` | `"one"` (anything else reads
+/// as `"off"`; empty `target` = broadcast). A player without repeat ignores it.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_set_repeat(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    mode: String,
+) -> String {
+    controller.0.set_repeat(
+        opt_target(target),
+        rocksky_sdk::RemoteRepeat::from_wire(&mode),
+    );
+    envelope::<_, String>(Ok(true))
+}
+
+/// Set output volume 0.0..=1.0 on the target device (empty `target` =
+/// broadcast). A player without volume control ignores it.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_set_volume(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    volume: f64,
+) -> String {
+    controller.0.set_volume(opt_target(target), volume as f32);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Apply a partial audio-settings document (`settings_json` = the JSON of the
+/// protocol's `audio_settings` args, see `remote-ws/PROTOCOL.md` §6.1; empty
+/// `target` = broadcast). Errors on invalid JSON rather than silently sending
+/// nothing.
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_set_audio_settings(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    settings_json: String,
+) -> String {
+    match serde_json::from_str::<rocksky_sdk::RemoteAudioSettings>(&settings_json) {
+        Ok(settings) => {
+            controller
+                .0
+                .set_audio_settings(opt_target(target), &settings);
+            envelope::<_, String>(Ok(true))
+        }
+        Err(e) => envelope::<(), _>(Err(format!("invalid audio settings JSON: {e}"))),
+    }
+}
+
 /// Enqueue tracks on the target device. `tracks_json` = JSON array of camelCase
 /// queue items; `mode` = `"now"` | `"next"` | `"last"`; empty `target` = broadcast.
 #[cfg(feature = "remote-player")]

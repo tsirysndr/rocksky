@@ -79,9 +79,12 @@ impl Shared {
         let Some(t) = resume::Transport::load(path) else {
             return;
         };
-        tracing::info!(shuffle = t.shuffle, repeat = %t.repeat, "restoring transport prefs");
+        tracing::info!(shuffle = t.shuffle, repeat = %t.repeat, volume = ?t.volume, "restoring transport prefs");
         self.engine.send(EngineCmd::SetShuffle(t.shuffle));
         self.engine.send(EngineCmd::SetRepeat(t.repeat_mode()));
+        if let Some(volume) = t.volume {
+            self.engine.send(EngineCmd::SetVolume(volume.clamp(0.0, 1.0)));
+        }
         *self.last_transport.lock().unwrap() = Some(t);
     }
 
@@ -291,9 +294,9 @@ pub fn push_state(shared: &Shared) {
         PlaybackState::Stopped => RemoteStatus::Stopped,
     });
 
-    // Persist the OBSERVED shuffle/repeat, not the command sites — an
+    // Persist the OBSERVED shuffle/repeat/volume, not the command sites — an
     // enqueue's shuffle flag changes them just as much as a shuffle/repeat
-    // command does, and the engine's resume file can't carry either.
+    // command does, and the engine's resume file can't carry any of them.
     if let Some(path) = &shared.transport_path {
         let now = resume::Transport {
             shuffle: status.shuffle,
@@ -303,6 +306,7 @@ pub fn push_state(shared: &Shared) {
                 _ => "off",
             }
             .to_string(),
+            volume: Some(snapshot.volume),
         };
         let mut last = shared.last_transport.lock().unwrap();
         if last.as_ref() != Some(&now) {

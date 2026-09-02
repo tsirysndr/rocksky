@@ -98,6 +98,9 @@ pub struct Transport {
     pub shuffle: bool,
     /// "off" | "one" | "all".
     pub repeat: String,
+    /// Output volume 0.0..=1.0. `None` in files written before volume was
+    /// persisted — then the TOML default stands rather than being stomped.
+    pub volume: Option<f32>,
 }
 
 impl Default for Transport {
@@ -105,6 +108,7 @@ impl Default for Transport {
         Transport {
             shuffle: false,
             repeat: "off".to_string(),
+            volume: None,
         }
     }
 }
@@ -380,11 +384,19 @@ mod tests {
         let t = Transport {
             shuffle: true,
             repeat: "all".to_string(),
+            volume: Some(0.42),
         };
         t.save(&path);
         let back = Transport::load(&path).expect("state survived");
         assert_eq!(back, t);
         assert_eq!(back.repeat_mode(), rockbox_playback::RepeatMode::All);
+
+        // A pre-volume file must read back with volume None, not a stomping
+        // default.
+        std::fs::write(&path, r#"{"shuffle":false,"repeat":"one"}"#).unwrap();
+        let old = Transport::load(&path).expect("old format still parses");
+        assert_eq!(old.volume, None);
+        assert_eq!(old.repeat, "one");
 
         std::fs::remove_dir_all(&dir).ok();
     }

@@ -73,6 +73,33 @@ defmodule Rocksky.RemoteController do
     do: :rocksky_remote_controller.queue_remove(handle, to_bin(target), index)
 
   @doc """
+  Move queue item `from` to position `to` on the target device (arrayMove
+  semantics; `nil` target broadcasts).
+  """
+  def queue_move(handle, target, from, to),
+    do: :rocksky_remote_controller.queue_move(handle, to_bin(target), from, to)
+
+  @doc "Turn queue shuffle on/off (`nil` target broadcasts). Ignored by a player without shuffle."
+  def set_shuffle(handle, target, enabled),
+    do: :rocksky_remote_controller.set_shuffle(handle, to_bin(target), enabled)
+
+  @doc ~S(Set the queue repeat mode: `"off"` | `"all"` | `"one"` — `nil` target broadcasts.)
+  def set_repeat(handle, target, mode),
+    do: :rocksky_remote_controller.set_repeat(handle, to_bin(target), to_bin(mode))
+
+  @doc "Set output volume 0.0..=1.0 (`nil` target broadcasts). Ignored by a player without volume."
+  def set_volume(handle, target, volume),
+    do: :rocksky_remote_controller.set_volume(handle, to_bin(target), volume / 1)
+
+  @doc """
+  Apply a partial audio-settings document — `settings_json` is the JSON of the
+  protocol's `audio_settings` args (PROTOCOL.md §6.1). Errors on invalid JSON
+  (`nil` target broadcasts).
+  """
+  def set_audio_settings(handle, target, settings_json),
+    do: :rocksky_remote_controller.set_audio_settings(handle, to_bin(target), to_bin(settings_json))
+
+  @doc """
   Enqueue `tracks` (a list of queue-item maps, camelCase string keys) on the
   target device. `mode` is `"now"` | `"next"` | `"last"`; `shuffle` is a boolean;
   `start_index` is 0-based. `nil` target broadcasts.

@@ -18,7 +18,7 @@ plugins {
 }
 
 group = "app.rocksky"
-version = "0.12.0"
+version = "0.12.1"
 
 kotlin {
     jvmToolchain(17)

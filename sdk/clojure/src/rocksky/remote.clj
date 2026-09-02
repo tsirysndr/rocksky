@@ -49,6 +49,7 @@
 (def ^:private I32  ValueLayout/JAVA_INT)     ; uint32_t
 (def ^:private I64  ValueLayout/JAVA_LONG)    ; uint64_t
 (def ^:private BOOL ValueLayout/JAVA_BOOLEAN) ; C _Bool (1 byte)
+(def ^:private F32  ValueLayout/JAVA_FLOAT)   ; C float
 
 (defn- ^MethodHandle downcall
   "Bind a C function `name` to a MethodHandle. `ret` is nil for void."
@@ -79,6 +80,11 @@
 (def ^:private h-c-seek        (delay (downcall "rocksky_remote_controller_seek" ADDR [ADDR ADDR I64])))
 (def ^:private h-c-qjump       (delay (downcall "rocksky_remote_controller_queue_jump" ADDR [ADDR ADDR I32])))
 (def ^:private h-c-qremove     (delay (downcall "rocksky_remote_controller_queue_remove" ADDR [ADDR ADDR I32])))
+(def ^:private h-c-qmove       (delay (downcall "rocksky_remote_controller_queue_move" ADDR [ADDR ADDR I32 I32])))
+(def ^:private h-c-shuffle     (delay (downcall "rocksky_remote_controller_set_shuffle" ADDR [ADDR ADDR BOOL])))
+(def ^:private h-c-repeat      (delay (downcall "rocksky_remote_controller_set_repeat" ADDR [ADDR ADDR ADDR])))
+(def ^:private h-c-volume      (delay (downcall "rocksky_remote_controller_set_volume" ADDR [ADDR ADDR F32])))
+(def ^:private h-c-audio       (delay (downcall "rocksky_remote_controller_set_audio_settings" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-c-enqueue     (delay (downcall "rocksky_remote_controller_enqueue" ADDR [ADDR ADDR ADDR ADDR BOOL I32])))
 (def ^:private h-c-disconnect  (delay (downcall "rocksky_remote_controller_disconnect" ADDR [ADDR])))
 (def ^:private h-c-free        (delay (downcall "rocksky_remote_controller_free" nil [ADDR])))
@@ -186,6 +192,11 @@
         "seek"          (h (get cmd "position"))
         "queue_jump"    (h (get cmd "index"))
         "queue_remove"  (h (get cmd "index"))
+        "queue_move"    (h (get cmd "from") (get cmd "to"))
+        "shuffle"       (h (get cmd "enabled" false))
+        "repeat"        (h (get cmd "mode" "off"))
+        "volume"        (h (get cmd "volume" 1.0))
+        "audio_settings" (h (get cmd "settings" {}))
         "enqueue"       (h {:tracks     (get cmd "tracks")
                             :mode       (get cmd "mode")
                             :shuffle    (get cmd "shuffle")
@@ -273,6 +284,59 @@
                                   (object-array [(:handle controller)
                                                  (cstr a target)
                                                  (int index)])))))
+
+(defn queue-move
+  "Move queue item `from` to position `to` on `target` — arrayMove semantics
+  (nil target ⇒ broadcast)."
+  [^RemoteController controller target from to]
+  (with-open [^Arena a (Arena/ofConfined)]
+    (unwrap (.invokeWithArguments ^MethodHandle @h-c-qmove
+                                  (object-array [(:handle controller)
+                                                 (cstr a target)
+                                                 (int from)
+                                                 (int to)])))))
+
+(defn set-shuffle
+  "Turn queue shuffle on/off on `target` (nil ⇒ broadcast). A player without
+  shuffle ignores it."
+  [^RemoteController controller target enabled]
+  (with-open [^Arena a (Arena/ofConfined)]
+    (unwrap (.invokeWithArguments ^MethodHandle @h-c-shuffle
+                                  (object-array [(:handle controller)
+                                                 (cstr a target)
+                                                 (boolean enabled)])))))
+
+(defn set-repeat
+  "Set the queue repeat mode on `target`: \"off\" | \"all\" | \"one\" (nil
+  target ⇒ broadcast). A player without repeat ignores it."
+  [^RemoteController controller target mode]
+  (with-open [^Arena a (Arena/ofConfined)]
+    (unwrap (.invokeWithArguments ^MethodHandle @h-c-repeat
+                                  (object-array [(:handle controller)
+                                                 (cstr a target)
+                                                 (cstr a (str mode))])))))
+
+(defn set-volume
+  "Set output volume 0.0..=1.0 on `target` (nil ⇒ broadcast). A player without
+  volume control ignores it."
+  [^RemoteController controller target volume]
+  (with-open [^Arena a (Arena/ofConfined)]
+    (unwrap (.invokeWithArguments ^MethodHandle @h-c-volume
+                                  (object-array [(:handle controller)
+                                                 (cstr a target)
+                                                 (float volume)])))))
+
+(defn set-audio-settings
+  "Apply a partial audio-settings document — `settings` is a map (or JSON
+  string) of the protocol's `audio_settings` args (PROTOCOL.md §6.1). Errors
+  on invalid JSON (nil target ⇒ broadcast)."
+  [^RemoteController controller target settings]
+  (let [json (if (string? settings) settings (json/generate-string settings))]
+    (with-open [^Arena a (Arena/ofConfined)]
+      (unwrap (.invokeWithArguments ^MethodHandle @h-c-audio
+                                    (object-array [(:handle controller)
+                                                   (cstr a target)
+                                                   (cstr a json)]))))))
 
 (defn enqueue
   "Enqueue `tracks` (a vector of queue-item maps) on `target` (nil ⇒ broadcast).

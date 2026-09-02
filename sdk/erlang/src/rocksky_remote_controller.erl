@@ -23,6 +23,8 @@
 -export([connect/2, connect/3, next_event/1, set_primary/2, command/3,
          play/1, play/2, pause/1, pause/2, next/1, next/2,
          previous/1, previous/2, seek/3, queue_jump/3, queue_remove/3,
+         queue_move/4, set_shuffle/3, set_repeat/3, set_volume/3,
+         set_audio_settings/3,
          enqueue/6, disconnect/1, spawn_listener/2]).
 
 %% Connect and register a controller. `Name` is a registration label (controllers
@@ -75,6 +77,32 @@ queue_jump(Controller, Target, Index) ->
 %% Remove queue item `Index` on the target device (<<>>/undefined = broadcast).
 queue_remove(Controller, Target, Index) ->
     unwrap(rocksky_nif:remote_controller_queue_remove(Controller, b(Target), Index)).
+
+%% Move queue item `From` to position `To` on the target device — arrayMove
+%% semantics (<<>>/undefined = broadcast).
+queue_move(Controller, Target, From, To) ->
+    unwrap(rocksky_nif:remote_controller_queue_move(Controller, b(Target), From, To)).
+
+%% Turn queue shuffle on/off (<<>>/undefined = broadcast). A player without
+%% shuffle ignores it.
+set_shuffle(Controller, Target, Enabled) ->
+    unwrap(rocksky_nif:remote_controller_set_shuffle(Controller, b(Target), Enabled)).
+
+%% Set the queue repeat mode: <<"off">> | <<"all">> | <<"one">> (anything else
+%% reads as off; <<>>/undefined = broadcast).
+set_repeat(Controller, Target, Mode) ->
+    unwrap(rocksky_nif:remote_controller_set_repeat(Controller, b(Target), b(Mode))).
+
+%% Set output volume 0.0..=1.0 (<<>>/undefined = broadcast). A player without
+%% volume control ignores it.
+set_volume(Controller, Target, Volume) ->
+    unwrap(rocksky_nif:remote_controller_set_volume(Controller, b(Target), Volume)).
+
+%% Apply a partial audio-settings document — `SettingsJson` is the JSON of the
+%% protocol's `audio_settings` args (PROTOCOL.md §6.1). Errors on invalid JSON
+%% (<<>>/undefined = broadcast).
+set_audio_settings(Controller, Target, SettingsJson) ->
+    unwrap(rocksky_nif:remote_controller_set_audio_settings(Controller, b(Target), b(SettingsJson))).
 
 %% Enqueue `Tracks` (a list of queue-item maps, camelCase binary keys) on the
 %% target device. `Mode` is <<"now">> | <<"next">> | <<"last">>; `Shuffle` is a

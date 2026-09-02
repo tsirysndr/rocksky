@@ -47,7 +47,8 @@ module Rocksky
     end
 
     # Register a handler for a command action, one of +:play+, +:pause+, +:next+,
-    # +:previous+, +:seek+, +:queue_jump+, +:queue_remove+, +:enqueue+. The block
+    # +:previous+, +:seek+, +:queue_jump+, +:queue_remove+, +:queue_move+,
+    # +:enqueue+, +:shuffle+, +:repeat+, +:volume+, +:audio_settings+. The block
     # receives the full symbol-keyed command Hash (e.g. +{ action: "seek",
     # position: 42000 }+). Returns +self+ for chaining.
     def on(action, &block)
@@ -239,6 +240,37 @@ module Rocksky
     # Remove queue item +index+ on +target+ (nil target = broadcast).
     def queue_remove(target, index)
       Rocksky.unwrap(C.rocksky_remote_controller_queue_remove(@ptr, target.to_s, index))
+    end
+
+    # Move queue item +from+ to position +to+ on the target device (arrayMove
+    # semantics; empty target broadcasts).
+    def queue_move(target, from, to)
+      Rocksky.unwrap(C.rocksky_remote_controller_queue_move(@ptr, target.to_s, from, to))
+    end
+
+    # Turn queue shuffle on/off (empty target broadcasts). A player without
+    # shuffle ignores it.
+    def set_shuffle(target, enabled)
+      Rocksky.unwrap(C.rocksky_remote_controller_set_shuffle(@ptr, target.to_s, enabled ? 1 : 0))
+    end
+
+    # Set the queue repeat mode: "off" | "all" | "one" (empty target
+    # broadcasts). A player without repeat ignores it.
+    def set_repeat(target, mode)
+      Rocksky.unwrap(C.rocksky_remote_controller_set_repeat(@ptr, target.to_s, mode.to_s))
+    end
+
+    # Set output volume 0.0..=1.0 (empty target broadcasts). A player without
+    # volume control ignores it.
+    def set_volume(target, volume)
+      Rocksky.unwrap(C.rocksky_remote_controller_set_volume(@ptr, target.to_s, volume.to_f.clamp(0.0, 1.0)))
+    end
+
+    # Apply a partial audio-settings document — +settings_json+ is the JSON of
+    # the protocol's +audio_settings+ args (PROTOCOL.md §6.1). Raises on
+    # invalid JSON rather than silently sending nothing.
+    def set_audio_settings(target, settings_json)
+      Rocksky.unwrap(C.rocksky_remote_controller_set_audio_settings(@ptr, target.to_s, settings_json.to_s))
     end
 
     # Enqueue +tracks+ (array of camelCase queue-item Hashes) on +target+. +mode+

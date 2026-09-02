@@ -38,7 +38,10 @@
          remote_controller_connect/3, remote_controller_next_event/1,
          remote_controller_set_primary/2, remote_controller_command/3,
          remote_controller_seek/3, remote_controller_queue_jump/3,
-         remote_controller_queue_remove/3, remote_controller_enqueue/6,
+         remote_controller_queue_remove/3, remote_controller_queue_move/4,
+         remote_controller_set_shuffle/3, remote_controller_set_repeat/3,
+         remote_controller_set_volume/3, remote_controller_set_audio_settings/3,
+         remote_controller_enqueue/6,
          remote_controller_disconnect/1]).
 
 -on_load(init/0).
@@ -328,5 +331,10 @@ remote_controller_command(_Controller, _Action, _Target) -> ?NOT_LOADED.
 remote_controller_seek(_Controller, _Target, _PositionMs) -> ?NOT_LOADED.
 remote_controller_queue_jump(_Controller, _Target, _Index) -> ?NOT_LOADED.
 remote_controller_queue_remove(_Controller, _Target, _Index) -> ?NOT_LOADED.
+remote_controller_queue_move(_Controller, _Target, _From, _To) -> ?NOT_LOADED.
+remote_controller_set_shuffle(_Controller, _Target, _Enabled) -> ?NOT_LOADED.
+remote_controller_set_repeat(_Controller, _Target, _Mode) -> ?NOT_LOADED.
+remote_controller_set_volume(_Controller, _Target, _Volume) -> ?NOT_LOADED.
+remote_controller_set_audio_settings(_Controller, _Target, _SettingsJson) -> ?NOT_LOADED.
 remote_controller_enqueue(_Controller, _Target, _TracksJson, _Mode, _Shuffle, _StartIndex) -> ?NOT_LOADED.
 remote_controller_disconnect(_Controller) -> ?NOT_LOADED.

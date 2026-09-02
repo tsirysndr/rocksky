@@ -3,6 +3,7 @@ package rocksky
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"sync"
 	"time"
 
@@ -194,6 +195,12 @@ func (c *RemoteController) QueueRemove(target string, index int) {
 	c.command("queue_remove", target, map[string]any{"index": index})
 }
 
+// QueueMove moves queue item from to position to on the target device
+// ("" = broadcast).
+func (c *RemoteController) QueueMove(target string, from, to int) {
+	c.command("queue_move", target, map[string]any{"from": from, "to": to})
+}
+
 // Enqueue enqueues tracks on the target device. mode is "now" | "next" | "last".
 func (c *RemoteController) Enqueue(target string, tracks []RemoteQueueItem, mode string, shuffle bool, startIndex int) {
 	if mode == "" {
@@ -205,6 +212,32 @@ func (c *RemoteController) Enqueue(target string, tracks []RemoteQueueItem, mode
 		"shuffle":    shuffle,
 		"startIndex": startIndex,
 	})
+}
+
+// SetShuffle turns queue shuffle on or off on the target device
+// ("" = broadcast). A player without shuffle ignores it.
+func (c *RemoteController) SetShuffle(target string, enabled bool) {
+	c.command("shuffle", target, map[string]any{"enabled": enabled})
+}
+
+// SetRepeat sets the queue repeat mode on the target device: "off" | "all" |
+// "one" ("" = broadcast). A player without repeat ignores it.
+func (c *RemoteController) SetRepeat(target string, mode string) {
+	c.command("repeat", target, map[string]any{"mode": mode})
+}
+
+// SetVolume sets output volume 0.0..=1.0 on the target device
+// ("" = broadcast). A player without volume control ignores it.
+func (c *RemoteController) SetVolume(target string, volume float64) {
+	c.command("volume", target, map[string]any{"volume": math.Min(1, math.Max(0, volume))})
+}
+
+// SetAudioSettings applies a partial audio-settings document — the JSON of the
+// protocol's audio_settings args (see remote-ws/PROTOCOL.md §6.1). Every
+// section is optional and a player applies only the ones its engine
+// implements, so it is safe to send verbatim to any device.
+func (c *RemoteController) SetAudioSettings(target string, settingsJSON json.RawMessage) {
+	c.command("audio_settings", target, settingsJSON)
 }
 
 // Command sends an arbitrary command (escape hatch).

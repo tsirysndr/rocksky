@@ -108,6 +108,42 @@ fn controller_queue_remove_ffi(
   index: Int,
 ) -> String
 
+@external(erlang, "rocksky_nif", "remote_controller_queue_move")
+fn controller_queue_move_ffi(
+  handle: Dynamic,
+  target: String,
+  from: Int,
+  to: Int,
+) -> String
+
+@external(erlang, "rocksky_nif", "remote_controller_set_shuffle")
+fn controller_set_shuffle_ffi(
+  handle: Dynamic,
+  target: String,
+  enabled: Bool,
+) -> String
+
+@external(erlang, "rocksky_nif", "remote_controller_set_repeat")
+fn controller_set_repeat_ffi(
+  handle: Dynamic,
+  target: String,
+  mode: String,
+) -> String
+
+@external(erlang, "rocksky_nif", "remote_controller_set_volume")
+fn controller_set_volume_ffi(
+  handle: Dynamic,
+  target: String,
+  volume: Float,
+) -> String
+
+@external(erlang, "rocksky_nif", "remote_controller_set_audio_settings")
+fn controller_set_audio_settings_ffi(
+  handle: Dynamic,
+  target: String,
+  settings_json: String,
+) -> String
+
 @external(erlang, "rocksky_nif", "remote_controller_enqueue")
 fn controller_enqueue_ffi(
   handle: Dynamic,
@@ -236,6 +272,79 @@ pub fn queue_remove(
     controller.handle,
     target_to_string(target),
     index,
+  ))
+}
+
+/// Move queue item `from` to position `to` on the target device — arrayMove
+/// semantics (`None` target broadcasts).
+pub fn queue_move(
+  controller: RemoteController,
+  target: Option(String),
+  from: Int,
+  to: Int,
+) -> Result(Nil, RemoteError) {
+  decode_ack(controller_queue_move_ffi(
+    controller.handle,
+    target_to_string(target),
+    from,
+    to,
+  ))
+}
+
+/// Turn queue shuffle on or off (`None` target broadcasts). A player without
+/// shuffle ignores it.
+pub fn set_shuffle(
+  controller: RemoteController,
+  target: Option(String),
+  enabled: Bool,
+) -> Result(Nil, RemoteError) {
+  decode_ack(controller_set_shuffle_ffi(
+    controller.handle,
+    target_to_string(target),
+    enabled,
+  ))
+}
+
+/// Set the queue repeat mode: `"off"` / `"all"` / `"one"` (anything else reads
+/// as `"off"`; `None` target broadcasts). A player without repeat ignores it.
+pub fn set_repeat(
+  controller: RemoteController,
+  target: Option(String),
+  mode: String,
+) -> Result(Nil, RemoteError) {
+  decode_ack(controller_set_repeat_ffi(
+    controller.handle,
+    target_to_string(target),
+    mode,
+  ))
+}
+
+/// Set output volume 0.0..=1.0 (`None` target broadcasts). A player without
+/// volume control ignores it.
+pub fn set_volume(
+  controller: RemoteController,
+  target: Option(String),
+  volume: Float,
+) -> Result(Nil, RemoteError) {
+  decode_ack(controller_set_volume_ffi(
+    controller.handle,
+    target_to_string(target),
+    volume,
+  ))
+}
+
+/// Apply a partial audio-settings document — `settings_json` is the JSON of
+/// the protocol's `audio_settings` args (`remote-ws/PROTOCOL.md` §6.1).
+/// Errors on invalid JSON (`None` target broadcasts).
+pub fn set_audio_settings(
+  controller: RemoteController,
+  target: Option(String),
+  settings_json: String,
+) -> Result(Nil, RemoteError) {
+  decode_ack(controller_set_audio_settings_ffi(
+    controller.handle,
+    target_to_string(target),
+    settings_json,
   ))
 }
 

@@ -1217,6 +1217,95 @@ pub unsafe extern "C" fn rocksky_remote_controller_queue_move(
     respond(Ok(true))
 }
 
+/// Turn queue shuffle on or off on the target device (empty `target` =
+/// broadcast). A player without shuffle ignores it.
+///
+/// # Safety
+/// `handle` must be live; `target` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_set_shuffle(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    enabled: bool,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    (*handle).0.set_shuffle(opt_target(target), enabled);
+    respond(Ok(true))
+}
+
+/// Set the queue repeat mode on the target device: `"off"` | `"all"` | `"one"`
+/// (anything else reads as `"off"`; empty `target` = broadcast). A player
+/// without repeat ignores it.
+///
+/// # Safety
+/// `handle` must be live; `target` and `mode` valid C strings.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_set_repeat(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    mode: *const c_char,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    (*handle).0.set_repeat(
+        opt_target(target),
+        rocksky_sdk::RemoteRepeat::from_wire(&cstr(mode)),
+    );
+    respond(Ok(true))
+}
+
+/// Set output volume 0.0..=1.0 on the target device (empty `target` =
+/// broadcast). A player without volume control ignores it.
+///
+/// # Safety
+/// `handle` must be live; `target` a valid C string.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_set_volume(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    volume: f32,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    (*handle).0.set_volume(opt_target(target), volume);
+    respond(Ok(true))
+}
+
+/// Apply a partial audio-settings document (`settings_json` = the JSON of the
+/// protocol's `audio_settings` args, see `remote-ws/PROTOCOL.md` §6.1) on the
+/// target device (empty `target` = broadcast). Errors on invalid JSON rather
+/// than silently sending nothing.
+///
+/// # Safety
+/// `handle` must be live; `target` and `settings_json` valid C strings.
+#[cfg(feature = "remote-player")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_remote_controller_set_audio_settings(
+    handle: *mut RemoteControllerHandle,
+    target: *const c_char,
+    settings_json: *const c_char,
+) -> *mut c_char {
+    if handle.is_null() {
+        return respond::<()>(Err("null handle".into()));
+    }
+    match serde_json::from_str::<rocksky_sdk::RemoteAudioSettings>(&cstr(settings_json)) {
+        Ok(settings) => {
+            (*handle)
+                .0
+                .set_audio_settings(opt_target(target), &settings);
+            respond(Ok(true))
+        }
+        Err(e) => respond::<()>(Err(format!("invalid audio settings JSON: {e}"))),
+    }
+}
+
 /// Enqueue tracks on the target device. `tracks_json` is a JSON array of camelCase
 /// queue items; `mode` is `"now"` | `"next"` | `"last"`; empty `target` = broadcast.
 ///

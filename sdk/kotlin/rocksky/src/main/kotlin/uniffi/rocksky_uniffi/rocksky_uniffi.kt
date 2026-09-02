@@ -17,7 +17,7 @@ package uniffi.rocksky_uniffi
 // compile the Rust component. The easiest way to ensure this is to bundle the Kotlin
 // helpers directly inline like we're doing here.
 
-import com.sun.jna.Library as JnaLibrary
+import com.sun.jna.Library
 import com.sun.jna.IntegerType
 import com.sun.jna.Native
 import com.sun.jna.Pointer
@@ -378,7 +378,7 @@ private fun findLibraryName(componentName: String): String {
     return "rocksky_uniffi"
 }
 
-private inline fun <reified Lib : JnaLibrary> loadIndirect(
+private inline fun <reified Lib : Library> loadIndirect(
     componentName: String
 ): Lib {
     return Native.load<Lib>(findLibraryName(componentName), Lib::class.java)
@@ -1030,10 +1030,20 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
-internal interface UniffiLib : JnaLibrary {
+internal interface UniffiLib : Library {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
             loadIndirect<UniffiLib>(componentName = "rocksky_uniffi")
@@ -1349,11 +1359,21 @@ internal interface UniffiLib : JnaLibrary {
     ): Unit
     fun uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump(`ptr`: Pointer,`target`: RustBuffer.ByValue,`index`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_move(`ptr`: Pointer,`target`: RustBuffer.ByValue,`from`: Int,`to`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_remove(`ptr`: Pointer,`target`: RustBuffer.ByValue,`index`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_rocksky_uniffi_fn_method_remotecontroller_seek(`ptr`: Pointer,`target`: RustBuffer.ByValue,`positionMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_set_audio_settings(`ptr`: Pointer,`target`: RustBuffer.ByValue,`settingsJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary(`ptr`: Pointer,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_set_repeat(`ptr`: Pointer,`target`: RustBuffer.ByValue,`mode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_set_shuffle(`ptr`: Pointer,`target`: RustBuffer.ByValue,`enabled`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_method_remotecontroller_set_volume(`ptr`: Pointer,`target`: RustBuffer.ByValue,`volume`: Float,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_rocksky_uniffi_fn_clone_remoteplayer(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
@@ -1771,11 +1791,21 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_move(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_audio_settings(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_repeat(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_shuffle(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_volume(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect(
     ): Short
@@ -2237,13 +2267,28 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump() != 17792.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_move() != 60022.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove() != 35754.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek() != 48407.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_audio_settings() != 37659.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary() != 14660.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_repeat() != 16060.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_shuffle() != 27840.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_volume() != 33615.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect() != 61915.toShort()) {
@@ -2412,6 +2457,29 @@ public object FfiConverterLong: FfiConverter<Long, Long> {
 
     override fun write(value: Long, buf: ByteBuffer) {
         buf.putLong(value)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterFloat: FfiConverter<Float, Float> {
+    override fun lift(value: Float): Float {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Float {
+        return buf.getFloat()
+    }
+
+    override fun lower(value: Float): Float {
+        return value
+    }
+
+    override fun allocationSize(value: Float) = 4UL
+
+    override fun write(value: Float, buf: ByteBuffer) {
+        buf.putFloat(value)
     }
 }
 
@@ -5812,14 +5880,40 @@ public interface RemoteControllerInterface {
     
     fun `queueJump`(`target`: kotlin.String?, `index`: kotlin.UInt)
     
+    fun `queueMove`(`target`: kotlin.String?, `from`: kotlin.UInt, `to`: kotlin.UInt)
+    
     fun `queueRemove`(`target`: kotlin.String?, `index`: kotlin.UInt)
     
     fun `seek`(`target`: kotlin.String?, `positionMs`: kotlin.ULong)
     
     /**
+     * Apply a partial audio-settings document, as the JSON of the protocol's
+     * `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1) — same JSON
+     * carriage as [`RemoteCommand::SetAudioSettings`]. Errors on invalid JSON
+     * rather than silently sending nothing.
+     */
+    fun `setAudioSettings`(`target`: kotlin.String?, `settingsJson`: kotlin.String)
+    
+    /**
      * Choose the primary (scrobble/profile) device.
      */
     fun `setPrimary`(`deviceId`: kotlin.String)
+    
+    /**
+     * Set the queue repeat mode: `"off"` | `"all"` | `"one"` (anything else
+     * reads as `"off"`). A player without repeat ignores it.
+     */
+    fun `setRepeat`(`target`: kotlin.String?, `mode`: kotlin.String)
+    
+    /**
+     * Turn queue shuffle on or off. A player without shuffle ignores it.
+     */
+    fun `setShuffle`(`target`: kotlin.String?, `enabled`: kotlin.Boolean)
+    
+    /**
+     * Set output volume, 0.0..=1.0. A player without volume control ignores it.
+     */
+    fun `setVolume`(`target`: kotlin.String?, `volume`: kotlin.Float)
     
     companion object
 }
@@ -6013,6 +6107,17 @@ open class RemoteController: Disposable, AutoCloseable, RemoteControllerInterfac
     
     
 
+    override fun `queueMove`(`target`: kotlin.String?, `from`: kotlin.UInt, `to`: kotlin.UInt)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_move(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterUInt.lower(`from`),FfiConverterUInt.lower(`to`),_status)
+}
+    }
+    
+    
+
     override fun `queueRemove`(`target`: kotlin.String?, `index`: kotlin.UInt)
         = 
     callWithPointer {
@@ -6037,6 +6142,24 @@ open class RemoteController: Disposable, AutoCloseable, RemoteControllerInterfac
 
     
     /**
+     * Apply a partial audio-settings document, as the JSON of the protocol's
+     * `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1) — same JSON
+     * carriage as [`RemoteCommand::SetAudioSettings`]. Errors on invalid JSON
+     * rather than silently sending nothing.
+     */
+    @Throws(RockskyException::class)override fun `setAudioSettings`(`target`: kotlin.String?, `settingsJson`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_audio_settings(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterString.lower(`settingsJson`),_status)
+}
+    }
+    
+    
+
+    
+    /**
      * Choose the primary (scrobble/profile) device.
      */override fun `setPrimary`(`deviceId`: kotlin.String)
         = 
@@ -6044,6 +6167,49 @@ open class RemoteController: Disposable, AutoCloseable, RemoteControllerInterfac
     uniffiRustCall() { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary(
         it, FfiConverterString.lower(`deviceId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Set the queue repeat mode: `"off"` | `"all"` | `"one"` (anything else
+     * reads as `"off"`). A player without repeat ignores it.
+     */override fun `setRepeat`(`target`: kotlin.String?, `mode`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_repeat(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterString.lower(`mode`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Turn queue shuffle on or off. A player without shuffle ignores it.
+     */override fun `setShuffle`(`target`: kotlin.String?, `enabled`: kotlin.Boolean)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_shuffle(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterBoolean.lower(`enabled`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Set output volume, 0.0..=1.0. A player without volume control ignores it.
+     */override fun `setVolume`(`target`: kotlin.String?, `volume`: kotlin.Float)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_volume(
+        it, FfiConverterOptionalString.lower(`target`),FfiConverterFloat.lower(`volume`),_status)
 }
     }
     
@@ -7241,7 +7407,20 @@ data class RemoteNowPlaying (
     /**
      * Audio sample rate in Hz (e.g. 44100), when the player knows it.
      */
-    var `sampleRate`: kotlin.UInt? = null
+    var `sampleRate`: kotlin.UInt? = null, 
+    /**
+     * Queue shuffle state. Leave `None` when the player has no shuffle — that
+     * is how a controller knows to hide the toggle instead of showing it wrong.
+     */
+    var `shuffle`: kotlin.Boolean? = null, 
+    /**
+     * Queue repeat mode: "off" | "all" | "one". `None` when the player has none.
+     */
+    var `repeat`: kotlin.String? = null, 
+    /**
+     * Output volume 0.0..=1.0. `None` when the player has no volume control.
+     */
+    var `volume`: kotlin.Float? = null
 ) {
     
     companion object
@@ -7263,6 +7442,9 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterBoolean.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalFloat.read(buf),
         )
     }
 
@@ -7276,7 +7458,10 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterULong.allocationSize(value.`elapsedMs`) +
             FfiConverterBoolean.allocationSize(value.`isPlaying`) +
             FfiConverterOptionalString.allocationSize(value.`codec`) +
-            FfiConverterOptionalUInt.allocationSize(value.`sampleRate`)
+            FfiConverterOptionalUInt.allocationSize(value.`sampleRate`) +
+            FfiConverterOptionalBoolean.allocationSize(value.`shuffle`) +
+            FfiConverterOptionalString.allocationSize(value.`repeat`) +
+            FfiConverterOptionalFloat.allocationSize(value.`volume`)
     )
 
     override fun write(value: RemoteNowPlaying, buf: ByteBuffer) {
@@ -7290,6 +7475,9 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterBoolean.write(value.`isPlaying`, buf)
             FfiConverterOptionalString.write(value.`codec`, buf)
             FfiConverterOptionalUInt.write(value.`sampleRate`, buf)
+            FfiConverterOptionalBoolean.write(value.`shuffle`, buf)
+            FfiConverterOptionalString.write(value.`repeat`, buf)
+            FfiConverterOptionalFloat.write(value.`volume`, buf)
     }
 }
 
@@ -8163,6 +8351,12 @@ sealed class RemoteCommand {
         companion object
     }
     
+    data class QueueMove(
+        val `from`: kotlin.UInt, 
+        val `to`: kotlin.UInt) : RemoteCommand() {
+        companion object
+    }
+    
     data class Enqueue(
         val `tracks`: List<RemoteQueueItem>, 
         /**
@@ -8171,6 +8365,38 @@ sealed class RemoteCommand {
         val `mode`: kotlin.String, 
         val `shuffle`: kotlin.Boolean, 
         val `startIndex`: kotlin.UInt) : RemoteCommand() {
+        companion object
+    }
+    
+    data class SetShuffle(
+        val `enabled`: kotlin.Boolean) : RemoteCommand() {
+        companion object
+    }
+    
+    data class SetRepeat(
+        /**
+         * "off" | "all" | "one".
+         */
+        val `mode`: kotlin.String) : RemoteCommand() {
+        companion object
+    }
+    
+    /**
+     * 0.0..=1.0.
+     */
+    data class SetVolume(
+        val `volume`: kotlin.Float) : RemoteCommand() {
+        companion object
+    }
+    
+    /**
+     * A partial audio-settings document, as the JSON of the protocol's
+     * `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1). Carried as
+     * JSON rather than eight more mirrored records: every binding already has
+     * a JSON parser, and a player only reads the sections it implements.
+     */
+    data class SetAudioSettings(
+        val `settingsJson`: kotlin.String) : RemoteCommand() {
         companion object
     }
     
@@ -8198,11 +8424,27 @@ public object FfiConverterTypeRemoteCommand : FfiConverterRustBuffer<RemoteComma
             7 -> RemoteCommand.QueueRemove(
                 FfiConverterUInt.read(buf),
                 )
-            8 -> RemoteCommand.Enqueue(
+            8 -> RemoteCommand.QueueMove(
+                FfiConverterUInt.read(buf),
+                FfiConverterUInt.read(buf),
+                )
+            9 -> RemoteCommand.Enqueue(
                 FfiConverterSequenceTypeRemoteQueueItem.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterBoolean.read(buf),
                 FfiConverterUInt.read(buf),
+                )
+            10 -> RemoteCommand.SetShuffle(
+                FfiConverterBoolean.read(buf),
+                )
+            11 -> RemoteCommand.SetRepeat(
+                FfiConverterString.read(buf),
+                )
+            12 -> RemoteCommand.SetVolume(
+                FfiConverterFloat.read(buf),
+                )
+            13 -> RemoteCommand.SetAudioSettings(
+                FfiConverterString.read(buf),
                 )
             else -> throw RuntimeException("invalid enum value, something is very wrong!!")
         }
@@ -8254,6 +8496,14 @@ public object FfiConverterTypeRemoteCommand : FfiConverterRustBuffer<RemoteComma
                 + FfiConverterUInt.allocationSize(value.`index`)
             )
         }
+        is RemoteCommand.QueueMove -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterUInt.allocationSize(value.`from`)
+                + FfiConverterUInt.allocationSize(value.`to`)
+            )
+        }
         is RemoteCommand.Enqueue -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
@@ -8262,6 +8512,34 @@ public object FfiConverterTypeRemoteCommand : FfiConverterRustBuffer<RemoteComma
                 + FfiConverterString.allocationSize(value.`mode`)
                 + FfiConverterBoolean.allocationSize(value.`shuffle`)
                 + FfiConverterUInt.allocationSize(value.`startIndex`)
+            )
+        }
+        is RemoteCommand.SetShuffle -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterBoolean.allocationSize(value.`enabled`)
+            )
+        }
+        is RemoteCommand.SetRepeat -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`mode`)
+            )
+        }
+        is RemoteCommand.SetVolume -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterFloat.allocationSize(value.`volume`)
+            )
+        }
+        is RemoteCommand.SetAudioSettings -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`settingsJson`)
             )
         }
     }
@@ -8299,12 +8577,38 @@ public object FfiConverterTypeRemoteCommand : FfiConverterRustBuffer<RemoteComma
                 FfiConverterUInt.write(value.`index`, buf)
                 Unit
             }
-            is RemoteCommand.Enqueue -> {
+            is RemoteCommand.QueueMove -> {
                 buf.putInt(8)
+                FfiConverterUInt.write(value.`from`, buf)
+                FfiConverterUInt.write(value.`to`, buf)
+                Unit
+            }
+            is RemoteCommand.Enqueue -> {
+                buf.putInt(9)
                 FfiConverterSequenceTypeRemoteQueueItem.write(value.`tracks`, buf)
                 FfiConverterString.write(value.`mode`, buf)
                 FfiConverterBoolean.write(value.`shuffle`, buf)
                 FfiConverterUInt.write(value.`startIndex`, buf)
+                Unit
+            }
+            is RemoteCommand.SetShuffle -> {
+                buf.putInt(10)
+                FfiConverterBoolean.write(value.`enabled`, buf)
+                Unit
+            }
+            is RemoteCommand.SetRepeat -> {
+                buf.putInt(11)
+                FfiConverterString.write(value.`mode`, buf)
+                Unit
+            }
+            is RemoteCommand.SetVolume -> {
+                buf.putInt(12)
+                FfiConverterFloat.write(value.`volume`, buf)
+                Unit
+            }
+            is RemoteCommand.SetAudioSettings -> {
+                buf.putInt(13)
+                FfiConverterString.write(value.`settingsJson`, buf)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -8711,6 +9015,38 @@ public object FfiConverterOptionalLong: FfiConverterRustBuffer<kotlin.Long?> {
         } else {
             buf.put(1)
             FfiConverterLong.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalFloat: FfiConverterRustBuffer<kotlin.Float?> {
+    override fun read(buf: ByteBuffer): kotlin.Float? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterFloat.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Float?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterFloat.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Float?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterFloat.write(value, buf)
         }
     }
 }

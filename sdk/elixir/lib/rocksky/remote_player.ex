@@ -124,6 +124,15 @@ defmodule Rocksky.RemotePlayer do
       "seek" -> invoke(handlers, :seek, [Map.get(command, "position", 0)])
       "queue_jump" -> invoke(handlers, :queue_jump, [Map.get(command, "index", 0)])
       "queue_remove" -> invoke(handlers, :queue_remove, [Map.get(command, "index", 0)])
+
+      "queue_move" ->
+        invoke(handlers, :queue_move, [Map.get(command, "from", 0), Map.get(command, "to", 0)])
+
+      "shuffle" -> invoke(handlers, :set_shuffle, [Map.get(command, "enabled", false)])
+      "repeat" -> invoke(handlers, :set_repeat, [Map.get(command, "mode", "off")])
+      "volume" -> invoke(handlers, :set_volume, [Map.get(command, "volume", 1.0)])
+      "audio_settings" -> invoke(handlers, :set_audio_settings, [Map.get(command, "settings", %{})])
+
       "enqueue" -> invoke(handlers, :enqueue, [command])
       _ -> :ok
     end

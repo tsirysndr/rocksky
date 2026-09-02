@@ -60,6 +60,11 @@ Debug = typing.Callable[..., None]
 _ALIASES = {
     "queueJump": "queue_jump",
     "queueRemove": "queue_remove",
+    "queueMove": "queue_move",
+    "setShuffle": "set_shuffle",
+    "setRepeat": "set_repeat",
+    "setVolume": "set_volume",
+    "setAudioSettings": "set_audio_settings",
     "deviceRegistered": "device_registered",
     "deviceUnregistered": "device_unregistered",
     "primaryChanged": "primary_changed",
@@ -111,8 +116,9 @@ class RemotePlayer(_Poller):
     Connects and registers in the background on construction. Register command
     handlers with :meth:`on` (``play``, ``pause``, ``next``, ``previous``,
     ``seek`` → ``position_ms``, ``queue_jump`` → ``index``, ``queue_remove`` →
-    ``index``, ``enqueue`` → the :class:`RemoteCommand.ENQUEUE`), then call
-    :meth:`listen` to start dispatching.
+    ``index``, ``queue_move`` → ``(from, to)``, ``enqueue`` → the
+    :class:`RemoteCommand.ENQUEUE`), then call :meth:`listen` to start
+    dispatching.
     """
 
     def __init__(
@@ -176,6 +182,16 @@ class RemotePlayer(_Poller):
             self._emit("queue_jump", cmd.index)
         elif cmd.is_queue_remove():
             self._emit("queue_remove", cmd.index)
+        elif cmd.is_queue_move():
+            self._emit("queue_move", cmd._from, cmd.to)
+        elif cmd.is_set_shuffle():
+            self._emit("set_shuffle", cmd.enabled)
+        elif cmd.is_set_repeat():
+            self._emit("set_repeat", cmd.mode)
+        elif cmd.is_set_volume():
+            self._emit("set_volume", cmd.volume)
+        elif cmd.is_set_audio_settings():
+            self._emit("set_audio_settings", cmd.settings_json)
         elif cmd.is_enqueue():
             self._emit("enqueue", cmd)
         else:  # pragma: no cover - defensive
@@ -240,6 +256,29 @@ class RemoteController(_Poller):
 
     def queue_remove(self, target: str | None, index: int) -> None:
         self._inner.queue_remove(target, index)
+
+    def queue_move(self, target: str | None, from_index: int, to_index: int) -> None:
+        """Move queue item ``from_index`` to ``to_index`` (arrayMove semantics)."""
+        self._inner.queue_move(target, from_index, to_index)
+
+    def set_shuffle(self, target: str | None, enabled: bool) -> None:
+        """Turn queue shuffle on/off. A player without shuffle ignores it."""
+        self._inner.set_shuffle(target, enabled)
+
+    def set_repeat(self, target: str | None, mode: str) -> None:
+        """Set the queue repeat mode: ``"off"`` | ``"all"`` | ``"one"``."""
+        self._inner.set_repeat(target, mode)
+
+    def set_volume(self, target: str | None, volume: float) -> None:
+        """Set output volume 0.0..=1.0. A player without volume ignores it."""
+        self._inner.set_volume(target, min(1.0, max(0.0, volume)))
+
+    def set_audio_settings(self, target: str | None, settings_json: str) -> None:
+        """Apply a partial audio-settings document (JSON, PROTOCOL.md §6.1).
+
+        Raises on invalid JSON rather than silently sending nothing.
+        """
+        self._inner.set_audio_settings(target, settings_json)
 
     def enqueue(
         self,

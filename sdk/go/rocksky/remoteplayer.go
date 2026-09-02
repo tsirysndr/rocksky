@@ -3,6 +3,7 @@ package rocksky
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"sync"
 	"time"
 
@@ -61,6 +62,21 @@ type RemotePlayerHandlers struct {
 	Enqueue     func(cmd EnqueueCommand)
 	QueueJump   func(index int)
 	QueueRemove func(index int)
+	// QueueMove moves the queue item at from to position to (arrayMove
+	// semantics).
+	QueueMove func(from, to int)
+	// Any handler below is optional in the protocol sense too: leaving one
+	// nil IS how a player declines the capability — the command is dropped,
+	// never errored.
+	SetShuffle func(enabled bool)
+	// SetRepeat receives "off" | "all" | "one".
+	SetRepeat func(mode string)
+	// SetVolume receives output volume 0.0..=1.0.
+	SetVolume func(volume float64)
+	// SetAudioSettings receives the raw JSON of the protocol's audio_settings
+	// args (see remote-ws/PROTOCOL.md §6.1); a player applies only the
+	// sections its engine implements.
+	SetAudioSettings func(settingsJSON json.RawMessage)
 }
 
 // RemotePlayerOptions configures a RemotePlayer.
@@ -354,6 +370,26 @@ func (p *RemotePlayer) dispatch(msg wsInbound) {
 		if h.QueueRemove != nil {
 			h.QueueRemove(parseIndex(msg.Args))
 		}
+	case "queue_move":
+		if h.QueueMove != nil {
+			h.QueueMove(parseMove(msg.Args))
+		}
+	case "shuffle":
+		if h.SetShuffle != nil {
+			h.SetShuffle(parseShuffle(msg.Args))
+		}
+	case "repeat":
+		if h.SetRepeat != nil {
+			h.SetRepeat(parseRepeat(msg.Args))
+		}
+	case "volume":
+		if h.SetVolume != nil {
+			h.SetVolume(parseVolume(msg.Args))
+		}
+	case "audio_settings":
+		if h.SetAudioSettings != nil {
+			h.SetAudioSettings(msg.Args)
+		}
 	case "enqueue":
 		if h.Enqueue != nil {
 			h.Enqueue(parseEnqueue(msg.Args))
@@ -399,6 +435,62 @@ func parseIndex(raw json.RawMessage) int {
 	}
 	_ = json.Unmarshal(raw, &obj)
 	return obj.Index
+}
+
+func parseMove(raw json.RawMessage) (from, to int) {
+	var obj struct {
+		From int `json:"from"`
+		To   int `json:"to"`
+	}
+	_ = json.Unmarshal(raw, &obj)
+	return obj.From, obj.To
+}
+
+// Bare-value forms are accepted alongside the object forms, mirroring the
+// reference player SDKs.
+func parseShuffle(raw json.RawMessage) bool {
+	var obj struct {
+		Enabled bool `json:"enabled"`
+	}
+	if json.Unmarshal(raw, &obj) == nil && obj.Enabled {
+		return true
+	}
+	var bare bool
+	_ = json.Unmarshal(raw, &bare)
+	return obj.Enabled || bare
+}
+
+func parseRepeat(raw json.RawMessage) string {
+	var obj struct {
+		Mode string `json:"mode"`
+	}
+	mode := ""
+	if json.Unmarshal(raw, &obj) == nil {
+		mode = obj.Mode
+	}
+	if mode == "" {
+		_ = json.Unmarshal(raw, &mode)
+	}
+	if mode != "all" && mode != "one" {
+		mode = "off"
+	}
+	return mode
+}
+
+func parseVolume(raw json.RawMessage) float64 {
+	v := 1.0
+	var obj struct {
+		Volume *float64 `json:"volume"`
+	}
+	if json.Unmarshal(raw, &obj) == nil && obj.Volume != nil {
+		v = *obj.Volume
+	} else {
+		var bare float64
+		if json.Unmarshal(raw, &bare) == nil && bare != 0 {
+			v = bare
+		}
+	}
+	return math.Min(1, math.Max(0, v))
 }
 
 type descriptorJSON struct {

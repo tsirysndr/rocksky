@@ -743,11 +743,21 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump() != 17792:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_move() != 60022:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove() != 35754:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek() != 48407:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_audio_settings() != 37659:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary() != 14660:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_repeat() != 16060:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_shuffle() != 27840:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_volume() != 33615:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect() != 61915:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -1889,6 +1899,14 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump.argtypes 
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_jump.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_move.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_move.restype = None
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_remove.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1903,12 +1921,40 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_seek.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_seek.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_audio_settings.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_audio_settings.restype = None
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_repeat.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_repeat.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_shuffle.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_int8,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_shuffle.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_volume.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_float,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_volume.restype = None
 _UniffiLib.uniffi_rocksky_uniffi_fn_clone_remoteplayer.argtypes = (
     ctypes.c_void_p,
     ctypes.POINTER(_UniffiRustCallStatus),
@@ -2664,15 +2710,30 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_previous.resty
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_jump.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_move.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_move.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_queue_remove.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_seek.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_audio_settings.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_audio_settings.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_primary.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_repeat.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_repeat.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_shuffle.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_shuffle.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_volume.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_remotecontroller_set_volume.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_remoteplayer_disconnect.restype = ctypes.c_uint16
@@ -2764,6 +2825,15 @@ class _UniffiConverterInt64(_UniffiConverterPrimitiveInt):
     @staticmethod
     def write(value, buf):
         buf.write_i64(value)
+
+class _UniffiConverterFloat(_UniffiConverterPrimitiveFloat):
+    @staticmethod
+    def read(buf):
+        return buf.read_float()
+
+    @staticmethod
+    def write(value, buf):
+        buf.write_float(value)
 
 class _UniffiConverterBool:
     @classmethod
@@ -5865,13 +5935,43 @@ class RemoteControllerProtocol(typing.Protocol):
         raise NotImplementedError
     def queue_jump(self, target: "typing.Optional[str]",index: "int"):
         raise NotImplementedError
+    def queue_move(self, target: "typing.Optional[str]",_from: "int",to: "int"):
+        raise NotImplementedError
     def queue_remove(self, target: "typing.Optional[str]",index: "int"):
         raise NotImplementedError
     def seek(self, target: "typing.Optional[str]",position_ms: "int"):
         raise NotImplementedError
+    def set_audio_settings(self, target: "typing.Optional[str]",settings_json: "str"):
+        """
+        Apply a partial audio-settings document, as the JSON of the protocol's
+        `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1) — same JSON
+        carriage as [`RemoteCommand::SetAudioSettings`]. Errors on invalid JSON
+        rather than silently sending nothing.
+        """
+
+        raise NotImplementedError
     def set_primary(self, device_id: "str"):
         """
         Choose the primary (scrobble/profile) device.
+        """
+
+        raise NotImplementedError
+    def set_repeat(self, target: "typing.Optional[str]",mode: "str"):
+        """
+        Set the queue repeat mode: `"off"` | `"all"` | `"one"` (anything else
+        reads as `"off"`). A player without repeat ignores it.
+        """
+
+        raise NotImplementedError
+    def set_shuffle(self, target: "typing.Optional[str]",enabled: "bool"):
+        """
+        Turn queue shuffle on or off. A player without shuffle ignores it.
+        """
+
+        raise NotImplementedError
+    def set_volume(self, target: "typing.Optional[str]",volume: "float"):
+        """
+        Set output volume, 0.0..=1.0. A player without volume control ignores it.
         """
 
         raise NotImplementedError
@@ -6045,6 +6145,23 @@ class RemoteController:
 
 
 
+    def queue_move(self, target: "typing.Optional[str]",_from: "int",to: "int") -> None:
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterUInt32.check_lower(_from)
+        
+        _UniffiConverterUInt32.check_lower(to)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_queue_move,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterUInt32.lower(_from),
+        _UniffiConverterUInt32.lower(to))
+
+
+
+
+
+
     def queue_remove(self, target: "typing.Optional[str]",index: "int") -> None:
         _UniffiConverterOptionalString.check_lower(target)
         
@@ -6073,6 +6190,27 @@ class RemoteController:
 
 
 
+    def set_audio_settings(self, target: "typing.Optional[str]",settings_json: "str") -> None:
+        """
+        Apply a partial audio-settings document, as the JSON of the protocol's
+        `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1) — same JSON
+        carriage as [`RemoteCommand::SetAudioSettings`]. Errors on invalid JSON
+        rather than silently sending nothing.
+        """
+
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterString.check_lower(settings_json)
+        
+        _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_audio_settings,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterString.lower(settings_json))
+
+
+
+
+
+
     def set_primary(self, device_id: "str") -> None:
         """
         Choose the primary (scrobble/profile) device.
@@ -6082,6 +6220,61 @@ class RemoteController:
         
         _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_primary,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(device_id))
+
+
+
+
+
+
+    def set_repeat(self, target: "typing.Optional[str]",mode: "str") -> None:
+        """
+        Set the queue repeat mode: `"off"` | `"all"` | `"one"` (anything else
+        reads as `"off"`). A player without repeat ignores it.
+        """
+
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterString.check_lower(mode)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_repeat,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterString.lower(mode))
+
+
+
+
+
+
+    def set_shuffle(self, target: "typing.Optional[str]",enabled: "bool") -> None:
+        """
+        Turn queue shuffle on or off. A player without shuffle ignores it.
+        """
+
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterBool.check_lower(enabled)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_shuffle,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterBool.lower(enabled))
+
+
+
+
+
+
+    def set_volume(self, target: "typing.Optional[str]",volume: "float") -> None:
+        """
+        Set output volume, 0.0..=1.0. A player without volume control ignores it.
+        """
+
+        _UniffiConverterOptionalString.check_lower(target)
+        
+        _UniffiConverterFloat.check_lower(volume)
+        
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_remotecontroller_set_volume,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(target),
+        _UniffiConverterFloat.lower(volume))
 
 
 
@@ -7412,7 +7605,23 @@ class RemoteNowPlaying:
     Audio sample rate in Hz (e.g. 44100), when the player knows it.
     """
 
-    def __init__(self, *, title: "str", artist: "str", album: "str", album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, elapsed_ms: "int" = _DEFAULT, is_playing: "bool" = _DEFAULT, codec: "typing.Optional[str]" = _DEFAULT, sample_rate: "typing.Optional[int]" = _DEFAULT):
+    shuffle: "typing.Optional[bool]"
+    """
+    Queue shuffle state. Leave `None` when the player has no shuffle — that
+    is how a controller knows to hide the toggle instead of showing it wrong.
+    """
+
+    repeat: "typing.Optional[str]"
+    """
+    Queue repeat mode: "off" | "all" | "one". `None` when the player has none.
+    """
+
+    volume: "typing.Optional[float]"
+    """
+    Output volume 0.0..=1.0. `None` when the player has no volume control.
+    """
+
+    def __init__(self, *, title: "str", artist: "str", album: "str", album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, elapsed_ms: "int" = _DEFAULT, is_playing: "bool" = _DEFAULT, codec: "typing.Optional[str]" = _DEFAULT, sample_rate: "typing.Optional[int]" = _DEFAULT, shuffle: "typing.Optional[bool]" = _DEFAULT, repeat: "typing.Optional[str]" = _DEFAULT, volume: "typing.Optional[float]" = _DEFAULT):
         self.title = title
         self.artist = artist
         self.album = album
@@ -7444,9 +7653,21 @@ class RemoteNowPlaying:
             self.sample_rate = None
         else:
             self.sample_rate = sample_rate
+        if shuffle is _DEFAULT:
+            self.shuffle = None
+        else:
+            self.shuffle = shuffle
+        if repeat is _DEFAULT:
+            self.repeat = None
+        else:
+            self.repeat = repeat
+        if volume is _DEFAULT:
+            self.volume = None
+        else:
+            self.volume = volume
 
     def __str__(self):
-        return "RemoteNowPlaying(title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, elapsed_ms={}, is_playing={}, codec={}, sample_rate={})".format(self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.elapsed_ms, self.is_playing, self.codec, self.sample_rate)
+        return "RemoteNowPlaying(title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, elapsed_ms={}, is_playing={}, codec={}, sample_rate={}, shuffle={}, repeat={}, volume={})".format(self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.elapsed_ms, self.is_playing, self.codec, self.sample_rate, self.shuffle, self.repeat, self.volume)
 
     def __eq__(self, other):
         if self.title != other.title:
@@ -7469,6 +7690,12 @@ class RemoteNowPlaying:
             return False
         if self.sample_rate != other.sample_rate:
             return False
+        if self.shuffle != other.shuffle:
+            return False
+        if self.repeat != other.repeat:
+            return False
+        if self.volume != other.volume:
+            return False
         return True
 
 class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
@@ -7485,6 +7712,9 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
             is_playing=_UniffiConverterBool.read(buf),
             codec=_UniffiConverterOptionalString.read(buf),
             sample_rate=_UniffiConverterOptionalUInt32.read(buf),
+            shuffle=_UniffiConverterOptionalBool.read(buf),
+            repeat=_UniffiConverterOptionalString.read(buf),
+            volume=_UniffiConverterOptionalFloat.read(buf),
         )
 
     @staticmethod
@@ -7499,6 +7729,9 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
         _UniffiConverterBool.check_lower(value.is_playing)
         _UniffiConverterOptionalString.check_lower(value.codec)
         _UniffiConverterOptionalUInt32.check_lower(value.sample_rate)
+        _UniffiConverterOptionalBool.check_lower(value.shuffle)
+        _UniffiConverterOptionalString.check_lower(value.repeat)
+        _UniffiConverterOptionalFloat.check_lower(value.volume)
 
     @staticmethod
     def write(value, buf):
@@ -7512,6 +7745,9 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
         _UniffiConverterBool.write(value.is_playing, buf)
         _UniffiConverterOptionalString.write(value.codec, buf)
         _UniffiConverterOptionalUInt32.write(value.sample_rate, buf)
+        _UniffiConverterOptionalBool.write(value.shuffle, buf)
+        _UniffiConverterOptionalString.write(value.repeat, buf)
+        _UniffiConverterOptionalFloat.write(value.volume, buf)
 
 
 class RemoteQueueItem:
@@ -8946,6 +9182,26 @@ class RemoteCommand:
                 return False
             return True
     
+    class QUEUE_MOVE:
+        _from: "int"
+        to: "int"
+
+        def __init__(self,_from: "int", to: "int"):
+            self._from = _from
+            self.to = to
+
+        def __str__(self):
+            return "RemoteCommand.QUEUE_MOVE(_from={}, to={})".format(self._from, self.to)
+
+        def __eq__(self, other):
+            if not other.is_queue_move():
+                return False
+            if self._from != other._from:
+                return False
+            if self.to != other.to:
+                return False
+            return True
+    
     class ENQUEUE:
         tracks: "typing.List[RemoteQueueItem]"
         mode: "str"
@@ -8978,6 +9234,85 @@ class RemoteCommand:
                 return False
             return True
     
+    class SET_SHUFFLE:
+        enabled: "bool"
+
+        def __init__(self,enabled: "bool"):
+            self.enabled = enabled
+
+        def __str__(self):
+            return "RemoteCommand.SET_SHUFFLE(enabled={})".format(self.enabled)
+
+        def __eq__(self, other):
+            if not other.is_set_shuffle():
+                return False
+            if self.enabled != other.enabled:
+                return False
+            return True
+    
+    class SET_REPEAT:
+        mode: "str"
+        """
+        "off" | "all" | "one".
+        """
+
+
+        def __init__(self,mode: "str"):
+            self.mode = mode
+
+        def __str__(self):
+            return "RemoteCommand.SET_REPEAT(mode={})".format(self.mode)
+
+        def __eq__(self, other):
+            if not other.is_set_repeat():
+                return False
+            if self.mode != other.mode:
+                return False
+            return True
+    
+    class SET_VOLUME:
+        """
+        0.0..=1.0.
+        """
+
+        volume: "float"
+
+        def __init__(self,volume: "float"):
+            self.volume = volume
+
+        def __str__(self):
+            return "RemoteCommand.SET_VOLUME(volume={})".format(self.volume)
+
+        def __eq__(self, other):
+            if not other.is_set_volume():
+                return False
+            if self.volume != other.volume:
+                return False
+            return True
+    
+    class SET_AUDIO_SETTINGS:
+        """
+        A partial audio-settings document, as the JSON of the protocol's
+        `audio_settings` args (see `remote-ws/PROTOCOL.md` §6.1). Carried as
+        JSON rather than eight more mirrored records: every binding already has
+        a JSON parser, and a player only reads the sections it implements.
+        """
+
+        settings_json: "str"
+
+        def __init__(self,settings_json: "str"):
+            self.settings_json = settings_json
+
+        def __str__(self):
+            return "RemoteCommand.SET_AUDIO_SETTINGS(settings_json={})".format(self.settings_json)
+
+        def __eq__(self, other):
+            if not other.is_set_audio_settings():
+                return False
+            if self.settings_json != other.settings_json:
+                return False
+            return True
+    
     
 
     # For each variant, we have an `is_NAME` method for easily checking
@@ -8996,8 +9331,18 @@ class RemoteCommand:
         return isinstance(self, RemoteCommand.QUEUE_JUMP)
     def is_queue_remove(self) -> bool:
         return isinstance(self, RemoteCommand.QUEUE_REMOVE)
+    def is_queue_move(self) -> bool:
+        return isinstance(self, RemoteCommand.QUEUE_MOVE)
     def is_enqueue(self) -> bool:
         return isinstance(self, RemoteCommand.ENQUEUE)
+    def is_set_shuffle(self) -> bool:
+        return isinstance(self, RemoteCommand.SET_SHUFFLE)
+    def is_set_repeat(self) -> bool:
+        return isinstance(self, RemoteCommand.SET_REPEAT)
+    def is_set_volume(self) -> bool:
+        return isinstance(self, RemoteCommand.SET_VOLUME)
+    def is_set_audio_settings(self) -> bool:
+        return isinstance(self, RemoteCommand.SET_AUDIO_SETTINGS)
     
 
 # Now, a little trick - we make each nested variant class be a subclass of the main
@@ -9010,7 +9355,12 @@ RemoteCommand.PREVIOUS = type("RemoteCommand.PREVIOUS", (RemoteCommand.PREVIOUS,
 RemoteCommand.SEEK = type("RemoteCommand.SEEK", (RemoteCommand.SEEK, RemoteCommand,), {})  # type: ignore
 RemoteCommand.QUEUE_JUMP = type("RemoteCommand.QUEUE_JUMP", (RemoteCommand.QUEUE_JUMP, RemoteCommand,), {})  # type: ignore
 RemoteCommand.QUEUE_REMOVE = type("RemoteCommand.QUEUE_REMOVE", (RemoteCommand.QUEUE_REMOVE, RemoteCommand,), {})  # type: ignore
+RemoteCommand.QUEUE_MOVE = type("RemoteCommand.QUEUE_MOVE", (RemoteCommand.QUEUE_MOVE, RemoteCommand,), {})  # type: ignore
 RemoteCommand.ENQUEUE = type("RemoteCommand.ENQUEUE", (RemoteCommand.ENQUEUE, RemoteCommand,), {})  # type: ignore
+RemoteCommand.SET_SHUFFLE = type("RemoteCommand.SET_SHUFFLE", (RemoteCommand.SET_SHUFFLE, RemoteCommand,), {})  # type: ignore
+RemoteCommand.SET_REPEAT = type("RemoteCommand.SET_REPEAT", (RemoteCommand.SET_REPEAT, RemoteCommand,), {})  # type: ignore
+RemoteCommand.SET_VOLUME = type("RemoteCommand.SET_VOLUME", (RemoteCommand.SET_VOLUME, RemoteCommand,), {})  # type: ignore
+RemoteCommand.SET_AUDIO_SETTINGS = type("RemoteCommand.SET_AUDIO_SETTINGS", (RemoteCommand.SET_AUDIO_SETTINGS, RemoteCommand,), {})  # type: ignore
 
 
 
@@ -9044,11 +9394,32 @@ class _UniffiConverterTypeRemoteCommand(_UniffiConverterRustBuffer):
                 _UniffiConverterUInt32.read(buf),
             )
         if variant == 8:
+            return RemoteCommand.QUEUE_MOVE(
+                _UniffiConverterUInt32.read(buf),
+                _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 9:
             return RemoteCommand.ENQUEUE(
                 _UniffiConverterSequenceTypeRemoteQueueItem.read(buf),
                 _UniffiConverterString.read(buf),
                 _UniffiConverterBool.read(buf),
                 _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 10:
+            return RemoteCommand.SET_SHUFFLE(
+                _UniffiConverterBool.read(buf),
+            )
+        if variant == 11:
+            return RemoteCommand.SET_REPEAT(
+                _UniffiConverterString.read(buf),
+            )
+        if variant == 12:
+            return RemoteCommand.SET_VOLUME(
+                _UniffiConverterFloat.read(buf),
+            )
+        if variant == 13:
+            return RemoteCommand.SET_AUDIO_SETTINGS(
+                _UniffiConverterString.read(buf),
             )
         raise InternalError("Raw enum value doesn't match any cases")
 
@@ -9071,11 +9442,27 @@ class _UniffiConverterTypeRemoteCommand(_UniffiConverterRustBuffer):
         if value.is_queue_remove():
             _UniffiConverterUInt32.check_lower(value.index)
             return
+        if value.is_queue_move():
+            _UniffiConverterUInt32.check_lower(value._from)
+            _UniffiConverterUInt32.check_lower(value.to)
+            return
         if value.is_enqueue():
             _UniffiConverterSequenceTypeRemoteQueueItem.check_lower(value.tracks)
             _UniffiConverterString.check_lower(value.mode)
             _UniffiConverterBool.check_lower(value.shuffle)
             _UniffiConverterUInt32.check_lower(value.start_index)
+            return
+        if value.is_set_shuffle():
+            _UniffiConverterBool.check_lower(value.enabled)
+            return
+        if value.is_set_repeat():
+            _UniffiConverterString.check_lower(value.mode)
+            return
+        if value.is_set_volume():
+            _UniffiConverterFloat.check_lower(value.volume)
+            return
+        if value.is_set_audio_settings():
+            _UniffiConverterString.check_lower(value.settings_json)
             return
         raise ValueError(value)
 
@@ -9098,12 +9485,28 @@ class _UniffiConverterTypeRemoteCommand(_UniffiConverterRustBuffer):
         if value.is_queue_remove():
             buf.write_i32(7)
             _UniffiConverterUInt32.write(value.index, buf)
-        if value.is_enqueue():
+        if value.is_queue_move():
             buf.write_i32(8)
+            _UniffiConverterUInt32.write(value._from, buf)
+            _UniffiConverterUInt32.write(value.to, buf)
+        if value.is_enqueue():
+            buf.write_i32(9)
             _UniffiConverterSequenceTypeRemoteQueueItem.write(value.tracks, buf)
             _UniffiConverterString.write(value.mode, buf)
             _UniffiConverterBool.write(value.shuffle, buf)
             _UniffiConverterUInt32.write(value.start_index, buf)
+        if value.is_set_shuffle():
+            buf.write_i32(10)
+            _UniffiConverterBool.write(value.enabled, buf)
+        if value.is_set_repeat():
+            buf.write_i32(11)
+            _UniffiConverterString.write(value.mode, buf)
+        if value.is_set_volume():
+            buf.write_i32(12)
+            _UniffiConverterFloat.write(value.volume, buf)
+        if value.is_set_audio_settings():
+            buf.write_i32(13)
+            _UniffiConverterString.write(value.settings_json, buf)
 
 
 
@@ -9602,6 +10005,33 @@ class _UniffiConverterOptionalInt64(_UniffiConverterRustBuffer):
             return None
         elif flag == 1:
             return _UniffiConverterInt64.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
+class _UniffiConverterOptionalFloat(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterFloat.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterFloat.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterFloat.read(buf)
         else:
             raise InternalError("Unexpected flag byte for optional type")
 

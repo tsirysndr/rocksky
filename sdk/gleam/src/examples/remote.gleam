@@ -81,10 +81,23 @@ fn player_loop(player: remote_player.RemotePlayer) -> Nil {
           io.println("-> queue_jump " <> string.inspect(i))
         remote_player.QueueRemove(i) ->
           io.println("-> queue_remove " <> string.inspect(i))
+        remote_player.QueueMove(from, to) ->
+          io.println(
+            "-> queue_move "
+            <> string.inspect(from)
+            <> " -> "
+            <> string.inspect(to),
+          )
         remote_player.Enqueue(tracks, mode, _, _) ->
           io.println(
             "-> enqueue " <> string.inspect(tracks) <> " mode=" <> mode,
           )
+        remote_player.SetShuffle(enabled) ->
+          io.println("-> shuffle " <> string.inspect(enabled))
+        remote_player.SetRepeat(mode) -> io.println("-> repeat " <> mode)
+        remote_player.SetVolume(volume) ->
+          io.println("-> volume " <> string.inspect(volume))
+        remote_player.SetAudioSettings(_) -> io.println("-> audio_settings")
       }
       player_loop(player)
     }

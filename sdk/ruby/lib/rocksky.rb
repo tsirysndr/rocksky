@@ -65,6 +65,11 @@ module Rocksky
       "char* rocksky_remote_controller_seek(void*, const char*, unsigned long long)",
       "char* rocksky_remote_controller_queue_jump(void*, const char*, unsigned int)",
       "char* rocksky_remote_controller_queue_remove(void*, const char*, unsigned int)",
+      "char* rocksky_remote_controller_queue_move(void*, const char*, unsigned int, unsigned int)",
+      "char* rocksky_remote_controller_set_shuffle(void*, const char*, char)",
+      "char* rocksky_remote_controller_set_repeat(void*, const char*, const char*)",
+      "char* rocksky_remote_controller_set_volume(void*, const char*, float)",
+      "char* rocksky_remote_controller_set_audio_settings(void*, const char*, const char*)",
       "char* rocksky_remote_controller_enqueue(void*, const char*, const char*, const char*, char, unsigned int)",
       "char* rocksky_remote_controller_disconnect(void*)",
       "void rocksky_remote_controller_free(void*)"
