@@ -1,13 +1,26 @@
+import dns from "node:dns";
 import { consola } from "consola";
 import { ctx } from "context";
 import cors from "cors";
+import { sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { createServer } from "lexicon";
-import dns from "node:dns";
+import cron from "node-cron";
 import API from "./xrpc";
+
 dns.setDefaultResultOrder("ipv4first");
+
+cron.schedule("*/30 * * * *", async () => {
+  try {
+    await ctx.db.execute(
+      sql`REFRESH MATERIALIZED VIEW CONCURRENTLY user_artists_mv`,
+    );
+  } catch (err) {
+    consola.error("Failed to refresh user_artists_mv:", err);
+  }
+});
 
 const proxyMiddleware = createProxyMiddleware<Request, Response>({
   target: "http://localhost:8000",
