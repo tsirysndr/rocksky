@@ -6,11 +6,10 @@ import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingSmall } from "baseui/typography";
 import dayjs from "dayjs";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue } from "jotai";
 import numeral from "numeral";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { lovedTracksAtom } from "../../../atoms/lovedTracks";
 import { userAtom } from "../../../atoms/user";
 import { useLovedTracksQuery } from "../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../hooks/useProfile";
@@ -25,7 +24,6 @@ type Row = {
   albumUri?: string;
   artistUri?: string;
   uri: string;
-  scrobbles: number;
   index: number;
   date: string;
 };
@@ -66,13 +64,22 @@ const Link = styled(DefaultLink)`
 function LovedTracks() {
   const size = 50;
   const { did } = useParams({ strict: false });
-  const lovedTracks = useAtomValue(lovedTracksAtom);
-  const setLovedTracks = useSetAtom(lovedTracksAtom);
   const [currentPage, setCurrentPage] = useState(1);
+  // Rendering straight from the did-keyed query (not a shared atom) so a
+  // cached profile always shows its own loved tracks, never the previous
+  // one's.
   const lovedTracksResult = useLovedTracksQuery(
     did!,
     (currentPage - 1) * size,
     size,
+  );
+  const lovedTracks = useMemo(
+    () =>
+      (lovedTracksResult.data ?? []).map((item) => ({
+        ...item,
+        date: item.createdAt,
+      })),
+    [lovedTracksResult.data],
   );
   const user = useAtomValue(userAtom);
   const profileStats = useProfileStatsByDidQuery(did!);
@@ -82,30 +89,6 @@ function LovedTracks() {
     }
     return Math.ceil((profileStats.data.lovedTracks ?? 0) / size) || 1;
   }, [profileStats.data, did]);
-
-  useEffect(() => {
-    if (lovedTracksResult.isLoading || lovedTracksResult.isError) {
-      return;
-    }
-
-    if (!lovedTracksResult.data || !did) {
-      return;
-    }
-
-    setLovedTracks(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      lovedTracksResult.data.map((item: any) => ({
-        ...item,
-        date: item.createdAt,
-      })),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    lovedTracksResult.data,
-    lovedTracksResult.isLoading,
-    lovedTracksResult.isError,
-    did,
-  ]);
 
   return (
     <>
@@ -120,6 +103,7 @@ function LovedTracks() {
       )}
       {(lovedTracksResult.isPending || lovedTracksResult.isFetching) &&
         lovedTracks.length === 0 && <LovedTracksSkeleton />}
+      {!(lovedTracksResult.isPending && lovedTracks.length === 0) && (
       <TableBuilder
         data={lovedTracks.map((x, index) => ({
           id: x.id,
@@ -128,7 +112,6 @@ function LovedTracks() {
           albumArtist: x.albumArtist,
           albumArt: x.albumArt,
           uri: x.uri,
-          scrobbles: x.scrobbles,
           albumUri: x.albumUri,
           artistUri: x.artistUri,
           date: x.date,
@@ -269,6 +252,7 @@ function LovedTracks() {
           )}
         </TableBuilderColumn>
       </TableBuilder>
+      )}
       <Pagination
         numPages={pages}
         currentPage={currentPage}

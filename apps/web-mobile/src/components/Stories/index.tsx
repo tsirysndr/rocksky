@@ -30,7 +30,12 @@ function StoryAvatar({ item, onClick }: { item: Story; onClick: () => void }) {
         style={{ border: "2px solid var(--color-primary)" }}
       >
         {item.avatar && !item.avatar.endsWith("/@jpeg") ? (
-          <img src={item.avatar} alt={item.handle} className="w-full h-full rounded-full object-cover" />
+          <img
+            src={item.avatar}
+            alt={item.handle}
+            className="w-full h-full rounded-full object-cover"
+            style={{ backgroundColor: "var(--color-skeleton-background)" }}
+          />
         ) : (
           <div
             className="w-full h-full rounded-full flex items-center justify-center"
@@ -231,7 +236,7 @@ export default function Stories() {
     if (activeCategory === "all") return {};
     return { feed: feedUri };
   }, [activeCategory, followingFeed, feedUri]);
-  const { data: rawStories, isLoading } = useStoriesQuery(filter);
+  const { data: rawStories, isLoading, isFetching } = useStoriesQuery(filter);
   const [modalIndex, setModalIndex] = useState<number | null>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
@@ -261,7 +266,7 @@ export default function Stories() {
     return () => window.removeEventListener("resize", handleScroll);
   }, [stories]);
 
-  if (isLoading) {
+  if (isLoading || (isFetching && !stories.length)) {
     return (
       <div className="overflow-hidden px-4 pt-4 pb-2">
         <ContentLoader

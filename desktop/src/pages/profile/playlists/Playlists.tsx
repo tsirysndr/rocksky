@@ -20,7 +20,6 @@ import {
   createPlaylistModalOpenAtom,
   editingPlaylistAtom,
 } from "../../../atoms/createPlaylist";
-import { playlistsAtom } from "../../../atoms/playlists";
 import { profileAtom } from "../../../atoms/profile";
 import PlaylistCover from "../../../components/PlaylistCover";
 import {
@@ -189,8 +188,6 @@ function PlaylistCardSkeleton() {
 
 function Playlists() {
   const { did } = useParams({ strict: false });
-  const playlists = useAtomValue(playlistsAtom);
-  const setPlaylists = useSetAtom(playlistsAtom);
   const openCreate = useSetAtom(createPlaylistModalOpenAtom);
   const setEditing = useSetAtom(editingPlaylistAtom);
   const removePlaylist = useRemovePlaylistMutation();
@@ -201,7 +198,10 @@ function Playlists() {
   const isOwnProfile =
     !!did && (did === loggedInProfile?.did || did === loggedInProfile?.handle);
 
+  // Rendering straight from the did-keyed query (not a shared atom) so a
+  // cached profile always shows its own playlists, never the previous one's.
   const playlistsData = usePlaylistsQuery(did!, filter);
+  const playlists = playlistsData.data ?? [];
 
   const applyFilter = useMemo(
     () =>
@@ -213,19 +213,6 @@ function Playlists() {
     applyFilter(term);
     return () => applyFilter.cancel();
   }, [term, applyFilter]);
-
-  useEffect(() => {
-    if (playlistsData.isPending || playlistsData.isError) {
-      return;
-    }
-
-    if (!playlistsData.data || !did) {
-      return;
-    }
-
-    setPlaylists(playlistsData.data);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playlistsData.data, playlistsData.isPending, playlistsData.isError, did]);
 
   const onEdit = (playlist: {
     uri?: string;
@@ -281,7 +268,7 @@ function Playlists() {
         )}
       </Toolbar>
 
-      {playlistsData.isPending && playlists.length === 0 && (
+      {playlistsData.isPending && (
         <ResponsiveFlexGrid
           flexGridColumnGap="scale800"
           flexGridRowGap="scale800"

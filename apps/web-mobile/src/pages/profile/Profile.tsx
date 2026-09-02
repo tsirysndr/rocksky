@@ -60,6 +60,58 @@ function img(track: any): string {
   return track.cover || track.album_art || track.albumArt || "";
 }
 
+// ─── skeletons ────────────────────────────────────────────────────────────────
+
+function PersonRowSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 72}
+      viewBox={`0 0 400 ${rows * 72}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 72;
+        return (
+          <g key={i}>
+            <circle cx="24" cy={y + 28} r="24" />
+            <rect x="60" y={y + 12} rx="3" ry="3" width="130" height="12" />
+            <rect x="60" y={y + 32} rx="3" ry="3" width="90" height="9" />
+            <rect x="320" y={y + 16} rx="14" ry="14" width="76" height="28" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
+
+function TrackRowSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 61}
+      viewBox={`0 0 400 ${rows * 61}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 61;
+        return (
+          <g key={i}>
+            <rect x="0" y={y + 10} rx="8" ry="8" width="40" height="40" />
+            <rect x="52" y={y + 16} rx="3" ry="3" width="180" height="11" />
+            <rect x="52" y={y + 36} rx="3" ry="3" width="110" height="9" />
+            <rect x="356" y={y + 24} rx="3" ry="3" width="44" height="8" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
+
 // ─── shared user card ─────────────────────────────────────────────────────────
 
 function UserCard({ user }: { user: Record<string, string> }) {
@@ -151,7 +203,11 @@ function InfiniteUserList({ pages, fetchNextPage, hasNextPage, isFetchingNextPag
     return () => obs.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (users.length === 0 && pages) {
+  if (!pages) {
+    return <PersonRowSkeleton />;
+  }
+
+  if (users.length === 0) {
     return <p className="text-sm text-center py-12" style={{ color: "var(--color-text-muted)" }}>{emptyText}</p>;
   }
 
@@ -701,20 +757,13 @@ function CirclesTab({ did, handle }: { did: string; handle: string }) {
     });
   }, [followsData, setFollows]);
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }} />
-      </div>
-    );
-  }
-
   return (
     <div>
       <p className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
         People on Rocksky with similar music taste to @{handle}
       </p>
-      {neighbours.length === 0 && (
+      {isLoading && <PersonRowSkeleton />}
+      {!isLoading && neighbours.length === 0 && (
         <p className="text-sm text-center py-12" style={{ color: "var(--color-text-muted)" }}>No circles found yet</p>
       )}
       {neighbours.map((n: Record<string, unknown>) => {
@@ -783,7 +832,7 @@ function CirclesTab({ did, handle }: { did: string; handle: string }) {
 function LovedTracksTab({ did }: { did: string }) {
   const PAGE = 30;
   const [page, setPage] = useState(1);
-  const { data: tracks } = useLovedTracksQuery(did, (page - 1) * PAGE, PAGE);
+  const { data: tracks, isPending } = useLovedTracksQuery(did, (page - 1) * PAGE, PAGE);
   const { data: stats } = useProfileStatsByDidQuery(did);
   const list: Record<string, unknown>[] = tracks || [];
 
@@ -795,6 +844,7 @@ function LovedTracksTab({ did }: { did: string }) {
           <span style={{ fontFamily: "var(--font-mono)" }}>{numeral(stats?.lovedTracks).format("0,0")}</span> loved tracks
         </p>
       )}
+      {isPending && <TrackRowSkeleton />}
       {list.map((t, i) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const art = (t as any).albumArt || (t as any).album_art;
@@ -830,7 +880,7 @@ function LovedTracksTab({ did }: { did: string }) {
           </div>
         );
       })}
-      {list.length === 0 && <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No loved tracks yet</p>}
+      {!isPending && list.length === 0 && <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No loved tracks yet</p>}
 
       <div className="flex items-center justify-between pt-4 pb-2">
         <button
