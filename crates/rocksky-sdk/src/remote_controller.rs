@@ -206,6 +206,15 @@ impl RemoteController {
         self.command("queue_remove", target, Some(json!({ "index": index })));
     }
 
+    /// Move queue item `from` to position `to` on the target device.
+    pub fn queue_move(&self, target: Option<String>, from: u32, to: u32) {
+        self.command(
+            "queue_move",
+            target,
+            Some(json!({ "from": from, "to": to })),
+        );
+    }
+
     /// Enqueue tracks on the target device. `mode` is `"now"` | `"next"` |
     /// `"last"`; `start_index` is the entry to start at when `mode == "now"`.
     pub fn enqueue(

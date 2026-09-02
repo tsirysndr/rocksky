@@ -1783,6 +1783,10 @@ pub enum RemoteCommand {
     QueueRemove {
         index: u32,
     },
+    QueueMove {
+        from: u32,
+        to: u32,
+    },
     Enqueue {
         tracks: Vec<RemoteQueueItem>,
         /// "now" | "next" | "last".
@@ -1895,6 +1899,7 @@ impl From<rocksky_sdk::RemoteCommand> for RemoteCommand {
             C::Seek { position_ms } => Self::Seek { position_ms },
             C::QueueJump { index } => Self::QueueJump { index },
             C::QueueRemove { index } => Self::QueueRemove { index },
+            C::QueueMove { from, to } => Self::QueueMove { from, to },
             C::Enqueue {
                 tracks,
                 mode,
@@ -2182,6 +2187,10 @@ impl RemoteController {
 
     pub fn queue_remove(&self, target: Option<String>, index: u32) {
         self.inner.queue_remove(target, index);
+    }
+
+    pub fn queue_move(&self, target: Option<String>, from: u32, to: u32) {
+        self.inner.queue_move(target, from, to);
     }
 
     /// Enqueue tracks on the target device. `mode` is `"now"` | `"next"` | `"last"`.

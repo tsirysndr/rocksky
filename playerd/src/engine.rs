@@ -12,8 +12,8 @@ use std::time::{Duration, Instant};
 
 use rockbox_playback::{
     BassEnhancement, ChannelMode, Compressor, CrossfadeSettings, Crossfeed, Equalizer,
-    PlaybackState, Player, PlayerConfig, RepeatMode, ReplayGainMode, Status, Surround,
-    ToneControls,
+    InsertPosition, PlaybackState, Player, PlayerConfig, RepeatMode, ReplayGainMode, Status,
+    Surround, ToneControls,
 };
 
 pub enum EngineCmd {
@@ -32,6 +32,10 @@ pub enum EngineCmd {
     Seek(Duration),
     SkipTo(usize),
     Remove(usize),
+    /// Move the track at `from` so it ends up at index `to` (arrayMove
+    /// semantics). Emulated as remove + indexed re-insert; the playback
+    /// crate's index bookkeeping keeps the current track playing.
+    Move { from: usize, to: usize },
     SetEqualizer(Equalizer),
     SetTone(ToneControls),
     SetBalance(i32),
@@ -64,6 +68,11 @@ pub enum EngineCmd {
 #[derive(Clone)]
 pub struct Snapshot {
     pub status: Status,
+    /// The engine queue's URIs, verbatim and in the ENGINE's order — the
+    /// single source of truth for queue order. Everything shown to
+    /// controllers derives from this list (URIs mapped to display metadata),
+    /// so no external mirror can drift from what actually plays.
+    pub queue: Vec<String>,
     /// Output volume 0.0..=1.0.
     pub volume: f32,
     /// When `status` was captured, so [`Engine::snapshot`] can extrapolate the
@@ -84,6 +93,7 @@ impl Default for Snapshot {
                 shuffle: false,
                 repeat: RepeatMode::Off,
             },
+            queue: Vec::new(),
             volume: 1.0,
             taken: Instant::now(),
         }
@@ -184,6 +194,11 @@ impl Engine {
 fn snapshot_of(player: &Player, smoother: &mut BoundarySmoother) -> Snapshot {
     Snapshot {
         status: smoother.filter(player.status()),
+        queue: player
+            .queue()
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect(),
         volume: player.volume(),
         taken: Instant::now(),
     }
@@ -314,6 +329,7 @@ fn intentional_jump(cmd: &EngineCmd) -> bool {
             | EngineCmd::Previous
             | EngineCmd::OpenAt { .. }
             | EngineCmd::Remove(_)
+            | EngineCmd::Move { .. }
             | EngineCmd::Resume
     )
 }
@@ -347,6 +363,14 @@ fn apply(player: &Player, cmd: EngineCmd) {
         EngineCmd::Seek(pos) => player.seek(pos),
         EngineCmd::SkipTo(index) => player.skip_to(index),
         EngineCmd::Remove(index) => player.remove(index),
+        EngineCmd::Move { from, to } => {
+            let queue = player.queue();
+            if from != to && from < queue.len() && to < queue.len() {
+                let uri = queue[from].clone();
+                player.remove(from);
+                player.insert(uri, InsertPosition::Index(to));
+            }
+        }
         EngineCmd::SetEqualizer(equalizer) => player.set_equalizer(equalizer),
         EngineCmd::SetTone(tone) => player.set_tone(tone),
         EngineCmd::SetBalance(balance) => player.set_balance(balance),

@@ -37,6 +37,7 @@ import {
 import {
   ensureRockboxReady,
   getRockboxPlayer,
+  moveInQueue,
   pinQueueIndex,
   publishRepeat,
   publishShuffle,
@@ -1131,9 +1132,10 @@ function StickyPlayerWithData() {
             onRemove={(idx) => {
               getRockboxPlayer().removeAt(idx);
             }}
-            onReorder={(newQueue) => {
-              // Optimistic UI only — the wasm engine has no atomic "move", so
-              // the next `queue` event will snap back to the engine's order.
+            onReorder={(newQueue, from, to) => {
+              // Optimistic UI; the native engine applies the same move, so
+              // its next `queue` event confirms it.
+              moveInQueue(from, to);
               setQueue(newQueue);
             }}
           />
@@ -1151,9 +1153,19 @@ function StickyPlayerWithData() {
             onClose={() => setQueuePanelOpen(false)}
             onPlayIndex={(idx) => sendDeviceCommand("queue_jump", { index: idx })}
             onRemove={(idx) => sendDeviceCommand("queue_remove", { index: idx })}
-            onReorder={() => {
-              // No remote reorder — the device re-pushes its queue, which snaps
-              // any optimistic change back to the device's real order.
+            onReorder={(_newQueue, from, to) => {
+              // Optimistic reorder of the mirrored queue; the device applies
+              // the move and its next `queue` push confirms the same order.
+              const id = activeDevice.deviceId;
+              setDevices((prev) => {
+                const dev = prev[id];
+                if (!dev || from >= dev.queue.length || to >= dev.queue.length) return prev;
+                const q = dev.queue.slice();
+                const [item] = q.splice(from, 1);
+                q.splice(to, 0, item);
+                return { ...prev, [id]: { ...dev, queue: q } };
+              });
+              sendDeviceCommand("queue_move", { from, to });
             }}
           />
         </>

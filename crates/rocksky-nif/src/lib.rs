@@ -1017,6 +1017,9 @@ fn command_to_json(cmd: &rocksky_sdk::RemoteCommand) -> serde_json::Value {
         C::QueueRemove { index } => {
             serde_json::json!({ "action": "queue_remove", "index": index })
         }
+        C::QueueMove { from, to } => {
+            serde_json::json!({ "action": "queue_move", "from": from, "to": to })
+        }
         C::SetShuffle { enabled } => serde_json::json!({ "action": "shuffle", "enabled": enabled }),
         C::SetRepeat { mode } => {
             serde_json::json!({ "action": "repeat", "mode": mode.as_wire() })
@@ -1375,6 +1378,20 @@ fn remote_controller_queue_remove(
     index: u32,
 ) -> String {
     controller.0.queue_remove(opt_target(target), index);
+    envelope::<_, String>(Ok(true))
+}
+
+/// Move queue item `from` to position `to` on the target device (empty
+/// `target` = broadcast).
+#[cfg(feature = "remote-player")]
+#[rustler::nif]
+fn remote_controller_queue_move(
+    controller: ResourceArc<RemoteControllerRes>,
+    target: String,
+    from: u32,
+    to: u32,
+) -> String {
+    controller.0.queue_move(opt_target(target), from, to);
     envelope::<_, String>(Ok(true))
 }
 

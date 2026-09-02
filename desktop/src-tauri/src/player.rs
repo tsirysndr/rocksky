@@ -135,32 +135,39 @@ fn file_stem(path: &str) -> String {
         .unwrap_or_else(|| path.to_string())
 }
 
+/// Record display metadata for local paths so controllers see tags instead of
+/// bare filenames. Stream URLs are skipped — their metadata comes from the
+/// shim's queue metadata / session registry / remote enqueues, and a
+/// mostly-empty entry here would shadow those richer sources (see
+/// `AppState::item_for_uri`).
+fn remember_local(state: &AppState, paths: &[String]) {
+    let mut items = state.queue_items.lock().unwrap();
+    for p in paths {
+        if p.starts_with("http://") || p.starts_with("https://") || items.contains_key(p) {
+            continue;
+        }
+        items.insert(p.clone(), local_queue_item(p));
+    }
+}
+
 #[tauri::command]
 pub fn player_open(state: State<'_, AppState>, paths: Vec<String>) {
-    *state.queue_meta.lock().unwrap() = paths.iter().map(|p| local_queue_item(p)).collect();
+    remember_local(&state, &paths);
     state.engine.send(EngineCmd::Open(paths));
 }
 
 /// wasm-parity `setQueue(urls, autoplay)`: replace the queue, cue-only unless
-/// `autoplay`. The frontend shim keeps its own metadata registry, so
-/// queue_meta mirrors bare URL-derived entries here.
+/// `autoplay`.
 #[tauri::command]
 pub fn player_set_queue(state: State<'_, AppState>, paths: Vec<String>, autoplay: bool) {
-    *state.queue_meta.lock().unwrap() = paths.iter().map(|p| local_queue_item(p)).collect();
+    remember_local(&state, &paths);
     state.engine.send(EngineCmd::SetQueue { paths, autoplay });
 }
 
 /// wasm-parity `insert(urls, mode, index)` with rockbox insertion-mode codes.
 #[tauri::command]
 pub fn player_insert(state: State<'_, AppState>, paths: Vec<String>, mode: u8, index: usize) {
-    // The engine snapshot's queue is authoritative for ordering; queue_meta
-    // additions here only matter for local-file metadata (remote items are
-    // registered by the frontend shim / remote bridge).
-    state
-        .queue_meta
-        .lock()
-        .unwrap()
-        .extend(paths.iter().map(|p| local_queue_item(p)));
+    remember_local(&state, &paths);
     state.engine.send(EngineCmd::Insert { paths, mode, index });
 }
 
@@ -206,21 +213,29 @@ impl From<QueueMetaDto> for RemoteQueueItem {
     }
 }
 
-/// Replace the queue metadata with what the frontend actually enqueued. The
-/// shim holds the rich QueueTrack for every URL it queued, so this is the only
-/// source of real titles for streamed (non-file) entries.
+/// Record what the frontend actually enqueued, keyed by the URL each item was
+/// enqueued as. The shim holds the rich QueueTrack for every URL it queued,
+/// so this is the main source of real titles for streamed (non-file) entries.
+/// Additive — order comes from the engine queue, never from this call.
 #[tauri::command]
-pub fn player_set_queue_meta(state: State<'_, AppState>, items: Vec<QueueMetaDto>) {
-    *state.queue_meta.lock().unwrap() = items.into_iter().map(Into::into).collect();
+pub fn player_set_queue_meta(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+    items: Vec<QueueMetaDto>,
+) {
+    let mut map = state.queue_items.lock().unwrap();
+    for (path, item) in paths.into_iter().zip(items) {
+        // The shim sends an empty entry for URLs its resolver doesn't know;
+        // storing that would shadow the session-registry fallback.
+        if !item.title.is_empty() {
+            map.insert(path, item.into());
+        }
+    }
 }
 
 #[tauri::command]
 pub fn player_enqueue(state: State<'_, AppState>, paths: Vec<String>) {
-    state
-        .queue_meta
-        .lock()
-        .unwrap()
-        .extend(paths.iter().map(|p| local_queue_item(p)));
+    remember_local(&state, &paths);
     state.engine.send(EngineCmd::Append(paths));
 }
 
@@ -266,18 +281,24 @@ pub fn player_skip_to(state: State<'_, AppState>, index: usize) {
     state.engine.send(EngineCmd::SkipTo(index));
 }
 
+// Queue edits go straight to the engine (which bounds-checks); everything
+// shown for the queue is derived from the engine's order, so there is no
+// positional mirror to keep in step.
+
 #[tauri::command]
 pub fn player_remove(state: State<'_, AppState>, index: usize) {
-    let mut meta = state.queue_meta.lock().unwrap();
-    if index < meta.len() {
-        meta.remove(index);
-    }
     state.engine.send(EngineCmd::Remove(index));
 }
 
 #[tauri::command]
+pub fn player_move(state: State<'_, AppState>, from: usize, to: usize) {
+    if from != to {
+        state.engine.send(EngineCmd::Move { from, to });
+    }
+}
+
+#[tauri::command]
 pub fn player_clear_queue(state: State<'_, AppState>) {
-    state.queue_meta.lock().unwrap().clear();
     state.engine.send(EngineCmd::ClearQueue);
 }
 
@@ -409,9 +430,7 @@ pub fn player_set_surround(state: State<'_, AppState>, opts: crate::dsp::Surroun
 #[tauri::command]
 pub fn player_queue(state: State<'_, AppState>) -> Vec<QueueItemDto> {
     state
-        .queue_meta
-        .lock()
-        .unwrap()
+        .derived_queue(&state.engine.snapshot().queue)
         .iter()
         .map(|i| QueueItemDto {
             title: i.title.clone(),

@@ -51,15 +51,22 @@ struct Current {
 }
 
 fn current_track(shared: &Shared) -> Option<Current> {
-    let status = shared.engine.snapshot().status;
+    let snapshot = shared.engine.snapshot();
+    let status = snapshot.status;
     // A stopped engine has nothing in flight; forget the play rather than let
     // it resume later against a stale start time.
     if status.state == PlaybackState::Stopped {
         return None;
     }
     let index = status.index?;
-    let meta = shared.queue_meta.lock().unwrap();
-    let item = meta.get(index);
+    // Look the current entry up by its URI in the engine's own queue — the
+    // registry is URI-keyed precisely so queue edits can never point the
+    // scrobbler at a neighbouring track.
+    let item = snapshot
+        .queue
+        .get(index)
+        .and_then(|uri| shared.uri_meta.lock().unwrap().get(uri).cloned());
+    let item = item.as_ref();
     let tags = status.metadata.as_ref();
 
     let pick = |from_item: Option<&str>, from_tags: Option<&str>| -> String {

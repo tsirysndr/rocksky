@@ -153,6 +153,12 @@ pub enum RemoteCommand {
     QueueRemove {
         index: u32,
     },
+    /// Move the track at `from` to position `to` (indices into the queue as
+    /// last pushed; the entry lands exactly at `to`, as in `arrayMove`).
+    QueueMove {
+        from: u32,
+        to: u32,
+    },
     Enqueue {
         tracks: Vec<RemoteQueueItem>,
         /// "now" | "next" | "last".
@@ -517,6 +523,10 @@ fn parse_command(msg: &Inbound) -> Option<RemoteCommand> {
         },
         "queue_remove" => RemoteCommand::QueueRemove {
             index: args.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+        },
+        "queue_move" => RemoteCommand::QueueMove {
+            from: args.get("from").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+            to: args.get("to").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
         },
         "enqueue" => {
             let tracks = args

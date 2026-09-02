@@ -1,4 +1,4 @@
-import { RockboxPlayer } from "rockbox-wasm";
+import { InsertMode, RockboxPlayer } from "rockbox-wasm";
 import { getStreamUrl } from "../../api/uploads";
 import { EQ_BANDS_HZ } from "../../atoms/equalizer";
 import type { QueueTrack } from "../../atoms/queue";
@@ -71,6 +71,17 @@ export function effectiveQueueIndex(engineIdx: number): number {
 export function getRockboxPlayer(): RockboxPlayer {
   if (!player) player = new RockboxPlayer({ baseUrl: "/rockbox" });
   return player;
+}
+
+/** Move the queue entry at `from` so it ends up at `to` (arrayMove semantics).
+ *  The wasm engine has no move primitive; remove + indexed re-insert lands the
+ *  same order, and the URL-keyed metadata registry survives it. */
+export function moveInQueue(from: number, to: number): void {
+  const p = getRockboxPlayer();
+  const url = p.queue[from];
+  if (url === undefined || from === to || to < 0 || to >= p.queue.length) return;
+  p.removeAt(from);
+  p.insert(url, InsertMode.AtIndex, to);
 }
 
 /** Boot the engine if needed (idempotent). Call from a user gesture. */

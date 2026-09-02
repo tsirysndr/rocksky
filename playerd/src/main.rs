@@ -120,18 +120,22 @@ async fn main() -> Result<()> {
     ));
 
     let sidecar_path = config.resume.then(|| config.resume_sidecar_path());
+    let transport_path = config.resume.then(|| config.transport_state_path());
     let shared = Arc::new(Shared::new(
         engine,
         remote.clone(),
         settings_sync,
         sidecar_path,
+        transport_path,
     ));
+    // Before any queueing: an explicit local-files invocation below still
+    // applies its own shuffle via OpenAt, and Resume never touches either.
+    shared.restore_transport();
 
     if !uris.is_empty() {
         // Explicit paths win over a restore: the user asked for these.
         tracing::info!("queueing {} local track(s)", uris.len());
         shared.remember_uris(uris.iter().cloned().zip(items.iter().cloned()));
-        *shared.queue_meta.lock().unwrap() = items;
         shared.engine.send(EngineCmd::OpenAt {
             paths: uris,
             start_index: 0,
@@ -162,7 +166,6 @@ async fn main() -> Result<()> {
                         .cloned()
                         .zip(restored.items.iter().cloned()),
                 );
-                *shared.queue_meta.lock().unwrap() = restored.items;
                 // Cued paused — a daemon that started blaring music on boot
                 // would be a surprise, and a controller is one tap away.
                 shared.engine.send(EngineCmd::Resume);

@@ -164,6 +164,11 @@ export class RemoteController {
     this.command("queue_remove", target, { index });
   }
 
+  /** Move queue item `from` to position `to` on the target device. */
+  queueMove(target: string | undefined, from: number, to: number): void {
+    this.command("queue_move", target, { from, to });
+  }
+
   /** Enqueue tracks on the target device. */
   enqueue(
     target: string | undefined,

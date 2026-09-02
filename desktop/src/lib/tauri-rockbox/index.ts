@@ -395,7 +395,9 @@ export class RockboxPlayer {
   setQueue(urls: string[], autoplay = false): void {
     this.call("player_set_queue", { paths: urls, autoplay });
     if (queueMetaResolver) {
-      this.call("player_set_queue_meta", { items: metaFor(urls) });
+      // Keyed by URL on the native side; order always comes from the engine
+      // queue, so the paths are sent to pair each item with its URL.
+      this.call("player_set_queue_meta", { paths: urls, items: metaFor(urls) });
     }
     // The web UI relies on prompt queue feedback — reflect it immediately.
     // The first queued URL is the cued track: report it as current from the
@@ -429,6 +431,13 @@ export class RockboxPlayer {
   /** Remove the queue entry at `index` (0-based). */
   removeAt(index: number): void {
     this.call("player_remove", { index });
+  }
+
+  /** Move the queue entry at `from` so it ends up at `to` (arrayMove
+   *  semantics). Native command, so the engine queue and its metadata
+   *  registry move together. */
+  moveTrack(from: number, to: number): void {
+    this.call("player_move", { from, to });
   }
 
   clearQueue(): void {

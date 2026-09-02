@@ -114,7 +114,7 @@ impl Session {
     /// Metadata for a queue URL, by exact URL first and then by the stable id
     /// embedded in it — stream URLs carry a rotating `?token=`, so the URL the
     /// engine holds can outlive the one we registered.
-    fn lookup(&self, url: &str) -> Option<TrackMeta> {
+    pub(crate) fn lookup(&self, url: &str) -> Option<TrackMeta> {
         let tracks = self.tracks.lock().unwrap();
         if let Some(t) = tracks.get(url) {
             return Some(t.clone());
@@ -223,9 +223,10 @@ fn current_track(state: &AppState) -> Option<Current> {
     let url = snap.queue.get(index)?.clone();
 
     let meta = state.session.lookup(&url).unwrap_or_default();
-    // The remote-protocol queue mirror covers tracks a controller enqueued,
-    // which never went through the webview's registry.
-    let queued = state.queue_meta.lock().unwrap().get(index).cloned();
+    // The enqueue registry covers tracks a controller enqueued, which never
+    // went through the webview's registry. Keyed by the URL the engine holds,
+    // so queue edits can never point the scrobbler at a neighbouring track.
+    let queued = state.queue_items.lock().unwrap().get(&url).cloned();
     let (q_title, q_artist, q_album, q_album_artist, q_album_art, q_track_number) = queued
         .map(|q| {
             (

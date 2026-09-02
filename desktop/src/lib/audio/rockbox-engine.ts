@@ -1,4 +1,6 @@
-import { RockboxPlayer } from "rockbox-wasm";
+// The direct path to the Tauri adapter (what the `rockbox-wasm` alias resolves
+// to at build time) so tsc sees the adapter's full surface (e.g. `moveTrack`).
+import { RockboxPlayer } from "../tauri-rockbox";
 import { getStreamUrl } from "../../api/uploads";
 import { EQ_BANDS_HZ } from "../../atoms/equalizer";
 import type { QueueTrack } from "../../atoms/queue";
@@ -111,6 +113,12 @@ const registryById = new Map<string, QueueTrack>();
 
 /** Parse an uploadId out of a stream URL, when the path carries one. Only used
  *  as a last-resort label for URLs we didn't enqueue ourselves. */
+/** Move the queue entry at `from` so it ends up at `to` (arrayMove
+ *  semantics), via the native engine's atomic move. */
+export function moveInQueue(from: number, to: number): void {
+  getRockboxPlayer().moveTrack(from, to);
+}
+
 export function uploadIdFromUrl(url: string): string | null {
   const m = url.match(/\/uploads\/([^/]+)\/stream/);
   if (m) return m[1];

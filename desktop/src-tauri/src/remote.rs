@@ -269,12 +269,17 @@ fn apply(
             engine.send(EngineCmd::Seek(Duration::from_millis(position_ms)))
         }
         RemoteCommand::QueueJump { index } => engine.send(EngineCmd::SkipTo(index as usize)),
-        RemoteCommand::QueueRemove { index } => {
-            let mut meta = state.queue_meta.lock().unwrap();
-            if (index as usize) < meta.len() {
-                meta.remove(index as usize);
+        // Queue edits go straight to the engine (which bounds-checks); the
+        // pushed queue is derived from the engine's order, so there is no
+        // mirror to keep in step.
+        RemoteCommand::QueueRemove { index } => engine.send(EngineCmd::Remove(index as usize)),
+        RemoteCommand::QueueMove { from, to } => {
+            if from != to {
+                engine.send(EngineCmd::Move {
+                    from: from as usize,
+                    to: to as usize,
+                });
             }
-            engine.send(EngineCmd::Remove(index as usize));
         }
         RemoteCommand::Enqueue {
             tracks,
@@ -293,28 +298,20 @@ fn apply(
                 );
                 return;
             }
-            let uris: Vec<String> = playable.iter().map(|(_, uri)| uri.clone()).collect();
-            let items: Vec<RemoteQueueItem> = playable.into_iter().map(|(t, _)| t).collect();
-            let mut meta = state.queue_meta.lock().unwrap();
+            // Record what each URI was enqueued as; the pushed queue derives
+            // its order from the engine and only reads display metadata here.
+            {
+                let mut items = state.queue_items.lock().unwrap();
+                for (item, uri) in &playable {
+                    items.insert(uri.clone(), item.clone());
+                }
+            }
+            let uris: Vec<String> = playable.into_iter().map(|(_, uri)| uri).collect();
             match mode.as_str() {
-                "next" => {
-                    let insert_at = engine
-                        .snapshot()
-                        .status
-                        .index
-                        .map(|i| i + 1)
-                        .unwrap_or(0)
-                        .min(meta.len());
-                    meta.splice(insert_at..insert_at, items);
-                    engine.send(EngineCmd::InsertNext(uris));
-                }
-                "last" => {
-                    meta.extend(items);
-                    engine.send(EngineCmd::Append(uris));
-                }
+                "next" => engine.send(EngineCmd::InsertNext(uris)),
+                "last" => engine.send(EngineCmd::Append(uris)),
                 _ => {
                     // "now": replace the queue and start at the requested track.
-                    *meta = items;
                     engine.send(EngineCmd::OpenAt {
                         paths: uris,
                         start_index: start_index as usize,
@@ -372,7 +369,11 @@ fn apply(
 pub fn push_state(state: &AppState, remote: &RemotePlayer) {
     let snapshot = state.engine.snapshot();
     let status = snapshot.status;
-    let meta = state.queue_meta.lock().unwrap();
+    // Derived, not mirrored: the engine's queue order mapped through the URI
+    // registries. The engine inserts relative to its own (decoder) index and
+    // reorders freely, so any positional mirror kept alongside it would
+    // eventually point controllers at the wrong "now playing" row.
+    let meta = state.derived_queue(&snapshot.queue);
     let current = status.index.and_then(|i| meta.get(i));
 
     let mut np = RemoteNowPlaying {
@@ -418,5 +419,5 @@ pub fn push_state(state: &AppState, remote: &RemotePlayer) {
         PlaybackState::Paused => RemoteStatus::Paused,
         PlaybackState::Stopped => RemoteStatus::Stopped,
     });
-    remote.set_queue(meta.clone(), status.index.unwrap_or(0) as u32);
+    remote.set_queue(meta, status.index.unwrap_or(0) as u32);
 }

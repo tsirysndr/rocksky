@@ -318,4 +318,9 @@ impl Config {
     pub fn resume_sidecar_path(&self) -> PathBuf {
         self.resume_file_path().with_extension("meta.json")
     }
+
+    /// Absolute path of the transport-prefs file (shuffle/repeat) beside it.
+    pub fn transport_state_path(&self) -> PathBuf {
+        self.resume_file_path().with_extension("transport.json")
+    }
 }

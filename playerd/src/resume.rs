@@ -88,6 +88,57 @@ impl From<&SavedItem> for RemoteQueueItem {
     }
 }
 
+/// Runtime transport prefs the engine's resume file can't carry (it stores
+/// only the queue + position): shuffle and repeat, as last observed live.
+/// Loaded at startup to win over the TOML defaults — the user's last live
+/// setting is more recent than the config file.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Transport {
+    pub shuffle: bool,
+    /// "off" | "one" | "all".
+    pub repeat: String,
+}
+
+impl Default for Transport {
+    fn default() -> Self {
+        Transport {
+            shuffle: false,
+            repeat: "off".to_string(),
+        }
+    }
+}
+
+impl Transport {
+    pub fn load(path: &Path) -> Option<Transport> {
+        serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
+    }
+
+    /// Best-effort, like the sidecar: losing this costs a preference, never
+    /// playback.
+    pub fn save(&self, path: &Path) {
+        if let Some(dir) = path.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        match serde_json::to_string(self) {
+            Ok(json) => {
+                if let Err(e) = std::fs::write(path, json) {
+                    tracing::warn!("could not write transport state: {e}");
+                }
+            }
+            Err(e) => tracing::warn!("could not encode transport state: {e}"),
+        }
+    }
+
+    pub fn repeat_mode(&self) -> rockbox_playback::RepeatMode {
+        match self.repeat.as_str() {
+            "all" => rockbox_playback::RepeatMode::All,
+            "one" => rockbox_playback::RepeatMode::One,
+            _ => rockbox_playback::RepeatMode::Off,
+        }
+    }
+}
+
 /// The sidecar: queue metadata keyed by the URI the engine holds.
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -313,6 +364,27 @@ mod tests {
         assert_eq!(item.upload_id, "upload-1");
         assert_eq!(item.title, "Chaser");
         assert_eq!(item.duration_ms, 182_320);
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn transport_round_trips_and_missing_reads_as_none() {
+        let dir = std::env::temp_dir().join(format!("playerd-transport-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("queue.transport.json");
+
+        std::fs::remove_file(&path).ok();
+        assert!(Transport::load(&path).is_none(), "no file → no override");
+
+        let t = Transport {
+            shuffle: true,
+            repeat: "all".to_string(),
+        };
+        t.save(&path);
+        let back = Transport::load(&path).expect("state survived");
+        assert_eq!(back, t);
+        assert_eq!(back.repeat_mode(), rockbox_playback::RepeatMode::All);
 
         std::fs::remove_dir_all(&dir).ok();
     }

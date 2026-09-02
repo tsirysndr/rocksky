@@ -30,13 +30,19 @@ pub struct Shared {
     /// Section-diffing settings applier, shared with the atproto/Jetstream
     /// sync so every source dedupes against the same last-applied document.
     pub settings_sync: Arc<SettingsSync>,
-    pub queue_meta: Mutex<Vec<RemoteQueueItem>>,
     /// Every URI this daemon has enqueued, with the item it was enqueued as.
-    /// Keyed by URI rather than position because the engine's queue is what
-    /// gets persisted, and it reorders (shuffle) and shrinks (remove) freely.
+    /// Keyed by URI rather than position because the ENGINE's queue is the
+    /// source of truth for order — it inserts relative to its own (decoder)
+    /// index and reorders (shuffle) / shrinks (remove) freely, so a
+    /// positional mirror inevitably drifts. Everything shown to controllers
+    /// is derived by mapping the engine queue through this registry.
     pub uri_meta: Mutex<HashMap<String, RemoteQueueItem>>,
-    /// Where the metadata sidecar lives; empty disables persistence.
+    /// Where the metadata sidecar lives; `None` disables persistence.
     pub sidecar_path: Option<PathBuf>,
+    /// Where shuffle/repeat persist across restarts; `None` disables it.
+    pub transport_path: Option<PathBuf>,
+    /// Last transport prefs written, so the file is only rewritten on change.
+    last_transport: Mutex<Option<resume::Transport>>,
     /// Hash of the last queue push, so the full track list is only re-sent
     /// when the queue or the current index actually changes.
     queue_sig: Mutex<u64>,
@@ -48,27 +54,48 @@ impl Shared {
         remote: Arc<RemotePlayer>,
         settings_sync: Arc<SettingsSync>,
         sidecar_path: Option<PathBuf>,
+        transport_path: Option<PathBuf>,
     ) -> Self {
         Shared {
             engine,
             remote,
             settings_sync,
-            queue_meta: Mutex::new(Vec::new()),
             uri_meta: Mutex::new(HashMap::new()),
             sidecar_path,
+            transport_path,
+            last_transport: Mutex::new(None),
             queue_sig: Mutex::new(0),
         }
     }
 
-    /// Remember what each URI was enqueued as, and persist it so a restart can
-    /// rebuild the queue's metadata and re-mint expired stream URLs.
-    pub fn remember_uris(&self, pairs: impl IntoIterator<Item = (String, RemoteQueueItem)>) {
-        let Some(path) = &self.sidecar_path else {
+    /// Re-apply the persisted shuffle/repeat. Call once at startup, after the
+    /// engine boots with the TOML defaults — the last live setting is newer.
+    /// Also seeds the change detector so the first push doesn't rewrite the
+    /// file with what it just read.
+    pub fn restore_transport(&self) {
+        let Some(path) = &self.transport_path else {
             return;
         };
+        let Some(t) = resume::Transport::load(path) else {
+            return;
+        };
+        tracing::info!(shuffle = t.shuffle, repeat = %t.repeat, "restoring transport prefs");
+        self.engine.send(EngineCmd::SetShuffle(t.shuffle));
+        self.engine.send(EngineCmd::SetRepeat(t.repeat_mode()));
+        *self.last_transport.lock().unwrap() = Some(t);
+    }
+
+    /// Remember what each URI was enqueued as — this is what queue pushes and
+    /// scrobbles read — and persist it so a restart can rebuild the queue's
+    /// metadata and re-mint expired stream URLs.
+    pub fn remember_uris(&self, pairs: impl IntoIterator<Item = (String, RemoteQueueItem)>) {
         let sidecar = {
             let mut uri_meta = self.uri_meta.lock().unwrap();
             uri_meta.extend(pairs);
+            // Recording is unconditional; only persistence needs a path.
+            if self.sidecar_path.is_none() {
+                return;
+            }
             resume::Sidecar {
                 items: uri_meta
                     .iter()
@@ -76,8 +103,41 @@ impl Shared {
                     .collect(),
             }
         };
-        sidecar.save(path);
+        if let Some(path) = &self.sidecar_path {
+            sidecar.save(path);
+        }
     }
+
+    /// The queue as controllers should see it: the ENGINE's queue order, each
+    /// URI mapped to the item it was enqueued as. An unknown URI (e.g. a
+    /// resumed queue whose sidecar was lost) degrades to a filename-derived
+    /// entry, never a hole.
+    pub fn derived_queue(&self, engine_uris: &[String]) -> Vec<RemoteQueueItem> {
+        let uri_meta = self.uri_meta.lock().unwrap();
+        engine_uris
+            .iter()
+            .map(|uri| {
+                uri_meta
+                    .get(uri)
+                    .cloned()
+                    .unwrap_or_else(|| fallback_item(uri))
+            })
+            .collect()
+    }
+}
+
+/// Display fallback for a URI with no registry entry: local files get their
+/// file stem as the title; stream URLs stay blank rather than showing
+/// "stream?token=…" on every controller.
+fn fallback_item(uri: &str) -> RemoteQueueItem {
+    let mut item = RemoteQueueItem::default();
+    if !(uri.starts_with("http://") || uri.starts_with("https://")) {
+        item.title = std::path::Path::new(uri)
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| uri.to_string());
+    }
+    item
 }
 
 pub async fn command_loop(shared: Arc<Shared>, mut resolver: Resolver) {
@@ -109,12 +169,17 @@ async fn apply(shared: &Shared, resolver: &mut Resolver, cmd: RemoteCommand) {
             engine.send(EngineCmd::Seek(Duration::from_millis(position_ms)))
         }
         RemoteCommand::QueueJump { index } => engine.send(EngineCmd::SkipTo(index as usize)),
-        RemoteCommand::QueueRemove { index } => {
-            let mut meta = shared.queue_meta.lock().unwrap();
-            if (index as usize) < meta.len() {
-                meta.remove(index as usize);
+        // Queue edits go straight to the engine (which bounds-checks); the
+        // pushed queue is derived from the engine's order, so there is no
+        // mirror to keep in step.
+        RemoteCommand::QueueRemove { index } => engine.send(EngineCmd::Remove(index as usize)),
+        RemoteCommand::QueueMove { from, to } => {
+            if from != to {
+                engine.send(EngineCmd::Move {
+                    from: from as usize,
+                    to: to as usize,
+                });
             }
-            engine.send(EngineCmd::Remove(index as usize));
         }
         RemoteCommand::Enqueue {
             tracks,
@@ -144,28 +209,11 @@ async fn apply(shared: &Shared, resolver: &mut Resolver, cmd: RemoteCommand) {
                     .iter()
                     .map(|(item, uri)| (uri.clone(), item.clone())),
             );
-            let items: Vec<RemoteQueueItem> = playable.into_iter().map(|(t, _)| t).collect();
-            let mut meta = shared.queue_meta.lock().unwrap();
             match mode.as_str() {
-                "next" => {
-                    let insert_at = shared
-                        .engine
-                        .snapshot()
-                        .status
-                        .index
-                        .map(|i| i + 1)
-                        .unwrap_or(0)
-                        .min(meta.len());
-                    meta.splice(insert_at..insert_at, items);
-                    engine.send(EngineCmd::InsertNext(uris));
-                }
-                "last" => {
-                    meta.extend(items);
-                    engine.send(EngineCmd::Append(uris));
-                }
+                "next" => engine.send(EngineCmd::InsertNext(uris)),
+                "last" => engine.send(EngineCmd::Append(uris)),
                 _ => {
                     // "now": replace the queue and start at the requested track.
-                    *meta = items;
                     engine.send(EngineCmd::OpenAt {
                         paths: uris,
                         start_index: start_index as usize,
@@ -192,7 +240,11 @@ async fn apply(shared: &Shared, resolver: &mut Resolver, cmd: RemoteCommand) {
 pub fn push_state(shared: &Shared) {
     let snapshot = shared.engine.snapshot();
     let status = snapshot.status;
-    let meta = shared.queue_meta.lock().unwrap();
+    // Derived, not mirrored: the engine's queue order mapped through the URI
+    // registry. The engine inserts relative to its own (decoder) index and
+    // reorders freely, so any positional mirror kept alongside it would
+    // eventually point controllers at the wrong "now playing" row.
+    let meta = shared.derived_queue(&snapshot.queue);
     let current = status.index.and_then(|i| meta.get(i));
 
     let mut np = RemoteNowPlaying {
@@ -239,6 +291,26 @@ pub fn push_state(shared: &Shared) {
         PlaybackState::Stopped => RemoteStatus::Stopped,
     });
 
+    // Persist the OBSERVED shuffle/repeat, not the command sites — an
+    // enqueue's shuffle flag changes them just as much as a shuffle/repeat
+    // command does, and the engine's resume file can't carry either.
+    if let Some(path) = &shared.transport_path {
+        let now = resume::Transport {
+            shuffle: status.shuffle,
+            repeat: match status.repeat {
+                RepeatMode::All => "all",
+                RepeatMode::One => "one",
+                _ => "off",
+            }
+            .to_string(),
+        };
+        let mut last = shared.last_transport.lock().unwrap();
+        if last.as_ref() != Some(&now) {
+            now.save(path);
+            *last = Some(now);
+        }
+    }
+
     let mut hasher = DefaultHasher::new();
     status.index.unwrap_or(0).hash(&mut hasher);
     meta.len().hash(&mut hasher);
@@ -253,6 +325,6 @@ pub fn push_state(shared: &Shared) {
         *last = sig;
         shared
             .remote
-            .set_queue(meta.clone(), status.index.unwrap_or(0) as u32);
+            .set_queue(meta, status.index.unwrap_or(0) as u32);
     }
 }

@@ -184,6 +184,8 @@ export interface RemotePlayerHandlers {
   enqueue(cmd: EnqueueCommand): void;
   queueJump(index: number): void;
   queueRemove(index: number): void;
+  /** Move queue item `from` to position `to` (`arrayMove` semantics). */
+  queueMove(from: number, to: number): void;
   /** Every handler below is optional — leaving one out IS how a player
    *  declines a capability. The command is dropped, never errored. */
   setShuffle(enabled: boolean): void;
@@ -459,6 +461,11 @@ export class RemotePlayer {
       case "queue_remove":
         h.queueRemove?.((msg.args as { index?: number })?.index ?? 0);
         break;
+      case "queue_move": {
+        const a = msg.args as { from?: number; to?: number } | undefined;
+        h.queueMove?.(a?.from ?? 0, a?.to ?? 0);
+        break;
+      }
       case "enqueue": {
         const a = (msg.args ?? {}) as Json;
         h.enqueue?.({

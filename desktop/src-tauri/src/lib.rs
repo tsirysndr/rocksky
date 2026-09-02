@@ -93,6 +93,7 @@ pub fn run() {
             player::player_seek,
             player::player_skip_to,
             player::player_remove,
+            player::player_move,
             player::player_clear_queue,
             player::player_set_volume,
             player::player_set_shuffle,

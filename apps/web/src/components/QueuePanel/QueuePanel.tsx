@@ -301,7 +301,7 @@ type QueuePanelProps = {
   onClose: () => void;
   onPlayIndex: (idx: number) => void;
   onRemove: (idx: number) => void;
-  onReorder: (newQueue: QueueTrack[]) => void;
+  onReorder: (newQueue: QueueTrack[], from: number, to: number) => void;
 };
 
 type TabType = "queue" | "history";
@@ -333,7 +333,7 @@ export function QueuePanel({
 
     const absoluteOld = queueIndex + 1 + oldIdx;
     const absoluteNew = queueIndex + 1 + newIdx;
-    onReorder(arrayMove(queue, absoluteOld, absoluteNew));
+    onReorder(arrayMove(queue, absoluteOld, absoluteNew), absoluteOld, absoluteNew);
   }
 
   return (

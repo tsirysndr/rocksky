@@ -277,6 +277,7 @@ Player devices execute these (see §6).
 | `seek`         | `{ "position": <ms> }`                                            | Seek to position |
 | `queue_jump`   | `{ "index": <n> }`                                               | Jump to queue index |
 | `queue_remove` | `{ "index": <n> }`                                               | Remove queue item |
+| `queue_move`   | `{ "from": <n>, "to": <n> }`                                     | Move queue item `from` so it ends up at index `to` (arrayMove semantics) |
 | `enqueue`      | `{ "tracks": [descriptor…], "mode": "now"\|"next"\|"last", "shuffle"?: bool, "startIndex"?: <n> }` | Play / play-next / append tracks (an album or a single track) |
 | `shuffle`      | `{ "enabled": bool }`                                            | Turn queue shuffle on/off |
 | `repeat`       | `{ "mode": "off"\|"all"\|"one" }`                                | Set queue repeat mode |

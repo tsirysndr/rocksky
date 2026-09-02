@@ -44,6 +44,10 @@ pub enum EngineCmd {
     Seek(Duration),
     SkipTo(usize),
     Remove(usize),
+    /// Move the track at `from` so it ends up at index `to` (arrayMove
+    /// semantics). Emulated as remove + indexed re-insert; the playback
+    /// crate's index bookkeeping keeps the current track playing.
+    Move { from: usize, to: usize },
     ClearQueue,
     SetVolume(f32),
     SetShuffle(bool),
@@ -376,6 +380,7 @@ fn intentional_jump(cmd: &EngineCmd) -> bool {
             | EngineCmd::SetQueue { .. }
             | EngineCmd::OpenAt { .. }
             | EngineCmd::Remove(_)
+            | EngineCmd::Move { .. }
             | EngineCmd::ClearQueue
             | EngineCmd::Stop
     )
@@ -447,6 +452,14 @@ fn apply(player: &Player, dsp: &mut DspState, cmd: EngineCmd) {
         EngineCmd::Seek(pos) => player.seek(pos),
         EngineCmd::SkipTo(index) => player.skip_to(index),
         EngineCmd::Remove(index) => player.remove(index),
+        EngineCmd::Move { from, to } => {
+            let queue = player.queue();
+            if from != to && from < queue.len() && to < queue.len() {
+                let uri = queue[from].clone();
+                player.remove(from);
+                player.insert(uri, InsertPosition::Index(to));
+            }
+        }
         EngineCmd::ClearQueue => player.clear_queue(),
         EngineCmd::SetVolume(volume) => player.set_volume(volume),
         EngineCmd::SetShuffle(enabled) => player.set_shuffle(enabled),
