@@ -239,6 +239,107 @@ mod tests {
         assert_eq!(slugify("  Rock  "), "rock");
         assert_eq!(slugify("bass-boost"), "bass-boost");
     }
+
+    fn full_eq() -> RemoteEqualizer {
+        RemoteEqualizer {
+            enabled: Some(true),
+            precut: Some(-30),
+            bands: Some(vec![RemoteEqBand {
+                frequency: 32,
+                gain: 65,
+                q: 70,
+            }]),
+        }
+    }
+
+    /// The bug this guards against: a controller pushes the full EQ over the
+    /// fast path, then the record's sparser Jetstream echo of the same change
+    /// arrives. Applied raw it differed textually and, overlaid on the
+    /// baseline, reverted the bands moments after the user heard them.
+    #[test]
+    fn sparse_echo_of_applied_change_is_a_noop() {
+        let mut last = RemoteAudioSettings::default();
+
+        let full = RemoteAudioSettings {
+            equalizer: Some(full_eq()),
+            ..Default::default()
+        };
+        let first = merge_diff(&mut last, &full);
+        assert_eq!(first.equalizer, Some(full_eq()));
+
+        // Same precut, but bands/enabled absent (what a sparse record echoes).
+        let sparse = RemoteAudioSettings {
+            equalizer: Some(RemoteEqualizer {
+                precut: Some(-30),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let echo = merge_diff(&mut last, &sparse);
+        assert!(echo.is_empty(), "sparse echo must not re-apply anything");
+    }
+
+    /// A genuinely new sparse patch must carry the accumulated fields with it,
+    /// so overlaying the applied section on the baseline cannot drop them.
+    #[test]
+    fn sparse_patch_keeps_accumulated_fields() {
+        let mut last = RemoteAudioSettings::default();
+        merge_diff(
+            &mut last,
+            &RemoteAudioSettings {
+                equalizer: Some(full_eq()),
+                ..Default::default()
+            },
+        );
+
+        let patch = RemoteAudioSettings {
+            equalizer: Some(RemoteEqualizer {
+                precut: Some(-60),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let changed = merge_diff(&mut last, &patch);
+        let eq = changed.equalizer.expect("precut change must apply");
+        assert_eq!(eq.precut, Some(-60));
+        assert_eq!(eq.enabled, Some(true), "merged section keeps enabled");
+        assert_eq!(
+            eq.bands.as_ref().map(|b| b.len()),
+            Some(1),
+            "merged section keeps the bands"
+        );
+    }
+
+    /// A section the patch doesn't mention is untouched — and not re-applied.
+    #[test]
+    fn unmentioned_sections_stay_put() {
+        let mut last = RemoteAudioSettings::default();
+        merge_diff(
+            &mut last,
+            &RemoteAudioSettings {
+                equalizer: Some(full_eq()),
+                tone: Some(RemoteTone {
+                    bass: Some(6),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        );
+
+        let changed = merge_diff(
+            &mut last,
+            &RemoteAudioSettings {
+                tone: Some(RemoteTone {
+                    bass: Some(-2),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        );
+        assert!(changed.equalizer.is_none(), "eq must not re-apply");
+        assert_eq!(changed.tone.and_then(|t| t.bass), Some(-2));
+        assert_eq!(last.equalizer, Some(full_eq()));
+    }
 }
 
 /// The startup DSP baseline from the TOML config, kept so lexicon overlays
@@ -512,14 +613,23 @@ async fn fetch(
         .map_err(|e| e.to_string())
 }
 
-/// Section-diffing applier shared by every settings source (the atproto
+/// Merging, diffing applier shared by every settings source (the atproto
 /// record, Jetstream commits, and the remote `audio_settings` command).
 ///
-/// Re-applying an identical EQ recomputes the IIR coefficients and audibly
-/// disturbs playback — every controller that (re)connected and re-pushed its
-/// snapshot caused a volume dip. Diffing per section means an unchanged or
-/// echoed document costs zero engine commands, which also makes update
-/// cycles between sources impossible: they converge instead of looping.
+/// Incoming documents are *patches*: each present field of each present
+/// section merges into the accumulated state, and only sections whose merged
+/// content changed reach the engine. This matters twice over:
+///
+/// - Re-applying an identical EQ recomputes the IIR coefficients and audibly
+///   disturbs playback, so an unchanged or echoed document must cost zero
+///   engine commands (which also makes update cycles between sources
+///   impossible — they converge instead of looping).
+/// - [`apply`] overlays sections on the TOML baseline, so a *sparse* section
+///   applied raw would revert every field it doesn't mention. A controller's
+///   full fast-path push followed by the record's sparser Jetstream echo of
+///   the same change audibly reverted the settings moments after they were
+///   heard. Merging first means the echo is a no-op and a genuinely new
+///   sparse patch carries the accumulated fields with it.
 pub struct SettingsSync {
     baseline: Baseline,
     last: Mutex<RemoteAudioSettings>,
@@ -533,39 +643,25 @@ impl SettingsSync {
         }
     }
 
-    /// Apply only the sections of `view` that are present AND differ from the
-    /// last applied document.
+    /// Merge `view` into the accumulated state and apply the sections that
+    /// changed.
     pub fn apply(&self, engine: &Engine, view: &RemoteAudioSettings) {
-        let mut changed = RemoteAudioSettings::default();
-        {
+        let changed = {
             let mut last = self.last.lock().unwrap();
-            macro_rules! diff_section {
-                ($field:ident) => {
-                    if view.$field.is_some() && view.$field != last.$field {
-                        changed.$field = view.$field.clone();
-                        last.$field = view.$field.clone();
-                    }
-                };
-            }
-            diff_section!(equalizer);
-            diff_section!(tone);
-            diff_section!(crossfade);
-            diff_section!(replay_gain);
-            diff_section!(crossfeed);
-            diff_section!(compressor);
-            diff_section!(surround);
-            diff_section!(pbe);
-        }
+            merge_diff(&mut last, view)
+        };
         if changed.is_empty() {
             return;
         }
         apply(engine, &self.baseline, &changed);
     }
 
-    /// The document that resets every section to the TOML baseline (each
-    /// section present but empty, so [`apply`] overlays pure baseline).
-    fn baseline_doc() -> RemoteAudioSettings {
-        RemoteAudioSettings {
+    /// Forget the accumulated state and put every section back to the TOML
+    /// baseline (each section applied present-but-empty, so [`apply`]
+    /// overlays pure baseline).
+    pub fn reset(&self, engine: &Engine) {
+        *self.last.lock().unwrap() = RemoteAudioSettings::default();
+        let baseline_doc = RemoteAudioSettings {
             equalizer: Some(RemoteEqualizer::default()),
             tone: Some(RemoteTone::default()),
             crossfade: Some(RemoteCrossfade::default()),
@@ -574,7 +670,64 @@ impl SettingsSync {
             compressor: Some(RemoteCompressor::default()),
             surround: Some(RemoteSurround::default()),
             pbe: Some(RemotePbe::default()),
+        };
+        apply(engine, &self.baseline, &baseline_doc);
+    }
+}
+
+/// Merge the present, non-null fields of `view` into `last` (JSON deep merge;
+/// arrays replace wholesale) and return only the sections whose merged
+/// content differs from what `last` held before.
+fn merge_diff(
+    last: &mut RemoteAudioSettings,
+    view: &RemoteAudioSettings,
+) -> RemoteAudioSettings {
+    let last_json = serde_json::to_value(&*last).unwrap_or(serde_json::Value::Null);
+    let view_json = serde_json::to_value(view).unwrap_or(serde_json::Value::Null);
+    let merged: RemoteAudioSettings =
+        serde_json::from_value(merge_patch(&last_json, &view_json)).unwrap_or_default();
+
+    let mut changed = RemoteAudioSettings::default();
+    macro_rules! diff_section {
+        ($field:ident) => {
+            if merged.$field != last.$field {
+                changed.$field = merged.$field.clone();
+            }
+        };
+    }
+    diff_section!(equalizer);
+    diff_section!(tone);
+    diff_section!(crossfade);
+    diff_section!(replay_gain);
+    diff_section!(crossfeed);
+    diff_section!(compressor);
+    diff_section!(surround);
+    diff_section!(pbe);
+    *last = merged;
+    changed
+}
+
+/// Recursive object merge that ignores `null` in the patch (an absent
+/// `Option` field serializes as `null` and must not erase the base value).
+/// Non-objects — scalars and arrays like EQ bands — replace wholesale.
+fn merge_patch(base: &serde_json::Value, patch: &serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+    match (base, patch) {
+        (Value::Object(base), Value::Object(patch)) => {
+            let mut out = base.clone();
+            for (key, value) in patch {
+                if value.is_null() {
+                    continue;
+                }
+                let merged = match out.get(key) {
+                    Some(current) => merge_patch(current, value),
+                    None => value.clone(),
+                };
+                out.insert(key.clone(), merged);
+            }
+            Value::Object(out)
         }
+        (_, patch) => patch.clone(),
     }
 }
 
@@ -656,7 +809,7 @@ pub async fn sync(
             }
             "delete" => {
                 tracing::info!("audio settings record deleted; reverting to local config");
-                sync.apply(&engine, &SettingsSync::baseline_doc());
+                sync.reset(&engine);
             }
             _ => {}
         }

@@ -252,6 +252,36 @@ export interface AudioSettingsActions {
   setReplayGain(patch: { mode?: ReplayGainMode; preamp?: number; preventClipping?: boolean }): void;
 }
 
+// ── Full-section lexicon projections ─────────────────────────────────────────
+
+const fullEqualizerLex = (s: GlobalSettings): LexEqualizer => ({
+  enabled: s.eqEnabled,
+  precut: s.eqPrecut ?? 0,
+  bands: s.eqBandSettings.map(bandRockboxToLex),
+});
+
+const fullToneLex = (s: GlobalSettings): LexTone => ({
+  bass: s.bass,
+  treble: s.treble,
+  balance: s.balance,
+  channels: CHANNELS_INT_TO_NAME[s.channelConfig] ?? "stereo",
+});
+
+const fullCrossfadeLex = (s: GlobalSettings): LexCrossfade => ({
+  mode: CROSSFADE_INT_TO_MODE[s.crossfade] ?? "disabled",
+  fadeInDelay: Math.round(s.crossfadeFadeInDelay * 1000),
+  fadeInDuration: Math.round(s.crossfadeFadeInDuration * 1000),
+  fadeOutDelay: Math.round(s.crossfadeFadeOutDelay * 1000),
+  fadeOutDuration: Math.round(s.crossfadeFadeOutDuration * 1000),
+  fadeOutMixMode: s.crossfadeFadeOutMixmode === 1 ? "mix" : "crossfade",
+});
+
+const fullReplayGainLex = (s: GlobalSettings): LexReplayGain => ({
+  mode: REPLAYGAIN_INT_TO_MODE[s.replaygainSettings.type] ?? "disabled",
+  preamp: s.replaygainSettings.preamp,
+  preventClipping: s.replaygainSettings.noclip,
+});
+
 // Module-level guard so lexicon hydration runs ONCE per (did, app session).
 const hydratedDids = new Set<string>();
 
@@ -288,94 +318,73 @@ export function useAudioSettings(): {
     setSettings((prev) => applyLexiconToSettings(prev, lexiconQ.data));
   }, [did, lexiconQ.data, setSettings]);
 
+  // Lexicon flushes carry the FULL section, not just the changed fields:
+  // putRecord-based writers replace sections wholesale, so a sparse patch
+  // would wipe every field it doesn't mention (bands lost on a precut tweak).
+  // Full sections keep the stored record complete no matter how it is merged.
   const actions: AudioSettingsActions = {
     setEqualizer(patch) {
-      const lexicon: LexEqualizer = {};
+      let lexicon: LexEqualizer = {};
       setSettings((prev) => {
         const next = { ...prev };
-        if (patch.enabled !== undefined) {
-          next.eqEnabled = patch.enabled;
-          lexicon.enabled = patch.enabled;
-          // Include bands so a fresh device gets the right cutoffs.
-          lexicon.bands = next.eqBandSettings.map(bandRockboxToLex);
-        }
-        if (patch.bands !== undefined) {
-          next.eqBandSettings = patch.bands;
-          lexicon.bands = patch.bands.map(bandRockboxToLex);
-        }
-        if (patch.precut !== undefined) {
-          next.eqPrecut = patch.precut;
-          lexicon.precut = patch.precut;
-        }
+        if (patch.enabled !== undefined) next.eqEnabled = patch.enabled;
+        if (patch.bands !== undefined) next.eqBandSettings = patch.bands;
+        if (patch.precut !== undefined) next.eqPrecut = patch.precut;
+        lexicon = fullEqualizerLex(next);
         return next;
       });
       scheduleLexiconFlush("equalizer", lexicon);
     },
 
     setTone(patch) {
-      const lex: LexTone = {};
+      let lex: LexTone = {};
       setSettings((prev) => {
         const next = { ...prev };
-        if (patch.bass !== undefined) { next.bass = patch.bass; lex.bass = patch.bass; }
-        if (patch.treble !== undefined) { next.treble = patch.treble; lex.treble = patch.treble; }
-        if (patch.balance !== undefined) { next.balance = patch.balance; lex.balance = patch.balance; }
-        if (patch.channels !== undefined) {
-          next.channelConfig = CHANNELS_TO_INT[patch.channels];
-          lex.channels = patch.channels;
-        }
+        if (patch.bass !== undefined) next.bass = patch.bass;
+        if (patch.treble !== undefined) next.treble = patch.treble;
+        if (patch.balance !== undefined) next.balance = patch.balance;
+        if (patch.channels !== undefined) next.channelConfig = CHANNELS_TO_INT[patch.channels];
+        lex = fullToneLex(next);
         return next;
       });
       scheduleLexiconFlush("tone", lex);
     },
 
     setCrossfade(patch) {
-      const lex: LexCrossfade = {};
+      let lex: LexCrossfade = {};
       setSettings((prev) => {
         const next = { ...prev };
-        if (patch.mode !== undefined) {
-          next.crossfade = CROSSFADE_MODE_TO_INT[patch.mode];
-          lex.mode = patch.mode;
-        }
+        if (patch.mode !== undefined) next.crossfade = CROSSFADE_MODE_TO_INT[patch.mode];
         // lexicon uses ms; GlobalSettings uses seconds.
-        if (patch.fadeInDelay !== undefined) {
+        if (patch.fadeInDelay !== undefined)
           next.crossfadeFadeInDelay = Math.round(patch.fadeInDelay / 1000);
-          lex.fadeInDelay = patch.fadeInDelay;
-        }
-        if (patch.fadeInDuration !== undefined) {
+        if (patch.fadeInDuration !== undefined)
           next.crossfadeFadeInDuration = Math.round(patch.fadeInDuration / 1000);
-          lex.fadeInDuration = patch.fadeInDuration;
-        }
-        if (patch.fadeOutDelay !== undefined) {
+        if (patch.fadeOutDelay !== undefined)
           next.crossfadeFadeOutDelay = Math.round(patch.fadeOutDelay / 1000);
-          lex.fadeOutDelay = patch.fadeOutDelay;
-        }
-        if (patch.fadeOutDuration !== undefined) {
+        if (patch.fadeOutDuration !== undefined)
           next.crossfadeFadeOutDuration = Math.round(patch.fadeOutDuration / 1000);
-          lex.fadeOutDuration = patch.fadeOutDuration;
-        }
-        if (patch.fadeOutMixMode !== undefined) {
+        if (patch.fadeOutMixMode !== undefined)
           next.crossfadeFadeOutMixmode = FADE_MIX_TO_INT[patch.fadeOutMixMode];
-          lex.fadeOutMixMode = patch.fadeOutMixMode;
-        }
+        lex = fullCrossfadeLex(next);
         return next;
       });
       scheduleLexiconFlush("crossfade", lex);
     },
 
     setReplayGain(patch) {
-      const lex: LexReplayGain = {};
+      let lex: LexReplayGain = {};
       setSettings((prev) => {
         const cur = prev.replaygainSettings;
-        const next = {
+        const replaygainSettings = {
           noclip: patch.preventClipping ?? cur.noclip,
           type: patch.mode !== undefined ? REPLAYGAIN_TO_INT[patch.mode] : cur.type,
           preamp: patch.preamp ?? cur.preamp,
         };
-        return { ...prev, replaygainSettings: next };
+        const next = { ...prev, replaygainSettings };
+        lex = fullReplayGainLex(next);
+        return next;
       });
-      if (patch.mode !== undefined) lex.mode = patch.mode;
-      if (patch.preamp !== undefined) lex.preamp = patch.preamp;
-      if (patch.preventClipping !== undefined) lex.preventClipping = patch.preventClipping;
       scheduleLexiconFlush("replayGain", lex);
     },
   };
