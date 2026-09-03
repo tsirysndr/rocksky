@@ -20,6 +20,7 @@ gleam_stdlib = ">= 0.71.0 and < 2.0.0"
 # below (build its priv/rocksky_nif.so via ../erlang/build-core.sh).
 rocksky_erl = ">= 0.9.1 and < 1.0.0"
 gleam_json = ">= 3.1.0 and < 4.0.0"
+# rocksky_erl = { path = "../erlang" }
 
 [dev-dependencies]
 gleeunit = ">= 1.2.0 and < 2.0.0"
