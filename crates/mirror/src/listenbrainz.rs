@@ -179,7 +179,7 @@ async fn poll_once(
                 title = %title,
                 artist = %artist,
                 at = at.to_rfc3339(),
-                "ListenBrainz: skipped (already scrobbled within 120s)"
+                "ListenBrainz: skipped (already scrobbled within dedup window)"
             );
             skipped_dedup += 1;
             if at > max_seen {

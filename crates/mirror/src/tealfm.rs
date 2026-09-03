@@ -196,7 +196,7 @@ async fn handle_event(
             did = %did,
             title = %title,
             artist = %artist,
-            "Teal.fm: skipped (already scrobbled within 120s)"
+            "Teal.fm: skipped (already scrobbled within dedup window)"
         );
         return Ok(());
     }

@@ -185,7 +185,7 @@ async fn poll_once(
                 title = %title,
                 artist = %artist,
                 at = at.to_rfc3339(),
-                "Last.fm: skipped (already scrobbled within 120s)"
+                "Last.fm: skipped (already scrobbled within dedup window)"
             );
             skipped_dedup += 1;
             if at > max_seen {
