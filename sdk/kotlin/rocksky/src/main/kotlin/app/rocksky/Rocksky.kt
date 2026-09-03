@@ -121,7 +121,18 @@ class RemotePlayerHandlers {
     var onSeek: ((positionMs: ULong) -> Unit)? = null
     var onQueueJump: ((index: UInt) -> Unit)? = null
     var onQueueRemove: ((index: UInt) -> Unit)? = null
+    var onQueueMove: ((from: UInt, to: UInt) -> Unit)? = null
     var onEnqueue: ((cmd: uniffi.rocksky_uniffi.RemoteCommand.Enqueue) -> Unit)? = null
+    var onSetShuffle: ((enabled: Boolean) -> Unit)? = null
+
+    /** Repeat mode: `"off"` | `"all"` | `"one"`. */
+    var onSetRepeat: ((mode: String) -> Unit)? = null
+
+    /** Output volume 0.0..=1.0. */
+    var onSetVolume: ((volume: Float) -> Unit)? = null
+
+    /** Partial audio-settings document (JSON, PROTOCOL.md §6.1). */
+    var onSetAudioSettings: ((settingsJson: String) -> Unit)? = null
 }
 
 /**
@@ -152,7 +163,12 @@ fun RemotePlayer.listen(configure: RemotePlayerHandlers.() -> Unit): Thread {
                 is uniffi.rocksky_uniffi.RemoteCommand.Seek -> handlers.onSeek?.invoke(cmd.positionMs)
                 is uniffi.rocksky_uniffi.RemoteCommand.QueueJump -> handlers.onQueueJump?.invoke(cmd.index)
                 is uniffi.rocksky_uniffi.RemoteCommand.QueueRemove -> handlers.onQueueRemove?.invoke(cmd.index)
+                is uniffi.rocksky_uniffi.RemoteCommand.QueueMove -> handlers.onQueueMove?.invoke(cmd.from, cmd.to)
                 is uniffi.rocksky_uniffi.RemoteCommand.Enqueue -> handlers.onEnqueue?.invoke(cmd)
+                is uniffi.rocksky_uniffi.RemoteCommand.SetShuffle -> handlers.onSetShuffle?.invoke(cmd.enabled)
+                is uniffi.rocksky_uniffi.RemoteCommand.SetRepeat -> handlers.onSetRepeat?.invoke(cmd.mode)
+                is uniffi.rocksky_uniffi.RemoteCommand.SetVolume -> handlers.onSetVolume?.invoke(cmd.volume)
+                is uniffi.rocksky_uniffi.RemoteCommand.SetAudioSettings -> handlers.onSetAudioSettings?.invoke(cmd.settingsJson)
             }
         }
     }, "rocksky-remote-player").apply { isDaemon = true; start() }

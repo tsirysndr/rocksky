@@ -53,28 +53,8 @@ PY
 # published jar bundles the native lib, so the default JNA loader is kept as-is.
 gen kotlin "$sdk/kotlin/rocksky/src/main/kotlin"
 
-# The SDK exposes a UniFFI Object named `Library` (the uploaded-music client),
-# whose generated Kotlin class collides with the `com.sun.jna.Library` UniFFI
-# imports for its own runtime — an unqualified `Library` then resolves to our
-# class and `compileKotlin` fails. Alias the JNA import so unqualified `Library`
-# stays our Object, and qualify the two JNA usages.
-python3 - "$sdk/kotlin/rocksky/src/main/kotlin/uniffi/rocksky_uniffi/rocksky_uniffi.kt" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-subs = [
-    ("import com.sun.jna.Library\n", "import com.sun.jna.Library as JnaLibrary\n"),
-    ("private inline fun <reified Lib : Library> loadIndirect(",
-     "private inline fun <reified Lib : JnaLibrary> loadIndirect("),
-    ("internal interface UniffiLib : Library {", "internal interface UniffiLib : JnaLibrary {"),
-]
-for old, new in subs:
-    if old not in s:
-        sys.exit(f"ABORT: kotlin patch anchor not found — uniffi output changed: {old!r}")
-    s = s.replace(old, new, 1)
-open(p, "w").write(s)
-print("  patched kotlin JNA Library import -> JnaLibrary alias")
-PY
+python3 "$here/patch-kotlin-bindings.py" \
+  "$sdk/kotlin/rocksky/src/main/kotlin/uniffi/rocksky_uniffi/rocksky_uniffi.kt"
 
 echo "done. ruby/clojure use the capi C ABI (lib only); erlang/elixir/gleam use"
 echo "the NIF — run ./build-native.sh and each package's ./build-core.sh."

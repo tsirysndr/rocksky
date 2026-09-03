@@ -23,6 +23,7 @@ esac
 cargo build --release -p rocksky-uniffi --manifest-path "$root/Cargo.toml"
 cargo run -q --release -p rocksky-uniffi --manifest-path "$root/Cargo.toml" --bin uniffi-bindgen -- \
   generate --library "$root/target/release/$lib" --language kotlin --out-dir "$here/rocksky/src/main/kotlin"
+python3 "$root/sdk/scripts/patch-kotlin-bindings.py" "$pkg/rocksky_uniffi.kt"
 
 mkdir -p "$res/$prefix"
 cp "$root/target/release/$lib" "$res/$prefix/$lib"
