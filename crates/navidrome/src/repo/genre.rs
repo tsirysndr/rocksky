@@ -1,7 +1,7 @@
 use anyhow::Error;
 use sqlx::{Pool, Postgres};
 
-use crate::repo::track::one_upload_join;
+use crate::repo::track::track_select;
 
 use crate::xata::track::TrackWithUpload;
 
@@ -53,28 +53,13 @@ pub async fn get_songs_by_genre(
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    // Hand-rolling the projection here left out the BYO-storage columns that
+    // were later added to `TrackWithUpload`, so every row failed to deserialize
+    // and getSongsByGenre returned nothing at all. Use the canonical select,
+    // which is also the one that guards the album/artist junction lookups.
     let rows: Vec<TrackWithUpload> = sqlx::query_as(&format!(
         r#"
-        SELECT
-            tracks.xata_id,
-            tracks.title,
-            tracks.artist,
-            tracks.album_artist,
-            tracks.album_art,
-            tracks.album,
-            tracks.track_number,
-            tracks.disc_number,
-            tracks.duration,
-            tracks.mb_id,
-            tracks.genre,
-            tracks.xata_createdat,
-            user_uploads.r2_key,
-            user_uploads.mime_type,
-            user_uploads.file_size,
-            user_uploads.sample_rate,
-            (SELECT at2.album_id FROM album_tracks at2 WHERE at2.track_id = tracks.xata_id LIMIT 1) AS album_id,
-            (SELECT at3.artist_id FROM artist_tracks at3 WHERE at3.track_id = tracks.xata_id LIMIT 1) AS artist_id
-        FROM tracks{upload_join}
+        {}
         WHERE EXISTS (
             SELECT 1
             FROM artist_tracks
@@ -82,10 +67,10 @@ pub async fn get_songs_by_genre(
             WHERE artist_tracks.track_id = tracks.xata_id
               AND $2 = ANY(artists.genres)
         )
-        ORDER BY tracks.title ASC
+        ORDER BY tracks.title ASC, tracks.xata_id ASC
         LIMIT $3 OFFSET $4
         "#,
-        upload_join = one_upload_join("$1")
+        track_select("$1")
     ))
     .bind(user_id)
     .bind(genre)
