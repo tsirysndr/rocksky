@@ -42,6 +42,7 @@ import { Link } from "@tanstack/react-router";
 import ContentLoader from "react-content-loader";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
+import NowPlayingBar from "../../components/NowPlayingBar";
 
 const Group = styled.div`
   display: flex;
@@ -318,6 +319,7 @@ function Profile(props: ProfileProps) {
                       text={`Check out ${profiles[did]?.displayName || profiles[did]?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
                     />
                   </div>
+                  <NowPlayingBar did={profiles[did]?.did || did} />
                 </div>
               </ProfileInfo>
               {!isOwnProfile && (

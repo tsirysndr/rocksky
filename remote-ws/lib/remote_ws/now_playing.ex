@@ -37,11 +37,11 @@ defmodule RemoteWs.NowPlaying do
   """
   def handle_track(did, device_id, name, data) do
     {data, sha256, duration_ms, liked} = enrich(did, data)
-    cache_device_np(did, device_id, data, sha256, liked)
+    cache_device_np(did, device_id, name, data, sha256, liked)
     ensure_primary(did, device_id)
 
     if primary_device(did) == device_id do
-      write_nowplaying(did, data, sha256, liked)
+      write_nowplaying(did, name, data, sha256, liked)
 
       maybe_emit_song_changed(did, sha256, %{
         title: data["title"],
@@ -133,7 +133,7 @@ defmodule RemoteWs.NowPlaying do
         :ok
 
       np ->
-        write_nowplaying_raw(did, np)
+        write_nowplaying_raw(did, Map.put(np, "device_name", name))
 
         publish_song_changed(did, np["sha256"], %{
           title: np["title"],
@@ -276,21 +276,32 @@ defmodule RemoteWs.NowPlaying do
 
   # ── profile now-playing (primary only) ───────────────────────────────────────
 
-  defp enriched_payload(data, sha256, liked),
-    do: data |> Map.put("sha256", sha256) |> Map.put("liked", liked)
+  # `device_name` rides along so consumers of the profile now-playing (the web /
+  # desktop profile card) can say *where* the user is listening, not just what.
+  defp enriched_payload(name, data, sha256, liked),
+    do:
+      data
+      |> Map.put("sha256", sha256)
+      |> Map.put("liked", liked)
+      |> Map.put("device_name", name)
 
-  defp write_nowplaying(did, data, sha256, liked),
-    do: Redis.set_ex("nowplaying:#{did}", 3, Jason.encode!(enriched_payload(data, sha256, liked)))
+  defp write_nowplaying(did, name, data, sha256, liked),
+    do:
+      Redis.set_ex(
+        "nowplaying:#{did}",
+        3,
+        Jason.encode!(enriched_payload(name, data, sha256, liked))
+      )
 
   defp write_nowplaying_raw(did, np),
     do: Redis.set_ex("nowplaying:#{did}", 3, Jason.encode!(np))
 
-  defp cache_device_np(did, device_id, data, sha256, liked),
+  defp cache_device_np(did, device_id, name, data, sha256, liked),
     do:
       Redis.set_ex(
         "np:#{did}:#{device_id}",
         @np_ttl,
-        Jason.encode!(enriched_payload(data, sha256, liked))
+        Jason.encode!(enriched_payload(name, data, sha256, liked))
       )
 
   # song.changed only when the track actually changed AND the WS source is active

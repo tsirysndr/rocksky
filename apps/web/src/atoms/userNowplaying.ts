@@ -1,15 +1,22 @@
 import { atom } from "jotai";
 
+export type UserNowPlaying = {
+  title: string;
+  artist: string;
+  artistUri: string;
+  songUri: string;
+  albumUri: string;
+  duration: number;
+  /** Position at `sampledAt`; the live position is extrapolated from there. */
+  progress: number;
+  sampledAt: number;
+  albumArt?: string;
+  isPlaying: boolean;
+  liked?: boolean;
+  /** The remote device's name, or "Spotify". Null when the source is unnamed. */
+  source?: string | null;
+};
+
 export const userNowPlayingAtom = atom<{
-  [key: string]: {
-    title: string;
-    artist: string;
-    artistUri: string;
-    songUri: string;
-    albumUri: string;
-    duration: number;
-    progress: number;
-    albumArt?: string;
-    isPlaying: boolean;
-  } | null;
+  [key: string]: UserNowPlaying | null;
 }>({});

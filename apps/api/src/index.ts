@@ -242,8 +242,17 @@ app.get("/now-playing", async (c) => {
     ctx.redis.get(`nowplaying:${user.did}`),
     ctx.redis.get(`nowplaying:${user.did}:status`),
   ]);
+  // `has_status` lets callers tell "the device reported paused" apart from "the
+  // device never reports status at all" — without it, a player that only pushes
+  // tracks looks permanently paused.
   return c.json(
-    nowPlaying ? { ...JSON.parse(nowPlaying), is_playing: status === "1" } : {},
+    nowPlaying
+      ? {
+          ...JSON.parse(nowPlaying),
+          is_playing: status === "1",
+          has_status: status !== null && status !== undefined,
+        }
+      : {},
   );
 });
 
