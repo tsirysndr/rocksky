@@ -58,8 +58,32 @@ defmodule RemoteWs.NowPlaying do
 
   @doc "Handle a `status` push from `device_id` — drives the profile only if primary."
   def handle_status(did, device_id, data) do
+    sync_playing(did, device_id, data["status"])
     if primary_device(did) == device_id, do: profile_status(did, data)
     :ok
+  end
+
+  # Every `track` frame carries the device's own `is_playing`, which makes the
+  # cached blob the single place anyone has to look. A `status` push can land
+  # between two track frames though, so fold it in as well — otherwise a pause
+  # isn't visible until the player's next track frame.
+  defp sync_playing(did, device_id, status) when status in [0, 1, 2] do
+    playing = status == 1
+    patch_playing("np:#{did}:#{device_id}", @np_ttl, playing)
+    if primary_device(did) == device_id, do: patch_playing("nowplaying:#{did}", 3, playing)
+    :ok
+  end
+
+  defp sync_playing(_did, _device_id, _status), do: :ok
+
+  defp patch_playing(key, ttl, playing) do
+    case Redis.get(key) do
+      nil ->
+        :ok
+
+      json ->
+        Redis.set_ex(key, ttl, Jason.encode!(Map.put(Jason.decode!(json), "is_playing", playing)))
+    end
   end
 
   @doc """

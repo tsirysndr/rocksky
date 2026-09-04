@@ -5,6 +5,7 @@ import {
   IconBrandSpotify,
   IconDeviceSpeaker,
   IconMusic,
+  IconPlayerPause,
 } from "@tabler/icons-react";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelXSmall } from "baseui/typography";
@@ -53,9 +54,14 @@ function NowPlaying({ did }: NowPlayingProps) {
   const { formatTime } = useTimeFormat();
   const { nowPlaying, progress } = useUserNowPlaying(did);
 
-  if (!nowPlaying?.duration || !nowPlaying.isPlaying) {
+  if (!nowPlaying?.duration) {
     return null;
   }
+
+  const paused = !nowPlaying.isPlaying;
+  const source = [nowPlaying.source, paused ? "Paused" : null]
+    .filter(Boolean)
+    .join(" · ");
 
   const cover = nowPlaying.albumArt ? (
     <Cover
@@ -113,14 +119,16 @@ function NowPlaying({ did }: NowPlayingProps) {
               </div>
             )}
           </div>
-          {!!nowPlaying.source && (
+          {!!source && (
             <Source>
-              {nowPlaying.source === SPOTIFY_SOURCE ? (
+              {!nowPlaying.source ? (
+                <IconPlayerPause size={12} />
+              ) : nowPlaying.source === SPOTIFY_SOURCE ? (
                 <IconBrandSpotify size={12} />
               ) : (
                 <IconDeviceSpeaker size={12} />
               )}
-              <span>{nowPlaying.source}</span>
+              <span>{source}</span>
             </Source>
           )}
         </div>

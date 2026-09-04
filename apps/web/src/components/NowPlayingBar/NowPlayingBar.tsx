@@ -3,6 +3,7 @@ import {
   IconBrandSpotify,
   IconDeviceSpeaker,
   IconMusic,
+  IconPlayerPause,
 } from "@tabler/icons-react";
 import { Link as DefaultLink } from "@tanstack/react-router";
 import { ProgressBar } from "baseui/progress-bar";
@@ -111,14 +112,19 @@ type NowPlayingBarProps = {
   did?: string;
 };
 
-/** The track a profile's owner is playing right now — hidden when nothing is. */
+/** The track a profile's owner has on right now — hidden when there is none. */
 function NowPlayingBar({ did }: NowPlayingBarProps) {
   const { formatTime } = useTimeFormat();
   const { nowPlaying, progress } = useUserNowPlaying(did);
 
-  if (!nowPlaying?.duration || !nowPlaying.isPlaying) {
+  if (!nowPlaying?.duration) {
     return null;
   }
+
+  const paused = !nowPlaying.isPlaying;
+  const source = [nowPlaying.source, paused ? "Paused" : null]
+    .filter(Boolean)
+    .join(" · ");
 
   const cover = nowPlaying.albumArt ? (
     <Cover
@@ -160,14 +166,16 @@ function NowPlayingBar({ did }: NowPlayingBarProps) {
               nowPlaying.artist
             )}
           </Artist>
-          {!!nowPlaying.source && (
+          {!!source && (
             <Source>
-              {nowPlaying.source === SPOTIFY_SOURCE ? (
+              {!nowPlaying.source ? (
+                <IconPlayerPause size={12} />
+              ) : nowPlaying.source === SPOTIFY_SOURCE ? (
                 <IconBrandSpotify size={12} />
               ) : (
                 <IconDeviceSpeaker size={12} />
               )}
-              <span>{nowPlaying.source}</span>
+              <span>{source}</span>
             </Source>
           )}
         </Details>

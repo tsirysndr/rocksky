@@ -9,7 +9,9 @@ import { API_URL } from "../consts";
 
 export const SPOTIFY_SOURCE = "Spotify";
 
-const POLL_MS = 15000;
+// Matches the 3s TTL the remote now-playing blob is written with: polling any
+// slower than the data changes makes play/pause detection lag badly.
+const POLL_MS = 3000;
 const TICK_MS = 250;
 
 /** `GET /now-playing` — the profile owner's active remote device. */
@@ -24,7 +26,6 @@ type RemoteNowPlaying = {
   length?: number;
   elapsed?: number;
   is_playing?: boolean;
-  has_status?: boolean;
   liked?: boolean;
   device_name?: string | null;
 };
@@ -76,13 +77,7 @@ const remoteCandidate = (
         progress: data.elapsed || 0,
         sampledAt,
         albumArt: data.album_art,
-        // Only believe `is_playing` when the device actually reports status.
-        // Plenty of SDK clients push tracks and never call setStatus, which
-        // leaves the status key unset and reads as paused forever — yet the
-        // blob itself lives on a 3s TTL, so having it at all means a device is
-        // pushing right now. `has_status` is absent on older API builds, which
-        // is the same "nothing told us otherwise" case.
-        isPlaying: data.has_status ? !!data.is_playing : true,
+        isPlaying: !!data.is_playing,
         liked: !!data.liked,
         source: data.device_name || null,
       }
@@ -109,14 +104,16 @@ const spotifyCandidate = (
       }
     : null;
 
-// "Active" means playing AND making progress. A source whose position is frozen
-// while it still claims to be playing is a stale cache, and loses to one that is
-// really moving.
-const activity = (candidate: UserNowPlaying | null, advancing: boolean) => {
+// Both sources report their own transport state, so "active" is simply the one
+// that is playing: a paused source only wins when nothing else is running.
+const activity = (candidate: UserNowPlaying | null) => {
   if (!candidate || !candidate.duration) return 0;
-  if (!candidate.isPlaying) return 1;
-  return advancing ? 3 : 2;
+  return candidate.isPlaying ? 2 : 1;
 };
+
+// The remote blob lives on a 3s TTL and a push can just miss the window, so one
+// empty answer isn't proof playback ended.
+const MISSES_BEFORE_CLEARED = 2;
 
 export const livePosition = (entry: UserNowPlaying | null) => {
   if (!entry) return 0;
@@ -131,21 +128,8 @@ export const livePosition = (entry: UserNowPlaying | null) => {
  */
 export function useUserNowPlaying(did?: string) {
   const [nowPlaying, setNowPlaying] = useAtom(userNowPlayingAtom);
-  const lastProgress = useRef<Record<string, number>>({});
+  const misses = useRef(0);
   const [, setTick] = useState(0);
-
-  const isAdvancing = useCallback(
-    (key: string, candidate: UserNowPlaying | null) => {
-      if (!candidate) {
-        delete lastProgress.current[key];
-        return false;
-      }
-      const previous = lastProgress.current[key];
-      lastProgress.current[key] = candidate.progress;
-      return previous === undefined || candidate.progress > previous;
-    },
-    [],
-  );
 
   const refresh = useCallback(async () => {
     if (!did) return;
@@ -161,19 +145,19 @@ export function useUserNowPlaying(did?: string) {
     const remote = remoteCandidate(remoteData, sampledAt);
     const spotify = spotifyCandidate(spotifyData, sampledAt);
 
-    const remoteScore = activity(remote, isAdvancing(`${did}:remote`, remote));
-    const spotifyScore = activity(
-      spotify,
-      isAdvancing(`${did}:spotify`, spotify),
-    );
-
     // Ties go to the remote device: it is the one the owner explicitly made
     // primary, whereas Spotify's cached state lingers after playback moved away.
-    setNowPlaying((prev) => ({
-      ...prev,
-      [did]: remoteScore >= spotifyScore ? remote : spotify,
-    }));
-  }, [did, isAdvancing, setNowPlaying]);
+    const next = activity(remote) >= activity(spotify) ? remote : spotify;
+
+    if (!next) {
+      misses.current += 1;
+      if (misses.current < MISSES_BEFORE_CLEARED) return;
+    } else {
+      misses.current = 0;
+    }
+
+    setNowPlaying((prev) => ({ ...prev, [did]: next }));
+  }, [did, setNowPlaying]);
 
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;

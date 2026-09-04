@@ -242,18 +242,20 @@ app.get("/now-playing", async (c) => {
     ctx.redis.get(`nowplaying:${user.did}`),
     ctx.redis.get(`nowplaying:${user.did}:status`),
   ]);
-  // `has_status` lets callers tell "the device reported paused" apart from "the
-  // device never reports status at all" — without it, a player that only pushes
-  // tracks looks permanently paused.
-  return c.json(
-    nowPlaying
-      ? {
-          ...JSON.parse(nowPlaying),
-          is_playing: status === "1",
-          has_status: status !== null && status !== undefined,
-        }
-      : {},
-  );
+  if (!nowPlaying) {
+    return c.json({});
+  }
+
+  // Every `track` frame carries the device's own transport state, and remote-ws
+  // keeps it in step with `status` pushes, so the blob is the truth. Overwriting
+  // it from the status key unconditionally made every player that reports
+  // is_playing but never calls setStatus look permanently paused.
+  const track = JSON.parse(nowPlaying);
+  return c.json({
+    ...track,
+    is_playing:
+      typeof track.is_playing === "boolean" ? track.is_playing : status === "1",
+  });
 });
 
 app.get("/now-playings", async (c) => {
