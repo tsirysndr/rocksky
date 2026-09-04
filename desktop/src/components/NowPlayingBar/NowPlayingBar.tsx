@@ -21,6 +21,9 @@ const Container = styled.div`
   gap: 6px;
   width: 100%;
   margin-top: 20px;
+  /* Matches the 35px the genre tags leave above this bar — margins collapse
+     with the sibling below, whose own 20px would otherwise win. */
+  margin-bottom: 35px;
 `;
 
 const Row = styled.div`
