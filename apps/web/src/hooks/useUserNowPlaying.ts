@@ -76,10 +76,13 @@ const remoteCandidate = (
         progress: data.elapsed || 0,
         sampledAt,
         albumArt: data.album_art,
-        // The blob lives on a 3s TTL, so its presence already means a device is
-        // pushing right now. Players that never report status are assumed
-        // playing rather than shown as forever paused.
-        isPlaying: data.has_status === false ? true : !!data.is_playing,
+        // Only believe `is_playing` when the device actually reports status.
+        // Plenty of SDK clients push tracks and never call setStatus, which
+        // leaves the status key unset and reads as paused forever — yet the
+        // blob itself lives on a 3s TTL, so having it at all means a device is
+        // pushing right now. `has_status` is absent on older API builds, which
+        // is the same "nothing told us otherwise" case.
+        isPlaying: data.has_status ? !!data.is_playing : true,
         liked: !!data.liked,
         source: data.device_name || null,
       }
