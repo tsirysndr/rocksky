@@ -196,7 +196,9 @@ async fn wrong_credentials_are_rejected() {
 /// request and never gets past the connect screen.
 #[actix_web::test]
 async fn paths_are_matched_the_way_the_reference_server_matches_them() {
-    let Some(fx) = common::setup().await else { return };
+    let Some(fx) = common::setup().await else {
+        return;
+    };
     let app = app!(fx);
 
     for path in [
