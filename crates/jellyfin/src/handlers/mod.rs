@@ -38,7 +38,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .route("/System/Ping", web::post().to(system::system_ping))
         .route("/System/Ping", web::head().to(system::system_ping))
         .route(
-            "/System/Configuration/branding",
+            "/System/Configuration/Branding",
             web::get().to(system::branding_config),
         )
         .route(
@@ -46,17 +46,14 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             web::get().to(system::branding_config),
         )
         .route("/Branding/Css", web::get().to(system::branding_css))
-        // Auth. Amcfy sends the path all-lowercase; other clients camel-case it.
+        .route(
+            "/QuickConnect/Enabled",
+            web::get().to(quick_connect_enabled),
+        )
+        // Auth. Clients spell this path in every casing there is; the
+        // normalizer in `compat` folds them all onto this one.
         .route(
             "/Users/AuthenticateByName",
-            web::post().to(users::authenticate_by_name),
-        )
-        .route(
-            "/Users/authenticatebyname",
-            web::post().to(users::authenticate_by_name),
-        )
-        .route(
-            "/Users/authenticateByName",
             web::post().to(users::authenticate_by_name),
         )
         .route("/Users/Public", web::get().to(users::users_public))
@@ -107,7 +104,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         .route("/Items/{id}/File", web::head().to(media::item_file))
         .route("/Items/{id}/Download", web::get().to(media::item_file))
         .route("/Items/{id}/InstantMix", web::get().to(browse::instant_mix))
-        // Images. Findroid lower-cases the collection segment.
+        // Images
         .route(
             "/Items/{id}/Images/{kind}",
             web::get().to(media::item_image),
@@ -118,18 +115,6 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         )
         .route(
             "/Items/{id}/Images/{kind}/{index}",
-            web::get().to(media::item_image_by_index),
-        )
-        .route(
-            "/items/{id}/Images/{kind}",
-            web::get().to(media::item_image),
-        )
-        .route(
-            "/items/{id}/Images/{kind}",
-            web::head().to(media::item_image),
-        )
-        .route(
-            "/items/{id}/Images/{kind}/{index}",
             web::get().to(media::item_image_by_index),
         )
         .route("/Items/{id}", web::get().to(items::item_by_id))
@@ -353,6 +338,13 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         )
         // No live-update socket; clients fall back to polling when this 404s.
         .route("/socket", web::get().to(not_found));
+}
+
+/// `GET /QuickConnect/Enabled` — Quick Connect pairs a client by showing a code
+/// on an already-signed-in device. There is nothing to pair against here, so
+/// the honest answer is that it is switched off.
+async fn quick_connect_enabled() -> HttpResponse {
+    HttpResponse::Ok().json(false)
 }
 
 /// Log anything no route matched, so a client asking for something we haven't

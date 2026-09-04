@@ -20,12 +20,16 @@ mod common;
 use actix_web::{http::StatusCode, test, App};
 use serde_json::{json, Value};
 
-/// Spin up the routes against a fixture.
+/// Spin up the routes against a fixture, wrapped exactly as `run` wraps them so
+/// the tests exercise the same path normalization real clients hit.
 macro_rules! app {
     ($fx:expr) => {
         test::init_service(
             App::new()
                 .app_data($fx.state.clone())
+                .wrap(actix_web::middleware::from_fn(
+                    rocksky_jellyfin::compat::normalize_path,
+                ))
                 .configure(rocksky_jellyfin::handlers::configure),
         )
         .await
@@ -182,6 +186,74 @@ async fn wrong_credentials_are_rejected() {
     assert_eq!(me["Policy"]["IsAdministrator"], false);
     assert_eq!(me["Policy"]["EnableContentDeletion"], false);
     assert_eq!(me["Policy"]["EnableMediaPlayback"], true);
+
+    fx.cleanup().await;
+}
+
+/// Jellyfin runs on ASP.NET Core, so its routing is case-insensitive, tolerant
+/// of stray slashes, and answers the legacy `/emby` and `/mediabrowser`
+/// prefixes. Clients rely on all three, and a server that doesn't 404s every
+/// request and never gets past the connect screen.
+#[actix_web::test]
+async fn paths_are_matched_the_way_the_reference_server_matches_them() {
+    let Some(fx) = common::setup().await else { return };
+    let app = app!(fx);
+
+    for path in [
+        "/System/Info/Public",
+        "/system/info/public",
+        "/SYSTEM/INFO/PUBLIC",
+        "/sYsTeM/iNfO/pUbLiC",
+        "//System/Info/Public",
+        "/System/Info/Public/",
+        "/System//Info///Public//",
+        "/emby/System/Info/Public",
+        "/mediabrowser/System/Info/Public",
+        "/emby/system/info/public/",
+    ] {
+        let req = test::TestRequest::get().uri(path).to_request();
+        let resp = test::call_service(&app, req).await;
+        assert_eq!(resp.status(), StatusCode::OK, "{path}");
+    }
+
+    // Logging in through a lower-cased path yields a working token.
+    let req = test::TestRequest::post()
+        .uri("/users/authenticatebyname")
+        .insert_header((
+            "X-Emby-Authorization",
+            r#"MediaBrowser Client="t", Device="d", DeviceId="i", Version="v""#,
+        ))
+        .set_json(json!({ "Username": common::HANDLE, "Pw": common::API_KEY }))
+        .to_request();
+    let body: Value = test::call_and_read_body_json(&app, req).await;
+    let token = body["AccessToken"].as_str().unwrap().to_string();
+
+    for path in [
+        "/users/me",
+        "/library/mediafolders",
+        "/USERVIEWS",
+        "/emby/Users/Me",
+        "/items?includeItemTypes=MusicArtist",
+    ] {
+        assert_eq!(
+            get_status!(app, token, path.to_string()),
+            StatusCode::OK,
+            "{path}"
+        );
+    }
+
+    // The query string survives normalization, so filters still apply.
+    let body = get_json!(app, token, "/ITEMS?includeItemTypes=Audio".to_string());
+    assert_eq!(body["TotalRecordCount"], 1);
+    assert_eq!(body["Items"][0]["Type"], "Audio");
+
+    // Names in the path are data, not route literals, and must not be folded.
+    let artists = get_json!(app, token, "/artists".to_string());
+    let artist_id = artists["Items"][0]["Id"].as_str().unwrap().to_string();
+    let by_id = get_json!(app, token, format!("/Artists/{artist_id}"));
+    assert_eq!(by_id["Name"], "Test Artist");
+    let encoded = get_json!(app, token, "/Artists/Test%20Artist".to_string());
+    assert_eq!(encoded["Id"], artist_id);
 
     fx.cleanup().await;
 }

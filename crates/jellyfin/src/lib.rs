@@ -8,6 +8,7 @@
 //! once and the two can't drift.
 
 pub mod auth;
+pub mod compat;
 pub mod convert;
 pub mod dto;
 pub mod guid;
@@ -20,7 +21,7 @@ pub mod userdata;
 use std::{env, sync::Arc, time::Duration};
 
 use actix_cors::Cors;
-use actix_web::{web, App, HttpServer};
+use actix_web::{middleware::from_fn, web, App, HttpServer};
 use anyhow::Error;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
@@ -115,6 +116,9 @@ pub async fn run() -> Result<(), Error> {
         App::new()
             .app_data(state.clone())
             .wrap(Cors::permissive())
+            // Registered last so it runs first: the router only ever sees a
+            // canonical path, which is what makes matching case-insensitive.
+            .wrap(from_fn(compat::normalize_path))
             .configure(handlers::configure)
             .default_service(web::to(handlers::log_unrouted))
     })
