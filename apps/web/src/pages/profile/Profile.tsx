@@ -319,7 +319,6 @@ function Profile(props: ProfileProps) {
                       text={`Check out ${profiles[did]?.displayName || profiles[did]?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
                     />
                   </div>
-                  <NowPlayingBar did={profiles[did]?.did || did} />
                 </div>
               </ProfileInfo>
               {!isOwnProfile && (
@@ -378,6 +377,9 @@ function Profile(props: ProfileProps) {
                 </>
               )}
             </Group>
+          )}
+          {!profile.isLoading && (
+            <NowPlayingBar did={profiles[did]?.did || did} />
           )}
           {tags.length > 0 && (
             <div className="mt-[30px] mb-[35px] flex flex-wrap">

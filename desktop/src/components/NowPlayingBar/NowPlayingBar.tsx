@@ -18,11 +18,8 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 440px;
+  width: 100%;
   margin-top: 20px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--color-menu-hover);
 `;
 
 const Row = styled.div`
@@ -47,7 +44,7 @@ const CoverFallback = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-background);
+  background: var(--color-menu-hover);
   color: var(--color-text-muted);
 `;
 
