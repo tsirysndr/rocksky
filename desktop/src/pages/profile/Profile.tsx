@@ -378,9 +378,6 @@ function Profile(props: ProfileProps) {
               )}
             </Group>
           )}
-          {!profile.isLoading && (
-            <NowPlayingBar did={profiles[did]?.did || did} />
-          )}
           {tags.length > 0 && (
             <div className="mt-[30px] mb-[35px] flex flex-wrap">
               {tags.map((genre) => (
@@ -393,6 +390,9 @@ function Profile(props: ProfileProps) {
                 </Link>
               ))}
             </div>
+          )}
+          {!profile.isLoading && (
+            <NowPlayingBar did={profiles[did]?.did || did} />
           )}
 
           <div className="mt-[20px] flex justify-end">
