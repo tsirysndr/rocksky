@@ -51,6 +51,20 @@ audioscrobbler.rocksky.app {
 	reverse_proxy http://localhost:7882
 }
 
+# Jellyfin-compatible API (JELLYFIN_PORT). Media never passes through here —
+# stream and cover-art endpoints answer with a redirect to object storage — so
+# the default proxy buffering is fine.
+jellyfin.rocksky.app {
+	reverse_proxy http://localhost:8096
+}
+
+# Subsonic / Navidrome-compatible API (NAVIDROME_PORT). Same library and
+# credentials as the Jellyfin service above, and the same redirect-to-storage
+# treatment of stream and cover-art requests.
+navidrome.rocksky.app {
+	reverse_proxy http://localhost:4533
+}
+
 webscrobbler.rocksky.app {
 	reverse_proxy http://localhost:7883
 }

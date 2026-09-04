@@ -25,6 +25,7 @@
             "group": "Integrations",
             "pages": [
               "integrations/jellyfin",
+              "integrations/jellyfin-server",
               "integrations/navidrome",
               "integrations/navidrome-server",
               "integrations/pano-scrobbler",

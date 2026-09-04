@@ -13,6 +13,7 @@ dotenv = "0.15.0"
 anyhow = "1.0.96"
 rocksky-dropbox = { path = "../dropbox" }
 rocksky-googledrive = { path = "../googledrive" }
+rocksky-jellyfin = { path = "../jellyfin" }
 rocksky-jetstream = { path = "../jetstream" }
 rocksky-mirror = { path = "../mirror" }
 rocksky-playlists = { path = "../playlists" }

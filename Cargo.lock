@@ -6381,6 +6381,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocksky-jellyfin"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-web",
+ "anyhow",
+ "async-nats",
+ "chrono",
+ "dotenv",
+ "futures",
+ "hex",
+ "owo-colors",
+ "rand 0.8.5",
+ "rocksky-navidrome",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sha2",
+ "sqlx",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rocksky-jetstream"
 version = "0.1.0"
 dependencies = [
@@ -6696,6 +6720,7 @@ dependencies = [
  "owo-colors",
  "rocksky-dropbox",
  "rocksky-googledrive",
+ "rocksky-jellyfin",
  "rocksky-jetstream",
  "rocksky-mirror",
  "rocksky-navidrome",

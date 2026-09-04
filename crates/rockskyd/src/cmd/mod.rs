@@ -1,5 +1,6 @@
 pub mod dropbox;
 pub mod googledrive;
+pub mod jellyfin;
 pub mod jetstream;
 pub mod mirror;
 pub mod navidrome;

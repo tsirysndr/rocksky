@@ -20,6 +20,7 @@ fn cli() -> Command {
                 .subcommand(Command::new("scan").about("Scan Google Drive Music Folder"))
                 .subcommand(Command::new("serve").about("Serve Rocksky Google Drive API")),
         )
+        .subcommand(Command::new("jellyfin").about("Start Jellyfin-compatible API"))
         .subcommand(Command::new("jetstream").about("Start JetStream Subscriber Service"))
         .subcommand(Command::new("mirror").about("Mirror plays from Last.fm, ListenBrainz, Teal.fm into Rocksky"))
         .subcommand(Command::new("navidrome").about("Start Navidrome-compatible API (Subsonic REST API)"))
@@ -62,6 +63,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(("serve", _)) => cmd::googledrive::serve().await?,
             _ => println!("Unknown googledrive command"),
         },
+        Some(("jellyfin", _)) => {
+            cmd::jellyfin::start_jellyfin_service().await?;
+        }
         Some(("jetstream", _)) => {
             cmd::jetstream::start_jetstream_service().await?;
         }
