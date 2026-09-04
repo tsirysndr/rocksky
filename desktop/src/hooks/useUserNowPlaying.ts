@@ -75,6 +75,7 @@ const remoteCandidate = (
         albumUri: data.album_uri || "",
         duration: data.length || 0,
         progress: data.elapsed || 0,
+        reported: data.elapsed || 0,
         sampledAt,
         albumArt: data.album_art,
         isPlaying: !!data.is_playing,
@@ -96,6 +97,7 @@ const spotifyCandidate = (
         albumUri: data.albumUri || "",
         duration: data.item.duration_ms,
         progress: data.progress_ms || 0,
+        reported: data.progress_ms || 0,
         sampledAt,
         albumArt: data.item.album?.images?.[0]?.url,
         isPlaying: !!data.is_playing,
@@ -138,14 +140,21 @@ const reconcile = (
 ) => {
   if (!next || !previous) return next;
   if (!sameTrack(previous, next)) return next;
+
+  // A source that reports paused while its position keeps advancing is simply
+  // wrong, and the position is the harder evidence. Without this the bar stops
+  // extrapolating and creeps forward one poll at a time.
+  const isPlaying = next.isPlaying || next.progress > previous.reported;
+  const sample = { ...next, isPlaying };
+
   // A transport change has to land immediately: it is exactly when the position
   // stops or starts moving.
-  if (previous.isPlaying !== next.isPlaying) return next;
+  if (previous.isPlaying !== isPlaying) return sample;
   if (Math.abs(livePosition(previous) - next.progress) > SYNC_TOLERANCE_MS) {
-    return next;
+    return sample;
   }
   return {
-    ...next,
+    ...sample,
     progress: previous.progress,
     sampledAt: previous.sampledAt,
   };
