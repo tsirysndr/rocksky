@@ -12,7 +12,7 @@ export const SPOTIFY_SOURCE = "Spotify";
 // Matches the 3s TTL the remote now-playing blob is written with: polling any
 // slower than the data changes makes play/pause detection lag badly.
 const POLL_MS = 3000;
-const TICK_MS = 250;
+const TICK_MS = 100;
 
 /** `GET /now-playing` — the profile owner's active remote device. */
 type RemoteNowPlaying = {
@@ -121,6 +121,36 @@ export const livePosition = (entry: UserNowPlaying | null) => {
   return Math.min(entry.progress + elapsed, entry.duration);
 };
 
+// How far the local clock may drift from the server before it is worth a snap.
+// Positions arrive a *variable* amount stale — the blob's age plus the player's
+// push interval — so re-anchoring on every sample makes the bar stutter a few
+// hundred ms back and forth every poll. Anything under this is that noise;
+// anything over it is a real seek, a resume, or a clock that has fallen behind.
+const SYNC_TOLERANCE_MS = 2500;
+
+const sameTrack = (a: UserNowPlaying, b: UserNowPlaying) =>
+  a.title === b.title && a.artist === b.artist && a.duration === b.duration;
+
+/** Keep the running position unless the incoming sample genuinely disagrees. */
+const reconcile = (
+  previous: UserNowPlaying | null | undefined,
+  next: UserNowPlaying | null,
+) => {
+  if (!next || !previous) return next;
+  if (!sameTrack(previous, next)) return next;
+  // A transport change has to land immediately: it is exactly when the position
+  // stops or starts moving.
+  if (previous.isPlaying !== next.isPlaying) return next;
+  if (Math.abs(livePosition(previous) - next.progress) > SYNC_TOLERANCE_MS) {
+    return next;
+  }
+  return {
+    ...next,
+    progress: previous.progress,
+    sampledAt: previous.sampledAt,
+  };
+};
+
 /**
  * Polls every player a user could be listening on and keeps the one that is
  * actually active — playing, with a position that moves. Returns the winning
@@ -156,7 +186,7 @@ export function useUserNowPlaying(did?: string) {
       misses.current = 0;
     }
 
-    setNowPlaying((prev) => ({ ...prev, [did]: next }));
+    setNowPlaying((prev) => ({ ...prev, [did]: reconcile(prev[did], next) }));
   }, [did, setNowPlaying]);
 
   const refreshRef = useRef(refresh);
