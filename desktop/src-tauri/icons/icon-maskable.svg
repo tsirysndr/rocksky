@@ -17,11 +17,23 @@
     <clipPath id="squircle">
       <rect x="100" y="100" width="824" height="824" rx="184"/>
     </clipPath>
-    <filter id="neon" x="-40%" y="-40%" width="180%" height="180%">
+    <filter id="neon" x="-40%" y="-40%" width="180%" height="180%"
+            color-interpolation-filters="sRGB">
       <feGaussianBlur stdDeviation="14"/>
     </filter>
-    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="14" stdDeviation="26" flood-color="#000000" flood-opacity="0.35"/>
+    <!-- feDropShadow expanded to primitives: Inkscape/librsvg/resvg drop the
+         whole filtered group when they meet feDropShadow, which erases the
+         white note and leaves only the neon halos -->
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"
+            color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="26" result="blur"/>
+      <feOffset in="blur" dx="0" dy="14" result="shadowShape"/>
+      <feFlood flood-color="#000000" flood-opacity="0.35" result="shadowColor"/>
+      <feComposite in="shadowColor" in2="shadowShape" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
 
