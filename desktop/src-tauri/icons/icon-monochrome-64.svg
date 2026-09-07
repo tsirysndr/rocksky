@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
+     fill="currentColor">
+  <!-- The beamed eighth-note pair from icon.svg with the badge, gradients and
+       neon halos dropped, flattened to a single fill for tray/menu-bar/mask use.
+       The note's own bounding box centres on (520,510), not (512,512), so it is
+       recentred before scaling. -->
+  <g transform="translate(512,512) scale(1.7) translate(-520,-510)">
+    <ellipse cx="392" cy="682" rx="86" ry="64" transform="rotate(-16 392 682)"/>
+    <ellipse cx="648" cy="650" rx="86" ry="64" transform="rotate(-16 648 650)"/>
+    <path d="M 432 672 L 432 330 L 470 326 L 470 668 Z"/>
+    <path d="M 688 640 L 688 300 L 726 296 L 726 636 Z"/>
+    <path d="M 432 306 L 726 272 L 726 366 L 432 400 Z"/>
+  </g>
+</svg>
