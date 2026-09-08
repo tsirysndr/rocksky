@@ -1,4 +1,4 @@
-import { IconUser } from "@tabler/icons-react";
+import { IconTelescope, IconUser } from "@tabler/icons-react";
 import { Avatar } from "baseui/avatar";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
@@ -34,6 +34,15 @@ function Navbar() {
         </Link>
 
         <div className="flex-1" />
+
+        <Link
+          to="/explore"
+          aria-label="Explore"
+          className="flex items-center justify-center p-1 mr-1 no-underline"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          <IconTelescope size={22} stroke={1.8} />
+        </Link>
 
         {profile && jwt ? (
           <button

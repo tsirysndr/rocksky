@@ -7,6 +7,7 @@ import MirrorsPage from "./pages/mirrors";
 import StoragePage from "./pages/storage";
 import ArtistPage from "./pages/artist";
 import Charts from "./pages/charts";
+import ExplorerPage from "./pages/explorer";
 import HomePage from "./pages/home";
 import LibraryPage from "./pages/library";
 import LibraryAlbumPage from "./pages/library/album";
@@ -28,6 +29,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/charts" element={<Charts />} />
+        <Route path="/explore" element={<ExplorerPage />} />
         {/* Recommendations is temporarily hidden. */}
         {false && (
           <Route path="/recommendations" element={<Recommendations />} />
