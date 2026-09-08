@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import useSWR from "swr";
 import {
   getAlbumChart,
   getArtistChart,
@@ -16,78 +15,45 @@ export const useScrobblesChartQuery = () =>
     select: (data) => data.scrobbles || [],
   });
 
-export const useSongChartQuery = (uri: string) =>
+// getScrobblesChart falls back to the site-wide chart when its filter param is
+// missing, so every scoped query must stay disabled until it has one.
+export const useSongChartQuery = (uri?: string) =>
   useQuery({
     queryKey: ["songChart", uri],
-    queryFn: () => getSongChart(uri),
+    queryFn: () => getSongChart(uri!),
+    enabled: !!uri,
     select: (data) => data.scrobbles || [],
   });
 
-export const useArtistChartQuery = (uri: string) =>
+export const useArtistChartQuery = (uri?: string) =>
   useQuery({
     queryKey: ["artistChart", uri],
-    queryFn: () => getArtistChart(uri),
+    queryFn: () => getArtistChart(uri!),
+    enabled: !!uri,
     select: (data) => data.scrobbles || [],
   });
 
-export const useAlbumChartQuery = (uri: string) =>
+export const useAlbumChartQuery = (uri?: string) =>
   useQuery({
     queryKey: ["albumChart", uri],
-    queryFn: () => getAlbumChart(uri),
+    queryFn: () => getAlbumChart(uri!),
+    enabled: !!uri,
     select: (data) => data.scrobbles || [],
   });
 
-export const useProfileChartQuery = (did: string) =>
+export const useProfileChartQuery = (did?: string) =>
   useQuery({
     queryKey: ["profileChart", did],
-    queryFn: () => getProfileChart(did),
+    queryFn: () => getProfileChart(did!),
+    enabled: !!did,
     select: (data) => data.scrobbles || [],
   });
 
-export const useGenreChartQuery = (genre: string) =>
+export const useGenreChartQuery = (genre?: string) =>
   useQuery({
     queryKey: ["genreChart", genre],
-    queryFn: () => getGenreChart(genre),
+    queryFn: () => getGenreChart(genre!),
+    enabled: !!genre,
     select: (data) => data.scrobbles || [],
   });
 
-function useChart() {
-  const { data: scrobblesChart } = useSWR(
-    "/xrpc/app.rocksky.charts.getScrobblesChart",
-    () => rocksky().scrobblesChart({}),
-  );
-
-  const getScrobblesChart = () => {
-    return scrobblesChart?.scrobbles || [];
-  };
-
-  const getSongChart = async (uri: string) => {
-    const data = await rocksky().scrobblesChart({ songuri: uri });
-    return data.scrobbles ?? [];
-  };
-
-  const getArtistChart = async (uri: string) => {
-    const data = await rocksky().scrobblesChart({ artisturi: uri });
-    return data.scrobbles ?? [];
-  };
-
-  const getAlbumChart = async (uri: string) => {
-    const data = await rocksky().scrobblesChart({ albumuri: uri });
-    return data.scrobbles ?? [];
-  };
-
-  const getProfileChart = async (did: string) => {
-    const data = await rocksky().scrobblesChart({ did });
-    return data.scrobbles ?? [];
-  };
-
-  return {
-    getScrobblesChart,
-    getSongChart,
-    getArtistChart,
-    getAlbumChart,
-    getProfileChart,
-  };
-}
-
-export default useChart;

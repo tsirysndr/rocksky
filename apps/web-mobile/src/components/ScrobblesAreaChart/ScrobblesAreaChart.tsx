@@ -1,3 +1,4 @@
+import type { ChartsScrobbleViewBasic } from "@rocksky/sdk";
 import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
@@ -22,10 +23,15 @@ const formatXAxis = (tickItem: string) => dayjs(tickItem).format("MMM D");
 function ScrobblesAreaChart() {
   const { pathname } = useLocation();
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
-  const [data, setData] = useState<{ date: string; count: number }[]>([]);
+  const [data, setData] = useState<ChartsScrobbleViewBasic[]>([]);
 
   useEffect(() => {
     if (pathname === "/") return;
+
+    // scrobblesChart falls back to the site-wide chart when no filter param is
+    // set, so only call it once a scope is resolved — and drop late responses
+    // from a route we already navigated away from.
+    let cancelled = false;
 
     const fetchChart = async (opts: {
       did?: string;
@@ -35,11 +41,15 @@ function ScrobblesAreaChart() {
     }) => {
       try {
         const res = await rocksky().scrobblesChart(opts);
-        setData(res as unknown as { date: string; count: number }[]);
+        if (!cancelled) {
+          setData(res.scrobbles ?? []);
+        }
       } catch {
         // ignore
       }
     };
+
+    setData([]);
 
     if (pathname.startsWith("/profile") && did) {
       fetchChart({ did });
@@ -52,6 +62,10 @@ function ScrobblesAreaChart() {
     } else if (pathname.includes("app.rocksky.scrobble") && did && rkey) {
       fetchChart({ songuri: `at://${did}/app.rocksky.scrobble/${rkey}` });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, did, rkey]);
 
   if (!data.length) return null;

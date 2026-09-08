@@ -1,11 +1,16 @@
-import type { ChartsScrobbleViewBasic } from "@rocksky/sdk";
 import { Link, useParams, useRouter } from "@tanstack/react-router";
 import { LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
 import numeral from "numeral";
-import { useEffect, useState } from "react";
 import { Area, AreaChart, Tooltip, TooltipProps, XAxis } from "recharts";
-import useChart, { useGenreChartQuery } from "../../hooks/useChart";
+import {
+  useAlbumChartQuery,
+  useArtistChartQuery,
+  useGenreChartQuery,
+  useProfileChartQuery,
+  useScrobblesChartQuery,
+  useSongChartQuery,
+} from "../../hooks/useChart";
 
 const CustomTooltip = ({
   active,
@@ -35,95 +40,84 @@ const CustomTooltip = ({
 };
 const formatXAxis = (tickItem: string) => dayjs(tickItem).format("MMM D");
 
+type Scope =
+  | { kind: "global" }
+  | { kind: "profile"; did: string }
+  | { kind: "genre"; genre: string }
+  | { kind: "artist"; uri: string }
+  | { kind: "album"; uri: string }
+  | { kind: "song"; uri: string };
+
+// /library/{artist,album,playlist}/$id has no did/rkey, so those keep the
+// site-wide chart and never fall into the entity branches below.
+const resolveScope = (
+  pathname: string,
+  params: { did?: string; rkey?: string; id?: string },
+): Scope => {
+  const { did, rkey, id } = params;
+
+  if (pathname.startsWith("/profile") && did) {
+    return { kind: "profile", did };
+  }
+
+  if (pathname.startsWith("/genre/") && id) {
+    return { kind: "genre", genre: id };
+  }
+
+  if (did && rkey) {
+    if (pathname.includes("/artist/")) {
+      return { kind: "artist", uri: `at://${did}/app.rocksky.artist/${rkey}` };
+    }
+    if (pathname.includes("/album/")) {
+      return { kind: "album", uri: `at://${did}/app.rocksky.album/${rkey}` };
+    }
+    if (pathname.includes("/song/")) {
+      return { kind: "song", uri: `at://${did}/app.rocksky.song/${rkey}` };
+    }
+    if (pathname.includes("/scrobble/")) {
+      return { kind: "song", uri: `at://${did}/app.rocksky.scrobble/${rkey}` };
+    }
+  }
+
+  return { kind: "global" };
+};
+
 function ScrobblesAreaChart() {
-  const {
-    getScrobblesChart,
-    getAlbumChart,
-    getArtistChart,
-    getSongChart,
-    getProfileChart,
-  } = useChart();
   const {
     state: {
       location: { pathname },
     },
   } = useRouter();
-  const { did, rkey, id: genre } = useParams({ strict: false });
-  const [data, setData] = useState<ChartsScrobbleViewBasic[]>([]);
-  const { data: genreCharts } = useGenreChartQuery(genre!);
+  const { did, rkey, id } = useParams({ strict: false });
+  const scope = resolveScope(pathname, { did, rkey, id });
 
-  useEffect(() => {
-    setData(genreCharts ?? []);
-  }, [genreCharts]);
+  const { data: globalChart } = useScrobblesChartQuery();
+  const { data: profileChart } = useProfileChartQuery(
+    scope.kind === "profile" ? scope.did : undefined,
+  );
+  const { data: genreChart } = useGenreChartQuery(
+    scope.kind === "genre" ? scope.genre : undefined,
+  );
+  const { data: artistChart } = useArtistChartQuery(
+    scope.kind === "artist" ? scope.uri : undefined,
+  );
+  const { data: albumChart } = useAlbumChartQuery(
+    scope.kind === "album" ? scope.uri : undefined,
+  );
+  const { data: songChart } = useSongChartQuery(
+    scope.kind === "song" ? scope.uri : undefined,
+  );
 
-  useEffect(() => {
-    const fetchScrobblesChart = async () => {
-      if (
-        pathname === "/" ||
-        pathname === "/charts" ||
-        pathname === "/analytics" ||
-        pathname === "/explore" ||
-        pathname === "/recommendations"
-      ) {
-        return;
-      }
+  const scopedChart = {
+    global: globalChart,
+    profile: profileChart,
+    genre: genreChart,
+    artist: artistChart,
+    album: albumChart,
+    song: songChart,
+  }[scope.kind];
 
-      if (pathname.startsWith("/profile")) {
-        const charts = await getProfileChart(did!);
-        setData(charts);
-        return;
-      }
-
-      if (pathname.includes("/artist/")) {
-        const charts = await getArtistChart(
-          `at://${did}/app.rocksky.artist/${rkey}`,
-        );
-        setData(charts);
-        return;
-      }
-
-      if (pathname.includes("/album/")) {
-        const charts = await getAlbumChart(
-          `at://${did}/app.rocksky.album/${rkey}`,
-        );
-        setData(charts);
-        return;
-      }
-
-      if (pathname.includes("/song/")) {
-        const charts = await getSongChart(
-          `at://${did}/app.rocksky.song/${rkey}`,
-        );
-        setData(charts);
-        return;
-      }
-
-      if (pathname.includes("/scrobble/")) {
-        const charts = await getSongChart(
-          `at://${did}/app.rocksky.scrobble/${rkey}`,
-        );
-        setData(charts);
-        return;
-      }
-    };
-    fetchScrobblesChart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
-  const chartData =
-    pathname === "/" ||
-    pathname === "/charts" ||
-    pathname === "/analytics" ||
-    pathname === "/explore" ||
-    pathname === "/tos" ||
-    pathname === "/mirrors" ||
-    pathname === "/recommendations" ||
-    pathname.startsWith("/library") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/dropbox") ||
-    (pathname.startsWith("/googledrive") && getScrobblesChart().length > 0)
-      ? getScrobblesChart()
-      : data;
+  const chartData = scopedChart ?? [];
 
   return (
     <>
