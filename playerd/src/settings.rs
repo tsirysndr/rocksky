@@ -38,9 +38,15 @@ use rocksky_sdk::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::autodj::AutoDj;
 use crate::engine::{Engine, EngineCmd};
 
 const SETTINGS_COLLECTION: &str = "app.rocksky.rockbox.audio.settings";
+
+/// The `crossfade.mode` value that hands the transition to Auto DJ. A player
+/// without Auto DJ reads it as an unknown mode and falls back to "off", which
+/// is exactly the documented behaviour for a value it does not know.
+pub const AUTO_DJ_MODE: &str = "auto";
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 #[serde(default, rename_all = "camelCase")]
@@ -653,25 +659,52 @@ pub async fn fetch_audio_settings(
 pub struct SettingsSync {
     baseline: Baseline,
     last: Mutex<RemoteAudioSettings>,
+    /// Auto DJ owns the crossfade while it is on, so the applier hands the
+    /// crossfade section over instead of programming a fixed fade.
+    autodj: Arc<AutoDj>,
 }
 
 impl SettingsSync {
-    pub fn new(baseline: Baseline) -> Self {
+    pub fn new(baseline: Baseline, autodj: Arc<AutoDj>) -> Self {
         SettingsSync {
             baseline,
             last: Mutex::new(RemoteAudioSettings::default()),
+            autodj,
         }
     }
 
     /// Merge `view` into the accumulated state and apply the sections that
     /// changed.
     pub fn apply(&self, engine: &Engine, view: &RemoteAudioSettings) {
-        let changed = {
+        let mut changed = {
             let mut last = self.last.lock().unwrap();
             merge_diff(&mut last, view)
         };
         if changed.is_empty() {
             return;
+        }
+        // `crossfade.mode = "auto"` is Auto DJ's switch. Taking the section out
+        // of the document is what keeps the fixed-fade applier from reading
+        // "auto" as an unknown mode and turning crossfade off underneath it.
+        if let Some(crossfade) = &changed.crossfade {
+            if crossfade.mode.as_deref() == Some(AUTO_DJ_MODE) {
+                let overlap = crossfade.fade_out_duration.or(crossfade.fade_in_duration);
+                if self.autodj.enable(overlap) {
+                    tracing::info!(
+                        overlap_ms = self.autodj.overlap_ms(),
+                        "auto dj enabled by audio settings"
+                    );
+                }
+                changed.crossfade = None;
+                if changed.is_empty() {
+                    return;
+                }
+            } else if self.autodj.disable() {
+                tracing::info!(
+                    "auto dj disabled: crossfade mode is now {:?}",
+                    crossfade.mode
+                );
+            }
         }
         apply(engine, &self.baseline, &changed);
     }

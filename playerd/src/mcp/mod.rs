@@ -9,8 +9,11 @@
 //! Three planes, one server:
 //! - [`state`] — devices, transport and queues, over the remote WebSocket;
 //! - [`subsonic`] — the listener's library, for finding something to play;
-//! - [`rocksky`] — history and recommendations, for deciding what that is.
+//! - [`rocksky`] — history and recommendations, for deciding what that is;
+//! - [`analyzer`] — what the music actually sounds like, for Auto DJ and for
+//!   planning a set that flows.
 
+mod analyzer;
 mod protocol;
 mod rocksky;
 mod server;

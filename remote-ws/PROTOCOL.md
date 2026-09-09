@@ -268,21 +268,21 @@ Player devices execute these (see §6).
 
 ## 6. Commands (what a player device must handle)
 
-| `action`       | `args`                                                             | Meaning |
-| -------------- | ----------------------------------------------------------------- | ------- |
-| `play`         | —                                                                 | Resume  |
-| `pause`        | —                                                                 | Pause   |
-| `next`         | —                                                                 | Next track |
-| `previous`     | —                                                                 | Previous track |
-| `seek`         | `{ "position": <ms> }`                                            | Seek to position |
-| `queue_jump`   | `{ "index": <n> }`                                               | Jump to queue index |
-| `queue_remove` | `{ "index": <n> }`                                               | Remove queue item |
-| `queue_move`   | `{ "from": <n>, "to": <n> }`                                     | Move queue item `from` so it ends up at index `to` (arrayMove semantics) |
-| `enqueue`      | `{ "tracks": [descriptor…], "mode": "now"\|"next"\|"last", "shuffle"?: bool, "startIndex"?: <n> }` | Play / play-next / append tracks (an album or a single track) |
-| `shuffle`      | `{ "enabled": bool }`                                            | Turn queue shuffle on/off |
-| `repeat`       | `{ "mode": "off"\|"all"\|"one" }`                                | Set queue repeat mode |
-| `volume`       | `{ "volume": 0.0–1.0 }`                                          | Set output volume |
-| `audio_settings` | a partial settings document — see §6.1                         | Apply DSP settings |
+| `action`         | `args`                                                                                             | Meaning                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `play`           | —                                                                                                  | Resume                                                                   |
+| `pause`          | —                                                                                                  | Pause                                                                    |
+| `next`           | —                                                                                                  | Next track                                                               |
+| `previous`       | —                                                                                                  | Previous track                                                           |
+| `seek`           | `{ "position": <ms> }`                                                                             | Seek to position                                                         |
+| `queue_jump`     | `{ "index": <n> }`                                                                                 | Jump to queue index                                                      |
+| `queue_remove`   | `{ "index": <n> }`                                                                                 | Remove queue item                                                        |
+| `queue_move`     | `{ "from": <n>, "to": <n> }`                                                                       | Move queue item `from` so it ends up at index `to` (arrayMove semantics) |
+| `enqueue`        | `{ "tracks": [descriptor…], "mode": "now"\|"next"\|"last", "shuffle"?: bool, "startIndex"?: <n> }` | Play / play-next / append tracks (an album or a single track)            |
+| `shuffle`        | `{ "enabled": bool }`                                                                              | Turn queue shuffle on/off                                                |
+| `repeat`         | `{ "mode": "off"\|"all"\|"one" }`                                                                  | Set queue repeat mode                                                    |
+| `volume`         | `{ "volume": 0.0–1.0 }`                                                                            | Set output volume                                                        |
+| `audio_settings` | a partial settings document — see §6.1                                                             | Apply DSP settings                                                       |
 
 An `enqueue` **descriptor** is a track the controller resolved for you:
 
@@ -331,28 +331,41 @@ so a controller changing only the EQ sends only `equalizer`.
 
 Enumerated values: `channels` is `stereo` | `mono` | `custom` | `monoLeft` |
 `monoRight` | `karaoke` | `swap`; `crossfade.mode` is `off` | `enabled` |
-`shuffle` | `albumChange` | `trackChange`; `fadeOutMixMode` is `crossfade` |
-`mix`; `replayGain.mode` is `off` | `track` | `album` | `trackIfShuffling`;
-`crossfeed.mode` is `off` | `meier` | `custom`. Treat an unknown value as the
-`off`/default member rather than rejecting the document.
+`shuffle` | `albumChange` | `trackChange` | `auto`; `fadeOutMixMode` is
+`crossfade` | `mix`; `replayGain.mode` is `off` | `track` | `album` |
+`trackIfShuffling`; `crossfeed.mode` is `off` | `meier` | `custom`. Treat an
+unknown value as the `off`/default member rather than rejecting the document.
+
+#### `crossfade.mode: "auto"` — Auto DJ
+
+`auto` asks the player to derive each transition from the audio itself rather
+than from fixed times: analyse the outgoing and incoming tracks, and place the
+fade so it ends where the music ends instead of running through the silence
+after it. `fadeOutDuration` (or `fadeInDuration`) carries the desired
+music-over-music overlap in ms; the delay fields are ignored, since the player
+computes them per transition.
+
+This is deliberately a *mode* and not a new action: a player that has never
+heard of Auto DJ reads an unknown enum value, falls back to `off` per the rule
+above, and keeps playing. `playerd` implements it; other players may not.
 
 Units are the same as the `app.rocksky.rockbox.audio.settings` record, so a
 settings UI can put its saved document straight on the wire:
 
-| field | unit |
-|---|---|
-| EQ `gain`, `precut` | tenths of a dB (`precut` ≤ 0) |
-| EQ `q` | Q × 10 |
-| EQ `frequency` | Hz |
-| `bass`, `treble` | whole dB |
-| `bassCutoff`, `trebleCutoff` | Hz |
-| crossfade fade times | milliseconds |
-| `balance`, `stereoWidth` | percent |
-| ReplayGain `preamp` | tenths of a dB |
-| crossfeed gains | tenths of a dB |
-| `cutoff` | Hz |
-| compressor `attack`, `release` | milliseconds |
-| surround `delay` | milliseconds |
+| field                          | unit                          |
+| ------------------------------ | ----------------------------- |
+| EQ `gain`, `precut`            | tenths of a dB (`precut` ≤ 0) |
+| EQ `q`                         | Q × 10                        |
+| EQ `frequency`                 | Hz                            |
+| `bass`, `treble`               | whole dB                      |
+| `bassCutoff`, `trebleCutoff`   | Hz                            |
+| crossfade fade times           | milliseconds                  |
+| `balance`, `stereoWidth`       | percent                       |
+| ReplayGain `preamp`            | tenths of a dB                |
+| crossfeed gains                | tenths of a dB                |
+| `cutoff`                       | Hz                            |
+| compressor `attack`, `release` | milliseconds                  |
+| surround `delay`               | milliseconds                  |
 
 EQ `bands` is positional — index 0 is the lowest band. Band centre frequencies
 are the fixed rockbox band table keyed by index, so a player should trust the

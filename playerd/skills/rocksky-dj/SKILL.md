@@ -1,6 +1,6 @@
 ---
 name: rocksky-dj
-description: Play and DJ real music on Rocksky players (playerd daemons, the desktop app, web miniplayers) through the playerd MCP server. Use when asked to put music on, play an album or artist, build or extend a queue, DJ a set for a mood or an occasion, skip/pause/seek, change volume, shuffle or repeat, adjust the equalizer or crossfade, or answer "what's playing?". Also covers installing playerd and registering its MCP server when the tools are not available yet.
+description: Play and DJ real music on Rocksky players (playerd daemons, the desktop app, web miniplayers) through the playerd MCP server. Use when asked to put music on, play an album or artist, build or extend a queue, DJ a set for a mood or an occasion, mix tracks with beat- and key-aware transitions (Auto DJ), analyse what a track sounds like (tempo, key, loudness, energy), skip/pause/seek, change volume, shuffle or repeat, adjust the equalizer or crossfade, or answer "what's playing?". Also covers installing playerd and registering its MCP server when the tools are not available yet.
 ---
 
 # Rocksky DJ
@@ -100,11 +100,11 @@ playlist in order.
 
 Modes matter:
 
-| mode | effect |
-|---|---|
-| `now` | replaces the queue and starts playing — takes over the room |
+| mode   | effect                                                         |
+| ------ | -------------------------------------------------------------- |
+| `now`  | replaces the queue and starts playing — takes over the room    |
 | `next` | inserts after the current track — the classic "play this next" |
-| `last` | appends — extends a set without interrupting it |
+| `last` | appends — extends a set without interrupting it                |
 
 Default to `last` or `next` when something is already playing. Use `now` when
 the listener asked for a change of direction, and say so.
@@ -136,6 +136,60 @@ A request like "put on something for cooking dinner" is a brief, not a search.
 While a set runs: `next_track` to drop a track, `queue_remove` to pull one that
 has not played yet, `queue_move` to reorder, `enqueue` with `next` to slot in a
 request, `clear_queue` (keeps the current track by default) to start over.
+
+## Mixing it properly
+
+Three tools turn a playlist into a set. They cost real time on first use — the
+player downloads and decodes each track once — so reach for them when the
+listener asked for a *set*, not when they asked for one song.
+
+**`set_auto_dj`** hands the transitions to the player. It analyses what is
+playing and what is next and fades out where the music ends rather than
+through the silence after it. Turn it on for anything continuous — a party, a
+dinner, a work session — and leave it off for albums meant to be heard with
+their gaps, or spoken word.
+
+```
+set_auto_dj { device: "Living Room", enabled: true, overlap_seconds: 6 }
+```
+
+Long overlaps (8–12 s) suit dance music; 3–4 s suits songs; off suits an album
+that was sequenced deliberately.
+
+**`plan_set`** orders candidates so the set flows. Hand it more tracks than you
+need — 20 candidates for a 10-track set — and it analyses each, then sequences
+them by tempo, key and energy:
+
+- `smooth` (default) — every transition as easy as possible
+- `build` — energy rises through the set
+- `wind_down` — energy falls
+- `arc` — builds to a peak two-thirds in, then comes down
+
+It returns `trackIds` in order. Pass them straight to `enqueue` (order is
+preserved) and **do not** also pass `shuffle` — that throws the sequencing
+away. Each step also reports what the transition does (`bpmChange`,
+`keysCompatible`, `energyChange`), which is what to quote when explaining a
+set.
+
+**`analyze_tracks`** answers "what is this actually like?" — loudness, where
+the music starts and ends, tempo, key, dynamic range, energy. Use it to answer
+questions ("is this album mastered loud?", "what BPM is this?") or to pick by
+feel rather than by genre tag. `cached_only: true` gives instant answers for
+tracks already analysed and skips the download for the rest.
+
+A full DJ pass looks like this:
+
+1. `get_listening_history` and `get_recommendations` for material
+2. `search_library` / `browse_songs` to turn names into ids
+3. `plan_set` with a shape and a length
+4. `enqueue` the returned `trackIds`
+5. `set_auto_dj` so the transitions match the sequencing
+
+Caveats worth knowing: BPM detection can land an octave out, so compare
+`danceBpm` (folded to 70–140) rather than raw `bpm`; a few AAC files cannot be
+decoded for analysis and are reported under `unavailable`; and analysis of a
+track the player has never seen takes a second or two, so a first `plan_set`
+over 20 unseen tracks is not instant.
 
 ## Sound
 
@@ -169,6 +223,7 @@ steps and never to 1.0 unprompted.
 - **Taste** — `whoami`, `get_recommendations`, `get_listening_history`
 - **Sound** — `get_audio_settings`, `set_equalizer`, `set_audio_settings`,
   `list_equalizer_presets`, `apply_equalizer_preset`
+- **Mixing** — `set_auto_dj`, `plan_set`, `analyze_tracks`
 
 ## When something is off
 
@@ -181,6 +236,9 @@ steps and never to 1.0 unprompted.
 - **Commands do nothing** — check `get_player_state`: a player that has gone
   offline still lingers briefly in the device list.
 - **Auth failures** — the access token expired; `rocksky login` again.
+- **A track shows up as `unavailable` from analysis** — some AAC files cannot
+  be decoded for analysis. It still plays; only its transition falls back to a
+  plain crossfade.
 - **Nothing audible on a headless box** — playerd logs `NoOutputDevice` when
   ALSA/PipeWire has no usable sink; it needs `--output` pointed somewhere real.
   That is a shell fix on that machine, not something these tools can do.

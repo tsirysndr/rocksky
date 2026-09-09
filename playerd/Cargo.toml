@@ -15,15 +15,19 @@ description = "Rocksky remote player daemon — a headless rockbox-playback devi
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
 dirs = "6"
+ebur128 = "0.1"
 gethostname = "1"
 jsonrpsee-core = { version = "0.26.0", features = ["server"] }
 jsonrpsee-types = "0.26.0"
+oximedia-mir = { version = "0.2.1", default-features = false, features = ["tempo", "key"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 rockbox-metadata = "0.1"
 rockbox-playback = "0.6"
 rocksky-sdk = {version = "0.11.2", path = "../crates/rocksky-sdk", features = ["remote-player", "jetstream-core"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sqlx = { version = "0.8.3", default-features = false, features = ["sqlite", "runtime-tokio", "tls-none"] }
+symphonia = { version = "0.6", default-features = false, features = ["flac", "mp3", "aac", "alac", "isomp4", "vorbis", "ogg", "wav", "aiff", "pcm", "adpcm"] }
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "signal", "sync", "time"] }
 toml = "0.8"
 tracing = "0.1"

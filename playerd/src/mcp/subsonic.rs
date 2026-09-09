@@ -35,6 +35,8 @@ pub struct Song {
     pub year: Option<i64>,
     pub album_id: Option<String>,
     pub artist_id: Option<String>,
+    /// Container extension ("flac", "m4a", …) — the decoder's format hint.
+    pub suffix: Option<String>,
 }
 
 impl Song {
@@ -55,6 +57,7 @@ impl Song {
                 .get("artistId")
                 .and_then(Value::as_str)
                 .map(str::to_string),
+            suffix: v.get("suffix").and_then(Value::as_str).map(str::to_string),
         }
     }
 
@@ -459,6 +462,16 @@ impl Subsonic {
             .map(Song::from_value)
             .collect();
         Ok((Playlist::from_value(&playlist), songs))
+    }
+
+    /// A direct stream URL for `id`. `format=raw` asks for the original file
+    /// rather than a transcode, so the analysis measures the master the player
+    /// will actually play.
+    pub fn stream_url(&self, id: &str) -> String {
+        format!(
+            "{}/rest/stream?u={}&p={}&c=playerd-mcp&v=1.16.1&format=raw&id={}",
+            self.base, self.creds.handle, self.creds.api_key, id
+        )
     }
 
     /// Best library match for a loosely described track — what turns a

@@ -4,6 +4,8 @@
 //! up in the web/desktop miniplayer device picker and plays whatever gets
 //! sent to it through the local rockbox-playback engine.
 
+mod analysis;
+mod autodj;
 mod config;
 mod engine;
 mod mcp;
@@ -16,7 +18,7 @@ mod settings;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
 use rocksky_sdk::{RemotePlayer, RemotePlayerConfig};
 use tracing_subscriber::EnvFilter;
@@ -58,6 +60,16 @@ enum Command {
     /// Run a Model Context Protocol server on stdio, so an AI agent can drive
     /// your Rocksky players
     Mcp,
+    /// Analyse local audio files — loudness, music edges, tempo, key, energy
+    /// — and print the result. This is what Auto DJ reads.
+    Analyze {
+        /// Audio files (or directories) to analyse
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+        /// Print the raw JSON instead of a summary
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[tokio::main]
@@ -65,15 +77,15 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     let mcp_mode = matches!(cli.command, Some(Command::Mcp));
 
-    // In MCP mode stdout carries the protocol and nothing else.
-    let logs = tracing_subscriber::fmt().with_env_filter(
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| "playerd=info".into()),
-    );
-    if mcp_mode {
-        logs.with_writer(std::io::stderr).init();
-    } else {
-        logs.init();
-    }
+    // Always stderr: stdout belongs to whatever the invocation put there —
+    // the MCP protocol under `playerd mcp`, raw PCM under `-o stdout`. Logs
+    // interleaved into either one corrupt it.
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| "playerd=info".into()),
+        )
+        .with_writer(std::io::stderr)
+        .init();
 
     let mut config = Config::load(cli.config.as_deref())?;
     if let Some(name) = &cli.name {
@@ -92,6 +104,11 @@ async fn main() -> Result<()> {
     if let Some(output) = &cli.output {
         config.output = output.clone();
     }
+    // Analysing local files needs neither an account nor a network.
+    if let Some(Command::Analyze { paths, json }) = &cli.command {
+        return analyze_files(&config, paths, *json).await;
+    }
+
     let token = config.resolve_token(cli.token.clone())?;
     let name = config.effective_name();
 
@@ -125,7 +142,16 @@ async fn main() -> Result<()> {
     }
     let audio_baseline = settings::Baseline::from_player_config(&player_config);
     let engine = Arc::new(Engine::start(player_config).map_err(|e| anyhow!(e))?);
-    let settings_sync = Arc::new(settings::SettingsSync::new(audio_baseline));
+
+    let cache = analysis::cache::AnalysisCache::open(&config.analysis_db_path()).await?;
+    match cache.prune(config.autodj.cache_entries).await {
+        Ok(0) => {}
+        Ok(dropped) => tracing::debug!("pruned {dropped} analysis cache row(s)"),
+        Err(e) => tracing::warn!("could not prune the analysis cache: {e:#}"),
+    }
+    tracing::info!("analysis cache: {} track(s)", cache.len().await);
+    let autodj = Arc::new(autodj::AutoDj::new(&config, cache));
+    let settings_sync = Arc::new(settings::SettingsSync::new(audio_baseline, autodj.clone()));
 
     if config.sync_audio_settings {
         tokio::spawn(settings::sync(
@@ -207,6 +233,7 @@ async fn main() -> Result<()> {
         tracing::info!("scrobbling disabled by config");
     }
 
+    tokio::spawn(autodj::run(shared.clone(), autodj));
     tokio::spawn(remote::command_loop(
         shared.clone(),
         Resolver::new(&config, token),
@@ -225,5 +252,44 @@ async fn main() -> Result<()> {
     tokio::signal::ctrl_c().await?;
     tracing::info!("shutting down");
     shared.remote.disconnect();
+    Ok(())
+}
+
+/// `playerd analyze` — run the Auto DJ analysis over local files and print it.
+/// Results land in the same cache the daemon reads, so analysing an album up
+/// front means Auto DJ has nothing left to compute when it plays.
+async fn analyze_files(config: &Config, paths: &[PathBuf], json: bool) -> Result<()> {
+    let (uris, _) = resolver::scan_local(paths)?;
+    if uris.is_empty() {
+        return Err(anyhow!("no playable audio in the given paths"));
+    }
+    let cache = analysis::cache::AnalysisCache::open(&config.analysis_db_path()).await?;
+
+    for uri in uris {
+        let path = PathBuf::from(&uri);
+        let hint = path
+            .extension()
+            .map(|e| e.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let bytes = std::fs::read(&path).with_context(|| format!("reading {uri}"))?;
+        let target = config.autodj.target_lufs as f64;
+        let analyzed =
+            tokio::task::spawn_blocking(move || analysis::analyze(bytes, Some(&hint), target))
+                .await?;
+
+        match analyzed {
+            Ok(analysis) => {
+                if let Err(e) = cache.put(&uri, &analysis).await {
+                    tracing::warn!("could not cache {uri}: {e:#}");
+                }
+                if json {
+                    println!("{}", serde_json::to_string_pretty(&analysis)?);
+                } else {
+                    println!("{}\n{}\n", path.display(), analysis::summary(&analysis));
+                }
+            }
+            Err(e) => tracing::warn!("{uri}: {e:#}"),
+        }
+    }
     Ok(())
 }

@@ -112,6 +112,21 @@ impl Shared {
         }
     }
 
+    /// The stable identity of a queue entry, for the analysis cache. Stream
+    /// URLs carry a rotating token, so the library id is the only thing about
+    /// a remote track that stays the same between two plays.
+    pub fn analysis_key(&self, uri: &str) -> String {
+        if let Some(item) = self.uri_meta.lock().unwrap().get(uri) {
+            if !item.track_id.is_empty() {
+                return format!("track:{}", item.track_id);
+            }
+            if !item.upload_id.is_empty() {
+                return format!("upload:{}", item.upload_id);
+            }
+        }
+        format!("uri:{uri}")
+    }
+
     /// The queue as controllers should see it: the ENGINE's queue order, each
     /// URI mapped to the item it was enqueued as. An unknown URI (e.g. a
     /// resumed queue whose sidecar was lost) degrades to a filename-derived

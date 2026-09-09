@@ -26,6 +26,7 @@ socket — then control it from any Rocksky client.
 - [Audio output](#audio-output)
 - [Local playback](#local-playback)
 - [What is (and isn't) remotely controllable](#what-is-and-isnt-remotely-controllable)
+- [Auto DJ](#auto-dj)
 - [AI control: the MCP server](#ai-control-the-mcp-server)
 - [Running as a service](#running-as-a-service)
 - [Troubleshooting](#troubleshooting)
@@ -225,6 +226,15 @@ scrobble = true
 resume = true
 resume_path = "~/.rocksky/playerd-queue.m3u8"  # + a .meta.json sidecar beside it
 
+# Auto DJ: transitions derived from the audio instead of from a stopwatch.
+# Can also be turned on live from any controller — see "Auto DJ" below.
+[autodj]
+enabled = false
+overlap_seconds = 6      # music-over-music blend each transition aims for
+target_lufs = -14.0      # what the per-track gain recommendation aims at
+cache_path = "~/.rocksky/playerd-analysis.db"
+cache_entries = 5000     # oldest analyses past this are pruned at startup
+
 # Local DSP baseline; fields present in the synced atproto record win.
 [equalizer]
 # Saved EQ preset to load at startup: an AT URI to an app.rocksky.equalizer
@@ -256,24 +266,27 @@ The `[equalizer]` section uses the same keys and units as
 
 ### Environment variables
 
-| Variable | Meaning |
-|---|---|
-| `PLAYERD_CONFIG` | config file path |
-| `PLAYERD_NAME` | device name |
-| `PLAYERD_WS_URL` (or `ROCKSKY_WS`) | WebSocket URL |
-| `PLAYERD_API_URL` | API base URL |
-| `PLAYERD_OUTPUT` | output backend |
-| `ROCKSKY_TOKEN` | access token |
-| `RUST_LOG` | log filter (default `playerd=info`) |
+| Variable                           | Meaning                             |
+| ---------------------------------- | ----------------------------------- |
+| `PLAYERD_CONFIG`                   | config file path                    |
+| `PLAYERD_NAME`                     | device name                         |
+| `PLAYERD_WS_URL` (or `ROCKSKY_WS`) | WebSocket URL                       |
+| `PLAYERD_API_URL`                  | API base URL                        |
+| `PLAYERD_OUTPUT`                   | output backend                      |
+| `ROCKSKY_TOKEN`                    | access token                        |
+| `RUST_LOG`                         | log filter (default `playerd=info`) |
 
 ### CLI
 
 ```
 playerd [OPTIONS] [PATHS]...
 playerd mcp
+playerd analyze [--json] <PATHS>...
 
   PATHS                  audio files or directories to queue and play at startup
   mcp                    run an MCP server on stdio instead of a player
+  analyze                analyse local files (loudness, edges, tempo, key) and
+                         print the result, warming the Auto DJ cache
   -c, --config <PATH>    TOML config file
   -n, --name <NAME>      device name shown in the miniplayer picker
       --ws-url <URL>     remote-control WebSocket URL
@@ -287,13 +300,13 @@ playerd mcp
 The `output` setting (or `-o`/`PLAYERD_OUTPUT`) selects where decoded audio
 goes:
 
-| Spec | Behavior |
-|---|---|
-| `cpal` | the system's default audio device (default) |
-| `stdout` | raw interleaved S16LE stereo PCM on stdout |
-| `fifo:/path/to/pipe` | write PCM into an existing FIFO (`mkfifo` it first) |
-| `unix:/path/to.sock` | Unix socket |
-| `tcp:HOST:PORT` or `tcp::PORT` | TCP socket |
+| Spec                           | Behavior                                            |
+| ------------------------------ | --------------------------------------------------- |
+| `cpal`                         | the system's default audio device (default)         |
+| `stdout`                       | raw interleaved S16LE stereo PCM on stdout          |
+| `fifo:/path/to/pipe`           | write PCM into an existing FIFO (`mkfifo` it first) |
+| `unix:/path/to.sock`           | Unix socket                                         |
+| `tcp:HOST:PORT` or `tcp::PORT` | TCP socket                                          |
 
 Socket backends listen and **block startup until a client connects**. Example
 — pipe into ffmpeg:
@@ -324,6 +337,90 @@ What stays startup-only is everything the protocol has no command for: the
 output backend, `buffer_seconds`, `resume`, `scrobble` and
 `sync_audio_settings`. Changing those means editing `playerd.toml` and
 restarting the daemon.
+
+## Auto DJ
+
+Most players crossfade on a stopwatch: blend the last N seconds of one track
+into the first N of the next, whatever is in them. On real records that is
+often two seconds of room tone fading into a second of silence — the
+"crossfade" you hear is the gap.
+
+Auto DJ analyses both sides of the transition and programs the engine so the
+fade lands on the music: the outgoing ramp finishes where the last note does,
+and the incoming track's own lead-in is spent inside the blend instead of
+after it.
+
+```sh
+# in ~/.rocksky/playerd.toml
+[autodj]
+enabled = true
+overlap_seconds = 6
+```
+
+…or turn it on live from any controller — it is a crossfade mode, so it rides
+the existing `audio_settings` command:
+
+```json
+{ "type": "command", "action": "audio_settings",
+  "args": { "crossfade": { "mode": "auto", "fadeOutDuration": 6000 } } }
+```
+
+From an agent, that is `set_auto_dj` (see below). A player that predates Auto
+DJ reads `"auto"` as an unknown mode, falls back to "off", and keeps playing.
+
+### The analysis
+
+One decode pass per track, cached in SQLite
+(`~/.rocksky/playerd-analysis.db`) so a track is only ever analysed once:
+
+|                 |                                                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Loudness**    | EBU R128 integrated LUFS, true peak, loudness range, and the gain that would bring the track to `target_lufs` without clipping ([`ebur128`](https://crates.io/crates/ebur128)) |
+| **Edges**       | where the music actually starts and ends — what makes a transition land on music instead of silence                                                                            |
+| **Shape**       | a 200-bin peak waveform                                                                                                                                                        |
+| **Tempo & key** | BPM with confidence and stability, musical key and its Camelot code, for beat- and harmonic-matching ([`oximedia-mir`](https://crates.io/crates/oximedia-mir))                 |
+| **Energy**      | a 0–1 figure derived from loudness, tempo and dynamic range, for sequencing a set                                                                                              |
+
+Decoding for analysis uses [symphonia](https://crates.io/crates/symphonia)
+rather than the rockbox codecs the player itself uses: those keep global codec
+state behind a process-wide gate, so analysing the *next* track would block
+until the *current* one finished playing. The trade-off is that a few exotic
+AAC profiles symphonia cannot decode ("aac too complex") get no analysis, and
+their transitions fall back to a plain crossfade.
+
+Inspect it yourself — this also warms the cache, so an album analysed up front
+has nothing left to compute when it plays:
+
+```sh
+playerd analyze ~/Music/some-album          # summary per track
+playerd analyze --json track.flac           # the whole document
+```
+
+```
+01 - Radiohead - You.m4a
+  -14.5 LUFS  peak -0.94 dBTP  gain -0.1 dB  (2 ch @ 22050 Hz, 3:28)
+  music 0:01 → 3:26  (lead-in 1180 ms, tail 2613 ms)
+  149.0 BPM (89% confident)  key E minor (9A)  energy 0.39  range 5.9 LU
+```
+
+### How the fade is programmed
+
+Rockbox anchors the crossfade region to the **end of the outgoing file**: the
+region is `max(out_delay + out_duration, in_delay + in_duration)` long, and the
+outgoing ramp finishes `out_delay + out_duration` into it. So with `trailing`
+for the outgoing silent tail, `lead` for the incoming silent head and `overlap`
+for the blend you asked for:
+
+```
+out_delay    = 0                             the outgoing ramp runs for the
+out_duration = overlap                       last `overlap` of actual music
+
+in_delay     = lead                          the incoming fade starts when
+in_duration  = overlap + trailing − lead     its music does
+
+⇒ region − (out_delay + out_duration) = trailing
+  — the ramp ends exactly where the music ends.
+```
 
 ## AI control: the MCP server
 
@@ -358,16 +455,17 @@ command = "playerd"
 args = ["mcp"]
 ```
 
-The 32 tools cover the whole live surface:
+The 35 tools cover the whole live surface:
 
-| Group | Tools |
-|---|---|
-| Devices | `list_devices`, `get_player_state`, `set_primary_device` |
-| Transport | `play`, `pause`, `next_track`, `previous_track`, `seek`, `set_volume`, `set_playback_mode` |
-| Queue | `get_queue`, `enqueue`, `queue_jump`, `queue_remove`, `queue_move`, `clear_queue` |
-| Library | `search_library`, `get_album`, `get_artist`, `browse_songs`, `browse_albums`, `list_genres`, `list_playlists`, `get_playlist` |
-| Taste | `whoami`, `get_recommendations`, `get_listening_history` |
-| Sound | `get_audio_settings`, `set_equalizer`, `set_audio_settings`, `list_equalizer_presets`, `apply_equalizer_preset` |
+| Group     | Tools                                                                                                                         |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Devices   | `list_devices`, `get_player_state`, `set_primary_device`                                                                      |
+| Transport | `play`, `pause`, `next_track`, `previous_track`, `seek`, `set_volume`, `set_playback_mode`                                    |
+| Queue     | `get_queue`, `enqueue`, `queue_jump`, `queue_remove`, `queue_move`, `clear_queue`                                             |
+| Library   | `search_library`, `get_album`, `get_artist`, `browse_songs`, `browse_albums`, `list_genres`, `list_playlists`, `get_playlist` |
+| Taste     | `whoami`, `get_recommendations`, `get_listening_history`                                                                      |
+| Sound     | `get_audio_settings`, `set_equalizer`, `set_audio_settings`, `list_equalizer_presets`, `apply_equalizer_preset`               |
+| Auto DJ   | `set_auto_dj`, `analyze_tracks`, `plan_set`                                                                                   |
 
 Library lookups return an `id` on every track, and that id is what `enqueue`
 takes. Recommendations and listening history come back as names instead, so
@@ -379,6 +477,22 @@ resolution loop:
 "read what I've been listening to, build a 10-track set for cooking dinner,
  and queue it on the Living Room without interrupting what's on"
 ```
+
+`plan_set` takes that further: it analyses the candidates and orders them so
+tempo, key and energy move sensibly instead of lurching — a greedy walk over a
+transition cost of BPM stretch, Camelot compatibility and energy step, shaped
+by `smooth` / `build` / `wind_down` / `arc`. It hands back ordered ids for
+`enqueue`, plus what each transition will do:
+
+```
+0. Bullet Proof ... I Wish I  bpm  79.1  key 9B  energy 0.45
+1. Black Star                 bpm  79.1  key 9B  energy 0.59   Δbpm 0.0   keys OK
+2. My Iron Lung               bpm  97.4  key 9B  energy 0.62   Δbpm 18.3  keys OK
+3. Sulk                       bpm  97.4  key 10B energy 0.67   Δbpm 0.0   keys OK
+```
+
+Pair it with `set_auto_dj` and the agent picks the records while the player
+handles the mix.
 
 Startup-only settings — the output backend, `buffer_seconds`, `resume`,
 `scrobble`, `sync_audio_settings` — stay in `playerd.toml`; they are not
@@ -431,4 +545,11 @@ systemctl --user enable --now playerd
   an upload id nor a resolvable Navidrome id, or credential provisioning
   failed (check the log for `navidrome credentials unavailable`).
 - **Choppy start on remote tracks** — raise `buffer_seconds`.
-- Verbose logs: `RUST_LOG=playerd=debug,rocksky_sdk=debug playerd`.
+- **"aac too complex" from `analyze`** — symphonia cannot decode that AAC
+  profile, so the track gets no analysis and its transitions fall back to a
+  plain crossfade. Everything else about playback is unaffected.
+- **Auto DJ transitions sound ordinary at first** — the analysis of a newly
+  queued pair runs in the background; the transition after it is shaped.
+  `RUST_LOG=playerd=debug` logs each one it programs.
+- Verbose logs: `RUST_LOG=playerd=debug,rocksky_sdk=debug playerd` (all logs go
+  to stderr, so `-o stdout` stays pure PCM).

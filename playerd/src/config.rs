@@ -86,6 +86,40 @@ pub struct Config {
     /// track metadata and the ids needed to re-mint expired stream URLs.
     pub resume_path: String,
     pub equalizer: EqualizerConfig,
+    pub autodj: AutoDjConfig,
+}
+
+/// Content-aware transitions: analyse what is playing and what is next, then
+/// fade out of the music rather than out of the silence after it.
+#[derive(Deserialize, Clone)]
+#[serde(default)]
+pub struct AutoDjConfig {
+    /// Start with Auto DJ on. A controller can turn it on or off live by
+    /// sending `crossfade.mode = "auto"` (or any other mode) in an
+    /// `audio_settings` command.
+    pub enabled: bool,
+    /// How much music-over-music overlap a transition aims for, in seconds.
+    #[serde(deserialize_with = "lenient_f32")]
+    pub overlap_seconds: f32,
+    /// Loudness target the per-track gain recommendation is computed against.
+    #[serde(deserialize_with = "lenient_f32")]
+    pub target_lufs: f32,
+    /// Where the analysis cache lives.
+    pub cache_path: String,
+    /// Cached tracks to keep; the oldest are pruned past this at startup.
+    pub cache_entries: u64,
+}
+
+impl Default for AutoDjConfig {
+    fn default() -> Self {
+        AutoDjConfig {
+            enabled: false,
+            overlap_seconds: 6.0,
+            target_lufs: crate::analysis::DEFAULT_TARGET_LUFS as f32,
+            cache_path: "~/.rocksky/playerd-analysis.db".to_string(),
+            cache_entries: 5_000,
+        }
+    }
 }
 
 #[derive(Deserialize, Clone)]
@@ -163,6 +197,7 @@ impl Default for Config {
             resume: true,
             resume_path: "~/.rocksky/playerd-queue.m3u8".to_string(),
             equalizer: EqualizerConfig::default(),
+            autodj: AutoDjConfig::default(),
         }
     }
 }
@@ -317,6 +352,11 @@ impl Config {
     /// Absolute path of the metadata sidecar that sits beside it.
     pub fn resume_sidecar_path(&self) -> PathBuf {
         self.resume_file_path().with_extension("meta.json")
+    }
+
+    /// Absolute path of the on-device analysis cache.
+    pub fn analysis_db_path(&self) -> PathBuf {
+        expand_tilde(&self.autodj.cache_path)
     }
 
     /// Absolute path of the transport-prefs file (shuffle/repeat) beside it.

@@ -7,6 +7,7 @@
 //! here is visible (and reversible) from any other Rocksky client.
 
 pub mod audio;
+pub mod autodj;
 pub mod library;
 pub mod player;
 
@@ -16,7 +17,9 @@ use anyhow::{anyhow, Context as _, Result};
 use serde_json::{json, Value};
 use tokio::sync::OnceCell;
 
+use crate::analysis::cache::AnalysisCache;
 use crate::config::Config;
+use crate::mcp::analyzer::Analyzer;
 use crate::mcp::rocksky::{Me, Rocksky};
 use crate::mcp::state::Player;
 use crate::mcp::subsonic::Subsonic;
@@ -34,7 +37,10 @@ pub struct Ctx {
     /// Built on first use: provisioning Subsonic credentials is a network
     /// call, and a server that cannot start without one would be useless
     /// offline for the tools that do not need it.
-    subsonic: OnceCell<Subsonic>,
+    subsonic: OnceCell<Arc<Subsonic>>,
+    /// Analysis needs the cache database open, which is also lazy: an agent
+    /// that only ever pauses the music should not create one.
+    analyzer: OnceCell<Arc<Analyzer>>,
     me: OnceCell<Me>,
 }
 
@@ -47,11 +53,12 @@ impl Ctx {
             player,
             rocksky,
             subsonic: OnceCell::new(),
+            analyzer: OnceCell::new(),
             me: OnceCell::new(),
         }
     }
 
-    pub async fn subsonic(&self) -> Result<&Subsonic> {
+    pub async fn subsonic(&self) -> Result<&Arc<Subsonic>> {
         self.subsonic
             .get_or_try_init(|| async {
                 Subsonic::connect(
@@ -60,6 +67,19 @@ impl Ctx {
                     self.rocksky.token(),
                 )
                 .await
+                .map(Arc::new)
+            })
+            .await
+    }
+
+    pub async fn analyzer(&self) -> Result<&Arc<Analyzer>> {
+        self.analyzer
+            .get_or_try_init(|| async {
+                let cache = AnalysisCache::open(&self.config.analysis_db_path()).await?;
+                Ok::<_, anyhow::Error>(Arc::new(Analyzer::new(
+                    cache,
+                    self.config.autodj.target_lufs as f64,
+                )))
             })
             .await
     }
@@ -76,6 +96,7 @@ pub fn definitions() -> Vec<Value> {
     let mut tools = player::definitions();
     tools.extend(library::definitions());
     tools.extend(audio::definitions());
+    tools.extend(autodj::definitions());
     tools
 }
 
@@ -90,6 +111,9 @@ pub async fn call(ctx: &Ctx, name: &str, args: &Value) -> Result<Value> {
         return Ok(result);
     }
     if let Some(result) = audio::call(ctx, name, &args).await? {
+        return Ok(result);
+    }
+    if let Some(result) = autodj::call(ctx, name, &args).await? {
         return Ok(result);
     }
     Err(anyhow!("unknown tool {name:?}"))
