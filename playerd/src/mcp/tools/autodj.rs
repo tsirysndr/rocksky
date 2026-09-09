@@ -573,7 +573,10 @@ mod tests {
     #[test]
     fn smooth_keeps_every_candidate() {
         let (low, high) = energy_range(&ENERGY);
-        assert_eq!(shortlist(&ENERGY, "smooth", 3, low, high).len(), ENERGY.len());
+        assert_eq!(
+            shortlist(&ENERGY, "smooth", 3, low, high).len(),
+            ENERGY.len()
+        );
     }
 
     /// The curve is mapped onto the candidates' own range, so a set of quiet
