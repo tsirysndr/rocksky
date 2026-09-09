@@ -267,8 +267,32 @@ async fn gather(
     Ok(analyzer.analyze_all(subsonic, songs, refresh).await)
 }
 
-/// Order the candidates. Every shape is the same greedy walk — take the best
-/// next track by transition cost — with a different idea of what "best" means.
+/// Where on the energy scale a shape wants to be, `position` running 0..1
+/// across the set. `None` means the shape has no opinion and transitions
+/// should simply not lurch.
+///
+/// The curve is mapped onto the candidates' own energy range rather than onto
+/// 0..1 absolute: a set built from six mellow records still has an opener and
+/// a peak, they are just both quiet.
+fn target_energy(shape: &str, position: f32, low: f32, high: f32) -> Option<f32> {
+    let curve = match shape {
+        "build" => position,
+        "wind_down" => 1.0 - position,
+        // Up to the two-thirds mark, then back down.
+        "arc" => {
+            if position < 0.66 {
+                position / 0.66
+            } else {
+                (1.0 - position) / 0.34
+            }
+        }
+        _ => return None,
+    };
+    Some(low + curve.clamp(0.0, 1.0) * (high - low))
+}
+
+/// Order the candidates: pick which tracks the shape needs, then walk them in
+/// the order that makes each transition easiest.
 fn sequence(
     tracks: &mut [(Song, TrackAnalysis)],
     shape: &str,
@@ -276,33 +300,36 @@ fn sequence(
     opener: Option<&str>,
 ) -> Vec<usize> {
     let energy: Vec<f32> = tracks.iter().map(|(_, a)| a.energy()).collect();
-    let mut remaining: Vec<usize> = (0..tracks.len()).collect();
+    let (low, high) = energy_range(&energy);
+
+    // Choose WHICH tracks before choosing their order. A greedy walk alone
+    // spends the calm records early and then has nothing but peak-hour ones
+    // left, so a wind-down would end on its loudest track — the opposite of
+    // what was asked for.
+    let mut pool = shortlist(&energy, shape, length, low, high);
+    if let Some(opener) = opener.and_then(|id| tracks.iter().position(|(s, _)| s.id == id)) {
+        if !pool.contains(&opener) {
+            pool.pop();
+            pool.push(opener);
+        }
+    }
 
     let start = opener
         .and_then(|id| tracks.iter().position(|(song, _)| song.id == id))
+        .filter(|index| pool.contains(index))
         .unwrap_or_else(|| match shape {
-            // Build and arc open low; a wind-down opens where the room is.
-            "build" | "arc" => lowest(&energy, &remaining),
-            "wind_down" => highest(&energy, &remaining),
-            _ => lowest(&energy, &remaining),
+            // A wind-down opens at the top and comes down; everything else
+            // opens at the bottom.
+            "wind_down" => highest(&energy, &pool),
+            _ => lowest(&energy, &pool),
         });
-    remaining.retain(|index| *index != start);
 
+    let mut remaining: Vec<usize> = pool.into_iter().filter(|i| *i != start).collect();
     let mut order = vec![start];
-    while order.len() < length && !remaining.is_empty() {
+    while !remaining.is_empty() {
         let current = *order.last().expect("non-empty");
-        let position = order.len() as f32 / length.max(2) as f32;
-        let wanted = match shape {
-            "build" => Some(position),
-            "wind_down" => Some(1.0 - position),
-            // Up to the two-thirds mark, then back down.
-            "arc" => Some(if position < 0.66 {
-                position / 0.66
-            } else {
-                (1.0 - position) / 0.34
-            }),
-            _ => None,
-        };
+        let position = order.len() as f32 / (length.max(2) - 1) as f32;
+        let wanted = target_energy(shape, position, low, high);
         let next = remaining
             .iter()
             .copied()
@@ -316,6 +343,43 @@ fn sequence(
         order.push(next);
     }
     order
+}
+
+/// The `length` candidates that best cover the shape's energy curve — one pick
+/// per position, nearest unused track to that position's target. With no shape
+/// (or nothing to cut) it is just every candidate.
+fn shortlist(energy: &[f32], shape: &str, length: usize, low: f32, high: f32) -> Vec<usize> {
+    let length = length.min(energy.len());
+    if length == energy.len() || target_energy(shape, 0.0, low, high).is_none() {
+        return (0..energy.len()).collect();
+    }
+    let mut taken: Vec<usize> = Vec::with_capacity(length);
+    for slot in 0..length {
+        let position = slot as f32 / (length.max(2) - 1) as f32;
+        let target = target_energy(shape, position, low, high).expect("shape has a curve");
+        let pick = (0..energy.len())
+            .filter(|index| !taken.contains(index))
+            .min_by(|a, b| {
+                (energy[*a] - target)
+                    .abs()
+                    .total_cmp(&(energy[*b] - target).abs())
+            });
+        match pick {
+            Some(index) => taken.push(index),
+            None => break,
+        }
+    }
+    taken
+}
+
+fn energy_range(energy: &[f32]) -> (f32, f32) {
+    let low = energy.iter().copied().fold(f32::INFINITY, f32::min);
+    let high = energy.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    if low.is_finite() && high.is_finite() && high > low {
+        (low, high)
+    } else {
+        (0.0, 1.0)
+    }
 }
 
 /// How awkward it would be to play `to` after `from`, lower is better.
@@ -452,4 +516,73 @@ fn round2(value: f32) -> f64 {
 
 fn round1f64(value: f64) -> f64 {
     (value * 10.0).round() / 10.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Energies spread across a realistic range, deliberately unsorted.
+    const ENERGY: [f32; 8] = [0.47, 0.85, 0.59, 0.74, 0.65, 0.83, 0.52, 0.79];
+
+    fn picked(shape: &str, length: usize) -> Vec<f32> {
+        let (low, high) = energy_range(&ENERGY);
+        shortlist(&ENERGY, shape, length, low, high)
+            .into_iter()
+            .map(|index| ENERGY[index])
+            .collect()
+    }
+
+    /// The bug this guards against: a greedy walk alone spends the calm tracks
+    /// first, so a wind-down ran out of them and ended on its loudest record.
+    #[test]
+    fn a_wind_down_shortlist_descends() {
+        let energies = picked("wind_down", 4);
+        assert_eq!(energies.len(), 4);
+        for pair in energies.windows(2) {
+            assert!(pair[1] <= pair[0], "not descending: {energies:?}");
+        }
+        assert_eq!(energies.first(), Some(&0.85));
+        assert_eq!(energies.last(), Some(&0.47));
+    }
+
+    #[test]
+    fn a_build_shortlist_rises() {
+        let energies = picked("build", 4);
+        for pair in energies.windows(2) {
+            assert!(pair[1] >= pair[0], "not rising: {energies:?}");
+        }
+    }
+
+    #[test]
+    fn an_arc_peaks_in_the_middle() {
+        let energies = picked("arc", 5);
+        let peak = energies
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .map(|(index, _)| index)
+            .expect("non-empty");
+        assert!(peak > 0 && peak < energies.len() - 1, "{energies:?}");
+        assert!(energies[0] < energies[peak]);
+        assert!(*energies.last().expect("non-empty") < energies[peak]);
+    }
+
+    /// "smooth" has no curve, so nothing is pre-selected — the walk sees every
+    /// candidate and picks purely on transition cost.
+    #[test]
+    fn smooth_keeps_every_candidate() {
+        let (low, high) = energy_range(&ENERGY);
+        assert_eq!(shortlist(&ENERGY, "smooth", 3, low, high).len(), ENERGY.len());
+    }
+
+    /// The curve is mapped onto the candidates' own range, so a set of quiet
+    /// records still has a shape instead of collapsing to one end.
+    #[test]
+    fn the_curve_follows_the_candidates_range() {
+        assert_eq!(target_energy("build", 0.0, 0.3, 0.6), Some(0.3));
+        assert_eq!(target_energy("build", 1.0, 0.3, 0.6), Some(0.6));
+        assert_eq!(target_energy("wind_down", 0.0, 0.3, 0.6), Some(0.6));
+        assert_eq!(target_energy("smooth", 0.5, 0.3, 0.6), None);
+    }
 }

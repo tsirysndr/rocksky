@@ -225,6 +225,11 @@ steps and never to 1.0 unprompted.
   `list_equalizer_presets`, `apply_equalizer_preset`
 - **Mixing** — `set_auto_dj`, `plan_set`, `analyze_tracks`
 
+## More
+
+The [AI DJ guide](https://github.com/tsirysndr/rocksky/blob/main/playerd/AI-DJ.md)
+has worked examples for every one of these tools, with real output.
+
 ## When something is off
 
 - **"no players are online"** — nothing is running. Start `playerd`, or have the

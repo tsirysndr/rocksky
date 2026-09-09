@@ -28,6 +28,7 @@ socket — then control it from any Rocksky client.
 - [What is (and isn't) remotely controllable](#what-is-and-isnt-remotely-controllable)
 - [Auto DJ](#auto-dj)
 - [AI control: the MCP server](#ai-control-the-mcp-server)
+- [The AI DJ guide](AI-DJ.md)
 - [Running as a service](#running-as-a-service)
 - [Troubleshooting](#troubleshooting)
 
@@ -497,6 +498,12 @@ handles the mix.
 Startup-only settings — the output backend, `buffer_seconds`, `resume`,
 `scrobble`, `sync_audio_settings` — stay in `playerd.toml`; they are not
 remotely controllable and the MCP server does not expose them.
+
+### Prompts, examples, and what to expect
+
+[**AI-DJ.md**](AI-DJ.md) is the guide: setup for every client, prompts that
+work well, and real output for each one — planned sets, analysis, transitions —
+plus an honest list of what it cannot do.
 
 ### The DJ skill
 
