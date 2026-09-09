@@ -32,17 +32,17 @@ use rockbox_playback::{
     ToneControls, EQ_BAND_FREQUENCIES,
 };
 use rocksky_sdk::{
-    jetstream, JetstreamConfig, RemoteAudioSettings, RemoteCrossfade, RemoteCrossfeed,
-    RemoteCompressor, RemoteEqBand, RemoteEqualizer, RemotePbe, RemoteReplayGain, RemoteSurround,
+    jetstream, JetstreamConfig, RemoteAudioSettings, RemoteCompressor, RemoteCrossfade,
+    RemoteCrossfeed, RemoteEqBand, RemoteEqualizer, RemotePbe, RemoteReplayGain, RemoteSurround,
     RemoteTone,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::engine::{Engine, EngineCmd};
 
 const SETTINGS_COLLECTION: &str = "app.rocksky.rockbox.audio.settings";
 
-#[derive(Deserialize, Clone, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 #[serde(default, rename_all = "camelCase")]
 pub struct AudioSettingsView {
     pub equalizer: Option<LexEqualizer>,
@@ -52,7 +52,7 @@ pub struct AudioSettingsView {
     pub updated_at: Option<String>,
 }
 
-#[derive(Deserialize, Clone, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 #[serde(default, rename_all = "camelCase")]
 pub struct LexEqualizer {
     pub enabled: Option<bool>,
@@ -60,14 +60,14 @@ pub struct LexEqualizer {
     pub bands: Option<Vec<LexEqBand>>,
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct LexEqBand {
     pub frequency: i32,
     pub gain: i32,
     pub q: i32,
 }
 
-#[derive(Deserialize, Clone, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 #[serde(default, rename_all = "camelCase")]
 pub struct LexTone {
     pub bass: Option<i32>,
@@ -76,7 +76,7 @@ pub struct LexTone {
     pub channels: Option<String>,
 }
 
-#[derive(Deserialize, Clone, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 #[serde(default, rename_all = "camelCase")]
 pub struct LexCrossfade {
     pub mode: Option<String>,
@@ -87,7 +87,7 @@ pub struct LexCrossfade {
     pub fade_out_mix_mode: Option<String>,
 }
 
-#[derive(Deserialize, Clone, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 #[serde(default, rename_all = "camelCase")]
 pub struct LexReplayGain {
     pub mode: Option<String>,
@@ -129,14 +129,14 @@ impl PresetSpec {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct LexPreset {
-    rkey: String,
-    name: String,
-    precut: Option<i32>,
+pub struct LexPreset {
+    pub rkey: String,
+    pub name: String,
+    pub precut: Option<i32>,
     #[serde(default)]
-    bands: Vec<LexEqBand>,
+    pub bands: Vec<LexEqBand>,
 }
 
 /// Preset rkeys are the display name slugified (same rule as putPreset).
@@ -148,19 +148,18 @@ fn slugify(name: &str) -> String {
         .join("-")
 }
 
-/// Resolve an EQ preset through `app.rocksky.equalizer.listPresets` — public
-/// with `did` for AT-URI specs, authenticated for the user's own — and
-/// return it as an enabled native equalizer.
-pub async fn fetch_preset(
+/// List EQ presets through `app.rocksky.equalizer.listPresets` — public with
+/// `did` for another repo, authenticated for the caller's own.
+pub async fn list_presets(
     http: &reqwest::Client,
     api_url: &str,
     token: &str,
-    spec: &PresetSpec,
-) -> Result<(String, Equalizer)> {
+    did: Option<&str>,
+) -> Result<Vec<LexPreset>> {
     let mut req = http.get(format!("{api_url}/xrpc/app.rocksky.equalizer.listPresets"));
-    req = match spec {
-        PresetSpec::Record { repo, .. } => req.query(&[("did", repo.as_str())]),
-        PresetSpec::Named(_) => req.bearer_auth(token),
+    req = match did {
+        Some(did) => req.query(&[("did", did)]),
+        None => req.bearer_auth(token),
     };
     let res = req.send().await.context("fetching equalizer presets")?;
     if !res.status().is_success() {
@@ -171,29 +170,48 @@ pub async fn fetch_preset(
         presets: Vec<LexPreset>,
     }
     let out: PresetsOutput = res.json().await.context("parsing listPresets response")?;
-    let preset = match spec {
-        PresetSpec::Record { rkey, .. } => out.presets.iter().find(|p| &p.rkey == rkey),
-        PresetSpec::Named(name) => out
-            .presets
+    Ok(out.presets)
+}
+
+/// Pick the preset a [`PresetSpec`] names: by rkey for an AT URI, by rkey or
+/// display name (case-insensitively) for a plain name.
+pub fn find_preset<'a>(presets: &'a [LexPreset], spec: &PresetSpec) -> Result<&'a LexPreset> {
+    let found = match spec {
+        PresetSpec::Record { rkey, .. } => presets.iter().find(|p| &p.rkey == rkey),
+        PresetSpec::Named(name) => presets
             .iter()
             .find(|p| p.rkey == slugify(name) || p.name.eq_ignore_ascii_case(name.trim())),
     };
-    let Some(preset) = preset else {
-        let available = out
-            .presets
+    found.ok_or_else(|| {
+        let available = presets
             .iter()
             .map(|p| p.name.as_str())
             .collect::<Vec<_>>()
             .join(", ");
-        bail!(
+        anyhow::anyhow!(
             "equalizer preset not found (available: {})",
             if available.is_empty() {
                 "none"
             } else {
                 available.as_str()
             }
-        );
+        )
+    })
+}
+
+/// Resolve an EQ preset and return it as an enabled native equalizer.
+pub async fn fetch_preset(
+    http: &reqwest::Client,
+    api_url: &str,
+    token: &str,
+    spec: &PresetSpec,
+) -> Result<(String, Equalizer)> {
+    let did = match spec {
+        PresetSpec::Record { repo, .. } => Some(repo.as_str()),
+        PresetSpec::Named(_) => None,
     };
+    let presets = list_presets(http, api_url, token, did).await?;
+    let preset = find_preset(&presets, spec)?;
     let equalizer = Equalizer {
         enabled: true,
         precut_db: -(preset.precut.unwrap_or(0) as f32) / 10.0,
@@ -588,7 +606,9 @@ pub fn apply(engine: &Engine, baseline: &Baseline, view: &RemoteAudioSettings) {
     }
 }
 
-async fn fetch(
+/// The user's saved cross-device audio settings, or `None` when they have
+/// never written the record.
+pub async fn fetch_audio_settings(
     http: &reqwest::Client,
     api_url: &str,
     token: &str,
@@ -678,10 +698,7 @@ impl SettingsSync {
 /// Merge the present, non-null fields of `view` into `last` (JSON deep merge;
 /// arrays replace wholesale) and return only the sections whose merged
 /// content differs from what `last` held before.
-fn merge_diff(
-    last: &mut RemoteAudioSettings,
-    view: &RemoteAudioSettings,
-) -> RemoteAudioSettings {
+fn merge_diff(last: &mut RemoteAudioSettings, view: &RemoteAudioSettings) -> RemoteAudioSettings {
     let last_json = serde_json::to_value(&*last).unwrap_or(serde_json::Value::Null);
     let view_json = serde_json::to_value(view).unwrap_or(serde_json::Value::Null);
     let merged: RemoteAudioSettings =
@@ -763,7 +780,7 @@ pub async fn sync(
 ) {
     let http = reqwest::Client::new();
 
-    match fetch(&http, &api_url, &token).await {
+    match fetch_audio_settings(&http, &api_url, &token).await {
         Ok(Some(view)) => {
             tracing::info!(
                 updated_at = view.updated_at.as_deref().unwrap_or("unknown"),

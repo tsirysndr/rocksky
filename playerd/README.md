@@ -26,6 +26,7 @@ socket — then control it from any Rocksky client.
 - [Audio output](#audio-output)
 - [Local playback](#local-playback)
 - [What is (and isn't) remotely controllable](#what-is-and-isnt-remotely-controllable)
+- [AI control: the MCP server](#ai-control-the-mcp-server)
 - [Running as a service](#running-as-a-service)
 - [Troubleshooting](#troubleshooting)
 
@@ -269,8 +270,10 @@ The `[equalizer]` section uses the same keys and units as
 
 ```
 playerd [OPTIONS] [PATHS]...
+playerd mcp
 
   PATHS                  audio files or directories to queue and play at startup
+  mcp                    run an MCP server on stdio instead of a player
   -c, --config <PATH>    TOML config file
   -n, --name <NAME>      device name shown in the miniplayer picker
       --ws-url <URL>     remote-control WebSocket URL
@@ -309,14 +312,87 @@ likes are enriched server-side.
 
 ## What is (and isn't) remotely controllable
 
-Supported remote commands: play, pause, next, previous, seek, jump to a
-queue position, remove from queue, and enqueue (now / next / last, with
-shuffle and start index — this is what the miniplayer's "play on device"
-does for songs, albums, and playlists).
+Supported remote commands: play, pause, next, previous, seek, jump to a queue
+position, remove from queue, move within the queue, enqueue (now / next / last,
+with shuffle and start index — this is what the miniplayer's "play on device"
+does for songs, albums, and playlists), shuffle, repeat, volume, and the DSP
+surface via `audio_settings`. The `volume`, `shuffle` and `repeat` config keys
+are the *startup* values for those; the live setting is whatever a controller
+last sent, and it survives a restart alongside the queue.
 
-The Rocksky remote protocol has no volume, shuffle-toggle, or repeat
-commands (no client sends them today), so those are startup configuration
-(`volume`, `shuffle`, `repeat`) rather than live controls.
+What stays startup-only is everything the protocol has no command for: the
+output backend, `buffer_seconds`, `resume`, `scrobble` and
+`sync_audio_settings`. Changing those means editing `playerd.toml` and
+restarting the daemon.
+
+## AI control: the MCP server
+
+`playerd mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io)
+server on stdio, so Claude, Codex, Copilot and anything else that speaks MCP can
+drive playback: pick a device, search the library, build a queue, skip, seek,
+set the volume, tune the EQ.
+
+It is a **controller**, not a player. It registers on the same remote-control
+WebSocket as the web and desktop miniplayers and commands *every* device on the
+account, so the agent can run on a laptop and start music on the amp in the
+living room. It needs the same access token as the daemon (`rocksky login`, or
+`ROCKSKY_TOKEN`) and no audio hardware of its own.
+
+Register it once:
+
+```sh
+# Claude Code
+claude mcp add rocksky-player -- playerd mcp
+```
+
+```jsonc
+// Claude Desktop (claude_desktop_config.json); VS Code / Copilot use
+// .vscode/mcp.json with "servers" and "type": "stdio"
+{ "mcpServers": { "rocksky-player": { "command": "playerd", "args": ["mcp"] } } }
+```
+
+```toml
+# Codex (~/.codex/config.toml)
+[mcp_servers.rocksky-player]
+command = "playerd"
+args = ["mcp"]
+```
+
+The 32 tools cover the whole live surface:
+
+| Group | Tools |
+|---|---|
+| Devices | `list_devices`, `get_player_state`, `set_primary_device` |
+| Transport | `play`, `pause`, `next_track`, `previous_track`, `seek`, `set_volume`, `set_playback_mode` |
+| Queue | `get_queue`, `enqueue`, `queue_jump`, `queue_remove`, `queue_move`, `clear_queue` |
+| Library | `search_library`, `get_album`, `get_artist`, `browse_songs`, `browse_albums`, `list_genres`, `list_playlists`, `get_playlist` |
+| Taste | `whoami`, `get_recommendations`, `get_listening_history` |
+| Sound | `get_audio_settings`, `set_equalizer`, `set_audio_settings`, `list_equalizer_presets`, `apply_equalizer_preset` |
+
+Library lookups return an `id` on every track, and that id is what `enqueue`
+takes. Recommendations and listening history come back as names instead, so
+`enqueue` accepts plain `{title, artist}` entries too and matches them against
+the library itself — which is what makes an **AI DJ** one call rather than a
+resolution loop:
+
+```
+"read what I've been listening to, build a 10-track set for cooking dinner,
+ and queue it on the Living Room without interrupting what's on"
+```
+
+Startup-only settings — the output backend, `buffer_seconds`, `resume`,
+`scrobble`, `sync_audio_settings` — stay in `playerd.toml`; they are not
+remotely controllable and the MCP server does not expose them.
+
+### The DJ skill
+
+`skills/rocksky-dj/` is an agent skill teaching the craft on top of the tools:
+device etiquette, how to sequence a set rather than dump a playlist, when `now`
+is rude and `last` is right, and how to install all of this from scratch.
+
+```sh
+cp -r playerd/skills/rocksky-dj ~/.claude/skills/
+```
 
 ## Running as a service
 

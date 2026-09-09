@@ -6,6 +6,7 @@
 
 mod config;
 mod engine;
+mod mcp;
 mod remote;
 mod resolver;
 mod resume;
@@ -16,7 +17,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use rocksky_sdk::{RemotePlayer, RemotePlayerConfig};
 use tracing_subscriber::EnvFilter;
 
@@ -28,37 +29,52 @@ use crate::resolver::Resolver;
 #[derive(Parser)]
 #[command(name = "playerd", version, about = "Rocksky remote player daemon")]
 struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
     /// Audio files or directories to queue and play at startup
     paths: Vec<PathBuf>,
     /// TOML config file (default: ~/.rocksky/playerd.toml)
-    #[arg(short, long, env = "PLAYERD_CONFIG")]
+    #[arg(short, long, env = "PLAYERD_CONFIG", global = true)]
     config: Option<PathBuf>,
     /// Device name shown in the miniplayer picker (default: hostname)
     #[arg(short, long, env = "PLAYERD_NAME")]
     name: Option<String>,
     /// Remote-control WebSocket URL
-    #[arg(long, env = "PLAYERD_WS_URL")]
+    #[arg(long, env = "PLAYERD_WS_URL", global = true)]
     ws_url: Option<String>,
     /// Rocksky API base URL
-    #[arg(long, env = "PLAYERD_API_URL")]
+    #[arg(long, env = "PLAYERD_API_URL", global = true)]
     api_url: Option<String>,
     /// Access token (default: ~/.rocksky/token.json from `rocksky login`)
-    #[arg(long, env = "ROCKSKY_TOKEN", hide_env_values = true)]
+    #[arg(long, env = "ROCKSKY_TOKEN", hide_env_values = true, global = true)]
     token: Option<String>,
     /// Audio output backend: cpal | stdout | fifo:PATH | unix:PATH | tcp:ADDR
     #[arg(short, long, env = "PLAYERD_OUTPUT")]
     output: Option<String>,
 }
 
+#[derive(Subcommand)]
+enum Command {
+    /// Run a Model Context Protocol server on stdio, so an AI agent can drive
+    /// your Rocksky players
+    Mcp,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| "playerd=info".into()),
-        )
-        .init();
-
     let cli = Cli::parse();
+    let mcp_mode = matches!(cli.command, Some(Command::Mcp));
+
+    // In MCP mode stdout carries the protocol and nothing else.
+    let logs = tracing_subscriber::fmt().with_env_filter(
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| "playerd=info".into()),
+    );
+    if mcp_mode {
+        logs.with_writer(std::io::stderr).init();
+    } else {
+        logs.init();
+    }
+
     let mut config = Config::load(cli.config.as_deref())?;
     if let Some(name) = &cli.name {
         config.name = name.clone();
@@ -78,6 +94,13 @@ async fn main() -> Result<()> {
     }
     let token = config.resolve_token(cli.token.clone())?;
     let name = config.effective_name();
+
+    // The MCP server is a controller, not a player: it needs the token and the
+    // endpoints, but no audio engine, no queue and no scrobbler.
+    if mcp_mode {
+        tracing::info!("starting MCP server on stdio");
+        return mcp::run(config, token).await;
+    }
 
     let (uris, items) = resolver::scan_local(&cli.paths)?;
 

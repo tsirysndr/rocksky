@@ -83,7 +83,8 @@ impl Shared {
         self.engine.send(EngineCmd::SetShuffle(t.shuffle));
         self.engine.send(EngineCmd::SetRepeat(t.repeat_mode()));
         if let Some(volume) = t.volume {
-            self.engine.send(EngineCmd::SetVolume(volume.clamp(0.0, 1.0)));
+            self.engine
+                .send(EngineCmd::SetVolume(volume.clamp(0.0, 1.0)));
         }
         *self.last_transport.lock().unwrap() = Some(t);
     }

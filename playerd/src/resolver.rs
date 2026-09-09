@@ -27,6 +27,67 @@ fn navidrome_creds_path() -> PathBuf {
     expand_tilde("~/.rocksky/navidrome.json")
 }
 
+/// Read — or, on first use, provision — the Subsonic credentials that stream
+/// library tracks: the account handle plus a dedicated API key, cached in
+/// `~/.rocksky/navidrome.json` and shared with the Rocksky CLI.
+pub async fn navidrome_creds(
+    http: &reqwest::Client,
+    api_url: &str,
+    token: &str,
+) -> Result<NavidromeCreds> {
+    let path = navidrome_creds_path();
+    if let Ok(raw) = std::fs::read_to_string(&path) {
+        if let Ok(creds) = serde_json::from_str::<NavidromeCreds>(&raw) {
+            return Ok(creds);
+        }
+    }
+
+    #[derive(Deserialize)]
+    struct ProfileHandle {
+        handle: String,
+    }
+    let profile: ProfileHandle = http
+        .get(format!("{api_url}/profile"))
+        .bearer_auth(token)
+        .send()
+        .await
+        .context("fetching profile")?
+        .error_for_status()
+        .context("fetching profile")?
+        .json()
+        .await
+        .context("parsing profile")?;
+
+    #[derive(Deserialize)]
+    struct ApiKey {
+        api_key: String,
+    }
+    let key: ApiKey = http
+        .post(format!("{api_url}/apikeys"))
+        .bearer_auth(token)
+        .json(&serde_json::json!({ "name": "playerd" }))
+        .send()
+        .await
+        .context("creating API key")?
+        .error_for_status()
+        .context("creating API key")?
+        .json()
+        .await
+        .context("parsing API key")?;
+
+    let creds = NavidromeCreds {
+        handle: profile.handle,
+        api_key: key.api_key,
+    };
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Err(e) = std::fs::write(&path, serde_json::to_string(&creds)?) {
+        tracing::warn!("could not cache navidrome credentials: {e}");
+    }
+    Ok(creds)
+}
+
 pub struct Resolver {
     http: reqwest::Client,
     api_url: String,
@@ -116,59 +177,7 @@ impl Resolver {
         if let Some(creds) = &self.navidrome {
             return Ok(creds.clone());
         }
-        let path = navidrome_creds_path();
-        if let Ok(raw) = std::fs::read_to_string(&path) {
-            if let Ok(creds) = serde_json::from_str::<NavidromeCreds>(&raw) {
-                self.navidrome = Some(creds.clone());
-                return Ok(creds);
-            }
-        }
-
-        #[derive(Deserialize)]
-        struct ProfileHandle {
-            handle: String,
-        }
-        let profile: ProfileHandle = self
-            .http
-            .get(format!("{}/profile", self.api_url))
-            .bearer_auth(&self.token)
-            .send()
-            .await
-            .context("fetching profile")?
-            .error_for_status()
-            .context("fetching profile")?
-            .json()
-            .await
-            .context("parsing profile")?;
-
-        #[derive(Deserialize)]
-        struct ApiKey {
-            api_key: String,
-        }
-        let key: ApiKey = self
-            .http
-            .post(format!("{}/apikeys", self.api_url))
-            .bearer_auth(&self.token)
-            .json(&serde_json::json!({ "name": "playerd" }))
-            .send()
-            .await
-            .context("creating API key")?
-            .error_for_status()
-            .context("creating API key")?
-            .json()
-            .await
-            .context("parsing API key")?;
-
-        let creds = NavidromeCreds {
-            handle: profile.handle,
-            api_key: key.api_key,
-        };
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        if let Err(e) = std::fs::write(&path, serde_json::to_string(&creds)?) {
-            tracing::warn!("could not cache navidrome credentials: {e}");
-        }
+        let creds = navidrome_creds(&self.http, &self.api_url, &self.token).await?;
         self.navidrome = Some(creds.clone());
         Ok(creds)
     }

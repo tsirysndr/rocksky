@@ -35,7 +35,10 @@ pub enum EngineCmd {
     /// Move the track at `from` so it ends up at index `to` (arrayMove
     /// semantics). Emulated as remove + indexed re-insert; the playback
     /// crate's index bookkeeping keeps the current track playing.
-    Move { from: usize, to: usize },
+    Move {
+        from: usize,
+        to: usize,
+    },
     SetEqualizer(Equalizer),
     SetTone(ToneControls),
     SetBalance(i32),
