@@ -1,4 +1,8 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Public web app origin. The desktop webview runs on tauri:// (or localhost in
+// dev), so anything shared outside the app must be built against this instead
+// of window.location.
+export const WEB_URL = import.meta.env.VITE_PUBLIC_URL || "https://rocksky.app";
 export const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8002";
 export const ROCKBOX_URL = import.meta.env.VITE_ROCKBOX_URL || "https://rockbox.rocksky.app";
 export const NAVIDROME_URL = import.meta.env.VITE_NAVIDROME_URL || "https://navidrome.rocksky.app";

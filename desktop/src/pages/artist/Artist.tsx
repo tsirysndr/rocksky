@@ -261,7 +261,7 @@ const Artist = () => {
                 View on PDSls
               </PillLink>
               <ShareOnBluesky
-                text={`Listening to ${artist?.name} on Rocksky 🎵\n${window.location.href}`}
+                text={`Listening to ${artist?.name} on Rocksky 🎵`}
               />
             </div>
           )}

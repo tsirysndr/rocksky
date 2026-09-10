@@ -316,7 +316,7 @@ function Profile(props: ProfileProps) {
                       View on PDSls
                     </PillLink>
                     <ShareOnBluesky
-                      text={`Check out ${profiles[did]?.displayName || profiles[did]?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
+                      text={`Check out ${profiles[did]?.displayName || profiles[did]?.handle}'s music taste on Rocksky 🎵`}
                     />
                   </div>
                 </div>

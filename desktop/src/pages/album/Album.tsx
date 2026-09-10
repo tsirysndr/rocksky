@@ -300,7 +300,7 @@ const Album = () => {
                   View on PDSls
                 </PillLink>
                 <ShareOnBluesky
-                  text={`${album?.title} by ${album?.artist} on Rocksky 🎵\n${window.location.href}`}
+                  text={`${album?.title} by ${album?.artist} on Rocksky 🎵`}
                 />
               </div>
               <div className="mt-[10px]">

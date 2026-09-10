@@ -395,7 +395,7 @@ const Song = () => {
               </PillLink>
               <LikeButton uri={song?.trackUri ?? song?.uri} liked={song?.liked} withLabel />
               <ShareOnBluesky
-                text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵\n${window.location.href}`}
+                text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵`}
               />
             </div>
 
