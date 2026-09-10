@@ -120,6 +120,22 @@ Tap or insert a card and the album, playlist or your favorites starts playing.
 
 **Self-hosting** and advanced usage instructions are below.
 
+### Desktop app
+
+```sh
+brew install --cask tsirysndr/tap/rocksky
+```
+
+The macOS build is **ad-hoc signed and not notarized** (no Apple Developer
+account yet), so Gatekeeper blocks the first launch. Open Rocksky once, then go
+to **System Settings → Privacy & Security** and click **Open Anyway** next to
+the Rocksky message — macOS remembers it from then on. The terminal equivalent
+is `xattr -dr com.apple.quarantine /Applications/Rocksky.app`.
+
+Linux `.deb`, `.rpm` and `.AppImage` bundles are attached to each
+[`desktop-v*` release](https://github.com/tsirysndr/rocksky/releases). See
+[`desktop/README.md`](desktop/README.md) for details.
+
 ## 🚀 Self-Hosting / Development
 
 ### Prerequisites

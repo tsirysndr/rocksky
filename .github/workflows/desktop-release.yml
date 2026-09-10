@@ -1,0 +1,210 @@
+name: desktop-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (default desktop-v<version> from desktop/src-tauri/tauri.conf.json)"
+        type: string
+        required: false
+  push:
+    tags:
+      - "desktop-v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            VER="$(jq -r .version desktop/src-tauri/tauri.conf.json)"
+            [ -n "$VER" ] && [ "$VER" != "null" ] || { echo "could not read version from tauri.conf.json" >&2; exit 1; }
+            TAG="desktop-v$VER"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#desktop-v}" >> "$GITHUB_OUTPUT"
+          echo "Resolved release tag: $TAG (version ${TAG#desktop-v})"
+      - name: Ensure release exists (auto-creates the tag)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          gh release view "$TAG" >/dev/null 2>&1 && exit 0
+          cat > notes.md <<'EOF'
+          Rocksky desktop player.
+
+          ## macOS
+
+          ```sh
+          brew install --cask tsirysndr/tap/rocksky
+          ```
+
+          The app is **ad-hoc signed and not notarized** (no Apple Developer
+          account yet), so the first launch is blocked. Open it once, then go to
+          **System Settings → Privacy & Security** and click **Open Anyway** next
+          to the Rocksky message. Or clear the quarantine flag yourself:
+
+          ```sh
+          xattr -dr com.apple.quarantine /Applications/Rocksky.app
+          ```
+
+          ## Linux
+
+          Grab the `.deb`, `.rpm`, or `.AppImage` below.
+
+          Managed by `.github/workflows/desktop-release.yml`.
+          EOF
+          gh release create "$TAG" \
+            --title "Rocksky Desktop ${TAG#desktop-v}" \
+            --notes-file notes.md \
+            --target "$GITHUB_SHA"
+
+  build:
+    needs: prepare-release
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            bundles: app
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            bundles: app
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            bundles: deb,rpm,appimage
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libasound2-dev \
+            libpcsclite-dev \
+            libxdo-dev \
+            libssl-dev \
+            build-essential \
+            pkg-config \
+            patchelf \
+            rpm \
+            file
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.15
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+          shared-key: desktop-${{ matrix.target }}
+          cache-on-failure: true
+
+      - name: Install workspace dependencies
+        working-directory: .
+        run: bun install --frozen-lockfile
+
+      - name: Stamp version from tag
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          jq --arg v "$VERSION" '.version = $v' src-tauri/tauri.conf.json > /tmp/conf.json
+          mv /tmp/conf.json src-tauri/tauri.conf.json
+          echo "bundle version: $(jq -r .version src-tauri/tauri.conf.json)"
+
+      - name: tauri build
+        env:
+          # Ad-hoc signing: no Apple Developer identity, no notarization. The
+          # explicit codesign pass below is what actually guarantees it — this
+          # only stops the bundler from leaving the binary fully unsigned.
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && '-' || '' }}
+          KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
+        run: |
+          # `--mode prod` loads desktop/.env.prod; a non-empty repo secret
+          # overrides the KLIPY key committed there (real env wins in Vite).
+          if [ -n "${KLIPY_API_KEY:-}" ]; then
+            export VITE_KLIPY_API_KEY="$KLIPY_API_KEY"
+          fi
+          bun run tauri build \
+            --target ${{ matrix.target }} \
+            --bundles ${{ matrix.bundles }} \
+            --config '{"build":{"beforeBuildCommand":"bun run build:prod"}}'
+
+      - name: Package macOS bundle (ad-hoc signed)
+        if: runner.os == 'macOS'
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          ARCH=$([ "${{ matrix.target }}" = "aarch64-apple-darwin" ] && echo aarch64 || echo x64)
+          APP="src-tauri/target/${{ matrix.target }}/release/bundle/macos/Rocksky.app"
+          [ -d "$APP" ] || { echo "missing $APP" >&2; exit 1; }
+
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          STAGE="$(mktemp -d)/Rocksky"
+          mkdir -p "$STAGE"
+          cp -R "$APP" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "Rocksky" -srcfolder "$STAGE" -ov -format UDZO \
+            "Rocksky_${VERSION}_${ARCH}.dmg"
+
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "Rocksky_${VERSION}_${ARCH}.app.zip"
+
+      - name: Collect Linux bundles
+        if: runner.os == 'Linux'
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          BUNDLE="src-tauri/target/${{ matrix.target }}/release/bundle"
+          cp "$BUNDLE"/deb/*.deb "Rocksky_${VERSION}_amd64.deb"
+          cp "$BUNDLE"/rpm/*.rpm "Rocksky_${VERSION}_x86_64.rpm"
+          cp "$BUNDLE"/appimage/*.AppImage "Rocksky_${VERSION}_amd64.AppImage"
+
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          for f in Rocksky_*; do
+            case "$f" in *.sha256) continue;; esac
+            shasum -a 256 "$f" > "$f.sha256"
+          done
+          ls -l Rocksky_*
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.prepare-release.outputs.tag }}" Rocksky_* --clobber
