@@ -9,7 +9,7 @@ use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use rockbox_playback::{EqBand, InsertPosition, PlaybackState, Player, RepeatMode, Status};
+use rockbox_playback::{EqBand, InsertPosition, Levels, PlaybackState, Player, RepeatMode, Status};
 
 use crate::dsp::{self, CompressorOpts, CrossfadeOpts, DspState, SurroundOpts};
 
@@ -47,7 +47,10 @@ pub enum EngineCmd {
     /// Move the track at `from` so it ends up at index `to` (arrayMove
     /// semantics). Emulated as remove + indexed re-insert; the playback
     /// crate's index bookkeeping keeps the current track playing.
-    Move { from: usize, to: usize },
+    Move {
+        from: usize,
+        to: usize,
+    },
     ClearQueue,
     SetVolume(f32),
     SetShuffle(bool),
@@ -125,6 +128,7 @@ impl Default for Snapshot {
                 queue_len: 0,
                 shuffle: false,
                 repeat: RepeatMode::Off,
+                levels: Levels::default(),
             },
             volume: 1.0,
             queue: Vec::new(),
