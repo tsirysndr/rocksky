@@ -135,6 +135,13 @@ jobs:
         working-directory: .
         run: bun install --frozen-lockfile
 
+      # The desktop app resolves @rocksky/sdk through sdk/typescript/dist, which
+      # is gitignored — without this the frontend's `tsc -b` cannot find the
+      # module and every SDK-derived type collapses to an error.
+      - name: Build @rocksky/sdk
+        working-directory: sdk/typescript
+        run: bun run build
+
       - name: Stamp version from tag
         env:
           VERSION: ${{ needs.prepare-release.outputs.version }}
