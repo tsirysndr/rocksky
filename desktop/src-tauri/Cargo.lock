@@ -4338,7 +4338,7 @@ checksum = "7da1d65da6dd5d1e44199ac0f58712d241c0f439f80adea8924d832384087f85"
 dependencies = [
  "base64 0.22.1",
  "indexmap 2.14.0",
- "quick-xml",
+ "quick-xml 0.41.0",
  "serde",
  "time",
 ]
@@ -4520,6 +4520,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.37.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "331e97a1af0bf59823e6eadffe373d7b27f485be8748f71471c662c1f269b7fb"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -4910,9 +4919,9 @@ dependencies = [
 
 [[package]]
 name = "rockbox-codecs"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96e85d18d48da42648993df4067ad25dabe38a255dee7ab808292cb71978591c"
+checksum = "60c0319e44b8c458680bb3f16eae7f47d065891086a341476af7f6a4cab4e6b9"
 dependencies = [
  "cc",
  "rockbox-metadata",
@@ -4929,20 +4938,21 @@ dependencies = [
 
 [[package]]
 name = "rockbox-metadata"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4d438a91e9bb4fe2243acfef1c135a229b6a64f95f48b0d7eaf7a936e5abb92"
+checksum = "db63af95f49518272074eb0f9f397ea6e841eed34d3f5f84e71a6fe2fa63f81e"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "rockbox-playback"
-version = "0.5.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a58496763f8af3a6650c81c3ecbecea251c71ec135197d6b38a63dd179af4f2"
+checksum = "5e72bf2ddb4ba0448716c1cc9e84bb4e8cee0e30b1db1c5033ca77ce4fdf7075"
 dependencies = [
  "cpal",
+ "quick-xml 0.37.5",
  "reqwest 0.12.28",
  "rockbox-codecs",
  "rockbox-dsp",
