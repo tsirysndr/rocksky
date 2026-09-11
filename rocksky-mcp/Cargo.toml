@@ -1,0 +1,27 @@
+[package]
+name = "rocksky-mcp"
+version = "0.1.0"
+authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
+edition = "2021"
+license = "MPL-2.0"
+repository = "https://github.com/tsirysndr/rocksky"
+description = "Model Context Protocol server for Rocksky — the AppView XRPC surface, the remote player controller and the Navidrome library, on stdio"
+
+# Standalone, like playerd: this is a release artefact with its own version and
+# lockfile, and it deliberately keeps none of the workspace's C-building
+# dependencies so it cross-compiles to every release target.
+[workspace]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+dirs = "6"
+jsonrpsee-core = { version = "0.26.0", features = ["server"] }
+jsonrpsee-types = "0.26.0"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+rocksky-sdk = { version = "0.11.2", path = "../crates/rocksky-sdk", features = ["remote-player"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "signal", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

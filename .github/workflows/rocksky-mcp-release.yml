@@ -1,0 +1,107 @@
+name: rocksky-mcp-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (default rocksky-mcp-v<version> from rocksky-mcp/Cargo.toml)"
+        type: string
+        required: false
+  push:
+    tags:
+      - "rocksky-mcp-v*"
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: rocksky-mcp
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            VER="$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -1)"
+            [ -n "$VER" ] || { echo "could not read version from rocksky-mcp/Cargo.toml" >&2; exit 1; }
+            TAG="rocksky-mcp-v$VER"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved release tag: $TAG"
+      - name: Ensure release exists (auto-creates the tag)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "rocksky-mcp ${TAG#rocksky-mcp-}" \
+              --notes "Model Context Protocol server for Rocksky. Managed by rocksky-mcp-release.yml." \
+              --target "$GITHUB_SHA"
+          fi
+
+  build:
+    needs: prepare-release
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rocksky-mcp
+          shared-key: rocksky-mcp-${{ matrix.target }}
+          cache-on-failure: true
+      - name: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
+      # No native audio or C dependencies here (that is playerd's job), so every
+      # target is a plain cross-compile — including the Intel mac from an arm
+      # runner.
+      - name: Package tarball
+        shell: bash
+        run: |
+          TAG="${{ needs.prepare-release.outputs.tag }}"
+          ASSET="rocksky-mcp-${TAG#rocksky-mcp-}-${{ matrix.target }}.tar.gz"
+          if [ "${{ runner.os }}" = "Windows" ]; then BIN=rocksky-mcp.exe; else BIN=rocksky-mcp; fi
+          tar -C "target/${{ matrix.target }}/release" -czf "$ASSET" "$BIN"
+          if command -v shasum >/dev/null 2>&1; then
+            shasum -a 256 "$ASSET" > "$ASSET.sha256"
+          else
+            sha256sum "$ASSET" > "$ASSET.sha256"
+          fi
+      - name: Upload to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.prepare-release.outputs.tag }}" \
+            rocksky-mcp-*.tar.gz rocksky-mcp-*.tar.gz.sha256 --clobber

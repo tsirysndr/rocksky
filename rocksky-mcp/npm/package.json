@@ -1,0 +1,48 @@
+{
+  "name": "@rocksky/mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for Rocksky — players, library and AppView on stdio",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsirysndr/rocksky.git",
+    "directory": "rocksky-mcp/npm"
+  },
+  "homepage": "https://github.com/tsirysndr/rocksky/tree/main/rocksky-mcp#readme",
+  "keywords": [
+    "rocksky",
+    "mcp",
+    "model-context-protocol",
+    "music",
+    "scrobbling",
+    "atproto",
+    "navidrome"
+  ],
+  "bin": {
+    "rocksky-mcp": "bin/rocksky-mcp.js"
+  },
+  "main": "lib/download.js",
+  "files": [
+    "bin/rocksky-mcp.js",
+    "lib/",
+    "install.js",
+    "check-version.js",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node install.js",
+    "prepublishOnly": "node check-version.js"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

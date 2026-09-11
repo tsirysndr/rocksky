@@ -155,7 +155,16 @@ program
 program
   .command("mcp")
   .description("starts an MCP server to use with Claude or other LLMs")
-  .action(lazy(async () => (await import("cmd/mcp")).mcp));
+  .option(
+    "-d, --device <device>",
+    "player the command tools address when a call names none",
+  )
+  .option("--api-url <url>", "Rocksky API base URL, for a dev server")
+  .option("--ws-url <url>", "remote-control WebSocket URL, for a dev server")
+  .option("--token-path <path>", "where the access token lives")
+  // Not wrapped in `lazy`: the MCP server is a separate binary with its own
+  // state, so initializing the CLI's local database here would be pure cost.
+  .action(async (options) => (await import("cmd/mcp")).mcp(options));
 
 program
   .command("sync")
