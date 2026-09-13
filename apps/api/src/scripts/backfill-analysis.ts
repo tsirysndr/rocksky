@@ -35,6 +35,9 @@ const LIMIT = process.env.BACKFILL_LIMIT
   : Number.POSITIVE_INFINITY;
 const USER_ID = process.env.BACKFILL_USER_ID || null;
 const DRY_RUN = process.env.BACKFILL_DRY_RUN === "1";
+const DOWNLOAD_TIMEOUT_MS = Number(
+  process.env.BACKFILL_DOWNLOAD_TIMEOUT_MS ?? 90_000,
+);
 
 const MIME_TO_EXT: Record<string, string> = {
   "audio/mpeg": "mp3",
@@ -159,6 +162,13 @@ async function main() {
     consola.info(`downloading ${batch.length} file(s)…`);
     const downloads = await Promise.all(
       batch.map(async (row) => {
+        // The SDK has no default socket timeout, so a stalled connection
+        // would hang the whole run — abort covers headers AND body read.
+        const controller = new AbortController();
+        const timer = setTimeout(
+          () => controller.abort(),
+          DOWNLOAD_TIMEOUT_MS,
+        );
         try {
           const { client, bucket } = await storageFor(
             row.userId,
@@ -166,6 +176,7 @@ async function main() {
           );
           const obj = await client.send(
             new GetObjectCommand({ Bucket: bucket, Key: row.r2Key }),
+            { abortSignal: controller.signal },
           );
           const buffer = Buffer.from(await obj.Body!.transformToByteArray());
           return { row, buffer };
@@ -173,6 +184,8 @@ async function main() {
           downloadFailed++;
           consola.warn(`✖ download failed ${row.r2Key}:`, e);
           return null;
+        } finally {
+          clearTimeout(timer);
         }
       }),
     );
