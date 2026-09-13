@@ -1,0 +1,16 @@
+{
+  "name": "@rocksky/analysis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Key and BPM audio analysis (Rust/Neon native bindings)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": ["index.js", "index.d.ts", "index.node"],
+  "scripts": {
+    "build": "cargo-cp-artifact -a cdylib rocksky-analysis-node index.node -- cargo build --release -p rocksky-analysis-node --message-format=json-render-diagnostics",
+    "test": "node --test test.mjs"
+  },
+  "devDependencies": {
+    "cargo-cp-artifact": "^0.1.9"
+  }
+}

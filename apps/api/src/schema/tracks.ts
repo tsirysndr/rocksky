@@ -1,5 +1,12 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
-import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  real,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 const tracks = pgTable(
   "tracks",
@@ -25,6 +32,8 @@ const tracks = pgTable(
     genre: text("genre"),
     label: text("label"),
     copyrightMessage: text("copyright_message"),
+    key: text("key"),
+    bpm: real("bpm"),
     uri: text("uri").unique(),
     albumUri: text("album_uri"),
     artistUri: text("artist_uri"),

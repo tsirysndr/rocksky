@@ -37,6 +37,7 @@
         "@opentelemetry/sdk-node": "^0.200.0",
         "@opentelemetry/semantic-conventions": "^1.32.0",
         "@pyroscope/nodejs": "^0.4.5",
+        "@rocksky/analysis": "workspace:*",
         "@rsql/ast": "^1.6.0",
         "@rsql/parser": "^1.6.0",
         "@types/prompts": "^2.4.9",
@@ -312,6 +313,13 @@
         "wrangler": "^3.107.3",
       },
     },
+    "crates/analysis-node": {
+      "name": "@rocksky/analysis",
+      "version": "0.1.0",
+      "devDependencies": {
+        "cargo-cp-artifact": "^0.1.9",
+      },
+    },
     "desktop": {
       "name": "@rocksky/desktop",
       "version": "0.1.0",
@@ -407,7 +415,7 @@
     },
     "sdk/typescript": {
       "name": "@rocksky/sdk",
-      "version": "0.15.0",
+      "version": "0.16.0",
       "dependencies": {
         "@atcute/car": "^6.0.2",
         "@atcute/cbor": "^2.3.6",
@@ -1283,6 +1291,8 @@
 
     "@redis/time-series": ["@redis/time-series@1.1.0", "", { "peerDependencies": { "@redis/client": "^1.0.0" } }, "sha512-c1Q99M5ljsIuc4YdaCwfUEXsofakb9c8+Zse2qxTadu8TalLXuAESzLvFAvNVbkmSlvlzIQOLpBCmWI9wTOt+g=="],
 
+    "@rocksky/analysis": ["@rocksky/analysis@workspace:crates/analysis-node"],
+
     "@rocksky/api": ["@rocksky/api@workspace:apps/api"],
 
     "@rocksky/app-proxy": ["@rocksky/app-proxy@workspace:apps/app-proxy"],
@@ -1926,6 +1936,8 @@
     "caniuse-lite": ["caniuse-lite@1.0.30001750", "", {}, "sha512-cuom0g5sdX6rw00qOoLNSFCJ9/mYIsuSOA+yzpDw8eopiFqcVwQvZHqov0vmEighRxX++cfC0Vg1G+1Iy/mSpQ=="],
 
     "card-validator": ["card-validator@6.2.0", "", { "dependencies": { "credit-card-type": "^8.0.0" } }, "sha512-1vYv45JaE9NmixZr4dl6ykzbFKv7imI9L7MQDs235b/a7EGbG8rrEsipeHtVvscLSUbl3RX6UP5gyOe0Y2FlHA=="],
+
+    "cargo-cp-artifact": ["cargo-cp-artifact@0.1.9", "", { "bin": { "cargo-cp-artifact": "bin/cargo-cp-artifact.js" } }, "sha512-6F+UYzTaGB+awsTXg0uSJA1/b/B3DDJzpKVRu0UmyI7DmNeaAl2RFHuTGIN6fEgpadRxoXGb7gbC1xo4C3IdyA=="],
 
     "cbor-extract": ["cbor-extract@2.2.0", "", { "dependencies": { "node-gyp-build-optional-packages": "5.1.1" }, "optionalDependencies": { "@cbor-extract/cbor-extract-darwin-arm64": "2.2.0", "@cbor-extract/cbor-extract-darwin-x64": "2.2.0", "@cbor-extract/cbor-extract-linux-arm": "2.2.0", "@cbor-extract/cbor-extract-linux-arm64": "2.2.0", "@cbor-extract/cbor-extract-linux-x64": "2.2.0", "@cbor-extract/cbor-extract-win32-x64": "2.2.0" }, "bin": { "download-cbor-prebuilds": "bin/download-prebuilds.js" } }, "sha512-Ig1zM66BjLfTXpNgKpvBePq271BPOvu8MR0Jl080yG7Jsl+wAZunfrwiwA+9ruzm/WEdIV5QF/bjDZTqyAIVHA=="],
 

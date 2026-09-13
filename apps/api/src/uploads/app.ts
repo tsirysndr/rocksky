@@ -16,6 +16,7 @@ import { parseBuffer } from "music-metadata";
 import { createHash } from "node:crypto";
 import tables from "schema";
 import { saveTrack } from "tracks/tracks.service";
+import { analyzeUploadAudio } from "uploads/analysis";
 import { purgeUploads } from "uploads/delete.service";
 import { ensureReplayGain } from "uploads/replaygain";
 import { indexLibraryTrack, searchLibraryTracks } from "typesense/library";
@@ -453,6 +454,15 @@ app.post("/track", async (c) => {
       sampleRate: format.sampleRate ?? null,
     })
     .returning();
+
+  // Fire-and-forget key/BPM analysis — decodes on the Rust worker pool and
+  // coalesce-fills tracks.key / tracks.bpm. The response never waits on it
+  // and an analysis failure can never fail the upload.
+  if (track.key == null || track.bpm == null) {
+    analyzeUploadAudio(storedBuf, ext, track.id).catch((e) =>
+      consola.warn("[analysis] unexpected failure:", e),
+    );
+  }
 
   // Fire-and-forget Typesense indexing
   indexLibraryTrack({

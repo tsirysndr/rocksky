@@ -1,0 +1,15 @@
+[package]
+name = "rocksky-analysis-node"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Node.js (Neon) bindings for rocksky-analysis"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+neon = { version = "1", default-features = false, features = ["napi-6"] }
+rocksky-analysis = { path = "../analysis" }

@@ -1,0 +1,30 @@
+[package]
+name = "rocksky-analysis"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Musical key and tempo analysis for uploaded tracks"
+
+[dependencies]
+anyhow = "1.0"
+oximedia-mir = { version = "0.2", default-features = false, features = [
+  "tempo",
+  "key",
+] }
+rayon = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+symphonia = { version = "0.5", default-features = false, features = [
+  "flac",
+  "mp3",
+  "pcm",
+  "aac",
+  "alac",
+  "isomp4",
+  "vorbis",
+  "ogg",
+  "wav",
+  "adpcm",
+] }
+tracing = "0.1"

@@ -35,10 +35,12 @@
     "riff": "cd riff && cargo run --release",
     "riff:fixtures": "cd riff && cargo run --release --bin riff-fixtures",
     "spotify": "cd apps/api && bun run spotify",
+    "build:analysis": "cd crates/analysis-node && bun run build",
     "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src",
     "cron": "tools/cron.ts"
   },
   "workspaces": [
+    "crates/analysis-node",
     "apps/api",
     "apps/web",
     "apps/web-mobile",

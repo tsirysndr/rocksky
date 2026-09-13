@@ -10,7 +10,7 @@
     "dev": "concurrently 'tsx --watch ./src/index.ts' 'tsx --watch ./src/server.ts'",
     "tsx:index": "tsx src/index.ts",
     "prod": "node --enable-source-maps dist/index.js",
-    "build": "bun build src/index.ts --outdir ./dist --target node --sourcemap=inline --external better-sqlite3 && bun build src/server.ts --outdir ./dist --target node --sourcemap=inline --external better-sqlite3",
+    "build": "bun build src/index.ts --outdir ./dist --target node --sourcemap=inline --external better-sqlite3 --external @rocksky/analysis && bun build src/server.ts --outdir ./dist --target node --sourcemap=inline --external better-sqlite3 --external @rocksky/analysis",
     "sync": "tsx ./src/scripts/sync.ts",
     "typesense:import": "tsx ./src/scripts/typesense-import.ts",
     "sync:library": "tsx ./src/scripts/sync-library.ts",
@@ -37,9 +37,11 @@
     "backfill:isrc-mbid": "tsx ./src/scripts/backfill-isrc-mbid.ts",
     "riff:backfill": "tsx ./src/scripts/backfill-riff.ts",
     "backfill:track-uri": "tsx ./src/scripts/backfill-track-uri.ts",
-    "backfill:replaygain": "tsx ./src/scripts/backfill-replaygain.ts"
+    "backfill:replaygain": "tsx ./src/scripts/backfill-replaygain.ts",
+    "backfill:analysis": "tsx ./src/scripts/backfill-analysis.ts"
   },
   "dependencies": {
+    "@rocksky/analysis": "workspace:*",
     "@atproto/api": "^0.13.31",
     "@atproto/common": "^0.4.6",
     "@atproto/identity": "^0.4.5",
