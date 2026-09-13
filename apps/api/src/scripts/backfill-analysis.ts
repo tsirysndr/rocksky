@@ -138,12 +138,21 @@ async function main() {
       .orderBy(asc(tables.userUploads.id))
       .limit(BATCH_SIZE * 4);
     if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].uploadId;
 
-    const batch = rows
-      .filter((row) => !seenTracks.has(row.trackId))
-      .slice(0, Math.min(BATCH_SIZE, target - processed));
-    for (const row of batch) seenTracks.add(row.trackId);
+    // Consume rows in order until the batch is full, and advance the cursor
+    // only past what was consumed — moving it past the whole page would
+    // silently skip every row the batch had no room for.
+    const capacity = Math.min(BATCH_SIZE, target - processed);
+    const batch: typeof rows = [];
+    let consumed = 0;
+    for (const row of rows) {
+      if (batch.length >= capacity) break;
+      consumed++;
+      if (seenTracks.has(row.trackId)) continue;
+      seenTracks.add(row.trackId);
+      batch.push(row);
+    }
+    cursor = rows[consumed - 1]?.uploadId ?? rows[rows.length - 1].uploadId;
     if (batch.length === 0) continue;
 
     // Download the whole batch concurrently, then hand it to Rust in one go.
