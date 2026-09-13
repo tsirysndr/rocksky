@@ -50,6 +50,20 @@ const MIME_TO_EXT: Record<string, string> = {
 
 const needsAnalysis = or(isNull(tables.tracks.key), isNull(tables.tracks.bpm));
 
+// One S3 client per storage target for the whole run. A fresh client per
+// download is a leak: its keep-alive sockets are live handles that root the
+// client, so hundreds of them pile up faster than the sockets idle out.
+const storageClients = new Map<string, ReturnType<typeof resolveStorageClient>>();
+function storageFor(userId: string, providerId: string | null) {
+  const key = providerId ? `${userId}:${providerId}` : "managed";
+  let client = storageClients.get(key);
+  if (!client) {
+    client = resolveStorageClient(userId, providerId);
+    storageClients.set(key, client);
+  }
+  return client;
+}
+
 function formatEta(seconds: number): string {
   if (!Number.isFinite(seconds)) return "—";
   const m = Math.floor(seconds / 60);
@@ -137,7 +151,7 @@ async function main() {
     const downloads = await Promise.all(
       batch.map(async (row) => {
         try {
-          const { client, bucket } = await resolveStorageClient(
+          const { client, bucket } = await storageFor(
             row.userId,
             row.storageProviderId,
           );
