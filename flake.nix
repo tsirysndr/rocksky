@@ -25,6 +25,13 @@
         lib = pkgs.lib;
         fs = lib.fileset;
 
+        # importCargoLock defaults to crates.io's API download endpoint,
+        # which 403s CI traffic; fetch from the static.crates.io CDN that
+        # cargo itself uses instead. Same files, same checksums.
+        cratesRegistry = {
+          "https://github.com/rust-lang/crates.io-index" = "https://static.crates.io/crates";
+        };
+
         # crates/rocksky-sdk inherits authors/edition/… from the repo-root
         # workspace manifest, but the real one lists every crates/* member,
         # which would drag the whole workspace into these builds. Both Rust
@@ -60,7 +67,10 @@
 
           cargoRoot = "playerd";
           buildAndTestSubdir = "playerd";
-          cargoLock.lockFile = ./playerd/Cargo.lock;
+          cargoLock = {
+            lockFile = ./playerd/Cargo.lock;
+            extraRegistries = cratesRegistry;
+          };
 
           postPatch = ''
             cp ${rootWorkspace} Cargo.toml
@@ -93,7 +103,10 @@
             ];
           };
 
-          cargoLock.lockFile = ./Cargo.lock;
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            extraRegistries = cratesRegistry;
+          };
           cargoBuildFlags = [ "-p" "rockskyd" ];
 
           nativeBuildInputs = [ pkgs.pkg-config ];
@@ -242,7 +255,10 @@
 
           cargoRoot = "desktop/src-tauri";
           buildAndTestSubdir = "desktop/src-tauri";
-          cargoLock.lockFile = ./desktop/src-tauri/Cargo.lock;
+          cargoLock = {
+            lockFile = ./desktop/src-tauri/Cargo.lock;
+            extraRegistries = cratesRegistry;
+          };
 
           postPatch = ''
             cp ${rootWorkspace} Cargo.toml
