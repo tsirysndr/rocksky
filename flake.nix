@@ -337,6 +337,21 @@
         };
 
         devShells.default = pkgs.mkShell {
+          # Pull in every flake target's build environment (rust toolchain
+          # + cargo hooks, cargo-tauri, bun/nodejs, libduckdb, and the Linux
+          # GUI/audio stack) without building the targets themselves, so
+          # each of them can also be built manually inside the shell.
+          inputsFrom = [
+            playerd
+            rockskyd
+            rocksky-desktop
+            desktopNodeModules
+            desktopFrontend
+          ];
+
+          env.DUCKDB_LIB_DIR = "${lib.getLib pkgs.duckdb}/lib";
+          env.DUCKDB_INCLUDE_DIR = "${lib.getDev pkgs.duckdb}/include";
+
           buildInputs =
             [
               (pkgs.rust-bin.stable.latest.default.override {
