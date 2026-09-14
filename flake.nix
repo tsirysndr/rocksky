@@ -76,6 +76,33 @@
           meta.mainProgram = "playerd";
         };
 
+        # rockskyd lives in the real root cargo workspace, so it builds from
+        # the actual root manifest + lockfile; cargo has to load every
+        # crates/* member manifest, hence the whole crates/ tree, but only
+        # rockskyd's dependency graph is compiled (-p).
+        rockskyd = pkgs.rustPlatform.buildRustPackage {
+          pname = "rockskyd";
+          version = "0.1.0";
+
+          src = fs.toSource {
+            root = ./.;
+            fileset = fs.unions [
+              ./Cargo.toml
+              ./Cargo.lock
+              ./crates
+            ];
+          };
+
+          cargoLock.lockFile = ./Cargo.lock;
+          cargoBuildFlags = [ "-p" "rockskyd" ];
+
+          nativeBuildInputs = [ pkgs.pkg-config ];
+
+          doCheck = false;
+
+          meta.mainProgram = "rockskyd";
+        };
+
         # Keep in sync with "workspaces" in the root package.json: bun needs
         # every member manifest to validate the frozen lockfile.
         workspaceManifests = fs.unions [
@@ -263,7 +290,7 @@
         };
       in {
         packages = {
-          inherit playerd rocksky-desktop;
+          inherit playerd rocksky-desktop rockskyd;
           rocksky-desktop-frontend = desktopFrontend;
           rocksky-desktop-node-modules = desktopNodeModules;
         };
