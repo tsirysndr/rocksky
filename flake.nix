@@ -25,11 +25,25 @@
         lib = pkgs.lib;
         fs = lib.fileset;
 
-        # importCargoLock defaults to crates.io's API download endpoint,
-        # which 403s CI traffic; fetch from the static.crates.io CDN that
-        # cargo itself uses instead. Same files, same checksums.
-        cratesRegistry = {
-          "https://github.com/rust-lang/crates.io-index" = "https://static.crates.io/crates";
+        # importCargoLock downloads crates from crates.io's API endpoint,
+        # which 403s CI traffic. Its extraRegistries knob can't override the
+        # default registry (the emitted [source] stanza collides with cargo's
+        # built-in crates-io source), so re-instantiate the fetcher with a
+        # fetchurl that rewrites downloads to the static.crates.io CDN —
+        # same files, same checksums, stock cargo config.
+        importCargoLock = pkgs.callPackage "${nixpkgs}/pkgs/build-support/rust/import-cargo-lock.nix" {
+          fetchurl =
+            args:
+            pkgs.fetchurl (
+              args
+              // {
+                url =
+                  let
+                    m = builtins.match "https://crates.io/api/v1/crates/(.*)" args.url;
+                  in
+                  if m == null then args.url else "https://static.crates.io/crates/${builtins.elemAt m 0}";
+              }
+            );
         };
 
         # crates/rocksky-sdk inherits authors/edition/… from the repo-root
@@ -67,10 +81,7 @@
 
           cargoRoot = "playerd";
           buildAndTestSubdir = "playerd";
-          cargoLock = {
-            lockFile = ./playerd/Cargo.lock;
-            extraRegistries = cratesRegistry;
-          };
+          cargoDeps = importCargoLock { lockFile = ./playerd/Cargo.lock; };
 
           postPatch = ''
             cp ${rootWorkspace} Cargo.toml
@@ -103,10 +114,7 @@
             ];
           };
 
-          cargoLock = {
-            lockFile = ./Cargo.lock;
-            extraRegistries = cratesRegistry;
-          };
+          cargoDeps = importCargoLock { lockFile = ./Cargo.lock; };
           cargoBuildFlags = [ "-p" "rockskyd" ];
 
           nativeBuildInputs = [ pkgs.pkg-config ];
@@ -255,10 +263,7 @@
 
           cargoRoot = "desktop/src-tauri";
           buildAndTestSubdir = "desktop/src-tauri";
-          cargoLock = {
-            lockFile = ./desktop/src-tauri/Cargo.lock;
-            extraRegistries = cratesRegistry;
-          };
+          cargoDeps = importCargoLock { lockFile = ./desktop/src-tauri/Cargo.lock; };
 
           postPatch = ''
             cp ${rootWorkspace} Cargo.toml
