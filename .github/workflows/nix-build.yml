@@ -41,6 +41,21 @@ jobs:
       - name: nix build (rockskyd)
         run: nix build .#rockskyd --print-build-logs -o result-rockskyd
 
+      - name: nix build (drift)
+        run: nix build .#drift --print-build-logs -o result-drift
+
+      - name: nix build (riff)
+        run: nix build .#riff --print-build-logs -o result-riff
+
+      - name: nix build (deezer)
+        run: nix build .#deezer --print-build-logs -o result-deezer
+
+      - name: nix build (spotify)
+        run: nix build .#spotify --print-build-logs -o result-spotify
+
+      - name: nix build (musicbrainz)
+        run: nix build .#musicbrainz --print-build-logs -o result-musicbrainz
+
       # The bun node_modules fixed-output hash is only pinned for
       # aarch64-darwin so far; on Linux this fails with a hash mismatch —
       # copy the "got:" hash from the log into bunNodeModulesHash in

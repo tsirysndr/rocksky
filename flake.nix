@@ -25,6 +25,9 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [ rust-overlay.overlays.default ];
+          # dragonflydb is BSL-1.1, which nixpkgs classifies as unfree.
+          config.allowUnfreePredicate = pkg:
+            builtins.elem (nixpkgs.lib.getName pkg) [ "dragonflydb" ];
         };
 
         lib = pkgs.lib;
@@ -142,6 +145,114 @@
           doCheck = false;
 
           meta.mainProgram = "rockskyd";
+        };
+
+        # drift and riff are standalone cargo packages (excluded from the
+        # root workspace) that bundle their own DuckDB, so unlike rockskyd
+        # they need no external libduckdb.
+        drift = rustPlatform.buildRustPackage {
+          pname = "drift";
+          version = "0.1.0";
+
+          src = fs.toSource {
+            root = ./drift;
+            fileset = fs.difference ./drift (fs.maybeMissing ./drift/target);
+          };
+
+          cargoDeps = importCargoLock { lockFile = ./drift/Cargo.lock; };
+
+          nativeBuildInputs = [ pkgs.pkg-config ];
+          # sqlx's tls-native-tls resolves to openssl on Linux (and the
+          # Security framework on darwin).
+          buildInputs = lib.optionals pkgs.stdenv.isLinux [ pkgs.openssl ];
+
+          doCheck = false;
+
+          meta.mainProgram = "drift";
+        };
+
+        riff = rustPlatform.buildRustPackage {
+          pname = "riff";
+          version = "0.1.0";
+
+          src = fs.toSource {
+            root = ./riff;
+            fileset = fs.difference ./riff (fs.maybeMissing ./riff/target);
+          };
+
+          cargoDeps = importCargoLock { lockFile = ./riff/Cargo.lock; };
+
+          doCheck = false;
+
+          meta.mainProgram = "riff";
+        };
+
+        # The Go services' go.mod requires go >= 1.25, above release-25.05's
+        # default go 1.24.
+        buildGoModule = pkgs.buildGoModule.override { go = pkgs.go_1_25; };
+
+        deezer = buildGoModule {
+          pname = "deezer";
+          version = "0.1.0";
+
+          src = fs.toSource {
+            root = ./deezer;
+            fileset = fs.unions [
+              ./deezer/go.mod
+              ./deezer/go.sum
+              ./deezer/main.go
+              ./deezer/service
+            ];
+          };
+
+          vendorHash = "sha256-m+R76TxbPFsBytkakRZM0++edMCDm557PM84nZT/DV4=";
+
+          doCheck = false;
+
+          meta.mainProgram = "deezer";
+        };
+
+        spotify = buildGoModule {
+          pname = "spotify";
+          version = "0.1.0";
+
+          src = fs.toSource {
+            root = ./spotify;
+            fileset = fs.unions [
+              ./spotify/go.mod
+              ./spotify/go.sum
+              ./spotify/main.go
+              ./spotify/service
+            ];
+          };
+
+          vendorHash = "sha256-eQqGkUPWXsp9ewpX6DTx8GaYM8kh6FFXJxOHESsmvKo=";
+
+          doCheck = false;
+
+          meta.mainProgram = "spotify";
+        };
+
+        musicbrainz = buildGoModule {
+          pname = "musicbrainz";
+          version = "0.1.0";
+
+          # An explicit union rather than the whole directory: a stray
+          # `go build` leaves a 17M `musicbrainz` binary next to main.go.
+          src = fs.toSource {
+            root = ./musicbrainz;
+            fileset = fs.unions [
+              ./musicbrainz/go.mod
+              ./musicbrainz/go.sum
+              ./musicbrainz/main.go
+            ];
+          };
+
+          vendorHash = "sha256-QXD/l5YVQUi5eC7J2k4ooUspO7EfNFFZVmtspcevKN4=";
+
+          doCheck = false;
+
+          meta.mainProgram = "musicbrainz";
         };
 
         # Keep in sync with "workspaces" in the root package.json: bun needs
@@ -331,7 +442,7 @@
         };
       in {
         packages = {
-          inherit playerd rocksky-desktop rockskyd;
+          inherit playerd rocksky-desktop rockskyd drift riff deezer spotify musicbrainz;
           rocksky-desktop-frontend = desktopFrontend;
           rocksky-desktop-node-modules = desktopNodeModules;
         };
@@ -345,6 +456,11 @@
             playerd
             rockskyd
             rocksky-desktop
+            drift
+            riff
+            deezer
+            spotify
+            musicbrainz
             desktopNodeModules
             desktopFrontend
           ];
@@ -359,7 +475,9 @@
               })
               pkgs.bun
               pkgs.nodejs
+              pkgs.go_1_25
               pkgs.duckdb
+              pkgs.postgresql
               pkgs.turbo
               pkgs.git
               pkgs.mise
@@ -376,9 +494,12 @@
             ]
             ++ lib.optionals pkgs.stdenv.isLinux [
               pkgs.glibc.dev
+              pkgs.dragonflydb
             ]
+            # dragonflydb is Linux-only in nixpkgs; redis stands in on darwin.
             ++ lib.optionals pkgs.stdenv.isDarwin [
               pkgs.libiconv
+              pkgs.redis
             ];
         };
       });
