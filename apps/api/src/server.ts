@@ -12,6 +12,13 @@ import API from "./xrpc";
 
 dns.setDefaultResultOrder("ipv4first");
 
+process.on("unhandledRejection", (err) => {
+  consola.error("Unhandled rejection:", err);
+});
+process.on("uncaughtException", (err) => {
+  consola.error("Uncaught exception:", err);
+});
+
 cron.schedule("*/30 * * * *", async () => {
   try {
     await ctx.db.execute(
