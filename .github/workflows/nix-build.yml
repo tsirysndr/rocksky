@@ -33,7 +33,21 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: nix build (apps/cli)
-        run: nix build ./apps/cli --print-build-logs
+        run: nix build ./apps/cli --print-build-logs -o result-cli
 
-      - name: List result directory
-        run: ls -la result/
+      - name: nix build (playerd)
+        run: nix build .#playerd --print-build-logs -o result-playerd
+
+      - name: nix build (rockskyd)
+        run: nix build .#rockskyd --print-build-logs -o result-rockskyd
+
+      # The bun node_modules fixed-output hash is only pinned for
+      # aarch64-darwin so far; on Linux this fails with a hash mismatch —
+      # copy the "got:" hash from the log into bunNodeModulesHash in
+      # flake.nix to pin that platform, then drop the continue-on-error.
+      - name: nix build (rocksky-desktop)
+        continue-on-error: ${{ !startsWith(matrix.os, 'macos') }}
+        run: nix build .#rocksky-desktop --print-build-logs -o result-rocksky-desktop
+
+      - name: List result directories
+        run: ls -la result-*/
