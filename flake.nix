@@ -362,6 +362,7 @@
               pkgs.duckdb
               pkgs.turbo
               pkgs.git
+              pkgs.mise
               pkgs.wasm-pack
               pkgs.gcc
               pkgs.gnumake
