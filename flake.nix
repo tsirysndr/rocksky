@@ -132,6 +132,12 @@
           cargoBuildFlags = [ "-p" "rockskyd" ];
 
           nativeBuildInputs = [ pkgs.pkg-config ];
+          buildInputs = [ pkgs.duckdb ];
+
+          # libduckdb-sys links the system libduckdb when not bundled
+          # (nixpkgs' 1.2.2 matches the locked bindings exactly).
+          env.DUCKDB_LIB_DIR = "${lib.getLib pkgs.duckdb}/lib";
+          env.DUCKDB_INCLUDE_DIR = "${lib.getDev pkgs.duckdb}/include";
 
           doCheck = false;
 
