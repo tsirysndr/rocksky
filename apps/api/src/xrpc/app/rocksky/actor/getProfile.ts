@@ -9,6 +9,7 @@ import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
 import { createAgent } from "lib/agent";
 import { fetchBskyProfile, type ResolvedBskyProfile } from "lib/bskyProfile";
+import { PLC_DIRECTORY_URL } from "lib/plc";
 import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
@@ -98,7 +99,7 @@ const withServiceEndpoint = ({
     try: async () => {
       if (params.did) {
         if (params.did.startsWith("did:plc:")) {
-          return fetch(`https://plc.directory/${params.did}`)
+          return fetch(`${PLC_DIRECTORY_URL}/${params.did}`)
             .then((res) => res.json())
             .then((data) => ({
               did,

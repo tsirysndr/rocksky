@@ -2,11 +2,14 @@ use anyhow::Error;
 
 use crate::types::{Profile, ProfileResponse};
 
-/// Resolves a DID to its DID document, via plc.directory or the domain's
-/// well-known for `did:web`.
+/// Resolves a DID to its DID document, via the PLC directory (overridable
+/// with `PLC_DIRECTORY_URL`, e.g. to point at the plc-proxy Worker) or the
+/// domain's well-known for `did:web`.
 async fn did_document(did: &str) -> Result<serde_json::Value, Error> {
     let client = reqwest::Client::new();
-    let mut url = format!("https://plc.directory/{}", did);
+    let plc_url =
+        std::env::var("PLC_DIRECTORY_URL").unwrap_or_else(|_| "https://plc.directory".to_string());
+    let mut url = format!("{}/{}", plc_url.trim_end_matches('/'), did);
 
     if did.starts_with("did:web:") {
         let domain = did

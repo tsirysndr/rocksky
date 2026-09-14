@@ -1,10 +1,12 @@
+import { PLC_DIRECTORY_URL } from "./plc";
+
 export default async function extractPdsFromDid(
   did: string,
 ): Promise<string | null> {
   let didDocUrl: string;
 
   if (did.startsWith("did:plc:")) {
-    didDocUrl = `https://plc.directory/${did}`;
+    didDocUrl = `${PLC_DIRECTORY_URL}/${did}`;
   } else if (did.startsWith("did:web:")) {
     const domain = did.substring("did:web:".length);
     didDocUrl = `https://${domain}/.well-known/did.json`;

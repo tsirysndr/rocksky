@@ -1,6 +1,7 @@
 import { IdResolver } from "@atproto/identity";
 import type { Storage } from "unstorage";
 import { StorageCache } from "./didUnstorageCache";
+import { PLC_DIRECTORY_URL } from "./plc";
 
 const HOUR = 60e3 * 60;
 const DAY = HOUR * 24;
@@ -8,6 +9,7 @@ const WEEK = HOUR * 7;
 
 export function createIdResolver(kv: Storage) {
   return new IdResolver({
+    plcUrl: PLC_DIRECTORY_URL,
     didCache: new StorageCache({
       store: kv,
       prefix: "didCache:",

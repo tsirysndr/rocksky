@@ -14,7 +14,9 @@ export type ResolvedBskyProfile = {
 // globally reachable and purpose-built for public reads, so it never geo/IP
 // blocks our egress the way a self-hosted PDS can (see caramelo.social.br
 // dropping traffic from our Contabo VPS).
-const appViewAgent = new AtpAgent({ service: "https://public.api.bsky.app" });
+const appViewAgent = new AtpAgent({
+  service: process.env.BSKY_APPVIEW_URL || "https://public.api.bsky.app",
+});
 
 /**
  * Resolve a user's avatar + displayName, preferring the Bluesky public AppView

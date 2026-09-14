@@ -6,6 +6,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import * as ShoutLexicon from "lexicon/types/app/rocksky/shout";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
+import { PLC_DIRECTORY_URL } from "lib/plc";
 import _ from "lodash";
 import { createNotification } from "notifications/notifications.service";
 import type { Shout } from "types/shout";
@@ -301,7 +302,7 @@ export async function replyShout(
     profileRecord.uri;
 
   let service = await fetch(
-    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
+    `${PLC_DIRECTORY_URL}/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   )
     .then((res) => res.json<{ service: { seviceEndpoint: string }[] }>())
     .then((data) => data.service);
@@ -325,7 +326,7 @@ export async function replyShout(
   }
 
   service = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
+    `${PLC_DIRECTORY_URL}/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   )
     .then((res) => res.json<{ service: { seviceEndpoint: string }[] }>())
     .then((data) => data.service);
@@ -461,7 +462,7 @@ export async function likeShout(
   }
 
   const { service } = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
+    `${PLC_DIRECTORY_URL}/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   ).then((res) => res.json<{ service: [{ serviceEndpoint: string }] }>());
 
   const atpAgent = new AtpAgent({
