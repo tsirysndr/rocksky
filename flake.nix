@@ -8,6 +8,9 @@
     rocksky-cli.url = "path:./apps/cli";
     rocksky-cli.inputs.nixpkgs.follows = "nixpkgs";
     rocksky-cli.inputs.flake-utils.follows = "flake-utils";
+
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
@@ -15,15 +18,26 @@
     nixpkgs,
     flake-utils,
     rocksky-cli,
+    rust-overlay,
   }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
+          overlays = [ rust-overlay.overlays.default ];
         };
 
         lib = pkgs.lib;
         fs = lib.fileset;
+
+        # release-25.05 ships rustc 1.86, below the MSRV of several locked
+        # deps (smol_str wants 1.89); build the Rust packages with a newer
+        # stable toolchain instead.
+        rustToolchain = pkgs.rust-bin.stable.latest.minimal;
+        rustPlatform = pkgs.makeRustPlatform {
+          cargo = rustToolchain;
+          rustc = rustToolchain;
+        };
 
         # importCargoLock downloads crates from crates.io's API endpoint,
         # which 403s CI traffic. Its extraRegistries knob can't override the
@@ -62,7 +76,7 @@
           repository = "https://github.com/tsirysndr/rocksky"
         '';
 
-        playerd = pkgs.rustPlatform.buildRustPackage {
+        playerd = rustPlatform.buildRustPackage {
           pname = "playerd";
           version = "0.3.0";
 
@@ -101,7 +115,7 @@
         # the actual root manifest + lockfile; cargo has to load every
         # crates/* member manifest, hence the whole crates/ tree, but only
         # rockskyd's dependency graph is compiled (-p).
-        rockskyd = pkgs.rustPlatform.buildRustPackage {
+        rockskyd = rustPlatform.buildRustPackage {
           pname = "rockskyd";
           version = "0.1.0";
 
@@ -246,7 +260,7 @@
           '';
         };
 
-        rocksky-desktop = pkgs.rustPlatform.buildRustPackage {
+        rocksky-desktop = rustPlatform.buildRustPackage {
           pname = "rocksky-desktop";
           version = "0.1.0";
 
@@ -280,7 +294,7 @@
 
           nativeBuildInputs =
             [
-              pkgs.cargo-tauri.hook
+              (pkgs.cargo-tauri.hook.override { cargo = rustToolchain; })
               pkgs.jq
               pkgs.pkg-config
             ]
@@ -319,10 +333,9 @@
         devShells.default = pkgs.mkShell {
           buildInputs =
             [
-              pkgs.cargo
-              pkgs.rustc
-              pkgs.rustfmt
-              pkgs.rustPackages.clippy
+              (pkgs.rust-bin.stable.latest.default.override {
+                extensions = [ "rust-src" ];
+              })
               pkgs.bun
               pkgs.nodejs
               pkgs.duckdb
