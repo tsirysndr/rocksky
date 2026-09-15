@@ -1,3 +1,4 @@
+import { DURATION, useSnackbar } from "baseui/snackbar";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -12,6 +13,20 @@ function Main({ children }: { children: React.ReactNode }) {
   const nowPlaying = useAtomValue(nowPlayingAtom);
   const jwt = localStorage.getItem("token");
   const [token, setToken] = useState<string | null>(null);
+  const { enqueue } = useSnackbar();
+
+  // The session guard signs the user out on a `pds_session_expired` 401 and
+  // lands them here; say why, otherwise the logout looks like a random bug.
+  useEffect(() => {
+    if (new URLSearchParams(search).get("session") !== "expired") return;
+    enqueue(
+      {
+        message:
+          "Your session with your PDS expired. Please sign in again to keep scrobbling.",
+      },
+      DURATION.long,
+    );
+  }, [enqueue, search]);
 
   useEffect(() => {
     const query = new URLSearchParams(search);

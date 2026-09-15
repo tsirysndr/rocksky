@@ -1,4 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { BaseProvider, createLightTheme } from "baseui";
 import { PLACEMENT, SnackbarProvider } from "baseui/snackbar";
@@ -10,6 +15,12 @@ import { PostHogProvider } from "posthog-js/react";
 import { createRoot } from "react-dom/client";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
+import { client } from "./api";
+import {
+  handleSessionExpired,
+  installSessionGuard,
+  isPdsSessionExpired,
+} from "./lib/sessionExpired";
 import "./index.css";
 import { routeTree } from "./routeTree.gen.ts";
 
@@ -23,7 +34,19 @@ const primitives = {
 const theme = createLightTheme(primitives);
 const engine = new Styletron();
 
-const queryClient = new QueryClient();
+installSessionGuard(client);
+
+// The SDK throws instead of going through axios, so react-query's caches are
+// what catch that half: every `rocksky()` call site runs under a query or a
+// mutation.
+const onError = (error: unknown) => {
+  if (isPdsSessionExpired(error)) handleSessionExpired();
+};
+
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError }),
+  mutationCache: new MutationCache({ onError }),
+});
 
 const router = createRouter({ routeTree });
 

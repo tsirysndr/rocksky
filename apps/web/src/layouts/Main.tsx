@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { IconDisc, IconSparkles } from "@tabler/icons-react";
 import { Link, useSearch } from "@tanstack/react-router";
+import { DURATION, useSnackbar } from "baseui/snackbar";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
 import { consola } from "consola";
 import { useAtomValue } from "jotai";
@@ -68,8 +69,23 @@ function Main(props: MainProps) {
   const jwt = localStorage.getItem("token");
   const profile = useAtomValue(profileAtom);
   const [token, setToken] = useState<string | null>(null);
-  const { did, cli } = useSearch({ strict: false });
+  const { did, cli, session } = useSearch({ strict: false });
   const [passwordLogin, setPasswordLogin] = useState(false);
+  const { enqueue } = useSnackbar();
+
+  // The session guard signs the user out on a `pds_session_expired` 401 and
+  // lands them here; say why, otherwise the logout looks like a random bug.
+  useEffect(() => {
+    if (session === "expired") {
+      enqueue(
+        {
+          message:
+            "Your session with your PDS expired. Please sign in again to keep scrobbling.",
+        },
+        DURATION.long,
+      );
+    }
+  }, [enqueue, session]);
 
   // Recommendations need listening history — hide the link until the
   // signed-in user has scrobbled at least once.
