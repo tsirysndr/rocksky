@@ -20,12 +20,14 @@ process.on("uncaughtException", (err) => {
 });
 
 cron.schedule("*/30 * * * *", async () => {
-  try {
-    await ctx.db.execute(
-      sql`REFRESH MATERIALIZED VIEW CONCURRENTLY user_artists_mv`,
-    );
-  } catch (err) {
-    consola.error("Failed to refresh user_artists_mv:", err);
+  for (const view of ["user_artists_mv", "top_scrobblers_mv"]) {
+    try {
+      await ctx.db.execute(
+        sql`REFRESH MATERIALIZED VIEW CONCURRENTLY ${sql.raw(view)}`,
+      );
+    } catch (err) {
+      consola.error(`Failed to refresh ${view}:`, err);
+    }
   }
 });
 
