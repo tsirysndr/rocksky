@@ -1,5 +1,10 @@
 import { Agent, AtpAgent } from "@atproto/api";
-import type { NodeOAuthClient } from "@atproto/oauth-client-node";
+import {
+  type NodeOAuthClient,
+  TokenInvalidError,
+  TokenRefreshError,
+  TokenRevokedError,
+} from "@atproto/oauth-client-node";
 import { consola } from "consola";
 import extractPdsFromDid from "./extractPdsFromDid";
 import { ctx } from "context";
@@ -14,6 +19,46 @@ export const pdsSessionExpired = {
   message:
     "Your session with your PDS has expired. Please log in to Rocksky again.",
 } as const;
+
+/**
+ * Whether the authorization server has actually rejected this session, as
+ * opposed to us merely failing to reach it.
+ *
+ * The distinction matters because dropping `auth_session` is irreversible from
+ * the server's side: nothing can re-authorize the user, so they stay silently
+ * logged out until they happen to notice and sign in again. A refresh-token
+ * race, a `redlock` acquire timing out, a PDS 5xx or a socket reset are all
+ * transient — the session behind them is still perfectly good.
+ *
+ * `@atproto/oauth-client` already deletes the stored session for exactly these
+ * error types (its `deleteOnError` policy), so recognising them here is only
+ * about knowing when to stop retrying. Deleting the row is the SDK's job.
+ */
+function isSessionRejected(e: unknown): boolean {
+  return (
+    e instanceof TokenRefreshError ||
+    e instanceof TokenRevokedError ||
+    e instanceof TokenInvalidError
+  );
+}
+
+/**
+ * The app-password equivalent of {@link isSessionRejected}: `resumeSession`
+ * rejects both when the PDS refuses the stored credentials and when it could
+ * not be reached at all, and only the former should cost the user the session.
+ * Duck-typed rather than `instanceof XRPCError` so this keeps working across
+ * `@atproto/api` versions.
+ */
+function isAtpSessionRejected(e: unknown): boolean {
+  if (typeof e !== "object" || e === null) return false;
+  const { status, error } = e as { status?: unknown; error?: unknown };
+  if (status !== 400 && status !== 401) return false;
+  return (
+    error === "ExpiredToken" ||
+    error === "InvalidToken" ||
+    error === "AccountTakedown"
+  );
+}
 
 export async function createAgent(
   oauthClient: NodeOAuthClient,
@@ -41,13 +86,25 @@ export async function createAgent(
         try {
           await atpAgent.resumeSession(JSON.parse(result.session));
         } catch (e) {
-          consola.info("Error resuming session");
-          consola.info(did);
-          consola.info(e);
-          await ctx.sqliteDb
-            .deleteFrom("auth_session")
-            .where("key", "=", `atp:${did}`)
-            .execute();
+          if (isAtpSessionRejected(e)) {
+            consola.info(
+              `Stored app-password session for ${did} was rejected by the PDS, removing it`,
+            );
+            consola.info(e);
+            await ctx.sqliteDb
+              .deleteFrom("auth_session")
+              .where("key", "=", `atp:${did}`)
+              .execute();
+            return null;
+          }
+          // Could not reach the PDS. Keep the session and retry — returning the
+          // agent here would hand back one with no session at all, which is
+          // what surfaced downstream as "agent has no session/DID".
+          consola.warn(`Could not resume the session for ${did}, retrying`);
+          consola.warn(e);
+          await new Promise((r) => setTimeout(r, 1000));
+          retry += 1;
+          continue;
         }
 
         return atpAgent;
@@ -56,17 +113,23 @@ export async function createAgent(
       try {
         oauthSession = await oauthClient.restore(did);
       } catch (e) {
-        // Restoring the OAuth session failed (e.g. the refresh token was
-        // revoked or has expired). This is not a transient error, so there is
-        // no point retrying: treat the user session as expired / logged out.
-        consola.info("Session restore failed, treating session as expired");
-        consola.info(did);
-        consola.info(e);
-        await ctx.sqliteDb
-          .deleteFrom("auth_session")
-          .where("key", "=", did)
-          .execute();
-        return null;
+        if (isSessionRejected(e)) {
+          // The refresh token was revoked or expired. The SDK has already
+          // dropped the stored session, so there is nothing to retry and
+          // nothing for us to delete: the user has to sign in again.
+          consola.info(`Session for ${did} is no longer valid`);
+          consola.info(e);
+          return null;
+        }
+        // Anything else is transient (lock contention, PDS unreachable, …).
+        // Retry, and above all leave `auth_session` alone: deleting it here is
+        // what silently logged users out mid-session, since only a fresh
+        // browser sign-in can ever put the row back.
+        consola.warn(`Could not restore the session for ${did}, retrying`);
+        consola.warn(e);
+        await new Promise((r) => setTimeout(r, 1000));
+        retry += 1;
+        continue;
       }
       agent = oauthSession ? new Agent(oauthSession) : null;
       if (agent === null) {

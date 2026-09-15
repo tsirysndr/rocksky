@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { consola } from "consola";
 import type { Context } from "context";
 import type { Server } from "lexicon";
-import { createAgent } from "lib/agent";
+import { createAgent, pdsSessionExpired } from "lib/agent";
 import {
   assertNotBotFlagged,
   assertNotScrobbleBlocked,
@@ -85,10 +85,21 @@ export default function (server: Server, ctx: Context) {
           throw err;
         }
 
-        // Fire-and-forget — the client doesn't need to wait for the full
+        // The agent is resolved up front, unlike the rest of the pipeline: with
+        // a dead PDS session there is nothing to write, and answering 200 here
+        // told clients the scrobble was stored when it never left the process.
+        // Mirrors what /now-playing already does. Everything after this point
+        // stays fire-and-forget — the client doesn't need to wait for the full
         // scrobble pipeline (ATProto puts, MusicBrainz hydration, etc.)
-        createAgent(ctx.oauthClient, did)
-          .then((agent) => scrobbleTrack(ctx, track, agent, did))
+        const agent = await createAgent(ctx.oauthClient, did);
+        if (!agent) {
+          consola.warn(
+            `[createScrobble] no agent for ${chalk.cyan(did)}, returning 401`,
+          );
+          return { status: 401, message: pdsSessionExpired.message };
+        }
+
+        scrobbleTrack(ctx, track, agent, did)
           .then(() =>
             consola.info(
               `[createScrobble] scrobble created for ${chalk.cyan(track.title)}`,
