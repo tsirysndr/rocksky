@@ -25,7 +25,11 @@ cron.schedule("*/30 * * * *", async () => {
   const client = await pool.connect();
   try {
     await client.query("SET statement_timeout = 0");
-    for (const view of ["user_artists_mv", "top_scrobblers_mv"]) {
+    for (const view of [
+      "user_artists_mv",
+      "top_scrobblers_mv",
+      "scrobbles_per_day_mv",
+    ]) {
       try {
         await client.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`);
       } catch (err) {

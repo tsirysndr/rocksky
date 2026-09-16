@@ -1,6 +1,7 @@
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, between, count, eq, or, sql } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
@@ -196,9 +197,46 @@ const retrieve = ({
       return { data };
     }
 
-    const data = await scrobblesPerDay(ctx, undefined, from, to);
-    return { data };
+    return { data: await globalScrobblesPerDay(db, from, to) };
   });
+};
+
+/**
+ * Global (unfiltered) series, served from scrobbles_per_day_mv.
+ *
+ * The view holds completed days only, so the second leg covers whatever it has
+ * not caught up on — normally just today, and more if a refresh was missed.
+ * Reading max(day) rather than assuming CURRENT_DATE is what keeps the two
+ * legs from overlapping (double-counting a day) or leaving a gap (dropping
+ * one) when the refresh is late.
+ */
+const globalScrobblesPerDay = async (
+  db: NodePgDatabase,
+  from: string,
+  to: string,
+): Promise<Array<{ date: string; count: number }>> => {
+  const result = await db.execute<{ date: string; count: string }>(sql`
+    SELECT day::text AS date, count
+    FROM scrobbles_per_day_mv
+    WHERE day BETWEEN ${from}::date AND ${to}::date
+
+    UNION ALL
+
+    SELECT (s.timestamp)::date::text AS date, count(*)::bigint AS count
+    FROM scrobbles s
+    WHERE s.timestamp >= COALESCE(
+            (SELECT max(day) + 1 FROM scrobbles_per_day_mv)::timestamp,
+            '-infinity'::timestamp)
+      AND (s.timestamp)::date BETWEEN ${from}::date AND ${to}::date
+    GROUP BY (s.timestamp)::date
+
+    ORDER BY 1
+  `);
+
+  return result.rows.map((row) => ({
+    date: row.date,
+    count: Number(row.count),
+  }));
 };
 
 const presentation = ({
