@@ -286,6 +286,98 @@ pub const ALBUM_COLS: &[Col] = cols! {
     "xata_version", Int;
 };
 
+// ------------------------------------------------- sea-query projections
+
+/// The expression for one column, with the cast this dialect needs.
+///
+/// The casts are not cosmetic. On Postgres an `int4` column will not decode
+/// into an `i64`, a `jsonb` will not decode into a `String`, and a `text[]` has
+/// no sqlx decoder at all — each needs the cast to come back as the type the
+/// model declares. On SQLite every one of them is a no-op, and applying them
+/// anyway would be actively wrong: `CAST(x AS timestamptz)` there has no type
+/// affinity and would mangle the ISO text these columns hold.
+pub fn column_expr(col: Col, dialect: Dialect, prefix: Option<&str>) -> sea_query::SimpleExpr {
+    use sea_query::{Alias, Expr, ExprTrait, Func};
+
+    let reference = match prefix {
+        Some(prefix) => Expr::col((Alias::new(prefix), Alias::new(col.name))),
+        None => Expr::col(Alias::new(col.name)),
+    };
+
+    match (dialect, col.kind) {
+        (Dialect::Sqlite, _) | (_, ColKind::AsIs) => reference.into(),
+        (Dialect::Postgres, ColKind::Int) => reference.cast_as(Alias::new("bigint")),
+        (Dialect::Postgres, ColKind::Real) => reference.cast_as(Alias::new("double precision")),
+        (Dialect::Postgres, ColKind::Timestamp) => reference.cast_as(Alias::new("timestamptz")),
+        (Dialect::Postgres, ColKind::TextArray) => {
+            // A `text[]` has no sqlx decoder; the models read it as JSON text.
+            Func::cust(Alias::new("to_json"))
+                .arg(reference)
+                .cast_as(Alias::new("text"))
+        }
+        (Dialect::Postgres, ColKind::Json) => reference.cast_as(Alias::new("text")),
+    }
+}
+
+/// An ISO-8601 timestamp as a value comparable against a timestamp column.
+///
+/// Bound as text, because that is how SQLite stores these columns, and cast on
+/// Postgres because a bound parameter is typed `text` there and
+/// `timestamptz >= text` has no operator — the comparison is a runtime error,
+/// not a wrong answer, so it takes down the whole handler.
+///
+/// SQLite must *not* get the cast. `timestamptz` is not a type it knows, so the
+/// CAST falls through to NUMERIC affinity and `'2026-01-01T…'` becomes `2026` —
+/// which does compare, against every row, wrongly.
+///
+/// A free function taking the dialect rather than only a `Backend` method, so
+/// both branches can be asserted without a Postgres to connect to.
+pub fn timestamp_expr(dialect: Dialect, text: impl Into<String>) -> sea_query::SimpleExpr {
+    let value = sea_query::Expr::val(text.into());
+    match dialect {
+        Dialect::Sqlite => value.into(),
+        Dialect::Postgres => value.cast_as(sea_query::Alias::new("timestamptz")),
+    }
+}
+
+/// Adds every column of a model to a `SELECT`, aliased to its field name.
+///
+/// The sea-query counterpart of [`select_list`]. Reached through
+/// [`crate::Backend::select_model`], which supplies the dialect — a handler
+/// never names one.
+pub fn select_columns(
+    query: &mut sea_query::SelectStatement,
+    columns: &[Col],
+    dialect: Dialect,
+    prefix: Option<&str>,
+) {
+    for col in columns {
+        query.expr_as(
+            column_expr(*col, dialect, prefix),
+            sea_query::Alias::new(col.alias),
+        );
+    }
+}
+
+/// The same, with a prefix on every *alias* rather than on the column.
+///
+/// For a row holding two models, where both alias `xata_id AS id` and sqlx
+/// would otherwise read whichever came first.
+pub fn select_columns_aliased(
+    query: &mut sea_query::SelectStatement,
+    columns: &[Col],
+    dialect: Dialect,
+    prefix: Option<&str>,
+    alias_prefix: &str,
+) {
+    for col in columns {
+        query.expr_as(
+            column_expr(*col, dialect, prefix),
+            sea_query::Alias::new(format!("{alias_prefix}{}", col.alias)),
+        );
+    }
+}
+
 // ---------------------------------------------------------------- tracks
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
@@ -397,6 +489,36 @@ pub const ACCESS_TOKEN_COLS: &[Col] = cols! {
     "xata_updatedat" => "updated_at", Timestamp;
 };
 
+// -------------------------------------------------------------- playlists
+
+/// A playlist row, without its tracks.
+///
+/// The playlist handlers use their own wider row type because they select a
+/// join; this is the plain table, for the callers that only need the playlist
+/// itself — the search index, mainly.
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct Playlist {
+    pub id: String,
+    pub name: String,
+    pub picture: Option<String>,
+    pub description: Option<String>,
+    pub uri: Option<String>,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+pub const PLAYLIST_COLS: &[Col] = cols! {
+    "xata_id" => "id";
+    "name";
+    "picture";
+    "description";
+    "uri";
+    "created_by";
+    "xata_createdat" => "created_at", Timestamp;
+    "xata_updatedat" => "updated_at", Timestamp;
+};
+
 // ------------------------------------------------------------ user_uploads
 
 pub const UPLOAD_COLS: &[Col] = cols! {
@@ -413,6 +535,37 @@ pub const UPLOAD_COLS: &[Col] = cols! {
     "xata_createdat" => "created_at", Timestamp;
     "xata_updatedat" => "updated_at", Timestamp;
     "xata_version", Int;
+};
+
+/// The `user_uploads` half of a search document.
+///
+/// Narrower than [`UPLOAD_COLS`] on purpose: a search document has no use for
+/// the Xata bookkeeping or the storage provider, and this list is joined
+/// against [`DOC_TRACK_COLS`], where two `xata_id AS id` aliases would collide.
+pub const DOC_UPLOAD_COLS: &[Col] = cols! {
+    "xata_id" => "id";
+    "user_id";
+    "track_id";
+    "r2_key";
+    "mime_type";
+    "file_size", Int;
+    "original_filename";
+    "uploaded_at", Timestamp;
+};
+
+/// The `tracks` half of a search document.
+pub const DOC_TRACK_COLS: &[Col] = cols! {
+    "title";
+    "artist";
+    "album";
+    "album_artist";
+    "genre";
+    "composer";
+    "album_art";
+    "duration", Int;
+    "mb_id";
+    "track_number", Int;
+    "disc_number", Int;
 };
 
 // ------------------------------------------------------------ loved_tracks
@@ -468,7 +621,7 @@ pub const SCROBBLE_COLS: &[Col] = cols! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{self, Backend};
+    use crate::{self as db, Backend};
 
     #[test]
     fn json_arrays_tolerate_null_empty_and_garbage() {
@@ -704,5 +857,143 @@ mod tests {
             .expect("prefixed SCROBBLE_COLS must decode")
             .expect("one row");
         assert_eq!(joined.id, scrobble.id);
+    }
+}
+
+#[cfg(test)]
+mod projection_tests {
+    use super::*;
+    use sea_query::{Alias, PostgresQueryBuilder, Query, SqliteQueryBuilder};
+
+    /// Every column kind, so each cast is exercised.
+    const EVERY_KIND: &[Col] = cols! {
+        "xata_id" => "id";
+        "plain";
+        "count", Int;
+        "ratio", Real;
+        "xata_createdat" => "created_at", Timestamp;
+        "genres", TextArray;
+        "payload", Json;
+    };
+
+    /// The rendered `SELECT` list of a statement built by `select_columns`.
+    fn rendered(dialect: Dialect, prefix: Option<&str>) -> String {
+        let mut query = Query::select();
+        select_columns(&mut query, EVERY_KIND, dialect, prefix);
+        query.from(Alias::new("t"));
+
+        let sql = match dialect {
+            Dialect::Sqlite => query.to_string(SqliteQueryBuilder),
+            Dialect::Postgres => query.to_string(PostgresQueryBuilder),
+        };
+        sql.trim_start_matches("SELECT ")
+            .split(" FROM ")
+            .next()
+            .unwrap_or_default()
+            .replace(['"', '\''], "")
+    }
+
+    /// The sea-query projection must select the same columns, with the same
+    /// casts and the same aliases, as the string builder it replaces. Anything
+    /// else is a row that decodes differently after a refactor.
+    #[test]
+    fn it_matches_the_string_builder() {
+        for dialect in [Dialect::Sqlite, Dialect::Postgres] {
+            for prefix in [None, Some("t")] {
+                let expected = select_list(EVERY_KIND, dialect, prefix)
+                    // sea-query writes `CAST(x AS bigint)` where the string
+                    // builder writes `x::bigint`; both are the same cast, so
+                    // the comparison is on columns, casts and aliases rather
+                    // than on which syntax each one picked.
+                    .replace("::bigint", "|bigint")
+                    .replace("::double precision", "|double precision")
+                    .replace("::timestamptz", "|timestamptz")
+                    .replace("::text", "|text");
+
+                let actual = rendered(dialect, prefix)
+                    .replace("CAST(", "")
+                    .replace(" AS bigint)", "|bigint")
+                    .replace(" AS double precision)", "|double precision")
+                    .replace(" AS timestamptz)", "|timestamptz")
+                    .replace(" AS text)", "|text");
+
+                assert_eq!(actual, expected, "{dialect:?} prefix={prefix:?}");
+            }
+        }
+    }
+
+    /// SQLite must get no casts at all: `CAST(x AS timestamptz)` there has no
+    /// type affinity and would corrupt the ISO text these columns hold.
+    #[test]
+    fn sqlite_gets_no_casts() {
+        let sql = rendered(Dialect::Sqlite, None);
+        assert!(!sql.contains("CAST"), "{sql}");
+        assert!(!sql.contains("to_json"), "{sql}");
+    }
+
+    /// And Postgres must get all of them, since none of those types decode
+    /// into the Rust field they fill.
+    #[test]
+    fn postgres_gets_every_cast() {
+        let sql = rendered(Dialect::Postgres, None);
+        assert!(sql.contains("CAST(count AS bigint) AS count"), "{sql}");
+        assert!(sql.contains("double precision"), "{sql}");
+        assert!(sql.contains("timestamptz"), "{sql}");
+        assert!(sql.contains("to_json(genres)"), "{sql}");
+    }
+
+    /// An alias prefix moves the alias, not the column — the whole point is to
+    /// read two models from one row.
+    #[test]
+    fn an_alias_prefix_only_changes_the_alias() {
+        let mut query = Query::select();
+        select_columns_aliased(&mut query, USER_COLS, Dialect::Sqlite, Some("u"), "user_");
+        query.from(Alias::new("users"));
+        let sql = query.to_string(SqliteQueryBuilder).replace('"', "");
+
+        assert!(sql.contains("u.xata_id AS user_id"), "{sql}");
+        assert!(sql.contains("u.handle AS user_handle"), "{sql}");
+        assert!(!sql.contains("u.user_xata_id"), "{sql}");
+    }
+}
+
+#[cfg(test)]
+mod timestamp_tests {
+    use super::*;
+    use sea_query::{Alias, Expr, PostgresQueryBuilder, Query, SqliteQueryBuilder};
+
+    fn rendered(dialect: Dialect) -> String {
+        let query = Query::select()
+            .expr(Expr::val(1))
+            .and_where(
+                Expr::col(Alias::new("timestamp"))
+                    .gte(timestamp_expr(dialect, "2026-01-01T00:00:00.000Z")),
+            )
+            .to_owned();
+        match dialect {
+            Dialect::Sqlite => query.to_string(SqliteQueryBuilder),
+            Dialect::Postgres => query.to_string(PostgresQueryBuilder),
+        }
+    }
+
+    /// Postgres needs the cast or the comparison is a runtime error: a bound
+    /// parameter is typed `text`, and `timestamp >= text` has no operator.
+    #[test]
+    fn postgres_gets_the_cast() {
+        let sql = rendered(Dialect::Postgres);
+        assert!(sql.contains("CAST("), "{sql}");
+        assert!(sql.contains("timestamptz"), "{sql}");
+    }
+
+    /// And SQLite must not get it. `timestamptz` is not a type SQLite knows, so
+    /// the CAST falls through to NUMERIC affinity and the ISO string becomes
+    /// its leading year — a comparison that succeeds against the wrong rows,
+    /// which is far worse than one that fails.
+    #[test]
+    fn sqlite_gets_no_cast() {
+        let sql = rendered(Dialect::Sqlite);
+        assert!(!sql.contains("CAST("), "{sql}");
+        assert!(!sql.contains("timestamptz"), "{sql}");
+        assert!(sql.contains("2026-01-01T00:00:00.000Z"), "{sql}");
     }
 }

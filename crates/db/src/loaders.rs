@@ -12,9 +12,7 @@
 //! keeps one unambiguous column list per query and stays O(1) in round trips
 //! rather than O(rows).
 
-use super::models::{
-    self, Album, Artist, Track, User, ALBUM_COLS, ARTIST_COLS, TRACK_COLS, USER_COLS,
-};
+use super::models::{Album, Artist, Track, User, ALBUM_COLS, ARTIST_COLS, TRACK_COLS, USER_COLS};
 use super::Backend;
 use std::collections::{HashMap, HashSet};
 
@@ -41,13 +39,15 @@ macro_rules! loader {
                 return Ok(HashMap::new());
             }
 
-            let mut sql = db.sql("SELECT ");
-            sql.push(models::select_list($cols, db.dialect(), None))
-                .push(concat!(" FROM ", $table, " WHERE xata_id IN "));
-            sql.bind_list(ids.iter().map(|id| id.as_str()));
+            let mut query = sea_query::Query::select();
+            db.select_model(&mut query, $cols, None);
+            query.from(sea_query::Alias::new($table)).and_where(
+                sea_query::Expr::col(sea_query::Alias::new("xata_id"))
+                    .is_in(ids.iter().map(|id| id.as_str())),
+            );
 
             Ok(db
-                .fetch_all::<$model>(&sql)
+                .fetch_all::<$model>(&query)
                 .await?
                 .into_iter()
                 .map(|row| (row.id.clone(), row))
@@ -64,7 +64,7 @@ loader!(albums_by_id, Album, ALBUM_COLS, "albums");
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
+    use crate as db;
 
     async fn fixture() -> (Backend, String, String, String, String) {
         let backend = db::connect_in_memory().await.unwrap();
