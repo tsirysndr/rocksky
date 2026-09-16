@@ -1,4 +1,4 @@
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Error;
 use sqlx::postgres::PgPoolOptions;
@@ -10,6 +10,7 @@ pub async fn scan() -> Result<(), Error> {
         .max_connections(5)
         .connect_with(rocksky_pgurl::primary("rocksky-dropbox-scan")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-dropbox-scan").await?;
     let conn = Arc::new(pool);
 
     scan_dropbox(conn).await?;

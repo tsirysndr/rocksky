@@ -44,6 +44,7 @@ pub async fn run() -> Result<(), Error> {
         .max_connections(5)
         .connect_with(rocksky_pgurl::primary("rocksky-spotify")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-spotify").await?;
 
     let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
     let nc = connect(&addr).await?;

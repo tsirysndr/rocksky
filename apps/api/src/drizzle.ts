@@ -73,6 +73,31 @@ export const readCancelPool = isSplit
   : cancelPool;
 if (isSplit) readCancelPool.on("error", onError("replica cancel"));
 
+/**
+ * Fails unless the primary pool can actually write.
+ *
+ * XATA_POSTGRES_URL is documented as read+write but is not guaranteed to stay
+ * that way — it has pointed at a replica in production, which turned the write
+ * fallback into a silent hole that swallowed thousands of scrobbles. Checking
+ * at startup makes a misrouted primary loud and immediate.
+ */
+export const ensureWritable = async () => {
+  const { rows } = await pool.query<{
+    in_recovery: boolean;
+    read_only: string;
+  }>(
+    "select pg_is_in_recovery() as in_recovery, current_setting('transaction_read_only') as read_only",
+  );
+  const [{ in_recovery, read_only }] = rows;
+  if (in_recovery || read_only === "on") {
+    throw new Error(
+      `The write endpoint is read-only (pg_is_in_recovery=${in_recovery}, ` +
+        `transaction_read_only=${read_only}). Point XATA_WRITE_POSTGRES_URL at the ` +
+        "primary — XATA_POSTGRES_URL is currently a replica and cannot accept writes.",
+    );
+  }
+};
+
 /** Primary-backed. Safe default: correct for reads and writes alike. */
 const db = drizzle(pool);
 

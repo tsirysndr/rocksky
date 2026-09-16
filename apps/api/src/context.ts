@@ -3,7 +3,7 @@ import { createClient } from "auth/client";
 import axios from "axios";
 import { consola } from "consola";
 import { createDb, migrateToLatest } from "db";
-import drizzle from "drizzle";
+import drizzle, { ensureWritable } from "drizzle";
 import authVerifier from "lib/authVerifier";
 import { env } from "lib/env";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
@@ -20,6 +20,15 @@ installPdsProxyFetch();
 const { DB_PATH } = env;
 export const db = createDb(DB_PATH);
 await migrateToLatest(db);
+
+// Unlike the write-only Rust services, this one is mostly a read API, so a
+// read-only primary is logged as loudly as possible rather than made fatal —
+// taking the whole API down would be the larger outage.
+await ensureWritable().catch((err: Error) => {
+  consola.error(
+    `[db] PRIMARY IS NOT WRITABLE — every write will fail. ${err.message}`,
+  );
+});
 
 const kv = createStorage({
   driver: sqliteKv({ location: env.KV_DB_PATH, table: "kv" }),

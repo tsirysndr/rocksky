@@ -47,6 +47,7 @@ pub async fn serve() -> Result<(), Error> {
         .max_connections(5)
         .connect_with(rocksky_pgurl::primary("rocksky-dropbox")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-dropbox").await?;
     let conn = Arc::new(pool);
 
     let conn = conn.clone();

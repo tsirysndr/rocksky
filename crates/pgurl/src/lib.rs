@@ -67,6 +67,29 @@ pub fn replica(app_name: &str) -> Result<PgConnectOptions> {
     options(&read_url()?, app_name, "replica")
 }
 
+/// Fails unless `pool` can actually write.
+///
+/// `XATA_POSTGRES_URL` is documented as read+write but is not guaranteed to
+/// stay that way — it has pointed at a replica in production, which turned the
+/// write fallback into a silent hole that swallowed thousands of scrobbles with
+/// nothing but a per-row error to show for it. Call this once at startup so a
+/// misrouted primary is a refusal to boot instead of hours of quiet data loss.
+pub async fn ensure_writable(pool: &sqlx::PgPool, service: &str) -> Result<()> {
+    let (in_recovery, read_only): (bool, String) =
+        sqlx::query_as("select pg_is_in_recovery(), current_setting('transaction_read_only')")
+            .fetch_one(pool)
+            .await?;
+
+    if in_recovery || read_only == "on" {
+        anyhow::bail!(
+            "{service}: the write endpoint is read-only (pg_is_in_recovery={in_recovery}, \
+             transaction_read_only={read_only}). Point XATA_WRITE_POSTGRES_URL at the primary — \
+             XATA_POSTGRES_URL is currently a replica and cannot accept writes."
+        );
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

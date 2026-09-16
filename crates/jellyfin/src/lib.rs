@@ -70,6 +70,7 @@ pub async fn run() -> Result<(), Error> {
         .max_lifetime(Duration::from_secs(1800))
         .connect_with(rocksky_pgurl::primary("rocksky-jellyfin")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-jellyfin").await?;
 
     auth::ensure_tables(&pool).await?;
     guid::ensure_table(&pool).await?;

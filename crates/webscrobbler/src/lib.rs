@@ -46,6 +46,7 @@ pub async fn start_server() -> Result<(), Error> {
         .max_lifetime(Duration::from_secs(1800))
         .connect_with(rocksky_pgurl::primary("rocksky-webscrobbler")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-webscrobbler").await?;
 
     let conn = Arc::new(pool);
 

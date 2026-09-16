@@ -33,6 +33,7 @@ pub async fn start() -> Result<(), Error> {
         .max_connections(5)
         .connect_with(rocksky_pgurl::primary("rocksky-playlists")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-playlists").await?;
     let users = find_spotify_users(&pool, 0, 100).await?;
 
     load_users(conn.clone(), &pool).await?;

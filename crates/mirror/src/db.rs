@@ -19,6 +19,7 @@ pub async fn connect() -> Result<Pool<Postgres>, Error> {
         .test_before_acquire(true)
         .connect_with(opts)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-mirror").await?;
     Ok(pool)
 }
 

@@ -56,6 +56,7 @@ pub async fn run() -> Result<(), Error> {
         .max_lifetime(Duration::from_secs(1800))
         .connect_with(rocksky_pgurl::primary("rocksky-scrobbler")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-scrobbler").await?;
     let conn = Arc::new(pool);
 
     let host = env::var("SCROBBLE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());

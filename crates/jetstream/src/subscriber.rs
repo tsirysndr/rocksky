@@ -84,6 +84,9 @@ impl MultiSourceSubscriber {
             .test_before_acquire(true)
             .connect_with(db_opts)
             .await?;
+        // This service exists to write; refuse to start rather than drop every
+        // ingested record into a read-only endpoint.
+        rocksky_pgurl::ensure_writable(&pool, "rocksky-jetstream").await?;
         let pool = Arc::new(pool);
 
         let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());

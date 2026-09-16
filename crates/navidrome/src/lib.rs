@@ -71,6 +71,7 @@ pub async fn run() -> Result<(), Error> {
         .max_lifetime(Duration::from_secs(1800))
         .connect_with(rocksky_pgurl::primary("rocksky-navidrome")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&pool, "rocksky-navidrome").await?;
 
     let conn = Arc::new(pool);
 

@@ -189,6 +189,7 @@ async fn setup_database_pools() -> Result<DatabasePools, Error> {
         .max_connections(MAX_CONNECTIONS)
         .connect_with(rocksky_pgurl::primary("rocksky-pgpull")?)
         .await?;
+    rocksky_pgurl::ensure_writable(&destination, "rocksky-pgpull").await?;
 
     Ok(DatabasePools {
         source,
