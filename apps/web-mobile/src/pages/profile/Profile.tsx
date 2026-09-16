@@ -994,7 +994,8 @@ export default function Profile() {
   // The route param can be a handle, so key the persisted UI state on the
   // resolved did whenever it is available.
   const [activeTab, setActiveTab] = useProfileActiveTab(profile?.did || did);
-  const { data: stats } = useProfileStatsByDidQuery(did);
+  const { data: stats, isSuccess: statsLoaded } =
+    useProfileStatsByDidQuery(did);
 
   const [genreRange, setGenreRange] = useState<[Date, Date] | []>(getLastDays(7));
   const { data: genreArtists } = useArtistsQuery(did!, 0, 100, ...(genreRange as [Date, Date]));
@@ -1036,8 +1037,11 @@ export default function Profile() {
       profile.did === loggedInProfile?.did ||
       (!!loggedInProfile?.handle && profile.handle === loggedInProfile.handle));
   const isFollowing = follows.has(profile?.did || "");
+  // statsLoaded, not `stats !== undefined`: a failed stats fetch must never be
+  // read as "no scrobbles yet", or an established listener gets the onboarding
+  // flow on their own profile.
   const isNewUser =
-    isOwnProfile && stats !== undefined && (stats?.scrobbles ?? 0) === 0;
+    isOwnProfile && statsLoaded && (stats?.scrobbles ?? 0) === 0;
 
   // Auto-open the onboarding sheet once for a brand-new user (empty profile).
   const ownerId = currentDid || loggedInProfile?.did || profile?.did;

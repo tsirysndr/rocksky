@@ -1,3 +1,4 @@
+import { consola } from "consola";
 import type { Context } from "context";
 import { count, eq, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
@@ -15,7 +16,14 @@ export default function (server: Server, ctx: Context) {
       Effect.flatMap(presentation),
       Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
-      Effect.catchAll(() => Effect.succeed(defaultStats)),
+      // Deliberately no fallback. Returning zeros here is indistinguishable
+      // from a genuinely empty profile, and both web clients read zero
+      // scrobbles on your own profile as "new user" and show the onboarding
+      // flow. Failing lets the client keep its last good value instead of
+      // telling an established listener they have never scrobbled.
+      Effect.tapError((err) =>
+        Effect.sync(() => consola.error("Failed to retrieve stats:", err)),
+      ),
     );
   server.app.rocksky.stats.getStats({
     handler: async ({ params }) => {
@@ -48,7 +56,10 @@ const retrieve = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
-      const user = await ctx.readDb
+      // Identity, not an aggregate: read it from the primary. On the replica a
+      // just-created account has not replicated yet, and "user not found" here
+      // returns zeros — which the clients render as the onboarding flow.
+      const user = await ctx.db
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -139,12 +150,4 @@ const presentation = ({
     albums: data.albums,
     tracks: data.tracks,
   }));
-};
-
-const defaultStats: StatsView = {
-  scrobbles: 0,
-  artists: 0,
-  lovedTracks: 0,
-  albums: 0,
-  tracks: 0,
 };

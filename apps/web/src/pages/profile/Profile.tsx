@@ -87,9 +87,12 @@ function Profile(props: ProfileProps) {
       profile.data.did === loggedInProfile?.did ||
       (!!loggedInProfile?.handle &&
         profile.data.handle === loggedInProfile.handle));
+  // isSuccess, not `data !== undefined`: a failed stats fetch must never be
+  // read as "no scrobbles yet", or an established listener gets the onboarding
+  // flow on their own profile.
   const isNewUser =
     isOwnProfile &&
-    profileStats.data !== undefined &&
+    profileStats.isSuccess &&
     (profileStats.data?.scrobbles ?? 0) === 0;
   const { data, isLoading } = useFollowersQuery(
     profile.data?.did,
