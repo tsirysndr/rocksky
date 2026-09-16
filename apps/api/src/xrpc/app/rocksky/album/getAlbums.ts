@@ -72,7 +72,7 @@ const retrieve = ({
       const offset = params.offset ?? 0;
       const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
 
-      let topAlbumsQb = ctx.db
+      let topAlbumsQb = ctx.readDb
         .select({
           albumId: tables.scrobbles.albumId,
           play_count: count(tables.scrobbles.id).as("play_count"),
@@ -103,7 +103,7 @@ const retrieve = ({
         .filter((id): id is string => id !== null);
 
       const [albums, uniqueListenersRows] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             id: tables.albums.id,
             uri: tables.albums.uri,
@@ -118,7 +118,7 @@ const retrieve = ({
           .from(tables.albums)
           .where(inArray(tables.albums.id, albumIds))
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             albumId: tables.scrobbles.albumId,
             unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,

@@ -3,19 +3,21 @@
 use anyhow::{Context, Error};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use sqlx::{postgres::PgPoolOptions, FromRow, Pool, Postgres};
-use std::{env, time::Duration};
+use std::time::Duration;
 
 use crate::Provider;
 
 pub async fn connect() -> Result<Pool<Postgres>, Error> {
-    let url = env::var("XATA_POSTGRES_URL").context("XATA_POSTGRES_URL not set")?;
+    // Mirrors scrobbles from other services in, and reads the watermark it just
+    // wrote on the next pass, so it stays on the primary.
+    let opts = rocksky_pgurl::primary("rocksky-mirror").context("no Postgres URL set")?;
     let pool = PgPoolOptions::new()
         .max_connections(8)
         .min_connections(2)
         .acquire_timeout(Duration::from_secs(12))
         .max_lifetime(Some(Duration::from_secs(60 * 14)))
         .test_before_acquire(true)
-        .connect(&url)
+        .connect_with(opts)
         .await?;
     Ok(pool)
 }

@@ -81,7 +81,7 @@ const retrieve = ({
 // top_scrobblers_mv holds the all-time per-user totals (0026_top_scrobblers_mv.sql),
 // refreshed periodically by server.ts.
 const allTime = async (ctx: Context, limit: number, offset: number) => {
-  const result = await ctx.db.execute(sql`
+  const result = await ctx.readDb.execute(sql`
     SELECT
       u.xata_id AS id,
       u.did,
@@ -118,7 +118,7 @@ const inRange = (
     conditions.push(lte(tables.scrobbles.timestamp, new Date(params.endDate)));
   }
 
-  return ctx.db
+  return ctx.readDb
     .select({
       id: tables.users.id,
       did: tables.users.did,

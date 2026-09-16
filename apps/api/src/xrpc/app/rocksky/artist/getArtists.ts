@@ -92,7 +92,7 @@ const retrieve = ({
       let artistIds: string[];
 
       if (filters.length > 0) {
-        const filtered = await ctx.db
+        const filtered = await ctx.readDb
           .select({ id: tables.artists.id })
           .from(tables.artists)
           .where(and(...filters))
@@ -101,7 +101,7 @@ const retrieve = ({
           .execute();
         artistIds = filtered.map((a) => a.id);
       } else {
-        const topArtists = await ctx.db
+        const topArtists = await ctx.readDb
           .select({
             artistId: tables.scrobbles.artistId,
             play_count: count(tables.scrobbles.id).as("play_count"),
@@ -120,7 +120,7 @@ const retrieve = ({
       if (artistIds.length === 0) return { data: [] };
 
       const [artists, scrobbleCounts, uniqueListenersRows] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             id: tables.artists.id,
             name: tables.artists.name,
@@ -132,7 +132,7 @@ const retrieve = ({
           .from(tables.artists)
           .where(inArray(tables.artists.id, artistIds))
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             artistId: tables.scrobbles.artistId,
             play_count: count(tables.scrobbles.id).as("play_count"),
@@ -141,7 +141,7 @@ const retrieve = ({
           .where(inArray(tables.scrobbles.artistId, artistIds))
           .groupBy(tables.scrobbles.artistId)
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             artistId: tables.scrobbles.artistId,
             unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,

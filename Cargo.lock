@@ -6939,6 +6939,7 @@ dependencies = [
  "owo-colors",
  "redis 0.29.5",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "sha256",
@@ -6970,6 +6971,7 @@ dependencies = [
  "owo-colors",
  "redis 0.29.5",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -6997,6 +6999,7 @@ dependencies = [
  "owo-colors",
  "rand 0.8.5",
  "rocksky-navidrome",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -7020,6 +7023,7 @@ dependencies = [
  "owo-colors",
  "redis 0.29.5",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "sha256",
@@ -7051,6 +7055,7 @@ dependencies = [
  "owo-colors",
  "rand 0.9.2",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "sha256",
@@ -7099,6 +7104,7 @@ dependencies = [
  "owo-colors",
  "quick-xml 0.37.5",
  "reqwest",
+ "rocksky-pgurl",
  "rust-s3",
  "serde",
  "serde_json",
@@ -7131,11 +7137,20 @@ dependencies = [
  "anyhow",
  "chrono",
  "owo-colors",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "sqlx",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rocksky-pgurl"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "sqlx",
 ]
 
 [[package]]
@@ -7155,6 +7170,7 @@ dependencies = [
  "owo-colors",
  "polars",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -7187,6 +7203,7 @@ dependencies = [
  "rand 0.9.2",
  "redis 0.29.5",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "serial_test",
@@ -7239,6 +7256,7 @@ dependencies = [
  "jsonwebtoken",
  "redis 0.29.5",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "sqlx",
@@ -7321,6 +7339,7 @@ dependencies = [
  "rand 0.9.2",
  "redis 0.29.5",
  "reqwest",
+ "rocksky-pgurl",
  "serde",
  "serde_json",
  "serial_test",

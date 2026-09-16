@@ -74,13 +74,13 @@ const retrieve = ({
       if (!did) throw new Error("User not authenticated");
 
       const [user1, user2] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({ id: tables.users.id })
           .from(tables.users)
           .where(eq(tables.users.did, did))
           .execute()
           .then((rows) => rows[0]),
-        ctx.db
+        ctx.readDb
           .select({ id: tables.users.id })
           .from(tables.users)
           .where(
@@ -97,7 +97,7 @@ const retrieve = ({
       if (!user2) throw new Error("User2 not found");
 
       const [rawUser1Artists, rawUser2Artists] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             artistId: tables.scrobbles.artistId,
             scrobbles: count(tables.scrobbles.id),
@@ -116,7 +116,7 @@ const retrieve = ({
           .groupBy(tables.scrobbles.artistId)
           .orderBy(desc(count(tables.scrobbles.id)))
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             artistId: tables.scrobbles.artistId,
             scrobbles: count(tables.scrobbles.id),
@@ -169,7 +169,7 @@ const retrieve = ({
 
       const topArtistDetails =
         topSharedIds.length > 0
-          ? await ctx.db
+          ? await ctx.readDb
               .select({
                 id: tables.artists.id,
                 name: tables.artists.name,

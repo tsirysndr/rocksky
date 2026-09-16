@@ -41,7 +41,7 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
-      const artist = await ctx.db
+      const artist = await ctx.readDb
         .select()
         .from(tables.userArtists)
         .leftJoin(
@@ -65,7 +65,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       }
       return Promise.all([
         Promise.resolve(artist),
-        ctx.db
+        ctx.readDb
           .select({
             count: count(),
           })
@@ -73,7 +73,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .where(eq(tables.userArtists.artistId, artist?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
-        ctx.db
+        ctx.readDb
           .select({ count: count() })
           .from(tables.scrobbles)
           .where(eq(tables.scrobbles.artistId, artist?.id))

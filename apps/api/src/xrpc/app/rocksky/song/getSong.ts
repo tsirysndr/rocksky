@@ -79,7 +79,7 @@ const retrieve = ({
       }
       const where = clauses.length > 1 ? or(...clauses) : clauses[0];
 
-      const row = await ctx.db
+      const row = await ctx.readDb
         .select()
         .from(tables.userTracks)
         .leftJoin(
@@ -104,7 +104,7 @@ const retrieve = ({
 
       const artists = await Promise.all(
         track.artist.split(",").map((name) =>
-          ctx.db
+          ctx.readDb
             .select()
             .from(tables.artists)
             .where(eq(tables.artists.name, name.trim()))
@@ -119,7 +119,7 @@ const retrieve = ({
         withLikes(ctx, [track], did).then((rows) => rows[0] ?? track),
         Promise.resolve(artist),
         Promise.resolve(artists.filter((x) => x !== undefined)),
-        ctx.db
+        ctx.readDb
           .select({
             count: count(),
           })
@@ -127,13 +127,13 @@ const retrieve = ({
           .where(eq(tables.userTracks.trackId, track?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
-        ctx.db
+        ctx.readDb
           .select({ count: count() })
           .from(tables.scrobbles)
           .where(eq(tables.scrobbles.trackId, track?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
-        ctx.db
+        ctx.readDb
           .select({
             handle: tables.users.handle,
             avatar: tables.users.avatar,

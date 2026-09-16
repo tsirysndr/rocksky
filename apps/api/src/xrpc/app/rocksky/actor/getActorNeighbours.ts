@@ -5,7 +5,7 @@ import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { NeighbourViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorNeighbours";
-import { dbQuery } from "lib/dbQuery";
+import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
@@ -69,7 +69,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: Neighbour[] }, Error> => {
-  return dbQuery("Failed to retrieve neighbours", async (db) => {
+  return readQuery("Failed to retrieve neighbours", async (db) => {
     const user = await db
       .select({ id: tables.users.id })
       .from(tables.users)

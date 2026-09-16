@@ -31,7 +31,7 @@ pub async fn start() -> Result<(), Error> {
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .connect_with(rocksky_pgurl::primary("rocksky-playlists")?)
         .await?;
     let users = find_spotify_users(&pool, 0, 100).await?;
 

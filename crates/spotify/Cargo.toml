@@ -7,6 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+rocksky-pgurl = { path = "../pgurl" }
 aes = "0.8.4"
 anyhow = "1.0.96"
 async-nats = "0.39.0"

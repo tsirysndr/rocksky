@@ -17,7 +17,7 @@ import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getTopArtists";
 import { deepCamelCaseKeys } from "lib";
-import { dbQuery } from "lib/dbQuery";
+import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
@@ -53,7 +53,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: TopArtist[] }, Error> => {
-  return dbQuery("Failed to retrieve top artists", async (db) => {
+  return readQuery("Failed to retrieve top artists", async (db) => {
     const limit = params.limit || 50;
     const offset = params.offset || 0;
 

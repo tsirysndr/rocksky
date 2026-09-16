@@ -5,7 +5,7 @@ import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getScrobblesChart";
-import { dbQuery } from "lib/dbQuery";
+import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
@@ -62,7 +62,7 @@ const scrobblesPerDay = (
   from: string,
   to: string,
 ) =>
-  ctx.db
+  ctx.readDb
     .select({
       date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
       count: count(tables.scrobbles.id),
@@ -85,7 +85,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: Array<{ date: string; count: number }> }, Error> => {
-  return dbQuery("Failed to retrieve scrobbles chart", async (db) => {
+  return readQuery("Failed to retrieve scrobbles chart", async (db) => {
     const { from, to } = defaultDateRange(params);
 
     if (params.did) {

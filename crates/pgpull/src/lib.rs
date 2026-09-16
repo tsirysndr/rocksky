@@ -167,7 +167,7 @@ async fn download_backup() -> Result<(), Error> {
         .await?;
 
     tokio::process::Command::new("psql")
-        .arg(&env::var("XATA_POSTGRES_URL")?)
+        .arg(&rocksky_pgurl::write_url()?)
         .arg("-f")
         .arg(BACKUP_PATH)
         .stderr(std::process::Stdio::inherit())
@@ -184,9 +184,10 @@ async fn setup_database_pools() -> Result<DatabasePools, Error> {
         .connect(&env::var("SOURCE_POSTGRES_URL")?)
         .await?;
 
+    // Destination of the pull: writes, so the primary.
     let destination = PgPoolOptions::new()
         .max_connections(MAX_CONNECTIONS)
-        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .connect_with(rocksky_pgurl::primary("rocksky-pgpull")?)
         .await?;
 
     Ok(DatabasePools {

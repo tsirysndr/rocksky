@@ -47,11 +47,11 @@ const retrieve = ({
     try: async () => {
       const [scrobblesRow, usersRow, artistsRow, albumsRow, tracksRow] =
         await Promise.all([
-          ctx.db.select({ n: count() }).from(tables.scrobbles).execute(),
-          ctx.db.select({ n: count() }).from(tables.users).execute(),
-          ctx.db.select({ n: count() }).from(tables.artists).execute(),
-          ctx.db.select({ n: count() }).from(tables.albums).execute(),
-          ctx.db.select({ n: count() }).from(tables.tracks).execute(),
+          ctx.readDb.select({ n: count() }).from(tables.scrobbles).execute(),
+          ctx.readDb.select({ n: count() }).from(tables.users).execute(),
+          ctx.readDb.select({ n: count() }).from(tables.artists).execute(),
+          ctx.readDb.select({ n: count() }).from(tables.albums).execute(),
+          ctx.readDb.select({ n: count() }).from(tables.tracks).execute(),
         ]);
 
       return {

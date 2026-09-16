@@ -68,7 +68,7 @@ pub async fn run() -> Result<(), Error> {
         .acquire_timeout(Duration::from_secs(10))
         .idle_timeout(Duration::from_secs(300))
         .max_lifetime(Duration::from_secs(1800))
-        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .connect_with(rocksky_pgurl::primary("rocksky-jellyfin")?)
         .await?;
 
     auth::ensure_tables(&pool).await?;

@@ -6,6 +6,10 @@ export const env = cleanEnv(process.env, {
     devDefault:
       "postgresql://postgres:mysecretpassword@localhost:5433/rocksky?sslmode=disable",
   }),
+  // The sweep analyses scrobbles right up to the current moment and flags on
+  // the result, so it reads the primary: a lagging replica would cut the tail
+  // off the window it is measuring. It also writes users.is_bot.
+  XATA_WRITE_POSTGRES_URL: str({ default: "" }),
 
   // Cron schedule for the sweep. Standard 5-field cron; default: top of every hour.
   SWEEP_CRON: str({ default: "0 * * * *" }),

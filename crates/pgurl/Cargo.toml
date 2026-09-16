@@ -1,0 +1,11 @@
+[package]
+name = "rocksky-pgurl"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = "1.0.96"
+sqlx = { version = "0.8.3", features = ["runtime-tokio-rustls", "postgres"] }

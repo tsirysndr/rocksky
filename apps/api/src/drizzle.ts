@@ -10,47 +10,76 @@ const applicationName =
   env.PG_APP_NAME ||
   `rocksky-api:${basename(process.argv[1] ?? "unknown").replace(/\.[cm]?[jt]s$/, "")}`;
 
-const poolConfig: pg.PoolConfig = {
-  connectionString: env.XATA_POSTGRES_URL,
+const writeUrl = env.XATA_WRITE_POSTGRES_URL || env.XATA_POSTGRES_URL;
+const readUrl = env.XATA_READ_POSTGRES_URL || env.XATA_POSTGRES_URL;
+
+// When the split is not configured both names resolve to the same endpoint.
+// Building two pools then would silently double this process's connection
+// count against the same server, which is the problem we are trying to avoid.
+export const isSplit = readUrl !== writeUrl;
+
+const poolConfig = (url: string, name: string): pg.PoolConfig => ({
+  connectionString: url,
   max: env.PG_MAX_CONNECTIONS,
   idleTimeoutMillis: 30_000,
   // Shorter than every handler's own timeout budget: when the pool is drained
   // the right move is to shed the request quickly, not to sit in the checkout
   // queue until the caller has already timed out.
   connectionTimeoutMillis: 5_000,
-  application_name: applicationName,
+  application_name: name,
   // Effect.timeout interrupts the fiber but cannot cancel an in-flight pg
   // query, so a timed-out handler leaves its backend running. These two are the
   // only thing that ever reclaims it.
   statement_timeout: env.PG_STATEMENT_TIMEOUT,
   idle_in_transaction_session_timeout: 30_000,
+});
+
+const onError = (label: string) => (err: Error) => {
+  consola.error(`Idle pg client error on ${label}:`, err.message);
 };
 
-export const pool = new pg.Pool(poolConfig);
+/** Primary. Every write, and every read that must reflect one. */
+export const pool = new pg.Pool(
+  poolConfig(writeUrl, `${applicationName}:primary`),
+);
+pool.on("error", onError("primary"));
 
-pool.on("error", (err) => {
-  consola.error(
-    "Idle pg client error (connection terminated by server):",
-    err.message,
-  );
-});
+/** Read-only replica, or the primary pool itself when no replica is set. */
+export const readPool = isSplit
+  ? new pg.Pool(poolConfig(readUrl, `${applicationName}:replica`))
+  : pool;
+if (isSplit) readPool.on("error", onError("replica"));
 
 // Dedicated to issuing pg_cancel_backend (see lib/dbQuery.ts). It has to be a
 // separate pool: the whole point is to be reachable when the main pool is the
-// thing that is saturated.
-export const cancelPool = new pg.Pool({
-  connectionString: env.XATA_POSTGRES_URL,
+// thing that is saturated. pg_cancel_backend only works on the server that owns
+// the backend, so a cancel pool is needed per endpoint.
+const cancelConfig = (url: string, name: string): pg.PoolConfig => ({
+  connectionString: url,
   max: 2,
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 2_000,
-  application_name: `${applicationName}:cancel`,
+  application_name: name,
   statement_timeout: 5_000,
 });
 
-cancelPool.on("error", (err) => {
-  consola.error("Idle pg cancel-client error:", err.message);
-});
+export const cancelPool = new pg.Pool(
+  cancelConfig(writeUrl, `${applicationName}:cancel:primary`),
+);
+cancelPool.on("error", onError("primary cancel"));
 
+export const readCancelPool = isSplit
+  ? new pg.Pool(cancelConfig(readUrl, `${applicationName}:cancel:replica`))
+  : cancelPool;
+if (isSplit) readCancelPool.on("error", onError("replica cancel"));
+
+/** Primary-backed. Safe default: correct for reads and writes alike. */
 const db = drizzle(pool);
 
-export default { db };
+/**
+ * Replica-backed. Only for reads that tolerate replication lag — never for a
+ * write, and never for a read that has to show something just written.
+ */
+export const readDb = isSplit ? drizzle(readPool) : db;
+
+export default { db, readDb };

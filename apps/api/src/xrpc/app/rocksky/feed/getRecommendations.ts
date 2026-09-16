@@ -105,7 +105,7 @@ const retrieve = ({
 }): Effect.Effect<RetrieveResult, Error> =>
   Effect.tryPromise({
     try: async () => {
-      const user = await ctx.db
+      const user = await ctx.readDb
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -123,7 +123,7 @@ const retrieve = ({
       const mainCount = limit - serendipityCount;
 
       // Tracks the user has already scrobbled
-      const heardRows = await ctx.db
+      const heardRows = await ctx.readDb
         .select({ trackId: tables.scrobbles.trackId })
         .from(tables.scrobbles)
         .where(eq(tables.scrobbles.userId, user.id))
@@ -147,7 +147,7 @@ const retrieve = ({
       const excludedIds = [...heardSet];
 
       // User's artist profile with recency decay
-      const artistProfile = await ctx.db
+      const artistProfile = await ctx.readDb
         .select({
           artistId: tables.scrobbles.artistId,
         })
@@ -175,7 +175,7 @@ const retrieve = ({
       // so incidentally-heard genres (e.g. "a few K-pop tracks") don't pollute
       // the filter. Liked tracks receive a bonus weight as explicit endorsement.
       const [artistGenreRows, likedArtistGenres] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             genres: tables.artists.genres,
             scrobbles: tables.userArtists.scrobbles,
@@ -189,7 +189,7 @@ const retrieve = ({
           .orderBy(desc(tables.userArtists.scrobbles))
           .limit(200),
         lovedTrackIds.length > 0
-          ? ctx.db
+          ? ctx.readDb
               .select({ genres: tables.artists.genres })
               .from(tables.tracks)
               .leftJoin(
@@ -223,7 +223,7 @@ const retrieve = ({
       );
 
       // Top neighbours by shared-artist overlap
-      const neighbours = await ctx.db
+      const neighbours = await ctx.readDb
         .select({
           userId: tables.scrobbles.userId,
           sharedCount: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
@@ -278,7 +278,7 @@ const retrieve = ({
       );
 
       // Candidate tracks from neighbour scrobbles, decay-weighted
-      const neighbourTracks = await ctx.db
+      const neighbourTracks = await ctx.readDb
         .select({
           trackId: tables.scrobbles.trackId,
           neighbourUserId: tables.scrobbles.userId,
@@ -333,7 +333,7 @@ const retrieve = ({
       // Genre-filter the score pool BEFORE candidate selection so mainCandidates
       // are always genre-appropriate (hydrate filter then acts as safety net only).
       if (userGenres.size > 0 && scoreMap.size > 0) {
-        const trackArtistData = await ctx.db
+        const trackArtistData = await ctx.readDb
           .select({
             id: tables.tracks.id,
             artist: tables.tracks.artist,
@@ -380,7 +380,7 @@ const retrieve = ({
             (g) => sql`${tables.artists.genres} @> ARRAY[${g}]::text[]`,
           ),
         );
-        const supplemental = await ctx.db
+        const supplemental = await ctx.readDb
           .select({ id: tables.tracks.id })
           .from(tables.tracks)
           .innerJoin(
@@ -413,7 +413,7 @@ const retrieve = ({
 
       // Serendipity pool: tracks from artists the user hasn't heard,
       // discovered through neighbour artists (1-hop expansion from user's taste)
-      const serendipityArtistIds = await ctx.db
+      const serendipityArtistIds = await ctx.readDb
         .select({ artistId: tables.scrobbles.artistId })
         .from(tables.scrobbles)
         .where(
@@ -433,7 +433,7 @@ const retrieve = ({
       // with the user's taste profile, and skip Various Artists compilations
       const genreFilteredSerendipityArtistIds =
         serendipityArtistIds.length > 0
-          ? await ctx.db
+          ? await ctx.readDb
               .select({
                 id: tables.artists.id,
                 name: tables.artists.name,
@@ -458,7 +458,7 @@ const retrieve = ({
       // Resolve artist IDs → artist URIs to join against tracks.artistUri
       const serendipityArtistUris =
         genreFilteredSerendipityArtistIds.length > 0
-          ? await ctx.db
+          ? await ctx.readDb
               .select({ uri: tables.artists.uri })
               .from(tables.artists)
               .where(
@@ -471,7 +471,7 @@ const retrieve = ({
 
       const serendipityTracks =
         serendipityArtistUris.length > 0
-          ? await ctx.db
+          ? await ctx.readDb
               .select({ id: tables.tracks.id })
               .from(tables.tracks)
               .where(
@@ -520,7 +520,7 @@ const hydrate = ({
       if (trackIds.length === 0) return { items: [] };
 
       const [trackRows, likeRows] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             id: tables.tracks.id,
             title: tables.tracks.title,

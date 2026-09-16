@@ -6,7 +6,7 @@ import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbumTracks";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { dedupeTracksKeepLyrics } from "lib";
-import { dbQuery } from "lib/dbQuery";
+import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import * as R from "ramda";
 import tables from "schema";
@@ -36,7 +36,7 @@ export default function (server: Server, ctx: Context) {
 }
 
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
-  return dbQuery("Failed to retrieve album tracks", async (db) =>
+  return readQuery("Failed to retrieve album tracks", async (db) =>
     db
       .select()
       .from(tables.albumTracks)

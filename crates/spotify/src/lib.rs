@@ -42,7 +42,7 @@ pub async fn run() -> Result<(), Error> {
     let cache = Cache::new().await?;
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .connect_with(rocksky_pgurl::primary("rocksky-spotify")?)
         .await?;
 
     let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());

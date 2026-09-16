@@ -25,7 +25,14 @@ export const env = cleanEnv(process.env, {
   SPOTIFY_ENCRYPTION_KEY: str({}),
   SPOTIFY_ENCRYPTION_IV: str(),
   ROCKSKY_BETA_TOKEN: str({}),
+  // Read+write endpoint. Still the only required one: the split URLs below
+  // both fall back to it.
   XATA_POSTGRES_URL: str({}),
+  // Read-only replica. Cheap to read from but lags the primary, so it must not
+  // serve anything that has to reflect a write that just happened.
+  XATA_READ_POSTGRES_URL: str({ default: "" }),
+  // Primary. Every write, and every read that has to be fresh.
+  XATA_WRITE_POSTGRES_URL: str({ default: "" }),
   NATS_URL: str({ default: "nats://localhost:4222" }),
   ANALYTICS: str({ default: "http://localhost:7879" }),
   DROPBOX_CLIENT_ID: str({}),

@@ -56,7 +56,7 @@ const retrieve = ({
       const limit = params.limit ?? 10;
       const offset = params.offset ?? 0;
 
-      const user = await ctx.db
+      const user = await ctx.readDb
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -82,7 +82,7 @@ const retrieve = ({
         );
       }
 
-      const topTracksQuery = await ctx.db
+      const topTracksQuery = await ctx.readDb
         .select({
           trackId: tables.scrobbles.trackId,
           play_count: count(tables.scrobbles.id).as("play_count"),
@@ -107,7 +107,7 @@ const retrieve = ({
         .filter((id): id is string => id !== null);
 
       const [tracks, uniqueListenersRows] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             id: tables.tracks.id,
             title: tables.tracks.title,
@@ -128,7 +128,7 @@ const retrieve = ({
           .from(tables.tracks)
           .where(inArray(tables.tracks.id, trackIds))
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             trackId: tables.scrobbles.trackId,
             unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,

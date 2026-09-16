@@ -53,7 +53,7 @@ const retrieve = ({
 }): Effect.Effect<{ data: Album[] }, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      const artist = await ctx.db
+      const artist = await ctx.readDb
         .select({ id: tables.artists.id })
         .from(tables.artists)
         .where(eq(tables.artists.uri, params.uri))
@@ -62,7 +62,7 @@ const retrieve = ({
 
       if (!artist) return { data: [] };
 
-      const artistAlbumRows = await ctx.db
+      const artistAlbumRows = await ctx.readDb
         .select({ albumId: tables.artistAlbums.albumId })
         .from(tables.artistAlbums)
         .where(eq(tables.artistAlbums.artistId, artist.id))
@@ -75,7 +75,7 @@ const retrieve = ({
         .filter((id): id is string => id !== null);
 
       const [albums, scrobbleCounts, uniqueListenersRows] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             id: tables.albums.id,
             uri: tables.albums.uri,
@@ -90,7 +90,7 @@ const retrieve = ({
           .from(tables.albums)
           .where(inArray(tables.albums.id, albumIds))
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             albumId: tables.scrobbles.albumId,
             play_count: count(tables.scrobbles.id).as("play_count"),
@@ -99,7 +99,7 @@ const retrieve = ({
           .where(inArray(tables.scrobbles.albumId, albumIds))
           .groupBy(tables.scrobbles.albumId)
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             albumId: tables.scrobbles.albumId,
             unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,

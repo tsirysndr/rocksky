@@ -18,10 +18,13 @@ import (
 // SPOTIFY_ENCRYPTION_IV (same AES-256-CTR scheme the API and the Rust
 // services use). Rows whose secret fails to decrypt are skipped.
 func loadAppsFromDB(ctx context.Context) ([]*appCred, error) {
-	dsn := os.Getenv("XATA_POSTGRES_URL")
-	if dsn == "" {
-		dsn = os.Getenv("DATABASE_URL")
-	}
+	// Read-only lookup of rarely-changing app credentials, so the replica is
+	// fine; falls back to the read+write endpoint when none is configured.
+	dsn := firstNonEmpty(
+		os.Getenv("XATA_READ_POSTGRES_URL"),
+		os.Getenv("XATA_POSTGRES_URL"),
+		os.Getenv("DATABASE_URL"),
+	)
 	if dsn == "" {
 		return nil, fmt.Errorf("XATA_POSTGRES_URL is not set")
 	}
@@ -85,4 +88,13 @@ func decryptAES256CTR(encHex string, key, iv []byte) (string, error) {
 	plaintext := make([]byte, len(ciphertext))
 	cipher.NewCTR(block, iv).XORKeyStream(plaintext, ciphertext)
 	return string(plaintext), nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

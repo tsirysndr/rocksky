@@ -1,11 +1,11 @@
-import type { Server } from "lexicon";
 import type { Context } from "context";
+import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
+import type { Server } from "lexicon";
 import type { FeedGeneratorView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getFeedGenerator";
 import tables from "schema";
 import type { SelectFeed } from "schema/feeds";
-import { eq } from "drizzle-orm";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
@@ -25,7 +25,7 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: () =>
-      ctx.db
+      ctx.readDb
         .select()
         .from(tables.feeds)
         .leftJoin(tables.users, eq(tables.feeds.userId, tables.users.id))

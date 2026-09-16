@@ -13,4 +13,7 @@ export const env = cleanEnv(process.env, {
     devDefault:
       "postgresql://postgres:mysecretpassword@localhost:5433/rocksky?sslmode=disable",
   }),
+  // This service only ever reads, and a feed generator is eventually
+  // consistent by design, so it prefers the replica when one exists.
+  XATA_READ_POSTGRES_URL: str({ default: "" }),
 });

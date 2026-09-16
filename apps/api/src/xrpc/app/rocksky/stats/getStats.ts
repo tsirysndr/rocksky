@@ -48,7 +48,7 @@ const retrieve = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
-      const user = await ctx.db
+      const user = await ctx.readDb
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -74,12 +74,12 @@ const retrieve = ({
 
       const [scrobblesRow, artistsRow, lovedRow, albumsRow, tracksRow] =
         await Promise.all([
-          ctx.db
+          ctx.readDb
             .select({ n: count() })
             .from(tables.scrobbles)
             .where(eq(tables.scrobbles.userId, user.id))
             .execute(),
-          ctx.db
+          ctx.readDb
             .select({
               n: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
             })
@@ -91,14 +91,14 @@ const retrieve = ({
             .from(tables.lovedTracks)
             .where(eq(tables.lovedTracks.userId, user.id))
             .execute(),
-          ctx.db
+          ctx.readDb
             .select({
               n: sql<number>`count(distinct ${tables.scrobbles.albumId})`,
             })
             .from(tables.scrobbles)
             .where(eq(tables.scrobbles.userId, user.id))
             .execute(),
-          ctx.db
+          ctx.readDb
             .select({
               n: sql<number>`count(distinct ${tables.scrobbles.trackId})`,
             })

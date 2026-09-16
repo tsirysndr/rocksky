@@ -68,7 +68,7 @@ const retrieve = ({
       const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
       const endDate = new Date(`${year + 1}-01-01T00:00:00.000Z`);
 
-      const user = await ctx.db
+      const user = await ctx.readDb
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -107,14 +107,14 @@ const retrieve = ({
         newArtistRows,
       ] = await Promise.all([
         // Total scrobbles
-        ctx.db
+        ctx.readDb
           .select({ n: count() })
           .from(tables.scrobbles)
           .where(userAndDate)
           .execute(),
 
         // Total listening time (sum of track durations)
-        ctx.db
+        ctx.readDb
           .select({
             total: sql<number>`COALESCE(SUM(${tables.tracks.duration}), 0)`,
           })
@@ -127,7 +127,7 @@ const retrieve = ({
           .execute(),
 
         // Top 5 track IDs by play count
-        ctx.db
+        ctx.readDb
           .select({
             trackId: tables.scrobbles.trackId,
             playCount: count(tables.scrobbles.id).as("play_count"),
@@ -140,7 +140,7 @@ const retrieve = ({
           .execute(),
 
         // Top 5 artist IDs by play count (excluding Various Artists)
-        ctx.db
+        ctx.readDb
           .select({
             artistId: tables.scrobbles.artistId,
             playCount: count(tables.scrobbles.id).as("play_count"),
@@ -157,7 +157,7 @@ const retrieve = ({
           .execute(),
 
         // Top 5 album IDs by play count
-        ctx.db
+        ctx.readDb
           .select({
             albumId: tables.scrobbles.albumId,
             playCount: count(tables.scrobbles.id).as("play_count"),
@@ -170,7 +170,7 @@ const retrieve = ({
           .execute(),
 
         // Top genres from artist genres array (unnested)
-        ctx.db.execute(
+        ctx.readDb.execute(
           sql`
             SELECT genre, COUNT(*) AS genre_count
             FROM (
@@ -190,7 +190,7 @@ const retrieve = ({
         ),
 
         // Most active day
-        ctx.db
+        ctx.readDb
           .select({
             date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
             dayCount: count(tables.scrobbles.id).as("day_count"),
@@ -203,7 +203,7 @@ const retrieve = ({
           .execute(),
 
         // Most active hour
-        ctx.db
+        ctx.readDb
           .select({
             hour: sql<number>`EXTRACT(HOUR FROM ${tables.scrobbles.timestamp})`,
             hourCount: count(tables.scrobbles.id).as("hour_count"),
@@ -216,7 +216,7 @@ const retrieve = ({
           .execute(),
 
         // Scrobbles per month
-        ctx.db
+        ctx.readDb
           .select({
             month: sql<number>`EXTRACT(MONTH FROM ${tables.scrobbles.timestamp})`,
             monthCount: count(tables.scrobbles.id).as("month_count"),
@@ -228,7 +228,7 @@ const retrieve = ({
           .execute(),
 
         // First scrobble of year
-        ctx.db
+        ctx.readDb
           .select({
             trackTitle: tables.tracks.title,
             artistName: tables.tracks.artist,
@@ -246,7 +246,7 @@ const retrieve = ({
           .execute(),
 
         // Last scrobble of year
-        ctx.db
+        ctx.readDb
           .select({
             trackTitle: tables.tracks.title,
             artistName: tables.tracks.artist,
@@ -264,7 +264,7 @@ const retrieve = ({
           .execute(),
 
         // All scrobbled days (for streak calculation)
-        ctx.db
+        ctx.readDb
           .select({
             date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
           })
@@ -275,12 +275,12 @@ const retrieve = ({
           .execute(),
 
         // New artists: artists whose earliest scrobble by this user is within this year
-        ctx.db
+        ctx.readDb
           .select({
             n: sql<number>`count(distinct artist_id)`,
           })
           .from(
-            ctx.db
+            ctx.readDb
               .select({
                 artistId: tables.scrobbles.artistId,
                 firstScrobble:
@@ -315,7 +315,7 @@ const retrieve = ({
 
       const [tracks, artists, albums] = await Promise.all([
         trackIds.length > 0
-          ? ctx.db
+          ? ctx.readDb
               .select({
                 id: tables.tracks.id,
                 title: tables.tracks.title,
@@ -330,7 +330,7 @@ const retrieve = ({
               .execute()
           : Promise.resolve([]),
         artistIds.length > 0
-          ? ctx.db
+          ? ctx.readDb
               .select({
                 id: tables.artists.id,
                 name: tables.artists.name,
@@ -342,7 +342,7 @@ const retrieve = ({
               .execute()
           : Promise.resolve([]),
         albumIds.length > 0
-          ? ctx.db
+          ? ctx.readDb
               .select({
                 id: tables.albums.id,
                 title: tables.albums.title,

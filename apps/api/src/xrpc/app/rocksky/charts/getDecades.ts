@@ -5,7 +5,7 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { DecadeViewBasic } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getDecades";
-import { dbQuery } from "lib/dbQuery";
+import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
@@ -45,7 +45,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: Decade[] }, Error> => {
-  return dbQuery("Failed to retrieve decades", async (db) => {
+  return readQuery("Failed to retrieve decades", async (db) => {
     const conditions = [
       isNotNull(tables.albums.year),
       gte(tables.albums.year, FIRST_YEAR),

@@ -1,11 +1,11 @@
-import { Hono } from "hono";
 import { ctx } from "context";
-import users from "schema/users";
+import { eq, or } from "drizzle-orm";
+import { Hono } from "hono";
 import albums, { type SelectAlbum } from "schema/albums";
 import artists, { type SelectArtist } from "schema/artists";
-import tracks, { type SelectTrack } from "schema/tracks";
 import scrobbles from "schema/scrobbles";
-import { eq, or } from "drizzle-orm";
+import tracks, { type SelectTrack } from "schema/tracks";
+import users from "schema/users";
 
 const app = new Hono();
 
@@ -19,7 +19,7 @@ app.get("/", async (c) => {
   let m = path.match(/^\/profile\/([^/]+)$/);
   if (m) {
     const handle = decodeURIComponent(m[1]);
-    const user = await ctx.db
+    const user = await ctx.readDb
       .select()
       .from(users)
       .where(or(eq(users.handle, handle), eq(users.did, handle)))
@@ -56,7 +56,7 @@ app.get("/", async (c) => {
 
     const table = tableMap[kind];
     if (kind === "scrobble") {
-      const record = await ctx.db
+      const record = await ctx.readDb
         .select({
           scrobbles: scrobbles,
           users: users,
@@ -88,7 +88,7 @@ app.get("/", async (c) => {
       });
     }
 
-    const record = await ctx.db
+    const record = await ctx.readDb
       .select()
       .from(table)
       .where(eq(table.uri, uri))

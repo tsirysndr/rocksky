@@ -56,8 +56,9 @@ impl MultiSourceSubscriber {
             anyhow::bail!("MultiSourceSubscriber: no JETSTREAM servers configured");
         }
 
-        let db_url = env::var("XATA_POSTGRES_URL")
-            .context("Failed to get XATA_POSTGRES_URL environment variable")?;
+        // Ingest: everything here writes, so it always talks to the primary.
+        let db_opts = rocksky_pgurl::primary("rocksky-jetstream")
+            .context("Failed to resolve the primary Postgres URL")?;
 
         // Match apps/api/src/drizzle.ts (max: 20, connectionTimeoutMillis: 10_000)
         // — that's the established per-process budget for long-lived services
@@ -81,7 +82,7 @@ impl MultiSourceSubscriber {
             .acquire_timeout(Duration::from_secs(10))
             .max_lifetime(Some(Duration::from_secs(60 * 14)))
             .test_before_acquire(true)
-            .connect(&db_url)
+            .connect_with(db_opts)
             .await?;
         let pool = Arc::new(pool);
 

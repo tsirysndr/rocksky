@@ -55,7 +55,7 @@ const retrieve = ({
       const limit = params.limit ?? 100;
       const offset = params.offset ?? 0;
 
-      const artist = await ctx.db
+      const artist = await ctx.readDb
         .select({ id: tables.artists.id, name: tables.artists.name })
         .from(tables.artists)
         .where(eq(tables.artists.uri, params.uri))
@@ -64,7 +64,7 @@ const retrieve = ({
 
       if (!artist) return { data: [] };
 
-      const listenersQuery = await ctx.db
+      const listenersQuery = await ctx.readDb
         .select({
           userId: tables.scrobbles.userId,
           totalArtistPlays: count(tables.scrobbles.id),
@@ -84,7 +84,7 @@ const retrieve = ({
         .filter((id): id is string => id !== null);
 
       const [users, trackPlays] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({
             id: tables.users.id,
             avatar: tables.users.avatar,
@@ -95,7 +95,7 @@ const retrieve = ({
           .from(tables.users)
           .where(inArray(tables.users.id, userIds))
           .execute(),
-        ctx.db
+        ctx.readDb
           .select({
             userId: tables.scrobbles.userId,
             title: tables.tracks.title,

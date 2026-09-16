@@ -102,7 +102,7 @@ const retrieve = ({
 }): Effect.Effect<RetrieveResult, Error> =>
   Effect.tryPromise({
     try: async () => {
-      const user = await ctx.db
+      const user = await ctx.readDb
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -121,12 +121,12 @@ const retrieve = ({
       // scrobbles.albumId is nullable, so also collect album URIs via the
       // scrobbled tracks' albumUri field to cover the missing-albumId case.
       const [heardAlbumRows, heardAlbumUriRows] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({ albumId: tables.scrobbles.albumId })
           .from(tables.scrobbles)
           .where(eq(tables.scrobbles.userId, user.id))
           .groupBy(tables.scrobbles.albumId),
-        ctx.db
+        ctx.readDb
           .select({ albumUri: tables.tracks.albumUri })
           .from(tables.scrobbles)
           .innerJoin(
@@ -146,7 +146,7 @@ const retrieve = ({
         .filter((u): u is string => u !== null);
 
       // Artists the user knows, with their scrobble counts as familiarity score
-      const userArtistRows = await ctx.db
+      const userArtistRows = await ctx.readDb
         .select({
           artistId: tables.userArtists.artistId,
           scrobbles: tables.userArtists.scrobbles,
@@ -175,13 +175,13 @@ const retrieve = ({
       // genres don't pollute the profile.
       const [artistGenreRows, likedArtistGenres] = await Promise.all([
         heardArtistIds.length > 0
-          ? ctx.db
+          ? ctx.readDb
               .select({ id: tables.artists.id, genres: tables.artists.genres })
               .from(tables.artists)
               .where(inArray(tables.artists.id, heardArtistIds))
           : Promise.resolve([] as { id: string; genres: string[] | null }[]),
         lovedTrackIds.length > 0
-          ? ctx.db
+          ? ctx.readDb
               .select({ genres: tables.artists.genres })
               .from(tables.tracks)
               .leftJoin(
@@ -218,7 +218,7 @@ const retrieve = ({
       // Resolve artist IDs → URIs to join against albums.artistUri
       const knownArtistData =
         heardArtistIds.length > 0
-          ? await ctx.db
+          ? await ctx.readDb
               .select({
                 id: tables.artists.id,
                 uri: tables.artists.uri,
@@ -243,7 +243,7 @@ const retrieve = ({
 
       const poolA: Candidate[] =
         knownArtistUris.length > 0
-          ? await ctx.db
+          ? await ctx.readDb
               .select({
                 id: tables.albums.id,
                 artistUri: tables.albums.artistUri,
@@ -282,7 +282,7 @@ const retrieve = ({
       // Pool B — albums from artists neighbours love but user hasn't heard
       const neighbours =
         heardArtistIds.length > 0
-          ? await ctx.db
+          ? await ctx.readDb
               .select({
                 userId: tables.scrobbles.userId,
                 sharedCount: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
@@ -318,7 +318,7 @@ const retrieve = ({
         neighbourIds.length > 0
           ? await (async () => {
               // Neighbour artists the user hasn't heard
-              const newArtistRows = await ctx.db
+              const newArtistRows = await ctx.readDb
                 .select({
                   artistId: tables.scrobbles.artistId,
                   neighbourUserId: tables.scrobbles.userId,
@@ -361,7 +361,7 @@ const retrieve = ({
               const newArtistIdList = [...artistScoreMap.keys()];
 
               // Resolve to URIs + genres, filtering by user genre profile and Various Artists
-              const newArtistUris = await ctx.db
+              const newArtistUris = await ctx.readDb
                 .select({
                   id: tables.artists.id,
                   uri: tables.artists.uri,
@@ -392,7 +392,7 @@ const retrieve = ({
               if (newArtistUris.length === 0) return [];
 
               // Albums by those genre-matching new artists
-              const albums = await ctx.db
+              const albums = await ctx.readDb
                 .select({
                   id: tables.albums.id,
                   artistUri: tables.albums.artistUri,
@@ -463,7 +463,7 @@ const hydrate = ({
 
       if (albumIds.length === 0) return { items: [] };
 
-      const albumRows = await ctx.db
+      const albumRows = await ctx.readDb
         .select({
           id: tables.albums.id,
           uri: tables.albums.uri,

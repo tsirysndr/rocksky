@@ -58,7 +58,7 @@ const retrieve = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
-      const row = await ctx.db
+      const row = await ctx.readDb
         .select()
         .from(tables.albums)
         .leftJoin(
@@ -79,7 +79,7 @@ const retrieve = ({
       return Promise.all([
         Promise.resolve(album),
         Promise.resolve(artist),
-        ctx.db
+        ctx.readDb
           .select()
           .from(tables.albumTracks)
           .leftJoin(
@@ -102,13 +102,13 @@ const retrieve = ({
             })),
           )
           .then((tracks) => withLikes(ctx, tracks, did)),
-        ctx.db
+        ctx.readDb
           .select({ count: count() })
           .from(tables.userAlbums)
           .where(eq(tables.userAlbums.albumId, album?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
-        ctx.db
+        ctx.readDb
           .select({ count: count() })
           .from(tables.scrobbles)
           .where(eq(tables.scrobbles.albumId, album?.id))

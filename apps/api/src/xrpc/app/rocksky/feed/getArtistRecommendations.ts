@@ -103,7 +103,7 @@ const retrieve = ({
 }): Effect.Effect<RetrieveResult, Error> =>
   Effect.tryPromise({
     try: async () => {
-      const user = await ctx.db
+      const user = await ctx.readDb
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -121,7 +121,7 @@ const retrieve = ({
       const mainCount = limit - serendipityCount;
 
       // Artists the user has already heard (with scrobble counts for genre weighting)
-      const heardRows = await ctx.db
+      const heardRows = await ctx.readDb
         .select({
           artistId: tables.userArtists.artistId,
           scrobbles: tables.userArtists.scrobbles,
@@ -152,12 +152,12 @@ const retrieve = ({
       // heardArtistIds / artistFamiliarityMap; genres below 5 % of total
       // listening are excluded so incidentally-heard genres don't pollute it.
       const [artistGenreRows, likedArtistGenres] = await Promise.all([
-        ctx.db
+        ctx.readDb
           .select({ id: tables.artists.id, genres: tables.artists.genres })
           .from(tables.artists)
           .where(inArray(tables.artists.id, heardArtistIds)),
         lovedTrackIds.length > 0
-          ? ctx.db
+          ? ctx.readDb
               .select({ genres: tables.artists.genres })
               .from(tables.tracks)
               .leftJoin(
@@ -191,7 +191,7 @@ const retrieve = ({
       );
 
       // Top neighbours by shared-artist overlap
-      const neighbours = await ctx.db
+      const neighbours = await ctx.readDb
         .select({
           userId: tables.scrobbles.userId,
           sharedCount: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
@@ -225,7 +225,7 @@ const retrieve = ({
       }
 
       // Artists scrobbled by neighbours but not yet heard by the user
-      const neighbourArtists = await ctx.db
+      const neighbourArtists = await ctx.readDb
         .select({
           artistId: tables.scrobbles.artistId,
           neighbourUserId: tables.scrobbles.userId,
@@ -270,7 +270,7 @@ const retrieve = ({
       // ("neighbour", "serendipity") are only ever assigned to genre-appropriate
       // artists. The hydrate filter is a secondary safety net.
       if (userGenres.size > 0 && scoreMap.size > 0) {
-        const artistGenreData = await ctx.db
+        const artistGenreData = await ctx.readDb
           .select({
             id: tables.artists.id,
             name: tables.artists.name,
@@ -315,7 +315,7 @@ const retrieve = ({
             (g) => sql`${tables.artists.genres} @> ARRAY[${g}]::text[]`,
           ),
         );
-        const supplemental = await ctx.db
+        const supplemental = await ctx.readDb
           .select({ id: tables.artists.id })
           .from(tables.artists)
           .where(
@@ -365,7 +365,7 @@ const retrieve = ({
             (g) => sql`${tables.artists.genres} @> ARRAY[${g}]::text[]`,
           ),
         );
-        const supplementalSerendipity = await ctx.db
+        const supplementalSerendipity = await ctx.readDb
           .select({ id: tables.artists.id })
           .from(tables.artists)
           .where(
@@ -419,7 +419,7 @@ const hydrate = ({
 
       if (artistIds.length === 0) return { items: [] };
 
-      const artistRows = await ctx.db
+      const artistRows = await ctx.readDb
         .select({
           id: tables.artists.id,
           uri: tables.artists.uri,
