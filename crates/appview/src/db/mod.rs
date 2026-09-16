@@ -342,8 +342,18 @@ pub fn now_timestamp() -> String {
 /// without logging anyone out.
 pub async fn connect_auth(url: &str) -> Result<SqlitePool, ConnectError> {
     let pool = connect_sqlite(url).await?;
-    sqlx::migrate!("./migrations-auth").run(&pool).await?;
+    migrate_auth(&pool).await?;
     Ok(pool)
+}
+
+/// Applies the auth migrations to an existing pool.
+///
+/// Separate from [`connect_auth`] so a test can apply them over tables
+/// apps/api already created, which is what a real deployment does the first
+/// time it points this binary at an existing `atproto.sqlite`.
+pub async fn migrate_auth(pool: &SqlitePool) -> Result<(), ConnectError> {
+    sqlx::migrate!("./migrations-auth").run(pool).await?;
+    Ok(())
 }
 
 #[cfg(test)]

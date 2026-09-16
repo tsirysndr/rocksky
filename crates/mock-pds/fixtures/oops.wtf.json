@@ -1,0 +1,1245 @@
+{
+ "did": "did:plc:7opjnfmb6gtbgjrsr3777ujx",
+ "collections": {
+  "app.rocksky.scrobble": [
+   {
+    "rkey": "3muhg4hoaps24",
+    "value": {
+     "isrc": "USSM10601178",
+     "mbid": "239f6086-7565-4d67-a585-5f5806dbac6f",
+     "tags": [
+      "Rock"
+     ],
+     "year": 2005,
+     "$type": "app.rocksky.scrobble",
+     "album": "Now That's What I Call Music 66 - CD 2",
+     "title": "How to Save a Life",
+     "artist": "The Fray",
+     "artists": [
+      {
+       "mbid": "2ddd167f-5b8a-4372-b350-6ad50493bac0",
+       "name": "The Fray"
+      }
+     ],
+     "duration": 262533,
+     "createdAt": "2026-09-01T12:23:11.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27359b8b957f164ce660919f1f4",
+     "albumArtist": "The Fray",
+     "releaseDate": "2005-09-13T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/5fVZC9GiM4e8vu99W0Xf6J",
+     "trackNumber": 3
+    }
+   },
+   {
+    "rkey": "3muhfv272vc24",
+    "value": {
+     "isrc": "USRE19600222",
+     "mbid": "29911e41-878f-46de-ba38-85fc5a9197e9",
+     "tags": [
+      "Pop"
+     ],
+     "year": 1970,
+     "$type": "app.rocksky.scrobble",
+     "album": "Ladies of the Canyon",
+     "title": "Big Yellow Taxi",
+     "artist": "Joni Mitchell",
+     "artists": [
+      {
+       "mbid": "a6de8ef9-b1a1-4756-97aa-481bbb8a4069",
+       "name": "Joni Mitchell"
+      }
+     ],
+     "duration": 134800,
+     "createdAt": "2026-09-01T12:20:25.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273b80ea8399313aeffb10b0acb",
+     "albumArtist": "Joni Mitchell",
+     "releaseDate": "1970-03-01T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/6UkMcAA19lTdjs22jtB7o2",
+     "trackNumber": 10
+    }
+   },
+   {
+    "rkey": "3muhfmfjqas24",
+    "value": {
+     "isrc": "GBAAN0000226",
+     "mbid": "381e8d6a-4c6c-44e0-87da-5797015c8abc",
+     "tags": [
+      "Pop"
+     ],
+     "year": 2000,
+     "$type": "app.rocksky.scrobble",
+     "album": "All That You Can't Leave Behind",
+     "title": "Stuck In A Moment You Can't Get Out Of",
+     "artist": "U2",
+     "artists": [
+      {
+       "mbid": "a3cb23fc-acd3-4ce0-8f36-1e5aa6a18432",
+       "name": "U2"
+      }
+     ],
+     "duration": 271800,
+     "createdAt": "2026-09-01T12:13:55.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273e3f4221446f724b575a9aafb",
+     "albumArtist": "U2",
+     "releaseDate": "2000-01-01T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/3xjTuTBaihydhSC7ByNoSb",
+     "trackNumber": 2
+    }
+   },
+   {
+    "rkey": "3muhfemztcs24",
+    "value": {
+     "isrc": "GBBPF0701578",
+     "mbid": "7360a58b-66d2-4a44-9e3a-d4f525b8a2b6",
+     "tags": [
+      "Alternative"
+     ],
+     "year": 2007,
+     "$type": "app.rocksky.scrobble",
+     "album": "The Boy With No Name",
+     "title": "Closer",
+     "artist": "Travis",
+     "artists": [
+      {
+       "mbid": "22a40b75-affc-4e69-8884-266d087e4751",
+       "name": "Travis"
+      }
+     ],
+     "duration": 240626,
+     "createdAt": "2026-09-01T12:09:56.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273443f3925eb0e8292d3c38594",
+     "albumArtist": "Travis",
+     "releaseDate": "2007-05-07T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/7jP2937OACDPrN53DzO0Ye",
+     "trackNumber": 3
+    }
+   },
+   {
+    "rkey": "3muhfaibe5c24",
+    "value": {
+     "isrc": "CADE70902839",
+     "mbid": "486cb385-b6f2-4988-93dd-eb70eb197233",
+     "tags": [
+      "Alternative",
+      "Rock"
+     ],
+     "year": 2015,
+     "$type": "app.rocksky.scrobble",
+     "album": "If I Should Go Before You",
+     "title": "Lover Come Back",
+     "artist": "City and Colour",
+     "duration": 234698,
+     "createdAt": "2026-09-01T12:09:25.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27314eb4060cdeb5ae97e425efb",
+     "albumArtist": "City and Colour",
+     "releaseDate": "2015-10-09T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/7G9yE2L2bXxqaQKVL2rKAr",
+     "trackNumber": 8
+    }
+   },
+   {
+    "rkey": "3mugqfvmyu22h",
+    "value": {
+     "isrc": "GBUM71807335",
+     "mbid": "069abcac-e855-4436-9465-6f8622dca75a",
+     "tags": [
+      "Pop",
+      "Singer & Songwriter"
+     ],
+     "year": 2018,
+     "$type": "app.rocksky.scrobble",
+     "album": "Tell Me That You Love Me",
+     "title": "Tell Me That You Love Me",
+     "artist": "James Smith",
+     "artists": [
+      {
+       "mbid": "05600c49-1204-41db-8593-a5ba1a36c23d",
+       "name": "James Smith"
+      }
+     ],
+     "duration": 194658,
+     "createdAt": "2026-09-01T05:55:17.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273d29047b641f79d5eb3f23b65",
+     "albumArtist": "James Smith",
+     "releaseDate": "2018-12-06T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/0n3pKT2HiMJGxoAYgyezBV",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mugqa7wxzk2h",
+    "value": {
+     "isrc": "USUM70731563",
+     "mbid": "05582cc5-fab5-42c3-89b1-585c41b2889e",
+     "tags": [
+      "Rock"
+     ],
+     "year": 2007,
+     "$type": "app.rocksky.scrobble",
+     "album": "It Won't Be Soon Before Long (International Version)",
+     "title": "Nothing Lasts Forever",
+     "artist": "Maroon 5",
+     "artists": [
+      {
+       "mbid": "0ab49580-c84f-44d4-875f-d83760ea2cfe",
+       "name": "Maroon 5"
+      }
+     ],
+     "duration": 187920,
+     "createdAt": "2026-09-01T05:52:10.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273515b72d7c72fc65b017a87ea",
+     "albumArtist": "Maroon 5",
+     "releaseDate": "2007-01-01T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/5HnGr274AAE80EsWZQ7lU0",
+     "trackNumber": 6
+    }
+   },
+   {
+    "rkey": "3mugpungjrk2h",
+    "value": {
+     "isrc": "GBDZH1100004",
+     "mbid": "b931b326-fcfa-409e-95fa-84565dfbf812",
+     "tags": [
+      "Alternative",
+      "Rock"
+     ],
+     "year": 2011,
+     "$type": "app.rocksky.scrobble",
+     "album": "Noel Gallagher's High Flying Birds",
+     "title": "If I Had A Gun…",
+     "artist": "Noel Gallagher's High Flying Birds",
+     "artists": [
+      {
+       "mbid": "d5f54887-117b-42a1-9aee-8780b84ebaba",
+       "name": "Noel Gallagher’s High Flying Birds"
+      }
+     ],
+     "duration": 249106,
+     "createdAt": "2026-09-01T05:45:05.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2732c59058c29e0f2eb289b120f",
+     "albumArtist": "Noel Gallagher's High Flying Birds",
+     "releaseDate": "2011-10-17T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/4i4ArYpqtsA3MJ1k0o2dxq",
+     "trackNumber": 3
+    }
+   },
+   {
+    "rkey": "3mugpn6pfms2h",
+    "value": {
+     "isrc": "USUM71410382",
+     "mbid": "cf841fed-8589-4d7d-af8b-66819ff84b2c",
+     "tags": [
+      "Pop"
+     ],
+     "year": 2014,
+     "$type": "app.rocksky.scrobble",
+     "album": "V",
+     "title": "Lost Stars",
+     "artist": "Adam Levine",
+     "artists": [
+      {
+       "mbid": "a1421d73-1a21-484b-97ad-77c9a5676daf",
+       "name": "Adam Levine"
+      }
+     ],
+     "duration": 267853,
+     "createdAt": "2026-09-01T05:40:40.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2735430b6be862e01be82a50bc8",
+     "albumArtist": "Maroon 5",
+     "releaseDate": "2014-09-02T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1ejtHfSXQwvaAU7F82FXww",
+     "trackNumber": 15
+    }
+   },
+   {
+    "rkey": "3mugoywkatc2h",
+    "value": {
+     "isrc": "GBDCG0400009",
+     "tags": [
+      "Alternative"
+     ],
+     "year": 2004,
+     "$type": "app.rocksky.scrobble",
+     "album": "Riot On An Empty Street",
+     "title": "Cayman Islands",
+     "artist": "Kings of Convenience",
+     "duration": 182960,
+     "createdAt": "2026-09-01T05:30:07.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273e9a18c4792e88f34bd17bbaf",
+     "albumArtist": "Kings of Convenience",
+     "releaseDate": "2004-01-01T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/6R8agdKCfA4Poo0vnRKQKo",
+     "trackNumber": 3
+    }
+   },
+   {
+    "rkey": "3mufkv2kfsc2b",
+    "value": {
+     "isrc": "GBAAW9500190",
+     "mbid": "cda3c058-fcfa-4030-abd4-a07d3a691c12",
+     "tags": [
+      "Alternative",
+      "Rock indé",
+      "Rock"
+     ],
+     "year": 2006,
+     "$type": "app.rocksky.scrobble",
+     "album": "Stop The Clocks",
+     "title": "Don't Look Back in Anger",
+     "artist": "Oasis",
+     "artists": [
+      {
+       "mbid": "39ab1aed-75e0-4140-bd47-540276886b60",
+       "name": "Oasis"
+      }
+     ],
+     "duration": 293573,
+     "createdAt": "2026-08-31T18:42:43.000Z",
+     "discNumber": 2,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2734da07de609e17edd9f2db777",
+     "albumArtist": "Oasis",
+     "releaseDate": "2006-11-13T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/6qZoQsBTQW2tix6KViDC7F",
+     "trackNumber": 9
+    }
+   },
+   {
+    "rkey": "3mufknzcao22b",
+    "value": {
+     "isrc": "USAT22202133",
+     "mbid": "176a017c-44fe-4a36-97f9-67e0940851c8",
+     "tags": [
+      "folk pop"
+     ],
+     "year": 2022,
+     "$type": "app.rocksky.scrobble",
+     "album": "In Our Own Sweet Time",
+     "title": "Don't Fade",
+     "artist": "Vance Joy",
+     "artists": [
+      {
+       "mbid": "df36f6db-5987-46ed-9d02-0cf36ed4e060",
+       "name": "Vance Joy"
+      }
+     ],
+     "duration": 190253,
+     "createdAt": "2026-08-31T18:39:34.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2734c63a57ba9369c91c86977f2",
+     "albumArtist": "Vance Joy",
+     "releaseDate": "2022-06-10T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1Dgcy5t2hwVGWqvbMJr88F",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufjzejvjk2b",
+    "value": {
+     "isrc": "USRC10900386",
+     "mbid": "5b5e1b00-9ab4-4029-ae47-69ee023d6c0f",
+     "tags": [
+      "Alternative",
+      "Pop Indé",
+      "Rock indé",
+      "Pop",
+      "Pop indé/Folk",
+      "Rock",
+      "Rock Indé/Pop Rock",
+      "Folk",
+      "Singer & Songwriter"
+     ],
+     "year": 2009,
+     "$type": "app.rocksky.scrobble",
+     "album": "Falling in Love at a Coffee Shop",
+     "title": "Falling in Love at a Coffee Shop",
+     "artist": "Landon Pigg",
+     "artists": [
+      {
+       "mbid": "142db9a8-d42d-44f4-8f3c-db20e5bdfd78",
+       "name": "Landon Pigg"
+      }
+     ],
+     "duration": 244986,
+     "createdAt": "2026-08-31T18:27:39.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273ce244cdf05483e9b2188b7fb",
+     "albumArtist": "Landon Pigg",
+     "releaseDate": "2009-09-17T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/4zmEbyQW1pXg4szjRdSkPW",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufjtbayok2b",
+    "value": {
+     "isrc": "QM24S2503025",
+     "mbid": "af0210d4-9249-470f-aef6-4669345f25a2",
+     "tags": [
+      "Alternative"
+     ],
+     "year": 2025,
+     "$type": "app.rocksky.scrobble",
+     "album": "Wilderado | OurVinyl Live EP",
+     "title": "In Between (OurVinyl Live EP)",
+     "artist": "Wilderado, OurVinyl | Pop",
+     "artists": [
+      {
+       "mbid": "a4e19819-0867-404d-a0f1-d8c6f2912267",
+       "name": "Wilderado"
+      },
+      {
+       "mbid": "35355b06-d471-49d9-909d-3c9361670a18",
+       "name": "OurVinyl"
+      }
+     ],
+     "duration": 159779,
+     "createdAt": "2026-08-31T18:25:00.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2737a5b2a0ea666e34fa6c456d9",
+     "albumArtist": "Wilderado",
+     "releaseDate": "2025-06-16T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/29PLLI8vhgfpFoUKoS6Xnt",
+     "trackNumber": 5
+    }
+   },
+   {
+    "rkey": "3mufjn4hg7s2b",
+    "value": {
+     "isrc": "USUM71410382",
+     "mbid": "47e39826-a962-484b-a28a-d5e80bd9d882",
+     "tags": [
+      "Pop"
+     ],
+     "year": 2014,
+     "$type": "app.rocksky.scrobble",
+     "album": "V",
+     "title": "Lost Stars",
+     "artist": "Adam Levine",
+     "duration": 267853,
+     "createdAt": "2026-08-31T18:20:34.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2735430b6be862e01be82a50bc8",
+     "albumArtist": "Maroon 5",
+     "releaseDate": "2014-09-02T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1ejtHfSXQwvaAU7F82FXww",
+     "trackNumber": 15
+    }
+   },
+   {
+    "rkey": "3mufjfrmxdc2b",
+    "value": {
+     "isrc": "USSM19911007",
+     "mbid": "49a4123b-c5aa-4ba2-a637-a6bce6370283",
+     "tags": [
+      "Alternative"
+     ],
+     "year": 1999,
+     "$type": "app.rocksky.scrobble",
+     "album": "Make Yourself",
+     "title": "Drive",
+     "artist": "Incubus",
+     "duration": 232453,
+     "createdAt": "2026-08-31T18:16:44.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27374fad40214d982351347e46e",
+     "albumArtist": "Incubus",
+     "releaseDate": "1999-10-26T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/7nnWIPM5hwE3DaUBkvOIpy",
+     "trackNumber": 8
+    }
+   },
+   {
+    "rkey": "3mufj6xcd2s2b",
+    "value": {
+     "isrc": "GBZUZ0900010",
+     "tags": [
+      "Rock"
+     ],
+     "year": 2009,
+     "$type": "app.rocksky.scrobble",
+     "album": "Conditions",
+     "title": "Love Lost",
+     "artist": "The Temper Trap",
+     "duration": 216066,
+     "createdAt": "2026-08-31T18:13:10.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273752b549c65bf5333612f554a",
+     "albumArtist": "The Temper Trap",
+     "releaseDate": "2009-08-10T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1HkowL1y4k4aLEUt5yF9wT",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufizsimbk2b",
+    "value": {
+     "isrc": "USWB12305748",
+     "tags": [
+      "country",
+      "red dirt"
+     ],
+     "year": 2023,
+     "$type": "app.rocksky.scrobble",
+     "album": "Boys Of Faith (feat. Bon Iver)",
+     "title": "Boys Of Faith (feat. Bon Iver)",
+     "artist": "Zach Bryan, Bon Iver",
+     "duration": 170824,
+     "createdAt": "2026-08-31T18:10:21.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27397be145c0ed84ae353ee3043",
+     "albumArtist": "Zach Bryan",
+     "releaseDate": "2023-09-21T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/4Zj2uX6ApCFK9XzjwIhCIr",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufitd453k2b",
+    "value": {
+     "isrc": "CADE70700171",
+     "tags": [
+      "Alternative",
+      "Rock"
+     ],
+     "year": 2008,
+     "$type": "app.rocksky.scrobble",
+     "album": "Bring Me Your Love (Special Edition)",
+     "title": "As Much as I Ever Could",
+     "artist": "City and Colour",
+     "duration": 324786,
+     "createdAt": "2026-08-31T18:05:41.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2737015a5dfc1b46e0dee45e09c",
+     "albumArtist": "City and Colour",
+     "releaseDate": "2008-11-25T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/2FKbisOVZcinq7VtYUFD4H",
+     "trackNumber": 12
+    }
+   },
+   {
+    "rkey": "3mufilcdgjc2b",
+    "value": {
+     "isrc": "QZES52320440",
+     "mbid": "ed8240d1-8b8b-45f7-bc17-b1e6e9120d22",
+     "tags": [
+      "Pop"
+     ],
+     "year": 2023,
+     "$type": "app.rocksky.scrobble",
+     "album": "Fictional Illustrations",
+     "title": "Different Lives",
+     "artist": "Fly By Midnight",
+     "artists": [
+      {
+       "mbid": "0c6be3b5-36b1-4392-b294-7d44b30a8b76",
+       "name": "Fly by Midnight"
+      }
+     ],
+     "duration": 201000,
+     "createdAt": "2026-08-31T18:02:22.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2732856ca088c34c55fe61eb637",
+     "albumArtist": "Fly By Midnight",
+     "releaseDate": "2023-03-24T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1AxPKYDEiL1uNfJj0dk2sT",
+     "trackNumber": 5
+    }
+   },
+   {
+    "rkey": "3mufierkx4s2b",
+    "value": {
+     "isrc": "GBFDC0200001",
+     "tags": [
+      "Pop",
+      "Pop indé/Folk",
+      "Rock"
+     ],
+     "year": 2002,
+     "$type": "app.rocksky.scrobble",
+     "album": "Too Blind to Hear",
+     "title": "Is This the Best It Gets?",
+     "artist": "Budapest",
+     "duration": 288426,
+     "createdAt": "2026-08-31T17:57:35.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2735fe91ae00062778a8e10efe3",
+     "albumArtist": "Budapest",
+     "releaseDate": "2002-08-26T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/5jJLanI6c7RVjn0yNGgh71",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufi53ys6s2b",
+    "value": {
+     "isrc": "CAN112100220",
+     "mbid": "6ab1d4d7-d45a-44a8-b5cb-61b5efd7a05e",
+     "tags": [
+      "folk pop"
+     ],
+     "year": 2022,
+     "$type": "app.rocksky.scrobble",
+     "album": "Sidelines",
+     "title": "Better When We're Falling Apart",
+     "artist": "Wild Rivers",
+     "artists": [
+      {
+       "mbid": "ffd11889-af95-42ed-b0ee-315df62510f5",
+       "name": "Wild Rivers"
+      }
+     ],
+     "duration": 186826,
+     "createdAt": "2026-08-31T17:54:30.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27387bd995e19fdee157c17f036",
+     "albumArtist": "Wild Rivers",
+     "releaseDate": "2022-02-04T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/4wRJHQ84OhCSGzdmeOEon4",
+     "trackNumber": 8
+    }
+   },
+   {
+    "rkey": "3mufhwk2sm22b",
+    "value": {
+     "isrc": "GBAYE0000560",
+     "mbid": "41374b1a-5eea-49ff-89f5-336573af35c9",
+     "tags": [
+      "Rock"
+     ],
+     "year": 2000,
+     "$type": "app.rocksky.scrobble",
+     "album": "Parachutes",
+     "title": "Trouble",
+     "artist": "Coldplay",
+     "artists": [
+      {
+       "mbid": "cc197bad-dc9c-440d-a5b5-d52ba2e14234",
+       "name": "Coldplay"
+      }
+     ],
+     "duration": 273426,
+     "createdAt": "2026-08-31T17:49:58.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2739164bafe9aaa168d93f4816a",
+     "albumArtist": "Coldplay",
+     "releaseDate": "2000-07-10T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/0R8P9KfGJCDULmlEoBagcO",
+     "trackNumber": 6
+    }
+   },
+   {
+    "rkey": "3mufhophw4c2b",
+    "value": {
+     "isrc": "USSM10019751",
+     "mbid": "1259a038-0ae9-438b-b04b-c7525e1bd0bc",
+     "tags": [
+      "Rock"
+     ],
+     "year": 2001,
+     "$type": "app.rocksky.scrobble",
+     "album": "Drops Of Jupiter",
+     "title": "Drops of Jupiter (Tell Me)",
+     "artist": "Train",
+     "duration": 259933,
+     "createdAt": "2026-08-31T17:45:39.000Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2731a0278d4109c0f974821aa33",
+     "albumArtist": "Train",
+     "releaseDate": "2001-03-27T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/2hKdd3qO7cWr2Jo0Bcs0MA",
+     "trackNumber": 3
+    }
+   }
+  ],
+  "app.rocksky.song": [
+   {
+    "rkey": "3muhfuylnf224",
+    "value": {
+     "isrc": "USRE19600222",
+     "mbid": "29911e41-878f-46de-ba38-85fc5a9197e9",
+     "tags": [
+      "Pop"
+     ],
+     "year": 1970,
+     "$type": "app.rocksky.song",
+     "album": "Ladies of the Canyon",
+     "title": "Big Yellow Taxi",
+     "artist": "Joni Mitchell",
+     "artists": [
+      {
+       "mbid": "a6de8ef9-b1a1-4756-97aa-481bbb8a4069",
+       "name": "Joni Mitchell"
+      }
+     ],
+     "duration": 134800,
+     "createdAt": "2026-09-01T12:21:38.973Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273b80ea8399313aeffb10b0acb",
+     "albumArtist": "Joni Mitchell",
+     "releaseDate": "1970-03-01T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/6UkMcAA19lTdjs22jtB7o2",
+     "trackNumber": 10
+    }
+   },
+   {
+    "rkey": "3mugoyv2tas2h",
+    "value": {
+     "isrc": "GBDCG0400009",
+     "tags": [
+      "Alternative"
+     ],
+     "year": 2004,
+     "$type": "app.rocksky.song",
+     "album": "Riot On An Empty Street",
+     "title": "Cayman Islands",
+     "artist": "Kings of Convenience",
+     "duration": 182960,
+     "createdAt": "2026-09-01T05:32:13.431Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273e9a18c4792e88f34bd17bbaf",
+     "albumArtist": "Kings of Convenience",
+     "releaseDate": "2004-01-01T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/6R8agdKCfA4Poo0vnRKQKo",
+     "trackNumber": 3
+    }
+   },
+   {
+    "rkey": "3mufkuythyc2b",
+    "value": {
+     "isrc": "GBAAW9500190",
+     "mbid": "cda3c058-fcfa-4030-abd4-a07d3a691c12",
+     "tags": [
+      "Alternative",
+      "Rock indé",
+      "Rock"
+     ],
+     "year": 2006,
+     "$type": "app.rocksky.song",
+     "album": "Stop The Clocks",
+     "title": "Don't Look Back in Anger",
+     "artist": "Oasis",
+     "artists": [
+      {
+       "mbid": "39ab1aed-75e0-4140-bd47-540276886b60",
+       "name": "Oasis"
+      }
+     ],
+     "duration": 293573,
+     "createdAt": "2026-08-31T18:45:48.461Z",
+     "discNumber": 2,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2734da07de609e17edd9f2db777",
+     "albumArtist": "Oasis",
+     "releaseDate": "2006-11-13T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/6qZoQsBTQW2tix6KViDC7F",
+     "trackNumber": 9
+    }
+   },
+   {
+    "rkey": "3mufknrce6s2b",
+    "value": {
+     "isrc": "USAT22202133",
+     "mbid": "176a017c-44fe-4a36-97f9-67e0940851c8",
+     "tags": [
+      "folk pop"
+     ],
+     "year": 2022,
+     "$type": "app.rocksky.song",
+     "album": "In Our Own Sweet Time",
+     "title": "Don't Fade",
+     "artist": "Vance Joy",
+     "artists": [
+      {
+       "mbid": "df36f6db-5987-46ed-9d02-0cf36ed4e060",
+       "name": "Vance Joy"
+      }
+     ],
+     "duration": 190253,
+     "createdAt": "2026-08-31T18:41:45.679Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2734c63a57ba9369c91c86977f2",
+     "albumArtist": "Vance Joy",
+     "releaseDate": "2022-06-10T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1Dgcy5t2hwVGWqvbMJr88F",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufjzb3p5s2b",
+    "value": {
+     "isrc": "USRC10900386",
+     "mbid": "5b5e1b00-9ab4-4029-ae47-69ee023d6c0f",
+     "tags": [
+      "Alternative",
+      "Pop Indé",
+      "Rock indé",
+      "Pop",
+      "Pop indé/Folk",
+      "Rock",
+      "Rock Indé/Pop Rock",
+      "Folk",
+      "Singer & Songwriter"
+     ],
+     "year": 2009,
+     "$type": "app.rocksky.song",
+     "album": "Falling in Love at a Coffee Shop",
+     "title": "Falling in Love at a Coffee Shop",
+     "artist": "Landon Pigg",
+     "artists": [
+      {
+       "mbid": "142db9a8-d42d-44f4-8f3c-db20e5bdfd78",
+       "name": "Landon Pigg"
+      }
+     ],
+     "duration": 244986,
+     "createdAt": "2026-08-31T18:30:17.605Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273ce244cdf05483e9b2188b7fb",
+     "albumArtist": "Landon Pigg",
+     "releaseDate": "2009-09-17T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/4zmEbyQW1pXg4szjRdSkPW",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufjt2bxxk2b",
+    "value": {
+     "isrc": "QM24S2503025",
+     "mbid": "af0210d4-9249-470f-aef6-4669345f25a2",
+     "tags": [
+      "Alternative"
+     ],
+     "year": 2025,
+     "$type": "app.rocksky.song",
+     "album": "Wilderado | OurVinyl Live EP",
+     "title": "In Between (OurVinyl Live EP)",
+     "artist": "Wilderado, OurVinyl | Pop",
+     "artists": [
+      {
+       "mbid": "a4e19819-0867-404d-a0f1-d8c6f2912267",
+       "name": "Wilderado"
+      },
+      {
+       "mbid": "35355b06-d471-49d9-909d-3c9361670a18",
+       "name": "OurVinyl"
+      }
+     ],
+     "duration": 159779,
+     "createdAt": "2026-08-31T18:26:49.134Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2737a5b2a0ea666e34fa6c456d9",
+     "albumArtist": "Wilderado",
+     "releaseDate": "2025-06-16T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/29PLLI8vhgfpFoUKoS6Xnt",
+     "trackNumber": 5
+    }
+   },
+   {
+    "rkey": "3mufjmzedd22b",
+    "value": {
+     "isrc": "USUM71410382",
+     "tags": [
+      "Pop"
+     ],
+     "year": 2014,
+     "$type": "app.rocksky.song",
+     "album": "V",
+     "title": "Lost Stars",
+     "artist": "Adam Levine",
+     "duration": 267853,
+     "createdAt": "2026-08-31T18:23:26.836Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2735430b6be862e01be82a50bc8",
+     "albumArtist": "Maroon 5",
+     "releaseDate": "2014-09-02T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1ejtHfSXQwvaAU7F82FXww",
+     "trackNumber": 15
+    }
+   },
+   {
+    "rkey": "3mufjfp6cq22b",
+    "value": {
+     "isrc": "USSM19911007",
+     "tags": [
+      "Alternative"
+     ],
+     "year": 1999,
+     "$type": "app.rocksky.song",
+     "album": "Make Yourself",
+     "title": "Drive",
+     "artist": "Incubus",
+     "duration": 232453,
+     "createdAt": "2026-08-31T18:19:21.272Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27374fad40214d982351347e46e",
+     "albumArtist": "Incubus",
+     "releaseDate": "1999-10-26T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/7nnWIPM5hwE3DaUBkvOIpy",
+     "trackNumber": 8
+    }
+   },
+   {
+    "rkey": "3mufj6w5bjc2b",
+    "value": {
+     "isrc": "GBZUZ0900010",
+     "tags": [
+      "Rock"
+     ],
+     "year": 2009,
+     "$type": "app.rocksky.song",
+     "album": "Conditions",
+     "title": "Love Lost",
+     "artist": "The Temper Trap",
+     "duration": 216066,
+     "createdAt": "2026-08-31T18:15:33.697Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273752b549c65bf5333612f554a",
+     "albumArtist": "The Temper Trap",
+     "releaseDate": "2009-08-10T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/1HkowL1y4k4aLEUt5yF9wT",
+     "trackNumber": 1
+    }
+   },
+   {
+    "rkey": "3mufizjknv22b",
+    "value": {
+     "isrc": "USWB12305748",
+     "tags": [
+      "country",
+      "red dirt"
+     ],
+     "year": 2023,
+     "$type": "app.rocksky.song",
+     "album": "Boys Of Faith (feat. Bon Iver)",
+     "title": "Boys Of Faith (feat. Bon Iver)",
+     "artist": "Zach Bryan, Bon Iver",
+     "duration": 170824,
+     "createdAt": "2026-08-31T18:12:32.732Z",
+     "discNumber": 1,
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27397be145c0ed84ae353ee3043",
+     "albumArtist": "Zach Bryan",
+     "releaseDate": "2023-09-21T00:00:00.000Z",
+     "spotifyLink": "https://open.spotify.com/track/4Zj2uX6ApCFK9XzjwIhCIr",
+     "trackNumber": 1
+    }
+   }
+  ],
+  "app.rocksky.album": [
+   {
+    "rkey": "3muhfuzprn224",
+    "value": {
+     "year": 1970,
+     "$type": "app.rocksky.album",
+     "title": "Ladies of the Canyon",
+     "artist": "Joni Mitchell",
+     "createdAt": "2026-09-01T12:21:40.156Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273b80ea8399313aeffb10b0acb",
+     "releaseDate": "1970-03-01T00:00:00.000Z"
+    }
+   },
+   {
+    "rkey": "3mugoyw3ccs2h",
+    "value": {
+     "year": 2004,
+     "$type": "app.rocksky.album",
+     "title": "Riot On An Empty Street",
+     "artist": "Kings of Convenience",
+     "createdAt": "2026-09-01T05:32:14.495Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273e9a18c4792e88f34bd17bbaf",
+     "releaseDate": "2004-01-01T00:00:00.000Z"
+    }
+   },
+   {
+    "rkey": "3mufkv25cu22b",
+    "value": {
+     "year": 2006,
+     "$type": "app.rocksky.album",
+     "title": "Stop The Clocks",
+     "artist": "Oasis",
+     "createdAt": "2026-08-31T18:45:49.833Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2734da07de609e17edd9f2db777",
+     "releaseDate": "2006-11-13T00:00:00.000Z"
+    }
+   },
+   {
+    "rkey": "3mufknw25mc2b",
+    "value": {
+     "year": 2022,
+     "$type": "app.rocksky.album",
+     "title": "In Our Own Sweet Time",
+     "artist": "Vance Joy",
+     "createdAt": "2026-08-31T18:41:50.653Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2734c63a57ba9369c91c86977f2",
+     "releaseDate": "2022-06-10T00:00:00.000Z"
+    }
+   },
+   {
+    "rkey": "3mufjzdgqjk2b",
+    "value": {
+     "year": 2009,
+     "$type": "app.rocksky.album",
+     "title": "Falling in Love at a Coffee Shop",
+     "artist": "Landon Pigg",
+     "createdAt": "2026-08-31T18:30:20.054Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b273ce244cdf05483e9b2188b7fb",
+     "releaseDate": "2009-09-17T00:00:00.000Z"
+    }
+   },
+   {
+    "rkey": "3mufjt66kc22b",
+    "value": {
+     "year": 2025,
+     "$type": "app.rocksky.album",
+     "title": "Wilderado | OurVinyl Live EP",
+     "artist": "Wilderado",
+     "createdAt": "2026-08-31T18:26:53.216Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2737a5b2a0ea666e34fa6c456d9",
+     "releaseDate": "2025-06-16T00:00:00.000Z"
+    }
+   },
+   {
+    "rkey": "3mufjn3lsgk2b",
+    "value": {
+     "year": 2014,
+     "$type": "app.rocksky.album",
+     "title": "V",
+     "artist": "Maroon 5",
+     "createdAt": "2026-08-31T18:23:29.178Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b2735430b6be862e01be82a50bc8",
+     "releaseDate": "2014-09-02T00:00:00.000Z"
+    }
+   },
+   {
+    "rkey": "3mufjfrdars2b",
+    "value": {
+     "year": 1999,
+     "$type": "app.rocksky.album",
+     "title": "Make Yourself",
+     "artist": "Incubus",
+     "createdAt": "2026-08-31T18:19:23.531Z",
+     "albumArtUrl": "https://i.scdn.co/image/ab67616d0000b27374fad40214d982351347e46e",
+     "releaseDate": "1999-10-26T00:00:00.000Z"
+    }
+   }
+  ],
+  "app.rocksky.artist": [
+   {
+    "rkey": "3muhfuzi4jc24",
+    "value": {
+     "name": "Joni Mitchell",
+     "tags": [
+      "Pop"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-09-01T12:21:39.905Z",
+     "pictureUrl": "https://i.scdn.co/image/68cfb061951dbd44c95422a54cb70baec0722ca3"
+    }
+   },
+   {
+    "rkey": "3mugpn5vemk2h",
+    "value": {
+     "name": "Maroon 5",
+     "tags": [
+      "Pop"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-09-01T05:43:33.778Z",
+     "pictureUrl": "https://cdn.bsky.app/img/avatar/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreie7dgl65563hbbhkgn2fsfuwbomi4lxipe7lg5ywhhq72myt676na@jpeg"
+    }
+   },
+   {
+    "rkey": "3mufknvq5cc2b",
+    "value": {
+     "name": "Vance Joy",
+     "tags": [
+      "folk pop"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-08-31T18:41:50.326Z",
+     "pictureUrl": "https://i.scdn.co/image/ab6761610000e5eb8f074ec8c25406680bf26422"
+    }
+   },
+   {
+    "rkey": "3mufjzcjzlc2b",
+    "value": {
+     "name": "Landon Pigg",
+     "tags": [
+      "Alternative",
+      "Pop Indé",
+      "Rock indé",
+      "Pop",
+      "Pop indé/Folk",
+      "Rock",
+      "Rock Indé/Pop Rock",
+      "Folk",
+      "Singer & Songwriter"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-08-31T18:30:19.113Z",
+     "pictureUrl": "https://cdn-images.dzcdn.net/images/artist/4758c4c7cd97f778eb5df801270aefe7/1000x1000-000000-80-0-0.jpg"
+    }
+   },
+   {
+    "rkey": "3mufjt5ofos2b",
+    "value": {
+     "name": "Wilderado",
+     "tags": [
+      "Alternative"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-08-31T18:26:52.687Z",
+     "pictureUrl": "https://i.scdn.co/image/ab6761610000e5eb265505466153979da79c84be"
+    }
+   },
+   {
+    "rkey": "3mufjn2qw3c2b",
+    "value": {
+     "name": "Maroon 5",
+     "tags": [
+      "Pop"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-08-31T18:23:28.297Z",
+     "pictureUrl": "https://cdn.bsky.app/img/avatar/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreie7dgl65563hbbhkgn2fsfuwbomi4lxipe7lg5ywhhq72myt676na@jpeg"
+    }
+   },
+   {
+    "rkey": "3mufjfqug6c2b",
+    "value": {
+     "name": "Incubus",
+     "tags": [
+      "Alternative"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-08-31T18:19:23.045Z",
+     "pictureUrl": "https://i.scdn.co/image/ab6761610000e5ebefb25d9bd279b10bb362a476"
+    }
+   },
+   {
+    "rkey": "3mufizomqfs2b",
+    "value": {
+     "name": "Zach Bryan",
+     "tags": [
+      "country",
+      "red dirt"
+     ],
+     "$type": "app.rocksky.artist",
+     "createdAt": "2026-08-31T18:12:38.043Z",
+     "pictureUrl": "https://i.scdn.co/image/ab6761610000e5eb4fd54df35bfcfa0fc9fc2da7"
+    }
+   }
+  ],
+  "app.rocksky.like": [
+   {
+    "rkey": "3mnze23bple23",
+    "value": {
+     "$type": "app.rocksky.like",
+     "subject": {
+      "cid": "bafyreifu3caviu6qyw24yhnb7esuwfizzoymkns7mxucabo7o44ruzdf2y",
+      "uri": "at://did:plc:7opjnfmb6gtbgjrsr3777ujx/app.rocksky.song/3lypblcltuk25"
+     },
+     "createdAt": "2026-06-11T13:40:18.204Z"
+    }
+   },
+   {
+    "rkey": "3lxd6nsdzhk2x",
+    "value": {
+     "$type": "app.rocksky.like",
+     "subject": {
+      "cid": "bafyreicbjkmhcfd6kyeegg6sutid7r7aa5572o2euxtbzzqocqu32dxtlm",
+      "uri": "at://did:plc:7opjnfmb6gtbgjrsr3777ujx/app.rocksky.shout/3lvoe6s5apc2l"
+     },
+     "createdAt": "2025-08-26T18:51:06.005Z"
+    }
+   }
+  ],
+  "app.rocksky.shout": [
+   {
+    "rkey": "3mq2ws3ye3424",
+    "value": {
+     "$type": "app.rocksky.shout",
+     "message": "good app!",
+     "subject": {
+      "cid": "bafyreifobtcrvci2776tdhcptsdegl6pyohcnecatos5pprzvov4ntkcjq",
+      "uri": "at://did:plc:7opjnfmb6gtbgjrsr3777ujx/app.bsky.actor.profile/self"
+     },
+     "createdAt": "2026-07-07T15:38:52.372Z"
+    }
+   },
+   {
+    "rkey": "3lvoe6s5apc2l",
+    "value": {
+     "$type": "app.rocksky.shout",
+     "message": "This is cool!",
+     "subject": {
+      "cid": "bafyreia26imnwhrgdvfasfg53qmror3fcnushkgcm44ik25khullo6525q",
+      "uri": "at://did:plc:7opjnfmb6gtbgjrsr3777ujx/app.bsky.actor.profile/self"
+     },
+     "createdAt": "2025-08-05T18:38:57.977Z"
+    }
+   }
+  ]
+ },
+ "did_document": {
+  "@context": [
+   "https://www.w3.org/ns/did/v1",
+   "https://w3id.org/security/multikey/v1",
+   "https://w3id.org/security/suites/secp256k1-2019/v1"
+  ],
+  "id": "did:plc:7opjnfmb6gtbgjrsr3777ujx",
+  "alsoKnownAs": [
+   "at://oops.wtf"
+  ],
+  "verificationMethod": [
+   {
+    "id": "did:plc:7opjnfmb6gtbgjrsr3777ujx#atproto",
+    "type": "Multikey",
+    "controller": "did:plc:7opjnfmb6gtbgjrsr3777ujx",
+    "publicKeyMultibase": "zQ3shXbzZABktXGGYiLWYQkjuqmCLQmcBjLepHTGrYPCDjVrg"
+   }
+  ],
+  "service": [
+   {
+    "id": "#atproto_pds",
+    "type": "AtprotoPersonalDataServer",
+    "serviceEndpoint": "https://inkcap.us-east.host.bsky.network"
+   }
+  ]
+ },
+ "profile": {
+  "did": "did:plc:7opjnfmb6gtbgjrsr3777ujx",
+  "handle": "oops.wtf",
+  "displayName": "Edgyning dhiri ana ing lathi",
+  "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7opjnfmb6gtbgjrsr3777ujx/bafkreifuwjc3e4aif5fsxiv3syqcz7li67iu3hiov5337aviq7itqyswoy",
+  "associated": {
+   "lists": 44,
+   "feedgens": 32,
+   "starterPacks": 8,
+   "labeler": false,
+   "chat": {
+    "allowIncoming": "all",
+    "allowGroupInvites": "all"
+   },
+   "activitySubscription": {
+    "allowSubscriptions": "followers"
+   }
+  },
+  "labels": [],
+  "createdAt": "2023-05-13T03:16:11.008Z",
+  "description": "Quiet poster~\n\n┊ Chat: dm.oops.wtf (he/him)\n┊ Bluesky 101: bsky.oops.wtf\n┊ ATmosphere: linkat.blue/oops.wtf\n┊ Last played: Dancing With Your Ghost by Sasha Alex Sloan ~",
+  "indexedAt": "2026-09-16T09:19:21.454Z",
+  "banner": "https://cdn.bsky.app/img/banner/plain/did:plc:7opjnfmb6gtbgjrsr3777ujx/bafkreiai7q55lrp4rykdciqg2tbvo5kswrvwtafizadmdeqaby6g32pqy4",
+  "followersCount": 666,
+  "followsCount": 250,
+  "postsCount": 2028
+ }
+}

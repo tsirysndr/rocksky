@@ -339,6 +339,38 @@ fn sqlite_url(dir: &Path, file: &str) -> String {
     format!("sqlite://{}?mode=rwc", dir.join(file).display())
 }
 
+/// Anchors a relative SQLite path to the data directory.
+///
+/// `sqlite://rocksky.db` in a config file would otherwise land wherever the
+/// process happened to be started from — so the database moves when the
+/// working directory does, and `--data-dir` looks as though it were ignored.
+/// Absolute paths, `:memory:` and every non-SQLite URL are returned untouched.
+fn anchor_sqlite_url(url: String, data_dir: &Path) -> String {
+    let Some(rest) = url
+        .strip_prefix("sqlite://")
+        .or_else(|| url.strip_prefix("sqlite:"))
+    else {
+        return url;
+    };
+
+    let (path, query) = match rest.split_once('?') {
+        Some((path, query)) => (path, Some(query)),
+        None => (rest, None),
+    };
+
+    if path.is_empty() || path.starts_with('/') || path.starts_with(":memory:") {
+        return url;
+    }
+
+    let anchored = data_dir.join(path);
+    match query {
+        Some(query) => format!("sqlite://{}?{query}", anchored.display()),
+        // A path given without flags still needs `rwc`, or sqlx refuses to
+        // create the file on first boot.
+        None => format!("sqlite://{}?mode=rwc", anchored.display()),
+    }
+}
+
 /// Reads `<data_dir>/jwt.secret`, generating a 32-byte random key on first run.
 /// Tokens minted by a previous boot therefore keep verifying across restarts —
 /// a fresh random secret every start would silently log everyone out.
@@ -547,9 +579,11 @@ impl Config {
             "APPVIEW_DB_URL",
             file.database.url.clone(),
         )
+        .map(|url| anchor_sqlite_url(url, &data_dir))
         .unwrap_or_else(|| sqlite_url(&data_dir, "rocksky.db"));
 
         let auth_database_url = pick(None, "APPVIEW_AUTH_DB_URL", file.database.auth_url.clone())
+            .map(|url| anchor_sqlite_url(url, &data_dir))
             .unwrap_or_else(|| sqlite_url(&data_dir, "auth.db"));
 
         Ok(Self {
@@ -882,6 +916,39 @@ mod tests {
     fn sqlite_urls_create_missing_files() {
         let url = sqlite_url(Path::new("/tmp/rocksky"), "rocksky.db");
         assert_eq!(url, "sqlite:///tmp/rocksky/rocksky.db?mode=rwc");
+    }
+
+    #[test]
+    fn a_relative_sqlite_path_lands_in_the_data_directory() {
+        let dir = Path::new("/var/lib/rocksky");
+
+        // A bare relative path gains both the directory and the create flag.
+        assert_eq!(
+            anchor_sqlite_url("sqlite://rocksky.db".into(), dir),
+            "sqlite:///var/lib/rocksky/rocksky.db?mode=rwc"
+        );
+        // Existing flags are kept rather than replaced.
+        assert_eq!(
+            anchor_sqlite_url("sqlite://db/main.db?mode=rwc&cache=shared".into(), dir),
+            "sqlite:///var/lib/rocksky/db/main.db?mode=rwc&cache=shared"
+        );
+        // The short form is accepted too.
+        assert_eq!(
+            anchor_sqlite_url("sqlite:rocksky.db".into(), dir),
+            "sqlite:///var/lib/rocksky/rocksky.db?mode=rwc"
+        );
+    }
+
+    #[test]
+    fn absolute_memory_and_postgres_urls_are_left_alone() {
+        let dir = Path::new("/var/lib/rocksky");
+        for url in [
+            "sqlite:///srv/data/rocksky.db?mode=rwc",
+            "sqlite://:memory:",
+            "postgres://user:pw@localhost/rocksky",
+        ] {
+            assert_eq!(anchor_sqlite_url(url.into(), dir), url, "{url}");
+        }
     }
 
     #[test]

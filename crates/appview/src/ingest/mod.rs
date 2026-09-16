@@ -219,7 +219,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
             // A song record is the canonical URI for a track the user owns,
             // so it backfills `tracks.uri` on the row the hash resolves to.
             let track_id = upsert_track(db, &song, None).await?;
-            set_uri(db, "tracks", &track_id, &record.uri()).await?;
+            set_record_uri(db, "tracks", &track_id, &record.uri()).await?;
             stats.songs += 1;
         }
         ALBUM_NSID => {
@@ -239,7 +239,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
                 string(&record.value, "releaseDate"),
             )
             .await?;
-            set_uri(db, "albums", &album_id, &record.uri()).await?;
+            set_record_uri(db, "albums", &album_id, &record.uri()).await?;
             stats.albums += 1;
         }
         ARTIST_NSID => {
@@ -253,7 +253,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
                 string(&record.value, "pictureUrl").or_else(|| string(&record.value, "picture")),
             )
             .await?;
-            set_uri(db, "artists", &artist_id, &record.uri()).await?;
+            set_record_uri(db, "artists", &artist_id, &record.uri()).await?;
             stats.artists += 1;
         }
         LIKE_NSID => {
@@ -335,7 +335,7 @@ pub async fn set_handle(db: &Backend, did: &str, handle: &str) -> anyhow::Result
     Ok(db.execute(&sql).await? > 0)
 }
 
-async fn upsert_artist(
+pub async fn upsert_artist(
     db: &Backend,
     name: &str,
     picture: Option<String>,
@@ -368,7 +368,7 @@ async fn upsert_artist(
         .ok_or_else(|| anyhow::anyhow!("could not create an artist row for {name}"))
 }
 
-async fn upsert_album(
+pub async fn upsert_album(
     db: &Backend,
     title: &str,
     album_artist: &str,
@@ -418,7 +418,7 @@ async fn upsert_album(
 /// The lookup ranks the content hash above MBID above ISRC: the same ISRC can
 /// belong to several rows (a single and a compilation), so an unranked `OR`
 /// would pick a non-deterministic row and silently cross albums.
-async fn upsert_track(
+pub async fn upsert_track(
     db: &Backend,
     song: &SongRecord,
     uri: Option<&str>,
@@ -520,7 +520,7 @@ async fn upsert_track(
 }
 
 /// Fills in a row's AT-URI without clobbering one already there.
-async fn set_uri(db: &Backend, table: &str, id: &str, uri: &str) -> anyhow::Result<()> {
+pub async fn set_record_uri(db: &Backend, table: &str, id: &str, uri: &str) -> anyhow::Result<()> {
     let mut sql = db.sql(format!("UPDATE {table} SET uri = "));
     sql.bind(uri)
         .push(" WHERE xata_id = ")
@@ -533,7 +533,7 @@ async fn set_uri(db: &Backend, table: &str, id: &str, uri: &str) -> anyhow::Resu
 }
 
 /// Links a track to its album and artist, and the album to the artist.
-async fn link_catalogue(
+pub async fn link_catalogue(
     db: &Backend,
     artist_id: &str,
     album_id: &str,
@@ -610,6 +610,94 @@ async fn bump_counter(
         .bind(uri)
         .push(") ON CONFLICT (uri) DO NOTHING");
     db.execute(&insert).await?;
+    Ok(())
+}
+
+/// Creates the artist, album and track rows for a song and links them.
+///
+/// Returns the track's row id. This is the half of [`ingest_scrobble`] that is
+/// about the catalogue rather than the play, so an upload — which is not a
+/// play — can reuse it.
+pub async fn upsert_catalogue(db: &Backend, song: &SongRecord) -> anyhow::Result<String> {
+    let artist_id = upsert_artist(db, &song.album_artist, None).await?;
+    let album_id = upsert_album(
+        db,
+        &song.album,
+        &song.album_artist,
+        song.album_art.clone(),
+        song.year,
+        song.release_date.clone(),
+    )
+    .await?;
+    let track_id = upsert_track(db, song, None).await?;
+
+    link_catalogue(db, &artist_id, &album_id, &track_id).await?;
+    Ok(track_id)
+}
+
+/// The AT-URI already recorded for an album, if any.
+pub async fn album_uri(db: &Backend, song: &SongRecord) -> anyhow::Result<Option<String>> {
+    let hash = album_hash(&song.album, &song.album_artist);
+    let mut sql = db.sql("SELECT uri FROM albums WHERE sha256 = ");
+    sql.bind(&hash).push(" LIMIT 1");
+    Ok(db.fetch_scalar::<String>(&sql).await?.filter(|uri| !uri.is_empty()))
+}
+
+/// The AT-URI already recorded for an artist, if any.
+pub async fn artist_uri(db: &Backend, name: &str) -> anyhow::Result<Option<String>> {
+    let hash = artist_hash(name);
+    let mut sql = db.sql("SELECT uri FROM artists WHERE sha256 = ");
+    sql.bind(&hash).push(" LIMIT 1");
+    Ok(db.fetch_scalar::<String>(&sql).await?.filter(|uri| !uri.is_empty()))
+}
+
+/// Fills in an album's AT-URI, found by its content hash.
+pub async fn set_album_uri(
+    db: &Backend,
+    song: &SongRecord,
+    uri: &str,
+) -> anyhow::Result<()> {
+    let hash = album_hash(&song.album, &song.album_artist);
+    let mut lookup = db.sql("SELECT xata_id FROM albums WHERE sha256 = ");
+    lookup.bind(&hash).push(" LIMIT 1");
+    if let Some(id) = db.fetch_scalar::<String>(&lookup).await? {
+        set_record_uri(db, "albums", &id, uri).await?;
+    }
+    Ok(())
+}
+
+/// Fills in an artist's AT-URI, found by name hash.
+pub async fn set_artist_uri(db: &Backend, name: &str, uri: &str) -> anyhow::Result<()> {
+    let hash = artist_hash(name);
+    let mut lookup = db.sql("SELECT xata_id FROM artists WHERE sha256 = ");
+    lookup.bind(&hash).push(" LIMIT 1");
+    if let Some(id) = db.fetch_scalar::<String>(&lookup).await? {
+        set_record_uri(db, "artists", &id, uri).await?;
+    }
+    Ok(())
+}
+
+/// Records a track's key and BPM, filling only what is still missing.
+///
+/// A track is shared across users and sources, so an answer someone else's
+/// upload already produced is not overwritten by a second one.
+pub async fn set_track_analysis(
+    db: &Backend,
+    track_id: &str,
+    key: Option<&str>,
+    bpm: Option<f64>,
+) -> anyhow::Result<()> {
+    if key.is_none() && bpm.is_none() {
+        return Ok(());
+    }
+
+    let mut sql = db.sql("UPDATE tracks SET key = COALESCE(key, ");
+    sql.bind(key.map(str::to_string))
+        .push("), bpm = COALESCE(bpm, ")
+        .bind(bpm)
+        .push(") WHERE xata_id = ")
+        .bind(track_id);
+    db.execute(&sql).await?;
     Ok(())
 }
 

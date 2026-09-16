@@ -22,6 +22,12 @@ pub enum ResponseType {
     PayloadTooLarge,
     UnsupportedMediaType,
     RateLimitExceeded,
+    /// Not in the XRPC `ResponseType` enum. Used by the REST routes, which
+    /// answer these codes directly rather than through the lexicon envelope —
+    /// `/storage/providers` returns 409 and 422, and reporting 400 instead
+    /// would change what the UI branches on.
+    Conflict,
+    UnprocessableEntity,
     InternalServerError,
     MethodNotImplemented,
     UpstreamFailure,
@@ -40,6 +46,8 @@ impl ResponseType {
             Self::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
             Self::UnsupportedMediaType => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             Self::RateLimitExceeded => StatusCode::TOO_MANY_REQUESTS,
+            Self::Conflict => StatusCode::CONFLICT,
+            Self::UnprocessableEntity => StatusCode::UNPROCESSABLE_ENTITY,
             Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::MethodNotImplemented => StatusCode::NOT_IMPLEMENTED,
             Self::UpstreamFailure => StatusCode::BAD_GATEWAY,
@@ -59,6 +67,8 @@ impl ResponseType {
             Self::PayloadTooLarge => "PayloadTooLarge",
             Self::UnsupportedMediaType => "UnsupportedMediaType",
             Self::RateLimitExceeded => "RateLimitExceeded",
+            Self::Conflict => "Conflict",
+            Self::UnprocessableEntity => "UnprocessableEntity",
             Self::InternalServerError => "InternalServerError",
             Self::MethodNotImplemented => "MethodNotImplemented",
             Self::UpstreamFailure => "UpstreamFailure",
@@ -78,6 +88,8 @@ impl ResponseType {
             Self::PayloadTooLarge => "Payload Too Large",
             Self::UnsupportedMediaType => "Unsupported Media Type",
             Self::RateLimitExceeded => "Rate Limit Exceeded",
+            Self::Conflict => "Conflict",
+            Self::UnprocessableEntity => "Unprocessable Entity",
             Self::InternalServerError => "Internal Server Error",
             Self::MethodNotImplemented => "Method Not Implemented",
             Self::UpstreamFailure => "Upstream Failure",
@@ -89,6 +101,13 @@ impl ResponseType {
     /// Maps an arbitrary upstream status onto the enum, matching
     /// `httpResponseCodeToEnum`: any other 4xx collapses to InvalidRequest and
     /// anything else to InternalServerError.
+    ///
+    /// Deliberately never yields [`ResponseType::Conflict`] or
+    /// [`ResponseType::UnprocessableEntity`], even for 409 and 422: this
+    /// function mirrors the TypeScript enum, which has neither, and an
+    /// upstream 409 reaching an XRPC client as anything but `InvalidRequest`
+    /// would not match what `apps/api` sends. Those two variants exist only to
+    /// be constructed explicitly by the REST routes that answer them.
     pub fn from_status(status: u16) -> Self {
         match status {
             400 => Self::InvalidRequest,
@@ -114,6 +133,12 @@ impl ResponseType {
 pub struct ErrorBody {
     pub error: String,
     pub message: String,
+    /// Only the upload route sets this: `apps/api` returns the list of tags a
+    /// file is missing alongside the message, and the UI highlights them.
+    /// Omitted everywhere else so the envelope stays the two fields
+    /// `@atproto/xrpc-server` defines.
+    #[serde(rename = "missingFields", skip_serializing_if = "Option::is_none")]
+    pub missing_fields: Option<Vec<String>>,
 }
 
 /// An error that renders as an XRPC failure. `kind` picks the status and the
@@ -124,6 +149,8 @@ pub struct XrpcError {
     pub kind: ResponseType,
     pub name: Option<String>,
     pub detail: Option<String>,
+    /// Extra fields appended to the body; see [`ErrorBody::missing_fields`].
+    pub missing_fields: Option<Vec<String>>,
     /// Logged, never serialized — the cause behind a 500.
     pub source: Option<anyhow::Error>,
 }
@@ -134,6 +161,7 @@ impl XrpcError {
             kind,
             name: None,
             detail: None,
+            missing_fields: None,
             source: None,
         }
     }
@@ -143,6 +171,7 @@ impl XrpcError {
             kind,
             name: None,
             detail: Some(message.into()),
+            missing_fields: None,
             source: None,
         }
     }
@@ -150,6 +179,12 @@ impl XrpcError {
     /// Sets the custom `error` name, e.g. `InvalidFilter`.
     pub fn named(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
+        self
+    }
+
+    /// Names the tags an upload was missing.
+    pub fn missing_fields(mut self, fields: Vec<String>) -> Self {
+        self.missing_fields = Some(fields);
         self
     }
 
@@ -188,6 +223,7 @@ impl XrpcError {
             kind: ResponseType::InternalServerError,
             name: None,
             detail: None,
+            missing_fields: None,
             source: Some(source.into()),
         }
     }
@@ -207,6 +243,11 @@ impl XrpcError {
                 self.detail
                     .clone()
                     .unwrap_or_else(|| self.kind.message().to_string())
+            },
+            missing_fields: if internal {
+                None
+            } else {
+                self.missing_fields.clone()
             },
         }
     }
@@ -265,6 +306,7 @@ impl From<reqwest::Error> for XrpcError {
             kind,
             name: None,
             detail: (kind != ResponseType::InternalServerError).then(|| err.to_string()),
+            missing_fields: None,
             source: Some(err.into()),
         }
     }
@@ -313,10 +355,22 @@ mod tests {
     #[test]
     fn unlisted_4xx_collapses_to_invalid_request() {
         assert_eq!(ResponseType::from_status(418), ResponseType::InvalidRequest);
+        // 409 and 422 have their own variants for the REST routes, but
+        // `from_status` mirrors the TypeScript enum, which has neither.
         assert_eq!(ResponseType::from_status(409), ResponseType::InvalidRequest);
+        assert_eq!(ResponseType::from_status(422), ResponseType::InvalidRequest);
         assert_eq!(
             ResponseType::from_status(599),
             ResponseType::InternalServerError
+        );
+    }
+
+    #[test]
+    fn the_rest_only_variants_carry_their_own_statuses() {
+        assert_eq!(ResponseType::Conflict.status(), StatusCode::CONFLICT);
+        assert_eq!(
+            ResponseType::UnprocessableEntity.status(),
+            StatusCode::UNPROCESSABLE_ENTITY
         );
     }
 

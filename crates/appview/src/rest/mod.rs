@@ -14,11 +14,17 @@
 //! XRPC surface.
 
 pub mod auth;
+pub mod ingest;
 pub mod keys;
+pub mod storage;
+pub mod uploads;
 
 use actix_web::web::ServiceConfig;
 
 pub fn configure(cfg: &mut ServiceConfig) {
     auth::configure(cfg);
+    ingest::configure(cfg);
     keys::configure(cfg);
+    storage::configure(cfg);
+    uploads::configure(cfg);
 }

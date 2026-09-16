@@ -79,6 +79,28 @@ sha2 = "0.10"
 # libsodium's crypto_secretbox, for reading and writing the credentials
 # apps/api encrypts with `encryptCredential`.
 xsalsa20poly1305 = "0.9"
+md5 = "0.7.0"
+
+# Uploaded-file handling. These are the same crates the rest of the workspace
+# already uses for the job, so a file read here parses exactly as it does in
+# the players and the cloud-drive scanners:
+#
+#   rockbox-metadata  tag reading, by the parser the rockbox engine itself
+#                     uses — what we read is what a player will read
+#   lofty             tag *writing*, for the ReplayGain tags rockbox reads
+#                     from the stream (rockbox-metadata is read-only)
+#   ebur128           loudness measurement, as playerd/src/analysis does
+#   rocksky-analysis  key and BPM, the crate behind the Neon binding that
+#                     apps/api loads — called directly, so there is no native
+#                     module to build
+rockbox-metadata = "0.1"
+lofty = "0.22"
+ebur128 = "0.1"
+rocksky-analysis = { path = "../analysis" }
+symphonia = { version = "0.5", default-features = false, features = [
+  "flac", "mp3", "pcm", "aac", "alac", "isomp4", "vorbis", "ogg", "wav", "adpcm",
+] }
+actix-multipart = "0.7"
 # Object storage. The same client crate and conventions as
 # crates/navidrome/src/s3.rs, so presigned URLs and path-style addressing
 # behave identically across the two services.
@@ -109,9 +131,15 @@ redis = { version = "0.29", default-features = false, features = [
   "connection-manager",
 ] }
 
+# Tag reading and ReplayGain writing both work on files, so an upload is
+# staged on disk before it is stored.
+tempfile = "3"
+
 [dev-dependencies]
 actix-rt = "2"
-tempfile = "3"
+# An in-memory PDS: identity, sessions, repo writes and a real CAR for sync.
+# Replaces the hand-rolled stubs these tests used to each carry their own of.
+rocksky-mock-pds = { path = "../mock-pds" }
 # The interop test reads the JWK back to prove the DPoP key survived.
 jose-jwk = { version = "0.1", features = ["p256"] }
 jacquard-common = "0.12"

@@ -23,6 +23,8 @@ pub mod rest;
 pub mod rsql;
 pub mod server;
 pub mod state;
+pub mod storage;
+pub mod uploads;
 pub mod sync;
 pub mod views;
 pub mod web;

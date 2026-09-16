@@ -124,6 +124,30 @@ pub fn current_year(dialect: Dialect) -> &'static str {
     }
 }
 
+/// Renders a `SELECT` list whose aliases carry a prefix.
+///
+/// Needed when two models appear in one row: each one's own list aliases
+/// `xata_id AS id`, so selecting both gives two columns called `id` and
+/// `FromRow` reads whichever came first. Prefixing one of them keeps both
+/// readable.
+pub fn select_list_aliased(
+    columns: &[Col],
+    dialect: Dialect,
+    prefix: Option<&str>,
+    alias_prefix: &str,
+) -> String {
+    let plain = select_list(columns, dialect, prefix);
+    // `select_list` emits "<expr> AS <alias>" per column; only the alias moves.
+    plain
+        .split(", ")
+        .map(|part| match part.rsplit_once(" AS ") {
+            Some((expr, alias)) => format!("{expr} AS {alias_prefix}{alias}"),
+            None => part.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Parses a `text[]`-turned-JSON column. A NULL, an empty string or malformed
 /// JSON all yield an empty vector: these columns are display metadata (genres,
 /// collaborators) and a parse failure must not fail the whole request.
@@ -331,6 +355,23 @@ pub const TRACK_COLS: &[Col] = cols! {
     "xata_version", Int;
 };
 
+// -------------------------------------------------------- storage providers
+
+/// `user_storage_providers`. The credential columns are included but stay
+/// encrypted; see [`crate::storage::providers::StorageProvider`].
+pub const STORAGE_PROVIDER_COLS: &[Col] = cols! {
+    "xata_id" => "id";
+    "label";
+    "endpoint";
+    "region";
+    "bucket";
+    "access_key";
+    "secret_key";
+    "public_url";
+    "verified_at", Timestamp;
+    "xata_createdat" => "created_at", Timestamp;
+};
+
 // ------------------------------------------------------------- credentials
 
 /// `api_keys`, minus `user_id` — which is never disclosed to the client.
@@ -354,6 +395,24 @@ pub const ACCESS_TOKEN_COLS: &[Col] = cols! {
     "last_used_at", Timestamp;
     "xata_createdat" => "created_at", Timestamp;
     "xata_updatedat" => "updated_at", Timestamp;
+};
+
+// ------------------------------------------------------------ user_uploads
+
+pub const UPLOAD_COLS: &[Col] = cols! {
+    "xata_id" => "id";
+    "user_id";
+    "track_id";
+    "r2_key";
+    "mime_type";
+    "file_size", Int;
+    "original_filename";
+    "sample_rate", Int;
+    "storage_provider_id";
+    "uploaded_at", Timestamp;
+    "xata_createdat" => "created_at", Timestamp;
+    "xata_updatedat" => "updated_at", Timestamp;
+    "xata_version", Int;
 };
 
 // ------------------------------------------------------------ loved_tracks
@@ -457,6 +516,18 @@ mod tests {
             artists.contains("to_json(genres)::text AS genres"),
             "{artists}"
         );
+    }
+
+    #[test]
+    fn an_alias_prefix_renames_only_the_aliases() {
+        // Two models in one row would otherwise both claim `id`.
+        let list = select_list_aliased(TRACK_COLS, Dialect::Sqlite, Some("t"), "track_");
+        assert!(list.contains("t.xata_id AS track_id"), "{list}");
+        assert!(list.contains("t.title AS track_title"), "{list}");
+
+        // The cast stays on the expression side, not the alias.
+        let pg = select_list_aliased(TRACK_COLS, Dialect::Postgres, Some("t"), "track_");
+        assert!(pg.contains("t.duration::bigint AS track_duration"), "{pg}");
     }
 
     #[test]

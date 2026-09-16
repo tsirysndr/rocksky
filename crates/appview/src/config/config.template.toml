@@ -191,9 +191,24 @@
 # s3_bucket = "rocksky-library"
 # s3_covers_bucket = "rocksky"
 
-# Encrypts per-user bring-your-own-storage credentials at rest. Needed only if
-# you let users attach their own buckets. Use 32 random bytes, hex encoded.
+# Encrypts credentials at rest — access-token copies and the per-user
+# bring-your-own-storage secrets. Generated into storage.key on first boot, so
+# this only needs setting to share one key across several instances. Keep the
+# file: losing it makes those credentials unreadable.
 # encryption_key = ""
+
+# Uploads in brief:
+#   POST /storage/providers   a user attaches their own S3 bucket. The
+#                             credentials are checked against the live bucket
+#                             before anything is stored, then encrypted.
+#   GET  /uploads             their library
+#   GET  /uploads/{id}/stream the audio, proxied through this server so the
+#                             bucket URL and credentials never reach the
+#                             browser. Range requests are forwarded, so
+#                             seeking works.
+#
+# An upload with no provider uses the bucket configured above; one with a
+# provider uses that user's own. Both paths work at once.
 
 [web]
 # The embedded web UI is configured at request time, so by default it talks to

@@ -78,6 +78,42 @@ struct NodeTokenSet {
     expires_at: Option<String>,
 }
 
+/// What a stored row yields without touching the network.
+///
+/// Building a full session needs the issuer's metadata, so it cannot be done
+/// offline. Everything that can fail *locally* — the JSON shape and the DPoP
+/// key — is checkable without it, which is what lets a real database be
+/// verified row by row in a test.
+#[derive(Debug)]
+pub struct ParsedSession {
+    pub did: String,
+    pub issuer: String,
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub expires_at: Option<String>,
+    pub dpop_key: jose_jwk::Key,
+}
+
+/// Parses one `auth_session` row as `@atproto/oauth-client-node` wrote it.
+pub fn parse_node_session(raw: &str) -> Result<ParsedSession, anyhow::Error> {
+    let saved: NodeSavedSession = serde_json::from_str(raw)
+        .map_err(|err| anyhow::anyhow!("the row is not a Node session: {err}"))?;
+
+    // The full JWK carries kid/alg alongside the key material. Real rows have
+    // neither, so requiring them would reject every live session.
+    let jwk: Jwk = serde_json::from_value(saved.dpop_jwk)
+        .map_err(|err| anyhow::anyhow!("the DPoP key is unusable: {err}"))?;
+
+    Ok(ParsedSession {
+        did: saved.token_set.sub,
+        issuer: saved.token_set.iss,
+        access_token: saved.token_set.access_token,
+        refresh_token: saved.token_set.refresh_token,
+        expires_at: saved.token_set.expires_at,
+        dpop_key: jwk.key,
+    })
+}
+
 /// The authorization server endpoints that the Node JSON does not record.
 #[derive(Debug, Clone)]
 struct AuthServerEndpoints {
@@ -318,9 +354,9 @@ impl ClientAuthStore for SqliteAuthStore {
         let json = serde_json::to_string(&saved).map_err(SessionStoreError::Serde)?;
 
         sqlx::query(
-            "INSERT INTO auth_session (key, session, expires_at) VALUES (?, ?, ?) \
+            "INSERT INTO auth_session (key, session, \"expiresAt\") VALUES (?, ?, ?) \
              ON CONFLICT (key) DO UPDATE SET \
-               session = excluded.session, expires_at = excluded.expires_at",
+               session = excluded.session, \"expiresAt\" = excluded.\"expiresAt\"",
         )
         .bind(session.account_did.to_string())
         .bind(&json)

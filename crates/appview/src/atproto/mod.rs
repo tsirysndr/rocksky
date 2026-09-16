@@ -7,6 +7,7 @@
 
 pub mod car;
 pub mod mst;
+pub mod records;
 pub mod session;
 
 use serde::Deserialize;

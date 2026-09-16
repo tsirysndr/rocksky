@@ -84,25 +84,33 @@ pub async fn sweep(state: &AppState) -> anyhow::Result<usize> {
 }
 
 /// DIDs whose stored session expires before `cutoff`.
-///
-/// Reads the `expires_at` column rather than parsing every session's JSON —
-/// the reason that column is mirrored out of the blob at all.
 async fn sessions_expiring_before(
     state: &AppState,
     cutoff: chrono::DateTime<chrono::Utc>,
 ) -> Result<Vec<String>, sqlx::Error> {
-    let cutoff = crate::db::format_timestamp(cutoff);
+    sessions_due(state.auth_db(), &crate::db::format_timestamp(cutoff)).await
+}
 
+/// The sweep itself, over a pool rather than the whole state.
+///
+/// Reads the `expiresAt` column rather than parsing every session's JSON —
+/// the reason that column is mirrored out of the blob at all. Public so a test
+/// can run it against a database whose tables apps/api created, which is the
+/// only way to catch this query naming a column that file does not have.
+pub async fn sessions_due(
+    pool: &sqlx::SqlitePool,
+    cutoff: &str,
+) -> Result<Vec<String>, sqlx::Error> {
     sqlx::query_scalar(
         "SELECT key FROM auth_session \
          WHERE key NOT LIKE 'atp:%' \
-           AND expires_at IS NOT NULL \
-           AND expires_at <> 'NULL' \
-           AND expires_at < ? \
-         ORDER BY expires_at ASC",
+           AND \"expiresAt\" IS NOT NULL \
+           AND \"expiresAt\" <> 'NULL' \
+           AND \"expiresAt\" < ? \
+         ORDER BY \"expiresAt\" ASC",
     )
     .bind(cutoff)
-    .fetch_all(state.auth_db())
+    .fetch_all(pool)
     .await
 }
 
@@ -111,7 +119,7 @@ mod tests {
     use super::*;
 
     async fn insert_session(state: &AppState, key: &str, expires_at: Option<&str>) {
-        sqlx::query("INSERT INTO auth_session (key, session, expires_at) VALUES (?, ?, ?)")
+        sqlx::query("INSERT INTO auth_session (key, session, \"expiresAt\") VALUES (?, ?, ?)")
             .bind(key)
             .bind("{}")
             .bind(expires_at)
