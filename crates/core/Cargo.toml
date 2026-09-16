@@ -1,0 +1,23 @@
+[package]
+name = "rocksky-core"
+version = "0.1.0"
+description = "The conventions every Rocksky component shares: entity identity and timestamp formatting"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+# The same crate the upload pipeline already used, so cover object names are
+# byte-identical to the ones already in storage.
+md5 = "0.7.0"
+hex = "0.4"
+
+[dev-dependencies]
+# The timestamp tests assert on the JSON a value serializes to, which is the
+# whole point of the module.
+serde_json = "1"
