@@ -635,7 +635,31 @@ async fn create_playlist(
         .ok_or_else(|| XrpcError::invalid_request("name is required"))?
         .to_string();
 
-    let writer = Writer::for_did(&state, &auth.did).await?;
+    let written = publish_playlist(
+        &state,
+        &auth.did,
+        &name,
+        params.description.as_deref(),
+        params.picture_url.as_deref(),
+    )
+    .await?;
+
+    tracing::info!(did = %auth.did, name = %name, uri = %written.uri, "created a playlist");
+    json(written)
+}
+
+/// Publishes an `app.rocksky.playlist` record and writes the local row.
+///
+/// Shared with the navidrome mirror in [`super::library`], which publishes one
+/// of these for a playlist the uploaded library already holds.
+pub(super) async fn publish_playlist(
+    state: &AppState,
+    did: &str,
+    name: &str,
+    description: Option<&str>,
+    picture_url: Option<&str>,
+) -> Result<WrittenOutput, XrpcError> {
+    let writer = Writer::for_did(state, did).await?;
     let rkey = crate::atproto::records::next_tid();
     let written = writer
         .create(
@@ -643,9 +667,13 @@ async fn create_playlist(
             &rkey,
             &PlaylistRecord {
                 record_type: PLAYLIST_COLLECTION,
-                name: name.clone(),
-                description: params.description.clone().filter(|text| !text.is_empty()),
-                picture_url: params.picture_url.clone().filter(|url| !url.is_empty()),
+                name: name.to_string(),
+                description: description
+                    .filter(|text| !text.is_empty())
+                    .map(str::to_string),
+                picture_url: picture_url
+                    .filter(|url| !url.is_empty())
+                    .map(str::to_string),
                 created_at: crate::views::timestamp::to_iso8601(&chrono::Utc::now()),
             },
         )
@@ -653,7 +681,7 @@ async fn create_playlist(
 
     // Written locally as well as published — see the module note.
     let db = state.db();
-    let owner = caller_id(db, &auth.did).await?;
+    let owner = caller_id(db, did).await?;
     let insert = Query::insert()
         .into_table(Playlists::Table)
         .columns([
@@ -667,9 +695,9 @@ async fn create_playlist(
         ])
         .values_panic([
             new_id().into(),
-            name.clone().into(),
-            params.description.clone().into(),
-            params.picture_url.clone().into(),
+            name.to_string().into(),
+            description.map(str::to_string).into(),
+            picture_url.map(str::to_string).into(),
             written.uri.clone().into(),
             written.cid.clone().into(),
             owner.into(),
@@ -677,8 +705,7 @@ async fn create_playlist(
         .to_owned();
     db.execute(&insert).await?;
 
-    tracing::info!(did = %auth.did, name = %name, uri = %written.uri, "created a playlist");
-    json(WrittenOutput {
+    Ok(WrittenOutput {
         uri: written.uri,
         cid: written.cid,
     })
@@ -708,36 +735,55 @@ async fn update_playlist(
     params: web::Query<UpdateParams>,
 ) -> XrpcResult<HttpResponse> {
     let uri = required_uri(&params.uri)?;
-    let rkey = own_playlist_rkey(&uri, &auth.did)?;
+    let written = patch_playlist(
+        &state,
+        &auth.did,
+        &uri,
+        params.name.as_deref(),
+        params.description.as_deref(),
+        params.picture_url.as_deref(),
+    )
+    .await?;
+
+    tracing::info!(did = %auth.did, uri = %uri, "updated a playlist");
+    json(written)
+}
+
+/// Patches a playlist record's named fields, and the local row with them.
+///
+/// Shared with the navidrome mirror, which replays a library rename here.
+pub(super) async fn patch_playlist(
+    state: &AppState,
+    did: &str,
+    uri: &str,
+    name: Option<&str>,
+    description: Option<&str>,
+    picture_url: Option<&str>,
+) -> Result<WrittenOutput, XrpcError> {
+    let rkey = own_playlist_rkey(uri, did)?;
 
     // The current record, so fields the caller omitted keep their values.
-    let pds =
-        crate::atproto::resolve_pds(state.http(), &state.config().plc_directory_url, &auth.did)
+    let pds = crate::atproto::resolve_pds(state.http(), &state.config().plc_directory_url, did)
+        .await
+        .map_err(|err| {
+            tracing::warn!(did, error = %err, "could not resolve a PDS");
+            XrpcError::with_message(
+                crate::error::ResponseType::UpstreamFailure,
+                "Could not reach your PDS",
+            )
+        })?;
+
+    let existing =
+        rocksky_atproto::records::get_record(state.http(), &pds, did, PLAYLIST_COLLECTION, &rkey)
             .await
             .map_err(|err| {
-                tracing::warn!(did = %auth.did, error = %err, "could not resolve a PDS");
+                tracing::warn!(uri, error = %err, "could not read the playlist record");
                 XrpcError::with_message(
                     crate::error::ResponseType::UpstreamFailure,
-                    "Could not reach your PDS",
+                    "Could not read that playlist from your PDS",
                 )
-            })?;
-
-    let existing = rocksky_atproto::records::get_record(
-        state.http(),
-        &pds,
-        &auth.did,
-        PLAYLIST_COLLECTION,
-        &rkey,
-    )
-    .await
-    .map_err(|err| {
-        tracing::warn!(uri = %uri, error = %err, "could not read the playlist record");
-        XrpcError::with_message(
-            crate::error::ResponseType::UpstreamFailure,
-            "Could not read that playlist from your PDS",
-        )
-    })?
-    .ok_or_else(|| XrpcError::invalid_request("No playlist at that URI"))?;
+            })?
+            .ok_or_else(|| XrpcError::invalid_request("No playlist at that URI"))?;
 
     let mut record = existing.value.as_object().cloned().unwrap_or_default();
     record.insert(
@@ -745,17 +791,20 @@ async fn update_playlist(
         serde_json::Value::String(PLAYLIST_COLLECTION.to_string()),
     );
     for (key, value) in [
-        ("name", params.name.clone()),
-        ("description", params.description.clone()),
-        ("pictureUrl", params.picture_url.clone()),
+        ("name", name),
+        ("description", description),
+        ("pictureUrl", picture_url),
     ] {
         if let Some(value) = value {
-            record.insert(key.to_string(), serde_json::Value::String(value));
+            record.insert(
+                key.to_string(),
+                serde_json::Value::String(value.to_string()),
+            );
         }
     }
 
     let record = serde_json::Value::Object(record);
-    let writer = Writer::for_did(&state, &auth.did).await?;
+    let writer = Writer::for_did(state, did).await?;
     let written = writer.put(PLAYLIST_COLLECTION, &rkey, &record).await?;
 
     // Mirror the patch onto the local row.
@@ -765,22 +814,21 @@ async fn update_playlist(
         Playlists::XataUpdatedat,
         crate::views::timestamp::to_iso8601(&chrono::Utc::now()),
     );
-    if let Some(name) = &params.name {
-        update.value(Playlists::Name, name.clone());
+    if let Some(name) = name {
+        update.value(Playlists::Name, name);
     }
-    if let Some(description) = &params.description {
-        update.value(Playlists::Description, description.clone());
+    if let Some(description) = description {
+        update.value(Playlists::Description, description);
     }
-    if let Some(picture) = &params.picture_url {
-        update.value(Playlists::Picture, picture.clone());
+    if let Some(picture) = picture_url {
+        update.value(Playlists::Picture, picture);
     }
     update
         .value(Playlists::Cid, written.cid.clone())
-        .and_where(Expr::col(Playlists::Uri).eq(&uri));
+        .and_where(Expr::col(Playlists::Uri).eq(uri));
     db.execute(&update).await?;
 
-    tracing::info!(did = %auth.did, uri = %uri, "updated a playlist");
-    json(WrittenOutput {
+    Ok(WrittenOutput {
         uri: written.uri,
         cid: written.cid,
     })
@@ -797,10 +845,25 @@ async fn remove_playlist(
     params: web::Query<UriParams>,
 ) -> XrpcResult<HttpResponse> {
     let uri = required_uri(&params.uri)?;
-    let rkey = own_playlist_rkey(&uri, &auth.did)?;
+    retract_playlist(&state, &auth.did, &uri).await?;
+
+    tracing::info!(did = %auth.did, uri = %uri, "removed a playlist");
+    ok_empty()
+}
+
+/// Retracts a playlist record, this repo's entries, and the local rows.
+///
+/// Shared with the navidrome mirror, which retracts the record when the
+/// library playlist behind it is deleted.
+pub(super) async fn retract_playlist(
+    state: &AppState,
+    did: &str,
+    uri: &str,
+) -> Result<(), XrpcError> {
+    let rkey = own_playlist_rkey(uri, did)?;
 
     let db = state.db();
-    let writer = Writer::for_did(&state, &auth.did).await?;
+    let writer = Writer::for_did(state, did).await?;
 
     // This account's own entries, by the repo their URI names.
     let query = Query::select()
@@ -813,12 +876,12 @@ async fn remove_playlist(
             Expr::col((Alias::new("p"), Playlists::XataId))
                 .equals((Alias::new("pt"), PlaylistTracks::PlaylistId)),
         )
-        .and_where(Expr::col((Alias::new("p"), Playlists::Uri)).eq(&uri))
+        .and_where(Expr::col((Alias::new("p"), Playlists::Uri)).eq(uri))
         .and_where(Expr::col((Alias::new("pt"), PlaylistTracks::Uri)).is_not_null())
         .to_owned();
 
     for entry_uri in db.fetch_scalars::<String>(&query).await? {
-        if repo_of(&entry_uri).as_deref() != Some(auth.did.as_str()) {
+        if repo_of(&entry_uri).as_deref() != Some(did) {
             continue;
         }
         if let Some(entry_rkey) = rkey_of(&entry_uri) {
@@ -839,7 +902,7 @@ async fn remove_playlist(
                 Query::select()
                     .column(Playlists::XataId)
                     .from(Playlists::Table)
-                    .and_where(Expr::col(Playlists::Uri).eq(&uri))
+                    .and_where(Expr::col(Playlists::Uri).eq(uri))
                     .take(),
             ),
         )
@@ -848,12 +911,11 @@ async fn remove_playlist(
 
     let delete = Query::delete()
         .from_table(Playlists::Table)
-        .and_where(Expr::col(Playlists::Uri).eq(&uri))
+        .and_where(Expr::col(Playlists::Uri).eq(uri))
         .to_owned();
     db.execute(&delete).await?;
 
-    tracing::info!(did = %auth.did, uri = %uri, "removed a playlist");
-    ok_empty()
+    Ok(())
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -900,8 +962,6 @@ async fn add_songs(
     params: web::Query<AddSongsParams>,
 ) -> XrpcResult<HttpResponse> {
     let uri = required_uri(&params.uri)?;
-    // Ownership from the URI alone — see the module note.
-    own_playlist_rkey(&uri, &auth.did)?;
 
     let songs = params
         .songs
@@ -916,10 +976,33 @@ async fn add_songs(
         )));
     }
 
+    let uris = add_song_records(&state, &auth.did, &uri, &songs).await?;
+
+    tracing::info!(
+        did = %auth.did,
+        uri = %uri,
+        songs = uris.len(),
+        "added songs to a playlist"
+    );
+    json(AddSongsOutput { uris })
+}
+
+/// Publishes one entry record per song, and the local rows behind them.
+///
+/// Shared with the navidrome mirror, which replays a library "add song" here.
+pub(super) async fn add_song_records(
+    state: &AppState,
+    did: &str,
+    uri: &str,
+    songs: &[String],
+) -> Result<Vec<String>, XrpcError> {
+    // Ownership from the URI alone — see the module note.
+    own_playlist_rkey(uri, did)?;
+
     let db = state.db();
-    let playlist_ref = strong_ref(&state, &uri).await?;
-    let writer = Writer::for_did(&state, &auth.did).await?;
-    let added_by = caller_id(db, &auth.did).await?;
+    let playlist_ref = strong_ref(state, uri).await?;
+    let writer = Writer::for_did(state, did).await?;
+    let added_by = caller_id(db, did).await?;
 
     // The local playlist row, if the projection has produced one yet. Absent
     // right after createPlaylist on an instance with no sync, in which case
@@ -927,13 +1010,13 @@ async fn add_songs(
     let lookup = Query::select()
         .column(Playlists::XataId)
         .from(Playlists::Table)
-        .and_where(Expr::col(Playlists::Uri).eq(&uri))
+        .and_where(Expr::col(Playlists::Uri).eq(uri))
         .limit(1)
         .take();
     let playlist_id = db.fetch_scalar::<String>(&lookup).await?;
 
     let mut uris = Vec::with_capacity(songs.len());
-    for song_uri in &songs {
+    for song_uri in songs {
         let track = find_track(db, song_uri).await?.ok_or_else(|| {
             XrpcError::invalid_request(format!("Song not found: {song_uri}")).named("NotFound")
         })?;
@@ -946,7 +1029,7 @@ async fn add_songs(
                 &EntryRecord {
                     record_type: PLAYLIST_SONG_COLLECTION,
                     playlist: playlist_ref.clone(),
-                    song: strong_ref(&state, song_uri).await?,
+                    song: strong_ref(state, song_uri).await?,
                     title: track.title.clone(),
                     artist: track.artist.clone(),
                     album: track.album.clone(),
@@ -986,13 +1069,74 @@ async fn add_songs(
         uris.push(written.uri);
     }
 
-    tracing::info!(
-        did = %auth.did,
-        uri = %uri,
-        songs = uris.len(),
-        "added songs to a playlist"
-    );
-    json(AddSongsOutput { uris })
+    Ok(uris)
+}
+
+/// Retracts *one* entry record for a song, for the navidrome mirror.
+///
+/// Not [`remove_track`]'s path, which drops every entry pointing at the song:
+/// the uploaded library lets the same song sit in a playlist twice, so removing
+/// one copy there must remove exactly one copy here.
+pub(super) async fn remove_one_entry(
+    state: &AppState,
+    did: &str,
+    playlist_uri: &str,
+    song_uri: &str,
+) -> Result<(), XrpcError> {
+    let db = state.db();
+    let query = Query::select()
+        .expr(Expr::col((Alias::new("pt"), PlaylistTracks::XataId)))
+        .expr(Expr::col((Alias::new("pt"), PlaylistTracks::Uri)))
+        .from_as(PlaylistTracks::Table, Alias::new("pt"))
+        .join_as(
+            JoinType::Join,
+            Playlists::Table,
+            Alias::new("p"),
+            Expr::col((Alias::new("p"), Playlists::XataId))
+                .equals((Alias::new("pt"), PlaylistTracks::PlaylistId)),
+        )
+        .join_as(
+            JoinType::Join,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("pt"), PlaylistTracks::TrackId)),
+        )
+        .and_where(Expr::col((Alias::new("p"), Playlists::Uri)).eq(playlist_uri))
+        .and_where(Expr::col((Alias::new("t"), Tracks::Uri)).eq(song_uri))
+        .and_where(Expr::col((Alias::new("pt"), PlaylistTracks::Uri)).is_not_null())
+        .order_by(
+            (Alias::new("pt"), PlaylistTracks::XataCreatedat),
+            Order::Asc,
+        )
+        .to_owned();
+
+    let entries: Vec<(String, Option<String>)> = db.fetch_all(&query).await?;
+    let Some((id, entry_uri)) = entries
+        .into_iter()
+        .find(|(_, uri)| uri.as_deref().and_then(repo_of).as_deref() == Some(did))
+    else {
+        // The entry record exists on the PDS but no row names it yet — a fast
+        // add-then-remove lands here. Nothing retries this, so say so rather
+        // than reporting that the two repositories agree.
+        return Err(XrpcError::invalid_request(
+            "The song was removed from your library playlist, but its record on \
+             your PDS is still being indexed and could not be retracted yet.",
+        ));
+    };
+
+    if let Some(rkey) = entry_uri.as_deref().and_then(rkey_of) {
+        let writer = Writer::for_did(state, did).await?;
+        writer.delete(PLAYLIST_SONG_COLLECTION, &rkey).await?;
+    }
+
+    let delete = Query::delete()
+        .from_table(PlaylistTracks::Table)
+        .and_where(Expr::col(PlaylistTracks::XataId).eq(id))
+        .to_owned();
+    db.execute(&delete).await?;
+
+    Ok(())
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1354,5 +1498,124 @@ mod tests {
             required_uri(&Some("  at://x/y/z  ".into())).unwrap(),
             "at://x/y/z"
         );
+    }
+
+    // ------------------------------------------------ the mirror's helper
+
+    const PLAYLIST_URI: &str = "at://did:plc:alice/app.rocksky.playlist/3abc";
+    const SONG_URI: &str = "at://did:plc:alice/app.rocksky.song/3song";
+
+    /// A playlist with one entry, whose record URI the caller supplies.
+    async fn with_entry(entry_uri: Option<&str>) -> AppState {
+        let state = AppState::for_test().await.expect("state");
+        let db = state.db();
+        let owner = crate::ingest::upsert_user(db, "did:plc:alice")
+            .await
+            .expect("a user row");
+
+        let playlist = Query::insert()
+            .into_table(Playlists::Table)
+            .columns([
+                Playlists::XataId,
+                Playlists::Name,
+                Playlists::Uri,
+                Playlists::CreatedBy,
+            ])
+            .values_panic([
+                "rec_playlist".into(),
+                "Mine".into(),
+                PLAYLIST_URI.into(),
+                owner.as_str().into(),
+            ])
+            .to_owned();
+        db.execute(&playlist).await.unwrap();
+
+        let track = Query::insert()
+            .into_table(Tracks::Table)
+            .columns([
+                Tracks::XataId,
+                Tracks::Title,
+                Tracks::Artist,
+                Tracks::AlbumArtist,
+                Tracks::Album,
+                Tracks::Duration,
+                Tracks::Sha256,
+                Tracks::Uri,
+            ])
+            .values_panic([
+                "rec_track".into(),
+                "Roygbiv".into(),
+                "Boards of Canada".into(),
+                "Boards of Canada".into(),
+                "MHTRTC".into(),
+                151_000.into(),
+                "sha-1".into(),
+                SONG_URI.into(),
+            ])
+            .to_owned();
+        db.execute(&track).await.unwrap();
+
+        let entry = Query::insert()
+            .into_table(PlaylistTracks::Table)
+            .columns([
+                PlaylistTracks::XataId,
+                PlaylistTracks::PlaylistId,
+                PlaylistTracks::TrackId,
+                PlaylistTracks::Uri,
+                PlaylistTracks::AddedBy,
+            ])
+            .values_panic([
+                new_id().into(),
+                "rec_playlist".into(),
+                "rec_track".into(),
+                entry_uri.map(str::to_string).into(),
+                owner.as_str().into(),
+            ])
+            .to_owned();
+        db.execute(&entry).await.unwrap();
+
+        state
+    }
+
+    /// The row exists but names no record, so the two repositories do not
+    /// agree yet — and nothing retries this, so it has to say so.
+    #[actix_web::test]
+    async fn an_unindexed_entry_is_reported_rather_than_assumed_gone() {
+        let state = with_entry(None).await;
+        let error = remove_one_entry(&state, "did:plc:alice", PLAYLIST_URI, SONG_URI)
+            .await
+            .unwrap_err();
+
+        assert_eq!(error.kind.status(), 400);
+        assert!(
+            error.body().message.contains("still being indexed"),
+            "{}",
+            error.body().message
+        );
+    }
+
+    /// An entry a collaborator added lives in *their* repository, so it cannot
+    /// be retracted from here.
+    #[actix_web::test]
+    async fn an_entry_another_repo_owns_is_left_alone() {
+        let state = with_entry(Some("at://did:plc:bob/app.rocksky.playlist.song/3e")).await;
+        let error = remove_one_entry(&state, "did:plc:alice", PLAYLIST_URI, SONG_URI)
+            .await
+            .unwrap_err();
+
+        assert_eq!(error.kind.status(), 400);
+        // And the row is still there: this instance did not pretend to have
+        // removed something it could not.
+        let count = state
+            .db()
+            .count(
+                &Query::select()
+                    .expr(Func::count(Expr::col(Asterisk)))
+                    .from(PlaylistTracks::Table)
+                    .take(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
     }
 }

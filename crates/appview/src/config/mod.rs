@@ -83,6 +83,9 @@ pub struct Cli {
 /// developer running `nats-server` already has.
 pub const DEFAULT_NATS_URL: &str = "nats://127.0.0.1:4222";
 
+/// The account whose repository publishes the Rocksky feed generators.
+pub const DEFAULT_FEED_PUBLISHER_DID: &str = "did:plc:vegqomyce4ssoqs7zwqvgqty";
+
 /// Where Typesense is, when nothing says otherwise.
 pub const DEFAULT_TYPESENSE_URL: &str = "http://127.0.0.1:8108";
 
@@ -157,6 +160,15 @@ pub struct Config {
     /// and ingesting their CARs. Idempotent, so safe to leave set.
     pub backfill_dids: Vec<String>,
     pub backfill_on_start: bool,
+
+    /// Whose repository holds the `app.rocksky.feed.generator` records.
+    ///
+    /// The feed registry is a projection of those records, and a self-hosted
+    /// instance has no reason to be following the account that publishes them
+    /// — so they are read directly at startup. Defaults to rocksky.app's, so
+    /// a new instance offers the same feeds as the hosted one; set it to your
+    /// own DID to publish your own.
+    pub feed_publisher_did: String,
 
     pub plc_directory_url: String,
     pub bsky_appview_url: String,
@@ -697,6 +709,13 @@ impl Config {
                 .or(file.backfill.on_start)
                 .unwrap_or(false),
 
+            feed_publisher_did: pick_or(
+                None,
+                "ROCKSKY_FEED_PUBLISHER_DID",
+                file.atproto.feed_publisher_did.clone(),
+                DEFAULT_FEED_PUBLISHER_DID,
+            ),
+
             plc_directory_url: pick_or(
                 None,
                 "PLC_DIRECTORY_URL",
@@ -892,6 +911,7 @@ impl Config {
             tap_repos: Vec::new(),
             backfill_dids: Vec::new(),
             backfill_on_start: false,
+            feed_publisher_did: DEFAULT_FEED_PUBLISHER_DID.into(),
             plc_directory_url: "https://plc.directory".into(),
             bsky_appview_url: "https://public.api.bsky.app".into(),
             redis_url: None,

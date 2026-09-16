@@ -106,6 +106,20 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    // The feed registry is a projection of records in the publisher's
+    // repository, and nothing else writes it — without this a fresh instance
+    // serves an empty feed picker, which reads as the feeds being broken
+    // rather than absent. Backgrounded and never fatal: it is one HTTP call to
+    // somebody else's PDS.
+    {
+        let generators_state = state.clone();
+        tokio::spawn(async move {
+            if let Err(err) = rocksky_appview::generators::sync(&generators_state).await {
+                tracing::error!(error = ?err, "could not sync the feed registry");
+            }
+        });
+    }
+
     let _sync = rocksky_appview::sync::spawn(&state);
     // Keeps OAuth sessions from lapsing for users who have not visited in a
     // while; without it, "long-lived" refresh tokens still eventually expire.

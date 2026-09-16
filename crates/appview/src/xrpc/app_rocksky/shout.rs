@@ -30,7 +30,7 @@
 use crate::atproto::writer::Writer;
 use crate::auth::AuthDid;
 use crate::db::models::{User, USER_COLS};
-use crate::db::schema::{ProfileShouts, Shouts, Users};
+use crate::db::schema::{ProfileShouts, ShoutReports, Shouts, Users};
 use crate::db::{new_id, Backend};
 use crate::error::{XrpcError, XrpcResult};
 use crate::sea_query::{Alias, Expr, JoinType, Order, Query, SelectStatement};
@@ -54,6 +54,7 @@ pub fn configure(cfg: &mut ServiceConfig) {
     xrpc_procedure!(cfg, "app.rocksky.shout.createShout", create_shout);
     xrpc_procedure!(cfg, "app.rocksky.shout.replyShout", reply_shout);
     xrpc_procedure!(cfg, "app.rocksky.shout.removeShout", remove_shout);
+    xrpc_procedure!(cfg, "app.rocksky.shout.reportShout", report_shout);
 }
 
 const SHOUT_COLLECTION: &str = "app.rocksky.shout";
@@ -769,6 +770,113 @@ async fn remove_shout(
     ok_empty()
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportShoutInput {
+    pub shout_id: Option<String>,
+    /// Declared by the lexicon, accepted, and then dropped: `shout_reports`
+    /// has no column to put it in. Recording it needs a migration, so it is
+    /// not stored rather than stored somewhere it does not belong — which is
+    /// what the TypeScript handler does too, silently.
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
+/// `app.rocksky.shout.reportShout`
+async fn report_shout(
+    state: web::Data<AppState>,
+    auth: AuthDid,
+    body: web::Json<ReportShoutInput>,
+) -> XrpcResult<HttpResponse> {
+    let shout_ref = body
+        .shout_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| XrpcError::invalid_request("shoutId is required"))?;
+
+    let db = state.db();
+    let shout_id = record_report(db, &auth.did, shout_ref).await?;
+
+    // The lexicon declares a `shoutView` here. The TypeScript handler answers
+    // `{}` instead, which nothing can render, so the reported shout is sent.
+    let mut query = Query::select();
+    shout_columns(&mut query, None);
+    query
+        .from(Shouts::Table)
+        .and_where(Expr::col(Shouts::XataId).eq(&shout_id));
+
+    match hydrate(db, db.fetch_all(&query).await?)
+        .await?
+        .into_iter()
+        .next()
+    {
+        Some(view) => json(view),
+        // Only reachable if the author row has gone; the report is written
+        // either way, so this must not read as a failed report.
+        None => ok_empty(),
+    }
+}
+
+/// Files one report, and answers the row id of the shout it was filed against.
+///
+/// A second report of the same shout by the same person is the same report:
+/// the pair is looked up first, so a double tap in the UI does not inflate a
+/// moderation queue.
+async fn record_report(db: &Backend, did: &str, shout_ref: &str) -> Result<String, XrpcError> {
+    let user_id = caller_id(db, did).await?;
+    let shout_id = resolve_shout_id(db, shout_ref).await?;
+
+    let existing = Query::select()
+        .column(ShoutReports::XataId)
+        .from(ShoutReports::Table)
+        .and_where(Expr::col(ShoutReports::UserId).eq(&user_id))
+        .and_where(Expr::col(ShoutReports::ShoutId).eq(&shout_id))
+        .limit(1)
+        .take();
+
+    if db.fetch_scalar::<String>(&existing).await?.is_none() {
+        let insert = Query::insert()
+            .into_table(ShoutReports::Table)
+            .columns([
+                ShoutReports::XataId,
+                ShoutReports::UserId,
+                ShoutReports::ShoutId,
+            ])
+            .values_panic([
+                new_id().into(),
+                user_id.as_str().into(),
+                shout_id.as_str().into(),
+            ])
+            .to_owned();
+        db.execute(&insert).await?;
+        tracing::info!(did, shout_id = %shout_id, "reported a shout");
+    }
+
+    Ok(shout_id)
+}
+
+/// `shoutId` may be a row id or the shout's AT-URI; both are accepted, as the
+/// TypeScript handler accepts them.
+async fn resolve_shout_id(db: &Backend, id_or_uri: &str) -> Result<String, XrpcError> {
+    let column = if id_or_uri.starts_with("at://") {
+        Shouts::Uri
+    } else {
+        Shouts::XataId
+    };
+
+    let query = Query::select()
+        .column(Shouts::XataId)
+        .from(Shouts::Table)
+        .and_where(Expr::col(column).eq(id_or_uri))
+        .limit(1)
+        .take();
+
+    db.fetch_scalar::<String>(&query)
+        .await?
+        .ok_or_else(|| XrpcError::invalid_request("No shout with that id").named("ShoutNotFound"))
+}
+
 // ------------------------------------------------------------------- shared
 
 /// Checks a message is present and not absurdly long.
@@ -817,6 +925,97 @@ async fn find_user(db: &Backend, did_or_handle: &str) -> Result<Option<User>, sq
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db;
+    use crate::sea_query::Asterisk;
+    use crate::sea_query::Func;
+
+    /// Alice has posted one shout; Bob is there to report it.
+    async fn report_fixture() -> Backend {
+        let backend = db::connect_in_memory().await.unwrap();
+
+        let statements = [
+            "INSERT INTO users (xata_id, did, handle, avatar) VALUES \
+             ('rec_alice', 'did:plc:alice', 'alice.test', 'a'), \
+             ('rec_bob', 'did:plc:bob', 'bob.test', 'b')",
+            "INSERT INTO shouts (xata_id, content, uri, author_id) VALUES \
+             ('rec_shout', 'listen to this', \
+              'at://did:plc:alice/app.rocksky.shout/3shout', 'rec_alice')",
+        ];
+        for text in statements {
+            backend.execute(&backend.sql(text)).await.expect(text);
+        }
+        backend
+    }
+
+    async fn report_count(db: &Backend) -> i64 {
+        let query = Query::select()
+            .expr(Func::count(Expr::col(Asterisk)))
+            .from(ShoutReports::Table)
+            .to_owned();
+        db.count(&query).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_report_is_written() {
+        let db = report_fixture().await;
+
+        let shout_id = record_report(&db, "did:plc:bob", "rec_shout")
+            .await
+            .unwrap();
+        assert_eq!(shout_id, "rec_shout");
+
+        let query = Query::select()
+            .columns([ShoutReports::UserId, ShoutReports::ShoutId])
+            .from(ShoutReports::Table)
+            .to_owned();
+        let rows: Vec<(String, String)> = db.fetch_all(&query).await.unwrap();
+        assert_eq!(rows, vec![("rec_bob".to_string(), "rec_shout".to_string())]);
+    }
+
+    /// A double tap in the UI must not file two reports.
+    #[tokio::test]
+    async fn reporting_the_same_shout_twice_does_not_duplicate() {
+        let db = report_fixture().await;
+
+        record_report(&db, "did:plc:bob", "rec_shout")
+            .await
+            .unwrap();
+        record_report(&db, "did:plc:bob", "rec_shout")
+            .await
+            .unwrap();
+        assert_eq!(report_count(&db).await, 1);
+
+        // A different reporter is a different report.
+        record_report(&db, "did:plc:alice", "rec_shout")
+            .await
+            .unwrap();
+        assert_eq!(report_count(&db).await, 2);
+    }
+
+    #[tokio::test]
+    async fn a_shout_may_be_named_by_its_uri() {
+        let db = report_fixture().await;
+        let shout_id = record_report(
+            &db,
+            "did:plc:bob",
+            "at://did:plc:alice/app.rocksky.shout/3shout",
+        )
+        .await
+        .unwrap();
+        assert_eq!(shout_id, "rec_shout");
+    }
+
+    #[tokio::test]
+    async fn reporting_an_unknown_shout_is_a_400_and_writes_nothing() {
+        let db = report_fixture().await;
+        let error = record_report(&db, "did:plc:bob", "rec_nope")
+            .await
+            .unwrap_err();
+
+        assert_eq!(error.kind.status(), 400);
+        assert_eq!(error.body().error, "ShoutNotFound");
+        assert_eq!(report_count(&db).await, 0);
+    }
 
     #[test]
     fn a_message_is_required_and_trimmed() {

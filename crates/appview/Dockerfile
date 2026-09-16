@@ -42,7 +42,7 @@ RUN cd sdk/typescript && bun run build
 RUN cd apps/web && bun run build
 
 # ----------------------------------------------------------------- the binary
-FROM rust:1.89-bookworm AS build
+FROM rust:1.98-trixie AS build
 
 # Nothing here links a system library: every TLS path in this crate is rustls,
 # the S3 client is `rust-s3` with rustls, and the audio and analysis crates are
@@ -68,12 +68,12 @@ ENV ROCKSKY_WEB_DIST=/src/apps/web/dist
 # of recompiling every dependency. They are also why the binary is copied out
 # in the same layer: a mounted target directory does not persist into the image.
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
-    --mount=type=cache,target=/src/target,sharing=locked \
-    cargo build --release -p rocksky-appview && \
-    cp target/release/rocksky-appview /usr/local/bin/rocksky-appview
+  --mount=type=cache,target=/src/target,sharing=locked \
+  cargo build --release -p rocksky-appview && \
+  cp target/release/rocksky-appview /usr/local/bin/rocksky-appview
 
 # ----------------------------------------------------------------- the runtime
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # `ca-certificates` is the one real requirement: resolving a DID, reading a PDS
 # and calling Spotify are all HTTPS, and rustls verifies against the system
@@ -83,8 +83,8 @@ FROM debian:bookworm-slim
 # `curl` is here only for the healthcheck below. Worth the two megabytes: the
 # alternative is a check that does not actually reach the server.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/*
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
 
 # Not root. The only thing the process writes is its data directory, which is a
 # volume owned by this user.

@@ -20,6 +20,8 @@
 # | appview    | —        | —                                                       |
 # | nats       | yes      | the scrobble mirrors, the Spotify poller and the playlist importer never fire |
 # | typesense  | yes      | the search box and the search over your own uploads      |
+# | tap        | no       | the database stops filling — no new scrobbles arrive     |
+# | feeds      | no       | the genre feeds; the rest of the instance is unaffected  |
 # | redis      | no       | nothing; the cache falls back to an in-process map       |
 #
 # NATS and Typesense are *required*, and the appview refuses to start without
@@ -27,6 +29,10 @@
 # nothing. Redis is the only genuine accelerator here: without it the response
 # cache is per-process, which is correct for one instance and only matters if
 # you run several behind one hostname.
+#
+# `tap` is how the database fills. It is not *required* — the instance runs
+# without it and answers from whatever is already stored — but a new instance
+# with no Tap and no `--backfill` has nothing to show.
 #
 # # Going public
 #
@@ -59,6 +65,13 @@ services:
       TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-rocksky}
       REDIS_URL: redis://redis:6379
 
+      # Tap, which streams in the records. `enabled` follows from the hostname
+      # being set; the admin password is only needed to register extra
+      # repositories from here, which TAP_SIGNAL_COLLECTION below already
+      # does by itself.
+      TAP_HOSTNAME: tap:2480
+      TAP_ADMIN_PASSWORD: ${TAP_ADMIN_PASSWORD:-rocksky}
+
       # Uncomment both to run this on a real domain. Until then the OAuth
       # client is the loopback one, which works but only for localhost.
       # ROCKSKY_DOMAIN: rocksky.example.com
@@ -81,6 +94,10 @@ services:
       typesense:
         condition: service_healthy
       redis:
+        condition: service_started
+      # Not `service_healthy`: the appview reconnects to Tap on its own, so it
+      # may start first and pick the stream up when Tap is ready.
+      tap:
         condition: service_started
 
   # Required. The other services subscribe to `rocksky.*` here and do work in
@@ -122,14 +139,90 @@ services:
       timeout: 3s
       retries: 20
 
+  # How the database fills: a verified, filtered, backfilling firehose
+  # consumer. https://github.com/bluesky-social/indigo/tree/main/cmd/tap
+  #
+  # Tap does the work that would otherwise have to live in this repository —
+  # MST verification, signature checking, cursor persistence and per-repo
+  # backfill — and hands the appview plain JSON records.
+  tap:
+    image: ghcr.io/bluesky-social/indigo/tap:latest
+    restart: unless-stopped
+    environment:
+      TAP_BIND: ":2480"
+      TAP_DATABASE_URL: sqlite:///data/tap.db
+
+      # Only Rocksky records reach the appview. Without this, every consumer
+      # receives the whole network's firehose and discards almost all of it;
+      # the filter is applied inside Tap, so those records are never streamed.
+      # Wildcards match at period boundaries.
+      TAP_COLLECTION_FILTERS: app.rocksky.*
+
+      # This is the backfill. Tap enumerates every repository in the network
+      # holding at least one record of this collection and syncs it, so a new
+      # instance discovers Rocksky users by itself instead of needing a list
+      # of DIDs.
+      #
+      # `app.rocksky.scrobble` because anyone who has used Rocksky has
+      # scrobbled; an account with a playlist and no scrobbles is not worth a
+      # broader scan.
+      TAP_SIGNAL_COLLECTION: app.rocksky.scrobble
+
+      # With this set, every endpoint needs HTTP basic auth as `admin`.
+      TAP_ADMIN_PASSWORD: ${TAP_ADMIN_PASSWORD:-rocksky}
+
+      TAP_RELAY_URL: ${TAP_RELAY_URL:-https://relay1.us-east.bsky.network}
+      TAP_LOG_LEVEL: ${TAP_LOG_LEVEL:-info}
+    volumes:
+      # The cursor and the tracked-repo list. Losing it re-backfills the
+      # network — which works, but is hours of needless traffic.
+      - tap:/data
+
+  # The ATProto feed generator: the genre feeds, over the same database.
+  #
+  # Reads only and tolerates lag, so it is safe to point at a replica.
+  feeds:
+    build:
+      context: ../..
+      dockerfile: crates/feeds/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      # The same database the appview writes. A SQLite file cannot be shared
+      # between containers, so this is only usable when the appview is running
+      # on Postgres — which is why the service sits behind a profile.
+      XATA_POSTGRES_URL: ${XATA_POSTGRES_URL:-}
+
+      # The did:web is derived from this, so it must be the public hostname.
+      ROCKSKY_FEEDGEN_DOMAIN: ${ROCKSKY_FEEDGEN_DOMAIN:-localhost}
+      ROCKSKY_FEEDGEN_PORT: "8002"
+
+      # Whose repository holds the app.rocksky.feed.generator records.
+      # Defaults to the rocksky.app account, which is right for a mirror and
+      # wrong for anyone publishing their own feeds.
+      ROCKSKY_FEEDGEN_PUBLISHER_DID: ${ROCKSKY_FEEDGEN_PUBLISHER_DID:-}
+
+      RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+    profiles:
+      # Started only with `--profile feeds`, since it needs a Postgres URL and
+      # the default setup is SQLite.
+      - feeds
+
   # Optional. Without it the response cache is in-process, which is the right
   # answer for a single instance.
   redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    command: --maxmemory=4g
+    ports:
+      - "6379:6379"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
 
 volumes:
   data:
   nats:
   typesense:
+  tap:

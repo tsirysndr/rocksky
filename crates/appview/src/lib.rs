@@ -24,6 +24,7 @@ pub mod crypto;
 pub use rocksky_db as db;
 pub mod error;
 pub mod events;
+pub mod generators;
 pub mod ingest;
 /// Types generated from the ATProto lexicons.
 ///

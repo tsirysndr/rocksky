@@ -13,11 +13,13 @@ pub mod mirror;
 pub mod notification;
 pub mod playlist;
 pub mod ranking;
+pub mod recommendations;
 pub mod scrobble;
 pub mod scrobble_write;
 pub mod settings;
 pub mod shout;
 pub mod song;
+pub mod spotify;
 pub mod stats;
 pub mod taste;
 
@@ -36,9 +38,11 @@ pub fn configure(cfg: &mut ServiceConfig) {
     mirror::configure(cfg);
     notification::configure(cfg);
     playlist::configure(cfg);
+    recommendations::configure(cfg);
     settings::configure(cfg);
     shout::configure(cfg);
     song::configure(cfg);
+    spotify::configure(cfg);
     scrobble::configure(cfg);
     scrobble_write::configure(cfg);
     stats::configure(cfg);

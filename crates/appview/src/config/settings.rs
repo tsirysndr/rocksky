@@ -113,6 +113,7 @@ pub struct Backfill {
 pub struct Atproto {
     pub plc_directory_url: Option<String>,
     pub bsky_appview_url: Option<String>,
+    pub feed_publisher_did: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]

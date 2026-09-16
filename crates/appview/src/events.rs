@@ -25,6 +25,7 @@
 //! | `rocksky.user.scrobble.sync`  | a bare DID, not JSON       | scrobble sync |
 //! | `rocksky.spotify.user`        | a bare email, not JSON     | the Spotify poller |
 //! | `rocksky.mirror.user`         | `"{provider}:{user_id}"`   | the mirror poller |
+//! | `rocksky.notification.{user}` | one notification, as JSON  | that user's open SSE streams |
 //!
 //! The two bare-string payloads are not an oversight to be tidied up: the
 //! subscribers parse them as plain text, and wrapping them in JSON would break
@@ -147,6 +148,43 @@ impl Events {
                 "could not publish an event; a downstream service will not see it"
             ),
         }
+    }
+
+    /// The subject a user's live notifications are delivered on.
+    ///
+    /// Per user rather than one subject with a filter, so NATS routes an event
+    /// only to the instances actually holding that user's open connections —
+    /// the fan-out scales without every instance receiving every notification
+    /// and discarding almost all of them.
+    ///
+    /// The sanitising matters: a subject is dot-separated, so an id containing
+    /// a `.` would silently create a subtree and the subscriber would never
+    /// match. Row ids are `rec_<xid>` and contain neither, but the id is not
+    /// this function's to trust.
+    pub fn notification_subject(user_id: &str) -> String {
+        let sanitised: String = user_id
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        format!("rocksky.notification.{sanitised}")
+    }
+
+    /// Subscribes to a subject.
+    ///
+    /// Unlike publishing, a failure here is returned: the caller is a live
+    /// connection that cannot do its job without it, so it answers an error
+    /// rather than holding open a stream that will never carry anything.
+    pub async fn subscribe(
+        &self,
+        subject: String,
+    ) -> Result<async_nats::Subscriber, async_nats::SubscribeError> {
+        self.client.subscribe(subject).await
     }
 
     /// Flushes anything buffered.
