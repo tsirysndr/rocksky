@@ -316,8 +316,7 @@ impl Resolver {
         let did = body.trim();
         // The file must contain the DID and nothing else; a site that serves
         // an HTML error page with a 200 would otherwise resolve to garbage.
-        (did.starts_with("did:") && !did.contains(char::is_whitespace))
-            .then(|| did.to_string())
+        (did.starts_with("did:") && !did.contains(char::is_whitespace)).then(|| did.to_string())
     }
 
     async fn lookup_appview(&self, handle: &str) -> Option<String> {
@@ -349,20 +348,16 @@ impl Resolver {
         }
     }
 
-    async fn fetch_document(
-        &self,
-        url: &str,
-        did: &str,
-    ) -> Result<DidDocument, ResolveError> {
-        let response =
-            self.http
-                .get(url)
-                .send()
-                .await
-                .map_err(|source| ResolveError::Fetch {
-                    subject: did.to_string(),
-                    source,
-                })?;
+    async fn fetch_document(&self, url: &str, did: &str) -> Result<DidDocument, ResolveError> {
+        let response = self
+            .http
+            .get(url)
+            .send()
+            .await
+            .map_err(|source| ResolveError::Fetch {
+                subject: did.to_string(),
+                source,
+            })?;
 
         if !response.status().is_success() {
             return Err(ResolveError::Status {
@@ -400,7 +395,9 @@ impl Resolver {
     pub async fn invalidate(&self, did: &str) {
         let mut cache = self.cache.lock().await;
         cache.identities.remove(did);
-        cache.handles.retain(|_, (_, cached)| cached.as_deref() != Some(did));
+        cache
+            .handles
+            .retain(|_, (_, cached)| cached.as_deref() != Some(did));
     }
 }
 
@@ -475,9 +472,7 @@ mod tests {
             "https://example.com/.well-known/did.json"
         );
         assert_eq!(
-            resolver
-                .document_url("did:web:localhost%3A3000")
-                .unwrap(),
+            resolver.document_url("did:web:localhost%3A3000").unwrap(),
             "https://localhost:3000/.well-known/did.json"
         );
 
@@ -492,8 +487,8 @@ mod tests {
     /// configurable — `apps/plc-proxy` exists for exactly this.
     #[test]
     fn the_plc_directory_is_configurable() {
-        let resolver = Resolver::new(reqwest::Client::new())
-            .plc_directory("https://plc.rocksky.app/");
+        let resolver =
+            Resolver::new(reqwest::Client::new()).plc_directory("https://plc.rocksky.app/");
         assert_eq!(
             resolver.document_url("did:plc:abc").unwrap(),
             "https://plc.rocksky.app/did:plc:abc"
@@ -510,12 +505,17 @@ mod tests {
             pds: Some("https://pds.example".into()),
         };
 
-        resolver.cache.lock().await.identities.insert(
-            "did:plc:abc".into(),
-            (Instant::now(), identity.clone()),
-        );
+        resolver
+            .cache
+            .lock()
+            .await
+            .identities
+            .insert("did:plc:abc".into(), (Instant::now(), identity.clone()));
 
-        assert_eq!(resolver.cached_identity("did:plc:abc").await, Some(identity));
+        assert_eq!(
+            resolver.cached_identity("did:plc:abc").await,
+            Some(identity)
+        );
         tokio::time::sleep(Duration::from_millis(50)).await;
         assert_eq!(resolver.cached_identity("did:plc:abc").await, None);
     }
@@ -566,7 +566,12 @@ mod normalization {
     /// refused, because the lookup normalised and the confirmation did not.
     #[test]
     fn a_handle_is_normalized_the_same_way_everywhere() {
-        for typed in ["@RockSky.app", "rocksky.app", " ROCKSKY.APP ", "@rocksky.app"] {
+        for typed in [
+            "@RockSky.app",
+            "rocksky.app",
+            " ROCKSKY.APP ",
+            "@rocksky.app",
+        ] {
             assert_eq!(normalize_handle(typed), "rocksky.app", "{typed:?}");
         }
     }

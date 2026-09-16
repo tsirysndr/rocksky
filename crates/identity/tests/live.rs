@@ -127,5 +127,8 @@ async fn the_second_lookup_is_cached() {
     resolver.invalidate(ROCKSKY_DID).await;
     let again = std::time::Instant::now();
     resolver.resolve_did(ROCKSKY_DID).await.unwrap();
-    assert!(again.elapsed() > warm, "invalidation did not clear the entry");
+    assert!(
+        again.elapsed() > warm,
+        "invalidation did not clear the entry"
+    );
 }
