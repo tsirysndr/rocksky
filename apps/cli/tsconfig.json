@@ -13,7 +13,7 @@
     "lib": ["esnext", "DOM"],
     "listEmittedFiles": false,
     "listFiles": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "noFallthroughCasesInSwitch": true,
     "pretty": true,
     "resolveJsonModule": true,

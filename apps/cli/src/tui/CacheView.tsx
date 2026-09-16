@@ -2,7 +2,7 @@ import { Box, Text, useInput } from "ink";
 import { useAtom } from "jotai";
 import React, { useState } from "react";
 import { cacheOpenAtom } from "./store";
-import { BLUE, TEAL, VIOLET } from "./theme";
+import { BLUE, ERROR, TEAL, VIOLET } from "./theme";
 import { cacheDir, cacheStats, clearCache } from "./trackCache";
 
 function formatBytes(bytes: number): string {
@@ -67,7 +67,7 @@ export function CacheView() {
 
       <Box marginTop={1}>
         {confirming ? (
-          <Text color="#FF5FAF">
+          <Text color={ERROR}>
             Press c again to delete all cached tracks · Esc to cancel
           </Text>
         ) : cleared ? (

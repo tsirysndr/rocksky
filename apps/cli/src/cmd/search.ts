@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { c } from "theme";
 import { RockskyClient } from "client";
 import _ from "lodash";
 
@@ -15,7 +16,7 @@ export async function search(
   const client = new RockskyClient();
   const results = await client.search(query, { size: limit });
   if (results.hits.length === 0) {
-    console.log(`No results found for ${chalk.magenta(query)}.`);
+    console.log(`No results found for ${c.accent(query)}.`);
     return;
   }
 
@@ -43,9 +44,9 @@ export async function search(
   for (const { type, ...record } of mergedResults) {
     if (type === "users") {
       console.log(
-        `${chalk.bold.magenta(record.handle)} ${
+        `${chalk.bold(c.accent(record.handle))} ${
           record.displayName
-        } ${chalk.yellow(`https://rocksky.app/profile/${record.did}`)}`,
+        } ${c.link(`https://rocksky.app/profile/${record.did}`)}`,
       );
     }
 
@@ -54,7 +55,7 @@ export async function search(
         ? `https://rocksky.app/${record.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`
         : "";
       console.log(
-        `${chalk.bold.magenta(record.title)} ${record.artist} ${chalk.yellow(
+        `${chalk.bold(c.accent(record.title))} ${record.artist} ${c.link(
           link,
         )}`,
       );
@@ -65,7 +66,7 @@ export async function search(
         ? `https://rocksky.app/${record.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`
         : "";
       console.log(
-        `${chalk.bold.magenta(record.title)} ${record.artist} ${chalk.yellow(
+        `${chalk.bold(c.accent(record.title))} ${record.artist} ${c.link(
           link,
         )}`,
       );

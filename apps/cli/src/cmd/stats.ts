@@ -1,9 +1,9 @@
-import chalk from "chalk";
 import { RockskyClient } from "client";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import { getBorderCharacters, table } from "table";
+import { c } from "theme";
 
 export async function stats(did?: string) {
   const tokenPath = path.join(os.homedir(), ".rocksky", "token.json");
@@ -12,7 +12,7 @@ export async function stats(did?: string) {
   } catch (err) {
     if (!did) {
       console.error(
-        `You are not logged in. Please run ${chalk.greenBright(
+        `You are not logged in. Please run ${c.primary(
           "`rocksky login <username>.bsky.social`"
         )} first.`
       );
@@ -24,7 +24,7 @@ export async function stats(did?: string) {
   const { token } = JSON.parse(tokenData);
   if (!token && !did) {
     console.error(
-      `You are not logged in. Please run ${chalk.greenBright(
+      `You are not logged in. Please run ${c.primary(
         "`rocksky login <username>.bsky.social`"
       )} first.`
     );
@@ -37,11 +37,11 @@ export async function stats(did?: string) {
   console.log(
     table(
       [
-        ["Scrobbles", chalk.magenta(stats.scrobbles)],
-        ["Tracks", chalk.magenta(stats.tracks)],
-        ["Albums", chalk.magenta(stats.albums)],
-        ["Artists", chalk.magenta(stats.artists)],
-        ["Loved Tracks", chalk.magenta(stats.lovedTracks)],
+        ["Scrobbles", c.accent(stats.scrobbles)],
+        ["Tracks", c.accent(stats.tracks)],
+        ["Albums", c.accent(stats.albums)],
+        ["Artists", c.accent(stats.artists)],
+        ["Loved Tracks", c.accent(stats.lovedTracks)],
       ],
       {
         border: getBorderCharacters("void"),

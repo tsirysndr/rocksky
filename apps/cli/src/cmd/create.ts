@@ -1,8 +1,8 @@
-import chalk from "chalk";
 import { RockskyClient } from "client";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
+import { c } from "theme";
 
 export async function createApiKey(name, { description }) {
   const tokenPath = path.join(os.homedir(), ".rocksky", "token.json");
@@ -10,7 +10,7 @@ export async function createApiKey(name, { description }) {
     await fs.access(tokenPath);
   } catch (err) {
     console.error(
-      `You are not logged in. Please run ${chalk.greenBright(
+      `You are not logged in. Please run ${c.primary(
         "`rocksky login <username>.bsky.social`"
       )} first.`
     );
@@ -21,7 +21,7 @@ export async function createApiKey(name, { description }) {
   const { token } = JSON.parse(tokenData);
   if (!token) {
     console.error(
-      `You are not logged in. Please run ${chalk.greenBright(
+      `You are not logged in. Please run ${c.primary(
         "`rocksky login <username>.bsky.social`"
       )} first.`
     );
@@ -36,10 +36,10 @@ export async function createApiKey(name, { description }) {
   }
 
   console.log(`API key created successfully!`);
-  console.log(`Name: ${chalk.greenBright(apikey.name)}`);
+  console.log(`Name: ${c.primary(apikey.name)}`);
   if (apikey.description) {
-    console.log(`Description: ${chalk.greenBright(apikey.description)}`);
+    console.log(`Description: ${c.primary(apikey.description)}`);
   }
-  console.log(`Key: ${chalk.greenBright(apikey.api_key)}`);
-  console.log(`Secret: ${chalk.greenBright(apikey.shared_secret)}`);
+  console.log(`Key: ${c.primary(apikey.api_key)}`);
+  console.log(`Secret: ${c.primary(apikey.shared_secret)}`);
 }

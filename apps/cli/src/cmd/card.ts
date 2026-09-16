@@ -6,26 +6,23 @@
 // interleave their APDUs. A card session is opened for the operation and closed
 // straight after.
 
-import chalk from "chalk";
 import { loadToken } from "lib/token";
 import { CardUnavailableError, openCard } from "../lib/card-reader";
 import { cardLabel, cardSecret, fitPayloads, readCard, writeCard } from "../lib/cards";
 import { nfcFavoritesPayloads, nfcPayloadsFor, parseNfcPayloads } from "../lib/nfc";
+import { c } from "../theme";
 import { getAlbum, getCreds, getDid, getPlaylist } from "../tui/navidrome";
-
-const violet = chalk.hex("#A855F7");
-const cyan = chalk.hex("#22D3EE");
 
 function fail(e: unknown): never {
   const message = e instanceof Error ? e.message : String(e);
-  console.error(chalk.red(message));
+  console.error(c.error(message));
   process.exit(1);
 }
 
 /** Describe what a payload points at, so a dump reads as more than a URI. */
 async function describe(payload: string): Promise<string> {
   const [target] = parseNfcPayloads([payload]);
-  if (!target) return chalk.yellow("not a Rocksky record");
+  if (!target) return c.link("not a Rocksky record");
   // Favorites name a person rather than a record; cards don't carry them, but
   // the shared parser can still produce one.
   if (target.kind === "favorites") return `favorites of ${target.did}`;
@@ -35,7 +32,7 @@ async function describe(payload: string): Promise<string> {
     const creds = await getCreds(token);
     if (!creds) return target.kind;
     const key = "uri" in target ? target.uri : target.id;
-    const portable = "uri" in target ? chalk.green(" · portable") : "";
+    const portable = "uri" in target ? c.highlight(" · portable") : "";
     if (target.kind === "album" || target.kind === "albumUri") {
       const { album } = await getAlbum(creds, key);
       return `album · ${album?.name ?? key}${portable}`;
@@ -55,18 +52,18 @@ export async function cardRead() {
     fail(e);
   }
   try {
-    console.log(`${violet("Reader:")} ${session.reader}`);
-    console.log(`${violet("Card:")}   ${cardLabel(session.kind)}`);
-    console.log(`${violet("ATR:")}    ${session.atr.toString("hex").toUpperCase()}`);
+    console.log(`${c.accent("Reader:")} ${session.reader}`);
+    console.log(`${c.accent("Card:")}   ${cardLabel(session.kind)}`);
+    console.log(`${c.accent("ATR:")}    ${session.atr.toString("hex").toUpperCase()}`);
 
     const payloads = await readCard(session.transmit, session.kind);
     if (!payloads.length) {
-      console.log(chalk.dim("\nThe card holds nothing we can play."));
+      console.log(c.muted("\nThe card holds nothing we can play."));
       return;
     }
     console.log();
     for (const p of payloads) {
-      console.log(`  ${cyan(p)}\n    ${await describe(p)}`);
+      console.log(`  ${c.secondary(p)}\n    ${await describe(p)}`);
     }
   } catch (e) {
     fail(e);
@@ -88,10 +85,10 @@ export async function cardWrite(opts: {
   const ref = opts.album ?? opts.playlist;
   if (!opts.favorites && (!kind || !ref)) {
     console.error(
-      chalk.red("Pass --album <ref>, --playlist <ref> or --favorites."),
+      c.error("Pass --album <ref>, --playlist <ref> or --favorites."),
     );
     console.error(
-      chalk.dim(
+      c.muted(
         "A ref is the record's AT-URI (at://…/app.rocksky.album/…), which makes\n" +
           "the card work on any Rocksky player, or a library id, which does not.",
       ),
@@ -136,13 +133,13 @@ export async function cardWrite(opts: {
   try {
     const { label, fallback } = cardSecret(session.kind);
     const secret = opts.secret ?? fallback;
-    console.log(`${violet("Card:")} ${cardLabel(session.kind)} on ${session.reader}`);
+    console.log(`${c.accent("Card:")} ${cardLabel(session.kind)} on ${session.reader}`);
     if (!opts.secret) {
-      console.log(chalk.dim(`Using the factory-default ${label} ${fallback}.`));
+      console.log(c.muted(`Using the factory-default ${label} ${fallback}.`));
     }
     if (session.kind === "sle5528") {
       console.log(
-        chalk.dim(
+        c.muted(
           "A wrong PSC counts against the card's retry counter, and enough wrong\n" +
             "ones lock it for good.",
         ),
@@ -150,12 +147,12 @@ export async function cardWrite(opts: {
     }
 
     const written = await writeCard(session.transmit, session.kind, payloads, secret);
-    console.log(chalk.green(`\nWrote and verified ${written.length} record(s):`));
-    for (const p of written) console.log(`  ${cyan(p)}`);
+    console.log(c.highlight(`\nWrote and verified ${written.length} record(s):`));
+    for (const p of written) console.log(`  ${c.secondary(p)}`);
     const dropped = payloads.length - written.length;
     if (dropped > 0) {
       console.log(
-        chalk.dim(
+        c.muted(
           `\nThe card had room for ${written.length} of ${payloads.length}. The record URI is\n` +
             "what plays; the library-id fallback was dropped.",
         ),

@@ -1,5 +1,5 @@
-import chalk from "chalk";
 import { RockskyClient } from "client";
+import { c } from "theme";
 
 export async function artists(did, { skip, limit }) {
   const client = new RockskyClient();
@@ -7,7 +7,7 @@ export async function artists(did, { skip, limit }) {
   let rank = 1;
   for (const artist of artists) {
     console.log(
-      `${rank} ${chalk.magenta(artist.name)} ${chalk.yellow(
+      `${rank} ${c.accent(artist.name)} ${c.link(
         artist.play_count + " plays"
       )}`
     );

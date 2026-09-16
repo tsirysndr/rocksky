@@ -3,6 +3,7 @@ import { env } from "./env";
 import { logger } from "logger";
 import { ctx } from "context";
 import chalk from "chalk";
+import { c } from "theme";
 
 export async function getDidAndHandle(): Promise<[string, string]> {
   let handle = env.ROCKSKY_HANDLE || env.ROCKSKY_IDENTIFIER;
@@ -17,7 +18,7 @@ export async function getDidAndHandle(): Promise<[string, string]> {
 
   if (!env.ROCKSKY_PASSWORD) {
     console.error(
-      `❌ No app password provided, please provide one in the environment variable ${chalk.bold("ROCKSKY_PASSWORD")}\nYou can create one at ${chalk.blueBright("https://bsky.app/settings/app-passwords")}`,
+      `❌ No app password provided, please provide one in the environment variable ${chalk.bold("ROCKSKY_PASSWORD")}\nYou can create one at ${c.link("https://bsky.app/settings/app-passwords")}`,
     );
     process.exit(1);
   }

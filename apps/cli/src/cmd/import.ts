@@ -2,7 +2,8 @@
 // offline smoke tests) never load @rocksky/sdk — which pulls in the native
 // classic-level. The runtime values are imported lazily, just before we
 // actually authenticate and write (see importCmd).
-import type { Agent, RockskyIndex } from "@rocksky/sdk";
+import type { Agent } from "@rocksky/sdk";
+import type { RockskyIndex } from "@rocksky/sdk/dedup";
 import chalk from "chalk";
 import { consola } from "consola";
 import dayjs from "dayjs";
@@ -23,14 +24,15 @@ import {
   resumeIndex,
   saveCheckpoint,
 } from "lib/importCheckpoint";
+import { c } from "theme";
 
 const log = consola.withTag("import");
 
-const VIOLET = chalk.hex("#A855F7");
-const CYAN = chalk.hex("#22D3EE");
-const TEAL = chalk.hex("#00F5D4");
-const RED = chalk.hex("#FF5F87");
-const DIM = chalk.dim;
+const VIOLET = c.accent;
+const CYAN = c.secondary;
+const TEAL = c.primary;
+const RED = c.error;
+const DIM = c.muted;
 
 // --- PDS write-limit budget ------------------------------------------------
 // The actual write throttle now lives in the SDK's Agent, which rate-limits by
@@ -170,7 +172,10 @@ export async function importCmd(
   // Load the SDK lazily — only now that we're past the dry-run and actually
   // about to authenticate and write. Keeps the parse/preview path free of the
   // native classic-level dependency.
-  const { Agent, RockskyIndex } = await import("@rocksky/sdk");
+  // `RockskyIndex` lives on the `/dedup` subpath — the root entry re-exports it
+  // as a type only, so destructuring it from there yields `undefined`.
+  const { Agent } = await import("@rocksky/sdk");
+  const { RockskyIndex } = await import("@rocksky/sdk/dedup");
 
   // ---- Step 2: authenticate -------------------------------------------------
   const identifier = env.ROCKSKY_IDENTIFIER || env.ROCKSKY_HANDLE;
@@ -471,7 +476,7 @@ export async function importCmd(
   const ok = total - failed;
   const took = fmtDuration((Date.now() - startedAt) / 1000);
   log.box(
-    `${failed ? chalk.yellow("Import finished with errors") : TEAL("Import complete")}\n\n` +
+    `${failed ? c.link("Import finished with errors") : TEAL("Import complete")}\n\n` +
       `${chalk.bold(ok.toLocaleString())}/${total.toLocaleString()} scrobble(s) published in ${took}` +
       (failed ? `\n${RED(`${failed} failed`)}` : "") +
       (fullyDone

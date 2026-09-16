@@ -3,6 +3,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { version } from "../package.json" assert { type: "json" };
+import { c } from "./theme";
 
 // Command modules are imported lazily inside each action so that a bare
 // `rocksky` (TUI) launch doesn't pay to load drizzle/better-sqlite3, express,
@@ -35,29 +36,26 @@ program
   / , _/ _ \\/ __/  '_/(_-</  '_/ // / / /__/ /___/ /
  /_/|_|\\___/\\__/_/\\_\\/___/_/\\_\\\\_, /  \\___/____/___/
                               /___/
- Command-line interface for Rocksky ${chalk.magentaBright(
+ Command-line interface for Rocksky ${c.link(
    "https://rocksky.app",
  )} – scrobble tracks, view stats, and manage your listening history.`,
   )
   .version(version);
 
-const violet = chalk.hex("#A855F7");
-const cyan = chalk.hex("#22D3EE");
-
 program.configureHelp({
-  styleTitle: (str) => chalk.bold.hex("#A855F7")(str),
-  styleCommandText: (str) => cyan(str),
-  styleDescriptionText: (str) => chalk.white(str),
-  styleOptionText: (str) => violet(str),
-  styleArgumentText: (str) => cyan(str),
-  styleSubcommandText: (str) => violet(str),
+  styleTitle: (str) => chalk.bold(c.primary(str)),
+  styleCommandText: (str) => c.secondary(str),
+  styleDescriptionText: (str) => c.muted(str),
+  styleOptionText: (str) => c.highlight(str),
+  styleArgumentText: (str) => c.accent(str),
+  styleSubcommandText: (str) => c.secondary(str),
 });
 
 program.addHelpText(
   "after",
   `
-${chalk.bold("\nLearn more about Rocksky:")}               https://docs.rocksky.app
-${chalk.bold("Join our Discord community:")}        ${chalk.hex("#00F5D4")("https://discord.gg/EVcBy2fVa3")}
+${chalk.bold(c.primary("\nLearn more about Rocksky:"))}               ${c.link("https://docs.rocksky.app")}
+${chalk.bold(c.primary("Join our Discord community:"))}        ${c.link("https://discord.gg/EVcBy2fVa3")}
 `,
 );
 

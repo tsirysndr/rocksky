@@ -8,11 +8,13 @@ import {
 } from "lib/uploadTrack";
 import path from "path";
 import React, { useEffect, useState } from "react";
+import {
+  ACCENT as VIOLET,
+  ERROR as RED,
+  PRIMARY as TEAL,
+  SECONDARY as BLUE,
+} from "../theme";
 
-const VIOLET = "#A855F7";
-const BLUE = "#22D3EE";
-const TEAL = "#00F5D4";
-const RED = "#FF5F87";
 const CONCURRENCY = 3;
 const BAR_WIDTH = 24;
 

@@ -1,8 +1,8 @@
-import chalk from "chalk";
 import { RockskyClient } from "client";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
+import { c } from "theme";
 
 export async function nowplaying(did?: string) {
   const tokenPath = path.join(os.homedir(), ".rocksky", "token.json");
@@ -11,7 +11,7 @@ export async function nowplaying(did?: string) {
   } catch (err) {
     if (!did) {
       console.error(
-        `You are not logged in. Please run ${chalk.greenBright(
+        `You are not logged in. Please run ${c.primary(
           "`rocksky login <username>.bsky.social`"
         )} first.`
       );
@@ -23,7 +23,7 @@ export async function nowplaying(did?: string) {
   const { token } = JSON.parse(tokenData);
   if (!token && !did) {
     console.error(
-      `You are not logged in. Please run ${chalk.greenBright(
+      `You are not logged in. Please run ${c.primary(
         "`rocksky login <username>.bsky.social`"
       )} first.`
     );
@@ -39,13 +39,13 @@ export async function nowplaying(did?: string) {
         console.log("No track is currently playing.");
         return;
       }
-      console.log(chalk.magenta(`${nowPlaying.title} - ${nowPlaying.artist}`));
+      console.log(c.accent(`${nowPlaying.title} - ${nowPlaying.artist}`));
       console.log(`${nowPlaying.album}`);
       return;
     }
 
     console.log(
-      chalk.magenta(
+      c.accent(
         `${nowPlaying.item.name} - ${nowPlaying.item.artists
           .map((a) => a.name)
           .join(", ")}`

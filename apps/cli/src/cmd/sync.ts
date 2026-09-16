@@ -4,7 +4,7 @@ import { ctx } from "context";
 import { Agent } from "@atproto/api";
 import { env } from "lib/env";
 import { createAgent } from "lib/agent";
-import chalk from "chalk";
+import { c } from "theme";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Song from "lexicon/types/app/rocksky/song";
@@ -931,7 +931,7 @@ const getRockskyUserSongs = async (
     }
 
     logger.info(
-      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} songs`,
+      `${c.secondary(agent.assertDid)} ${c.primary(results.length)} songs`,
     );
   } catch (error) {
     logger.error(`Error fetching songs from CAR: ${error}`);
@@ -978,7 +978,7 @@ const getRockskyUserAlbums = async (
     }
 
     logger.info(
-      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} albums`,
+      `${c.secondary(agent.assertDid)} ${c.primary(results.length)} albums`,
     );
   } catch (error) {
     logger.error(`Error fetching albums from CAR: ${error}`);
@@ -1025,7 +1025,7 @@ const getRockskyUserArtists = async (
     }
 
     logger.info(
-      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} artists`,
+      `${c.secondary(agent.assertDid)} ${c.primary(results.length)} artists`,
     );
   } catch (error) {
     logger.error(`Error fetching artists from CAR: ${error}`);
@@ -1072,7 +1072,7 @@ const getRockskyUserScrobbles = async (
     }
 
     logger.info(
-      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} scrobbles`,
+      `${c.secondary(agent.assertDid)} ${c.primary(results.length)} scrobbles`,
     );
   } catch (error) {
     logger.error(`Error fetching scrobbles from CAR: ${error}`);

@@ -9,7 +9,7 @@ import { and, eq, gte, lte, or, sql } from "drizzle-orm";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
-import chalk from "chalk";
+import { c } from "theme";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
@@ -34,7 +34,7 @@ export async function publishScrobble(
 
   if (fs.existsSync(lockFilePath)) {
     logger.error(
-      `${chalk.greenBright(handle)} Scrobble publishing failed: lock file exists, maybe rocksky-cli is still syncing?\nPlease wait for rocksky to finish syncing before publishing scrobbles or delete the lock file manually ${chalk.greenBright(lockFilePath)}`,
+      `${c.primary(handle)} Scrobble publishing failed: lock file exists, maybe rocksky-cli is still syncing?\nPlease wait for rocksky to finish syncing before publishing scrobbles or delete the lock file manually ${c.primary(lockFilePath)}`,
     );
     return false;
   }

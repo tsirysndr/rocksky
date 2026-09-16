@@ -6,6 +6,7 @@ import fs from "fs/promises";
 import open from "open";
 import os from "os";
 import path from "path";
+import { c } from "theme";
 
 export async function login(handle: string): Promise<void> {
   const app = express();
@@ -15,11 +16,11 @@ export async function login(handle: string): Promise<void> {
   const server = app.listen(6996);
 
   app.post("/token", async (req: Request, res: Response) => {
-    console.log(chalk.bold(chalk.greenBright("Login successful!\n")));
+    console.log(chalk.bold(c.highlight("Login successful!\n")));
     console.log(
       "You can use this session key (Token) to authenticate with the API."
     );
-    console.log("Received token (session key):", chalk.green(req.body.token));
+    console.log("Received token (session key):", c.primary(req.body.token));
 
     const tokenPath = path.join(os.homedir(), ".rocksky", "token.json");
     await fs.mkdir(path.dirname(tokenPath), { recursive: true });
@@ -49,7 +50,7 @@ export async function login(handle: string): Promise<void> {
   }
 
   console.log("Please visit this URL to authorize the app:");
-  console.log(chalk.cyan(redirectUrl));
+  console.log(c.link(redirectUrl));
 
   open(redirectUrl);
 }

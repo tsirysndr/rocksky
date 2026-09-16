@@ -6,10 +6,9 @@ import { likedIdsAtom } from "./likes";
 import { isPrefetching } from "./playback";
 import { playerController } from "./player";
 import { playerNoticeAtom, playerStatusAtom, scrobbledTitleAtom } from "./store";
-import { BLUE, TEAL, VIOLET } from "./theme";
+import { BLUE, LINK as AMBER, TEAL, VIOLET } from "./theme";
 
 const BAR_WIDTH = 30;
-const AMBER = "#FFB000";
 
 export function PlayerBar() {
   const status = useAtomValue(playerStatusAtom);

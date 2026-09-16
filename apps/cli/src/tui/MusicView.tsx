@@ -16,7 +16,7 @@ import { PlaylistsView } from "./PlaylistsView";
 import { queryClient } from "./queryClient";
 import { shuffled } from "./shuffle";
 import { addToPlaylistAtom, authAtom, playbackMessageAtom } from "./store";
-import { BLUE, TEAL, VIOLET } from "./theme";
+import { BLUE, ERROR, TEAL, VIOLET } from "./theme";
 
 const PAGE_SIZE = 100;
 
@@ -508,7 +508,7 @@ export function MusicView({
 
       {confirmDelete ? (
         <Box flexDirection="column">
-          <Text bold color="#FF5F87">
+          <Text bold color={ERROR}>
             {confirmDelete.kind === "album" ? "Delete album" : "Delete track"}
           </Text>
           <Box marginTop={1}>

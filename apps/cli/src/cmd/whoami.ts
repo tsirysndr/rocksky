@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { RockskyClient } from "client";
 import fs from "fs/promises";
 import { createAgent } from "lib/agent";
@@ -10,6 +9,7 @@ import { createUser } from "./sync";
 import { ctx } from "context";
 import schema from "schema";
 import { eq } from "drizzle-orm";
+import { c } from "theme";
 
 export async function whoami() {
   if (env.ROCKSKY_IDENTIFIER && env.ROCKSKY_PASSWORD) {
@@ -28,7 +28,7 @@ export async function whoami() {
 
     console.log(`You are logged in as ${user.handle} (${user.displayName}).`);
     console.log(
-      `View your profile at: ${chalk.magenta(
+      `View your profile at: ${c.link(
         `https://rocksky.app/profile/${user.handle}`,
       )}`,
     );
@@ -39,7 +39,7 @@ export async function whoami() {
     await fs.access(tokenPath);
   } catch (err) {
     console.error(
-      `You are not logged in. Please run ${chalk.greenBright(
+      `You are not logged in. Please run ${c.primary(
         "`rocksky login <username>.bsky.social`",
       )} first.`,
     );
@@ -50,7 +50,7 @@ export async function whoami() {
   const { token } = JSON.parse(tokenData);
   if (!token) {
     console.error(
-      `You are not logged in. Please run ${chalk.greenBright(
+      `You are not logged in. Please run ${c.primary(
         "`rocksky login <username>.bsky.social`",
       )} first.`,
     );
@@ -62,7 +62,7 @@ export async function whoami() {
     const user = await client.getCurrentUser();
     console.log(`You are logged in as ${user.handle} (${user.displayName}).`);
     console.log(
-      `View your profile at: ${chalk.magenta(
+      `View your profile at: ${c.link(
         `https://rocksky.app/profile/${user.handle}`,
       )}`,
     );

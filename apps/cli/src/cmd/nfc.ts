@@ -4,7 +4,6 @@
 // (see src/tui/nfc.ts). These subcommands cover the scripted cases: checking
 // that a reader works, dumping what a tag holds, and writing a known library id.
 
-import chalk from "chalk";
 import { loadToken } from "lib/token";
 import {
   NfcUnavailableError,
@@ -13,21 +12,19 @@ import {
   openNfc,
   parseNfcPayload,
 } from "../lib/nfc";
+import { c } from "../theme";
 import { getAlbum, getCreds, getDid, getPlaylist } from "../tui/navidrome";
-
-const violet = chalk.hex("#A855F7");
-const cyan = chalk.hex("#22D3EE");
 
 function fail(e: unknown): never {
   const message = e instanceof Error ? e.message : String(e);
-  console.error(chalk.red(message));
+  console.error(c.error(message));
   process.exit(1);
 }
 
 /** Describe what a payload points at, so a dump is readable rather than a URI. */
 async function describe(payload: string): Promise<string> {
   const target = parseNfcPayload(payload);
-  if (!target) return chalk.yellow("not a Rocksky tag");
+  if (!target) return c.link("not a Rocksky tag");
   const token = loadToken();
   if (!token) return `${target.kind}`;
   // Favorites name a person, so there is nothing to look up — but say whose,
@@ -37,7 +34,7 @@ async function describe(payload: string): Promise<string> {
       (did) => did === target.did,
       () => false,
     );
-    return `favorites · ${target.did}${mine ? chalk.green(" · yours") : chalk.yellow(" · not yours")}`;
+    return `favorites · ${target.did}${mine ? c.highlight(" · yours") : c.link(" · not yours")}`;
   }
   try {
     const creds = await getCreds(token);
@@ -45,7 +42,7 @@ async function describe(payload: string): Promise<string> {
     // Both lookups take a record URI or a library id, so the only difference
     // between a portable tag and a legacy one is which key gets passed.
     const key = "uri" in target ? target.uri : target.id;
-    const portable = "uri" in target ? chalk.green(" · portable") : "";
+    const portable = "uri" in target ? c.highlight(" · portable") : "";
     if (target.kind === "album" || target.kind === "albumUri") {
       const { album } = await getAlbum(creds, key);
       return `album · ${album?.name ?? key}${portable}`;
@@ -91,14 +88,14 @@ export async function nfcStatus() {
     session.close();
 
     if (readers.length === 0) {
-      console.log(chalk.yellow("No NFC reader connected."));
+      console.log(c.link("No NFC reader connected."));
       console.log(
-        chalk.dim("Plug in a PC/SC reader (ACR122U or another ACS/CCID model)."),
+        c.muted("Plug in a PC/SC reader (ACR122U or another ACS/CCID model)."),
       );
       process.exit(1);
     }
-    console.log(chalk.green(`${readers.length} reader(s) connected:`));
-    for (const name of readers) console.log(`  ${cyan(name)}`);
+    console.log(c.highlight(`${readers.length} reader(s) connected:`));
+    for (const name of readers) console.log(`  ${c.secondary(name)}`);
   } catch (e) {
     fail(e);
   }
@@ -107,16 +104,16 @@ export async function nfcStatus() {
 export async function nfcRead(opts: { watch?: boolean } = {}) {
   try {
     const session = await openNfc();
-    console.log(violet("Hold a tag on the reader…"));
+    console.log(c.accent("Hold a tag on the reader…"));
 
     session.onTag(async ({ uid, payloads }) => {
       if (!payloads.length) {
-        console.log(`${chalk.dim(uid)}  ${chalk.dim("empty tag")}`);
+        console.log(`${c.muted(uid)}  ${c.muted("empty tag")}`);
       }
       // One line per record, in tag order — a dump should show the fallback as
       // well as the URI that gets tried first.
       for (const [i, payload] of payloads.entries()) {
-        const prefix = i === 0 ? chalk.dim(uid) : " ".repeat(uid.length);
+        const prefix = i === 0 ? c.muted(uid) : " ".repeat(uid.length);
         console.log(`${prefix}  ${payload}  ${await describe(payload)}`);
       }
       if (!opts.watch) {
@@ -128,7 +125,7 @@ export async function nfcRead(opts: { watch?: boolean } = {}) {
     if (!opts.watch) {
       setTimeout(() => {
         session.close();
-        console.error(chalk.red("Timed out waiting for a tag."));
+        console.error(c.error("Timed out waiting for a tag."));
         process.exit(1);
       }, 30_000);
     }
@@ -146,10 +143,10 @@ export async function nfcWrite(opts: {
   const ref = opts.album ?? opts.playlist;
   if (!opts.favorites && (!kind || !ref)) {
     console.error(
-      chalk.red("Pass --album <ref>, --playlist <ref> or --favorites."),
+      c.error("Pass --album <ref>, --playlist <ref> or --favorites."),
     );
     console.error(
-      chalk.dim(
+      c.muted(
         "A ref is the record's AT-URI (at://…/app.rocksky.album/…), which makes\n" +
           "the tag work on any Rocksky player, or a library id, which does not.\n" +
           "`rocksky` (TUI) → My Music → T picks the right one for you.\n" +
@@ -181,12 +178,12 @@ export async function nfcWrite(opts: {
   try {
     const session = await openNfc();
     console.log(
-      violet(`Hold a tag on the reader to write ${cyan(payloads.join(" + "))}…`),
+      c.accent(`Hold a tag on the reader to write ${c.secondary(payloads.join(" + "))}…`),
     );
     await session.write(payloads);
     session.close();
     console.log(
-      chalk.green(
+      c.highlight(
         opts.favorites
           ? "Tag written. Tap it on any Rocksky player you're signed in to."
           : portable

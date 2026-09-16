@@ -3,7 +3,7 @@ import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { env } from "lib/env";
-import chalk from "chalk";
+import { c } from "theme";
 import { logger as log } from "logger";
 import { getDidAndHandle } from "lib/getDidAndHandle";
 import { WebScrobbler, Listenbrainz, Lastfm } from "types";
@@ -46,7 +46,7 @@ export async function scrobbleApi({ port }) {
                                 /____/
   `;
 
-  console.log(chalk.cyanBright(BANNER));
+  console.log(c.primary(BANNER));
 
   app.use(logger());
   app.use(cors());
