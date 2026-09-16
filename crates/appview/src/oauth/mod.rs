@@ -191,6 +191,13 @@ pub fn client_metadata(config: &Config) -> Result<AtprotoClientMetadata<SmolStr>
 /// The OAuth client, ready to start and complete logins.
 pub type RockskyOAuthClient = OAuthClient<JacquardResolver<reqwest::Client>, SqliteAuthStore>;
 
+/// A restored session, which is what signs a write.
+///
+/// Named because the type is otherwise three generic parameters deep, and
+/// `crate::atproto::writer` has to hold one.
+pub type RockskyOAuthSession =
+    jacquard_oauth::client::OAuthSession<JacquardResolver<reqwest::Client>, SqliteAuthStore>;
+
 /// Everything the login routes need.
 pub struct OauthService {
     pub client: RockskyOAuthClient,

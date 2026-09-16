@@ -16,10 +16,13 @@
 //!   aggregates `scrobbles` directly.
 
 use crate::actors;
-use crate::db::models::{cast_int, current_year, json_array};
-use crate::db::query::Sql;
+use crate::db::loaders::{artists_by_id, tracks_by_id};
+use crate::db::schema::{Albums, Artists, Scrobbles, TopScrobblersMv, Tracks, Users};
 use crate::db::Backend;
 use crate::error::XrpcResult;
+use crate::sea_query::{
+    Alias, Expr, Func, IntoTableRef, JoinType, Order, Query, SelectStatement, SimpleExpr,
+};
 use crate::state::AppState;
 use crate::views::timestamp;
 use crate::xrpc::{clamp_limit_or, clamp_offset, json};
@@ -105,72 +108,117 @@ async fn load_top_scrobblers(
 ) -> Result<Vec<ScrobblerViewBasic>, sqlx::Error> {
     let limit = clamp_limit_or(params.limit, SCROBBLER_LIMIT);
     let offset = clamp_offset(params.offset);
-    let dialect = db.dialect();
 
-    let mut sql = if params.start_date.is_some() || params.end_date.is_some() {
+    let u = Alias::new("u");
+
+    let mut query = Query::select();
+    query
+        .expr_as(Expr::col((u.clone(), Users::XataId)), Alias::new("id"))
+        .columns([
+            (u.clone(), Users::Did),
+            (u.clone(), Users::Handle),
+            (u.clone(), Users::DisplayName),
+            (u.clone(), Users::Avatar),
+        ]);
+
+    if params.start_date.is_some() || params.end_date.is_some() {
         // A date range has to aggregate the scrobbles themselves.
-        let mut sql = db.sql(format!(
-            "SELECT u.xata_id AS id, u.did, u.handle, u.display_name, u.avatar, \
-             {} AS scrobbles, \
-             {} AS unique_artists, \
-             {} AS unique_tracks \
-             FROM scrobbles s \
-             INNER JOIN users u ON u.xata_id = s.user_id \
-             WHERE u.is_bot = ",
-            cast_int(dialect, "count(s.xata_id)"),
-            cast_int(dialect, "count(DISTINCT s.artist_id)"),
-            cast_int(dialect, "count(DISTINCT s.track_id)"),
-        ));
-        sql.bind(false);
+        let s = Alias::new("s");
+        query
+            .expr_as(
+                db.cast_int(Func::count(Expr::col((s.clone(), Scrobbles::XataId)))),
+                Alias::new("scrobbles"),
+            )
+            .expr_as(
+                db.cast_int(Func::count_distinct(Expr::col((
+                    s.clone(),
+                    Scrobbles::ArtistId,
+                )))),
+                Alias::new("unique_artists"),
+            )
+            .expr_as(
+                db.cast_int(Func::count_distinct(Expr::col((
+                    s.clone(),
+                    Scrobbles::TrackId,
+                )))),
+                Alias::new("unique_tracks"),
+            )
+            .from_as(Scrobbles::Table, s.clone())
+            .join_as(
+                JoinType::InnerJoin,
+                Users::Table,
+                u.clone(),
+                Expr::col((u.clone(), Users::XataId)).equals((s.clone(), Scrobbles::UserId)),
+            )
+            .and_where(Expr::col((u.clone(), Users::IsBot)).eq(false));
+
         push_range(
-            &mut sql,
-            "s.timestamp",
+            db,
+            &mut query,
+            (s.clone(), Scrobbles::Timestamp),
             params.start_date.as_deref(),
             params.end_date.as_deref(),
         );
-        sql.push(
-            " GROUP BY u.xata_id, u.did, u.handle, u.display_name, u.avatar \
-             ORDER BY count(s.xata_id) DESC, u.xata_id",
-        );
-        sql
+
+        query
+            // Postgres requires every selected column that is not aggregated.
+            .group_by_columns([
+                (u.clone(), Users::XataId),
+                (u.clone(), Users::Did),
+                (u.clone(), Users::Handle),
+                (u.clone(), Users::DisplayName),
+                (u.clone(), Users::Avatar),
+            ])
+            .order_by_expr(
+                Func::count(Expr::col((s, Scrobbles::XataId))).into(),
+                Order::Desc,
+            )
+            .order_by((u, Users::XataId), Order::Asc);
     } else {
         // No range: read the precomputed all-time totals.
-        let mut sql = db.sql(format!(
-            "SELECT u.xata_id AS id, u.did, u.handle, u.display_name, u.avatar, \
-             {} AS scrobbles, \
-             {} AS unique_artists, \
-             {} AS unique_tracks \
-             FROM top_scrobblers_mv m \
-             JOIN users u ON u.xata_id = m.user_id \
-             WHERE u.is_bot = ",
-            cast_int(dialect, "m.scrobbles"),
-            cast_int(dialect, "m.unique_artists"),
-            cast_int(dialect, "m.unique_tracks"),
-        ));
-        sql.bind(false);
-        sql.push(" ORDER BY m.scrobbles DESC, u.xata_id");
-        sql
-    };
+        let m = Alias::new("m");
+        query
+            .expr_as(
+                db.cast_int(Expr::col((m.clone(), TopScrobblersMv::Scrobbles))),
+                Alias::new("scrobbles"),
+            )
+            .expr_as(
+                db.cast_int(Expr::col((m.clone(), TopScrobblersMv::UniqueArtists))),
+                Alias::new("unique_artists"),
+            )
+            .expr_as(
+                db.cast_int(Expr::col((m.clone(), TopScrobblersMv::UniqueTracks))),
+                Alias::new("unique_tracks"),
+            )
+            .from_as(TopScrobblersMv::Table, m.clone())
+            .join_as(
+                JoinType::InnerJoin,
+                Users::Table,
+                u.clone(),
+                Expr::col((u.clone(), Users::XataId)).equals((m.clone(), TopScrobblersMv::UserId)),
+            )
+            .and_where(Expr::col((u.clone(), Users::IsBot)).eq(false))
+            .order_by((m, TopScrobblersMv::Scrobbles), Order::Desc)
+            .order_by((u, Users::XataId), Order::Asc);
+    }
 
-    sql.push(" LIMIT ")
-        .bind(limit)
-        .push(" OFFSET ")
-        .bind(offset);
-    db.fetch_all(&sql).await
+    query.limit(limit as u64).offset(offset as u64);
+    db.fetch_all(&query).await
 }
 
-/// Appends the optional `startDate`/`endDate` bounds to a query.
-///
-/// The values arrive as ISO strings and are bound as timestamps, so Postgres
-/// gets its `::timestamptz` cast and SQLite compares the text directly.
-fn push_range(sql: &mut Sql, column: &str, start: Option<&str>, end: Option<&str>) {
+/// Adds the optional `startDate`/`endDate` bounds to a query.
+fn push_range(
+    db: &Backend,
+    query: &mut SelectStatement,
+    column: (Alias, Scrobbles),
+    start: Option<&str>,
+    end: Option<&str>,
+) {
     if let Some(start) = start {
-        sql.push(format!(" AND {column} >= "));
-        sql.bind_timestamp_text(normalize_date(start));
+        query.and_where(Expr::col(column.clone()).gte(db.timestamp_value(normalize_date(start))));
     }
     if let Some(end) = end {
-        sql.push(format!(" AND {column} <= "));
-        sql.bind_timestamp_text(normalize_date(end));
+        query.and_where(Expr::col(column).lte(db.timestamp_value(normalize_date(end))));
     }
 }
 
@@ -245,17 +293,29 @@ struct ChartRow {
     unique_listeners: i64,
 }
 
+/// Which of a scrobble's foreign keys a chart groups on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ChartOf {
+    Artists,
+    Tracks,
+}
+
+impl ChartOf {
+    fn column(self) -> Scrobbles {
+        match self {
+            Self::Artists => Scrobbles::ArtistId,
+            Self::Tracks => Scrobbles::TrackId,
+        }
+    }
+}
+
 /// Builds the grouped aggregate shared by the artist and track charts.
 async fn chart_rows(
     db: &Backend,
     params: &ChartParams,
-    group_column: &str,
-    extra_from: &str,
-    extra_condition: Option<&str>,
+    of: ChartOf,
     default_limit: i64,
 ) -> Result<Option<Vec<ChartRow>>, sqlx::Error> {
-    let dialect = db.dialect();
-
     // Resolving the actor first: an unknown one means an empty chart, not an
     // unfiltered one.
     let user_id = match params.did.as_deref() {
@@ -266,89 +326,77 @@ async fn chart_rows(
         None => None,
     };
 
-    let mut sql = db.sql(format!(
-        "SELECT {group_column} AS entity_id, \
-         {} AS plays, \
-         {} AS unique_listeners \
-         FROM scrobbles s{extra_from} WHERE 1 = 1",
-        cast_int(dialect, "count(s.xata_id)"),
-        cast_int(dialect, "count(DISTINCT s.user_id)"),
-    ));
+    let s = Alias::new("s");
+    let group = (s.clone(), of.column());
 
-    if let Some(condition) = extra_condition {
-        sql.push(format!(" AND {condition}"));
+    let mut query = Query::select();
+    query
+        .expr_as(Expr::col(group.clone()), Alias::new("entity_id"))
+        .expr_as(
+            db.cast_int(Func::count(Expr::col((s.clone(), Scrobbles::XataId)))),
+            Alias::new("plays"),
+        )
+        .expr_as(
+            db.cast_int(Func::count_distinct(Expr::col((
+                s.clone(),
+                Scrobbles::UserId,
+            )))),
+            Alias::new("unique_listeners"),
+        )
+        .from_as(Scrobbles::Table, s.clone());
+
+    if of == ChartOf::Artists {
+        let a = Alias::new("a");
+        query
+            .join_as(
+                JoinType::LeftJoin,
+                Artists::Table,
+                a.clone(),
+                Expr::col((a.clone(), Artists::XataId)).equals((s.clone(), Scrobbles::ArtistId)),
+            )
+            // "Various Artists" is a compilation placeholder, not an artist.
+            .and_where(Expr::col((a, Artists::Name)).ne("Various Artists"));
     }
+
     push_range(
-        &mut sql,
-        "s.timestamp",
+        db,
+        &mut query,
+        (s.clone(), Scrobbles::Timestamp),
         params.start_date.as_deref(),
         params.end_date.as_deref(),
     );
     if let Some(user_id) = &user_id {
-        sql.push(" AND s.user_id = ").bind(user_id);
+        query.and_where(Expr::col((s.clone(), Scrobbles::UserId)).eq(user_id));
     }
 
     // A one-listener chart cannot rank by unique listeners.
     let ranking = if user_id.is_some() {
-        "count(s.xata_id) DESC"
+        Func::count(Expr::col((s.clone(), Scrobbles::XataId)))
     } else {
-        "count(DISTINCT s.user_id) DESC"
+        Func::count_distinct(Expr::col((s, Scrobbles::UserId)))
     };
 
-    sql.push(format!(
-        " GROUP BY {group_column} ORDER BY {ranking} LIMIT "
-    ))
-    .bind(clamp_limit_or(params.limit, default_limit))
-    .push(" OFFSET ")
-    .bind(clamp_offset(params.offset));
+    query
+        .group_by_col(group)
+        .order_by_expr(ranking.into(), Order::Desc)
+        .limit(clamp_limit_or(params.limit, default_limit) as u64)
+        .offset(clamp_offset(params.offset) as u64);
 
-    Ok(Some(db.fetch_all(&sql).await?))
+    Ok(Some(db.fetch_all(&query).await?))
 }
 
 async fn load_top_artists(
     db: &Backend,
     params: &ChartParams,
 ) -> Result<Vec<ArtistViewBasic>, sqlx::Error> {
-    let Some(rows) = chart_rows(
-        db,
-        params,
-        "s.artist_id",
-        " LEFT JOIN artists a ON a.xata_id = s.artist_id",
-        // "Various Artists" is a compilation placeholder, not an artist.
-        Some("a.name <> 'Various Artists'"),
-        CHART_LIMIT,
-    )
-    .await?
-    else {
+    let Some(rows) = chart_rows(db, params, ChartOf::Artists, CHART_LIMIT).await? else {
         return Ok(Vec::new());
     };
     if rows.is_empty() {
         return Ok(Vec::new());
     }
 
-    let ids: Vec<String> = rows
-        .iter()
-        .filter_map(|row| row.entity_id.clone())
-        .collect();
-    let mut sql =
-        db.sql("SELECT xata_id, name, picture, sha256, uri, genres FROM artists WHERE xata_id IN ");
-    sql.bind_list(ids.iter().map(|id| id.as_str()));
-
-    #[derive(sqlx::FromRow)]
-    struct Row {
-        xata_id: String,
-        name: String,
-        picture: Option<String>,
-        sha256: String,
-        uri: Option<String>,
-        genres: Option<String>,
-    }
-    let details: std::collections::HashMap<String, Row> = db
-        .fetch_all::<Row>(&sql)
-        .await?
-        .into_iter()
-        .map(|row| (row.xata_id.clone(), row))
-        .collect();
+    let details = artists_by_id(db, rows.iter().map(|row| row.entity_id.clone())).await?;
 
     // The aggregate's order is the chart's order, so the details are mapped
     // back onto it rather than re-sorted.
@@ -357,14 +405,14 @@ async fn load_top_artists(
         .filter_map(|row| {
             let detail = details.get(row.entity_id.as_deref()?)?;
             Some(ArtistViewBasic {
-                id: detail.xata_id.clone(),
+                id: detail.id.clone(),
                 name: detail.name.clone(),
                 picture: detail.picture.clone(),
                 sha256: detail.sha256.clone(),
                 uri: detail.uri.clone(),
                 play_count: row.plays,
                 unique_listeners: row.unique_listeners,
-                tags: json_array(detail.genres.as_deref()),
+                tags: detail.genres(),
             })
         })
         .collect())
@@ -418,67 +466,21 @@ async fn load_top_tracks(
     db: &Backend,
     params: &ChartParams,
 ) -> Result<Vec<SongViewBasic>, sqlx::Error> {
-    let Some(rows) = chart_rows(db, params, "s.track_id", "", None, CHART_LIMIT).await? else {
+    let Some(rows) = chart_rows(db, params, ChartOf::Tracks, CHART_LIMIT).await? else {
         return Ok(Vec::new());
     };
     if rows.is_empty() {
         return Ok(Vec::new());
     }
 
-    let ids: Vec<String> = rows
-        .iter()
-        .filter_map(|row| row.entity_id.clone())
-        .collect();
-    let dialect = db.dialect();
-    let mut sql = db.sql(format!(
-        "SELECT xata_id, title, artist, album_artist, album_art, uri, album, \
-         {} AS duration, \
-         {} AS track_number, \
-         {} AS disc_number, \
-         album_uri, artist_uri, sha256, genre, \
-         {} AS created_at \
-         FROM tracks WHERE xata_id IN ",
-        cast_int(dialect, "duration"),
-        cast_int(dialect, "track_number"),
-        cast_int(dialect, "disc_number"),
-        match dialect {
-            crate::db::Dialect::Sqlite => "xata_createdat",
-            crate::db::Dialect::Postgres => "xata_createdat::timestamptz",
-        },
-    ));
-    sql.bind_list(ids.iter().map(|id| id.as_str()));
-
-    #[derive(sqlx::FromRow)]
-    struct Row {
-        xata_id: String,
-        title: String,
-        artist: String,
-        album_artist: String,
-        album_art: Option<String>,
-        uri: Option<String>,
-        album: String,
-        duration: i64,
-        track_number: Option<i64>,
-        disc_number: Option<i64>,
-        album_uri: Option<String>,
-        artist_uri: Option<String>,
-        sha256: String,
-        genre: Option<String>,
-        created_at: DateTime<Utc>,
-    }
-    let details: std::collections::HashMap<String, Row> = db
-        .fetch_all::<Row>(&sql)
-        .await?
-        .into_iter()
-        .map(|row| (row.xata_id.clone(), row))
-        .collect();
+    let details = tracks_by_id(db, rows.iter().map(|row| row.entity_id.clone())).await?;
 
     Ok(rows
         .into_iter()
         .filter_map(|row| {
             let detail = details.get(row.entity_id.as_deref()?)?;
             Some(SongViewBasic {
-                id: detail.xata_id.clone(),
+                id: detail.id.clone(),
                 title: detail.title.clone(),
                 artist: detail.artist.clone(),
                 album_artist: detail.album_artist.clone(),
@@ -532,8 +534,6 @@ async fn load_decades(
     db: &Backend,
     params: &ChartParams,
 ) -> Result<Vec<DecadeViewBasic>, sqlx::Error> {
-    let dialect = db.dialect();
-
     let user_id = match params.did.as_deref() {
         Some(did) => match actors::find_user_id(db, did).await? {
             Some(id) => Some(id),
@@ -542,35 +542,52 @@ async fn load_decades(
         None => None,
     };
 
+    let s = Alias::new("s");
+    let al = Alias::new("al");
     // Integer division truncates to the decade on both backends, since `year`
     // is an integer column.
-    let decade = "((al.year / 10) * 10)";
-    let mut sql = db.sql(format!(
-        "SELECT {} AS decade, \
-         {} AS scrobbles, \
-         {} AS unique_albums \
-         FROM scrobbles s \
-         INNER JOIN albums al ON al.xata_id = s.album_id \
-         WHERE al.year IS NOT NULL AND al.year >= ",
-        cast_int(dialect, decade),
-        cast_int(dialect, "count(s.xata_id)"),
-        cast_int(dialect, "count(DISTINCT s.album_id)"),
-    ));
-    sql.bind(FIRST_YEAR)
-        .push(format!(" AND al.year <= {}", current_year(dialect)));
+    let decade = Expr::col((al.clone(), Albums::Year)).div(10).mul(10);
+
+    let mut query = Query::select();
+    query
+        .expr_as(db.cast_int(decade.clone()), Alias::new("decade"))
+        .expr_as(
+            db.cast_int(Func::count(Expr::col((s.clone(), Scrobbles::XataId)))),
+            Alias::new("scrobbles"),
+        )
+        .expr_as(
+            db.cast_int(Func::count_distinct(Expr::col((
+                s.clone(),
+                Scrobbles::AlbumId,
+            )))),
+            Alias::new("unique_albums"),
+        )
+        .from_as(Scrobbles::Table, s.clone())
+        .join_as(
+            JoinType::InnerJoin,
+            Albums::Table,
+            al.clone(),
+            Expr::col((al.clone(), Albums::XataId)).equals((s.clone(), Scrobbles::AlbumId)),
+        )
+        .and_where(Expr::col((al.clone(), Albums::Year)).is_not_null())
+        .and_where(Expr::col((al.clone(), Albums::Year)).gte(FIRST_YEAR))
+        .and_where(Expr::col((al, Albums::Year)).lte(db.current_year()));
 
     push_range(
-        &mut sql,
-        "s.timestamp",
+        db,
+        &mut query,
+        (s.clone(), Scrobbles::Timestamp),
         params.start_date.as_deref(),
         params.end_date.as_deref(),
     );
     if let Some(user_id) = &user_id {
-        sql.push(" AND s.user_id = ").bind(user_id);
+        query.and_where(Expr::col((s, Scrobbles::UserId)).eq(user_id));
     }
 
-    sql.push(format!(" GROUP BY {decade} ORDER BY {decade}"));
-    db.fetch_all(&sql).await
+    query
+        .add_group_by([decade.clone()])
+        .order_by_expr(decade, Order::Asc);
+    db.fetch_all(&query).await
 }
 
 // ------------------------------------------------------ getScrobblesChart
@@ -639,94 +656,103 @@ async fn load_scrobbles_chart(
 ) -> Result<Vec<ChartPoint>, sqlx::Error> {
     let (from, to) = default_range(params);
 
+    let s = Alias::new("s");
+    let t = Alias::new("t");
+
     // The first matching selector wins, in the same order the TypeScript
     // checks them. Each resolves to a scrobbles condition, and a selector that
     // resolves to nothing yields an empty chart.
-    let condition: Option<Sql> = if let Some(did) = params.did.as_deref() {
+    let condition: Option<SimpleExpr> = if let Some(did) = params.did.as_deref() {
         match actors::find_user_id(db, did).await? {
-            Some(id) => {
-                let mut sql = db.sql("s.user_id = ");
-                sql.bind(id);
-                Some(sql)
-            }
+            Some(id) => Some(Expr::col((s.clone(), Scrobbles::UserId)).eq(id)),
             None => return Ok(Vec::new()),
         }
     } else if let Some(uri) = params.artisturi.as_deref() {
-        match lookup_id(db, "artists", uri).await? {
-            Some(id) => {
-                let mut sql = db.sql("s.artist_id = ");
-                sql.bind(id);
-                Some(sql)
-            }
+        match lookup_id(db, Artists::Table, uri).await? {
+            Some(id) => Some(Expr::col((s.clone(), Scrobbles::ArtistId)).eq(id)),
             None => return Ok(Vec::new()),
         }
     } else if let Some(uri) = params.albumuri.as_deref() {
-        match lookup_id(db, "albums", uri).await? {
-            Some(id) => {
-                let mut sql = db.sql("s.album_id = ");
-                sql.bind(id);
-                Some(sql)
-            }
+        match lookup_id(db, Albums::Table, uri).await? {
+            Some(id) => Some(Expr::col((s.clone(), Scrobbles::AlbumId)).eq(id)),
             None => return Ok(Vec::new()),
         }
     } else if let Some(uri) = params.songuri.as_deref() {
         match resolve_track(db, uri).await? {
-            Some(id) => {
-                let mut sql = db.sql("s.track_id = ");
-                sql.bind(id);
-                Some(sql)
-            }
+            Some(id) => Some(Expr::col((s.clone(), Scrobbles::TrackId)).eq(id)),
             None => return Ok(Vec::new()),
         }
     } else if let Some(genre) = params.genre.as_deref() {
-        let mut sql = db.sql("t.genre = ");
-        sql.bind(genre);
-        Some(sql)
+        Some(Expr::col((t.clone(), Tracks::Genre)).eq(genre))
     } else {
         None
     };
 
-    // Only the genre selector needs the tracks join.
-    let join = if params.genre.is_some() && params.did.is_none() {
-        " INNER JOIN tracks t ON t.xata_id = s.track_id"
-    } else {
-        ""
-    };
-
     // DATE() truncates a timestamp on Postgres and ISO text on SQLite, and
     // both yield 'YYYY-MM-DD'.
-    let mut sql = db.sql(format!(
-        "SELECT DATE(s.timestamp) AS date, {} AS count \
-         FROM scrobbles s{join} WHERE DATE(s.timestamp) BETWEEN ",
-        cast_int(db.dialect(), "count(s.xata_id)"),
-    ));
-    sql.bind(from).push(" AND ").bind(to);
+    let date = Func::cust(Alias::new("DATE")).arg(Expr::col((s.clone(), Scrobbles::Timestamp)));
 
-    if let Some(condition) = condition {
-        sql.push(" AND ");
-        sql.append(condition);
+    let mut query = Query::select();
+    query
+        .expr_as(date.clone(), Alias::new("date"))
+        .expr_as(
+            db.cast_int(Func::count(Expr::col((s.clone(), Scrobbles::XataId)))),
+            Alias::new("count"),
+        )
+        .from_as(Scrobbles::Table, s.clone());
+
+    // Only the genre selector needs the tracks join.
+    if params.genre.is_some() && params.did.is_none() {
+        query.join_as(
+            JoinType::InnerJoin,
+            Tracks::Table,
+            t.clone(),
+            Expr::col((t, Tracks::XataId)).equals((s, Scrobbles::TrackId)),
+        );
     }
 
-    sql.push(" GROUP BY DATE(s.timestamp) ORDER BY DATE(s.timestamp)");
-    db.fetch_all(&sql).await
+    query.and_where(Expr::expr(date.clone()).between(from, to));
+    if let Some(condition) = condition {
+        query.and_where(condition);
+    }
+
+    query
+        .add_group_by([date.clone().into()])
+        .order_by_expr(date.into(), Order::Asc);
+    db.fetch_all(&query).await
 }
 
 /// Row id of a record by its AT-URI.
-async fn lookup_id(db: &Backend, table: &str, uri: &str) -> Result<Option<String>, sqlx::Error> {
-    let mut sql = db.sql(format!("SELECT xata_id FROM {table} WHERE uri = "));
-    sql.bind(uri).push(" LIMIT 1");
-    db.fetch_scalar(&sql).await
+///
+/// Every catalogue table names these columns the same way, so one statement
+/// serves all of them with only the table varying.
+async fn lookup_id(
+    db: &Backend,
+    table: impl IntoTableRef,
+    uri: &str,
+) -> Result<Option<String>, sqlx::Error> {
+    let query = Query::select()
+        .column(Alias::new("xata_id"))
+        .from(table)
+        .and_where(Expr::col(Alias::new("uri")).eq(uri))
+        .limit(1)
+        .to_owned();
+    db.fetch_scalar(&query).await
 }
 
 /// `songuri` accepts either a song URI or a scrobble URI, so which table to
 /// look in depends on the collection in the URI.
 async fn resolve_track(db: &Backend, uri: &str) -> Result<Option<String>, sqlx::Error> {
     if uri.contains("app.rocksky.scrobble") {
-        let mut sql = db.sql("SELECT track_id FROM scrobbles WHERE uri = ");
-        sql.bind(uri).push(" LIMIT 1");
-        return db.fetch_scalar(&sql).await;
+        let query = Query::select()
+            .column(Scrobbles::TrackId)
+            .from(Scrobbles::Table)
+            .and_where(Expr::col(Scrobbles::Uri).eq(uri))
+            .limit(1)
+            .to_owned();
+        return db.fetch_scalar(&query).await;
     }
-    lookup_id(db, "tracks", uri).await
+    lookup_id(db, Tracks::Table, uri).await
 }
 
 #[cfg(test)]

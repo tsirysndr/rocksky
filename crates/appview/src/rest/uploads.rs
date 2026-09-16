@@ -12,8 +12,10 @@
 
 use crate::auth::{Auth, AuthDid};
 use crate::db::models::{self, Track};
+use crate::db::schema::{Albums, Tracks, UserUploads, Users};
 use crate::db::Backend;
 use crate::error::{XrpcError, XrpcResult};
+use crate::sea_query::{Alias, Expr, JoinType, Order, Query, SelectStatement};
 use crate::state::AppState;
 use crate::storage;
 use crate::uploads::{self, queue, AlbumSelector, Upload};
@@ -49,9 +51,14 @@ pub fn configure(cfg: &mut ServiceConfig) {
 const STREAM_TOKEN_TTL: Duration = Duration::from_secs(3600);
 
 async fn caller_id(db: &Backend, did: &str) -> XrpcResult<String> {
-    let mut sql = db.sql("SELECT xata_id FROM users WHERE did = ");
-    sql.bind(did).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&sql)
+    let query = Query::select()
+        .column(Users::XataId)
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Did).eq(did))
+        .limit(1)
+        .to_owned();
+
+    db.fetch_scalar::<String>(&query)
         .await?
         .ok_or_else(|| XrpcError::auth_required("Unauthorized"))
 }
@@ -63,7 +70,8 @@ pub struct ListQuery {
     pub size: Option<i64>,
     #[serde(default)]
     pub offset: Option<i64>,
-    /// Full-text search. Unsupported here; see [`list`].
+    /// Full-text search over the caller's own uploads, served from the search
+    /// index rather than from SQL — see [`list`].
     #[serde(default)]
     pub q: Option<String>,
     #[serde(default)]
@@ -88,92 +96,18 @@ pub struct UploadRow {
     pub album_year: Option<i64>,
 }
 
-/// The track as this endpoint reports it.
-///
-/// `crate::db::models::Track` cannot be used directly: it is the row model the
-/// XRPC views build from and serializes snake_case, so nesting it here would
-/// emit `album_artist` inside an otherwise camelCase payload. `rename_all` on
-/// the outer struct does not reach into a nested one.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TrackView {
-    pub id: String,
-    pub title: String,
-    pub artist: String,
-    pub album_artist: String,
-    pub album_art: Option<String>,
-    pub album: String,
-    pub track_number: Option<i64>,
-    pub duration: i64,
-    pub mb_id: Option<String>,
-    pub isrc: Option<String>,
-    pub youtube_link: Option<String>,
-    pub spotify_link: Option<String>,
-    pub apple_music_link: Option<String>,
-    pub tidal_link: Option<String>,
-    pub sha256: String,
-    pub disc_number: Option<i64>,
-    pub lyrics: Option<String>,
-    pub composer: Option<String>,
-    pub genre: Option<String>,
-    pub label: Option<String>,
-    pub copyright_message: Option<String>,
-    pub key: Option<String>,
-    pub bpm: Option<f64>,
-    pub uri: Option<String>,
-    pub album_uri: Option<String>,
-    pub artist_uri: Option<String>,
-    #[serde(with = "crate::views::timestamp::required")]
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    #[serde(with = "crate::views::timestamp::required")]
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub xata_version: Option<i64>,
-}
-
-impl From<&Track> for TrackView {
-    fn from(track: &Track) -> Self {
-        Self {
-            id: track.id.clone(),
-            title: track.title.clone(),
-            artist: track.artist.clone(),
-            album_artist: track.album_artist.clone(),
-            album_art: track.album_art.clone(),
-            album: track.album.clone(),
-            track_number: track.track_number,
-            duration: track.duration,
-            mb_id: track.mb_id.clone(),
-            isrc: track.isrc.clone(),
-            youtube_link: track.youtube_link.clone(),
-            spotify_link: track.spotify_link.clone(),
-            apple_music_link: track.apple_music_link.clone(),
-            tidal_link: track.tidal_link.clone(),
-            sha256: track.sha256.clone(),
-            disc_number: track.disc_number,
-            lyrics: track.lyrics.clone(),
-            composer: track.composer.clone(),
-            genre: track.genre.clone(),
-            label: track.label.clone(),
-            copyright_message: track.copyright_message.clone(),
-            key: track.key.clone(),
-            bpm: track.bpm,
-            uri: track.uri.clone(),
-            album_uri: track.album_uri.clone(),
-            artist_uri: track.artist_uri.clone(),
-            created_at: track.created_at,
-            updated_at: track.updated_at,
-            xata_version: track.xata_version,
-        }
-    }
-}
+pub use crate::views::TrackView;
 
 /// `GET /uploads`
 ///
-/// Lists the caller's uploads, optionally filtered to one album.
+/// Lists the caller's uploads, optionally filtered to one album or narrowed by
+/// `?q=`.
 ///
-/// `?q=` is **not** implemented: `apps/api` serves it from Typesense, and this
-/// instance may have no Typesense. Rather than silently ignoring the parameter
-/// and returning the whole library — which would look like a broken search —
-/// it answers 501 naming the reason.
+/// `?q=` is served from the search index, not from SQL. A `LIKE '%…%'` over the
+/// joined tables would answer, but it would answer differently: no typo
+/// tolerance, no relevance order, and a full scan per keystroke. The index is a
+/// required dependency precisely so this endpoint does not have to choose
+/// between those.
 async fn list(
     state: web::Data<AppState>,
     auth: AuthDid,
@@ -182,21 +116,12 @@ async fn list(
     let db = state.db();
     let user_id = caller_id(db, &auth.did).await?;
 
-    if query
-        .q
-        .as_deref()
-        .map(str::trim)
-        .is_some_and(|q| !q.is_empty())
-    {
-        return Err(XrpcError::with_message(
-            crate::error::ResponseType::MethodNotImplemented,
-            "Full-text search over uploads is not available on this instance.",
-        )
-        .named("SearchUnavailable"));
-    }
-
     let size = query.size.filter(|v| *v > 0).unwrap_or(50).min(200);
     let offset = query.offset.filter(|v| *v > 0).unwrap_or(0);
+
+    if let Some(q) = query.q.as_deref().map(str::trim).filter(|q| !q.is_empty()) {
+        return search_uploads(&state, &user_id, q, size, offset).await;
+    }
 
     let album = AlbumSelector::parse(
         query.album_uri.as_deref(),
@@ -204,49 +129,24 @@ async fn list(
         query.album_name.as_deref(),
     );
 
-    let dialect = db.dialect();
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(
-        uploads::UPLOAD_COLS,
-        dialect,
-        Some("u"),
-    ))
-    .push(", ")
-    .push(models::select_list_aliased(
-        models::TRACK_COLS,
-        dialect,
-        Some("t"),
-        "track_",
-    ))
-    .push(", al.release_date AS album_release_date, ")
-    .push(models::cast_int(dialect, "al.year"))
-    .push(" AS album_year")
-    .push(
-        " FROM user_uploads u \
-             INNER JOIN tracks t ON t.xata_id = u.track_id \
-             LEFT JOIN albums al ON al.uri = t.album_uri \
-             WHERE u.user_id = ",
-    )
-    .bind(&user_id);
+    let mut query = joined_uploads(db, &user_id);
 
     if let Some(album) = &album {
-        sql.push(" AND ");
-        album.push_condition(&mut sql);
+        query.and_where(album.condition());
     }
 
     // Within an album, track order is what matters; across the library it is
     // alphabetical.
-    sql.push(if album.is_some() {
-        " ORDER BY t.track_number ASC, t.title ASC, t.artist ASC"
-    } else {
-        " ORDER BY t.title ASC, t.artist ASC"
-    })
-    .push(" LIMIT ")
-    .bind(size)
-    .push(" OFFSET ")
-    .bind(offset);
+    if album.is_some() {
+        query.order_by((Alias::new("t"), Tracks::TrackNumber), Order::Asc);
+    }
+    query
+        .order_by((Alias::new("t"), Tracks::Title), Order::Asc)
+        .order_by((Alias::new("t"), Tracks::Artist), Order::Asc)
+        .limit(size as u64)
+        .offset(offset as u64);
 
-    let rows: Vec<JoinedUploadRow> = db.fetch_all(&sql).await?;
+    let rows: Vec<JoinedUploadRow> = db.fetch_all(&query).await?;
 
     Ok(HttpResponse::Ok().json(
         rows.into_iter()
@@ -258,6 +158,48 @@ async fn list(
             })
             .collect::<Vec<_>>(),
     ))
+}
+
+/// One upload row joined to its track and its album, scoped to an owner.
+///
+/// The listing and the search both answer with the same object, so they build
+/// on the same projection — `search_uploads` exists because the *ordering*
+/// comes from the index, not because the row is different.
+fn joined_uploads(db: &Backend, user_id: &str) -> SelectStatement {
+    let mut query = Query::select();
+    db.select_model(&mut query, uploads::UPLOAD_COLS, Some("u"));
+    // The track's columns carry a `track_` alias prefix: both models alias
+    // `xata_id AS id`, and sqlx would read whichever came first.
+    db.select_model_aliased(&mut query, models::TRACK_COLS, Some("t"), "track_");
+
+    query
+        .expr_as(
+            Expr::col((Alias::new("al"), Albums::ReleaseDate)),
+            Alias::new("album_release_date"),
+        )
+        .expr_as(
+            db.cast_int(Expr::col((Alias::new("al"), Albums::Year))),
+            Alias::new("album_year"),
+        )
+        .from_as(UserUploads::Table, Alias::new("u"))
+        .join_as(
+            JoinType::InnerJoin,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("u"), UserUploads::TrackId)),
+        )
+        // LEFT, because only the release date and year come from the album: a
+        // track whose album has not been indexed yet still has an upload, and
+        // an inner join would hide it.
+        .join_as(
+            JoinType::LeftJoin,
+            Albums::Table,
+            Alias::new("al"),
+            Expr::col((Alias::new("al"), Albums::Uri)).equals((Alias::new("t"), Tracks::AlbumUri)),
+        )
+        .and_where(Expr::col((Alias::new("u"), UserUploads::UserId)).eq(user_id));
+    query
 }
 
 /// The joined row.
@@ -338,6 +280,83 @@ impl JoinedUploadRow {
             xata_version: self.track_xata_version,
         }
     }
+}
+
+/// `GET /uploads?q=…`
+///
+/// The index decides *which* uploads and in what order; the database then
+/// provides the rows. Going back to the database rather than answering from the
+/// index documents is deliberate: the document holds a subset of the columns,
+/// so serving it directly would return rows shaped differently from the
+/// unfiltered listing — the same endpoint answering with a different object
+/// depending on whether a search box had text in it. `apps/api` does exactly
+/// that, and it is the kind of difference a client only discovers in
+/// production.
+async fn search_uploads(
+    state: &AppState,
+    user_id: &str,
+    query: &str,
+    size: i64,
+    offset: i64,
+) -> XrpcResult<HttpResponse> {
+    let Some(search) = state.search() else {
+        // Only reachable under test — the index is required at boot.
+        tracing::warn!("upload search was called with no index configured");
+        return Ok(HttpResponse::Ok().json(Vec::<UploadRow>::new()));
+    };
+
+    let documents = search
+        .library_tracks(query, user_id, size, offset)
+        .await
+        .map_err(|err| {
+            tracing::error!(error = %err, query, "searching uploads failed");
+            XrpcError::with_message(
+                crate::error::ResponseType::UpstreamFailure,
+                "The search index is unavailable.",
+            )
+            .named("SearchFailed")
+        })?;
+
+    if documents.is_empty() {
+        return Ok(HttpResponse::Ok().json(Vec::<UploadRow>::new()));
+    }
+
+    let ranked: Vec<String> = documents.into_iter().map(|doc| doc.id).collect();
+    let db = state.db();
+
+    // Scoped to the caller as well as to the ids: `joined_uploads` filters by
+    // `user_id`, and the index filters by it too, but one authorization check
+    // in the query that actually returns the rows beats trusting a filter
+    // expression evaluated in a second system.
+    let mut query = joined_uploads(db, user_id);
+    query.and_where(
+        Expr::col((Alias::new("u"), UserUploads::XataId)).is_in(ranked.iter().map(String::as_str)),
+    );
+
+    let rows: Vec<JoinedUploadRow> = db.fetch_all(&query).await?;
+
+    // Back into relevance order. `IN` has no order of its own, and the ranking
+    // is the whole point of having searched.
+    let mut by_id: std::collections::HashMap<String, JoinedUploadRow> = rows
+        .into_iter()
+        .map(|row| (row.upload.id.clone(), row))
+        .collect();
+
+    let ordered: Vec<UploadRow> = ranked
+        .iter()
+        // A document whose row has since been deleted is skipped rather than
+        // reported: the index catches up, and a stale hit is not the caller's
+        // problem.
+        .filter_map(|id| by_id.remove(id))
+        .map(|row| UploadRow {
+            track: TrackView::from(&row.track()),
+            upload: row.upload,
+            album_release_date: row.album_release_date.clone(),
+            album_year: row.album_year,
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(ordered))
 }
 
 #[derive(Debug, Serialize)]
@@ -542,15 +561,29 @@ pub struct DeleteResult {
     pub deleted: u64,
 }
 
+/// Deletes the objects and the rows, then drops the documents.
+///
+/// Every delete route goes through here, which is what keeps the index from
+/// drifting: unindexing at four call sites would eventually miss one.
+///
+/// The index comes last. A document that outlives its row is a search hit the
+/// listing then filters away — untidy but harmless. A row deleted after its
+/// document would be a track missing from search while it is still playable,
+/// which is worse, so the order is not arbitrary.
 async fn purge(state: &AppState, user_id: &str, uploads: &[Upload]) -> XrpcResult<u64> {
-    Ok(uploads::purge(
+    let deleted = uploads::purge(
         state.db(),
         state.config().s3.as_ref(),
         state.storage_encryption_key(),
         user_id,
         uploads,
     )
-    .await?)
+    .await?;
+
+    let ids: Vec<String> = uploads.iter().map(|upload| upload.id.clone()).collect();
+    crate::search::remove_uploads(state, &ids).await;
+
+    Ok(deleted)
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -790,10 +823,15 @@ mod tests {
         assert_eq!(body[1]["track"]["trackNumber"], 4);
     }
 
-    /// Silently returning the whole library for a search would look like a
-    /// broken search rather than an unavailable one.
+    /// `?q=` must go to the index, not fall through to the unfiltered listing.
+    ///
+    /// The test state has no index, so the answer is empty — the point is that
+    /// it is *empty* rather than the whole library. Ignoring an unsupported
+    /// filter and returning everything is the failure this guards: it looks
+    /// like a search that matches everything, which is far harder to notice
+    /// than no results.
     #[actix_web::test]
-    async fn full_text_search_reports_that_it_is_unavailable() {
+    async fn full_text_search_does_not_fall_back_to_listing_everything() {
         let (state, token, _user_id) = signed_in().await;
         let app = app!(state);
 
@@ -805,9 +843,36 @@ mod tests {
                 .to_request(),
         )
         .await;
-        assert_eq!(res.status(), 501);
+        assert_eq!(res.status(), 200);
+
         let body: serde_json::Value = test::read_body_json(res).await;
-        assert_eq!(body["error"], "SearchUnavailable");
+        assert_eq!(
+            body.as_array().map(Vec::len),
+            Some(0),
+            "the fixture has two uploads; a search must not return them untouched: {body}"
+        );
+    }
+
+    /// Without `?q=` the same route still lists everything.
+    #[actix_web::test]
+    async fn an_empty_search_term_still_lists_the_library() {
+        let (state, token, _user_id) = signed_in().await;
+        let app = app!(state);
+
+        // A cleared search box sends `?q=`, which must mean "no filter" rather
+        // than "search for nothing".
+        let res = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/uploads?q=")
+                .insert_header(("authorization", format!("Bearer {token}")))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(res.status(), 200);
+
+        let body: serde_json::Value = test::read_body_json(res).await;
+        assert_eq!(body.as_array().map(Vec::len), Some(2), "{body}");
     }
 
     #[actix_web::test]

@@ -11,7 +11,9 @@
 //! because it stays correct if that constraint is ever relaxed — which is the
 //! scenario `trackLikes.ts` describes, where one song has several rows.
 
+use crate::db::schema::{LovedTracks, Tracks, Users};
 use crate::db::Backend;
+use crate::sea_query::{Alias, Expr, JoinType, Query};
 use std::collections::{HashMap, HashSet};
 
 /// How many people have liked a track, and whether the caller is one of them.
@@ -41,8 +43,11 @@ pub async fn for_track_ids(
     }
 
     // row id -> sha256 for the tracks asked about.
-    let mut identities = db.sql("SELECT xata_id, sha256 FROM tracks WHERE xata_id IN ");
-    identities.bind_list(unique.iter().map(|id| id.as_str()));
+    let identities = Query::select()
+        .columns([Tracks::XataId, Tracks::Sha256])
+        .from(Tracks::Table)
+        .and_where(Expr::col(Tracks::XataId).is_in(unique.iter().map(|id| id.as_str())))
+        .to_owned();
 
     let sha_by_id: HashMap<String, String> = db
         .fetch_all::<(String, String)>(&identities)
@@ -63,14 +68,30 @@ pub async fn for_track_ids(
     }
 
     // Every like on any row sharing one of those sha256s.
-    let mut likes = db.sql(
-        "SELECT t.sha256, u.did \
-         FROM loved_tracks l \
-         INNER JOIN tracks t ON t.xata_id = l.track_id \
-         LEFT JOIN users u ON u.xata_id = l.user_id \
-         WHERE t.sha256 IN ",
-    );
-    likes.bind_list(shas.iter().map(|sha| sha.as_str()));
+    let likes = Query::select()
+        .expr(Expr::col((Alias::new("t"), Tracks::Sha256)))
+        .expr(Expr::col((Alias::new("u"), Users::Did)))
+        .from_as(LovedTracks::Table, Alias::new("l"))
+        .join_as(
+            JoinType::InnerJoin,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("l"), LovedTracks::TrackId)),
+        )
+        // LEFT, so a like whose user row has gone still counts toward the
+        // total even though it can no longer be attributed.
+        .join_as(
+            JoinType::LeftJoin,
+            Users::Table,
+            Alias::new("u"),
+            Expr::col((Alias::new("u"), Users::XataId))
+                .equals((Alias::new("l"), LovedTracks::UserId)),
+        )
+        .and_where(
+            Expr::col((Alias::new("t"), Tracks::Sha256)).is_in(shas.iter().map(|sha| sha.as_str())),
+        )
+        .to_owned();
 
     let rows: Vec<(String, Option<String>)> = db.fetch_all(&likes).await?;
 

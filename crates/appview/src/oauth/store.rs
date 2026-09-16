@@ -51,13 +51,28 @@ struct NodeSavedSession {
     /// The DPoP private key as a full JWK.
     #[serde(rename = "dpopJwk")]
     dpop_jwk: serde_json::Value,
-    /// Optional in the TypeScript type "for legacy reasons".
+    /// How the client authenticated to the authorization server.
+    ///
+    /// Kept as raw JSON because it has three shapes in the wild and this store
+    /// never has to interpret any of them — jacquard authenticates from its own
+    /// client configuration, not from what the row says. Preserving it
+    /// verbatim is what keeps the row readable by apps/api.
+    ///
+    /// | shape                       | written by                            |
+    /// |-----------------------------|---------------------------------------|
+    /// | absent                      | a public client                       |
+    /// | `{ method, kid }`           | a confidential client (current)       |
+    /// | `"private_key_jwt"`         | a confidential client (legacy)        |
+    ///
+    /// A production `atproto.sqlite` was 663 of the object form to 155 absent
+    /// and none of the string form — so declaring this `Option<String>`, as it
+    /// was, rejected four rows in five.
     #[serde(
         rename = "authMethod",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    auth_method: Option<String>,
+    auth_method: Option<serde_json::Value>,
     #[serde(rename = "tokenSet")]
     token_set: NodeTokenSet,
 }
@@ -253,7 +268,9 @@ impl SqliteAuthStore {
             dpop_jwk: jwk_to_json(&session.dpop_data.dpop_key),
             // Recorded so the TypeScript client knows how this session
             // authenticates when it refreshes it.
-            auth_method: Some("private_key_jwt".to_string()),
+            // Written in the object form, which is what the current Node
+            // client writes and what most production rows already hold.
+            auth_method: Some(serde_json::json!({ "method": "private_key_jwt" })),
             token_set: NodeTokenSet {
                 iss: session.token_set.iss.to_string(),
                 sub: session.token_set.sub.to_string(),
@@ -483,7 +500,11 @@ mod tests {
         let saved: NodeSavedSession = serde_json::from_str(&node_row()).expect("must parse");
         assert_eq!(saved.token_set.sub, "did:plc:alice");
         assert_eq!(saved.token_set.access_token, "the-access-token");
-        assert_eq!(saved.auth_method.as_deref(), Some("private_key_jwt"));
+        assert_eq!(
+            saved.auth_method,
+            Some(serde_json::json!("private_key_jwt")),
+            "the legacy string form must still parse"
+        );
         // And the DPoP key is usable, which is what signs every request.
         let jwk: Jwk = serde_json::from_value(saved.dpop_jwk).expect("the key must be readable");
         assert!(matches!(jwk.key, Key::Ec(_)));

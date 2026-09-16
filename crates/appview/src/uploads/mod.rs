@@ -14,7 +14,9 @@ pub mod audio;
 pub mod queue;
 
 use crate::db::models::{self, Col};
+use crate::db::schema::{AlbumTracks, Albums, Tracks, UserUploads};
 use crate::db::Backend;
+use crate::sea_query::{Alias, Expr, JoinType, Order, Query, SelectStatement, SimpleExpr};
 use crate::storage::{self, StorageError};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -50,14 +52,144 @@ pub async fn find(
     user_id: &str,
     upload_id: &str,
 ) -> Result<Option<Upload>, sqlx::Error> {
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(UPLOAD_COLS, db.dialect(), None))
-        .push(" FROM user_uploads WHERE xata_id = ")
-        .bind(upload_id)
-        .push(" AND user_id = ")
-        .bind(user_id)
-        .push(" LIMIT 1");
-    db.fetch_optional(&sql).await
+    let mut query = Query::select();
+    db.select_model(&mut query, UPLOAD_COLS, None);
+    query
+        .from(UserUploads::Table)
+        .and_where(Expr::col(UserUploads::XataId).eq(upload_id))
+        // Scoped to the owner in the same statement as the lookup, so there
+        // is no path that finds a row first and checks ownership after.
+        .and_where(Expr::col(UserUploads::UserId).eq(user_id))
+        .limit(1);
+
+    db.fetch_optional(&query).await
+}
+
+// ------------------------------------------------------- search documents
+
+/// The joined row a `library_tracks` document is built from.
+#[derive(Debug, sqlx::FromRow)]
+struct DocumentRow {
+    id: String,
+    user_id: String,
+    track_id: String,
+    r2_key: String,
+    mime_type: String,
+    file_size: i64,
+    original_filename: String,
+    uploaded_at: DateTime<Utc>,
+
+    title: String,
+    artist: String,
+    album: String,
+    album_artist: String,
+    genre: Option<String>,
+    composer: Option<String>,
+    album_art: Option<String>,
+    duration: i64,
+    mb_id: Option<String>,
+    track_number: Option<i64>,
+    disc_number: Option<i64>,
+
+    /// From the album, which is where the year lives — `tracks` has none.
+    year: Option<i64>,
+}
+
+impl From<DocumentRow> for crate::search::LibraryTrackDocument {
+    fn from(row: DocumentRow) -> Self {
+        Self {
+            id: row.id,
+            user_id: row.user_id,
+            track_id: row.track_id,
+            title: row.title,
+            artist: row.artist,
+            album: row.album,
+            album_artist: row.album_artist,
+            genre: row.genre,
+            composer: row.composer,
+            year: row.year,
+            duration: row.duration,
+            album_art: row.album_art,
+            r2_key: row.r2_key,
+            mime_type: row.mime_type,
+            file_size: row.file_size,
+            original_filename: Some(row.original_filename),
+            // Epoch milliseconds, because the collection sorts on this field
+            // and Typesense cannot sort on a string.
+            uploaded_at: row.uploaded_at.timestamp_millis(),
+            mb_id: row.mb_id,
+            track_number: row.track_number,
+            disc_number: row.disc_number,
+        }
+    }
+}
+
+/// The `SELECT … FROM` shared by both document loaders.
+fn document_query(db: &Backend) -> SelectStatement {
+    let mut query = Query::select();
+    db.select_model(&mut query, models::DOC_UPLOAD_COLS, Some("u"));
+    db.select_model(&mut query, models::DOC_TRACK_COLS, Some("t"));
+
+    query
+        .expr_as(
+            // `int4` on Postgres, which will not decode into `i64`.
+            db.cast_int(Expr::col((Alias::new("al"), Albums::Year))),
+            Alias::new("year"),
+        )
+        .from_as(UserUploads::Table, Alias::new("u"))
+        .join_as(
+            JoinType::InnerJoin,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("u"), UserUploads::TrackId)),
+        )
+        // LEFT, because the year is the only thing taken from the album and a
+        // track whose album has not been indexed still has an upload.
+        .join_as(
+            JoinType::LeftJoin,
+            Albums::Table,
+            Alias::new("al"),
+            Expr::col((Alias::new("al"), Albums::Uri)).equals((Alias::new("t"), Tracks::AlbumUri)),
+        );
+    query
+}
+
+/// The search document for one upload, or `None` if it is gone.
+///
+/// Used right after an upload lands, so the track is searchable without
+/// waiting for a reindex.
+pub async fn document_for(
+    db: &Backend,
+    upload_id: &str,
+) -> Result<Option<crate::search::LibraryTrackDocument>, sqlx::Error> {
+    let mut query = document_query(db);
+    query
+        .and_where(Expr::col((Alias::new("u"), UserUploads::XataId)).eq(upload_id))
+        .limit(1);
+
+    let row: Option<DocumentRow> = db.fetch_optional(&query).await?;
+    Ok(row.map(Into::into))
+}
+
+/// A page of search documents, for the initial index build.
+///
+/// Keyed on `xata_id > after` rather than `OFFSET` so the paging stays correct
+/// while uploads are being written underneath it — an offset scan over a table
+/// that is growing skips rows.
+pub async fn load_documents(
+    db: &Backend,
+    after: &str,
+    limit: i64,
+) -> Result<Vec<crate::search::LibraryTrackDocument>, sqlx::Error> {
+    let mut query = document_query(db);
+    query
+        .and_where(Expr::col((Alias::new("u"), UserUploads::XataId)).gt(after))
+        .order_by((Alias::new("u"), UserUploads::XataId), Order::Asc)
+        .limit(limit as u64);
+
+    let rows: Vec<DocumentRow> = db.fetch_all(&query).await?;
+    Ok(rows.into_iter().map(Into::into).collect())
 }
 
 /// How an album was named in the request.
@@ -97,18 +229,27 @@ impl AlbumSelector {
         }
     }
 
-    /// Appends the matching condition over the joined `tracks` table.
-    pub fn push_condition(&self, sql: &mut crate::db::query::Sql) {
+    /// The matching condition over the joined `tracks` table, aliased `t`.
+    pub fn condition(&self) -> SimpleExpr {
         match self {
-            Self::Uri(uri) => {
-                sql.push("t.album_uri = ").bind(uri);
-            }
+            Self::Uri(uri) => Expr::col((Alias::new("t"), Tracks::AlbumUri)).eq(uri),
+            // Both, because an album is identified by title *and* artist —
+            // "Greatest Hits" alone names dozens of different records.
             Self::ArtistAndName { artist, name } => {
-                sql.push("t.album_artist = ")
-                    .bind(artist)
-                    .push(" AND t.album = ")
-                    .bind(name);
+                Expr::col((Alias::new("t"), Tracks::AlbumArtist))
+                    .eq(artist)
+                    .and(Expr::col((Alias::new("t"), Tracks::Album)).eq(name))
             }
+        }
+    }
+
+    /// The same condition, for a query that does not alias `tracks`.
+    pub fn condition_unaliased(&self) -> SimpleExpr {
+        match self {
+            Self::Uri(uri) => Expr::col(Tracks::AlbumUri).eq(uri),
+            Self::ArtistAndName { artist, name } => Expr::col(Tracks::AlbumArtist)
+                .eq(artist)
+                .and(Expr::col(Tracks::Album).eq(name)),
         }
     }
 }
@@ -119,17 +260,21 @@ pub async fn find_by_album(
     user_id: &str,
     selector: &AlbumSelector,
 ) -> Result<Vec<Upload>, sqlx::Error> {
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(UPLOAD_COLS, db.dialect(), Some("u")))
-        .push(
-            " FROM user_uploads u \
-             INNER JOIN tracks t ON t.xata_id = u.track_id \
-             WHERE u.user_id = ",
+    let mut query = Query::select();
+    db.select_model(&mut query, UPLOAD_COLS, Some("u"));
+    query
+        .from_as(UserUploads::Table, Alias::new("u"))
+        .join_as(
+            JoinType::InnerJoin,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("u"), UserUploads::TrackId)),
         )
-        .bind(user_id)
-        .push(" AND ");
-    selector.push_condition(&mut sql);
-    db.fetch_all(&sql).await
+        .and_where(Expr::col((Alias::new("u"), UserUploads::UserId)).eq(user_id))
+        .and_where(selector.condition());
+
+    db.fetch_all(&query).await
 }
 
 /// Every upload of the caller's for a track.
@@ -138,13 +283,14 @@ pub async fn find_by_track(
     user_id: &str,
     track_id: &str,
 ) -> Result<Vec<Upload>, sqlx::Error> {
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(UPLOAD_COLS, db.dialect(), None))
-        .push(" FROM user_uploads WHERE user_id = ")
-        .bind(user_id)
-        .push(" AND track_id = ")
-        .bind(track_id);
-    db.fetch_all(&sql).await
+    let mut query = Query::select();
+    db.select_model(&mut query, UPLOAD_COLS, None);
+    query
+        .from(UserUploads::Table)
+        .and_where(Expr::col(UserUploads::UserId).eq(user_id))
+        .and_where(Expr::col(UserUploads::TrackId).eq(track_id));
+
+    db.fetch_all(&query).await
 }
 
 /// Every upload of the caller's on an album, by the album's row id.
@@ -156,17 +302,21 @@ pub async fn find_by_album_id(
     user_id: &str,
     album_id: &str,
 ) -> Result<Vec<Upload>, sqlx::Error> {
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(UPLOAD_COLS, db.dialect(), Some("u")))
-        .push(
-            " FROM user_uploads u \
-             INNER JOIN album_tracks at ON at.track_id = u.track_id \
-             WHERE u.user_id = ",
+    let mut query = Query::select();
+    db.select_model(&mut query, UPLOAD_COLS, Some("u"));
+    query
+        .from_as(UserUploads::Table, Alias::new("u"))
+        .join_as(
+            JoinType::InnerJoin,
+            AlbumTracks::Table,
+            Alias::new("at"),
+            Expr::col((Alias::new("at"), AlbumTracks::TrackId))
+                .equals((Alias::new("u"), UserUploads::TrackId)),
         )
-        .bind(user_id)
-        .push(" AND at.album_id = ")
-        .bind(album_id);
-    db.fetch_all(&sql).await
+        .and_where(Expr::col((Alias::new("u"), UserUploads::UserId)).eq(user_id))
+        .and_where(Expr::col((Alias::new("at"), AlbumTracks::AlbumId)).eq(album_id));
+
+    db.fetch_all(&query).await
 }
 
 /// Deletes uploads: their objects, then their rows.
@@ -198,11 +348,14 @@ pub async fn purge(
         }
     }
 
-    let mut sql = db.sql("DELETE FROM user_uploads WHERE user_id = ");
-    sql.bind(user_id)
-        .push(" AND xata_id IN ")
-        .bind_list(uploads.iter().map(|upload| upload.id.as_str()));
-    db.execute(&sql).await
+    let delete = Query::delete()
+        .from_table(UserUploads::Table)
+        .and_where(Expr::col(UserUploads::UserId).eq(user_id))
+        .and_where(
+            Expr::col(UserUploads::XataId).is_in(uploads.iter().map(|upload| upload.id.as_str())),
+        )
+        .to_owned();
+    db.execute(&delete).await
 }
 
 async fn delete_object(

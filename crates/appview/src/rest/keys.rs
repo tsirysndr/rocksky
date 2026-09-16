@@ -20,8 +20,10 @@
 
 use crate::auth::AuthDid;
 use crate::crypto;
+use crate::db::schema::{AccessTokens, ApiKeys, Users};
 use crate::db::{models, new_id, Backend};
 use crate::error::{XrpcError, XrpcResult};
+use crate::sea_query::{Expr, Order, Query};
 use crate::state::AppState;
 use actix_web::web::{self, ServiceConfig};
 use actix_web::HttpResponse;
@@ -43,10 +45,23 @@ pub fn configure(cfg: &mut ServiceConfig) {
 /// A valid token for an account this instance has never indexed is still not
 /// authorized to own credentials here, which is why this is a lookup rather
 /// than trusting the DID in the token.
+/// The row id of the account a DID belongs to.
+///
+/// Public because the `app.rocksky.apikey.*` handlers scope their statements
+/// by owner and need the same lookup.
+pub async fn owner_id(db: &Backend, did: &str) -> XrpcResult<String> {
+    caller_id(db, did).await
+}
+
 async fn caller_id(db: &Backend, did: &str) -> XrpcResult<String> {
-    let mut sql = db.sql("SELECT xata_id FROM users WHERE did = ");
-    sql.bind(did).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&sql)
+    let query = Query::select()
+        .column(Users::XataId)
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Did).eq(did))
+        .limit(1)
+        .take();
+
+    db.fetch_scalar::<String>(&query)
         .await?
         .ok_or_else(|| XrpcError::auth_required("Unauthorized"))
 }
@@ -103,24 +118,33 @@ async fn list_api_keys(
     auth: AuthDid,
     paging: web::Query<Paging>,
 ) -> XrpcResult<HttpResponse> {
-    let db = state.db();
-    let user_id = caller_id(db, &auth.did).await?;
-
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(
-        models::API_KEY_COLS,
-        db.dialect(),
-        None,
-    ))
-    .push(" FROM api_keys WHERE user_id = ")
-    .bind(&user_id)
-    .push(" ORDER BY xata_createdat DESC LIMIT ")
-    .bind(paging.size(20))
-    .push(" OFFSET ")
-    .bind(paging.offset());
-
-    let keys: Vec<ApiKeyRow> = db.fetch_all(&sql).await?;
+    let keys = list_keys(state.db(), &auth.did, paging.size(20), paging.offset()).await?;
     Ok(HttpResponse::Ok().json(keys))
+}
+
+/// One account's API keys.
+///
+/// Shared with `app.rocksky.apikey.getApikeys`, whose upstream handler is a
+/// stub that answers an empty list — so the REST route is where the real
+/// behaviour lives and the XRPC method calls this rather than reimplementing.
+pub async fn list_keys(
+    db: &Backend,
+    did: &str,
+    limit: i64,
+    offset: i64,
+) -> XrpcResult<Vec<ApiKeyRow>> {
+    let user_id = caller_id(db, did).await?;
+
+    let mut query = Query::select();
+    db.select_model(&mut query, models::API_KEY_COLS, None);
+    query
+        .from(ApiKeys::Table)
+        .and_where(Expr::col(ApiKeys::UserId).eq(&user_id))
+        .order_by(ApiKeys::XataCreatedat, Order::Desc)
+        .limit(limit as u64)
+        .offset(offset as u64);
+
+    Ok(db.fetch_all(&query).await?)
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -137,8 +161,15 @@ async fn create_api_key(
     auth: AuthDid,
     body: web::Json<CreateApiKey>,
 ) -> XrpcResult<HttpResponse> {
-    let db = state.db();
-    let user_id = caller_id(db, &auth.did).await?;
+    let created = mint_key(state.db(), &auth.did, &body).await?;
+    Ok(HttpResponse::Ok().json(created))
+}
+
+/// Mints an API key and its shared secret.
+///
+/// Shared with `app.rocksky.apikey.createApikey`, which upstream returns `{}`.
+pub async fn mint_key(db: &Backend, did: &str, body: &CreateApiKey) -> XrpcResult<ApiKeySecret> {
+    let user_id = caller_id(db, did).await?;
 
     let name = body.name.trim();
     if name.is_empty() {
@@ -150,36 +181,39 @@ async fn create_api_key(
     let shared_secret = random_hex(16);
     let id = new_id();
 
-    let mut sql = db.sql(
-        "INSERT INTO api_keys \
-         (xata_id, name, description, enabled, api_key, shared_secret, user_id) VALUES (",
-    );
-    sql.bind(&id)
-        .push(", ")
-        .bind(name)
-        // The TypeScript coerces a missing description to "", not NULL.
-        .push(", ")
-        .bind(body.description.clone().unwrap_or_default())
-        .push(", ")
-        .bind(body.enabled.unwrap_or(true))
-        .push(", ")
-        .bind(&api_key)
-        .push(", ")
-        .bind(&shared_secret)
-        .push(", ")
-        .bind(&user_id)
-        .push(")");
-    db.execute(&sql).await?;
+    let insert = Query::insert()
+        .into_table(ApiKeys::Table)
+        .columns([
+            ApiKeys::XataId,
+            ApiKeys::Name,
+            ApiKeys::Description,
+            ApiKeys::Enabled,
+            ApiKeys::ApiKey,
+            ApiKeys::SharedSecret,
+            ApiKeys::UserId,
+        ])
+        .values_panic([
+            id.clone().into(),
+            name.into(),
+            // The TypeScript coerces a missing description to "", not NULL.
+            body.description.clone().unwrap_or_default().into(),
+            body.enabled.unwrap_or(true).into(),
+            api_key.clone().into(),
+            shared_secret.clone().into(),
+            user_id.into(),
+        ])
+        .to_owned();
+    db.execute(&insert).await?;
 
-    tracing::info!(did = %auth.did, name, "minted an API key");
+    tracing::info!(did, name, "minted an API key");
 
-    Ok(HttpResponse::Ok().json(ApiKeySecret {
+    Ok(ApiKeySecret {
         id,
         name: name.to_string(),
         description: Some(body.description.clone().unwrap_or_default()),
         api_key,
         shared_secret,
-    }))
+    })
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -205,54 +239,49 @@ async fn update_api_key(
     // Only the three editable fields, rather than whatever the caller sent:
     // `apps/api` passes the request body straight into `set(data)`, which
     // would let a caller rewrite `api_key`, `user_id` or the timestamps.
-    let mut assignments: Vec<(&str, crate::db::query::Arg)> = Vec::new();
+    let mut update = Query::update();
+    update.table(ApiKeys::Table);
+    let mut touched = false;
+
     if let Some(name) = body
         .name
         .as_deref()
         .map(str::trim)
         .filter(|n| !n.is_empty())
     {
-        assignments.push(("name", name.into()));
+        update.value(ApiKeys::Name, name);
+        touched = true;
     }
     if let Some(description) = body.description.clone() {
-        assignments.push(("description", description.into()));
+        update.value(ApiKeys::Description, description);
+        touched = true;
     }
     if let Some(enabled) = body.enabled {
-        assignments.push(("enabled", enabled.into()));
+        update.value(ApiKeys::Enabled, enabled);
+        touched = true;
     }
 
-    if !assignments.is_empty() {
-        let mut sql = db.sql("UPDATE api_keys SET ");
-        for (index, (column, value)) in assignments.into_iter().enumerate() {
-            if index > 0 {
-                sql.push(", ");
-            }
-            sql.push(format!("{column} = ")).bind(value);
-        }
-        sql.push(", xata_updatedat = ")
-            .bind(crate::db::now_timestamp())
-            .push(" WHERE xata_id = ")
-            .bind(&id)
-            .push(" AND user_id = ")
-            .bind(&user_id);
-        db.execute(&sql).await?;
+    // A body naming none of the three leaves the row completely alone, the
+    // timestamp included — it is not a change.
+    if touched {
+        update
+            .value(ApiKeys::XataUpdatedat, crate::db::now_timestamp())
+            .and_where(Expr::col(ApiKeys::XataId).eq(&id))
+            .and_where(Expr::col(ApiKeys::UserId).eq(&user_id));
+        db.execute(&update).await?;
     }
 
     // Read back so the response reflects the row, and so a key belonging to
     // someone else is a 404 rather than a silent no-op.
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(
-        models::API_KEY_COLS,
-        db.dialect(),
-        None,
-    ))
-    .push(" FROM api_keys WHERE xata_id = ")
-    .bind(&id)
-    .push(" AND user_id = ")
-    .bind(&user_id)
-    .push(" LIMIT 1");
+    let mut query = Query::select();
+    db.select_model(&mut query, models::API_KEY_COLS, None);
+    query
+        .from(ApiKeys::Table)
+        .and_where(Expr::col(ApiKeys::XataId).eq(&id))
+        .and_where(Expr::col(ApiKeys::UserId).eq(&user_id))
+        .limit(1);
 
-    let key: Option<ApiKeyRow> = db.fetch_optional(&sql).await?;
+    let key: Option<ApiKeyRow> = db.fetch_optional(&query).await?;
     let key = key.ok_or_else(|| XrpcError::not_found("API key not found"))?;
 
     Ok(HttpResponse::Ok().json(ApiKeySecret {
@@ -274,10 +303,13 @@ async fn delete_api_key(
     let id = path.into_inner();
 
     // Scoped to the caller, so one user cannot delete another's key.
-    let mut sql = db.sql("DELETE FROM api_keys WHERE xata_id = ");
-    sql.bind(&id).push(" AND user_id = ").bind(&user_id);
+    let delete = Query::delete()
+        .from_table(ApiKeys::Table)
+        .and_where(Expr::col(ApiKeys::XataId).eq(&id))
+        .and_where(Expr::col(ApiKeys::UserId).eq(&user_id))
+        .to_owned();
 
-    if db.execute(&sql).await? == 0 {
+    if db.execute(&delete).await? == 0 {
         return Err(XrpcError::not_found("API key not found"));
     }
     tracing::info!(did = %auth.did, id = %id, "deleted an API key");
@@ -316,20 +348,16 @@ async fn list_access_tokens(
     let db = state.db();
     let user_id = caller_id(db, &auth.did).await?;
 
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(
-        models::ACCESS_TOKEN_COLS,
-        db.dialect(),
-        None,
-    ))
-    .push(" FROM access_tokens WHERE user_id = ")
-    .bind(&user_id)
-    .push(" ORDER BY xata_createdat DESC LIMIT ")
-    .bind(paging.size(50))
-    .push(" OFFSET ")
-    .bind(paging.offset());
+    let mut query = Query::select();
+    db.select_model(&mut query, models::ACCESS_TOKEN_COLS, None);
+    query
+        .from(AccessTokens::Table)
+        .and_where(Expr::col(AccessTokens::UserId).eq(&user_id))
+        .order_by(AccessTokens::XataCreatedat, Order::Desc)
+        .limit(paging.size(50) as u64)
+        .offset(paging.offset() as u64);
 
-    let tokens: Vec<AccessTokenRow> = db.fetch_all(&sql).await?;
+    let tokens: Vec<AccessTokenRow> = db.fetch_all(&query).await?;
     Ok(HttpResponse::Ok().json(tokens))
 }
 
@@ -380,35 +408,35 @@ async fn create_access_token(
     };
 
     let id = new_id();
-    let mut sql = db.sql(
-        "INSERT INTO access_tokens \
-         (xata_id, user_id, name, jti, token_encrypted, last_four) VALUES (",
-    );
-    sql.bind(&id)
-        .push(", ")
-        .bind(&user_id)
-        .push(", ")
-        .bind(name)
-        .push(", ")
-        .bind(&jti)
-        .push(", ")
-        .bind(&token_encrypted)
-        .push(", ")
-        .bind(&last_four)
-        .push(")");
-    db.execute(&sql).await?;
+    let insert = Query::insert()
+        .into_table(AccessTokens::Table)
+        .columns([
+            AccessTokens::XataId,
+            AccessTokens::UserId,
+            AccessTokens::Name,
+            AccessTokens::Jti,
+            AccessTokens::TokenEncrypted,
+            AccessTokens::LastFour,
+        ])
+        .values_panic([
+            id.clone().into(),
+            user_id.into(),
+            name.into(),
+            jti.into(),
+            token_encrypted.into(),
+            last_four.into(),
+        ])
+        .to_owned();
+    db.execute(&insert).await?;
 
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(
-        models::ACCESS_TOKEN_COLS,
-        db.dialect(),
-        None,
-    ))
-    .push(" FROM access_tokens WHERE xata_id = ")
-    .bind(&id)
-    .push(" LIMIT 1");
+    let mut query = Query::select();
+    db.select_model(&mut query, models::ACCESS_TOKEN_COLS, None);
+    query
+        .from(AccessTokens::Table)
+        .and_where(Expr::col(AccessTokens::XataId).eq(&id))
+        .limit(1);
     let row: AccessTokenRow = db
-        .fetch_optional(&sql)
+        .fetch_optional(&query)
         .await?
         .ok_or_else(|| XrpcError::internal(anyhow::anyhow!("the token row vanished")))?;
 
@@ -426,10 +454,13 @@ async fn delete_access_token(
     let user_id = caller_id(db, &auth.did).await?;
     let id = path.into_inner();
 
-    let mut sql = db.sql("DELETE FROM access_tokens WHERE xata_id = ");
-    sql.bind(&id).push(" AND user_id = ").bind(&user_id);
+    let delete = Query::delete()
+        .from_table(AccessTokens::Table)
+        .and_where(Expr::col(AccessTokens::XataId).eq(&id))
+        .and_where(Expr::col(AccessTokens::UserId).eq(&user_id))
+        .to_owned();
 
-    if db.execute(&sql).await? == 0 {
+    if db.execute(&delete).await? == 0 {
         return Err(XrpcError::not_found("Not found"));
     }
     // The token itself is stateless, but `verify_token` checks the `jti`

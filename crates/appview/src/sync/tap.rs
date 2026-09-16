@@ -15,7 +15,9 @@
 //!   connecting. The flag is only used for logging; both kinds project the
 //!   same way.
 
+use crate::db::schema::Users;
 use crate::ingest::{self, IncomingRecord, IngestStats, SUPPORTED_COLLECTIONS};
+use crate::sea_query::{Expr, Query};
 use crate::state::AppState;
 use crate::xrpc::app_rocksky::scrobble::SCROBBLES_VERSION_KEY;
 use atproto_tap::{TapClient, TapConfig, TapEvent};
@@ -134,6 +136,7 @@ pub async fn run(state: AppState) {
                                 .await;
                         }
                         stats.merge(result);
+                        crate::search::index_record(&state, &incoming).await;
                     }
                     Err(err) => {
                         tracing::warn!(
@@ -186,16 +189,15 @@ async fn update_identity(
     // Only touch a row that exists: an identity event for an account this
     // instance does not index is not a reason to create one.
     let db = state.db();
-    let mut sql = db.sql("UPDATE users SET handle = ");
-    sql.bind(handle)
-        .push(", xata_updatedat = ")
-        .bind(crate::db::now_timestamp())
-        .push(" WHERE did = ")
-        .bind(&did)
-        .push(" AND handle <> ")
-        .bind(handle);
+    let update = Query::update()
+        .table(Users::Table)
+        .value(Users::Handle, handle)
+        .value(Users::XataUpdatedat, crate::db::now_timestamp())
+        .and_where(Expr::col(Users::Did).eq(&did))
+        .and_where(Expr::col(Users::Handle).ne(handle))
+        .to_owned();
 
-    if db.execute(&sql).await? > 0 {
+    if db.execute(&update).await? > 0 {
         tracing::info!(did = %did, handle = %handle, "handle updated");
     }
     Ok(())

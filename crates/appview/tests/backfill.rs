@@ -258,3 +258,107 @@ async fn one_failing_repository_does_not_stop_the_others() {
         "the good repo was still imported"
     );
 }
+
+/// Two editions of one recording must both land.
+///
+/// The catalogue keys a track on `title - artist - album`, so the same
+/// recording on an original album and on a compilation is two rows — sharing
+/// one Spotify URL, because that URL identifies the recording rather than the
+/// edition. A unique constraint on the link column silently drops the second
+/// one, which is what a real backfill of 6,204 records hit: 10 songs lost to
+/// `UNIQUE constraint failed: tracks.spotify_link`.
+///
+/// Production has 16,167 duplicate `spotify_link` values and no unique index,
+/// so this is what the live data actually requires — its Drizzle schema
+/// declaring `.unique()` is drift, not intent.
+#[actix_web::test]
+async fn two_editions_of_one_recording_both_land() {
+    let pds = MockPds::start().await;
+
+    // The real case, from the production repo this suite's fixture comes from.
+    let link = "https://open.spotify.com/track/1SKPmfSYaPsETbRHaiA18G";
+    for (rkey, album) in [
+        ("3aaa", "Hopes And Fears"),
+        ("3bbb", "Now That's What I Call Music 57 - CD 2"),
+    ] {
+        pds.put_record(
+            "app.rocksky.scrobble",
+            rkey,
+            serde_json::json!({
+                "$type": "app.rocksky.scrobble",
+                "title": "Somewhere Only We Know",
+                "artist": "Keane",
+                "album": album,
+                "albumArtist": "Keane",
+                "duration": 235_000,
+                "spotifyLink": link,
+                "createdAt": "2026-01-01T00:00:00.000Z",
+            }),
+        );
+    }
+
+    let state = state_pointing_at(&pds).await;
+    let stats = rocksky_appview::backfill::backfill_repo(&state, &pds.did())
+        .await
+        .expect("backfill");
+
+    assert_eq!(
+        count(&state, "tracks").await,
+        2,
+        "both editions must exist: {stats:?}"
+    );
+    assert_eq!(count(&state, "scrobbles").await, 2);
+    assert_eq!(count(&state, "albums").await, 2, "two albums, one artist");
+    assert_eq!(count(&state, "artists").await, 1);
+
+    // And both carry the link, rather than one being blanked to satisfy a
+    // constraint.
+    let db = state.db();
+    let mut sql = db.sql("SELECT count(*) FROM tracks WHERE spotify_link = ");
+    sql.bind(link);
+    assert_eq!(db.count(&sql).await.unwrap(), 2);
+}
+
+/// Nothing in a handled collection may be silently dropped.
+///
+/// `skipped` covers two very different things: a record this projection has no
+/// table for (a shout, say), which is fine, and one it should have stored but
+/// could not, which is data loss. Asserting `skipped == 0` would fail on the
+/// first kind, so the expected number is derived from the collections the
+/// projection actually handles.
+#[actix_web::test]
+async fn nothing_in_a_handled_collection_is_dropped() {
+    let pds = MockPds::with_production_data().await;
+    let state = state_pointing_at(&pds).await;
+
+    /// What `crate::ingest` has tables for.
+    const HANDLED: &[&str] = &[
+        "app.rocksky.scrobble",
+        "app.rocksky.song",
+        "app.rocksky.album",
+        "app.rocksky.artist",
+        "app.rocksky.like",
+    ];
+
+    let unhandled = pds
+        .records(None)
+        .iter()
+        .filter(|record| !HANDLED.contains(&record.collection.as_str()))
+        .count();
+
+    let stats = rocksky_appview::backfill::backfill_repo(&state, &pds.did())
+        .await
+        .expect("backfill");
+
+    assert!(unhandled > 0, "the fixture should exercise this at all");
+    assert_eq!(
+        stats.skipped as usize, unhandled,
+        "a record from a handled collection was dropped: {stats:?}"
+    );
+
+    // And the scrobbles all landed, which is the count that matters most.
+    assert_eq!(
+        count(&state, "scrobbles").await as usize,
+        pds.record_count("app.rocksky.scrobble"),
+    );
+}

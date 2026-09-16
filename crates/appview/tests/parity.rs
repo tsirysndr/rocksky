@@ -15,7 +15,10 @@ use chrono::{DateTime, TimeZone, Utc};
 use rocksky_appview::db::models::{Album, Artist, Scrobble, Track, User};
 use rocksky_appview::likes::Likes;
 use rocksky_appview::views::{
-    ArtistView, FirstScrobbleView, ScrobbleViewBasic, ScrobbleViewDetailed,
+    ArtistView, FirstScrobbleView, ScrobbleViewBasic, ScrobbleViewDetailed, TrackView,
+};
+use rocksky_appview::xrpc::app_rocksky::actor::{
+    ActorScrobbleView, ArtistViewBasic, SongViewBasic,
 };
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -359,4 +362,160 @@ fn the_two_scrobble_views_differ_where_the_live_api_differs() {
 fn _unused(album: Album) -> i64 {
     let _ = Utc.timestamp_opt(0, 0);
     album.year.unwrap_or(0)
+}
+
+// ------------------------------------------------- app.rocksky.actor.*
+
+fn actor_scrobble() -> ActorScrobbleView {
+    let scrobble = scrobble();
+    let track = track();
+    let user = user();
+    ActorScrobbleView {
+        id: scrobble.id.clone(),
+        track_id: scrobble.track_id.clone(),
+        title: track.title.clone(),
+        artist: track.artist.clone(),
+        album_artist: track.album_artist.clone(),
+        album_art: track.album_art.clone(),
+        album: track.album.clone(),
+        handle: user.handle.clone(),
+        did: user.did.clone(),
+        avatar: user.avatar.clone(),
+        uri: scrobble.uri.clone(),
+        track_uri: track.uri.clone(),
+        liked: false,
+        artist_uri: track.artist_uri.clone(),
+        album_uri: track.album_uri.clone(),
+        created_at: scrobble.created_at,
+    }
+}
+
+fn song_basic() -> SongViewBasic {
+    let track = track();
+    SongViewBasic {
+        id: track.id.clone(),
+        uri: track.uri.clone(),
+        title: track.title.clone(),
+        artist: track.artist.clone(),
+        artist_uri: track.artist_uri.clone(),
+        album: track.album.clone(),
+        album_uri: track.album_uri.clone(),
+        album_art: track.album_art.clone(),
+        album_artist: track.album_artist.clone(),
+        copyright_message: track.copyright_message.clone(),
+        disc_number: track.disc_number,
+        duration: track.duration,
+        sha256: track.sha256.clone(),
+        track_number: track.track_number,
+        play_count: 3,
+        unique_listeners: 2,
+        created_at: track.created_at,
+    }
+}
+
+fn artist_basic() -> ArtistViewBasic {
+    let artist = artist();
+    ArtistViewBasic {
+        id: artist.id.clone(),
+        name: artist.name.clone(),
+        picture: artist.picture.clone(),
+        sha256: artist.sha256.clone(),
+        uri: artist.uri.clone(),
+        tags: Some(vec!["Rock".into()]),
+        play_count: 5,
+        unique_listeners: 4,
+    }
+}
+
+/// The actor feed's field set, against the live response.
+///
+/// This is the check that caught the view being wrong. The actor feed was
+/// first implemented by reusing `ScrobbleViewBasic`, which the *global* feed
+/// uses — and the two live responses share only 11 of their fields, 16 against
+/// 36. A profile page reading `handle` would have found `user` instead and
+/// rendered blank.
+#[test]
+fn the_actor_feed_matches_the_live_shape() {
+    let live = fixture("getActorScrobbles");
+    let live_item = &live["scrobbles"][0];
+    assert!(live_item.is_object(), "fixture has no scrobbles");
+
+    assert_same_keys(
+        "app.rocksky.actor.getActorScrobbles scrobbles[]",
+        live_item,
+        &serde_json::to_value(actor_scrobble()).unwrap(),
+    );
+}
+
+/// And the two feeds must stay different views, so a later refactor cannot
+/// quietly collapse them back together.
+#[test]
+fn the_actor_feed_is_not_the_global_feed() {
+    let actor = keys(&fixture("getActorScrobbles")["scrobbles"][0]);
+    let global = keys(&fixture("getScrobbles")["scrobbles"][0]);
+
+    assert_ne!(actor, global);
+    assert_eq!(actor.len(), 16, "the actor feed is the compact one");
+    assert!(
+        global.len() > 30,
+        "the global feed carries the whole track: {}",
+        global.len()
+    );
+
+    // The naming difference that matters most: who listened.
+    assert!(actor.contains("handle") && actor.contains("did"));
+    assert!(global.contains("user") && global.contains("userAvatar"));
+    // And `trackId` is only on the actor feed.
+    assert!(actor.contains("trackId") && !global.contains("trackId"));
+}
+
+#[test]
+fn the_actor_top_songs_view_matches_the_live_shape() {
+    let live = fixture("getActorSongs");
+    let live_item = &live["tracks"][0];
+    assert!(live_item.is_object(), "fixture has no tracks");
+
+    assert_same_keys(
+        "app.rocksky.actor.getActorSongs tracks[]",
+        live_item,
+        &serde_json::to_value(song_basic()).unwrap(),
+    );
+}
+
+#[test]
+fn the_actor_artists_view_matches_the_live_shape() {
+    let live = fixture("getActorArtists");
+    let live_item = &live["artists"][0];
+    assert!(live_item.is_object(), "fixture has no artists");
+
+    assert_same_keys(
+        "app.rocksky.actor.getActorArtists artists[]",
+        live_item,
+        &serde_json::to_value(artist_basic()).unwrap(),
+    );
+}
+
+/// Loved songs answer the detailed track view, whose field set includes the
+/// `xataVersion` and `updatedAt` the compact view omits.
+#[test]
+fn loved_songs_match_the_live_detailed_shape() {
+    let live = fixture("getActorLovedSongs");
+    let live_item = &live["tracks"][0];
+    assert!(live_item.is_object(), "fixture has no tracks");
+
+    assert_same_keys(
+        "app.rocksky.actor.getActorLovedSongs tracks[]",
+        live_item,
+        &serde_json::to_value(TrackView::from(&track())).unwrap(),
+    );
+}
+
+/// An artist with no genres serializes `tags: null`, not `[]` — an empty array
+/// would make the UI render an empty genre-chip row.
+#[test]
+fn an_artist_without_genres_reports_null_tags() {
+    let mut artist = artist_basic();
+    artist.tags = None;
+    let value = serde_json::to_value(artist).unwrap();
+    assert!(value["tags"].is_null(), "{value}");
 }

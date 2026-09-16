@@ -12,6 +12,14 @@ name = "rocksky-appview"
 path = "src/main.rs"
 
 [dependencies]
+rocksky-core = { path = "../core" }
+rocksky-atproto = { path = "../atproto" }
+rocksky-lexicon = { path = "../lexicon" }
+rocksky-audio = { path = "../audio" }
+rocksky-db = { path = "../db" }
+# A DPoP-signed write is built as an `http::Request`, which is what
+# jacquard's `HttpClient` takes.
+http = "1"
 actix-web = "4.11.0"
 actix-cors = "0.7.1"
 
@@ -93,13 +101,6 @@ md5 = "0.7.0"
 #   rocksky-analysis  key and BPM, the crate behind the Neon binding that
 #                     apps/api loads — called directly, so there is no native
 #                     module to build
-rockbox-metadata = "0.1"
-lofty = "0.22"
-ebur128 = "0.1"
-rocksky-analysis = { path = "../analysis" }
-symphonia = { version = "0.5", default-features = false, features = [
-  "flac", "mp3", "pcm", "aac", "alac", "isomp4", "vorbis", "ogg", "wav", "adpcm",
-] }
 actix-multipart = "0.7"
 # Object storage. The same client crate and conventions as
 # crates/navidrome/src/s3.rs, so presigned URLs and path-style addressing
@@ -118,14 +119,18 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenv = "0.15.0"
 rand = "0.8.5"
 
-# Optional accelerators. A zero-config instance runs without all three; each is
-# used only when its URL is configured (see config.rs), with an in-process
-# fallback so self-hosting never requires standing up a stack.
+# The event bus. REQUIRED, not an accelerator: the scrobble mirrors, the
+# Spotify poller and the playlist importer all learn about changes through it,
+# so an instance that published nowhere would look healthy while half the
+# system did nothing. See src/events.rs.
 async-nats = "0.39"
 # Tap: a verified, filtered, backfilling firehose consumer. Preferred over
 # talking to Jetstream directly because it does MST verification, signature
 # checks and per-repo filtering for us.
 atproto-tap = "0.14"
+# The one genuine accelerator here: without it the response cache is an
+# in-process map, which is correct for a single instance and only matters when
+# several run behind one hostname.
 redis = { version = "0.29", default-features = false, features = [
   "tokio-comp",
   "connection-manager",
@@ -136,6 +141,8 @@ redis = { version = "0.29", default-features = false, features = [
 tempfile = "3"
 
 [dev-dependencies]
+# The shout tests pass at:// URIs as query parameters.
+urlencoding = "2"
 actix-rt = "2"
 # An in-memory PDS: identity, sessions, repo writes and a real CAR for sync.
 # Replaces the hand-rolled stubs these tests used to each carry their own of.

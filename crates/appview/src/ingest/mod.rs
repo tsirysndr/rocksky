@@ -22,8 +22,14 @@
 //!   (Spotify, a Last.fm mirror, Navidrome) publish their own AT-URI for the
 //!   same listen, so the URI cannot be the dedupe key.
 
+use crate::db::schema::{
+    AlbumTracks, Albums, ArtistAlbums, ArtistTracks, Artists, LovedTracks, Scrobbles, Tracks, Users,
+};
 use crate::db::{new_id, Backend};
-use sha2::{Digest, Sha256};
+use crate::sea_query::{
+    Alias, CaseStatement, Expr, Func, Iden, IntoIden, OnConflict, Order, Query, SelectStatement,
+    SimpleExpr,
+};
 
 pub const SCROBBLE_NSID: &str = "app.rocksky.scrobble";
 pub const SONG_NSID: &str = "app.rocksky.song";
@@ -37,8 +43,7 @@ pub const SUPPORTED_COLLECTIONS: &[&str] =
 
 /// Stand-in cover used when a record carries no album art, so the UI has
 /// something to render rather than a broken image.
-pub const PLACEHOLDER_ALBUM_ART: &str =
-    "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png";
+pub use rocksky_core::identity::PLACEHOLDER_ALBUM_ART;
 
 /// One record to project, however it arrived.
 #[derive(Debug, Clone)]
@@ -85,24 +90,11 @@ impl IngestStats {
     }
 }
 
-fn sha256_hex(input: &str) -> String {
-    hex::encode(Sha256::digest(input.as_bytes()))
-}
-
-/// `sha256(lower("{title} - {artist} - {album}"))`
-pub fn track_hash(title: &str, artist: &str, album: &str) -> String {
-    sha256_hex(&format!("{title} - {artist} - {album}").to_lowercase())
-}
-
-/// `sha256(lower("{album} - {albumArtist}"))`
-pub fn album_hash(album: &str, album_artist: &str) -> String {
-    sha256_hex(&format!("{album} - {album_artist}").to_lowercase())
-}
-
-/// `sha256(lower(name))`
-pub fn artist_hash(name: &str) -> String {
-    sha256_hex(&name.to_lowercase())
-}
+// The content hashes are the data format, shared with the upload pipeline and
+// the record writer, so they live in `rocksky-core`. Re-exported because the
+// projection refers to them constantly and every caller already imports them
+// from here.
+pub use rocksky_core::identity::{album_hash, artist_hash, track_hash};
 
 /// Reads a string field, treating blank as absent.
 fn string(value: &serde_json::Value, key: &str) -> Option<String> {
@@ -219,7 +211,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
             // A song record is the canonical URI for a track the user owns,
             // so it backfills `tracks.uri` on the row the hash resolves to.
             let track_id = upsert_track(db, &song, None).await?;
-            set_record_uri(db, "tracks", &track_id, &record.uri()).await?;
+            set_record_uri(db, UriTable::Tracks, &track_id, &record.uri()).await?;
             stats.songs += 1;
         }
         ALBUM_NSID => {
@@ -239,7 +231,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
                 string(&record.value, "releaseDate"),
             )
             .await?;
-            set_record_uri(db, "albums", &album_id, &record.uri()).await?;
+            set_record_uri(db, UriTable::Albums, &album_id, &record.uri()).await?;
             stats.albums += 1;
         }
         ARTIST_NSID => {
@@ -253,7 +245,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
                 string(&record.value, "pictureUrl").or_else(|| string(&record.value, "picture")),
             )
             .await?;
-            set_record_uri(db, "artists", &artist_id, &record.uri()).await?;
+            set_record_uri(db, UriTable::Artists, &artist_id, &record.uri()).await?;
             stats.artists += 1;
         }
         LIKE_NSID => {
@@ -275,32 +267,97 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
 /// known — `handle` is NOT NULL and UNIQUE, so it has to be something, and a
 /// DID is guaranteed unique. [`set_handle`] replaces it once the DID document
 /// has been read.
-pub async fn upsert_user(db: &Backend, did: &str) -> anyhow::Result<String> {
-    let mut existing = db.sql("SELECT xata_id FROM users WHERE did = ");
-    existing.bind(did).push(" LIMIT 1");
-    if let Some(id) = db.fetch_scalar::<String>(&existing).await? {
+
+/// Finds a row by its unique key, or inserts it and finds it again.
+///
+/// Four tables need exactly this — users by DID, and artists, albums and
+/// tracks by content hash — and the shape is not obvious, so it is written
+/// once.
+///
+/// The re-read after the insert is the point. `ON CONFLICT DO NOTHING` means a
+/// concurrent writer may have won the race, in which case this insert affected
+/// no rows and the id it generated is not the row's id. Returning that id would
+/// hand out a key to a row that does not exist. Two sync sources ingesting the
+/// same repository is the ordinary case here, not a rare one.
+async fn find_or_create<T>(
+    db: &Backend,
+    table: T,
+    id_column: T,
+    unique_column: T,
+    unique_value: &str,
+    columns: Vec<T>,
+    values: Vec<SimpleExpr>,
+    describe: impl FnOnce() -> String,
+) -> anyhow::Result<String>
+where
+    T: Iden + IntoIden + Copy + 'static,
+{
+    let find = || {
+        Query::select()
+            .column(id_column)
+            .from(table)
+            .and_where(Expr::col(unique_column).eq(unique_value))
+            .limit(1)
+            .to_owned()
+    };
+
+    if let Some(id) = db.fetch_scalar::<String>(&find()).await? {
         return Ok(id);
     }
 
-    let id = new_id();
-    let mut insert = db.sql("INSERT INTO users (xata_id, did, handle, avatar) VALUES (");
-    insert
-        .bind(&id)
-        .push(", ")
-        .bind(did)
-        .push(", ")
-        .bind(did)
-        .push(", ")
-        .bind("")
-        .push(") ON CONFLICT (did) DO NOTHING");
+    let insert = Query::insert()
+        .into_table(table)
+        .columns(columns)
+        .values_panic(values)
+        .on_conflict(OnConflict::column(unique_column).do_nothing().to_owned())
+        .to_owned();
     db.execute(&insert).await?;
 
-    // A concurrent insert means the row now exists under another id.
-    let mut again = db.sql("SELECT xata_id FROM users WHERE did = ");
-    again.bind(did).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&again)
+    db.fetch_scalar::<String>(&find())
         .await?
-        .ok_or_else(|| anyhow::anyhow!("could not create a user row for {did}"))
+        .ok_or_else(|| anyhow::anyhow!("could not create {}", describe()))
+}
+
+/// The tables whose AT-URI can be backfilled by [`set_record_uri`].
+///
+/// An enum rather than a table name string: the previous signature took
+/// `table: &str`, which a typo turns into a runtime SQL error on a path that
+/// only runs when a record of that type arrives.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UriTable {
+    Tracks,
+    Albums,
+    Artists,
+}
+
+impl UriTable {
+    fn table(self) -> Alias {
+        Alias::new(match self {
+            Self::Tracks => "tracks",
+            Self::Albums => "albums",
+            Self::Artists => "artists",
+        })
+    }
+}
+
+pub async fn upsert_user(db: &Backend, did: &str) -> anyhow::Result<String> {
+    find_or_create(
+        db,
+        Users::Table,
+        Users::XataId,
+        Users::Did,
+        did,
+        vec![Users::XataId, Users::Did, Users::Handle, Users::Avatar],
+        vec![
+            new_id().into(),
+            did.into(),
+            // The DID stands in for the handle until one is known.
+            did.into(),
+            "".into(),
+        ],
+        || format!("a user row for {did}"),
+    )
+    .await
 }
 
 /// Records the handle for an already-indexed account.
@@ -309,12 +366,13 @@ pub async fn upsert_user(db: &Backend, did: &str) -> anyhow::Result<String> {
 /// another row already holds — `handle` is UNIQUE, and a renamed account can
 /// briefly collide with the previous owner of the name.
 pub async fn set_handle(db: &Backend, did: &str, handle: &str) -> anyhow::Result<bool> {
-    let mut taken = db.sql("SELECT xata_id FROM users WHERE handle = ");
-    taken
-        .bind(handle)
-        .push(" AND did <> ")
-        .bind(did)
-        .push(" LIMIT 1");
+    let taken = Query::select()
+        .column(Users::XataId)
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Handle).eq(handle))
+        .and_where(Expr::col(Users::Did).ne(did))
+        .limit(1)
+        .to_owned();
     if db.fetch_scalar::<String>(&taken).await?.is_some() {
         tracing::warn!(
             did = %did,
@@ -324,15 +382,16 @@ pub async fn set_handle(db: &Backend, did: &str, handle: &str) -> anyhow::Result
         return Ok(false);
     }
 
-    let mut sql = db.sql("UPDATE users SET handle = ");
-    sql.bind(handle)
-        .push(", xata_updatedat = ")
-        .bind(crate::db::now_timestamp())
-        .push(" WHERE did = ")
-        .bind(did)
-        .push(" AND handle <> ")
-        .bind(handle);
-    Ok(db.execute(&sql).await? > 0)
+    let update = Query::update()
+        .table(Users::Table)
+        .value(Users::Handle, handle)
+        .value(Users::XataUpdatedat, crate::db::now_timestamp())
+        .and_where(Expr::col(Users::Did).eq(did))
+        // Only when it differs, so the return value means "the handle
+        // changed" rather than "a row matched".
+        .and_where(Expr::col(Users::Handle).ne(handle))
+        .to_owned();
+    Ok(db.execute(&update).await? > 0)
 }
 
 pub async fn upsert_artist(
@@ -342,30 +401,27 @@ pub async fn upsert_artist(
 ) -> anyhow::Result<String> {
     let hash = artist_hash(name);
 
-    let mut existing = db.sql("SELECT xata_id FROM artists WHERE sha256 = ");
-    existing.bind(&hash).push(" LIMIT 1");
-    if let Some(id) = db.fetch_scalar::<String>(&existing).await? {
-        return Ok(id);
-    }
-
-    let id = new_id();
-    let mut insert = db.sql("INSERT INTO artists (xata_id, name, picture, sha256) VALUES (");
-    insert
-        .bind(&id)
-        .push(", ")
-        .bind(name)
-        .push(", ")
-        .bind(picture)
-        .push(", ")
-        .bind(&hash)
-        .push(") ON CONFLICT (sha256) DO NOTHING");
-    db.execute(&insert).await?;
-
-    let mut again = db.sql("SELECT xata_id FROM artists WHERE sha256 = ");
-    again.bind(&hash).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&again)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("could not create an artist row for {name}"))
+    find_or_create(
+        db,
+        Artists::Table,
+        Artists::XataId,
+        Artists::Sha256,
+        &hash,
+        vec![
+            Artists::XataId,
+            Artists::Name,
+            Artists::Picture,
+            Artists::Sha256,
+        ],
+        vec![
+            new_id().into(),
+            name.into(),
+            picture.into(),
+            hash.clone().into(),
+        ],
+        || format!("an artist row for {name}"),
+    )
+    .await
 }
 
 pub async fn upsert_album(
@@ -378,39 +434,33 @@ pub async fn upsert_album(
 ) -> anyhow::Result<String> {
     let hash = album_hash(title, album_artist);
 
-    let mut existing = db.sql("SELECT xata_id FROM albums WHERE sha256 = ");
-    existing.bind(&hash).push(" LIMIT 1");
-    if let Some(id) = db.fetch_scalar::<String>(&existing).await? {
-        return Ok(id);
-    }
-
-    let id = new_id();
-    let mut insert = db.sql(
-        "INSERT INTO albums (xata_id, title, artist, album_art, year, release_date, sha256) \
-         VALUES (",
-    );
-    insert
-        .bind(&id)
-        .push(", ")
-        .bind(title)
-        .push(", ")
-        .bind(album_artist)
-        .push(", ")
-        .bind(album_art)
-        .push(", ")
-        .bind(year)
-        .push(", ")
-        .bind(release_date)
-        .push(", ")
-        .bind(&hash)
-        .push(") ON CONFLICT (sha256) DO NOTHING");
-    db.execute(&insert).await?;
-
-    let mut again = db.sql("SELECT xata_id FROM albums WHERE sha256 = ");
-    again.bind(&hash).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&again)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("could not create an album row for {title}"))
+    find_or_create(
+        db,
+        Albums::Table,
+        Albums::XataId,
+        Albums::Sha256,
+        &hash,
+        vec![
+            Albums::XataId,
+            Albums::Title,
+            Albums::Artist,
+            Albums::AlbumArt,
+            Albums::Year,
+            Albums::ReleaseDate,
+            Albums::Sha256,
+        ],
+        vec![
+            new_id().into(),
+            title.into(),
+            album_artist.into(),
+            album_art.into(),
+            year.into(),
+            release_date.into(),
+            hash.clone().into(),
+        ],
+        || format!("an album row for {title}"),
+    )
+    .await
 }
 
 /// Finds or creates the `tracks` row for a record.
@@ -425,110 +475,133 @@ pub async fn upsert_track(
 ) -> anyhow::Result<String> {
     let hash = track_hash(&song.title, &song.artist, &song.album);
 
-    let mut lookup = db.sql("SELECT xata_id FROM tracks WHERE sha256 = ");
-    lookup.bind(&hash);
-    if let Some(mb_id) = &song.mb_id {
-        lookup
-            .push(" OR (mb_id IS NOT NULL AND mb_id = ")
-            .bind(mb_id)
-            .push(")");
-    }
-    if let Some(isrc) = &song.isrc {
-        lookup
-            .push(" OR (isrc IS NOT NULL AND isrc = ")
-            .bind(isrc)
-            .push(")");
-    }
-    lookup.push(" ORDER BY CASE WHEN sha256 = ").bind(&hash);
-    lookup.push(" THEN 0 ");
-    if let Some(mb_id) = &song.mb_id {
-        lookup.push("WHEN mb_id = ").bind(mb_id).push(" THEN 1 ");
-    }
-    if let Some(isrc) = &song.isrc {
-        lookup.push("WHEN isrc = ").bind(isrc).push(" THEN 2 ");
-    }
-    lookup.push("ELSE 3 END LIMIT 1");
-
+    let lookup = track_lookup(&hash, song.mb_id.as_deref(), song.isrc.as_deref());
     if let Some(id) = db.fetch_scalar::<String>(&lookup).await? {
         return Ok(id);
     }
 
-    let id = new_id();
-    let mut insert = db.sql(
-        "INSERT INTO tracks (xata_id, title, artist, album, album_art, album_artist, \
-         track_number, duration, mb_id, isrc, composer, lyrics, disc_number, sha256, \
-         copyright_message, uri, spotify_link, apple_music_link, tidal_link, youtube_link, \
-         label, genre) VALUES (",
-    );
-    for (index, bind) in [
-        Some(id.clone()),
-        Some(song.title.clone()),
-        Some(song.artist.clone()),
-        Some(song.album.clone()),
-        song.album_art.clone(),
-        Some(song.album_artist.clone()),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        if index > 0 {
-            insert.push(", ");
-        }
-        insert.bind(bind);
-    }
-    insert
-        .push(", ")
-        .bind(song.track_number)
-        .push(", ")
-        .bind(song.duration)
-        .push(", ")
-        .bind(song.mb_id.clone())
-        .push(", ")
-        .bind(song.isrc.clone())
-        .push(", ")
-        .bind(song.composer.clone())
-        .push(", ")
-        .bind(song.lyrics.clone())
-        .push(", ")
-        .bind(song.disc_number)
-        .push(", ")
-        .bind(&hash)
-        .push(", ")
-        .bind(song.copyright_message.clone())
-        .push(", ")
-        .bind(uri.map(str::to_string))
-        .push(", ")
-        .bind(song.spotify_link.clone())
-        .push(", ")
-        .bind(song.apple_music_link.clone())
-        .push(", ")
-        .bind(song.tidal_link.clone())
-        .push(", ")
-        .bind(song.youtube_link.clone())
-        .push(", ")
-        .bind(song.label.clone())
-        .push(", ")
-        .bind(song.genre.clone())
-        .push(") ON CONFLICT (sha256) DO NOTHING");
-    db.execute(&insert).await?;
+    // The columns and the values are two lists that have to line up; keeping
+    // them adjacent is the only protection against them drifting apart, which
+    // in the string form silently shifted every field after the mistake.
+    find_or_create(
+        db,
+        Tracks::Table,
+        Tracks::XataId,
+        Tracks::Sha256,
+        &hash,
+        vec![
+            Tracks::XataId,
+            Tracks::Title,
+            Tracks::Artist,
+            Tracks::Album,
+            Tracks::AlbumArt,
+            Tracks::AlbumArtist,
+            Tracks::TrackNumber,
+            Tracks::Duration,
+            Tracks::MbId,
+            Tracks::Isrc,
+            Tracks::Composer,
+            Tracks::Lyrics,
+            Tracks::DiscNumber,
+            Tracks::Sha256,
+            Tracks::CopyrightMessage,
+            Tracks::Uri,
+            Tracks::SpotifyLink,
+            Tracks::AppleMusicLink,
+            Tracks::TidalLink,
+            Tracks::YoutubeLink,
+            Tracks::Label,
+            Tracks::Genre,
+        ],
+        vec![
+            new_id().into(),
+            song.title.clone().into(),
+            song.artist.clone().into(),
+            song.album.clone().into(),
+            song.album_art.clone().into(),
+            song.album_artist.clone().into(),
+            song.track_number.into(),
+            song.duration.into(),
+            song.mb_id.clone().into(),
+            song.isrc.clone().into(),
+            song.composer.clone().into(),
+            song.lyrics.clone().into(),
+            song.disc_number.into(),
+            hash.clone().into(),
+            song.copyright_message.clone().into(),
+            uri.map(str::to_string).into(),
+            song.spotify_link.clone().into(),
+            song.apple_music_link.clone().into(),
+            song.tidal_link.clone().into(),
+            song.youtube_link.clone().into(),
+            song.label.clone().into(),
+            song.genre.clone().into(),
+        ],
+        || format!("a track row for {}", song.title),
+    )
+    .await
+}
 
-    let mut again = db.sql("SELECT xata_id FROM tracks WHERE sha256 = ");
-    again.bind(&hash).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&again)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("could not create a track row for {}", song.title))
+/// The ranked track lookup: content hash, then MBID, then ISRC.
+///
+/// Extracted so the ranking can be tested without a database. The `CASE` in the
+/// `ORDER BY` is what makes it a ranking rather than an unordered `OR`: the same
+/// ISRC can belong to several rows — a recording released as a single and again
+/// on a compilation — so without it the answer is whichever row the planner
+/// happens to reach first, and a scrobble silently lands on the wrong album.
+fn track_lookup(hash: &str, mb_id: Option<&str>, isrc: Option<&str>) -> SelectStatement {
+    let mut matches = Expr::col(Tracks::Sha256).eq(hash);
+    if let Some(mb_id) = mb_id {
+        matches = matches.or(Expr::col(Tracks::MbId)
+            .is_not_null()
+            .and(Expr::col(Tracks::MbId).eq(mb_id)));
+    }
+    if let Some(isrc) = isrc {
+        matches = matches.or(Expr::col(Tracks::Isrc)
+            .is_not_null()
+            .and(Expr::col(Tracks::Isrc).eq(isrc)));
+    }
+
+    let mut rank = CaseStatement::new().case(Expr::col(Tracks::Sha256).eq(hash), 0);
+    if let Some(mb_id) = mb_id {
+        rank = rank.case(Expr::col(Tracks::MbId).eq(mb_id), 1);
+    }
+    if let Some(isrc) = isrc {
+        rank = rank.case(Expr::col(Tracks::Isrc).eq(isrc), 2);
+    }
+    let rank = rank.finally(3);
+
+    Query::select()
+        .column(Tracks::XataId)
+        .from(Tracks::Table)
+        .and_where(matches)
+        .order_by_expr(rank.into(), Order::Asc)
+        .limit(1)
+        .to_owned()
 }
 
 /// Fills in a row's AT-URI without clobbering one already there.
-pub async fn set_record_uri(db: &Backend, table: &str, id: &str, uri: &str) -> anyhow::Result<()> {
-    let mut sql = db.sql(format!("UPDATE {table} SET uri = "));
-    sql.bind(uri)
-        .push(" WHERE xata_id = ")
-        .bind(id)
-        .push(" AND (uri IS NULL OR uri = ")
-        .bind(uri)
-        .push(")");
-    db.execute(&sql).await?;
+pub async fn set_record_uri(
+    db: &Backend,
+    table: UriTable,
+    id: &str,
+    uri: &str,
+) -> anyhow::Result<()> {
+    // Three tables share the column names, so one statement serves all of
+    // them with only the table varying.
+    let update = Query::update()
+        .table(table.table())
+        .value(Alias::new("uri"), uri)
+        .and_where(Expr::col(Alias::new("xata_id")).eq(id))
+        // Never clobbers a URI already there: a row can be reached by more
+        // than one record, and the first one to name it wins.
+        .and_where(
+            Expr::col(Alias::new("uri"))
+                .is_null()
+                .or(Expr::col(Alias::new("uri")).eq(uri)),
+        )
+        .to_owned();
+    db.execute(&update).await?;
     Ok(())
 }
 
@@ -541,74 +614,148 @@ pub async fn link_catalogue(
 ) -> anyhow::Result<()> {
     // The UNIQUE constraints make these idempotent; duplicate junction rows
     // are what fan out into duplicated library results.
-    for (table, left_column, left, right_column, right) in [
-        ("album_tracks", "album_id", album_id, "track_id", track_id),
-        (
-            "artist_tracks",
-            "artist_id",
-            artist_id,
-            "track_id",
-            track_id,
-        ),
-        (
-            "artist_albums",
-            "artist_id",
-            artist_id,
-            "album_id",
-            album_id,
-        ),
-    ] {
-        let mut sql = db.sql(format!(
-            "INSERT INTO {table} (xata_id, {left_column}, {right_column}) VALUES ("
-        ));
-        sql.bind(new_id())
-            .push(", ")
-            .bind(left)
-            .push(", ")
-            .bind(right)
-            .push(format!(
-                ") ON CONFLICT ({left_column}, {right_column}) DO NOTHING"
-            ));
-        db.execute(&sql).await?;
-    }
+    //
+    // Written out three times rather than looped: each table's columns are a
+    // different Rust type, which is the point — the loop it replaces passed
+    // table and column names as strings, and nothing checked that
+    // `artist_albums` really has an `album_id`.
+    let album_track = Query::insert()
+        .into_table(AlbumTracks::Table)
+        .columns([
+            AlbumTracks::XataId,
+            AlbumTracks::AlbumId,
+            AlbumTracks::TrackId,
+        ])
+        .values_panic([new_id().into(), album_id.into(), track_id.into()])
+        .on_conflict(
+            OnConflict::columns([AlbumTracks::AlbumId, AlbumTracks::TrackId])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+    db.execute(&album_track).await?;
+
+    let artist_track = Query::insert()
+        .into_table(ArtistTracks::Table)
+        .columns([
+            ArtistTracks::XataId,
+            ArtistTracks::ArtistId,
+            ArtistTracks::TrackId,
+        ])
+        .values_panic([new_id().into(), artist_id.into(), track_id.into()])
+        .on_conflict(
+            OnConflict::columns([ArtistTracks::ArtistId, ArtistTracks::TrackId])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+    db.execute(&artist_track).await?;
+
+    let artist_album = Query::insert()
+        .into_table(ArtistAlbums::Table)
+        .columns([
+            ArtistAlbums::XataId,
+            ArtistAlbums::ArtistId,
+            ArtistAlbums::AlbumId,
+        ])
+        .values_panic([new_id().into(), artist_id.into(), album_id.into()])
+        .on_conflict(
+            OnConflict::columns([ArtistAlbums::ArtistId, ArtistAlbums::AlbumId])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+    db.execute(&artist_album).await?;
+
     Ok(())
 }
 
-/// Bumps the per-user play counters, creating the row on first play.
+/// Which per-user counter to bump.
+///
+/// The three tables have identical shapes and differ only in which entity they
+/// point at, which is why the previous version passed the table and column as
+/// strings. As an enum the pairing cannot be got wrong — `user_albums` with
+/// `track_id` no longer type-checks.
+#[derive(Debug, Clone, Copy)]
+enum Counter {
+    Artists,
+    Albums,
+    Tracks,
+}
+
+impl Counter {
+    fn table(self) -> Alias {
+        Alias::new(match self {
+            Self::Artists => "user_artists",
+            Self::Albums => "user_albums",
+            Self::Tracks => "user_tracks",
+        })
+    }
+
+    fn entity_column(self) -> Alias {
+        Alias::new(match self {
+            Self::Artists => "artist_id",
+            Self::Albums => "album_id",
+            Self::Tracks => "track_id",
+        })
+    }
+}
+
+/// Bumps the per-user play counter, creating the row on first play.
+///
+/// Update-then-insert rather than upsert-with-increment: the unique key is
+/// `uri`, not `(user_id, entity_id)`, so `ON CONFLICT (uri) DO UPDATE` would
+/// not fire for a second play that arrived under a different record URI — and
+/// several sources publish their own URI for the same listen.
 async fn bump_counter(
     db: &Backend,
-    table: &str,
-    column: &str,
+    counter: Counter,
     user_id: &str,
     entity_id: &str,
     uri: &str,
 ) -> anyhow::Result<()> {
-    let mut update = db.sql(format!(
-        "UPDATE {table} SET scrobbles = COALESCE(scrobbles, 0) + 1 WHERE user_id = "
-    ));
-    update
-        .push("")
-        .bind(user_id)
-        .push(format!(" AND {column} = "))
-        .bind(entity_id);
+    let scrobbles = Alias::new("scrobbles");
+    let update = Query::update()
+        .table(counter.table())
+        .value(
+            scrobbles,
+            // COALESCE, because the column is nullable and NULL + 1 is NULL —
+            // a row created without a count would stay uncounted forever.
+            Expr::expr(Func::coalesce([
+                Expr::col(Alias::new("scrobbles")).into(),
+                Expr::val(0).into(),
+            ]))
+            .add(1),
+        )
+        .and_where(Expr::col(Alias::new("user_id")).eq(user_id))
+        .and_where(Expr::col(counter.entity_column()).eq(entity_id))
+        .to_owned();
     if db.execute(&update).await? > 0 {
         return Ok(());
     }
 
-    let mut insert = db.sql(format!(
-        "INSERT INTO {table} (xata_id, user_id, {column}, scrobbles, uri) VALUES ("
-    ));
-    insert
-        .bind(new_id())
-        .push(", ")
-        .bind(user_id)
-        .push(", ")
-        .bind(entity_id)
-        .push(", ")
-        .bind(1i64)
-        .push(", ")
-        .bind(uri)
-        .push(") ON CONFLICT (uri) DO NOTHING");
+    let insert = Query::insert()
+        .into_table(counter.table())
+        .columns([
+            Alias::new("xata_id"),
+            Alias::new("user_id"),
+            counter.entity_column(),
+            Alias::new("scrobbles"),
+            Alias::new("uri"),
+        ])
+        .values_panic([
+            new_id().into(),
+            user_id.into(),
+            entity_id.into(),
+            1i64.into(),
+            uri.into(),
+        ])
+        .on_conflict(
+            OnConflict::column(Alias::new("uri"))
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
     db.execute(&insert).await?;
     Ok(())
 }
@@ -638,10 +785,14 @@ pub async fn upsert_catalogue(db: &Backend, song: &SongRecord) -> anyhow::Result
 /// The AT-URI already recorded for an album, if any.
 pub async fn album_uri(db: &Backend, song: &SongRecord) -> anyhow::Result<Option<String>> {
     let hash = album_hash(&song.album, &song.album_artist);
-    let mut sql = db.sql("SELECT uri FROM albums WHERE sha256 = ");
-    sql.bind(&hash).push(" LIMIT 1");
+    let query = Query::select()
+        .column(Albums::Uri)
+        .from(Albums::Table)
+        .and_where(Expr::col(Albums::Sha256).eq(&hash))
+        .limit(1)
+        .to_owned();
     Ok(db
-        .fetch_scalar::<String>(&sql)
+        .fetch_scalar::<String>(&query)
         .await?
         .filter(|uri| !uri.is_empty()))
 }
@@ -649,10 +800,14 @@ pub async fn album_uri(db: &Backend, song: &SongRecord) -> anyhow::Result<Option
 /// The AT-URI already recorded for an artist, if any.
 pub async fn artist_uri(db: &Backend, name: &str) -> anyhow::Result<Option<String>> {
     let hash = artist_hash(name);
-    let mut sql = db.sql("SELECT uri FROM artists WHERE sha256 = ");
-    sql.bind(&hash).push(" LIMIT 1");
+    let query = Query::select()
+        .column(Artists::Uri)
+        .from(Artists::Table)
+        .and_where(Expr::col(Artists::Sha256).eq(&hash))
+        .limit(1)
+        .to_owned();
     Ok(db
-        .fetch_scalar::<String>(&sql)
+        .fetch_scalar::<String>(&query)
         .await?
         .filter(|uri| !uri.is_empty()))
 }
@@ -660,10 +815,14 @@ pub async fn artist_uri(db: &Backend, name: &str) -> anyhow::Result<Option<Strin
 /// Fills in an album's AT-URI, found by its content hash.
 pub async fn set_album_uri(db: &Backend, song: &SongRecord, uri: &str) -> anyhow::Result<()> {
     let hash = album_hash(&song.album, &song.album_artist);
-    let mut lookup = db.sql("SELECT xata_id FROM albums WHERE sha256 = ");
-    lookup.bind(&hash).push(" LIMIT 1");
+    let lookup = Query::select()
+        .column(Albums::XataId)
+        .from(Albums::Table)
+        .and_where(Expr::col(Albums::Sha256).eq(&hash))
+        .limit(1)
+        .to_owned();
     if let Some(id) = db.fetch_scalar::<String>(&lookup).await? {
-        set_record_uri(db, "albums", &id, uri).await?;
+        set_record_uri(db, UriTable::Albums, &id, uri).await?;
     }
     Ok(())
 }
@@ -671,10 +830,14 @@ pub async fn set_album_uri(db: &Backend, song: &SongRecord, uri: &str) -> anyhow
 /// Fills in an artist's AT-URI, found by name hash.
 pub async fn set_artist_uri(db: &Backend, name: &str, uri: &str) -> anyhow::Result<()> {
     let hash = artist_hash(name);
-    let mut lookup = db.sql("SELECT xata_id FROM artists WHERE sha256 = ");
-    lookup.bind(&hash).push(" LIMIT 1");
+    let lookup = Query::select()
+        .column(Artists::XataId)
+        .from(Artists::Table)
+        .and_where(Expr::col(Artists::Sha256).eq(&hash))
+        .limit(1)
+        .to_owned();
     if let Some(id) = db.fetch_scalar::<String>(&lookup).await? {
-        set_record_uri(db, "artists", &id, uri).await?;
+        set_record_uri(db, UriTable::Artists, &id, uri).await?;
     }
     Ok(())
 }
@@ -693,13 +856,25 @@ pub async fn set_track_analysis(
         return Ok(());
     }
 
-    let mut sql = db.sql("UPDATE tracks SET key = COALESCE(key, ");
-    sql.bind(key.map(str::to_string))
-        .push("), bpm = COALESCE(bpm, ")
-        .bind(bpm)
-        .push(") WHERE xata_id = ")
-        .bind(track_id);
-    db.execute(&sql).await?;
+    // COALESCE keeps whatever is already there: a track is shared across
+    // users and sources, so a second upload's analysis must not overwrite the
+    // first one's answer.
+    let update = Query::update()
+        .table(Tracks::Table)
+        .value(
+            Tracks::Key,
+            Func::coalesce([
+                Expr::col(Tracks::Key).into(),
+                Expr::val(key.map(str::to_string)).into(),
+            ]),
+        )
+        .value(
+            Tracks::Bpm,
+            Func::coalesce([Expr::col(Tracks::Bpm).into(), Expr::val(bpm).into()]),
+        )
+        .and_where(Expr::col(Tracks::XataId).eq(track_id))
+        .to_owned();
+    db.execute(&update).await?;
     Ok(())
 }
 
@@ -726,25 +901,34 @@ async fn ingest_scrobble(
 
     // The composite UNIQUE is the real dedupe key: several sources publish
     // their own URI for the same listen.
-    let mut insert = db.sql(
-        "INSERT INTO scrobbles (xata_id, album_id, artist_id, track_id, uri, user_id, timestamp) \
-         VALUES (",
-    );
-    insert
-        .bind(new_id())
-        .push(", ")
-        .bind(&album_id)
-        .push(", ")
-        .bind(&artist_id)
-        .push(", ")
-        .bind(&track_id)
-        .push(", ")
-        .bind(record.uri())
-        .push(", ")
-        .bind(&user_id)
-        .push(", ")
-        .bind(song.created_at)
-        .push(") ON CONFLICT (user_id, track_id, timestamp) DO NOTHING");
+    let insert = Query::insert()
+        .into_table(Scrobbles::Table)
+        .columns([
+            Scrobbles::XataId,
+            Scrobbles::AlbumId,
+            Scrobbles::ArtistId,
+            Scrobbles::TrackId,
+            Scrobbles::Uri,
+            Scrobbles::UserId,
+            Scrobbles::Timestamp,
+        ])
+        .values_panic([
+            new_id().into(),
+            album_id.clone().into(),
+            artist_id.clone().into(),
+            track_id.clone().into(),
+            record.uri().into(),
+            user_id.clone().into(),
+            // As text, not a native timestamp: SQLite stores these in a TEXT
+            // column and compares them lexicographically.
+            crate::db::format_timestamp(song.created_at).into(),
+        ])
+        .on_conflict(
+            OnConflict::columns([Scrobbles::UserId, Scrobbles::TrackId, Scrobbles::Timestamp])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
 
     if db.execute(&insert).await? == 0 {
         return Ok(false);
@@ -752,9 +936,9 @@ async fn ingest_scrobble(
 
     // Counters only advance for a scrobble that was actually new.
     let uri = record.uri();
-    bump_counter(db, "user_artists", "artist_id", &user_id, &artist_id, &uri).await?;
-    bump_counter(db, "user_albums", "album_id", &user_id, &album_id, &uri).await?;
-    bump_counter(db, "user_tracks", "track_id", &user_id, &track_id, &uri).await?;
+    bump_counter(db, Counter::Artists, &user_id, &artist_id, &uri).await?;
+    bump_counter(db, Counter::Albums, &user_id, &album_id, &uri).await?;
+    bump_counter(db, Counter::Tracks, &user_id, &track_id, &uri).await?;
 
     Ok(true)
 }
@@ -773,8 +957,12 @@ async fn ingest_like(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bo
         return Ok(false);
     };
 
-    let mut track = db.sql("SELECT xata_id FROM tracks WHERE uri = ");
-    track.bind(&subject).push(" LIMIT 1");
+    let track = Query::select()
+        .column(Tracks::XataId)
+        .from(Tracks::Table)
+        .and_where(Expr::col(Tracks::Uri).eq(&subject))
+        .limit(1)
+        .to_owned();
     let Some(track_id) = db.fetch_scalar::<String>(&track).await? else {
         // The song has not been indexed yet; the like is simply skipped rather
         // than inventing a track row from a URI alone.
@@ -783,16 +971,22 @@ async fn ingest_like(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bo
 
     let user_id = upsert_user(db, &record.did).await?;
 
-    let mut insert = db.sql("INSERT INTO loved_tracks (xata_id, user_id, track_id, uri) VALUES (");
-    insert
-        .bind(new_id())
-        .push(", ")
-        .bind(&user_id)
-        .push(", ")
-        .bind(&track_id)
-        .push(", ")
-        .bind(record.uri())
-        .push(") ON CONFLICT (uri) DO NOTHING");
+    let insert = Query::insert()
+        .into_table(LovedTracks::Table)
+        .columns([
+            LovedTracks::XataId,
+            LovedTracks::UserId,
+            LovedTracks::TrackId,
+            LovedTracks::Uri,
+        ])
+        .values_panic([
+            new_id().into(),
+            user_id.into(),
+            track_id.into(),
+            record.uri().into(),
+        ])
+        .on_conflict(OnConflict::column(LovedTracks::Uri).do_nothing().to_owned())
+        .to_owned();
     db.execute(&insert).await?;
     Ok(true)
 }
@@ -829,26 +1023,27 @@ mod tests {
         }
     }
 
+    /// The projection must use the shared hashes, not its own copy.
+    ///
+    /// `rocksky-core` owns and tests the hashes themselves against
+    /// independently computed digests. What matters here is that this module's
+    /// re-exports really are those functions — a local reimplementation that
+    /// drifted would split every row in two.
     #[test]
-    fn hashes_match_the_reference_implementation() {
-        // sha256 of the lowercased "title - artist - album" triple.
+    fn the_projection_uses_the_shared_identity_hashes() {
         assert_eq!(
             track_hash("Roygbiv", "Boards of Canada", "MHTRTC"),
-            sha256_hex("roygbiv - boards of canada - mhtrtc")
+            rocksky_core::identity::track_hash("Roygbiv", "Boards of Canada", "MHTRTC")
         );
         assert_eq!(
             album_hash("MHTRTC", "Boards of Canada"),
-            sha256_hex("mhtrtc - boards of canada")
+            rocksky_core::identity::album_hash("MHTRTC", "Boards of Canada")
         );
         assert_eq!(
             artist_hash("Boards of Canada"),
-            sha256_hex("boards of canada")
+            rocksky_core::identity::artist_hash("Boards of Canada")
         );
-        // Case must not change identity, or every source spelling makes a row.
-        assert_eq!(
-            track_hash("ROYGBIV", "BOARDS OF CANADA", "MHTRTC"),
-            track_hash("roygbiv", "boards of canada", "mhtrtc")
-        );
+        assert_eq!(PLACEHOLDER_ALBUM_ART, rocksky_core::PLACEHOLDER_ALBUM_ART);
     }
 
     #[tokio::test]

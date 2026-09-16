@@ -11,8 +11,10 @@
 
 use crate::auth::AuthDid;
 use crate::crypto;
+use crate::db::schema::{UserStorageProviders, Users};
 use crate::db::{new_id, Backend};
 use crate::error::{XrpcError, XrpcResult};
+use crate::sea_query::{Expr, Query};
 use crate::state::AppState;
 use crate::storage::{self, providers};
 use actix_web::web::{self, ServiceConfig};
@@ -27,9 +29,14 @@ pub fn configure(cfg: &mut ServiceConfig) {
 }
 
 async fn caller_id(db: &Backend, did: &str) -> XrpcResult<String> {
-    let mut sql = db.sql("SELECT xata_id FROM users WHERE did = ");
-    sql.bind(did).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&sql)
+    let query = Query::select()
+        .column(Users::XataId)
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Did).eq(did))
+        .limit(1)
+        .take();
+
+    db.fetch_scalar::<String>(&query)
         .await?
         .ok_or_else(|| XrpcError::auth_required("Unauthorized"))
 }
@@ -146,32 +153,34 @@ async fn create(
     let id = new_id();
     let verified_at = crate::db::now_timestamp();
 
-    let mut sql = db.sql(
-        "INSERT INTO user_storage_providers \
-         (xata_id, user_id, label, endpoint, region, bucket, access_key, secret_key, \
-          public_url, verified_at) VALUES (",
-    );
-    sql.bind(&id)
-        .push(", ")
-        .bind(&user_id)
-        .push(", ")
-        .bind(label)
-        .push(", ")
-        .bind(endpoint)
-        .push(", ")
-        .bind(region)
-        .push(", ")
-        .bind(bucket)
-        .push(", ")
-        .bind(&encrypted_access)
-        .push(", ")
-        .bind(&encrypted_secret)
-        .push(", ")
-        .bind(body.public_url.clone())
-        .push(", ")
-        .bind(&verified_at)
-        .push(")");
-    db.execute(&sql).await?;
+    let insert = Query::insert()
+        .into_table(UserStorageProviders::Table)
+        .columns([
+            UserStorageProviders::XataId,
+            UserStorageProviders::UserId,
+            UserStorageProviders::Label,
+            UserStorageProviders::Endpoint,
+            UserStorageProviders::Region,
+            UserStorageProviders::Bucket,
+            UserStorageProviders::AccessKey,
+            UserStorageProviders::SecretKey,
+            UserStorageProviders::PublicUrl,
+            UserStorageProviders::VerifiedAt,
+        ])
+        .values_panic([
+            id.clone().into(),
+            user_id.clone().into(),
+            label.into(),
+            endpoint.into(),
+            region.into(),
+            bucket.into(),
+            encrypted_access.into(),
+            encrypted_secret.into(),
+            body.public_url.clone().into(),
+            verified_at.into(),
+        ])
+        .to_owned();
+    db.execute(&insert).await?;
 
     let provider = providers::find(db, &user_id, &id)
         .await?

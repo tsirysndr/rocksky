@@ -28,6 +28,11 @@ pub enum ResponseType {
     /// would change what the UI branches on.
     Conflict,
     UnprocessableEntity,
+    /// Also not in the XRPC enum, and also real: `app.rocksky.library.*`
+    /// forwards navidrome's Subsonic error 70 as a 404, and flattening it to
+    /// 400 would make "that song does not exist" look like "your request was
+    /// malformed".
+    NotFound,
     InternalServerError,
     MethodNotImplemented,
     UpstreamFailure,
@@ -47,6 +52,7 @@ impl ResponseType {
             Self::UnsupportedMediaType => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             Self::RateLimitExceeded => StatusCode::TOO_MANY_REQUESTS,
             Self::Conflict => StatusCode::CONFLICT,
+            Self::NotFound => StatusCode::NOT_FOUND,
             Self::UnprocessableEntity => StatusCode::UNPROCESSABLE_ENTITY,
             Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::MethodNotImplemented => StatusCode::NOT_IMPLEMENTED,
@@ -68,6 +74,7 @@ impl ResponseType {
             Self::UnsupportedMediaType => "UnsupportedMediaType",
             Self::RateLimitExceeded => "RateLimitExceeded",
             Self::Conflict => "Conflict",
+            Self::NotFound => "NotFound",
             Self::UnprocessableEntity => "UnprocessableEntity",
             Self::InternalServerError => "InternalServerError",
             Self::MethodNotImplemented => "MethodNotImplemented",
@@ -89,6 +96,7 @@ impl ResponseType {
             Self::UnsupportedMediaType => "Unsupported Media Type",
             Self::RateLimitExceeded => "Rate Limit Exceeded",
             Self::Conflict => "Conflict",
+            Self::NotFound => "Not Found",
             Self::UnprocessableEntity => "Unprocessable Entity",
             Self::InternalServerError => "Internal Server Error",
             Self::MethodNotImplemented => "Method Not Implemented",
@@ -102,7 +110,8 @@ impl ResponseType {
     /// `httpResponseCodeToEnum`: any other 4xx collapses to InvalidRequest and
     /// anything else to InternalServerError.
     ///
-    /// Deliberately never yields [`ResponseType::Conflict`] or
+    /// Deliberately never yields [`ResponseType::Conflict`],
+    /// [`ResponseType::NotFound`] or
     /// [`ResponseType::UnprocessableEntity`], even for 409 and 422: this
     /// function mirrors the TypeScript enum, which has neither, and an
     /// upstream 409 reaching an XRPC client as anything but `InvalidRequest`
@@ -392,5 +401,40 @@ mod tests {
             ResponseType::MethodNotImplemented.status(),
             StatusCode::NOT_IMPLEMENTED
         );
+    }
+}
+
+/// A rejected `?filter=` is a 400 named `InvalidFilter`.
+///
+/// The conversion lives here rather than in `rocksky-db`, because how a bad
+/// filter is *reported* is an HTTP concern and the data layer has no HTTP. The
+/// message is the compiler's own, which names the offending field or operator
+/// — silently answering an empty list for a malformed query is far harder to
+/// debug than a 400 that says why.
+impl From<rocksky_db::rsql::RsqlError> for XrpcError {
+    fn from(err: rocksky_db::rsql::RsqlError) -> Self {
+        XrpcError::invalid_request(err.to_string()).named("InvalidFilter")
+    }
+}
+
+#[cfg(test)]
+mod rsql_tests {
+    use super::*;
+    use rocksky_db::rsql;
+    use rocksky_db::Dialect;
+
+    const FIELDS: rsql::FieldMap = &[("title", rsql::Field::text("t.title"))];
+
+    #[test]
+    fn a_rejected_filter_becomes_a_400_named_invalid_filter() {
+        let err = rsql::compile("password==hunter2", FIELDS, Dialect::Sqlite).unwrap_err();
+        let xrpc: XrpcError = err.into();
+        let body = xrpc.body();
+
+        assert_eq!(body.error, "InvalidFilter");
+        assert_eq!(xrpc.kind.status(), 400);
+        // The message must name the field, or the 400 is no more useful than
+        // an empty answer.
+        assert!(body.message.contains("password"), "{}", body.message);
     }
 }

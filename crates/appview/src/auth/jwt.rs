@@ -12,6 +12,7 @@
 //! a rejection. Revocation is what actually gates access tokens: a `jti` with
 //! no row in `access_tokens` means revoked.
 
+use crate::db::schema::AccessTokens;
 use crate::db::Backend;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
@@ -76,10 +77,14 @@ pub async fn verify_token(db: &Backend, secret: &str, bearer: &str) -> Result<Cl
 
     if claims.is_access_token() {
         if let Some(jti) = claims.jti.as_deref() {
-            let mut sql = db.sql("SELECT xata_id FROM access_tokens WHERE jti = ");
-            sql.bind(jti).push(" LIMIT 1");
+            let query = crate::sea_query::Query::select()
+                .column(AccessTokens::XataId)
+                .from(AccessTokens::Table)
+                .and_where(crate::sea_query::Expr::col(AccessTokens::Jti).eq(jti))
+                .limit(1)
+                .to_owned();
 
-            if db.fetch_scalar::<String>(&sql).await?.is_none() {
+            if db.fetch_scalar::<String>(&query).await?.is_none() {
                 return Err(TokenError::Revoked);
             }
         }

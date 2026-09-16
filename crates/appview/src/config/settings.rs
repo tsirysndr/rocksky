@@ -56,7 +56,16 @@ pub struct Server {
 pub struct Database {
     /// `sqlite://…` (default) or `postgres://…` to run against an existing
     /// Rocksky database.
+    ///
+    /// On Postgres this is the *primary*: everything writes here, and so does
+    /// every read unless the call site opts into the replica.
     pub url: Option<String>,
+    /// A Postgres read replica, for reads that tolerate replication lag.
+    ///
+    /// Optional, and ignored when it matches [`Database::url`]. Reads only go
+    /// here where a handler asks them to, so a stale replica cannot break
+    /// read-after-write.
+    pub read_url: Option<String>,
     /// OAuth sessions and the DID cache. Always SQLite.
     pub auth_url: Option<String>,
 }

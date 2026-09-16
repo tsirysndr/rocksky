@@ -77,6 +77,24 @@ pub struct Cli {
     pub backfill: bool,
 }
 
+/// Where NATS is, when nothing says otherwise.
+///
+/// A local one, which is what the docker-compose file provides and what a
+/// developer running `nats-server` already has.
+pub const DEFAULT_NATS_URL: &str = "nats://127.0.0.1:4222";
+
+/// Where Typesense is, when nothing says otherwise.
+pub const DEFAULT_TYPESENSE_URL: &str = "http://127.0.0.1:8108";
+
+/// The API key Typesense is started with in the docker-compose file.
+///
+/// A default at all, rather than a required secret, because Typesense here is
+/// an internal index on a private network — it holds no credentials and nothing
+/// a reader could not get from the public API. Making it mandatory would stop a
+/// zero-config boot for no gain; an instance that exposes Typesense publicly
+/// should set its own.
+pub const DEFAULT_TYPESENSE_API_KEY: &str = "rocksky";
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub host: String,
@@ -88,6 +106,8 @@ pub struct Config {
 
     /// The appview projections. `sqlite://…` or `postgres://…`.
     pub database_url: String,
+    /// A Postgres read replica, if one is configured.
+    pub read_database_url: Option<String>,
     /// OAuth sessions, OAuth state and the DID document cache. Always SQLite.
     pub auth_database_url: String,
 
@@ -141,21 +161,33 @@ pub struct Config {
     pub plc_directory_url: String,
     pub bsky_appview_url: String,
 
-    /// Optional accelerators. Each is used when set and otherwise falls back to
-    /// something in-process, so a zero-config instance behaves the same — only
-    /// slower on cold reads.
+    /// The infrastructure this instance needs.
     ///
-    /// - `redis_url`: shared response cache. Fallback: in-process TTL cache.
-    /// - `typesense_*`: full-text search. Fallback: SQLite FTS5.
-    /// - `nats_url`: event fan-out. Fallback: in-process broadcast, which is
-    ///   all a single-binary instance needs anyway.
+    /// - `redis_url`: a shared response cache. Genuinely optional — without it
+    ///   the cache is an in-process TTL map, which is all a single instance
+    ///   needs. Only a second instance behind the same hostname requires it.
+    /// - `typesense_*`: the search index. **Required** — see `crate::search`.
+    /// - `nats_url`: the event bus. **Required** — see `crate::events`.
+    ///
+    /// The two required ones default to a local server on its standard port,
+    /// which is what the docker-compose file provides. So "required" costs an
+    /// operator nothing when they use that file, and is an explicit failure at
+    /// boot when they do not — rather than a running instance with no search
+    /// box and no scrobble mirrors.
     pub redis_url: Option<String>,
-    pub typesense_url: Option<String>,
-    pub typesense_api_key: Option<String>,
-    pub nats_url: Option<String>,
+    pub typesense_url: String,
+    pub typesense_api_key: String,
+    pub nats_url: String,
 
     /// Optional companion services. `None` means "feature off", never
     /// "misconfigured" — handlers that need one answer 501 instead of crashing.
+    /// DIDs for whom teal.fm push defaults to off.
+    ///
+    /// Only a default: someone who has chosen explicitly keeps their choice —
+    /// see `crate::xrpc::app_rocksky::mirror`. Exists because teal.fm asked
+    /// for specific accounts not to be mirrored by default.
+    pub disabled_tealfm: Vec<String>,
+
     pub navidrome_internal_url: Option<String>,
     pub navidrome_internal_secret: Option<String>,
     pub spotify_api_url: Option<String>,
@@ -574,6 +606,13 @@ impl Config {
             .or(file.server.port)
             .unwrap_or(3004);
 
+        // `XATA_*` are the names the production deployment already uses, so a
+        // Doppler environment works unchanged; `APPVIEW_*` are the generic
+        // ones a self-hoster would reach for first.
+        let read_database_url = pick(None, "APPVIEW_DB_READ_URL", file.database.read_url.clone())
+            .or_else(|| std::env::var("XATA_READ_POSTGRES_URL").ok())
+            .filter(|url| !url.is_empty());
+
         let database_url = pick(
             cli.database_url.clone(),
             "APPVIEW_DB_URL",
@@ -597,6 +636,7 @@ impl Config {
 
             config_path,
             database_url,
+            read_database_url,
             auth_database_url,
             data_dir,
 
@@ -671,8 +711,11 @@ impl Config {
             ),
 
             redis_url: pick(None, "REDIS_URL", file.cache.redis_url.clone()),
-            typesense_url: pick(None, "TYPESENSE_URL", file.search.typesense_url.clone()).or_else(
-                || {
+            // Required, so there is a default rather than a `None`: search is
+            // the only way to find anything in a large catalogue, and this
+            // crate has no substitute for it.
+            typesense_url: pick(None, "TYPESENSE_URL", file.search.typesense_url.clone())
+                .or_else(|| {
                     // The TypeScript API splits the URL across three variables;
                     // accept that form so an existing .env works unchanged.
                     let host = env_opt("TYPESENSE_HOST")?;
@@ -680,14 +723,25 @@ impl Config {
                         env_opt("TYPESENSE_PROTOCOL").unwrap_or_else(|| "http".to_string());
                     let port = env_opt("TYPESENSE_PORT").unwrap_or_else(|| "8108".to_string());
                     Some(format!("{protocol}://{host}:{port}"))
-                },
-            ),
+                })
+                .filter(|url| !url.is_empty())
+                .unwrap_or_else(|| DEFAULT_TYPESENSE_URL.to_string()),
             typesense_api_key: pick(
                 None,
                 "TYPESENSE_API_KEY",
                 file.search.typesense_api_key.clone(),
-            ),
-            nats_url: pick(None, "NATS_URL", file.events.nats_url.clone()),
+            )
+            .filter(|key| !key.is_empty())
+            .unwrap_or_else(|| DEFAULT_TYPESENSE_API_KEY.to_string()),
+            // Required, so there is a default rather than a `None`: other
+            // services communicate through this bus, and an instance that
+            // published nowhere would look healthy while half the system
+            // stopped.
+            nats_url: pick(None, "NATS_URL", file.events.nats_url.clone())
+                .filter(|url| !url.is_empty())
+                .unwrap_or_else(|| DEFAULT_NATS_URL.to_string()),
+
+            disabled_tealfm: env_list("DISABLED_TEALFM").unwrap_or_default(),
 
             navidrome_internal_url: pick(
                 None,
@@ -771,7 +825,14 @@ impl Config {
     /// A summary safe to log: the signing key is replaced with its length.
     pub fn summary(&self) -> String {
         let backend = if self.database_url.starts_with("postgres") {
-            "postgres"
+            // Whether a replica is configured is worth seeing at startup: a
+            // deployment that meant to split reads and did not is otherwise
+            // indistinguishable from one that did.
+            if self.read_database_url.is_some() {
+                "postgres+replica"
+            } else {
+                "postgres"
+            }
         } else {
             "sqlite"
         };
@@ -790,16 +851,8 @@ impl Config {
             } else {
                 "in-process"
             },
-            if self.typesense_url.is_some() {
-                "typesense"
-            } else {
-                "sqlite-fts"
-            },
-            if self.nats_url.is_some() {
-                "nats"
-            } else {
-                "in-process"
-            },
+            self.typesense_url,
+            self.nats_url,
             if self.s3.is_some() { "on" } else { "off" },
             match (&self.tap_hostname, self.tap_enabled) {
                 (Some(host), true) => host.as_str(),
@@ -824,6 +877,7 @@ impl Config {
             data_dir: PathBuf::from("."),
             config_path: PathBuf::from("config.toml"),
             database_url: "sqlite::memory:".into(),
+            read_database_url: None,
             auth_database_url: "sqlite::memory:".into(),
             jwt_secret: "test-secret".into(),
             public_url: "http://localhost".into(),
@@ -841,9 +895,10 @@ impl Config {
             plc_directory_url: "https://plc.directory".into(),
             bsky_appview_url: "https://public.api.bsky.app".into(),
             redis_url: None,
-            typesense_url: None,
-            typesense_api_key: None,
-            nats_url: None,
+            typesense_url: DEFAULT_TYPESENSE_URL.to_string(),
+            typesense_api_key: DEFAULT_TYPESENSE_API_KEY.to_string(),
+            nats_url: DEFAULT_NATS_URL.to_string(),
+            disabled_tealfm: Vec::new(),
             navidrome_internal_url: None,
             navidrome_internal_secret: None,
             spotify_api_url: None,

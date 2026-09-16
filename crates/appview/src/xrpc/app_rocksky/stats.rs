@@ -1,8 +1,10 @@
 //! `app.rocksky.stats.*`
 
 use crate::actors;
+use crate::db::schema::{Albums, Artists, LovedTracks, Scrobbles, Tracks, Users};
 use crate::db::Backend;
 use crate::error::XrpcResult;
+use crate::sea_query::{Asterisk, Expr, Func, FunctionCall, IntoTableRef, Query, SelectStatement};
 use crate::state::AppState;
 use crate::xrpc::json;
 use crate::xrpc_query;
@@ -38,13 +40,21 @@ async fn get_global_stats(state: web::Data<AppState>) -> XrpcResult<HttpResponse
     }
 }
 
+/// `count(*)` over a whole table.
+fn count_all(table: impl IntoTableRef) -> SelectStatement {
+    Query::select()
+        .expr(Func::count(Expr::col(Asterisk)))
+        .from(table)
+        .to_owned()
+}
+
 async fn load_global_stats(db: &Backend) -> Result<GlobalStatsView, sqlx::Error> {
     Ok(GlobalStatsView {
-        scrobbles: db.count(&db.sql("SELECT count(*) FROM scrobbles")).await?,
-        users: db.count(&db.sql("SELECT count(*) FROM users")).await?,
-        artists: db.count(&db.sql("SELECT count(*) FROM artists")).await?,
-        albums: db.count(&db.sql("SELECT count(*) FROM albums")).await?,
-        tracks: db.count(&db.sql("SELECT count(*) FROM tracks")).await?,
+        scrobbles: db.count(&count_all(Scrobbles::Table)).await?,
+        users: db.count(&count_all(Users::Table)).await?,
+        artists: db.count(&count_all(Artists::Table)).await?,
+        albums: db.count(&count_all(Albums::Table)).await?,
+        tracks: db.count(&count_all(Tracks::Table)).await?,
     })
 }
 
@@ -88,21 +98,32 @@ async fn load_stats(db: &Backend, did_or_handle: &str) -> Result<StatsView, sqlx
 
     // `artists`, `albums` and `tracks` are distinct counts over the user's
     // scrobbles — not row counts of those tables.
-    let scoped = |what: &str| {
-        let mut sql = db.sql(format!("SELECT {what} FROM scrobbles WHERE user_id = "));
-        sql.bind(&user_id);
-        sql
+    let scoped = |aggregate: FunctionCall| {
+        Query::select()
+            .expr(aggregate)
+            .from(Scrobbles::Table)
+            .and_where(Expr::col(Scrobbles::UserId).eq(&user_id))
+            .to_owned()
     };
 
-    let mut loved = db.sql("SELECT count(*) FROM loved_tracks WHERE user_id = ");
-    loved.bind(&user_id);
+    let loved = count_all(LovedTracks::Table)
+        .and_where(Expr::col(LovedTracks::UserId).eq(&user_id))
+        .to_owned();
 
     Ok(StatsView {
-        scrobbles: db.count(&scoped("count(*)")).await?,
-        artists: db.count(&scoped("count(DISTINCT artist_id)")).await?,
+        scrobbles: db.count(&scoped(Func::count(Expr::col(Asterisk)))).await?,
+        artists: db
+            .count(&scoped(Func::count_distinct(Expr::col(
+                Scrobbles::ArtistId,
+            ))))
+            .await?,
         loved_tracks: db.count(&loved).await?,
-        albums: db.count(&scoped("count(DISTINCT album_id)")).await?,
-        tracks: db.count(&scoped("count(DISTINCT track_id)")).await?,
+        albums: db
+            .count(&scoped(Func::count_distinct(Expr::col(Scrobbles::AlbumId))))
+            .await?,
+        tracks: db
+            .count(&scoped(Func::count_distinct(Expr::col(Scrobbles::TrackId))))
+            .await?,
     })
 }
 

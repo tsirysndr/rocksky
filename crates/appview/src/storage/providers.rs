@@ -5,7 +5,9 @@
 //! through either server is usable by both.
 
 use crate::db::models::{self, Col};
+use crate::db::schema::{UserStorageProviders, UserUploads};
 use crate::db::Backend;
+use crate::sea_query::{Expr, Order, Query};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -36,24 +38,25 @@ pub async fn find(
     user_id: &str,
     provider_id: &str,
 ) -> Result<Option<StorageProvider>, sqlx::Error> {
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(PROVIDER_COLS, db.dialect(), None))
-        .push(" FROM user_storage_providers WHERE xata_id = ")
-        .bind(provider_id)
-        .push(" AND user_id = ")
-        .bind(user_id)
-        .push(" LIMIT 1");
-    db.fetch_optional(&sql).await
+    let mut query = Query::select();
+    db.select_model(&mut query, PROVIDER_COLS, None);
+    query
+        .from(UserStorageProviders::Table)
+        .and_where(Expr::col(UserStorageProviders::XataId).eq(provider_id))
+        .and_where(Expr::col(UserStorageProviders::UserId).eq(user_id))
+        .limit(1);
+    db.fetch_optional(&query).await
 }
 
 /// Every provider belonging to a user.
 pub async fn list(db: &Backend, user_id: &str) -> Result<Vec<StorageProvider>, sqlx::Error> {
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(PROVIDER_COLS, db.dialect(), None))
-        .push(" FROM user_storage_providers WHERE user_id = ")
-        .bind(user_id)
-        .push(" ORDER BY xata_createdat ASC");
-    db.fetch_all(&sql).await
+    let mut query = Query::select();
+    db.select_model(&mut query, PROVIDER_COLS, None);
+    query
+        .from(UserStorageProviders::Table)
+        .and_where(Expr::col(UserStorageProviders::UserId).eq(user_id))
+        .order_by(UserStorageProviders::XataCreatedat, Order::Asc);
+    db.fetch_all(&query).await
 }
 
 /// Whether any upload still points at this provider.
@@ -62,16 +65,23 @@ pub async fn list(db: &Backend, user_id: &str) -> Result<Vec<StorageProvider>, s
 /// would name a bucket whose credentials are gone, and the audio would be
 /// unreachable with no way to recover the reference.
 pub async fn is_in_use(db: &Backend, provider_id: &str) -> Result<bool, sqlx::Error> {
-    let mut sql = db.sql("SELECT xata_id FROM user_uploads WHERE storage_provider_id = ");
-    sql.bind(provider_id).push(" LIMIT 1");
-    Ok(db.fetch_scalar::<String>(&sql).await?.is_some())
+    let query = Query::select()
+        .column(UserUploads::XataId)
+        .from(UserUploads::Table)
+        .and_where(Expr::col(UserUploads::StorageProviderId).eq(provider_id))
+        .limit(1)
+        .take();
+    Ok(db.fetch_scalar::<String>(&query).await?.is_some())
 }
 
 /// Deletes a provider, scoped to its owner. Returns whether a row went.
 pub async fn delete(db: &Backend, user_id: &str, provider_id: &str) -> Result<bool, sqlx::Error> {
-    let mut sql = db.sql("DELETE FROM user_storage_providers WHERE xata_id = ");
-    sql.bind(provider_id).push(" AND user_id = ").bind(user_id);
-    Ok(db.execute(&sql).await? > 0)
+    let delete = Query::delete()
+        .from_table(UserStorageProviders::Table)
+        .and_where(Expr::col(UserStorageProviders::XataId).eq(provider_id))
+        .and_where(Expr::col(UserStorageProviders::UserId).eq(user_id))
+        .to_owned();
+    Ok(db.execute(&delete).await? > 0)
 }
 
 #[cfg(test)]

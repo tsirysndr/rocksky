@@ -11,6 +11,7 @@
 //! That last rule is what lets the web UI point its API base URL at this same
 //! origin: API routes and app routes share one port without colliding.
 
+use crate::sea_query::{Expr, Query};
 use crate::state::AppState;
 use crate::web;
 use actix_cors::Cors;
@@ -58,7 +59,14 @@ fn cors(state: &AppState) -> Cors {
 async fn healthz(state: axweb::Data<AppState>) -> HttpResponse {
     // A trivial query, so the check fails if the database is gone rather than
     // reporting healthy while every real request errors.
-    match state.db().count(&state.sql("SELECT 1")).await {
+    //
+    // `1i64`, not `1`: `count` decodes column 0 as an `i64`, and an `i32`
+    // literal is `int4` on Postgres, which sqlx refuses to decode into one.
+    // With the narrower literal this endpoint reported "database unavailable"
+    // on every Postgres deployment no matter how healthy the database was —
+    // and no test caught it, because the test backend is SQLite.
+    let probe = Query::select().expr(Expr::val(1i64)).to_owned();
+    match state.db().count(&probe).await {
         Ok(_) => HttpResponse::Ok().json(serde_json::json!({
             "status": "ok",
             "version": env!("CARGO_PKG_VERSION"),

@@ -35,11 +35,10 @@ fn node_session_row(issuer: &str) -> String {
             "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
             "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
             "d": "jpsQnnGQmL-YBIffH1136cspYG6-0iY7X1fCE9-E9LI",
-            "alg": "ES256",
-            "use": "sig",
-            "kid": "node-written-key"
+            "use": "sig"
         },
-        "authMethod": "private_key_jwt",
+        // The object form, which is what 663 of 833 production rows hold.
+        "authMethod": { "method": "private_key_jwt", "kid": "2dfa3fd9-57b3-4738-ac27-9e6" },
         "tokenSet": {
             "iss": issuer,
             "sub": "did:plc:alice",
@@ -189,12 +188,15 @@ async fn a_session_rewritten_here_is_still_readable_by_the_typescript_api() {
     assert_eq!(value["tokenSet"]["refresh_token"], "node-refresh-token");
     assert_eq!(value["tokenSet"]["token_type"], "DPoP");
     assert_eq!(value["tokenSet"]["iss"], issuer.url());
-    assert_eq!(value["authMethod"], "private_key_jwt");
+    // The object form, which is what the current Node client writes and what
+    // most production rows already hold.
+    assert_eq!(value["authMethod"]["method"], "private_key_jwt", "{value}");
 
-    // The private half of the DPoP key must still be there, and carry an
-    // explicit algorithm so the TypeScript side does not have to guess.
+    // The private half of the DPoP key must still be there. No `alg` is
+    // asserted: production keys carry none — only kty/crv/x/y/d and
+    // sometimes `use` — and Node infers ES256 from the P-256 curve. Requiring
+    // one here would be asserting a field the TypeScript side never writes.
     assert!(value["dpopJwk"]["d"].is_string(), "{value}");
-    assert_eq!(value["dpopJwk"]["alg"], "ES256");
     assert_eq!(value["dpopJwk"]["kty"], "EC");
     assert_eq!(value["dpopJwk"]["crv"], "P-256");
 
@@ -478,5 +480,128 @@ async fn every_session_in_a_real_database_restores() {
         "{} of {} live sessions would be lost",
         unreadable.len(),
         keys.len()
+    );
+}
+
+/// `authMethod` has three shapes in the wild and all of them must parse.
+///
+/// This is the second bug a real database found. The field was declared
+/// `Option<String>`, which parses an absent one and rejects the object form —
+/// and the object form is what four production rows in five hold, so the
+/// interop promise held for 155 accounts and broke for 663.
+///
+/// | shape               | written by                      | production count |
+/// |---------------------|---------------------------------|------------------|
+/// | `{ method, kid }`   | a confidential client (current) |              663 |
+/// | absent              | a public client                 |              155 |
+/// | `"private_key_jwt"` | a confidential client (legacy)  |                0 |
+#[actix_web::test]
+async fn every_auth_method_shape_in_production_parses() {
+    let issuer = stub_authserver().await;
+
+    let token_set = serde_json::json!({
+        "iss": issuer.url(),
+        "sub": "did:plc:alice",
+        "aud": "https://shimeji.us-east.host.bsky.network",
+        "scope": "atproto",
+        "refresh_token": "node-refresh-token",
+        "access_token": "node-access-token",
+        "token_type": "DPoP",
+        "expires_at": "2027-01-01T00:00:00.000Z",
+    });
+
+    // The key material as production writes it: no `alg`, no `kid`.
+    let dpop_jwk = serde_json::json!({
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+        "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+        "d": "jpsQnnGQmL-YBIffH1136cspYG6-0iY7X1fCE9-E9LI",
+        "use": "sig",
+    });
+
+    let shapes = [
+        (
+            "the object form",
+            Some(serde_json::json!({
+                "method": "private_key_jwt",
+                "kid": "2dfa3fd9-57b3-4738-ac27-9e6",
+            })),
+        ),
+        ("absent", None),
+        (
+            "the legacy string form",
+            Some(serde_json::json!("private_key_jwt")),
+        ),
+    ];
+
+    for (description, auth_method) in shapes {
+        let mut row = serde_json::json!({
+            "dpopJwk": dpop_jwk,
+            "tokenSet": token_set,
+        });
+        if let Some(auth_method) = auth_method {
+            row["authMethod"] = auth_method;
+        }
+
+        let parsed = rocksky_appview::oauth::store::parse_node_session(&row.to_string())
+            .unwrap_or_else(|err| panic!("{description} must parse, got {err}"));
+
+        assert_eq!(parsed.did, "did:plc:alice", "{description}");
+        assert_eq!(parsed.access_token, "node-access-token", "{description}");
+        assert_eq!(
+            parsed.refresh_token.as_deref(),
+            Some("node-refresh-token"),
+            "{description}"
+        );
+        // The DPoP key is the part that makes a session usable rather than
+        // merely readable, and production keys carry no `alg` or `kid`.
+        assert!(
+            matches!(parsed.dpop_key, jose_jwk::Key::Ec(_)),
+            "{description} lost its DPoP key"
+        );
+    }
+}
+
+/// Whatever `authMethod` a row arrived with must still be there afterwards,
+/// or apps/api reads back a session it did not write.
+#[actix_web::test]
+async fn rewriting_a_session_preserves_the_auth_method_shape() {
+    let issuer = stub_authserver().await;
+    let db = production_shaped_db().await;
+
+    sqlx::query("INSERT INTO auth_session (key, session, \"expiresAt\") VALUES (?, ?, ?)")
+        .bind("did:plc:alice")
+        .bind(node_session_row(issuer.url()))
+        .bind("2027-01-01T00:00:00.000Z")
+        .execute(&db)
+        .await
+        .expect("insert");
+
+    let store = SqliteAuthStore::new(db.clone(), reqwest::Client::new());
+    let did: Did = "did:plc:alice".parse().unwrap();
+
+    let session = store
+        .get_session(&did, DEFAULT_SESSION_ID)
+        .await
+        .expect("restore")
+        .expect("found");
+    store.upsert_session(session).await.expect("save");
+
+    let raw: String = sqlx::query_scalar("SELECT session FROM auth_session WHERE key = ?")
+        .bind("did:plc:alice")
+        .fetch_one(&db)
+        .await
+        .expect("row");
+
+    let value: serde_json::Value = serde_json::from_str(&raw).expect("json");
+    assert!(
+        value["authMethod"].is_object() || value["authMethod"].is_string(),
+        "authMethod must survive as something apps/api understands: {}",
+        value["authMethod"]
+    );
+    assert_eq!(
+        value["authMethod"]["method"], "private_key_jwt",
+        "the method itself must not change"
     );
 }

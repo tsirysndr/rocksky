@@ -1,10 +1,13 @@
 //! The shared handler context — the Rust counterpart of
 //! `apps/api/src/context.ts`.
 //!
-//! The difference from the TypeScript `ctx` is what is *not* here: no Postgres
-//! pool, no mandatory Redis client, no NATS connection, no Typesense client.
-//! Those become optional accelerators ([`crate::cache`], [`crate::search`]) so
-//! a zero-config instance still boots with nothing but its SQLite file.
+//! The difference from the TypeScript `ctx` is the database: SQLite by default
+//! rather than a mandatory Postgres, so a zero-config instance boots with
+//! nothing but a file. Redis is a genuine accelerator ([`crate::cache`]) with
+//! an in-process fallback. NATS ([`crate::events`]) and Typesense
+//! ([`crate::search`]) are not — both are required, because neither has a
+//! substitute and an instance without them would look healthy while its search
+//! box and its scrobble mirrors did nothing.
 
 use crate::cache::Cache;
 use crate::config::Config;
@@ -28,6 +31,18 @@ pub struct AppStateInner {
     /// The OAuth client. `None` when it could not be built, which leaves
     /// app-password login working rather than refusing to start.
     pub oauth: Option<Arc<crate::oauth::OauthService>>,
+    /// The event bus.
+    ///
+    /// `Option` only so tests can run without a broker. [`AppState::new`]
+    /// *requires* a connection and fails without one, so on the real path this
+    /// is always `Some` — see `crate::events` for why a fallback would be
+    /// worse than a hard failure.
+    pub events: Option<crate::events::Events>,
+    /// The search index.
+    ///
+    /// `Option` for the same reason as `events`, and with the same guarantee:
+    /// [`AppState::new`] requires it, so it is `None` only under test.
+    pub search: Option<crate::search::Search>,
 }
 
 /// Cheap to clone; every actix worker thread shares one.
@@ -36,7 +51,8 @@ pub struct AppState(Arc<AppStateInner>);
 
 impl AppState {
     pub async fn new(config: Config) -> anyhow::Result<Self> {
-        let db = Backend::connect(&config.database_url).await?;
+        let db = Backend::connect_split(&config.database_url, config.read_database_url.as_deref())
+            .await?;
         let auth_db = crate::db::connect_auth(&config.auth_database_url).await?;
 
         let http = reqwest::Client::builder()
@@ -57,6 +73,31 @@ impl AppState {
             }
         };
 
+        // Required. Unlike OAuth, a missing bus is not survivable: the other
+        // services learn about every like, every new account and every
+        // scrobble through it, so publishing nowhere would leave a
+        // healthy-looking instance with half the system stopped.
+        let events = crate::events::Events::connect(&config.nats_url).await?;
+
+        // Also required, and for the same reason. `connect` creates any missing
+        // collection and reports which ones it had to create; those are empty,
+        // so they are filled from the database before the server accepts
+        // traffic — that is what makes search work when this binary is pointed
+        // at a database it did not build.
+        let search =
+            crate::search::Search::connect(&config.typesense_url, &config.typesense_api_key)
+                .await?;
+        let fresh = search.ensure_collections().await?;
+        if !fresh.is_empty() {
+            if let Err(err) = crate::search::backfill(&search, &db, &fresh).await {
+                // Not fatal: a half-built index still answers, and every write
+                // path keeps it current from here on. Refusing to boot over it
+                // would be worse than a search box that improves as people use
+                // the instance.
+                tracing::error!(error = ?err, "could not fully build the search index");
+            }
+        }
+
         Ok(Self(Arc::new(AppStateInner {
             config,
             db,
@@ -64,6 +105,8 @@ impl AppState {
             http,
             cache,
             oauth,
+            events: Some(events),
+            search: Some(search),
         })))
     }
 
@@ -86,6 +129,9 @@ impl AppState {
             cache: Cache::in_process(),
             // Tests that need OAuth build the service themselves.
             oauth: None,
+            // No broker and no index in a test; both call sites check.
+            events: None,
+            search: None,
         })))
     }
 
@@ -107,7 +153,23 @@ impl AppState {
             http,
             cache: Cache::in_process(),
             oauth,
+            events: None,
+            search: None,
         })))
+    }
+
+    /// The event bus, when there is one.
+    ///
+    /// Always present outside tests — see [`AppStateInner::events`].
+    pub fn events(&self) -> Option<&crate::events::Events> {
+        self.0.events.as_ref()
+    }
+
+    /// The search index, when there is one.
+    ///
+    /// Always present outside tests — see [`AppStateInner::search`].
+    pub fn search(&self) -> Option<&crate::search::Search> {
+        self.0.search.as_ref()
     }
 
     pub fn db(&self) -> &Backend {

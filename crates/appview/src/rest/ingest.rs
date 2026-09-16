@@ -29,8 +29,10 @@
 
 use crate::atproto::{records, session};
 use crate::auth::AuthDid;
+use crate::db::schema::{UserUploads, Users};
 use crate::db::{new_id, Backend};
 use crate::error::{ResponseType, XrpcError, XrpcResult};
+use crate::sea_query::{Expr, Query};
 use crate::state::AppState;
 use crate::storage;
 use crate::uploads::audio;
@@ -205,12 +207,13 @@ async fn upload_track(
     let content_hash = audio::content_hash(&stored);
     let storage_key = format!("music/{user_id}/{content_hash}.{extension}");
 
-    let mut existing = db.sql("SELECT xata_id FROM user_uploads WHERE user_id = ");
-    existing
-        .bind(&user_id)
-        .push(" AND r2_key = ")
-        .bind(&storage_key)
-        .push(" LIMIT 1");
+    let existing = Query::select()
+        .column(UserUploads::XataId)
+        .from(UserUploads::Table)
+        .and_where(Expr::col(UserUploads::UserId).eq(&user_id))
+        .and_where(Expr::col(UserUploads::R2Key).eq(&storage_key))
+        .limit(1)
+        .take();
     if let Some(upload_id) = db.fetch_scalar::<String>(&existing).await? {
         return Err(XrpcError::with_message(
             ResponseType::Conflict,
@@ -283,6 +286,10 @@ async fn upload_track(
         .await
         .map_err(|err| XrpcError::internal(anyhow::anyhow!(err)))?;
 
+    // The track, its album and its artist, so a brand-new record is findable
+    // immediately rather than after the next restart.
+    crate::search::index_track_tree(&state, &track_id).await;
+
     // Publish to the user's repo, so the library is portable. Best effort: a
     // PDS that refuses the write leaves a local row that a later re-publish
     // or a firehose ingest can still fill in.
@@ -302,30 +309,31 @@ async fn upload_track(
         })?;
 
     let upload_id = new_id();
-    let mut insert = db.sql(
-        "INSERT INTO user_uploads \
-         (xata_id, user_id, track_id, r2_key, mime_type, file_size, original_filename, \
-          sample_rate, storage_provider_id) VALUES (",
-    );
-    insert
-        .bind(&upload_id)
-        .push(", ")
-        .bind(&user_id)
-        .push(", ")
-        .bind(&track_id)
-        .push(", ")
-        .bind(&storage_key)
-        .push(", ")
-        .bind(mime)
-        .push(", ")
-        .bind(stored.len() as i64)
-        .push(", ")
-        .bind(&submitted.filename)
-        .push(", ")
-        .bind(tags.sample_rate)
-        .push(", ")
-        .bind(target.provider_id.clone())
-        .push(")");
+    let insert = Query::insert()
+        .into_table(UserUploads::Table)
+        .columns([
+            UserUploads::XataId,
+            UserUploads::UserId,
+            UserUploads::TrackId,
+            UserUploads::R2Key,
+            UserUploads::MimeType,
+            UserUploads::FileSize,
+            UserUploads::OriginalFilename,
+            UserUploads::SampleRate,
+            UserUploads::StorageProviderId,
+        ])
+        .values_panic([
+            upload_id.clone().into(),
+            user_id.into(),
+            track_id.clone().into(),
+            storage_key.clone().into(),
+            mime.into(),
+            (stored.len() as i64).into(),
+            submitted.filename.clone().into(),
+            tags.sample_rate.into(),
+            target.provider_id.clone().into(),
+        ])
+        .to_owned();
     db.execute(&insert).await?;
 
     tracing::info!(
@@ -335,6 +343,11 @@ async fn upload_track(
         bytes = stored.len(),
         "stored an upload"
     );
+
+    // On the response path rather than spawned: the client's next request is
+    // usually the library listing, and a track missing from it because the
+    // index had not caught up reads as a lost upload.
+    crate::search::index_upload(&state, &upload_id).await;
 
     // Key and BPM, off the response path: it decodes the whole file, and an
     // analysis failure must never cost someone their upload.
@@ -354,9 +367,14 @@ async fn upload_track(
 }
 
 async fn caller_id(db: &Backend, did: &str) -> XrpcResult<String> {
-    let mut sql = db.sql("SELECT xata_id FROM users WHERE did = ");
-    sql.bind(did).push(" LIMIT 1");
-    db.fetch_scalar::<String>(&sql)
+    let query = Query::select()
+        .column(Users::XataId)
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Did).eq(did))
+        .limit(1)
+        .take();
+
+    db.fetch_scalar::<String>(&query)
         .await?
         .ok_or_else(|| XrpcError::auth_required("Unauthorized"))
 }
@@ -470,13 +488,14 @@ async fn publish_records(
             .flatten(),
     };
 
-    let uris = records::publish(state.http(), &pds, &atp, &record, &known).await;
+    let uris = records::publish(state.http(), &pds, &atp.credentials(), &record, &known).await;
 
     // Backfill whatever was published. `set_record_uri` only fills a NULL, so
     // a track that already had a URI keeps it.
     let db = state.db();
     if let Some(uri) = &uris.song {
-        let _ = crate::ingest::set_record_uri(db, "tracks", track_id, uri).await;
+        let _ =
+            crate::ingest::set_record_uri(db, crate::ingest::UriTable::Tracks, track_id, uri).await;
     }
     if let Some(uri) = &uris.album {
         let _ = crate::ingest::set_album_uri(db, song, uri).await;

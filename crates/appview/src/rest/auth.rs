@@ -22,8 +22,10 @@
 
 use crate::atproto::session::{self, SessionError};
 use crate::auth::jwt::Claims;
+use crate::db::schema::Users;
 use crate::error::{XrpcError, XrpcResult};
 use crate::ingest;
+use crate::sea_query::{Expr, Query};
 use crate::state::AppState;
 use actix_web::http::header::{HeaderValue, CONTENT_TYPE, LOCATION};
 use actix_web::web::{self, ServiceConfig};
@@ -438,17 +440,14 @@ async fn profile(
     sync_user(&state, &auth.did, None).await;
 
     let db = state.db();
-    let mut sql = db.sql("SELECT ");
-    sql.push(crate::db::models::select_list(
-        crate::db::models::USER_COLS,
-        db.dialect(),
-        None,
-    ))
-    .push(" FROM users WHERE did = ")
-    .bind(&auth.did)
-    .push(" LIMIT 1");
+    let mut query = Query::select();
+    db.select_model(&mut query, crate::db::models::USER_COLS, None);
+    query
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Did).eq(&auth.did))
+        .limit(1);
 
-    let user: Option<crate::db::models::User> = db.fetch_optional(&sql).await?;
+    let user: Option<crate::db::models::User> = db.fetch_optional(&query).await?;
     let user = user.ok_or_else(|| XrpcError::not_found("No profile for that account."))?;
 
     Ok(HttpResponse::Ok().json(ProfileResponse {
@@ -478,10 +477,13 @@ pub struct ProfileResponse {
 pub async fn sync_user(state: &AppState, did: &str, known_handle: Option<&str>) {
     let db = state.db();
 
-    if let Err(err) = ingest::upsert_user(db, did).await {
-        tracing::warn!(did, error = ?err, "could not create the user row");
-        return;
-    }
+    let user_id = match ingest::upsert_user(db, did).await {
+        Ok(user_id) => user_id,
+        Err(err) => {
+            tracing::warn!(did, error = ?err, "could not create the user row");
+            return;
+        }
+    };
 
     let profile = session::fetch_profile(state.http(), &state.config().bsky_appview_url, did).await;
 
@@ -493,35 +495,44 @@ pub async fn sync_user(state: &AppState, did: &str, known_handle: Option<&str>) 
 
     // Only overwrite when the lookup actually returned something, so a partial
     // or failed fetch never clobbers good data — same rule as `apps/api`.
-    let mut sets: Vec<&str> = Vec::new();
-    if profile.display_name.is_some() {
-        sets.push("display_name");
+    let mut update = Query::update();
+    update.table(Users::Table);
+    let mut fetched_anything = false;
+
+    if let Some(display_name) = &profile.display_name {
+        update.value(Users::DisplayName, display_name.clone());
+        fetched_anything = true;
     }
-    if profile.avatar.is_some() {
-        sets.push("avatar");
-    }
-    if sets.is_empty() {
-        return;
+    if let Some(avatar) = &profile.avatar {
+        update.value(Users::Avatar, avatar.clone());
+        fetched_anything = true;
     }
 
-    let mut sql = db.sql("UPDATE users SET ");
-    for (index, column) in sets.iter().enumerate() {
-        if index > 0 {
-            sql.push(", ");
+    if fetched_anything {
+        update
+            .value(Users::XataUpdatedat, crate::db::now_timestamp())
+            .and_where(Expr::col(Users::Did).eq(did));
+
+        if let Err(err) = db.execute(&update).await {
+            tracing::warn!(did, error = ?err, "could not refresh the profile");
         }
-        sql.push(format!("{column} = "));
-        match *column {
-            "display_name" => sql.bind(profile.display_name.clone()),
-            _ => sql.bind(profile.avatar.clone()),
-        };
     }
-    sql.push(", xata_updatedat = ")
-        .bind(crate::db::now_timestamp())
-        .push(" WHERE did = ")
-        .bind(did);
 
-    if let Err(err) = db.execute(&sql).await {
-        tracing::warn!(did, error = ?err, "could not refresh the profile");
+    // After the handle and the profile, so the document carries the current
+    // ones — this is what makes a person findable by the handle they use now
+    // rather than the one they signed up with.
+    crate::search::index_user(state, &user_id).await;
+
+    // Other services keep their own projections of a user row (the avatar sync,
+    // and `apps/api`'s own search indexer when both APIs run against one
+    // database), so the row change is announced as well as indexed.
+    if let Some(events) = state.events() {
+        events
+            .publish_json(
+                crate::events::subject::USER,
+                &serde_json::json!({ "xata_id": user_id, "did": did }),
+            )
+            .await;
     }
 }
 

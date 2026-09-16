@@ -140,6 +140,75 @@ impl Cache {
         }
     }
 
+    /// Claims `key` if nobody holds it, returning whether this caller won.
+    ///
+    /// The one cache operation whose *result* matters rather than its value:
+    /// it is a lock. Several sources can report the same listen within the
+    /// same second — a Spotify webhook, a Last.fm mirror and navidrome all
+    /// firing at once — and each would publish its own ATProto record. The
+    /// database's uniqueness catches the duplicate rows, but by then the
+    /// duplicate records are already in the user's repository, where nothing
+    /// removes them.
+    ///
+    /// With Redis this is `SET NX EX`, which is atomic across processes. With
+    /// the in-process cache it is atomic within one, which is all a single
+    /// binary needs — and a self-hosted instance is a single binary.
+    ///
+    /// A cache that cannot be reached answers `true`: refusing the write would
+    /// turn a lost Redis into lost scrobbles, which is far worse than a
+    /// duplicate record.
+    pub async fn claim(&self, key: &str, ttl: Duration) -> bool {
+        match &self.backend {
+            Backend::InProcess(map) => {
+                let Ok(mut map) = map.lock() else {
+                    return true;
+                };
+                if let Some(entry) = map.get(key) {
+                    if entry.expires_at > Instant::now() {
+                        return false;
+                    }
+                }
+                if map.len() >= MAX_IN_PROCESS_ENTRIES {
+                    prune(&mut map);
+                }
+                map.insert(
+                    key.to_string(),
+                    Entry {
+                        value: "1".to_string(),
+                        expires_at: Instant::now() + ttl,
+                    },
+                );
+                true
+            }
+            Backend::Redis(manager) => {
+                let mut conn = manager.clone();
+                let result: redis::RedisResult<Option<String>> = redis::cmd("SET")
+                    .arg(key)
+                    .arg("1")
+                    .arg("NX")
+                    .arg("EX")
+                    .arg(ttl.as_secs().max(1))
+                    .query_async(&mut conn)
+                    .await;
+
+                match result {
+                    // `SET NX` answers OK when it set, nil when it did not.
+                    Ok(Some(_)) => true,
+                    Ok(None) => false,
+                    Err(err) => {
+                        tracing::warn!(
+                            error = %err,
+                            key,
+                            "could not reach the cache to take a lock; proceeding \
+                             rather than dropping the write"
+                        );
+                        true
+                    }
+                }
+            }
+        }
+    }
+
     /// Reads and deserializes a cached view. A value that no longer parses (the
     /// shape changed between releases) counts as a miss rather than an error.
     pub async fn get_json<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
@@ -309,6 +378,39 @@ mod tests {
             map.len() < MAX_IN_PROCESS_ENTRIES,
             "prune must free space, left {}",
             map.len()
+        );
+    }
+}
+
+#[cfg(test)]
+mod claim_tests {
+    use super::*;
+
+    /// The first caller wins and the rest do not — that is the whole point.
+    #[tokio::test]
+    async fn only_the_first_caller_claims_a_key() {
+        let cache = Cache::in_process();
+        let ttl = Duration::from_secs(60);
+
+        assert!(cache.claim("scrobble-put:alice:abc:1", ttl).await);
+        assert!(!cache.claim("scrobble-put:alice:abc:1", ttl).await);
+        assert!(!cache.claim("scrobble-put:alice:abc:1", ttl).await);
+
+        // A different key is unaffected.
+        assert!(cache.claim("scrobble-put:alice:abc:2", ttl).await);
+    }
+
+    /// A claim expires, so a lock leaked by a crashed request does not block
+    /// that listen forever.
+    #[tokio::test]
+    async fn a_claim_expires() {
+        let cache = Cache::in_process();
+
+        assert!(cache.claim("k", Duration::from_millis(1)).await);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        assert!(
+            cache.claim("k", Duration::from_secs(60)).await,
+            "an expired claim must be retakeable"
         );
     }
 }

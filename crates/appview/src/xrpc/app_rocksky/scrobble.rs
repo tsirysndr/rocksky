@@ -1,12 +1,15 @@
 //! `app.rocksky.scrobble.*`
 
 use crate::auth::Auth;
-use crate::db::models::{self, Artist, Scrobble, SCROBBLE_COLS};
-use crate::db::query::Sql;
+use crate::db::models::{Artist, Scrobble, ARTIST_COLS, SCROBBLE_COLS};
+use crate::db::schema::{Artists, Follows, Scrobbles, Tracks, Users};
 use crate::db::{loaders, Backend};
 use crate::error::XrpcResult;
 use crate::likes;
-use crate::rsql::{self, Field, FieldMap};
+use crate::rsql::{Field, FieldMap};
+use crate::sea_query::{
+    Alias, Asterisk, Expr, Func, JoinType, Order, Query, SelectStatement, SimpleExpr,
+};
 use crate::state::AppState;
 use crate::views::{FirstScrobbleView, ScrobbleViewBasic, ScrobbleViewDetailed};
 use crate::xrpc::{clamp_limit, clamp_offset, json};
@@ -55,10 +58,31 @@ const FILTER_FIELDS: FieldMap = &[
 
 /// The joins the filter selectors above reference. Always present, so a filter
 /// on any exposed field resolves.
-const FEED_JOINS: &str = " FROM scrobbles s \
-     LEFT JOIN tracks t ON t.xata_id = s.track_id \
-     LEFT JOIN users u ON u.xata_id = s.user_id \
-     LEFT JOIN artists a ON a.xata_id = s.artist_id";
+fn feed_joins(query: &mut SelectStatement) {
+    query
+        .from_as(Scrobbles::Table, Alias::new("s"))
+        .join_as(
+            JoinType::LeftJoin,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("s"), Scrobbles::TrackId)),
+        )
+        .join_as(
+            JoinType::LeftJoin,
+            Users::Table,
+            Alias::new("u"),
+            Expr::col((Alias::new("u"), Users::XataId))
+                .equals((Alias::new("s"), Scrobbles::UserId)),
+        )
+        .join_as(
+            JoinType::LeftJoin,
+            Artists::Table,
+            Alias::new("a"),
+            Expr::col((Alias::new("a"), Artists::XataId))
+                .equals((Alias::new("s"), Scrobbles::ArtistId)),
+        );
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,7 +117,7 @@ async fn get_scrobbles(
     auth: Auth,
 ) -> XrpcResult<HttpResponse> {
     let params = params.into_inner();
-    let filter = rsql::compile_param(params.filter.as_deref(), FILTER_FIELDS, state.dialect())?;
+    let filter = state.db().filter(params.filter.as_deref(), FILTER_FIELDS)?;
 
     let key = cache_key(&params, state.cache().get(SCROBBLES_VERSION_KEY).await);
     if let Some(cached) = state.cache().get_json::<ScrobblesOutput>(&key).await {
@@ -135,7 +159,7 @@ fn cache_key(params: &GetScrobblesParams, version: Option<String>) -> String {
 async fn load_scrobbles(
     state: &AppState,
     params: &GetScrobblesParams,
-    filter: Option<Sql>,
+    filter: Option<SimpleExpr>,
     viewer: Option<&str>,
 ) -> anyhow::Result<ScrobblesOutput> {
     let db = state.db();
@@ -152,30 +176,25 @@ async fn load_scrobbles(
 
     // Only the scrobble columns are selected; the joins exist for filtering.
     // Selecting the joined tables too would produce four columns aliased `id`.
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(SCROBBLE_COLS, db.dialect(), Some("s")))
-        .push(FEED_JOINS);
+    let mut query = Query::select();
+    db.select_model(&mut query, SCROBBLE_COLS, Some("s"));
+    feed_joins(&mut query);
 
-    let mut conditions: Vec<Sql> = Vec::new();
     if let Some(ids) = &follow_ids {
-        let mut condition = db.sql("s.user_id IN ");
-        condition.bind_list(ids.iter().map(|id| id.as_str()));
-        conditions.push(condition);
+        query.and_where(
+            Expr::col((Alias::new("s"), Scrobbles::UserId)).is_in(ids.iter().map(|id| id.as_str())),
+        );
     }
     if let Some(filter) = filter {
-        conditions.push(filter);
-    }
-    for (index, condition) in conditions.into_iter().enumerate() {
-        sql.push(if index == 0 { " WHERE " } else { " AND " });
-        sql.append(condition);
+        query.and_where(filter);
     }
 
-    sql.push(" ORDER BY s.timestamp DESC LIMIT ")
-        .bind(clamp_limit(params.limit))
-        .push(" OFFSET ")
-        .bind(clamp_offset(params.offset));
+    query
+        .order_by((Alias::new("s"), Scrobbles::Timestamp), Order::Desc)
+        .limit(clamp_limit(params.limit) as u64)
+        .offset(clamp_offset(params.offset) as u64);
 
-    let scrobbles: Vec<Scrobble> = db.fetch_all(&sql).await?;
+    let scrobbles: Vec<Scrobble> = db.fetch_all(&query).await?;
     if scrobbles.is_empty() {
         return Ok(ScrobblesOutput::default());
     }
@@ -207,13 +226,19 @@ async fn load_scrobbles(
 
 /// Row ids of the users `did` follows.
 async fn following_user_ids(db: &Backend, did: &str) -> Result<Vec<String>, sqlx::Error> {
-    let mut sql = db.sql(
-        "SELECT u.xata_id FROM follows f \
-         INNER JOIN users u ON u.did = f.subject_did \
-         WHERE f.follower_did = ",
-    );
-    sql.bind(did);
-    db.fetch_scalars(&sql).await
+    let query = Query::select()
+        .column((Alias::new("u"), Users::XataId))
+        .from_as(Follows::Table, Alias::new("f"))
+        .join_as(
+            JoinType::InnerJoin,
+            Users::Table,
+            Alias::new("u"),
+            Expr::col((Alias::new("u"), Users::Did)).equals((Alias::new("f"), Follows::SubjectDid)),
+        )
+        .and_where(Expr::col((Alias::new("f"), Follows::FollowerDid)).eq(did))
+        .take();
+
+    db.fetch_scalars(&query).await
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -248,12 +273,14 @@ async fn load_scrobble(
 ) -> anyhow::Result<Option<ScrobbleViewDetailed>> {
     let db = state.db();
 
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(SCROBBLE_COLS, db.dialect(), None))
-        .push(" FROM scrobbles WHERE uri = ");
-    sql.bind(uri).push(" LIMIT 1");
+    let mut query = Query::select();
+    db.select_model(&mut query, SCROBBLE_COLS, None);
+    query
+        .from(Scrobbles::Table)
+        .and_where(Expr::col(Scrobbles::Uri).eq(uri))
+        .limit(1);
 
-    let Some(scrobble) = db.fetch_optional::<Scrobble>(&sql).await? else {
+    let Some(scrobble) = db.fetch_optional::<Scrobble>(&query).await? else {
         return Ok(None);
     };
 
@@ -273,11 +300,17 @@ async fn load_scrobble(
 
     let track_artists = credited_artists(db, &track.artist).await?;
 
-    let mut listeners = db.sql("SELECT count(DISTINCT user_id) FROM scrobbles WHERE track_id = ");
-    listeners.bind(&track.id);
+    let listeners = Query::select()
+        .expr(Func::count_distinct(Expr::col(Scrobbles::UserId)))
+        .from(Scrobbles::Table)
+        .and_where(Expr::col(Scrobbles::TrackId).eq(&track.id))
+        .take();
 
-    let mut plays = db.sql("SELECT count(*) FROM scrobbles WHERE track_id = ");
-    plays.bind(&track.id);
+    let plays = Query::select()
+        .expr(Func::count(Expr::col(Asterisk)))
+        .from(Scrobbles::Table)
+        .and_where(Expr::col(Scrobbles::TrackId).eq(&track.id))
+        .take();
 
     Ok(Some(ScrobbleViewDetailed::new(
         &scrobble,
@@ -308,11 +341,13 @@ async fn credited_artists(db: &Backend, artist: &str) -> Result<Vec<Artist>, sql
         return Ok(Vec::new());
     }
 
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(models::ARTIST_COLS, db.dialect(), None))
-        .push(" FROM artists WHERE name IN ");
-    sql.bind_list(names.iter().map(|name| name.as_str()));
-    db.fetch_all(&sql).await
+    let mut query = Query::select();
+    db.select_model(&mut query, ARTIST_COLS, None);
+    query
+        .from(Artists::Table)
+        .and_where(Expr::col(Artists::Name).is_in(names.iter().map(|name| name.as_str())));
+
+    db.fetch_all(&query).await
 }
 
 /// Who played this track first.
@@ -320,18 +355,28 @@ async fn first_scrobble(
     db: &Backend,
     track_id: &str,
 ) -> Result<Option<FirstScrobbleView>, sqlx::Error> {
-    let mut sql = db.sql(
-        "SELECT u.handle, u.avatar, s.timestamp FROM scrobbles s \
-         LEFT JOIN users u ON u.xata_id = s.user_id \
-         WHERE s.track_id = ",
-    );
-    sql.bind(track_id).push(" ORDER BY s.timestamp ASC LIMIT 1");
+    let query = Query::select()
+        .column((Alias::new("u"), Users::Handle))
+        .column((Alias::new("u"), Users::Avatar))
+        .column((Alias::new("s"), Scrobbles::Timestamp))
+        .from_as(Scrobbles::Table, Alias::new("s"))
+        .join_as(
+            JoinType::LeftJoin,
+            Users::Table,
+            Alias::new("u"),
+            Expr::col((Alias::new("u"), Users::XataId))
+                .equals((Alias::new("s"), Scrobbles::UserId)),
+        )
+        .and_where(Expr::col((Alias::new("s"), Scrobbles::TrackId)).eq(track_id))
+        .order_by((Alias::new("s"), Scrobbles::Timestamp), Order::Asc)
+        .limit(1)
+        .take();
 
     let row: Option<(
         Option<String>,
         Option<String>,
         chrono::DateTime<chrono::Utc>,
-    )> = db.fetch_optional(&sql).await?;
+    )> = db.fetch_optional(&query).await?;
 
     Ok(row.and_then(|(handle, avatar, timestamp)| {
         Some(FirstScrobbleView {
@@ -345,6 +390,111 @@ async fn first_scrobble(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Two users, one album, two plays of one track and one of another.
+    async fn fixture() -> AppState {
+        let state = AppState::for_test().await.unwrap();
+        let db = state.db();
+
+        for statement in [
+            "INSERT INTO users (xata_id, did, handle, avatar) VALUES \
+             ('rec_alice', 'did:plc:alice', 'alice.test', 'a'), \
+             ('rec_bob', 'did:plc:bob', 'bob.test', 'b')",
+            "INSERT INTO artists (xata_id, name, sha256, genres) VALUES \
+             ('rec_artist', 'Boards of Canada', 'sha-artist', '[\"electronic\"]')",
+            "INSERT INTO albums (xata_id, title, artist, sha256) VALUES \
+             ('rec_album', 'MHTRTC', 'Boards of Canada', 'sha-album')",
+            "INSERT INTO tracks (xata_id, title, artist, album_artist, album, duration, sha256) \
+             VALUES ('rec_t1', 'Roygbiv', 'Boards of Canada', 'Boards of Canada', 'MHTRTC', 1, 'sha-t1')",
+            "INSERT INTO scrobbles (xata_id, user_id, track_id, album_id, artist_id, uri, timestamp) \
+             VALUES \
+             ('rec_s1', 'rec_alice', 'rec_t1', 'rec_album', 'rec_artist', 'at://1', '2026-01-01T00:00:00.000Z'), \
+             ('rec_s2', 'rec_bob', 'rec_t1', 'rec_album', 'rec_artist', 'at://2', '2026-01-02T00:00:00.000Z')",
+            "INSERT INTO follows (xata_id, uri, follower_did, subject_did) VALUES \
+             ('rec_f1', 'at://f1', 'did:plc:alice', 'did:plc:bob')",
+        ] {
+            db.execute(&db.sql(statement)).await.unwrap();
+        }
+
+        state
+    }
+
+    fn params() -> GetScrobblesParams {
+        GetScrobblesParams {
+            did: None,
+            filter: None,
+            following: None,
+            limit: None,
+            offset: None,
+        }
+    }
+
+    /// The feed's joins, its RSQL filter and its `following` restriction all
+    /// have to *run*: the filter selectors compile to `t.`/`u.`/`a.` column
+    /// references, and a join this query did not define would fail only for
+    /// the clients that filter on it.
+    #[tokio::test]
+    async fn the_feed_reads_a_real_database() {
+        let state = fixture().await;
+
+        let output = load_scrobbles(&state, &params(), None, None).await.unwrap();
+        // Newest first.
+        assert_eq!(output.scrobbles.len(), 2);
+        assert_eq!(output.scrobbles[0].id, "rec_s2");
+
+        // A filter reaching each joined table in turn.
+        for filter in [
+            "title==Roygbiv",
+            "user.handle==bob.test",
+            "artist.name==\"Boards of Canada\"",
+            "track.duration==1",
+        ] {
+            let compiled = state.db().filter(Some(filter), FILTER_FIELDS).unwrap();
+            let output = load_scrobbles(&state, &params(), compiled, None)
+                .await
+                .unwrap_or_else(|err| panic!("{filter:?} failed: {err}"));
+            assert!(!output.scrobbles.is_empty(), "{filter:?} matched nothing");
+        }
+
+        // `following` restricts the feed to the accounts alice follows, which
+        // is bob and not herself.
+        let following = GetScrobblesParams {
+            did: Some("did:plc:alice".into()),
+            following: Some(true),
+            ..params()
+        };
+        let output = load_scrobbles(&state, &following, None, None)
+            .await
+            .unwrap();
+        assert_eq!(output.scrobbles.len(), 1);
+        assert_eq!(output.scrobbles[0].id, "rec_s2");
+    }
+
+    /// The detail page's counts and its first-scrobble lookup.
+    #[tokio::test]
+    async fn the_detail_counts_plays_and_listeners() {
+        let state = fixture().await;
+
+        let view = load_scrobble(&state, "at://2", None)
+            .await
+            .unwrap()
+            .expect("the scrobble is found by its uri");
+
+        assert_eq!(view.scrobbles, 2, "total plays of the track");
+        assert_eq!(view.listeners, 2, "distinct listeners");
+        // The comma-separated `artist` field resolved to the artist row.
+        assert_eq!(view.artists.len(), 1);
+        assert_eq!(view.artists[0].name, "Boards of Canada");
+        // And alice played it first.
+        let first = view.first_scrobble.expect("someone played it first");
+        assert_eq!(first.handle, "alice.test");
+
+        // An unknown URI is not found rather than an error.
+        assert!(load_scrobble(&state, "at://nope", None)
+            .await
+            .unwrap()
+            .is_none());
+    }
 
     #[test]
     fn the_cache_key_matches_the_typescript_shape() {
@@ -413,16 +563,18 @@ mod tests {
     #[test]
     fn every_filter_selector_uses_a_table_alias_the_query_defines() {
         // A filter compiling to `x.foo` when the query has no `x` would fail
-        // at runtime, only for the clients that use that selector.
+        // at runtime, only for the clients that use that selector. Checked
+        // against the rendered joins rather than a list of names, so the two
+        // cannot drift.
+        let mut query = Query::select();
+        feed_joins(&mut query);
+        let joins = query.to_string(crate::sea_query::SqliteQueryBuilder);
+
         for (name, field) in FILTER_FIELDS {
             let alias = field.column.split('.').next().unwrap();
             assert!(
-                matches!(alias, "s" | "t" | "u" | "a"),
-                "{name} references unknown table alias {alias:?}"
-            );
-            assert!(
-                FEED_JOINS.contains(&format!(" {alias} ")) || alias == "s",
-                "{name} uses alias {alias:?}, which FEED_JOINS does not define"
+                joins.contains(&format!(r#"AS "{alias}""#)),
+                "{name} uses alias {alias:?}, which the feed joins do not define: {joins}"
             );
         }
     }

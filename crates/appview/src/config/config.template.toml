@@ -149,13 +149,27 @@
 # redis_url = "redis://localhost:6379"
 
 [search]
-# Unset uses SQLite full-text search. Typesense is faster on a large catalogue.
+# Typesense. REQUIRED — it serves the search box and the search over your own
+# uploads, and there is no substitute: the instance refuses to start without it.
+#
+# The defaults below are a local server on its standard port, which is what the
+# docker-compose file provides, so leaving both commented out is correct for a
+# normal install. The API key is not a secret in the usual sense — Typesense
+# here holds an index of data the public API already serves — but set your own
+# if the server is reachable from outside your network.
+#
+# On first start every collection is created and filled from the database, so
+# pointing a new instance at an existing database gives a working search box
+# without an import step.
 # typesense_url = "http://localhost:8108"
-# typesense_api_key = ""
+# typesense_api_key = "rocksky"
 
 [events]
-# Live-update fan-out. Unset delivers in-process, which is correct for one
-# binary; set this to share events across instances.
+# NATS. REQUIRED — the scrobble mirrors, the Spotify poller and the playlist
+# importer all learn about changes through it, so an instance that published
+# nowhere would look healthy while half the system did nothing.
+#
+# Defaults to a local server on its standard port, as above.
 # nats_url = "nats://localhost:4222"
 
 [services]

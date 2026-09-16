@@ -112,6 +112,7 @@ pub async fn backfill_repo(state: &AppState, did: &str) -> anyhow::Result<Ingest
                     deferred.push(record);
                 } else {
                     stats.merge(result);
+                    crate::search::index_record(state, &record).await;
                 }
             }
             Err(err) => {
@@ -129,7 +130,10 @@ pub async fn backfill_repo(state: &AppState, did: &str) -> anyhow::Result<Ingest
 
     for record in deferred {
         match ingest::ingest(state.db(), &record).await {
-            Ok(result) => stats.merge(result),
+            Ok(result) => {
+                stats.merge(result);
+                crate::search::index_record(state, &record).await;
+            }
             Err(err) => {
                 tracing::warn!(uri = %record.uri(), error = ?err, "deferred record failed");
                 stats.skipped += 1;

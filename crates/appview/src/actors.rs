@@ -5,19 +5,32 @@
 //! eq(users.handle, params.did))`. Clients rely on it — profile URLs are built
 //! from handles — so the same leniency is kept here.
 
-use crate::db::models::{self, User, USER_COLS};
+use crate::db::models::{User, USER_COLS};
+use crate::db::schema::Users;
 use crate::db::Backend;
+use crate::sea_query::{Expr, Query, SimpleExpr};
+
+/// Matches an actor by either identifier.
+///
+/// Every endpoint that takes a `did` parameter accepts a handle there too —
+/// the UI routes are `/{handle}` and the API is called with whatever is in the
+/// URL, so refusing a handle would break every link.
+fn actor_matches(did_or_handle: &str) -> SimpleExpr {
+    Expr::col(Users::Did)
+        .eq(did_or_handle)
+        .or(Expr::col(Users::Handle).eq(did_or_handle))
+}
 
 /// Looks up a user by DID or handle. `None` when neither matches.
 pub async fn find_user(db: &Backend, did_or_handle: &str) -> Result<Option<User>, sqlx::Error> {
-    let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(USER_COLS, db.dialect(), None))
-        .push(" FROM users WHERE did = ")
-        .bind(did_or_handle)
-        .push(" OR handle = ")
-        .bind(did_or_handle)
-        .push(" LIMIT 1");
-    db.fetch_optional(&sql).await
+    let mut query = Query::select();
+    db.select_model(&mut query, USER_COLS, None);
+    query
+        .from(Users::Table)
+        .and_where(actor_matches(did_or_handle))
+        .limit(1);
+
+    db.fetch_optional(&query).await
 }
 
 /// Just the row id, for the many handlers that only need it to filter by.
@@ -25,13 +38,14 @@ pub async fn find_user_id(
     db: &Backend,
     did_or_handle: &str,
 ) -> Result<Option<String>, sqlx::Error> {
-    let mut sql = db.sql("SELECT xata_id FROM users WHERE did = ");
-    sql.push("")
-        .bind(did_or_handle)
-        .push(" OR handle = ")
-        .bind(did_or_handle)
-        .push(" LIMIT 1");
-    db.fetch_scalar(&sql).await
+    let query = Query::select()
+        .column(Users::XataId)
+        .from(Users::Table)
+        .and_where(actor_matches(did_or_handle))
+        .limit(1)
+        .to_owned();
+
+    db.fetch_scalar(&query).await
 }
 
 #[cfg(test)]

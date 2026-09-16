@@ -4,7 +4,9 @@
 //! ids and the index currently playing. The queue survives a reload, which is
 //! the whole point — a browser refresh should not lose what you queued up.
 
+use crate::db::schema::{Tracks, UploadQueueState, UserUploads};
 use crate::db::{new_id, Backend};
+use crate::sea_query::{Alias, Expr, Func, JoinType, OnConflict, Query};
 use serde::{Deserialize, Serialize};
 
 /// A queue entry, resolved for display.
@@ -37,11 +39,14 @@ pub struct QueueView {
 /// be deleted while it sits in someone's queue, and that must not make the
 /// queue unreadable.
 pub async fn load(db: &Backend, user_id: &str) -> Result<QueueView, sqlx::Error> {
-    let mut sql =
-        db.sql("SELECT upload_ids, current_index FROM upload_queue_state WHERE user_id = ");
-    sql.bind(user_id).push(" LIMIT 1");
+    let stored = Query::select()
+        .columns([UploadQueueState::UploadIds, UploadQueueState::CurrentIndex])
+        .from(UploadQueueState::Table)
+        .and_where(Expr::col(UploadQueueState::UserId).eq(user_id))
+        .limit(1)
+        .take();
 
-    let Some((raw, current_index)) = db.fetch_optional::<(String, i64)>(&sql).await? else {
+    let Some((raw, current_index)) = db.fetch_optional::<(String, i64)>(&stored).await? else {
         return Ok(QueueView::default());
     };
 
@@ -53,18 +58,43 @@ pub async fn load(db: &Backend, user_id: &str) -> Result<QueueView, sqlx::Error>
         });
     }
 
-    let mut sql = db.sql(
-        "SELECT u.xata_id AS upload_id, t.title, t.artist, t.album_artist, t.album, \
-         t.album_art, t.duration, t.sha256, COALESCE(t.uri, '') AS song_uri \
-         FROM user_uploads u \
-         INNER JOIN tracks t ON t.xata_id = u.track_id \
-         WHERE u.user_id = ",
-    );
-    sql.bind(user_id)
-        .push(" AND u.xata_id IN ")
-        .bind_list(upload_ids.iter().map(|id| id.as_str()));
+    let entries = Query::select()
+        .expr_as(
+            Expr::col((Alias::new("u"), UserUploads::XataId)),
+            Alias::new("upload_id"),
+        )
+        .columns([
+            (Alias::new("t"), Tracks::Title),
+            (Alias::new("t"), Tracks::Artist),
+            (Alias::new("t"), Tracks::AlbumArtist),
+            (Alias::new("t"), Tracks::Album),
+            (Alias::new("t"), Tracks::AlbumArt),
+            (Alias::new("t"), Tracks::Duration),
+            (Alias::new("t"), Tracks::Sha256),
+        ])
+        .expr_as(
+            Func::coalesce([
+                Expr::col((Alias::new("t"), Tracks::Uri)).into(),
+                Expr::val("").into(),
+            ]),
+            Alias::new("song_uri"),
+        )
+        .from_as(UserUploads::Table, Alias::new("u"))
+        .join_as(
+            JoinType::InnerJoin,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("u"), UserUploads::TrackId)),
+        )
+        .and_where(Expr::col((Alias::new("u"), UserUploads::UserId)).eq(user_id))
+        .and_where(
+            Expr::col((Alias::new("u"), UserUploads::XataId))
+                .is_in(upload_ids.iter().map(|id| id.as_str())),
+        )
+        .take();
 
-    let rows: Vec<QueueEntry> = db.fetch_all(&sql).await?;
+    let rows: Vec<QueueEntry> = db.fetch_all(&entries).await?;
 
     // Returned in the stored order, not the order the database happened to
     // give back — the queue *is* an ordering.
@@ -93,24 +123,28 @@ pub async fn save(
     let now = crate::db::now_timestamp();
 
     // `user_id` is UNIQUE, so the upsert keeps one row per user.
-    let mut sql = db.sql(
-        "INSERT INTO upload_queue_state (xata_id, user_id, upload_ids, current_index) VALUES (",
-    );
-    sql.bind(new_id())
-        .push(", ")
-        .bind(user_id)
-        .push(", ")
-        .bind(&encoded)
-        .push(", ")
-        .bind(current_index)
-        .push(
-            ") ON CONFLICT (user_id) DO UPDATE SET \
-             upload_ids = excluded.upload_ids, \
-             current_index = excluded.current_index, \
-             xata_updatedat = ",
+    let insert = Query::insert()
+        .into_table(UploadQueueState::Table)
+        .columns([
+            UploadQueueState::XataId,
+            UploadQueueState::UserId,
+            UploadQueueState::UploadIds,
+            UploadQueueState::CurrentIndex,
+        ])
+        .values_panic([
+            new_id().into(),
+            user_id.into(),
+            encoded.into(),
+            current_index.into(),
+        ])
+        .on_conflict(
+            OnConflict::column(UploadQueueState::UserId)
+                .update_columns([UploadQueueState::UploadIds, UploadQueueState::CurrentIndex])
+                .value(UploadQueueState::XataUpdatedat, now)
+                .to_owned(),
         )
-        .bind(&now);
-    db.execute(&sql).await?;
+        .to_owned();
+    db.execute(&insert).await?;
     Ok(())
 }
 

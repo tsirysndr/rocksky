@@ -83,6 +83,83 @@ impl From<&Artist> for ArtistView {
     }
 }
 
+/// A track in full, as the detail endpoints report it.
+///
+/// `crate::db::models::Track` cannot be used directly: it is the row model and
+/// serializes snake_case, so nesting it inside a camelCase payload would emit
+/// `album_artist`. `rename_all` on the outer struct does not reach into a nested one.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackView {
+    pub id: String,
+    pub title: String,
+    pub artist: String,
+    pub album_artist: String,
+    pub album_art: Option<String>,
+    pub album: String,
+    pub track_number: Option<i64>,
+    pub duration: i64,
+    pub mb_id: Option<String>,
+    pub isrc: Option<String>,
+    pub youtube_link: Option<String>,
+    pub spotify_link: Option<String>,
+    pub apple_music_link: Option<String>,
+    pub tidal_link: Option<String>,
+    pub sha256: String,
+    pub disc_number: Option<i64>,
+    pub lyrics: Option<String>,
+    pub composer: Option<String>,
+    pub genre: Option<String>,
+    pub label: Option<String>,
+    pub copyright_message: Option<String>,
+    pub key: Option<String>,
+    pub bpm: Option<f64>,
+    pub uri: Option<String>,
+    pub album_uri: Option<String>,
+    pub artist_uri: Option<String>,
+    #[serde(with = "crate::views::timestamp::required")]
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    #[serde(with = "crate::views::timestamp::required")]
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub xata_version: Option<i64>,
+}
+
+impl From<&Track> for TrackView {
+    fn from(track: &Track) -> Self {
+        Self {
+            id: track.id.clone(),
+            title: track.title.clone(),
+            artist: track.artist.clone(),
+            album_artist: track.album_artist.clone(),
+            album_art: track.album_art.clone(),
+            album: track.album.clone(),
+            track_number: track.track_number,
+            duration: track.duration,
+            mb_id: track.mb_id.clone(),
+            isrc: track.isrc.clone(),
+            youtube_link: track.youtube_link.clone(),
+            spotify_link: track.spotify_link.clone(),
+            apple_music_link: track.apple_music_link.clone(),
+            tidal_link: track.tidal_link.clone(),
+            sha256: track.sha256.clone(),
+            disc_number: track.disc_number,
+            lyrics: track.lyrics.clone(),
+            composer: track.composer.clone(),
+            genre: track.genre.clone(),
+            label: track.label.clone(),
+            copyright_message: track.copyright_message.clone(),
+            key: track.key.clone(),
+            bpm: track.bpm,
+            uri: track.uri.clone(),
+            album_uri: track.album_uri.clone(),
+            artist_uri: track.artist_uri.clone(),
+            created_at: track.created_at,
+            updated_at: track.updated_at,
+            xata_version: track.xata_version,
+        }
+    }
+}
+
 /// One row of the scrobbles feed (`app.rocksky.scrobble.getScrobbles`).
 ///
 /// The track's own fields are spread in, minus `albumArt` (renamed `cover`),
