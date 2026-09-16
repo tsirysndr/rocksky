@@ -1,6 +1,6 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use sqlx::{Pool, Postgres};
+use rocksky_pgurl::Db;
 
 pub struct PlayQueue {
     pub user_id: String,
@@ -11,7 +11,8 @@ pub struct PlayQueue {
     pub changed_by: String,
 }
 
-pub async fn ensure_table(pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn ensure_table(db: &Db) -> Result<(), Error> {
+    let pool = db.primary();
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS navidrome_play_queues (
@@ -29,10 +30,8 @@ pub async fn ensure_table(pool: &Pool<Postgres>) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn get_play_queue(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Option<PlayQueue>, Error> {
+pub async fn get_play_queue(db: &Db, user_id: &str) -> Result<Option<PlayQueue>, Error> {
+    let pool = db.primary();
     let row: Option<(
         String,
         Vec<String>,
@@ -64,13 +63,14 @@ pub async fn get_play_queue(
 }
 
 pub async fn save_play_queue(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     track_ids: &[String],
     current_track_id: Option<&str>,
     position_ms: i64,
     changed_by: &str,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     sqlx::query(
         r#"
         INSERT INTO navidrome_play_queues (user_id, track_ids, current_track_id, position_ms, changed_at, changed_by)

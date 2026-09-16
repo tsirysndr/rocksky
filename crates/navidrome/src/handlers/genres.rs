@@ -1,15 +1,11 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{handlers::songs::track_to_json, repo, response};
+use rocksky_pgurl::Db;
 
-pub async fn handle_get_genres(
-    format: &str,
-    user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
-) -> HttpResponse {
+pub async fn handle_get_genres(format: &str, user_id: &str, pool: &Arc<Db>) -> HttpResponse {
     match repo::genre::get_genres(pool, user_id).await {
         Ok(genres) => {
             let list: Vec<Value> = genres
@@ -34,7 +30,7 @@ pub async fn handle_get_genres(
 pub async fn handle_get_songs_by_genre(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &HashMap<String, String>,
 ) -> HttpResponse {
     let genre = match params.get("genre") {

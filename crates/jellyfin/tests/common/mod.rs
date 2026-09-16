@@ -19,7 +19,7 @@ use sqlx::{postgres::PgConnectOptions, ConnectOptions, Pool, Postgres};
 use std::str::FromStr;
 
 pub struct Fixture {
-    pub pool: Arc<Pool<Postgres>>,
+    pub pool: Arc<rocksky_pgurl::Db>,
     pub state: web::Data<AppState>,
     /// Suffix mixed into every seeded id.
     ///
@@ -94,16 +94,18 @@ pub async fn setup() -> Option<Fixture> {
     create_tables(&pool).await;
     seed(&pool, &tag).await;
 
-    rocksky_jellyfin::auth::ensure_tables(&pool).await.unwrap();
-    rocksky_jellyfin::guid::ensure_table(&pool).await.unwrap();
-    rocksky_jellyfin::userdata::ensure_table(&pool)
-        .await
-        .unwrap();
-    let server_id = rocksky_jellyfin::state::ensure_server_id(&pool)
+    // Both roles share the one pool so the per-test `search_path` applies to
+    // reads and writes alike.
+    let db = rocksky_pgurl::Db::from_pool(pool);
+
+    rocksky_jellyfin::auth::ensure_tables(&db).await.unwrap();
+    rocksky_jellyfin::guid::ensure_table(&db).await.unwrap();
+    rocksky_jellyfin::userdata::ensure_table(&db).await.unwrap();
+    let server_id = rocksky_jellyfin::state::ensure_server_id(&db)
         .await
         .unwrap();
 
-    let pool = Arc::new(pool);
+    let pool = Arc::new(db);
     let state = web::Data::new(AppState {
         pool: pool.clone(),
         nc: None,
@@ -133,7 +135,7 @@ impl Fixture {
         let pool = self.pool.clone();
         drop(self.state);
         let _ = sqlx::query(&format!("DROP SCHEMA IF EXISTS \"{schema}\" CASCADE"))
-            .execute(pool.as_ref())
+            .execute(pool.primary())
             .await;
     }
 }

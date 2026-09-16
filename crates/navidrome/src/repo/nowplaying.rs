@@ -1,6 +1,6 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use sqlx::{Pool, Postgres};
+use rocksky_pgurl::Db;
 
 pub struct NowPlayingEntry {
     pub xata_id: String,
@@ -50,10 +50,8 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for NowPlayingEntry {
 }
 
 // Returns the user's most recent scrobble if within the last 10 minutes.
-pub async fn get_now_playing(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Vec<NowPlayingEntry>, Error> {
+pub async fn get_now_playing(db: &Db, user_id: &str) -> Result<Vec<NowPlayingEntry>, Error> {
+    let pool = db.primary();
     let rows: Vec<NowPlayingEntry> = sqlx::query_as(
         r#"
         SELECT

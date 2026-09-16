@@ -8,4 +8,7 @@ repository.workspace = true
 
 [dependencies]
 anyhow = "1.0.96"
-sqlx = { version = "0.8.3", features = ["runtime-tokio-rustls", "postgres"] }
+sqlx = { version = "0.8.3", features = ["runtime-tokio-rustls", "postgres", "macros"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

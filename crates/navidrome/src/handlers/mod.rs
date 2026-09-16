@@ -18,10 +18,10 @@ pub mod stream;
 pub mod user;
 
 use actix_web::{get, post, route, web, HttpRequest, HttpResponse};
-use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{auth, repo, response, typesense::TypesenseClient};
+use rocksky_pgurl::Db;
 
 fn get_format(params: &HashMap<String, String>) -> String {
     params
@@ -54,7 +54,7 @@ fn is_internal_request(req: &HttpRequest) -> bool {
 async fn dispatch(
     method: &str,
     params: HashMap<String, String>,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     range: Option<String>,
     ts: Option<&TypesenseClient>,
     nc: &Arc<async_nats::Client>,
@@ -265,7 +265,7 @@ async fn dispatch(
 pub async fn handle_get(
     req: HttpRequest,
     path: web::Path<String>,
-    pool: web::Data<Arc<Pool<Postgres>>>,
+    pool: web::Data<Arc<Db>>,
     ts_data: web::Data<Arc<Option<TypesenseClient>>>,
     nc_data: web::Data<Arc<async_nats::Client>>,
     query: web::Query<HashMap<String, String>>,
@@ -295,7 +295,7 @@ pub async fn handle_get(
 pub async fn handle_head(
     req: HttpRequest,
     path: web::Path<String>,
-    pool: web::Data<Arc<Pool<Postgres>>>,
+    pool: web::Data<Arc<Db>>,
     nc_data: web::Data<Arc<async_nats::Client>>,
     query: web::Query<HashMap<String, String>>,
 ) -> HttpResponse {
@@ -357,7 +357,7 @@ pub async fn handle_head(
 pub async fn handle_post(
     req: HttpRequest,
     path: web::Path<String>,
-    pool: web::Data<Arc<Pool<Postgres>>>,
+    pool: web::Data<Arc<Db>>,
     ts_data: web::Data<Arc<Option<TypesenseClient>>>,
     nc_data: web::Data<Arc<async_nats::Client>>,
     query: web::Query<HashMap<String, String>>,

@@ -1,10 +1,10 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::{repo, response, xata::artist::ArtistWithStats};
+use rocksky_pgurl::Db;
 
 const IGNORED_ARTICLES: &str = "The An A Die Das Ein Eine Les Le La";
 
@@ -51,7 +51,7 @@ fn artist_to_json(a: &ArtistWithStats) -> Value {
 pub async fn handle_get_artists(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     is_indexes: bool,
 ) -> HttpResponse {
     match repo::artist::get_all_artists(pool, user_id).await {
@@ -110,7 +110,7 @@ pub async fn handle_get_artist(
     format: &str,
     user_id: &str,
     artist_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     let artist = match repo::artist::get_artist_by_id(pool, artist_id, user_id).await {
         Ok(Some(a)) => a,

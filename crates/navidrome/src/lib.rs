@@ -13,7 +13,6 @@ use actix_cors::Cors;
 use actix_web::{get, web::Data, App, HttpResponse, HttpServer};
 use anyhow::Error;
 use owo_colors::OwoColorize;
-use sqlx::postgres::PgPoolOptions;
 
 pub const BANNER: &str = r#"
     _   __             _     __
@@ -63,17 +62,19 @@ async fn index() -> HttpResponse {
 pub async fn run() -> Result<(), Error> {
     println!("{}", BANNER.cyan());
 
-    let pool = PgPoolOptions::new()
-        .max_connections(25)
-        .min_connections(5)
-        .acquire_timeout(Duration::from_secs(10))
-        .idle_timeout(Duration::from_secs(300))
-        .max_lifetime(Duration::from_secs(1800))
-        .connect_with(rocksky_pgurl::primary("rocksky-navidrome")?)
-        .await?;
-    rocksky_pgurl::ensure_writable(&pool, "rocksky-navidrome").await?;
+    // Library browsing is almost entirely reads, so they go to the replica;
+    // playlists, starring, scrobbles and the play queue write, so they go to
+    // the primary. Collapses to a single pool when no replica is configured.
+    let db = rocksky_pgurl::Db::connect("rocksky-navidrome", |opts| {
+        opts.max_connections(25)
+            .min_connections(5)
+            .acquire_timeout(Duration::from_secs(10))
+            .idle_timeout(Duration::from_secs(300))
+            .max_lifetime(Duration::from_secs(1800))
+    })
+    .await?;
 
-    let conn = Arc::new(pool);
+    let conn = Arc::new(db);
 
     repo::playqueue::ensure_table(&conn).await?;
 

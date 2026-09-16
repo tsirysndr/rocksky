@@ -1,12 +1,10 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
 
 use crate::xata::user::UserWithApiKey;
+use rocksky_pgurl::Db;
 
-pub async fn get_user_did_by_id(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Option<String>, Error> {
+pub async fn get_user_did_by_id(db: &Db, user_id: &str) -> Result<Option<String>, Error> {
+    let pool = db.primary();
     let row: Option<(String,)> = sqlx::query_as(r#"SELECT did FROM users WHERE xata_id = $1"#)
         .bind(user_id)
         .fetch_optional(pool)
@@ -20,10 +18,8 @@ pub async fn get_user_did_by_id(
 /// authenticated the caller via a Rocksky JWT, so we trust the handle and skip
 /// Subsonic credential verification. `api_key` is returned empty since it is
 /// irrelevant on this path.
-pub async fn get_user_by_handle(
-    pool: &Pool<Postgres>,
-    handle: &str,
-) -> Result<Option<UserWithApiKey>, Error> {
+pub async fn get_user_by_handle(db: &Db, handle: &str) -> Result<Option<UserWithApiKey>, Error> {
+    let pool = db.primary();
     let row: Option<UserWithApiKey> = sqlx::query_as(
         r#"
         SELECT
@@ -43,10 +39,8 @@ pub async fn get_user_by_handle(
     Ok(row)
 }
 
-pub async fn get_user_with_apikeys(
-    pool: &Pool<Postgres>,
-    handle: &str,
-) -> Result<Vec<UserWithApiKey>, Error> {
+pub async fn get_user_with_apikeys(db: &Db, handle: &str) -> Result<Vec<UserWithApiKey>, Error> {
+    let pool = db.primary();
     let rows: Vec<UserWithApiKey> = sqlx::query_as(
         r#"
         SELECT

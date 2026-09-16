@@ -14,7 +14,8 @@ use std::env::{self, VarError};
 use std::str::FromStr;
 
 use anyhow::Result;
-use sqlx::postgres::PgConnectOptions;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::PgPool;
 
 const FALLBACK: &str = "XATA_POSTGRES_URL";
 
@@ -88,6 +89,64 @@ pub async fn ensure_writable(pool: &sqlx::PgPool, service: &str) -> Result<()> {
         );
     }
     Ok(())
+}
+
+/// A primary/replica pair for a service that both reads and writes.
+///
+/// When no replica is configured both handles are the *same* pool, so turning
+/// the split on never doubles a process's connection count against one server.
+#[derive(Clone, Debug)]
+pub struct Db {
+    read: PgPool,
+    write: PgPool,
+}
+
+impl Db {
+    /// Connects both pools and verifies the primary can actually write.
+    ///
+    /// `configure` is applied to each pool, so a service keeps one place to set
+    /// its sizing and timeouts.
+    pub async fn connect(
+        app_name: &str,
+        configure: impl Fn(PgPoolOptions) -> PgPoolOptions,
+    ) -> Result<Self> {
+        let write = configure(PgPoolOptions::new())
+            .connect_with(primary(app_name)?)
+            .await?;
+        ensure_writable(&write, app_name).await?;
+
+        let read = if is_split() {
+            configure(PgPoolOptions::new())
+                .connect_with(replica(app_name)?)
+                .await?
+        } else {
+            write.clone()
+        };
+
+        Ok(Self { read, write })
+    }
+
+    /// Builds a pair from one existing pool, for tests and for callers that
+    /// already hold a connection they want both roles to use. Notably keeps a
+    /// test harness honest: a schema pinned on the pool applies to both roles.
+    pub fn from_pool(pool: PgPool) -> Self {
+        Self {
+            read: pool.clone(),
+            write: pool,
+        }
+    }
+
+    /// Lag-tolerant reads. Never a write, and never a read that has to show
+    /// something written moments ago.
+    pub fn replica(&self) -> &PgPool {
+        &self.read
+    }
+
+    /// Writes, and any read that has to reflect one — read-after-write,
+    /// now-playing, and auth all belong here even though they only SELECT.
+    pub fn primary(&self) -> &PgPool {
+        &self.write
+    }
 }
 
 #[cfg(test)]

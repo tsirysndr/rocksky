@@ -12,8 +12,8 @@
 //! returns nothing.
 
 use anyhow::Error;
+use rocksky_pgurl::Db;
 use sha2::{Digest, Sha256};
-use sqlx::{Pool, Postgres};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Mutex, OnceLock},
@@ -112,7 +112,8 @@ pub fn year_guid(year: i32) -> String {
     guid(KIND_YEAR, &year.to_string())
 }
 
-pub async fn ensure_table(pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn ensure_table(db: &Db) -> Result<(), Error> {
+    let pool = db.primary();
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS jellyfin_guids (
@@ -136,7 +137,8 @@ fn cache_pair(g: &str, kind: &str, native_id: &str) {
 }
 
 /// Record one (kind, native id) pair and return its guid.
-pub async fn remember(pool: &Pool<Postgres>, kind: &str, native_id: &str) -> String {
+pub async fn remember(db: &Db, kind: &str, native_id: &str) -> String {
+    let pool = db.primary();
     let g = guid(kind, native_id);
     cache_pair(&g, kind, native_id);
 
@@ -181,7 +183,8 @@ pub async fn remember(pool: &Pool<Postgres>, kind: &str, native_id: &str) -> Str
 /// value we want back is the exact casing the catalogue stores. Passing the
 /// display name to `remember` would file it under a different guid than
 /// `genre_guid` hands out, and the drill-down would resolve to nothing.
-pub async fn remember_genre(pool: &Pool<Postgres>, name: &str) -> String {
+pub async fn remember_genre(db: &Db, name: &str) -> String {
+    let pool = db.primary();
     let g = genre_guid(name);
     cache_pair(&g, KIND_GENRE, name);
 
@@ -224,7 +227,8 @@ pub async fn remember_genre(pool: &Pool<Postgres>, name: &str) -> String {
 /// Emitting a listing would otherwise be one INSERT per row; a 100-item page of
 /// songs plus their albums and artists is 300 round trips before a single byte
 /// of JSON is written.
-pub async fn remember_many(pool: &Pool<Postgres>, kind: &str, native_ids: &[String]) {
+pub async fn remember_many(db: &Db, kind: &str, native_ids: &[String]) {
+    let pool = db.primary();
     let mut guids: Vec<String> = Vec::with_capacity(native_ids.len());
     let mut natives: Vec<String> = Vec::with_capacity(native_ids.len());
 
@@ -271,7 +275,8 @@ pub async fn remember_many(pool: &Pool<Postgres>, kind: &str, native_ids: &[Stri
 }
 
 /// Resolve a client-supplied id back to (kind, native id).
-pub async fn lookup(pool: &Pool<Postgres>, input: &str) -> Option<(String, String)> {
+pub async fn lookup(db: &Db, input: &str) -> Option<(String, String)> {
+    let pool = db.primary();
     let g = normalize(input);
 
     {

@@ -1,14 +1,14 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{handlers::songs::track_to_json, repo, response, typesense::TypesenseClient};
+use rocksky_pgurl::Db;
 
 pub async fn handle_search3(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &HashMap<String, String>,
     ts: Option<&TypesenseClient>,
 ) -> HttpResponse {
@@ -92,7 +92,7 @@ pub async fn handle_search3(
 async fn resolve_record_uri(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     uri: &str,
 ) -> HttpResponse {
     if uri.contains("/app.rocksky.playlist/") {
@@ -128,7 +128,7 @@ async fn resolve_record_uri(
 async fn search_via_typesense(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     ts: &TypesenseClient,
     query: &str,
     artist_count: i64,

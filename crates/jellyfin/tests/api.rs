@@ -485,7 +485,7 @@ async fn playlist_crud_roundtrip() {
         return;
     };
     common::add_song(
-        &fx.pool,
+        fx.pool.primary(),
         &fx.tag,
         &common::Song {
             id: fx.id("tr", 2),
@@ -689,7 +689,7 @@ async fn favorites_roundtrip_via_userfavoriteitems_and_filters() {
     // Subsonic service read.
     let starred: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM loved_tracks WHERE track_id = $1")
         .bind(fx.id("tr", 1))
-        .fetch_one(fx.pool.as_ref())
+        .fetch_one(fx.pool.primary())
         .await
         .unwrap();
     assert_eq!(starred, 1);
@@ -936,16 +936,22 @@ async fn instant_mix_seeds_and_limit() {
 
     // A second artist and album, plus enough songs for the mix to fall through
     // its tiers: seed's own tracks, then the seed's genre, then random filler.
-    common::add_artist(&fx.pool, &fx.id("ar", 2), "Another Artist", &["Rock"]).await;
+    common::add_artist(
+        fx.pool.primary(),
+        &fx.id("ar", 2),
+        "Another Artist",
+        &["Rock"],
+    )
+    .await;
     common::add_album(
-        &fx.pool,
+        fx.pool.primary(),
         &fx.id("al", 2),
         "Other Album",
         "Another Artist",
         2021,
     )
     .await;
-    common::link_artist_album(&fx.pool, &fx.tag, &fx.id("ar", 2), &fx.id("al", 2)).await;
+    common::link_artist_album(fx.pool.primary(), &fx.tag, &fx.id("ar", 2), &fx.id("al", 2)).await;
 
     for (n, title, artist_n, album_n, genre) in [
         (2, "Second Song", 1, 1, Some("Rock")),
@@ -954,7 +960,7 @@ async fn instant_mix_seeds_and_limit() {
         (5, "Fifth Song", 2, 2, Some("Jazz")),
     ] {
         common::add_song(
-            &fx.pool,
+            fx.pool.primary(),
             &fx.tag,
             &common::Song {
                 id: fx.id("tr", n),
@@ -1096,14 +1102,28 @@ async fn filters_and_genre_browsing() {
 
     // Genres live on the artist in the Rocksky catalogue, so a second genre
     // means a second artist carrying it.
-    common::add_artist(&fx.pool, &fx.id("ar", 2), "Rock Artist", &["Rock"]).await;
-    common::add_artist(&fx.pool, &fx.id("ar", 3), "Jazz Artist", &["Jazz"]).await;
-    common::add_album(&fx.pool, &fx.id("al", 2), "Rock Album", "Rock Artist", 2019).await;
-    common::add_album(&fx.pool, &fx.id("al", 3), "Jazz Album", "Jazz Artist", 2019).await;
-    common::link_artist_album(&fx.pool, &fx.tag, &fx.id("ar", 2), &fx.id("al", 2)).await;
-    common::link_artist_album(&fx.pool, &fx.tag, &fx.id("ar", 3), &fx.id("al", 3)).await;
+    common::add_artist(fx.pool.primary(), &fx.id("ar", 2), "Rock Artist", &["Rock"]).await;
+    common::add_artist(fx.pool.primary(), &fx.id("ar", 3), "Jazz Artist", &["Jazz"]).await;
+    common::add_album(
+        fx.pool.primary(),
+        &fx.id("al", 2),
+        "Rock Album",
+        "Rock Artist",
+        2019,
+    )
+    .await;
+    common::add_album(
+        fx.pool.primary(),
+        &fx.id("al", 3),
+        "Jazz Album",
+        "Jazz Artist",
+        2019,
+    )
+    .await;
+    common::link_artist_album(fx.pool.primary(), &fx.tag, &fx.id("ar", 2), &fx.id("al", 2)).await;
+    common::link_artist_album(fx.pool.primary(), &fx.tag, &fx.id("ar", 3), &fx.id("al", 3)).await;
     common::add_song(
-        &fx.pool,
+        fx.pool.primary(),
         &fx.tag,
         &common::Song {
             id: fx.id("tr", 2),
@@ -1119,7 +1139,7 @@ async fn filters_and_genre_browsing() {
     )
     .await;
     common::add_song(
-        &fx.pool,
+        fx.pool.primary(),
         &fx.tag,
         &common::Song {
             id: fx.id("tr", 3),
@@ -1291,18 +1311,18 @@ async fn years_persons_and_studios() {
         return;
     };
 
-    common::add_artist(&fx.pool, &fx.id("ar", 2), "Second Artist", &[]).await;
+    common::add_artist(fx.pool.primary(), &fx.id("ar", 2), "Second Artist", &[]).await;
     common::add_album(
-        &fx.pool,
+        fx.pool.primary(),
         &fx.id("al", 2),
         "Second Album",
         "Second Artist",
         2019,
     )
     .await;
-    common::link_artist_album(&fx.pool, &fx.tag, &fx.id("ar", 2), &fx.id("al", 2)).await;
+    common::link_artist_album(fx.pool.primary(), &fx.tag, &fx.id("ar", 2), &fx.id("al", 2)).await;
     common::add_song(
-        &fx.pool,
+        fx.pool.primary(),
         &fx.tag,
         &common::Song {
             id: fx.id("tr", 2),

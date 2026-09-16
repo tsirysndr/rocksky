@@ -1,9 +1,9 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
 
 use crate::repo::track::track_select;
 
 use crate::xata::track::TrackWithUpload;
+use rocksky_pgurl::Db;
 
 pub struct GenreRow {
     pub genre: String,
@@ -22,7 +22,8 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for GenreRow {
     }
 }
 
-pub async fn get_genres(pool: &Pool<Postgres>, user_id: &str) -> Result<Vec<GenreRow>, Error> {
+pub async fn get_genres(db: &Db, user_id: &str) -> Result<Vec<GenreRow>, Error> {
+    let pool = db.replica();
     let rows: Vec<GenreRow> = sqlx::query_as(
         r#"
         SELECT
@@ -47,12 +48,13 @@ pub async fn get_genres(pool: &Pool<Postgres>, user_id: &str) -> Result<Vec<Genr
 }
 
 pub async fn get_songs_by_genre(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     genre: &str,
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    let pool = db.replica();
     // Hand-rolling the projection here left out the BYO-storage columns that
     // were later added to `TrackWithUpload`, so every row failed to deserialize
     // and getSongsByGenre returned nothing at all. Use the canonical select,

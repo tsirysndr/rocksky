@@ -1,7 +1,7 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
 
 use crate::xata::track::TrackWithUpload;
+use rocksky_pgurl::Db;
 
 /// The column list every track row is built from. Split out from the joins so
 /// the paged form below can drive off a different table without a second copy.
@@ -89,10 +89,11 @@ pub fn track_select(user_param: &str) -> String {
 }
 
 pub async fn get_tracks_by_album(
-    pool: &Pool<Postgres>,
+    db: &Db,
     album_id: &str,
     user_id: &str,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    let pool = db.replica();
     // `slot` picks exactly one track per position on the record, which is what
     // kills all three ways this listing used to double up:
     //
@@ -159,10 +160,11 @@ pub struct StreamTrack {
 }
 
 pub async fn get_stream_track_by_id(
-    pool: &Pool<Postgres>,
+    db: &Db,
     track_id: &str,
     user_id: &str,
 ) -> Result<Option<StreamTrack>, Error> {
+    let pool = db.replica();
     let row: Option<StreamTrack> = sqlx::query_as(
         r#"
         SELECT
@@ -190,10 +192,11 @@ pub async fn get_stream_track_by_id(
 }
 
 pub async fn get_track_by_id(
-    pool: &Pool<Postgres>,
+    db: &Db,
     track_id: &str,
     user_id: &str,
 ) -> Result<Option<TrackWithUpload>, Error> {
+    let pool = db.replica();
     let row: Option<TrackWithUpload> = sqlx::query_as(&format!(
         r#"
         {}
@@ -210,13 +213,14 @@ pub async fn get_track_by_id(
 }
 
 pub async fn get_random_songs(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     count: i64,
     genre: Option<&str>,
     from_year: Option<i32>,
     to_year: Option<i32>,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    let pool = db.replica();
     let mut filters = vec!["TRUE".to_string()];
 
     if let Some(g) = genre {
@@ -272,12 +276,13 @@ pub async fn get_random_songs(
 /// consumed two slots of the page. `one_upload_join` collapses the rejoin, so
 /// the track is now the right unit to page on.
 pub async fn search_tracks(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     query: &str,
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    let pool = db.replica();
     // An empty query means "everything". LIKE '%%' matches every row anyway,
     // but it is not sargable and forces a LOWER() over the whole library, so
     // leave the predicate out entirely rather than asking for a no-op.
@@ -321,10 +326,11 @@ pub async fn search_tracks(
 }
 
 pub async fn get_tracks_by_ids(
-    pool: &Pool<Postgres>,
+    db: &Db,
     ids: &[String],
     user_id: &str,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    let pool = db.replica();
     if ids.is_empty() {
         return Ok(vec![]);
     }
@@ -346,10 +352,8 @@ pub async fn get_tracks_by_ids(
     Ok(ids.iter().filter_map(|id| map.remove(id)).collect())
 }
 
-pub async fn get_album_art_by_track_id(
-    pool: &Pool<Postgres>,
-    track_id: &str,
-) -> Result<Option<String>, Error> {
+pub async fn get_album_art_by_track_id(db: &Db, track_id: &str) -> Result<Option<String>, Error> {
+    let pool = db.replica();
     let row: Option<(Option<String>,)> =
         sqlx::query_as(r#"SELECT album_art FROM tracks WHERE xata_id = $1"#)
             .bind(track_id)
@@ -359,10 +363,8 @@ pub async fn get_album_art_by_track_id(
     Ok(row.and_then(|(art,)| art))
 }
 
-pub async fn get_album_id_for_track(
-    pool: &Pool<Postgres>,
-    track_id: &str,
-) -> Result<Option<String>, Error> {
+pub async fn get_album_id_for_track(db: &Db, track_id: &str) -> Result<Option<String>, Error> {
+    let pool = db.replica();
     let row: Option<(String,)> = sqlx::query_as(
         r#"SELECT at2.album_id FROM album_tracks at2
            JOIN albums a ON at2.album_id = a.xata_id
@@ -379,10 +381,8 @@ pub async fn get_album_id_for_track(
     Ok(row.map(|(id,)| id))
 }
 
-pub async fn get_artist_id_for_track(
-    pool: &Pool<Postgres>,
-    track_id: &str,
-) -> Result<Option<String>, Error> {
+pub async fn get_artist_id_for_track(db: &Db, track_id: &str) -> Result<Option<String>, Error> {
+    let pool = db.replica();
     let row: Option<(String,)> = sqlx::query_as(
         r#"SELECT at3.artist_id FROM artist_tracks at3
            JOIN artists ar ON at3.artist_id = ar.xata_id

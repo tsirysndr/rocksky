@@ -1,15 +1,11 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{handlers::songs::track_to_json, repo, response};
+use rocksky_pgurl::Db;
 
-pub async fn handle_get_play_queue(
-    format: &str,
-    user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
-) -> HttpResponse {
+pub async fn handle_get_play_queue(format: &str, user_id: &str, pool: &Arc<Db>) -> HttpResponse {
     let queue = match repo::playqueue::get_play_queue(pool, user_id).await {
         Ok(q) => q,
         Err(e) => {
@@ -47,7 +43,7 @@ pub async fn handle_get_play_queue(
 pub async fn handle_save_play_queue(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &HashMap<String, String>,
 ) -> HttpResponse {
     // Collect all `id` values — clients send multiple id params for the queue order.

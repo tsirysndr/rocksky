@@ -1,7 +1,7 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
 
 use crate::xata::artist::{ArtistRow, ArtistWithStats};
+use rocksky_pgurl::Db;
 
 /// The caller's own uploads, and the artists reachable from them.
 ///
@@ -49,10 +49,8 @@ mine_artists AS MATERIALIZED (
 )
 "#;
 
-pub async fn get_all_artists(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Vec<ArtistWithStats>, Error> {
+pub async fn get_all_artists(db: &Db, user_id: &str) -> Result<Vec<ArtistWithStats>, Error> {
+    let pool = db.replica();
     let rows: Vec<ArtistWithStats> = sqlx::query_as(&format!(
         r#"
         {MINE_ARTISTS_CTE}
@@ -75,10 +73,11 @@ pub async fn get_all_artists(
 }
 
 pub async fn get_artist_by_id(
-    pool: &Pool<Postgres>,
+    db: &Db,
     artist_id: &str,
     user_id: &str,
 ) -> Result<Option<ArtistRow>, Error> {
+    let pool = db.replica();
     // Same junction-table consistency check as get_all_artists: only count artist_tracks rows
     // where the track's album_artist actually matches this artist's name, otherwise polluted
     // junction entries let strangers' artists pass.
@@ -105,12 +104,13 @@ pub async fn get_artist_by_id(
 }
 
 pub async fn search_artists(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     query: &str,
     count: i64,
     offset: i64,
 ) -> Result<Vec<ArtistWithStats>, Error> {
+    let pool = db.replica();
     let pattern = format!("%{}%", query);
     // Same shape as get_all_artists — see MINE_ARTISTS_CTE for why it is built
     // this way and why the junction guard has to stay.
@@ -142,10 +142,11 @@ pub async fn search_artists(
 
 /// Fetch artists matching names returned by Typesense.
 pub async fn get_artists_by_names(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     names: &[String],
 ) -> Result<Vec<ArtistWithStats>, Error> {
+    let pool = db.replica();
     if names.is_empty() {
         return Ok(vec![]);
     }
@@ -187,10 +188,8 @@ pub async fn get_artists_by_names(
     Ok(rows)
 }
 
-pub async fn get_picture_by_artist_id(
-    pool: &Pool<Postgres>,
-    artist_id: &str,
-) -> Result<Option<String>, Error> {
+pub async fn get_picture_by_artist_id(db: &Db, artist_id: &str) -> Result<Option<String>, Error> {
+    let pool = db.replica();
     let row: Option<(Option<String>,)> =
         sqlx::query_as(r#"SELECT picture FROM artists WHERE xata_id = $1"#)
             .bind(artist_id)

@@ -11,7 +11,7 @@ use actix_web::{dev::Payload, error::ErrorUnauthorized, web, FromRequest, HttpRe
 use anyhow::Error;
 use futures::future::LocalBoxFuture;
 use rand::RngCore;
-use sqlx::{Pool, Postgres};
+use rocksky_pgurl::Db;
 use std::{
     collections::HashMap,
     sync::{Mutex, OnceLock},
@@ -128,7 +128,8 @@ pub fn random_hex(bytes: usize) -> String {
     hex::encode(buf)
 }
 
-pub async fn ensure_tables(pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn ensure_tables(db: &Db) -> Result<(), Error> {
+    let pool = db.primary();
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS jellyfin_tokens (
@@ -164,12 +165,13 @@ pub async fn ensure_tables(pool: &Pool<Postgres>) -> Result<(), Error> {
 /// Verify a handle + API key pair. Same check the Subsonic service makes, so a
 /// user needs no second credential to add this server to a Jellyfin client.
 pub async fn verify_credentials(
-    pool: &Pool<Postgres>,
+    db: &Db,
     username: &str,
     password: &str,
 ) -> Result<AuthedUser, Error> {
+    let _pool = db.primary();
     let user =
-        rocksky_navidrome::auth::authenticate(pool, username, Some(password), None, None).await?;
+        rocksky_navidrome::auth::authenticate(db, username, Some(password), None, None).await?;
     Ok(AuthedUser {
         id: user.xata_id,
         handle: user.handle,
@@ -179,11 +181,12 @@ pub async fn verify_credentials(
 }
 
 pub async fn store_token(
-    pool: &Pool<Postgres>,
+    db: &Db,
     token: &str,
     user_id: &str,
     auth: &EmbyAuth,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     sqlx::query(
         r#"
         INSERT INTO jellyfin_tokens (token, user_id, device_id, device_name, client)
@@ -212,7 +215,8 @@ fn token_cache() -> &'static Mutex<HashMap<String, (AuthedUser, Instant)>> {
     TOKEN_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-pub async fn resolve_token(pool: &Pool<Postgres>, token: &str) -> Option<AuthedUser> {
+pub async fn resolve_token(db: &Db, token: &str) -> Option<AuthedUser> {
+    let pool = db.primary();
     {
         let cache = token_cache().lock().unwrap();
         if let Some((user, at)) = cache.get(token) {

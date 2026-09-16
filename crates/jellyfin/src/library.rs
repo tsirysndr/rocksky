@@ -10,7 +10,7 @@
 //! cached briefly; songs stay paged in SQL with a dedicated count.
 
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_pgurl::Db;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, OnceLock},
@@ -50,30 +50,26 @@ fn store<T>(slot: &'static Cache<T>, user_id: &str, rows: Vec<T>) -> Arc<Vec<T>>
     rows
 }
 
-pub async fn all_artists(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Arc<Vec<ArtistWithStats>>, Error> {
+pub async fn all_artists(db: &Db, user_id: &str) -> Result<Arc<Vec<ArtistWithStats>>, Error> {
+    let _pool = db.replica();
     if let Some(rows) = cached(&ARTISTS, user_id) {
         return Ok(rows);
     }
-    let rows = repo::artist::get_all_artists(pool, user_id).await?;
+    let rows = repo::artist::get_all_artists(db, user_id).await?;
     Ok(store(&ARTISTS, user_id, rows))
 }
 
 /// Every album in the library, alphabetically — the order most Jellyfin
 /// clients ask for by default. Other sort orders are applied over this.
-pub async fn all_albums(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Arc<Vec<AlbumWithStats>>, Error> {
+pub async fn all_albums(db: &Db, user_id: &str) -> Result<Arc<Vec<AlbumWithStats>>, Error> {
+    let _pool = db.replica();
     if let Some(rows) = cached(&ALBUMS, user_id) {
         return Ok(rows);
     }
     // The repo call pages; `i64::MAX` would overflow the planner's estimate, so
     // ask for a bound no real library reaches.
     let rows = repo::album::get_album_list(
-        pool,
+        db,
         user_id,
         "alphabeticalByName",
         100_000,
@@ -89,11 +85,8 @@ pub async fn all_albums(
 /// Number of distinct tracks in the library, optionally narrowed by a title
 /// substring. Mirrors the `page` CTE inside `repo::track::search_tracks` so the
 /// count and the pages it labels can never disagree.
-pub async fn count_songs(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-    title_query: &str,
-) -> Result<i64, Error> {
+pub async fn count_songs(db: &Db, user_id: &str, title_query: &str) -> Result<i64, Error> {
+    let pool = db.replica();
     let filter = if title_query.is_empty() {
         ""
     } else {
@@ -126,12 +119,13 @@ pub async fn count_songs(
 /// credit them, and without it a stray row puts a stranger's track in the
 /// caller's artist page.
 pub async fn songs_by_artist(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     artist_id: &str,
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    let pool = db.replica();
     let sql = format!(
         r#"
         {}
@@ -163,7 +157,7 @@ pub async fn songs_by_artist(
 /// search; it can't express "starts with", which is what the A–Z rail actually
 /// means — asking it for `o` would return every title containing an o.
 pub async fn songs_filtered(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     starts_with: Option<&str>,
     geq: Option<&str>,
@@ -171,6 +165,7 @@ pub async fn songs_filtered(
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
+    let pool = db.replica();
     let (predicate, binds) = title_range_predicate(starts_with, geq, less_than, 2);
     let sql = format!(
         r#"
@@ -191,12 +186,13 @@ pub async fn songs_filtered(
 }
 
 pub async fn count_songs_filtered(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     starts_with: Option<&str>,
     geq: Option<&str>,
     less_than: Option<&str>,
 ) -> Result<i64, Error> {
+    let pool = db.replica();
     let (predicate, binds) = title_range_predicate(starts_with, geq, less_than, 2);
     let sql = format!(
         r#"
@@ -244,7 +240,8 @@ fn title_range_predicate(
 }
 
 /// The first cover art in a playlist, for its tile.
-pub async fn playlist_cover(pool: &Pool<Postgres>, playlist_id: &str) -> Option<String> {
+pub async fn playlist_cover(db: &Db, playlist_id: &str) -> Option<String> {
+    let pool = db.replica();
     let row: Option<(String,)> = sqlx::query_as(
         r#"
         SELECT t.album_art
@@ -267,20 +264,22 @@ pub async fn playlist_cover(pool: &Pool<Postgres>, playlist_id: &str) -> Option<
 /// One artist with the album count the browse tiles show. `get_artist_by_id`
 /// returns the bare row, which would make every artist page report zero albums.
 pub async fn artist_by_id(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     artist_id: &str,
 ) -> Result<Option<ArtistWithStats>, Error> {
-    let artists = all_artists(pool, user_id).await?;
+    let _pool = db.replica();
+    let artists = all_artists(db, user_id).await?;
     Ok(artists.iter().find(|a| a.xata_id == artist_id).cloned())
 }
 
 pub async fn artist_by_name(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     name: &str,
 ) -> Result<Option<ArtistWithStats>, Error> {
-    let artists = all_artists(pool, user_id).await?;
+    let _pool = db.replica();
+    let artists = all_artists(db, user_id).await?;
     Ok(artists
         .iter()
         .find(|a| a.name.eq_ignore_ascii_case(name))

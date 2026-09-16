@@ -1,11 +1,11 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_pgurl::Db;
 use std::sync::Arc;
 
 use rocksky_navidrome::typesense::TypesenseClient;
 
 pub struct AppState {
-    pub pool: Arc<Pool<Postgres>>,
+    pub pool: Arc<Db>,
     /// Where now-playing goes. `run` always connects, so this is only ever
     /// `None` under test, where there is no broker to talk to and the playback
     /// endpoints are exercised for their HTTP behaviour alone.
@@ -29,7 +29,8 @@ impl AppState {
 ///
 /// Clients built on the official Kotlin/Java SDKs parse this with
 /// `UUID.fromString()`, so it has to be dashed just like an item id.
-pub async fn ensure_server_id(pool: &Pool<Postgres>) -> Result<String, Error> {
+pub async fn ensure_server_id(db: &Db) -> Result<String, Error> {
+    let pool = db.primary();
     let existing: Option<(String,)> =
         sqlx::query_as(r#"SELECT value FROM jellyfin_meta WHERE key = 'server_id'"#)
             .fetch_optional(pool)

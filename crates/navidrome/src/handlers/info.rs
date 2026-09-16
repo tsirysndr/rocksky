@@ -1,15 +1,15 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{handlers::albums::mime_to_suffix, repo, response};
+use rocksky_pgurl::Db;
 
 pub async fn handle_get_artist_info(
     format: &str,
     user_id: &str,
     artist_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     is_v2: bool,
 ) -> HttpResponse {
     let artist = match repo::artist::get_artist_by_id(pool, artist_id, user_id).await {
@@ -38,7 +38,7 @@ pub async fn handle_get_artist_info(
 pub async fn handle_get_album_info(
     format: &str,
     album_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     is_v2: bool,
     _params: &HashMap<String, String>,
 ) -> HttpResponse {
@@ -48,11 +48,7 @@ pub async fn handle_get_album_info(
     response::ok(format, json!({ key: {} }))
 }
 
-pub async fn handle_get_now_playing(
-    format: &str,
-    user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
-) -> HttpResponse {
+pub async fn handle_get_now_playing(format: &str, user_id: &str, pool: &Arc<Db>) -> HttpResponse {
     match repo::nowplaying::get_now_playing(pool, user_id).await {
         Ok(entries) => {
             let list: Vec<Value> = entries

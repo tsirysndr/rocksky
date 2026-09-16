@@ -8,7 +8,6 @@
 
 use actix_web::HttpResponse;
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
 use std::io::{Cursor, Write};
 use std::sync::Arc;
 use zip::write::SimpleFileOptions;
@@ -17,6 +16,7 @@ use crate::handlers::albums::mime_to_suffix;
 use crate::handlers::stream::resolve_track_url;
 use crate::xata::track::TrackWithUpload;
 use crate::{repo, response};
+use rocksky_pgurl::Db;
 
 /// Strips what Windows, macOS and zip readers variously choke on.
 fn safe_component(name: &str) -> String {
@@ -149,12 +149,7 @@ async fn zip_tracks(name: &str, tracks: &[TrackWithUpload]) -> Result<HttpRespon
     ))
 }
 
-pub async fn handle(
-    format: &str,
-    user_id: &str,
-    id: &str,
-    pool: &Arc<Pool<Postgres>>,
-) -> HttpResponse {
+pub async fn handle(format: &str, user_id: &str, id: &str, pool: &Arc<Db>) -> HttpResponse {
     // A single track first: the common case, and the id spaces don't overlap.
     match repo::track::get_track_by_id(pool, id, user_id).await {
         Ok(Some(track)) => {

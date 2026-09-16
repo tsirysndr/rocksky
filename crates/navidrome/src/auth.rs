@@ -1,17 +1,17 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_pgurl::Db;
 
 use crate::repo::user::get_user_with_apikeys;
 use crate::xata::user::UserWithApiKey;
 
 pub async fn authenticate(
-    pool: &Pool<Postgres>,
+    db: &Db,
     username: &str,
     password: Option<&str>,
     token: Option<&str>,
     salt: Option<&str>,
 ) -> Result<UserWithApiKey, Error> {
-    let users = get_user_with_apikeys(pool, username).await?;
+    let users = get_user_with_apikeys(db, username).await?;
 
     if users.is_empty() {
         return Err(Error::msg("User not found"));

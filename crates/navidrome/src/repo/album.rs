@@ -1,7 +1,7 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
 
 use crate::xata::album::AlbumWithStats;
+use rocksky_pgurl::Db;
 
 /// The caller's albums, with their per-album stats, computed in one pass.
 ///
@@ -110,10 +110,11 @@ fn member_tracks(user_param: &str) -> String {
 }
 
 pub async fn get_albums_by_artist(
-    pool: &Pool<Postgres>,
+    db: &Db,
     artist_id: &str,
     user_id: &str,
 ) -> Result<Vec<AlbumWithStats>, Error> {
+    let pool = db.replica();
     let rows: Vec<AlbumWithStats> = sqlx::query_as(&format!(
         r#"
         SELECT
@@ -145,10 +146,11 @@ pub async fn get_albums_by_artist(
 }
 
 pub async fn get_album_by_id(
-    pool: &Pool<Postgres>,
+    db: &Db,
     album_id: &str,
     user_id: &str,
 ) -> Result<Option<AlbumWithStats>, Error> {
+    let pool = db.replica();
     let row: Option<AlbumWithStats> = sqlx::query_as(&format!(
         r#"
         SELECT
@@ -183,10 +185,11 @@ pub async fn get_album_by_id(
 /// album durably — an NFC tag, a share link, another client's record — carries
 /// the record URI instead. `albums.uri` is unique, so this is a point lookup.
 pub async fn get_album_by_uri(
-    pool: &Pool<Postgres>,
+    db: &Db,
     uri: &str,
     user_id: &str,
 ) -> Result<Option<AlbumWithStats>, Error> {
+    let pool = db.replica();
     let row: Option<AlbumWithStats> = sqlx::query_as(&format!(
         r#"
         SELECT
@@ -216,7 +219,7 @@ pub async fn get_album_by_uri(
 }
 
 pub async fn get_album_list(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     list_type: &str,
     count: i64,
@@ -225,6 +228,7 @@ pub async fn get_album_list(
     to_year: Option<i32>,
     genre: Option<&str>,
 ) -> Result<Vec<AlbumWithStats>, Error> {
+    let pool = db.replica();
     // Every branch ends in xata_id: these paginate with LIMIT/OFFSET, and the
     // sort keys are far from unique. user_uploads.uploaded_at defaults to now(),
     // which is the *transaction* timestamp, so a bulk upload gives every album
@@ -338,12 +342,13 @@ pub async fn get_album_list(
 }
 
 pub async fn search_albums(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     query: &str,
     count: i64,
     offset: i64,
 ) -> Result<Vec<AlbumWithStats>, Error> {
+    let pool = db.replica();
     let pattern = format!("%{}%", query);
     // Same shape as get_album_list — see ALBUM_STATS_CTE for why it is built
     // this way, why the junction guard has to stay, and what the dedup is for.
@@ -401,10 +406,11 @@ pub async fn search_albums(
 
 /// Fetch albums matching a list of (title, artist) pairs returned by Typesense.
 pub async fn get_albums_by_names(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     pairs: &[(String, String)],
 ) -> Result<Vec<AlbumWithStats>, Error> {
+    let pool = db.replica();
     if pairs.is_empty() {
         return Ok(vec![]);
     }
@@ -441,7 +447,8 @@ pub async fn get_albums_by_names(
     Ok(rows)
 }
 
-pub async fn get_album_art(pool: &Pool<Postgres>, album_id: &str) -> Result<Option<String>, Error> {
+pub async fn get_album_art(db: &Db, album_id: &str) -> Result<Option<String>, Error> {
+    let pool = db.replica();
     let row: Option<(Option<String>,)> =
         sqlx::query_as(r#"SELECT album_art FROM albums WHERE xata_id = $1"#)
             .bind(album_id)

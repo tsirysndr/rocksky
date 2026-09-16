@@ -1,8 +1,8 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use sqlx::{Pool, Postgres};
 
 use crate::repo::track::one_upload_join;
+use rocksky_pgurl::Db;
 
 pub struct StarredTrack {
     pub xata_id: String,
@@ -53,10 +53,8 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for StarredTrack {
     }
 }
 
-pub async fn get_starred_tracks(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Vec<StarredTrack>, Error> {
+pub async fn get_starred_tracks(db: &Db, user_id: &str) -> Result<Vec<StarredTrack>, Error> {
+    let pool = db.primary();
     let rows: Vec<StarredTrack> = sqlx::query_as(&format!(
         r#"
         SELECT

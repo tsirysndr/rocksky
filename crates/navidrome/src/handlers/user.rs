@@ -1,9 +1,9 @@
 use actix_web::HttpResponse;
 use serde_json::json;
-use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{response, xata::user::UserWithApiKey};
+use rocksky_pgurl::Db;
 
 pub fn handle_get_user(format: &str, user: &UserWithApiKey) -> HttpResponse {
     response::ok(
@@ -44,7 +44,7 @@ pub fn handle_get_license(format: &str) -> HttpResponse {
     )
 }
 
-pub fn handle_get_scan_status(format: &str, pool: &Arc<Pool<Postgres>>) -> HttpResponse {
+pub fn handle_get_scan_status(format: &str, pool: &Arc<Db>) -> HttpResponse {
     let _ = pool;
     response::ok(
         format,

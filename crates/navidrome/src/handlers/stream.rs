@@ -1,5 +1,4 @@
 use actix_web::HttpResponse;
-use sqlx::{Pool, Postgres};
 use std::{
     collections::HashMap,
     env,
@@ -8,6 +7,7 @@ use std::{
 };
 
 use crate::{repo, repo::track::StreamTrack, response, s3};
+use rocksky_pgurl::Db;
 
 // Cache decrypted credentials keyed by the encrypted value — safe against
 // credential rotation since the key changes when the stored bytes change.
@@ -29,7 +29,7 @@ fn track_cache() -> &'static Mutex<HashMap<String, (StreamTrack, Instant)>> {
 }
 
 async fn get_stream_track_cached(
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     song_id: &str,
     user_id: &str,
 ) -> Result<Option<StreamTrack>, anyhow::Error> {
@@ -121,12 +121,7 @@ async fn resolve_url(track: &StreamTrack) -> Result<String, anyhow::Error> {
 /// Resolve the object URL and hand the client a 302 straight to the CDN /
 /// object store. The bytes never pass through this server, so seeking, range
 /// requests and edge caching are all served by the origin.
-async fn redirect(
-    format: &str,
-    user_id: &str,
-    song_id: &str,
-    pool: &Arc<Pool<Postgres>>,
-) -> HttpResponse {
+async fn redirect(format: &str, user_id: &str, song_id: &str, pool: &Arc<Db>) -> HttpResponse {
     let track = match get_stream_track_cached(pool, song_id, user_id).await {
         Ok(Some(t)) => t,
         Ok(None) => return response::err(format, 70, "Song not found"),
@@ -155,7 +150,7 @@ pub async fn handle_head(
     format: &str,
     user_id: &str,
     song_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     redirect(format, user_id, song_id, pool).await
 }
@@ -164,7 +159,7 @@ pub async fn handle(
     format: &str,
     user_id: &str,
     song_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     _range: Option<&str>,
 ) -> HttpResponse {
     redirect(format, user_id, song_id, pool).await

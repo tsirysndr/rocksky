@@ -1,15 +1,15 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{handlers::albums::mime_to_suffix, repo, response};
+use rocksky_pgurl::Db;
 
 pub async fn handle_get_song(
     format: &str,
     user_id: &str,
     song_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     match repo::track::get_track_by_id(pool, song_id, user_id).await {
         Ok(Some(t)) => {
@@ -27,7 +27,7 @@ pub async fn handle_get_song(
 pub async fn handle_get_random_songs(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &std::collections::HashMap<String, String>,
 ) -> HttpResponse {
     let count: i64 = params

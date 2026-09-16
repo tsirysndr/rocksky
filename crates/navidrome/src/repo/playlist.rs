@@ -1,9 +1,9 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use sqlx::{Pool, Postgres};
 
 use crate::repo::track::track_select;
 use crate::xata::track::TrackWithUpload;
+use rocksky_pgurl::Db;
 
 #[derive(sqlx::FromRow)]
 pub struct PlaylistRow {
@@ -81,10 +81,8 @@ fn playlist_select(where_clause: &str) -> String {
     )
 }
 
-pub async fn get_playlists(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-) -> Result<Vec<PlaylistRow>, Error> {
+pub async fn get_playlists(db: &Db, user_id: &str) -> Result<Vec<PlaylistRow>, Error> {
+    let pool = db.primary();
     let rows: Vec<PlaylistRow> = sqlx::query_as(&format!(
         "{} ORDER BY p.xata_createdat DESC",
         playlist_select("p.user_id = $1")
@@ -98,11 +96,12 @@ pub async fn get_playlists(
 
 /// Create an empty playlist owned by `user_id`; returns the new playlist id.
 pub async fn create_playlist(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     name: &str,
     description: Option<&str>,
 ) -> Result<String, Error> {
+    let pool = db.primary();
     // Generate the id explicitly with gen_random_uuid() rather than relying on
     // the xata_id() default, which collides under rapid successive inserts
     // (duplicate primary key violations when bulk-adding tracks).
@@ -123,11 +122,8 @@ pub async fn create_playlist(
 }
 
 /// True when `user_id` owns the playlist (i.e. may mutate/delete it).
-pub async fn is_owner(
-    pool: &Pool<Postgres>,
-    playlist_id: &str,
-    user_id: &str,
-) -> Result<bool, Error> {
+pub async fn is_owner(db: &Db, playlist_id: &str, user_id: &str) -> Result<bool, Error> {
+    let pool = db.primary();
     let owner: Option<String> = sqlx::query_scalar(
         r#"SELECT xata_id FROM navidrome_playlists WHERE xata_id = $1 AND user_id = $2"#,
     )
@@ -139,11 +135,12 @@ pub async fn is_owner(
 }
 
 pub async fn update_meta(
-    pool: &Pool<Postgres>,
+    db: &Db,
     playlist_id: &str,
     name: Option<&str>,
     comment: Option<&str>,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     if let Some(n) = name {
         sqlx::query(
             r#"UPDATE navidrome_playlists SET name = $1, xata_updatedat = now() WHERE xata_id = $2"#,
@@ -166,11 +163,8 @@ pub async fn update_meta(
 }
 
 /// Append a track (by its xata_id / Subsonic song id) to the playlist.
-pub async fn add_track(
-    pool: &Pool<Postgres>,
-    playlist_id: &str,
-    track_id: &str,
-) -> Result<(), Error> {
+pub async fn add_track(db: &Db, playlist_id: &str, track_id: &str) -> Result<(), Error> {
+    let pool = db.primary();
     // gen_random_uuid() for the primary key — the xata_id() default collides
     // under the rapid inserts of a bulk add.
     sqlx::query(
@@ -189,11 +183,8 @@ pub async fn add_track(
 }
 
 /// Remove the track at the given 0-based position (ordered as displayed).
-pub async fn remove_track_at(
-    pool: &Pool<Postgres>,
-    playlist_id: &str,
-    index: i64,
-) -> Result<(), Error> {
+pub async fn remove_track_at(db: &Db, playlist_id: &str, index: i64) -> Result<(), Error> {
+    let pool = db.primary();
     let entry_id: Option<String> = sqlx::query_scalar(
         r#"
         SELECT xata_id FROM navidrome_playlist_tracks
@@ -220,7 +211,8 @@ pub async fn remove_track_at(
     Ok(())
 }
 
-pub async fn delete_playlist(pool: &Pool<Postgres>, playlist_id: &str) -> Result<(), Error> {
+pub async fn delete_playlist(db: &Db, playlist_id: &str) -> Result<(), Error> {
+    let pool = db.primary();
     sqlx::query(r#"DELETE FROM navidrome_playlist_tracks WHERE playlist_id = $1"#)
         .bind(playlist_id)
         .execute(pool)
@@ -233,10 +225,11 @@ pub async fn delete_playlist(pool: &Pool<Postgres>, playlist_id: &str) -> Result
 }
 
 pub async fn get_playlist(
-    pool: &Pool<Postgres>,
+    db: &Db,
     playlist_id: &str,
     user_id: &str,
 ) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
+    let pool = db.primary();
     let playlist: Option<PlaylistRow> =
         sqlx::query_as(&playlist_select("p.xata_id = $1 AND p.user_id = $2"))
             .bind(playlist_id)
@@ -244,7 +237,7 @@ pub async fn get_playlist(
             .fetch_optional(pool)
             .await?;
 
-    with_tracks(pool, playlist, user_id).await
+    with_tracks(db, playlist, user_id).await
 }
 
 /// Look a playlist up by the AT-URI of the `app.rocksky.playlist` record
@@ -255,10 +248,11 @@ pub async fn get_playlist(
 /// carries the record URI instead. `uri` is NULL until the mirror publishes the
 /// record, so an unmirrored playlist simply doesn't resolve this way.
 pub async fn get_playlist_by_uri(
-    pool: &Pool<Postgres>,
+    db: &Db,
     uri: &str,
     user_id: &str,
 ) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
+    let pool = db.primary();
     let playlist: Option<PlaylistRow> =
         sqlx::query_as(&playlist_select("p.uri = $1 AND p.user_id = $2"))
             .bind(uri)
@@ -266,15 +260,16 @@ pub async fn get_playlist_by_uri(
             .fetch_optional(pool)
             .await?;
 
-    with_tracks(pool, playlist, user_id).await
+    with_tracks(db, playlist, user_id).await
 }
 
 /// Loads the entries for a playlist row, whichever way it was looked up.
 async fn with_tracks(
-    pool: &Pool<Postgres>,
+    db: &Db,
     playlist: Option<PlaylistRow>,
     user_id: &str,
 ) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
+    let pool = db.primary();
     let playlist = match playlist {
         Some(p) => p,
         None => return Ok(None),

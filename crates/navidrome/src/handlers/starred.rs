@@ -1,14 +1,14 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{handlers::albums::mime_to_suffix, repo, response};
+use rocksky_pgurl::Db;
 
 pub async fn handle_get_starred2(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     method: &str,
 ) -> HttpResponse {
     let key = if method == "getStarred" {

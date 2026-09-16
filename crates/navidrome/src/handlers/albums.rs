@@ -1,9 +1,9 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{repo, response, xata::album::AlbumWithStats};
+use rocksky_pgurl::Db;
 
 fn album_to_json(a: &AlbumWithStats, artist_id_override: Option<&str>) -> Value {
     let mut obj = json!({
@@ -47,7 +47,7 @@ pub async fn handle_get_album(
     format: &str,
     user_id: &str,
     album_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     // `id` may be the Navidrome id or the AT-URI of the album's record — an NFC
     // tag or a share link carries the URI, since the Navidrome id means nothing
@@ -133,7 +133,7 @@ pub async fn handle_get_album(
 pub async fn handle_get_album_list2(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &std::collections::HashMap<String, String>,
     method: &str,
 ) -> HttpResponse {

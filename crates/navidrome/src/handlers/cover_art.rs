@@ -1,12 +1,12 @@
 use actix_web::HttpResponse;
-use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{repo, response};
+use rocksky_pgurl::Db;
 
 /// Returns album art for a track: uses the track's own album_art field first,
 /// then falls back to the art of the album the track belongs to.
-async fn art_for_track(pool: &Pool<Postgres>, track_id: &str) -> Option<String> {
+async fn art_for_track(pool: &Db, track_id: &str) -> Option<String> {
     let direct = repo::track::get_album_art_by_track_id(pool, track_id)
         .await
         .ok()
@@ -24,7 +24,7 @@ async fn art_for_track(pool: &Pool<Postgres>, track_id: &str) -> Option<String> 
         .flatten()
 }
 
-pub async fn handle(format: &str, cover_id: &str, pool: &Arc<Pool<Postgres>>) -> HttpResponse {
+pub async fn handle(format: &str, cover_id: &str, pool: &Arc<Db>) -> HttpResponse {
     let url = if let Some(album_id) = cover_id.strip_prefix("al-") {
         repo::album::get_album_art(pool, album_id)
             .await

@@ -1,14 +1,14 @@
 use actix_web::HttpResponse;
 use serde_json::json;
-use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{api, repo, response};
+use rocksky_pgurl::Db;
 
 pub async fn handle_star(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &HashMap<String, String>,
 ) -> HttpResponse {
     let track_id = match params.get("id") {
@@ -64,7 +64,7 @@ pub async fn handle_star(
 pub async fn handle_unstar(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &HashMap<String, String>,
 ) -> HttpResponse {
     let track_id = match params.get("id") {

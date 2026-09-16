@@ -1,14 +1,14 @@
 use actix_web::HttpResponse;
 use chrono::{DateTime, TimeZone, Utc};
 use serde_json::json;
-use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
 #[allow(unused_imports)]
 use crate::{api, repo, response};
+use rocksky_pgurl::Db;
 
 pub async fn publish_song_changed(
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     nc: &Arc<async_nats::Client>,
     user_id: &str,
     song_id: &str,
@@ -77,7 +77,7 @@ pub async fn publish_song_changed(
 pub async fn handle_scrobble(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &HashMap<String, String>,
     nc: &Arc<async_nats::Client>,
 ) -> HttpResponse {
@@ -151,7 +151,7 @@ pub async fn handle_scrobble(
 pub async fn handle_update_now_playing(
     format: &str,
     user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
     params: &HashMap<String, String>,
     nc: &Arc<async_nats::Client>,
 ) -> HttpResponse {

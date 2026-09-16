@@ -24,7 +24,6 @@ use actix_cors::Cors;
 use actix_web::{middleware::from_fn, web, App, HttpServer};
 use anyhow::Error;
 use owo_colors::OwoColorize;
-use sqlx::postgres::PgPoolOptions;
 
 use rocksky_navidrome::typesense::TypesenseClient;
 
@@ -62,22 +61,24 @@ pub const INFO: &str = r#"
 pub async fn run() -> Result<(), Error> {
     println!("{}", BANNER.cyan());
 
-    let pool = PgPoolOptions::new()
-        .max_connections(25)
-        .min_connections(5)
-        .acquire_timeout(Duration::from_secs(10))
-        .idle_timeout(Duration::from_secs(300))
-        .max_lifetime(Duration::from_secs(1800))
-        .connect_with(rocksky_pgurl::primary("rocksky-jellyfin")?)
-        .await?;
-    rocksky_pgurl::ensure_writable(&pool, "rocksky-jellyfin").await?;
+    // Library browsing reads from the replica; auth, the guid map, user data
+    // and the server id all read back what they just wrote, so they stay on the
+    // primary. Collapses to one pool when no replica is configured.
+    let db = rocksky_pgurl::Db::connect("rocksky-jellyfin", |opts| {
+        opts.max_connections(25)
+            .min_connections(5)
+            .acquire_timeout(Duration::from_secs(10))
+            .idle_timeout(Duration::from_secs(300))
+            .max_lifetime(Duration::from_secs(1800))
+    })
+    .await?;
 
-    auth::ensure_tables(&pool).await?;
-    guid::ensure_table(&pool).await?;
-    userdata::ensure_table(&pool).await?;
+    auth::ensure_tables(&db).await?;
+    guid::ensure_table(&db).await?;
+    userdata::ensure_table(&db).await?;
 
-    let server_id = state::ensure_server_id(&pool).await?;
-    let conn = Arc::new(pool);
+    let server_id = state::ensure_server_id(&db).await?;
+    let conn = Arc::new(db);
 
     let ts = Arc::new(TypesenseClient::from_env());
     if ts.is_some() {

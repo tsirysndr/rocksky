@@ -1,15 +1,15 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{handlers::albums::mime_to_suffix, repo, response};
+use rocksky_pgurl::Db;
 
 pub async fn handle_get_music_directory(
     format: &str,
     user_id: &str,
     id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     // root → all artists
     if id == "1" || id == "root" {

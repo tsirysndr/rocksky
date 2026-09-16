@@ -1,10 +1,10 @@
 use actix_web::HttpResponse;
 use serde_json::{json, Value};
-use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::{handlers::songs::track_to_json, repo, response};
+use rocksky_pgurl::Db;
 
 pub(crate) fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
     let mut obj = json!({
@@ -34,11 +34,7 @@ pub(crate) fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
     obj
 }
 
-pub async fn handle_get_playlists(
-    format: &str,
-    user_id: &str,
-    pool: &Arc<Pool<Postgres>>,
-) -> HttpResponse {
+pub async fn handle_get_playlists(format: &str, user_id: &str, pool: &Arc<Db>) -> HttpResponse {
     match repo::playlist::get_playlists(pool, user_id).await {
         Ok(playlists) => {
             let list: Vec<Value> = playlists.iter().map(playlist_to_json).collect();
@@ -55,7 +51,7 @@ pub async fn handle_get_playlist(
     format: &str,
     user_id: &str,
     playlist_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     // `id` may be the Navidrome id or the AT-URI of the playlist's mirrored
     // record — an NFC tag or a share link carries the URI, since the Navidrome
@@ -85,7 +81,7 @@ async fn present_playlist(
     format: &str,
     user_id: &str,
     playlist_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     match repo::playlist::get_playlist(pool, playlist_id, user_id).await {
         Ok(Some((p, tracks))) => {
@@ -106,7 +102,7 @@ pub async fn handle_create_playlist(
     format: &str,
     user_id: &str,
     name: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     match repo::playlist::create_playlist(pool, user_id, name, None).await {
         Ok(playlist_id) => present_playlist(format, user_id, &playlist_id, pool).await,
@@ -121,7 +117,7 @@ pub async fn handle_delete_playlist(
     format: &str,
     user_id: &str,
     playlist_id: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     match repo::playlist::is_owner(pool, playlist_id, user_id).await {
         Ok(true) => match repo::playlist::delete_playlist(pool, playlist_id).await {
@@ -143,7 +139,7 @@ pub async fn handle_update_playlist(
     format: &str,
     user_id: &str,
     params: &HashMap<String, String>,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Db>,
 ) -> HttpResponse {
     let playlist_id = match params.get("playlistId").or_else(|| params.get("id")) {
         Some(id) => id.as_str(),

@@ -8,6 +8,7 @@
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use rocksky_pgurl::Db;
 use sqlx::{Pool, Postgres};
 
 #[derive(Debug, Default, Clone, sqlx::FromRow)]
@@ -20,7 +21,8 @@ pub struct ItemUserData {
     pub last_played_date: Option<DateTime<Utc>>,
 }
 
-pub async fn ensure_table(pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn ensure_table(db: &Db) -> Result<(), Error> {
+    let pool = db.primary();
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS jellyfin_user_item_data (
@@ -41,7 +43,8 @@ pub async fn ensure_table(pool: &Pool<Postgres>) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn get(pool: &Pool<Postgres>, user_id: &str, item_id: &str) -> ItemUserData {
+pub async fn get(db: &Db, user_id: &str, item_id: &str) -> ItemUserData {
+    let pool = db.primary();
     sqlx::query_as(
         r#"
         SELECT playback_position_ticks, play_count, played, likes, rating, last_played_date
@@ -60,10 +63,11 @@ pub async fn get(pool: &Pool<Postgres>, user_id: &str, item_id: &str) -> ItemUse
 /// Fetch a whole page's worth in one query. A listing otherwise costs one round
 /// trip per row before any JSON is written.
 pub async fn get_many(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     item_ids: &[String],
 ) -> std::collections::HashMap<String, ItemUserData> {
+    let pool = db.primary();
     if item_ids.is_empty() {
         return Default::default();
     }
@@ -100,7 +104,8 @@ pub async fn get_many(
 
 /// Items the user stopped part-way through and hasn't since finished — the
 /// "continue listening" rail. Most recently played first.
-pub async fn resume_items(pool: &Pool<Postgres>, user_id: &str, limit: i64) -> Vec<String> {
+pub async fn resume_items(db: &Db, user_id: &str, limit: i64) -> Vec<String> {
+    let pool = db.primary();
     let rows: Vec<(String,)> = sqlx::query_as(
         r#"
         SELECT item_id
@@ -122,10 +127,11 @@ pub async fn resume_items(pool: &Pool<Postgres>, user_id: &str, limit: i64) -> V
 
 /// Which of `item_ids` the user has starred. One query for a whole page.
 pub async fn favorites_among(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     track_ids: &[String],
 ) -> std::collections::HashSet<String> {
+    let pool = db.primary();
     if track_ids.is_empty() {
         return Default::default();
     }
@@ -140,22 +146,19 @@ pub async fn favorites_among(
     rows.into_iter().map(|(id,)| id).collect()
 }
 
-pub async fn set_position(
-    pool: &Pool<Postgres>,
-    user_id: &str,
-    item_id: &str,
-    ticks: i64,
-) -> Result<(), Error> {
+pub async fn set_position(db: &Db, user_id: &str, item_id: &str, ticks: i64) -> Result<(), Error> {
+    let pool = db.primary();
     upsert(pool, user_id, item_id, "playback_position_ticks", ticks).await
 }
 
 pub async fn set_played(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     item_id: &str,
     played: bool,
     at: Option<DateTime<Utc>>,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     // Marking played bumps the count and stamps the date; un-marking clears
     // both, which is what the reference server does for `DELETE
     // /UserPlayedItems/{id}`.
@@ -195,47 +198,52 @@ pub async fn set_played(
 }
 
 pub async fn set_likes(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     item_id: &str,
     likes: Option<bool>,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     upsert(pool, user_id, item_id, "likes", likes).await
 }
 
 pub async fn set_play_count(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     item_id: &str,
     count: i32,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     upsert(pool, user_id, item_id, "play_count", count).await
 }
 
 pub async fn set_rating(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     item_id: &str,
     rating: Option<f64>,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     upsert(pool, user_id, item_id, "rating", rating).await
 }
 
 pub async fn set_played_flag(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     item_id: &str,
     played: bool,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     upsert(pool, user_id, item_id, "played", played).await
 }
 
 pub async fn set_last_played(
-    pool: &Pool<Postgres>,
+    db: &Db,
     user_id: &str,
     item_id: &str,
     at: Option<DateTime<Utc>>,
 ) -> Result<(), Error> {
+    let pool = db.primary();
     upsert(pool, user_id, item_id, "last_played_date", at).await
 }
 
