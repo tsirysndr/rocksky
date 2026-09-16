@@ -1,0 +1,23 @@
+[package]
+name = "rocksky-lexicon-codegen"
+version = "0.1.0"
+description = "Generates Rust types from ATProto lexicon JSON, the way apps/api generates TypeScript"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "lexgen"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+# `preserve_order` keeps a document's properties in the order the lexicon
+# wrote them, so regenerating produces a byte-identical file.
+serde_json = { version = "1", features = ["preserve_order"] }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
