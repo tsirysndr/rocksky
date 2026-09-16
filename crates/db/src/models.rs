@@ -319,6 +319,34 @@ pub fn column_expr(col: Col, dialect: Dialect, prefix: Option<&str>) -> sea_quer
     }
 }
 
+/// Whether a "genres"-style array column contains `value`.
+///
+/// The two backends store these columns differently and there is no common
+/// spelling: Postgres has a real `text[]` and the `@>` operator, while SQLite
+/// holds a JSON array in a TEXT column and has to walk it with `json_each`.
+///
+/// A free function taking the dialect, so both branches can be asserted
+/// without a Postgres to connect to. Reached through
+/// [`crate::Backend::array_contains`], which supplies it.
+pub fn array_contains_expr(dialect: Dialect, column: &str, value: &str) -> sea_query::SimpleExpr {
+    use sea_query::Expr;
+
+    // The placeholder marker differs: sea-query substitutes `$N` only for
+    // Postgres and `?` for SQLite, so using `$1` for both leaves a literal
+    // `$1` in the SQLite statement — a condition that binds nothing and
+    // matches nothing, with no error to say so.
+    match dialect {
+        Dialect::Postgres => Expr::cust_with_values(
+            format!("({column} @> ARRAY[$1]::text[])"),
+            [value.to_string()],
+        ),
+        Dialect::Sqlite => Expr::cust_with_values(
+            format!("EXISTS (SELECT 1 FROM json_each({column}) WHERE json_each.value = ?)"),
+            [value.to_string()],
+        ),
+    }
+}
+
 /// An ISO-8601 timestamp as a value comparable against a timestamp column.
 ///
 /// Bound as text, because that is how SQLite stores these columns, and cast on

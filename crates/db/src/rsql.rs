@@ -1274,10 +1274,11 @@ fn expr_array_contains(
             [raw.to_string()],
         ),
         // The column is a JSON array here, so containment is a lookup over its
-        // elements.
+        // elements. `?` rather than `$1`: sea-query only substitutes the
+        // numbered form for Postgres, and a literal `$1` would bind nothing.
         Dialect::Sqlite => Expr::cust_with_values(
             format!(
-                "EXISTS (SELECT 1 FROM json_each({}) WHERE json_each.value = $1)",
+                "EXISTS (SELECT 1 FROM json_each({}) WHERE json_each.value = ?)",
                 field.column
             ),
             [raw.to_string()],
@@ -1292,10 +1293,15 @@ fn expr_array_overlap(
     negated: bool,
     dialect: Dialect,
 ) -> Result<SimpleExpr> {
-    let placeholders = (1..=values.len().max(1))
-        .map(|index| format!("${index}"))
-        .collect::<Vec<_>>()
-        .join(", ");
+    // Numbered for Postgres, positional for SQLite — sea-query substitutes
+    // `$N` only for the former.
+    let placeholders = match dialect {
+        Dialect::Postgres => (1..=values.len().max(1))
+            .map(|index| format!("${index}"))
+            .collect::<Vec<_>>()
+            .join(", "),
+        Dialect::Sqlite => vec!["?"; values.len().max(1)].join(", "),
+    };
     let bound: Vec<String> = values.to_vec();
 
     let expr = match dialect {
@@ -1621,5 +1627,104 @@ mod equivalence {
                 "{filter:?}"
             );
         }
+    }
+}
+
+/// Array containment, executed rather than only rendered.
+///
+/// The text-only tests above missed a real bug: the SQLite branch used `$1`,
+/// which sea-query substitutes for Postgres only, so the statement carried a
+/// literal `$1`, bound nothing and matched nothing — and the assertions passed
+/// because they only checked that `json_each` appeared. Anything whose
+/// correctness depends on a value actually being bound is tested here against
+/// a real database.
+#[cfg(test)]
+mod array_execution {
+    use super::tests::FIELDS;
+    use super::*;
+    use sea_query::Query;
+
+    async fn seeded() -> crate::Backend {
+        let db = crate::connect_in_memory().await.unwrap();
+        for (id, name, genres) in [
+            ("rec_a1", "Coreband", r#"["metalcore","metal"]"#),
+            ("rec_a2", "Popband", r#"["dance pop"]"#),
+            ("rec_a3", "Ampersand", r#"["r&b","soul"]"#),
+            ("rec_a4", "Untagged", "[]"),
+        ] {
+            let insert = Query::insert()
+                .into_table(crate::schema::Artists::Table)
+                .columns([
+                    crate::schema::Artists::XataId,
+                    crate::schema::Artists::Name,
+                    crate::schema::Artists::Sha256,
+                    crate::schema::Artists::Genres,
+                ])
+                .values_panic([id.into(), name.into(), id.into(), genres.into()])
+                .to_owned();
+            db.execute(&insert).await.unwrap();
+        }
+        db
+    }
+
+    /// Names matching a filter, so the assertion is about rows rather than SQL.
+    async fn matching(db: &crate::Backend, filter: &str) -> Vec<String> {
+        let condition = compile_expr(filter, FIELDS, db.dialect()).expect(filter);
+        let query = Query::select()
+            .column(crate::schema::Artists::Name)
+            .from(crate::schema::Artists::Table)
+            .and_where(condition)
+            .order_by(crate::schema::Artists::Name, sea_query::Order::Asc)
+            .to_owned();
+        db.fetch_scalars::<String>(&query).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn containment_matches_the_tagged_rows() {
+        let db = seeded().await;
+
+        assert_eq!(matching(&db, "genres==metalcore").await, vec!["Coreband"]);
+        assert_eq!(matching(&db, "genres==metal").await, vec!["Coreband"]);
+        assert_eq!(
+            matching(&db, r#"genres=="dance pop""#).await,
+            vec!["Popband"]
+        );
+
+        // An empty array and an absent genre both match nothing.
+        assert!(matching(&db, "genres==nonexistent").await.is_empty());
+    }
+
+    /// An element with a character that means something in SQL has to survive
+    /// being bound, which is the whole reason it is a parameter.
+    #[tokio::test]
+    async fn an_element_with_an_ampersand_matches() {
+        let db = seeded().await;
+        assert_eq!(matching(&db, r#"genres=="r&b""#).await, vec!["Ampersand"]);
+    }
+
+    #[tokio::test]
+    async fn overlap_matches_any_of_the_listed_elements() {
+        let db = seeded().await;
+
+        let mut both = matching(&db, "genres=in=(metalcore,soul)").await;
+        both.sort();
+        assert_eq!(both, vec!["Ampersand", "Coreband"]);
+
+        assert_eq!(
+            matching(&db, "genres=in=(nonexistent,metalcore)").await,
+            vec!["Coreband"]
+        );
+        assert!(matching(&db, "genres=in=(nothing,here)").await.is_empty());
+    }
+
+    /// Negation is the complement, and must include the untagged row rather
+    /// than dropping it.
+    #[tokio::test]
+    async fn negated_containment_excludes_only_the_matches() {
+        let db = seeded().await;
+
+        let mut others = matching(&db, "genres!=metalcore").await;
+        others.sort();
+        assert_eq!(others, vec!["Ampersand", "Popband", "Untagged"]);
     }
 }

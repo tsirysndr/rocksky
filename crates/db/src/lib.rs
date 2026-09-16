@@ -452,6 +452,16 @@ impl Backend {
         }
     }
 
+    /// Whether a `text[]`-style column contains `value`.
+    ///
+    /// The storage differs per backend — a real array on Postgres, a JSON
+    /// array in TEXT on SQLite — so this is one of the few places the two
+    /// dialects are genuinely different SQL. `column` is the qualified column
+    /// reference, e.g. `"a.genres"`.
+    pub fn array_contains(&self, column: &str, value: &str) -> sea_query::SimpleExpr {
+        models::array_contains_expr(self.dialect(), column, value)
+    }
+
     /// The current year, as an integer expression.
     ///
     /// `strftime('%Y', 'now')` and `EXTRACT(YEAR FROM CURRENT_DATE)` have no

@@ -1,0 +1,39 @@
+# Build context for `crates/appview/Dockerfile`.
+#
+# BuildKit reads `<dockerfile>.dockerignore` in preference to the context's own
+# `.dockerignore`, which is why this exists as a separate file rather than
+# edits to the shared one — no other image's context changes.
+#
+# This image builds from source, so the context needs the Rust workspace, the
+# web app and the SDK it depends on. What it does not need is anything already
+# built.
+
+# Build output. `target` is the big one — tens of gigabytes in a working
+# checkout, and every byte of it would be uploaded to the daemon and then
+# ignored, since the build compiles inside the image.
+target
+**/node_modules
+**/dist
+
+.git
+.github
+
+# Local state that must never end up in an image: the session database holds
+# live OAuth refresh tokens and DPoP private keys.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.ddb
+*.ddb.wal
+.env
+.env.*
+rocksky-backup.sql
+
+# Other images' definitions, so touching one does not invalidate this context.
+Dockerfile
+**/Dockerfile
+**/Dockerfile.dockerignore
+**/docker-compose.yml
+
+.DS_Store
