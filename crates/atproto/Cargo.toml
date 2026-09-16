@@ -1,0 +1,46 @@
+[package]
+name = "rocksky-atproto"
+version = "0.1.0"
+description = "CAR parsing, MST walking, record writing and DID resolution for ATProto"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rocksky-core = { path = "../core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "= 0.4.39", features = ["serde"] }
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1.41"
+
+# The repository format: a CAR archive of dag-cbor blocks, keyed by CID, with
+# varint frame lengths.
+serde_ipld_dagcbor = "0.6"
+serde_bytes = "0.11"
+ipld-core = "0.4"
+cid = "0.11"
+unsigned-varint = "0.8"
+sha2 = "0.10"
+
+# Record keys are TIDs: a timestamp plus a random clock id.
+xid = "1.1.1"
+base64 = "0.22"
+bytes = "1"
+rand = "0.8.5"
+
+# A CAR archive is fetched as bytes, and the DID document's key material is
+# base64.
+
+
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+  "stream",
+] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

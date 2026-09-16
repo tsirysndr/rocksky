@@ -33,6 +33,20 @@ pub struct AtpSession {
     pub extra: std::collections::BTreeMap<String, serde_json::Value>,
 }
 
+impl AtpSession {
+    /// Just the parts a repository write needs.
+    ///
+    /// The protocol crate deliberately does not know about handles, emails or
+    /// refresh tokens — a `putRecord` needs a DID and a bearer token and
+    /// nothing else.
+    pub fn credentials(&self) -> rocksky_atproto::AtpSession {
+        rocksky_atproto::AtpSession {
+            did: self.did.clone(),
+            access_jwt: self.access_jwt.clone(),
+        }
+    }
+}
+
 fn default_true() -> bool {
     true
 }

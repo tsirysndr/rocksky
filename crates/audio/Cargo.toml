@@ -1,0 +1,36 @@
+[package]
+name = "rocksky-audio"
+version = "0.1.0"
+description = "Reading tags, measuring loudness and analysing an audio file for upload"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rocksky-core = { path = "../core" }
+anyhow = "1"
+tracing = "0.1.41"
+sha2 = "0.10"
+hex = "0.4.3"
+
+# The same parser the rockbox engine uses, so the tags accepted at upload are
+# the tags a player will show.
+rockbox-metadata = "0.1"
+# What that parser does not hand back: decoded cover art, a few text fields,
+# and tag writing.
+lofty = "0.22"
+# Loudness, as `playerd` measures it.
+ebur128 = "0.1"
+symphonia = { version = "0.5", default-features = false, features = [
+  "flac", "mp3", "pcm", "aac", "alac", "isomp4", "vorbis", "ogg", "wav", "adpcm",
+] }
+# Key and tempo, called directly rather than through the Neon binding.
+rocksky-analysis = { path = "../analysis" }
+
+[dev-dependencies]
+tempfile = "3"
+# The cover-id test recomputes the digest independently, which is the point of
+# it.
+md5 = "0.7.0"

@@ -16,12 +16,12 @@
 //!
 //! Both are quiet, so the gain to the -18 LUFS reference comes out positive.
 
-use rocksky_appview::uploads::audio;
+use rocksky_audio as audio;
 use std::path::{Path, PathBuf};
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/audio")
+        .join("tests/fixtures")
         .join(name)
 }
 

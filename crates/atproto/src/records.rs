@@ -10,7 +10,7 @@
 //! because the lexicon validates them and an extra or misnamed key is a
 //! rejected write.
 
-use crate::atproto::session::AtpSession;
+use crate::AtpSession;
 use anyhow::{anyhow, Result};
 use serde::Serialize;
 use serde_json::Value;
@@ -20,7 +20,7 @@ use serde_json::Value;
 /// The lexicon allows the field to be absent, but a record with no art shows
 /// as a broken image everywhere downstream — including the Discord embeds — so
 /// the placeholder is written instead of nothing.
-pub const PLACEHOLDER_ALBUM_ART: &str = crate::ingest::PLACEHOLDER_ALBUM_ART;
+pub use rocksky_core::identity::PLACEHOLDER_ALBUM_ART;
 
 fn with_fallback_album_art(album_art: Option<&str>) -> String {
     album_art
@@ -129,6 +129,25 @@ pub fn song_record(track: &TrackRecord, created_at: &str) -> Value {
         "isrc": track.isrc,
         "createdAt": created_at,
     }))
+}
+
+/// An `app.rocksky.scrobble` record.
+///
+/// The same fields as the song record plus the moment it was played, because a
+/// scrobble is self-describing: a consumer reading it off the firehose has the
+/// whole song without having to resolve the song record too. That is why
+/// backfill can rebuild a catalogue from scrobbles alone.
+pub fn scrobble_record(track: &TrackRecord, listened_at: chrono::DateTime<chrono::Utc>) -> Value {
+    let created_at = rocksky_core::timestamp::to_iso8601(&listened_at);
+    let mut value = song_record(track, &created_at);
+
+    if let Some(object) = value.as_object_mut() {
+        object.insert(
+            "$type".to_string(),
+            Value::String("app.rocksky.scrobble".to_string()),
+        );
+    }
+    value
 }
 
 /// An `app.rocksky.album` record.
@@ -241,7 +260,7 @@ pub async fn publish(
     track: &TrackRecord,
     known: &KnownUris,
 ) -> PublishedUris {
-    let created_at = crate::views::timestamp::to_iso8601(&chrono::Utc::now());
+    let created_at = rocksky_core::timestamp::to_iso8601(&chrono::Utc::now());
     let mut uris = PublishedUris::default();
 
     // A URI is only reusable if it points into *this* repo: an album row is
@@ -472,6 +491,131 @@ mod tests {
     fn the_placeholder_matches_the_indexers() {
         // Both sides must agree, or a record published here and one ingested
         // from the firehose would disagree on the cover.
-        assert_eq!(PLACEHOLDER_ALBUM_ART, crate::ingest::PLACEHOLDER_ALBUM_ART);
+        assert_eq!(PLACEHOLDER_ALBUM_ART, rocksky_core::PLACEHOLDER_ALBUM_ART);
     }
+}
+
+// --------------------------------------------------------------------- reads
+
+/// One record, as `com.atproto.repo.getRecord` returns it.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct FetchedRecord {
+    pub uri: String,
+    /// Absent on some PDS implementations for a record with no commit yet.
+    #[serde(default)]
+    pub cid: Option<String>,
+    pub value: serde_json::Value,
+}
+
+/// Reads one record from a repository, without credentials.
+///
+/// A repository is public, so a read needs no session — which matters for two
+/// cases: looking up the CID a like has to pin, and reading another user's
+/// audio settings or equalizer presets. Both are for repos this instance may
+/// have no session for at all.
+///
+/// The PDS is resolved from the DID rather than assumed, so a record in a
+/// self-hosted repo is as readable as one on `bsky.social`.
+pub async fn get_record(
+    http: &reqwest::Client,
+    pds: &str,
+    did: &str,
+    collection: &str,
+    rkey: &str,
+) -> Result<Option<FetchedRecord>, anyhow::Error> {
+    let response = http
+        .get(format!("{pds}/xrpc/com.atproto.repo.getRecord"))
+        .query(&[("repo", did), ("collection", collection), ("rkey", rkey)])
+        .send()
+        .await?;
+
+    // A missing record is `None` rather than an error: "this user has no
+    // saved settings" is an ordinary answer, not a failure.
+    if response.status() == reqwest::StatusCode::BAD_REQUEST
+        || response.status() == reqwest::StatusCode::NOT_FOUND
+    {
+        tracing::debug!(did, collection, rkey, "no such record");
+        return Ok(None);
+    }
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("the PDS answered {status} reading {collection}/{rkey}: {body}");
+    }
+
+    Ok(Some(response.json().await?))
+}
+
+/// Every record in one collection of a repository.
+///
+/// Paged through to the end, because the callers want a complete list — an
+/// equalizer preset picker showing an arbitrary first page would be worse than
+/// useless. Bounded by `max` so one enormous repo cannot be walked forever.
+pub async fn list_records(
+    http: &reqwest::Client,
+    pds: &str,
+    did: &str,
+    collection: &str,
+    max: usize,
+) -> Result<Vec<FetchedRecord>, anyhow::Error> {
+    let mut all = Vec::new();
+    let mut cursor: Option<String> = None;
+
+    loop {
+        let mut query = vec![
+            ("repo", did.to_string()),
+            ("collection", collection.to_string()),
+            ("limit", "100".to_string()),
+        ];
+        if let Some(cursor) = &cursor {
+            query.push(("cursor", cursor.clone()));
+        }
+
+        let response = http
+            .get(format!("{pds}/xrpc/com.atproto.repo.listRecords"))
+            .query(&query)
+            .send()
+            .await?;
+
+        // An empty or absent collection is an empty list, not an error.
+        if !response.status().is_success() {
+            tracing::debug!(
+                did,
+                collection,
+                status = response.status().as_u16(),
+                "listing a collection did not succeed; treating it as empty"
+            );
+            break;
+        }
+
+        #[derive(serde::Deserialize)]
+        struct Page {
+            #[serde(default)]
+            records: Vec<FetchedRecord>,
+            #[serde(default)]
+            cursor: Option<String>,
+        }
+
+        let page: Page = response.json().await?;
+        let fetched = page.records.len();
+        all.extend(page.records);
+
+        // Stop on a short page, on no cursor, or at the cap — any one of the
+        // three, since a PDS that returns a cursor forever would otherwise
+        // loop.
+        if fetched == 0 || page.cursor.is_none() || all.len() >= max {
+            cursor = None;
+        } else {
+            cursor = page.cursor;
+        }
+
+        if cursor.is_none() {
+            break;
+        }
+    }
+
+    all.truncate(max);
+    tracing::debug!(did, collection, records = all.len(), "listed a collection");
+    Ok(all)
 }
