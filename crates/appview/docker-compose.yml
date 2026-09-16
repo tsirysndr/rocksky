@@ -1,0 +1,135 @@
+# A complete self-hosted Rocksky.
+#
+#   docker compose -f crates/appview/docker-compose.yml up --build
+#
+# Then open http://localhost:3004 and sign in with your ATProto handle.
+#
+# The appview image builds from source — the web UI with bun, then the binary
+# with cargo, then a slim runtime. The first build compiles the whole
+# dependency graph and takes a while; after that the cache mounts in
+# `Dockerfile` make a rebuild quick.
+#
+# Nothing here needs configuring first. The appview creates its SQLite
+# databases, its signing key and a starter `config.toml` in the `data` volume on
+# first boot, and creates the search collections in Typesense.
+#
+# # What is required, and why
+#
+# | service    | required | what breaks without it                                  |
+# |------------|----------|---------------------------------------------------------|
+# | appview    | —        | —                                                       |
+# | nats       | yes      | the scrobble mirrors, the Spotify poller and the playlist importer never fire |
+# | typesense  | yes      | the search box and the search over your own uploads      |
+# | redis      | no       | nothing; the cache falls back to an in-process map       |
+#
+# NATS and Typesense are *required*, and the appview refuses to start without
+# them rather than running in a state where half the system silently does
+# nothing. Redis is the only genuine accelerator here: without it the response
+# cache is per-process, which is correct for one instance and only matters if
+# you run several behind one hostname.
+#
+# # Going public
+#
+# Two things change when this is reachable from the internet:
+#
+#   1. Set `ROCKSKY_DOMAIN` and `ROCKSKY_PUBLIC_URL`. The appview then registers
+#      itself as a *confidential* OAuth client, serving its own client metadata
+#      and JWKS — which is what lets sessions outlive the loopback flow.
+#   2. Set `TYPESENSE_API_KEY` to something of your own and pass the same value
+#      to the `typesense` service. The default is fine on a private network,
+#      where the index holds nothing the public API does not already serve, and
+#      not fine when the port is exposed.
+#
+# Put a TLS terminator in front; this listens on plain HTTP by design.
+
+name: rocksky
+
+services:
+  appview:
+    build:
+      context: ../..
+      dockerfile: crates/appview/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      # Inside the compose network, so the host's own ports stay free.
+      NATS_URL: nats://nats:4222
+      TYPESENSE_URL: http://typesense:8108
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-rocksky}
+      REDIS_URL: redis://redis:6379
+
+      # Uncomment both to run this on a real domain. Until then the OAuth
+      # client is the loopback one, which works but only for localhost.
+      # ROCKSKY_DOMAIN: rocksky.example.com
+      # ROCKSKY_PUBLIC_URL: https://rocksky.example.com
+
+      # Repositories to populate from on first boot, comma-separated. Safe to
+      # leave set: the projection is keyed on content hashes, so re-running it
+      # updates rows rather than duplicating them.
+      # ROCKSKY_BACKFILL_DIDS: did:plc:…
+      # ROCKSKY_BACKFILL_ON_START: "true"
+
+      RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+    volumes:
+      # The databases, the JWT signing key and config.toml. Losing this logs
+      # every user out — the OAuth sessions are in it.
+      - data:/data
+    depends_on:
+      nats:
+        condition: service_started
+      typesense:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Required. The other services subscribe to `rocksky.*` here and do work in
+  # response — see `crates/appview/src/events.rs` for the subjects.
+  nats:
+    image: nats:2-alpine
+    restart: unless-stopped
+    command: ["--jetstream", "--store_dir", "/data"]
+    volumes:
+      - nats:/data
+
+  # Required. Serves the search box and the search over your own uploads.
+  typesense:
+    image: typesense/typesense:27.1
+    restart: unless-stopped
+    command:
+      - "--data-dir=/data"
+      - "--api-key=${TYPESENSE_API_KEY:-rocksky}"
+      - "--enable-cors"
+    volumes:
+      - typesense:/data
+    healthcheck:
+      # The appview creates its collections at boot, so it has to wait for a
+      # Typesense that is actually answering rather than one that has merely
+      # started.
+      #
+      # Written with bash's `/dev/tcp` because this image ships no curl, no
+      # wget and no nc — a `curl` healthcheck here would never pass, and the
+      # appview would wait for a dependency that is already up.
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8108 &&
+          printf 'GET /health HTTP/1.0\r\n\r\n' >&3 &&
+          grep -q '"ok":true' <&3
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Optional. Without it the response cache is in-process, which is the right
+  # answer for a single instance.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+volumes:
+  data:
+  nats:
+  typesense:
