@@ -7024,6 +7024,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocksky-feeds"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-web",
+ "anyhow",
+ "chrono",
+ "clap",
+ "dotenv",
+ "rocksky-db",
+ "rocksky-lexicon",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "rocksky-googledrive"
 version = "0.1.0"
 dependencies = [
@@ -7053,6 +7073,19 @@ dependencies = [
  "tempfile",
  "tokio",
  "tokio-stream",
+ "tracing",
+]
+
+[[package]]
+name = "rocksky-identity"
+version = "0.1.0"
+dependencies = [
+ "hickory-resolver 0.24.4",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "tokio",
  "tracing",
 ]
 
