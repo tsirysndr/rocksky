@@ -1,10 +1,12 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { asc, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/shout/getShoutReplies";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 import type { SelectShout } from "schema/shouts";
 import type { SelectUser } from "schema/users";
@@ -15,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
@@ -41,20 +43,18 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ shouts: SelectShout; users: SelectUser }[], Error> => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
-        .select({
-          shouts: tables.shouts,
-          users: tables.users,
-        })
-        .from(tables.shouts)
-        .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
-        .where(eq(tables.shouts.parentId, params.uri))
-        .orderBy(asc(tables.shouts.createdAt))
-        .execute(),
-    catch: (error) => new Error(`Failed to retrieve shout replies: ${error}`),
-  });
+  return dbQuery("Failed to retrieve shout replies", async (db) =>
+    db
+      .select({
+        shouts: tables.shouts,
+        users: tables.users,
+      })
+      .from(tables.shouts)
+      .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+      .where(eq(tables.shouts.parentId, params.uri))
+      .orderBy(asc(tables.shouts.createdAt))
+      .execute(),
+  );
 };
 
 const presentation = (

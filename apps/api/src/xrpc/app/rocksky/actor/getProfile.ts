@@ -9,6 +9,7 @@ import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
 import { createAgent } from "lib/agent";
 import { fetchBskyProfile, type ResolvedBskyProfile } from "lib/bskyProfile";
+import { transientDbRetry } from "lib/dbRetry";
 import { PLC_DIRECTORY_URL } from "lib/plc";
 import _ from "lodash";
 import * as R from "ramda";
@@ -30,7 +31,7 @@ export default function (server: Server, ctx: Context) {
       Effect.flatMap(retrieveProfile),
       Effect.flatMap(refreshProfile),
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

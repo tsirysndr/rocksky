@@ -1,5 +1,5 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import {
   and,
   count,
@@ -17,6 +17,7 @@ import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorArtists";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import { deepCamelCaseKeys } from "lib";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -28,7 +29,7 @@ export default function (server: Server, ctx: Context) {
         { params, ctx },
         retrieve,
         Effect.flatMap(presentation),
-        Effect.retry({ times: 3 }),
+        Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
   });

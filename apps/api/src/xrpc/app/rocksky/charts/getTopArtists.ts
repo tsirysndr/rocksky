@@ -1,11 +1,24 @@
-import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, sql, and, eq, gte, lte, inArray, ne, or } from "drizzle-orm";
+import type { Context } from "context";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getTopArtists";
 import { deepCamelCaseKeys } from "lib";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -14,7 +27,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
@@ -40,125 +53,122 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: TopArtist[] }, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      const limit = params.limit || 50;
-      const offset = params.offset || 0;
+  return dbQuery("Failed to retrieve top artists", async (db) => {
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
 
-      const dateConditions = [];
-      if (params.startDate) {
-        dateConditions.push(
-          gte(tables.scrobbles.timestamp, new Date(params.startDate)),
-        );
-      }
-      if (params.endDate) {
-        dateConditions.push(
-          lte(tables.scrobbles.timestamp, new Date(params.endDate)),
-        );
-      }
-
-      if (params.did) {
-        const user = await ctx.db
-          .select({ id: tables.users.id })
-          .from(tables.users)
-          .where(
-            or(
-              eq(tables.users.did, params.did),
-              eq(tables.users.handle, params.did),
-            ),
-          )
-          .execute()
-          .then((rows) => rows[0]);
-        if (!user) return { data: [] };
-        dateConditions.push(eq(tables.scrobbles.userId, user.id));
-      }
-
-      // A one-listener chart can't rank by unique listeners.
-      const ranking = params.did
-        ? desc(sql`count(${tables.scrobbles.id})`)
-        : desc(sql`count(DISTINCT ${tables.scrobbles.userId})`);
-
-      const topArtistsQuery = ctx.db
-        .select({
-          artistId: tables.scrobbles.artistId,
-          scrobbles: count(tables.scrobbles.id).as("scrobbles"),
-          uniqueListeners:
-            sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
-              "unique_listeners",
-            ),
-        })
-        .from(tables.scrobbles)
-        .leftJoin(
-          tables.artists,
-          sql`${tables.scrobbles.artistId} = ${tables.artists.id}`,
-        )
-        .where(
-          dateConditions.length > 0
-            ? and(...dateConditions, ne(tables.artists.name, "Various Artists"))
-            : ne(tables.artists.name, "Various Artists"),
-        )
-        .groupBy(tables.scrobbles.artistId)
-        .orderBy(ranking)
-        .limit(limit)
-        .offset(offset);
-
-      const topArtistsData = await topArtistsQuery.execute();
-      consola.info(`Found ${topArtistsData.length} top artists`);
-
-      if (topArtistsData.length === 0) {
-        return { data: [] };
-      }
-
-      const artistIds = topArtistsData
-        .map((a) => a.artistId)
-        .filter((id): id is string => id !== null);
-      consola.info(`Extracted ${artistIds.length} artist IDs`);
-
-      const artists = await ctx.db
-        .select({
-          id: tables.artists.id,
-          name: tables.artists.name,
-          picture: tables.artists.picture,
-          sha256: tables.artists.sha256,
-          uri: tables.artists.uri,
-          genres: tables.artists.genres,
-        })
-        .from(tables.artists)
-        .where(inArray(tables.artists.id, artistIds))
-        .execute();
-      consola.info(`Retrieved ${artists.length} artist details`);
-
-      const artistMap = new Map(artists.map((artist) => [artist.id, artist]));
-
-      const listenersMap = new Map(
-        topArtistsData.map((item) => [
-          item.artistId,
-          Number(item.uniqueListeners),
-        ]),
+    const dateConditions = [];
+    if (params.startDate) {
+      dateConditions.push(
+        gte(tables.scrobbles.timestamp, new Date(params.startDate)),
       );
+    }
+    if (params.endDate) {
+      dateConditions.push(
+        lte(tables.scrobbles.timestamp, new Date(params.endDate)),
+      );
+    }
 
-      const result: TopArtist[] = topArtistsData
-        .map((item) => {
-          const artist = artistMap.get(item.artistId!);
-          if (!artist) return null;
+    if (params.did) {
+      const user = await db
+        .select({ id: tables.users.id })
+        .from(tables.users)
+        .where(
+          or(
+            eq(tables.users.did, params.did),
+            eq(tables.users.handle, params.did),
+          ),
+        )
+        .execute()
+        .then((rows) => rows[0]);
+      if (!user) return { data: [] };
+      dateConditions.push(eq(tables.scrobbles.userId, user.id));
+    }
 
-          return {
-            id: artist.id,
-            name: artist.name,
-            picture: artist.picture,
-            sha256: artist.sha256,
-            uri: artist.uri,
-            play_count: Number(item.scrobbles),
-            unique_listeners: listenersMap.get(item.artistId!) || 0,
-            tags: artist.genres || [],
-          };
-        })
-        .filter((item): item is TopArtist => item !== null);
-      consola.info(`Returning ${result.length} top artists with complete data`);
+    // A one-listener chart can't rank by unique listeners.
+    const ranking = params.did
+      ? desc(sql`count(${tables.scrobbles.id})`)
+      : desc(sql`count(DISTINCT ${tables.scrobbles.userId})`);
 
-      return { data: result };
-    },
-    catch: (error) => new Error(`Failed to retrieve top artists: ${error}`),
+    const topArtistsQuery = db
+      .select({
+        artistId: tables.scrobbles.artistId,
+        scrobbles: count(tables.scrobbles.id).as("scrobbles"),
+        uniqueListeners:
+          sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
+            "unique_listeners",
+          ),
+      })
+      .from(tables.scrobbles)
+      .leftJoin(
+        tables.artists,
+        sql`${tables.scrobbles.artistId} = ${tables.artists.id}`,
+      )
+      .where(
+        dateConditions.length > 0
+          ? and(...dateConditions, ne(tables.artists.name, "Various Artists"))
+          : ne(tables.artists.name, "Various Artists"),
+      )
+      .groupBy(tables.scrobbles.artistId)
+      .orderBy(ranking)
+      .limit(limit)
+      .offset(offset);
+
+    const topArtistsData = await topArtistsQuery.execute();
+    consola.info(`Found ${topArtistsData.length} top artists`);
+
+    if (topArtistsData.length === 0) {
+      return { data: [] };
+    }
+
+    const artistIds = topArtistsData
+      .map((a) => a.artistId)
+      .filter((id): id is string => id !== null);
+    consola.info(`Extracted ${artistIds.length} artist IDs`);
+
+    const artists = await db
+      .select({
+        id: tables.artists.id,
+        name: tables.artists.name,
+        picture: tables.artists.picture,
+        sha256: tables.artists.sha256,
+        uri: tables.artists.uri,
+        genres: tables.artists.genres,
+      })
+      .from(tables.artists)
+      .where(inArray(tables.artists.id, artistIds))
+      .execute();
+    consola.info(`Retrieved ${artists.length} artist details`);
+
+    const artistMap = new Map(artists.map((artist) => [artist.id, artist]));
+
+    const listenersMap = new Map(
+      topArtistsData.map((item) => [
+        item.artistId,
+        Number(item.uniqueListeners),
+      ]),
+    );
+
+    const result: TopArtist[] = topArtistsData
+      .map((item) => {
+        const artist = artistMap.get(item.artistId!);
+        if (!artist) return null;
+
+        return {
+          id: artist.id,
+          name: artist.name,
+          picture: artist.picture,
+          sha256: artist.sha256,
+          uri: artist.uri,
+          play_count: Number(item.scrobbles),
+          unique_listeners: listenersMap.get(item.artistId!) || 0,
+          tags: artist.genres || [],
+        };
+      })
+      .filter((item): item is TopArtist => item !== null);
+    consola.info(`Returning ${result.length} top artists with complete data`);
+
+    return { data: result };
   });
 };
 

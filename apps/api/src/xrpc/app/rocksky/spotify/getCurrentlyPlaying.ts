@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
@@ -5,7 +6,8 @@ import { and, eq, or } from "drizzle-orm";
 import { Effect, Match, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/spotify/getCurrentlyPlaying";
-import { createHash } from "node:crypto";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 import type { SelectSpotifyAccount } from "schema/spotify-accounts";
 import type { SelectUser } from "schema/users";
@@ -19,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.flatMap(retrieve),
       Effect.flatMap(withUriAndLikes),
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
@@ -47,21 +49,19 @@ const withUser = ({
   ctx: Context;
   did?: string;
 }) => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
-        .select()
-        .from(tables.users)
-        .where(
-          or(
-            eq(tables.users.did, params.actor || did),
-            eq(tables.users.handle, params.actor || did),
-          ),
-        )
-        .execute()
-        .then((users) => ({ user: users[0], ctx, params, did })),
-    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
-  });
+  return dbQuery("Failed to retrieve current user", async (db) =>
+    db
+      .select()
+      .from(tables.users)
+      .where(
+        or(
+          eq(tables.users.did, params.actor || did),
+          eq(tables.users.handle, params.actor || did),
+        ),
+      )
+      .execute()
+      .then((users) => ({ user: users[0], ctx, params, did })),
+  );
 };
 
 const withSpotifyAccount = ({
@@ -140,47 +140,41 @@ const retrieve = ({
 };
 
 const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
-  return Effect.tryPromise({
-    try: async () => {
-      const sha256 = createHash("sha256")
-        .update(
-          `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase(),
-        )
-        .digest("hex");
-      const [record] = await ctx.db
-        .select()
-        .from(tables.tracks)
-        .where(eq(tables.tracks.sha256, sha256))
-        .execute();
-      return ctx.db
-        .select()
-        .from(tables.lovedTracks)
-        .leftJoin(
-          tables.tracks,
-          eq(tables.lovedTracks.trackId, tables.tracks.id),
-        )
-        .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
-        .where(
-          and(eq(tables.tracks.sha256, sha256), eq(tables.users.did, user.did)),
-        )
-        .execute()
-        .then((results) =>
-          Match.value(track).pipe(
-            Match.when(
-              (t) => !Object.keys(t).length,
-              () => ({}),
-            ),
-            Match.orElse(() => ({
-              ...track,
-              songUri: record?.uri,
-              artistUri: record?.artistUri,
-              albumUri: record?.albumUri,
-              liked: results.length > 0,
-            })),
+  return dbQuery("Failed to retrieve URI and likes", async (db) => {
+    const sha256 = createHash("sha256")
+      .update(
+        `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase(),
+      )
+      .digest("hex");
+    const [record] = await db
+      .select()
+      .from(tables.tracks)
+      .where(eq(tables.tracks.sha256, sha256))
+      .execute();
+    return db
+      .select()
+      .from(tables.lovedTracks)
+      .leftJoin(tables.tracks, eq(tables.lovedTracks.trackId, tables.tracks.id))
+      .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
+      .where(
+        and(eq(tables.tracks.sha256, sha256), eq(tables.users.did, user.did)),
+      )
+      .execute()
+      .then((results) =>
+        Match.value(track).pipe(
+          Match.when(
+            (t) => !Object.keys(t).length,
+            () => ({}),
           ),
-        );
-    },
-    catch: (error) => new Error(`Failed to retrieve URI and likes: ${error}`),
+          Match.orElse(() => ({
+            ...track,
+            songUri: record?.uri,
+            artistUri: record?.artistUri,
+            albumUri: record?.albumUri,
+            liked: results.length > 0,
+          })),
+        ),
+      );
   });
 };
 

@@ -4,6 +4,7 @@ import type { Context } from "context";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/player/playFile";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -16,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       },
       handlePlayFile,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

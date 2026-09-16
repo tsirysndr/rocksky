@@ -1,14 +1,18 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { and, count, eq, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/matchSong";
 import { decrypt } from "lib/crypto";
+import { transientDbRetry } from "lib/dbRetry";
 import { env } from "lib/env";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
+import type { MusicbrainzTrack } from "types/track";
+
+import { getCacheKey, pickByAlbum, pickRowByAlbum } from "./albumFilter";
 import type {
   Album,
   Artist,
@@ -18,9 +22,6 @@ import type {
   SearchResponse,
   Track,
 } from "./types";
-import type { MusicbrainzTrack } from "types/track";
-
-import { getCacheKey, pickByAlbum, pickRowByAlbum } from "./albumFilter";
 
 const MATCH_SONG_CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
@@ -30,7 +31,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

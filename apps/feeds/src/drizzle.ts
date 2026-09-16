@@ -6,7 +6,11 @@ const pool = new pg.Pool({
   connectionString: env.XATA_POSTGRES_URL,
   max: 20,
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 5_000,
+  application_name: "rocksky-feeds",
+  // Nothing else reclaims a backend whose caller has already given up.
+  statement_timeout: 60_000,
+  idle_in_transaction_session_timeout: 30_000,
 });
 
 pool.on("error", (err) => {

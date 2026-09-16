@@ -6,6 +6,7 @@ import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtists";
 import { deepCamelCaseKeys } from "lib";
+import { transientDbRetry } from "lib/dbRetry";
 import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
 import tables from "schema";
 
@@ -29,7 +30,7 @@ export default function (server: Server, ctx: Context) {
         { params, ctx },
         retrieve,
         Effect.flatMap(presentation),
-        Effect.retry({ times: 3 }),
+        Effect.retry(transientDbRetry),
         Effect.timeout("10 seconds"),
       ),
   });

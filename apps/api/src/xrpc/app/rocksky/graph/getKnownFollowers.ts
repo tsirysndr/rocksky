@@ -1,12 +1,14 @@
-import type { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import { consola } from "consola";
-import { and, eq, sql, desc, lt } from "drizzle-orm";
+import type { Context } from "context";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { QueryParams } from "lexicon/types/app/rocksky/graph/getKnownFollowers";
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/graph/getKnownFollowers";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
-import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
@@ -15,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx, viewerDid: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error("getKnownFollowers error:", err);
@@ -54,53 +56,50 @@ const retrieve = ({
     return Effect.succeed([undefined, [], undefined]);
   }
 
-  return Effect.tryPromise({
-    try: async () => {
-      const user = await ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.did, params.actor))
-        .execute()
-        .then((rows) => rows[0]);
-      const knownFollowers = await ctx.db
-        .select()
-        .from(tables.follows)
-        .innerJoin(
-          tables.users,
-          eq(tables.users.did, tables.follows.follower_did),
-        )
-        .where(
-          params.cursor
-            ? and(
-                lt(tables.follows.createdAt, new Date(Number(params.cursor))),
-                eq(tables.follows.subject_did, params.actor),
-                sql`EXISTS (
+  return dbQuery("Failed to retrieve known followers", async (db) => {
+    const user = await db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, params.actor))
+      .execute()
+      .then((rows) => rows[0]);
+    const knownFollowers = await db
+      .select()
+      .from(tables.follows)
+      .innerJoin(
+        tables.users,
+        eq(tables.users.did, tables.follows.follower_did),
+      )
+      .where(
+        params.cursor
+          ? and(
+              lt(tables.follows.createdAt, new Date(Number(params.cursor))),
+              eq(tables.follows.subject_did, params.actor),
+              sql`EXISTS (
               SELECT 1 FROM ${tables.follows} f2
               WHERE f2.subject_did = ${tables.users.did}
                 AND f2.follower_did = ${viewerDid}
             )`,
-              )
-            : and(
-                eq(tables.follows.subject_did, params.actor),
-                sql`EXISTS (
+            )
+          : and(
+              eq(tables.follows.subject_did, params.actor),
+              sql`EXISTS (
               SELECT 1 FROM ${tables.follows} f2
               WHERE f2.subject_did = ${tables.users.did}
                 AND f2.follower_did = ${viewerDid}
             )`,
-              ),
-        )
-        .orderBy(desc(tables.follows.createdAt))
-        .limit(params.limit ?? 50)
-        .execute();
-      const cursor =
-        knownFollowers?.length > 0
-          ? knownFollowers[knownFollowers.length - 1].follows.createdAt
-              .getTime()
-              .toString(10)
-          : undefined;
-      return [user, knownFollowers.map((row) => row.users), cursor];
-    },
-    catch: (error) => new Error(`Failed to retrieve known followers: ${error}`),
+            ),
+      )
+      .orderBy(desc(tables.follows.createdAt))
+      .limit(params.limit ?? 50)
+      .execute();
+    const cursor =
+      knownFollowers?.length > 0
+        ? knownFollowers[knownFollowers.length - 1].follows.createdAt
+            .getTime()
+            .toString(10)
+        : undefined;
+    return [user, knownFollowers.map((row) => row.users), cursor];
   });
 };
 

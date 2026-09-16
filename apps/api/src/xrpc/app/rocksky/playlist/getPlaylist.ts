@@ -1,6 +1,6 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -32,6 +32,8 @@ const FILTER_FIELDS: RsqlFieldMap = {
   artistUri: tables.tracks.artistUri,
   addedAt: { column: tables.playlistTracks.addedAt, type: "date" },
 };
+
+import { transientDbRetry } from "lib/dbRetry";
 import type { SelectPlaylist } from "schema/playlists";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
@@ -42,7 +44,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

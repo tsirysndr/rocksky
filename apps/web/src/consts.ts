@@ -1,7 +1,45 @@
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-export const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8002";
-export const ROCKBOX_URL = import.meta.env.VITE_ROCKBOX_URL || "https://rockbox.rocksky.app";
-export const NAVIDROME_URL = import.meta.env.VITE_NAVIDROME_URL || "https://navidrome.rocksky.app";
+declare global {
+  interface Window {
+    /** See RuntimeConfig below. */
+    __ROCKSKY_CONFIG__?: RuntimeConfig;
+  }
+}
+
+type RuntimeConfig = {
+  apiUrl?: string;
+  wsUrl?: string;
+  cdnUrl?: string;
+  mediaCdnUrl?: string;
+  rockboxUrl?: string;
+  navidromeUrl?: string;
+  /** True when served by the self-hosted Rust appview. */
+  selfHosted?: boolean;
+};
+
+/**
+ * Configuration injected into the HTML shell at request time by the
+ * self-hosted appview (crates/appview/src/web.rs), which embeds this bundle in
+ * its binary and cannot know its own address at build time.
+ *
+ * Absent everywhere else — the Cloudflare Pages build has no such script — so
+ * the build-time VITE_* values below stay in force for the hosted deployment.
+ */
+const runtime: RuntimeConfig =
+  (typeof window !== "undefined" && window.__ROCKSKY_CONFIG__) || {};
+
+export const API_URL =
+  runtime.apiUrl || import.meta.env.VITE_API_URL || "http://localhost:8000";
+export const WS_URL =
+  runtime.wsUrl || import.meta.env.VITE_WS_URL || "ws://localhost:8002";
+export const ROCKBOX_URL =
+  runtime.rockboxUrl ||
+  import.meta.env.VITE_ROCKBOX_URL ||
+  "https://rockbox.rocksky.app";
+export const NAVIDROME_URL =
+  runtime.navidromeUrl ||
+  import.meta.env.VITE_NAVIDROME_URL ||
+  "https://navidrome.rocksky.app";
+export const SELF_HOSTED = runtime.selfHosted === true;
 
 export const LAST_7_DAYS = "LAST_7_DAYS";
 export const LAST_30_DAYS = "LAST_30_DAYS";

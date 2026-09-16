@@ -1,19 +1,20 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { asc, count, countDistinct, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewDetailed } from "lexicon/types/app/rocksky/scrobble/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobble";
-import * as R from "ramda";
+import { transientDbRetry } from "lib/dbRetry";
 import { withLikes } from "lib/trackLikes";
+import * as R from "ramda";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
+import type { SelectArtist } from "schema/artists";
 import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
-import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getScrobble = (params: QueryParams, auth: HandlerAuth) =>
@@ -21,7 +22,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error("Error retrieving scrobble:", err);

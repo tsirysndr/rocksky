@@ -1,20 +1,21 @@
-import type { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import axios from "axios";
 import { consola } from "consola";
+import type { Context } from "context";
 import { desc, eq, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { QueryParams } from "lexicon/types/app/rocksky/feed/getFeed";
 import type { FeedView } from "lexicon/types/app/rocksky/feed/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/feed/getFeed";
+import { transientDbRetry } from "lib/dbRetry";
+import { env } from "lib/env";
+import { getFeedVersion } from "lib/feedCache";
 import * as R from "ramda";
 import tables from "schema";
+import type { SelectArtist } from "schema/artists";
 import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
-import axios from "axios";
-import type { HandlerAuth } from "@atproto/xrpc-server";
-import { env } from "lib/env";
-import { getFeedVersion } from "lib/feedCache";
-import type { SelectArtist } from "schema/artists";
 
 const FEED_CACHE_TTL = 30;
 const cacheKey = (params: QueryParams, version: number, did?: string) =>
@@ -59,7 +60,7 @@ export default function (server: Server, ctx: Context) {
           ),
         );
       }),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error("Error retrieving scrobbles:", err);

@@ -1,0 +1,30 @@
+{
+    "albums": [
+        {
+            "id": "rec_d6utcn0d60d7fqgafgjg",
+            "uri": "at://did:plc:w7s4dmiq62rvd5eriiazzfq7/app.rocksky.album/3mhjns3ww2k2z",
+            "title": "ARIRANG",
+            "artist": "BTS",
+            "artistUri": "at://did:plc:l53nao2euuipjc72fg4hku6o/app.rocksky.artist/3lq3zgstsik2o",
+            "year": 2026,
+            "albumArt": "https://i.scdn.co/image/ab67616d0000b273dfa17fad7f190c901603270e",
+            "releaseDate": "2026-03-20T00:00:00.000Z",
+            "sha256": "39c5c7f60db0f60b1910bb35fb81e9c52bdf4ed2eba60749bc25e0695aad153f",
+            "playCount": 20736,
+            "uniqueListeners": 20
+        },
+        {
+            "id": "rec_cvuoo62kv5eu8u842dog",
+            "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmsmdhmows2n",
+            "title": "THE TORTURED POETS DEPARTMENT: THE ANTHOLOGY",
+            "artist": "Taylor Swift",
+            "artistUri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.artist/3lme4cr3xs22m",
+            "year": 2024,
+            "albumArt": "https://i.scdn.co/image/ab67616d0000b2738ecc33f195df6aa257c39eaa",
+            "releaseDate": "2024-04-19T00:00:00.000Z",
+            "sha256": "6e76109a5844a9e7c304a29ac548a633faa15001fd7dd88661b1d7d33e8e567d",
+            "playCount": 18842,
+            "uniqueListeners": 6
+        }
+    ]
+}

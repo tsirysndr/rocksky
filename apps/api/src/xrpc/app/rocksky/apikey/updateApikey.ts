@@ -1,9 +1,11 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { InputSchema } from "lexicon/types/app/rocksky/apikey/updateApikey";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -12,7 +14,7 @@ export default function (server: Server, ctx: Context) {
       input,
       update,
       presentation,
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
@@ -40,16 +42,14 @@ const withUser = ({
   ctx: Context;
   did?: string;
 }) => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.did, did))
-        .execute()
-        .then((users) => ({ user: users[0], ctx, params })),
-    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
-  });
+  return dbQuery("Failed to retrieve current user", async (db) =>
+    db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, did))
+      .execute()
+      .then((users) => ({ user: users[0], ctx, params })),
+  );
 };
 
 const update = () => {

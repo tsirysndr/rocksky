@@ -4,6 +4,7 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { StatsView } from "lexicon/types/app/rocksky/stats/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/stats/getStats";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -12,7 +13,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
       Effect.catchAll(() => Effect.succeed(defaultStats)),
     );

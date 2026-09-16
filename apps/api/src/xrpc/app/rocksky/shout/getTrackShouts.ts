@@ -1,10 +1,12 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { count, desc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/shout/getTrackShouts";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -13,7 +15,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
@@ -39,71 +41,68 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ shouts: Shouts; users: Users }[], Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      const [user] = await ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.did, "did"))
-        .execute();
-      return ctx.db
-        .select({
-          shouts: user
-            ? {
-                id: tables.shouts.id,
-                content: tables.shouts.content,
-                createdAt: tables.shouts.createdAt,
-                uri: tables.shouts.uri,
-                parent: tables.shouts.parentId,
-                likes: count(tables.shoutLikes.id).as("likes"),
-                liked: sql<boolean>`
+  return dbQuery("Failed to retrieve track shouts", async (db) => {
+    const [user] = await db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, "did"))
+      .execute();
+    return db
+      .select({
+        shouts: user
+          ? {
+              id: tables.shouts.id,
+              content: tables.shouts.content,
+              createdAt: tables.shouts.createdAt,
+              uri: tables.shouts.uri,
+              parent: tables.shouts.parentId,
+              likes: count(tables.shoutLikes.id).as("likes"),
+              liked: sql<boolean>`
             EXISTS (
               SELECT 1
               FROM ${tables.shoutLikes}
               WHERE ${tables.shoutLikes.shoutId} = ${tables.shouts.id}
                 AND ${tables.shoutLikes.userId} = ${user.id}
             )`.as("liked"),
-              }
-            : {
-                id: tables.shouts.id,
-                content: tables.shouts.content,
-                createdAt: tables.shouts.createdAt,
-                uri: tables.shouts.uri,
-                parent: tables.shouts.parentId,
-                likes: count(tables.shoutLikes.id).as("likes"),
-              },
-          users: {
-            id: tables.users.id,
-            did: tables.users.did,
-            handle: tables.users.handle,
-            displayName: tables.users.displayName,
-            avatar: tables.users.avatar,
-          },
-        })
-        .from(tables.shouts)
-        .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
-        .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
-        .leftJoin(
-          tables.shoutLikes,
-          eq(tables.shouts.id, tables.shoutLikes.shoutId),
-        )
-        .where(eq(tables.tracks.uri, params.uri))
-        .groupBy(
-          tables.shouts.id,
-          tables.shouts.content,
-          tables.shouts.createdAt,
-          tables.shouts.uri,
-          tables.shouts.parentId,
-          tables.users.id,
-          tables.users.did,
-          tables.users.handle,
-          tables.users.displayName,
-          tables.users.avatar,
-        )
-        .orderBy(desc(tables.shouts.createdAt))
-        .execute();
-    },
-    catch: (error) => new Error(`Failed to retrieve track shouts: ${error}`),
+            }
+          : {
+              id: tables.shouts.id,
+              content: tables.shouts.content,
+              createdAt: tables.shouts.createdAt,
+              uri: tables.shouts.uri,
+              parent: tables.shouts.parentId,
+              likes: count(tables.shoutLikes.id).as("likes"),
+            },
+        users: {
+          id: tables.users.id,
+          did: tables.users.did,
+          handle: tables.users.handle,
+          displayName: tables.users.displayName,
+          avatar: tables.users.avatar,
+        },
+      })
+      .from(tables.shouts)
+      .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+      .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
+      .leftJoin(
+        tables.shoutLikes,
+        eq(tables.shouts.id, tables.shoutLikes.shoutId),
+      )
+      .where(eq(tables.tracks.uri, params.uri))
+      .groupBy(
+        tables.shouts.id,
+        tables.shouts.content,
+        tables.shouts.createdAt,
+        tables.shouts.uri,
+        tables.shouts.parentId,
+        tables.users.id,
+        tables.users.did,
+        tables.users.handle,
+        tables.users.displayName,
+        tables.users.avatar,
+      )
+      .orderBy(desc(tables.shouts.createdAt))
+      .execute();
   });
 };
 

@@ -1,12 +1,13 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import axios from "axios";
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { StoriesView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getStories";
+import { transientDbRetry } from "lib/dbRetry";
 import { env } from "lib/env";
 import albums from "schema/albums";
 import artists from "schema/artists";
@@ -38,7 +39,7 @@ export default function (server: Server, ctx: Context) {
         retrieve,
         Effect.map((data) => ({ data })),
         Effect.flatMap(presentation),
-        Effect.retry({ times: 3 }),
+        Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
   });

@@ -1,0 +1,42 @@
+{
+    "tracks": [
+        {
+            "id": "rec_cvts0l23cr39j8idn8h0",
+            "title": "The Less I Know The Better",
+            "artist": "Tame Impala",
+            "albumArtist": "Tame Impala",
+            "albumArt": "https://i.scdn.co/image/ab67616d0000b2739e1cfc756886ac782e363d79",
+            "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.song/3lmp6po73sk2f",
+            "album": "Currents",
+            "duration": 216320,
+            "trackNumber": 7,
+            "discNumber": 1,
+            "playCount": 188,
+            "uniqueListeners": 39,
+            "albumUri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lmp6pup6yc2f",
+            "artistUri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lmp6pscfxc2f",
+            "sha256": "b37a4e3e5b8242992b44b0f7a9c06b74cbee3ff6ed13c411f55161a2dfad6aad",
+            "tags": [],
+            "createdAt": "2025-04-13T13:47:00.466Z"
+        },
+        {
+            "id": "rec_cvu9nvi3cr39j8idocog",
+            "title": "Feel Good Inc.",
+            "artist": "Gorillaz, De La Soul",
+            "albumArtist": "Gorillaz",
+            "albumArt": "https://i.scdn.co/image/ab67616d0000b27319d85a472f328a6ed9b704cf",
+            "uri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.song/3lmqt3lo4xc2p",
+            "album": "Demon Days",
+            "duration": 222640,
+            "trackNumber": 6,
+            "discNumber": 1,
+            "playCount": 251,
+            "uniqueListeners": 31,
+            "albumUri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.album/3lmqt3ph23s2p",
+            "artistUri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lj5cwearvk2l",
+            "sha256": "53e20e710d587a758313c0c9b1f55be58765ed7800c0e85b1d352fecf75dcc48",
+            "tags": [],
+            "createdAt": "2025-04-14T05:24:14.473Z"
+        }
+    ]
+}

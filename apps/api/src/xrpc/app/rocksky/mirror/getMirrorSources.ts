@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { MirrorSourceView } from "lexicon/types/app/rocksky/mirror/defs";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 import { resolvePushEnabled } from "tealfm/pushEnabled";
 
@@ -16,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       { ctx, did: auth.credentials?.did as string | undefined },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

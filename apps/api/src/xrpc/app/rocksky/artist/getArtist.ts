@@ -1,11 +1,12 @@
 import { InvalidRequestError } from "@atproto/xrpc-server";
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ArtistViewDetailed } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtist";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 import type { SelectArtist } from "schema/artists";
 
@@ -16,10 +17,7 @@ export default function (server: Server, ctx: Context) {
       retrieve,
       Effect.flatMap(presentation),
       // Not-found is definitive; only transient failures are worth retrying.
-      Effect.retry({
-        times: 3,
-        while: (err) => !(err instanceof InvalidRequestError),
-      }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         if (err instanceof InvalidRequestError) {

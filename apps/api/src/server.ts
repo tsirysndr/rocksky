@@ -2,7 +2,7 @@ import dns from "node:dns";
 import { consola } from "consola";
 import { ctx } from "context";
 import cors from "cors";
-import { sql } from "drizzle-orm";
+import { pool } from "drizzle";
 import type { Request, Response } from "express";
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
@@ -20,14 +20,22 @@ process.on("uncaughtException", (err) => {
 });
 
 cron.schedule("*/30 * * * *", async () => {
-  for (const view of ["user_artists_mv", "top_scrobblers_mv"]) {
-    try {
-      await ctx.db.execute(
-        sql`REFRESH MATERIALIZED VIEW CONCURRENTLY ${sql.raw(view)}`,
-      );
-    } catch (err) {
-      consola.error(`Failed to refresh ${view}:`, err);
+  // A concurrent refresh runs far longer than the pool's statement_timeout, so
+  // it needs its own client with the cap lifted rather than a pooled query.
+  const client = await pool.connect();
+  try {
+    await client.query("SET statement_timeout = 0");
+    for (const view of ["user_artists_mv", "top_scrobblers_mv"]) {
+      try {
+        await client.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`);
+      } catch (err) {
+        consola.error(`Failed to refresh ${view}:`, err);
+      }
     }
+  } catch (err) {
+    consola.error("Failed to run materialized view refresh:", err);
+  } finally {
+    client.release(true);
   }
 });
 

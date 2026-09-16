@@ -1,8 +1,9 @@
+import { createHash } from "node:crypto";
 import type { Agent } from "@atproto/api";
-import { consola } from "consola";
 import { TID } from "@atproto/common";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import chalk from "chalk";
+import { consola } from "consola";
 import type { Context } from "context";
 import { and, eq } from "drizzle-orm";
 import { Effect, Match, Option, pipe } from "effect";
@@ -15,7 +16,7 @@ import type { InputSchema } from "lexicon/types/app/rocksky/song/createSong";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
 import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { createAgent } from "lib/agent";
-import { createHash } from "node:crypto";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 import type { InsertAlbumTrack, SelectAlbumTrack } from "schema/album-tracks";
 import type { SelectAlbum } from "schema/albums";
@@ -39,7 +40,7 @@ export default function (server: Server, ctx: Context) {
       Effect.flatMap(validateInput),
       Effect.flatMap(create),
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

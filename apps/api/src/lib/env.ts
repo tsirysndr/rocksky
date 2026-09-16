@@ -74,4 +74,14 @@ export const env = cleanEnv(process.env, {
   SCROBBLE_ABUSE_WINDOW: num({ default: 1800 }), // rolling window, seconds (30m)
   SCROBBLE_ABUSE_MAX: num({ default: 25 }), // max accepted scrobbles per window
   SCROBBLE_ABUSE_BLOCK: num({ default: 3600 }), // temp block duration, seconds (1h)
+  // Postgres pool (see drizzle.ts). Tunable without a redeploy.
+  PG_MAX_CONNECTIONS: num({ default: 20 }),
+  // Coarse server-side backstop for a single statement. Handlers that use
+  // lib/dbQuery cancel at their own (shorter) budget; this only catches the
+  // ones that do not. Kept above the longest handler timeout (120s charts is
+  // the outlier) so it never truncates a legitimately slow query.
+  PG_STATEMENT_TIMEOUT: num({ default: 60_000 }),
+  // Shows up in pg_stat_activity.application_name, so it is possible to tell
+  // which process is holding connections.
+  PG_APP_NAME: str({ default: "" }),
 });

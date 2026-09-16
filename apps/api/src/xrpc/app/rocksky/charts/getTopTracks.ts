@@ -1,11 +1,13 @@
-import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, sql, and, eq, gte, lte, inArray, or } from "drizzle-orm";
+import type { Context } from "context";
+import { and, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getTopTracks";
+import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { deepCamelCaseKeys } from "lib";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -14,7 +16,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
@@ -40,135 +42,129 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: TopTrack[] }, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      const limit = params.limit || 50;
-      const offset = params.offset || 0;
+  return dbQuery("Failed to retrieve top tracks", async (db) => {
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
 
-      const dateConditions = [];
-      if (params.startDate) {
-        dateConditions.push(
-          gte(tables.scrobbles.timestamp, new Date(params.startDate)),
-        );
-      }
-      if (params.endDate) {
-        dateConditions.push(
-          lte(tables.scrobbles.timestamp, new Date(params.endDate)),
-        );
-      }
-
-      if (params.did) {
-        const user = await ctx.db
-          .select({ id: tables.users.id })
-          .from(tables.users)
-          .where(
-            or(
-              eq(tables.users.did, params.did),
-              eq(tables.users.handle, params.did),
-            ),
-          )
-          .execute()
-          .then((rows) => rows[0]);
-        if (!user) return { data: [] };
-        dateConditions.push(eq(tables.scrobbles.userId, user.id));
-      }
-
-      // A one-listener chart can't rank by unique listeners.
-      const ranking = params.did
-        ? desc(sql`count(${tables.scrobbles.id})`)
-        : desc(sql`count(DISTINCT ${tables.scrobbles.userId})`);
-
-      const topTracksQuery = ctx.db
-        .select({
-          trackId: tables.scrobbles.trackId,
-          scrobbles: count(tables.scrobbles.id).as("scrobbles"),
-          uniqueListeners:
-            sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
-              "unique_listeners",
-            ),
-        })
-        .from(tables.scrobbles)
-        .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
-        .groupBy(tables.scrobbles.trackId)
-        .orderBy(ranking)
-        .limit(limit)
-        .offset(offset);
-
-      const topTracksData = await topTracksQuery.execute();
-      consola.info(`Found ${topTracksData.length} top tracks`);
-
-      if (topTracksData.length === 0) {
-        return { data: [] };
-      }
-
-      const trackIds = topTracksData
-        .map((t) => t.trackId)
-        .filter((id): id is string => id !== null);
-      consola.info(`Extracted ${trackIds.length} track IDs`);
-
-      const tracks = await ctx.db
-        .select({
-          id: tables.tracks.id,
-          title: tables.tracks.title,
-          artist: tables.tracks.artist,
-          albumArtist: tables.tracks.albumArtist,
-          albumArt: tables.tracks.albumArt,
-          uri: tables.tracks.uri,
-          album: tables.tracks.album,
-          duration: tables.tracks.duration,
-          trackNumber: tables.tracks.trackNumber,
-          discNumber: tables.tracks.discNumber,
-          albumUri: tables.tracks.albumUri,
-          artistUri: tables.tracks.artistUri,
-          sha256: tables.tracks.sha256,
-          genre: tables.tracks.genre,
-          createdAt: tables.tracks.createdAt,
-        })
-        .from(tables.tracks)
-        .where(inArray(tables.tracks.id, trackIds))
-        .execute();
-      consola.info(`Retrieved ${tracks.length} track details`);
-
-      const trackMap = new Map(tracks.map((track) => [track.id, track]));
-
-      const listenersMap = new Map(
-        topTracksData.map((item) => [
-          item.trackId,
-          Number(item.uniqueListeners),
-        ]),
+    const dateConditions = [];
+    if (params.startDate) {
+      dateConditions.push(
+        gte(tables.scrobbles.timestamp, new Date(params.startDate)),
       );
+    }
+    if (params.endDate) {
+      dateConditions.push(
+        lte(tables.scrobbles.timestamp, new Date(params.endDate)),
+      );
+    }
 
-      const result: TopTrack[] = topTracksData
-        .map((item) => {
-          const track = trackMap.get(item.trackId!);
-          if (!track) return null;
+    if (params.did) {
+      const user = await db
+        .select({ id: tables.users.id })
+        .from(tables.users)
+        .where(
+          or(
+            eq(tables.users.did, params.did),
+            eq(tables.users.handle, params.did),
+          ),
+        )
+        .execute()
+        .then((rows) => rows[0]);
+      if (!user) return { data: [] };
+      dateConditions.push(eq(tables.scrobbles.userId, user.id));
+    }
 
-          return {
-            id: track.id,
-            title: track.title,
-            artist: track.artist,
-            album_artist: track.albumArtist,
-            album_art: track.albumArt,
-            uri: track.uri,
-            album: track.album,
-            duration: track.duration,
-            track_number: track.trackNumber,
-            disc_number: track.discNumber,
-            play_count: Number(item.scrobbles),
-            unique_listeners: listenersMap.get(item.trackId!) || 0,
-            album_uri: track.albumUri,
-            artist_uri: track.artistUri,
-            sha256: track.sha256,
-            tags: track.genre ? [track.genre] : [],
-            created_at: track.createdAt.toISOString(),
-          };
-        })
-        .filter((item): item is TopTrack => item !== null);
-      consola.info(`Returning ${result.length} top tracks with complete data`);
+    // A one-listener chart can't rank by unique listeners.
+    const ranking = params.did
+      ? desc(sql`count(${tables.scrobbles.id})`)
+      : desc(sql`count(DISTINCT ${tables.scrobbles.userId})`);
 
-      return { data: result };
-    },
-    catch: (error) => new Error(`Failed to retrieve top tracks: ${error}`),
+    const topTracksQuery = db
+      .select({
+        trackId: tables.scrobbles.trackId,
+        scrobbles: count(tables.scrobbles.id).as("scrobbles"),
+        uniqueListeners:
+          sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
+            "unique_listeners",
+          ),
+      })
+      .from(tables.scrobbles)
+      .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
+      .groupBy(tables.scrobbles.trackId)
+      .orderBy(ranking)
+      .limit(limit)
+      .offset(offset);
+
+    const topTracksData = await topTracksQuery.execute();
+    consola.info(`Found ${topTracksData.length} top tracks`);
+
+    if (topTracksData.length === 0) {
+      return { data: [] };
+    }
+
+    const trackIds = topTracksData
+      .map((t) => t.trackId)
+      .filter((id): id is string => id !== null);
+    consola.info(`Extracted ${trackIds.length} track IDs`);
+
+    const tracks = await db
+      .select({
+        id: tables.tracks.id,
+        title: tables.tracks.title,
+        artist: tables.tracks.artist,
+        albumArtist: tables.tracks.albumArtist,
+        albumArt: tables.tracks.albumArt,
+        uri: tables.tracks.uri,
+        album: tables.tracks.album,
+        duration: tables.tracks.duration,
+        trackNumber: tables.tracks.trackNumber,
+        discNumber: tables.tracks.discNumber,
+        albumUri: tables.tracks.albumUri,
+        artistUri: tables.tracks.artistUri,
+        sha256: tables.tracks.sha256,
+        genre: tables.tracks.genre,
+        createdAt: tables.tracks.createdAt,
+      })
+      .from(tables.tracks)
+      .where(inArray(tables.tracks.id, trackIds))
+      .execute();
+    consola.info(`Retrieved ${tracks.length} track details`);
+
+    const trackMap = new Map(tracks.map((track) => [track.id, track]));
+
+    const listenersMap = new Map(
+      topTracksData.map((item) => [item.trackId, Number(item.uniqueListeners)]),
+    );
+
+    const result: TopTrack[] = topTracksData
+      .map((item) => {
+        const track = trackMap.get(item.trackId!);
+        if (!track) return null;
+
+        return {
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          album_artist: track.albumArtist,
+          album_art: track.albumArt,
+          uri: track.uri,
+          album: track.album,
+          duration: track.duration,
+          track_number: track.trackNumber,
+          disc_number: track.discNumber,
+          play_count: Number(item.scrobbles),
+          unique_listeners: listenersMap.get(item.trackId!) || 0,
+          album_uri: track.albumUri,
+          artist_uri: track.artistUri,
+          sha256: track.sha256,
+          tags: track.genre ? [track.genre] : [],
+          created_at: track.createdAt.toISOString(),
+        };
+      })
+      .filter((item): item is TopTrack => item !== null);
+    consola.info(`Returning ${result.length} top tracks with complete data`);
+
+    return { data: result };
   });
 };
 

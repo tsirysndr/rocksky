@@ -3,6 +3,7 @@ import { consola } from "consola";
 import type { Context } from "context";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
+import { transientDbRetry } from "lib/dbRetry";
 
 export default function (server: Server, ctx: Context) {
   const getApikeys = (params, auth: HandlerAuth) =>
@@ -10,7 +11,7 @@ export default function (server: Server, ctx: Context) {
       params,
       retrieve,
       presentation,
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

@@ -1,0 +1,24 @@
+{
+    "scrobblers": [
+        {
+            "id": "rec_d9vjnfod60d5kl1d8q00",
+            "did": "did:web:didd.uk",
+            "handle": "ducky.ws",
+            "displayName": "Ducky \ud83e\udd86",
+            "avatar": "https://cdn.bsky.app/img/avatar/plain/did:web:didd.uk/bafkreibr5q2zthn3acjixunlnzuuoopsmcoxvn6vv7oid5t7fqlngnvn2y",
+            "scrobbles": 277871,
+            "uniqueArtists": 10864,
+            "uniqueTracks": 33114
+        },
+        {
+            "id": "rec_d9pa7b0d60dark19jld0",
+            "did": "did:plc:s63rvnxw37nv4dwnnxrpe7jb",
+            "handle": "hkamran.com",
+            "displayName": "H. Kamran",
+            "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:s63rvnxw37nv4dwnnxrpe7jb/bafkreih6bca5zp32gpohcjywva7mxoll65be5mgqrjajee26tjxledcgde",
+            "scrobbles": 194444,
+            "uniqueArtists": 2372,
+            "uniqueTracks": 11067
+        }
+    ]
+}

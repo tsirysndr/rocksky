@@ -1,5 +1,5 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import {
   and,
   count,
@@ -14,8 +14,9 @@ import {
 } from "drizzle-orm";
 import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { QueryParams } from "lexicon/types/app/rocksky/stats/getWrapped";
 import type { WrappedView } from "lexicon/types/app/rocksky/stats/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/stats/getWrapped";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -26,7 +27,7 @@ export default function (server: Server, ctx: Context) {
       pipe(
         { params, ctx },
         retrieve,
-        Effect.retry({ times: 3 }),
+        Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
   });

@@ -1,0 +1,124 @@
+[package]
+name = "rocksky-appview"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure-Rust Rocksky AppView — a drop-in replacement for apps/api's XRPC surface"
+
+[[bin]]
+name = "rocksky-appview"
+path = "src/main.rs"
+
+[dependencies]
+actix-web = "4.11.0"
+actix-cors = "0.7.1"
+
+sqlx = { version = "0.8.6", default-features = false, features = [
+  "runtime-tokio",
+  "tls-rustls",
+  "sqlite",
+  "postgres",
+  "chrono",
+  "json",
+  "derive",
+  "macros",
+  "migrate",
+] }
+tokio = { version = "1", features = ["full"] }
+
+# atproto: identity resolution, OAuth session restore and PDS record writes.
+jacquard = { version = "0.12", default-features = false, features = [
+  "api",
+  "dns",
+  "derive",
+  "cache",
+] }
+# Server-side OAuth: the client, DPoP, PAR and the ClientAuthStore trait that
+# src/oauth/store.rs implements over SQLite. Re-exported by `jacquard` too, but
+# named here because this crate uses it directly and heavily.
+jacquard-oauth = "0.12"
+# The identity resolver the OAuth client is built on, and the small string
+# type its APIs take.
+jacquard-identity = "0.12"
+smol_str = "0.3"
+# The JWK types used to read and write the DPoP key in a stored session. Must
+# track what jacquard-oauth depends on, since `Key` crosses the boundary.
+jose-jwk = { version = "0.1", features = ["p256"] }
+jacquard-common = "0.12"
+
+reqwest = { version = "0.12", default-features = false, features = [
+  "rustls-tls",
+  "json",
+  "stream",
+] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
+serde_with = "3"
+toml = "0.8"
+clap = { version = "4", features = ["derive", "env"] }
+
+chrono = { version = "= 0.4.39", features = ["serde"] }
+jsonwebtoken = "9.3.1"
+
+# Reading a repository CAR for the backfill: blocks are dag-cbor keyed by CID,
+# and the MST that names them is itself dag-cbor.
+serde_ipld_dagcbor = "0.6"
+serde_bytes = "0.11"
+ipld-core = "0.4"
+cid = "0.11"
+unsigned-varint = "0.8"
+uuid = { version = "1", features = ["v4", "serde"] }
+# `rec_<xid>` row ids, matching what the `xata_id()` Postgres extension mints
+# (see crates/xataid-extension) so ids stay portable between both backends.
+xid = "1.1.1"
+sha2 = "0.10"
+# libsodium's crypto_secretbox, for reading and writing the credentials
+# apps/api encrypts with `encryptCredential`.
+xsalsa20poly1305 = "0.9"
+# Object storage. The same client crate and conventions as
+# crates/navidrome/src/s3.rs, so presigned URLs and path-style addressing
+# behave identically across the two services.
+rust-s3 = { version = "0.35.1", default-features = false, features = [
+  "tokio-rustls-tls",
+] }
+hex = "0.4.3"
+base64 = "0.22"
+futures = "0.3"
+bytes = "1"
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenv = "0.15.0"
+rand = "0.8.5"
+
+# Optional accelerators. A zero-config instance runs without all three; each is
+# used only when its URL is configured (see config.rs), with an in-process
+# fallback so self-hosting never requires standing up a stack.
+async-nats = "0.39"
+# Tap: a verified, filtered, backfilling firehose consumer. Preferred over
+# talking to Jetstream directly because it does MST verification, signature
+# checks and per-repo filtering for us.
+atproto-tap = "0.14"
+redis = { version = "0.29", default-features = false, features = [
+  "tokio-comp",
+  "connection-manager",
+] }
+
+[dev-dependencies]
+actix-rt = "2"
+tempfile = "3"
+# The interop test reads the JWK back to prove the DPoP key survived.
+jose-jwk = { version = "0.1", features = ["p256"] }
+jacquard-common = "0.12"
+jacquard-oauth = "0.12"
+# The login integration test reads the session table directly to check what
+# was persisted.
+sqlx = { version = "0.8.6", default-features = false, features = [
+  "runtime-tokio",
+  "sqlite",
+] }

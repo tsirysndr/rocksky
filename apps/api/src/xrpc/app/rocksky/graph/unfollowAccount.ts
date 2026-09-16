@@ -1,12 +1,13 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, eq, desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/followAccount";
 import { createAgent } from "lib/agent";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 import type { SelectUser } from "schema/users";
 
@@ -16,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx, did: auth.credentials?.did },
       handleFollow,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

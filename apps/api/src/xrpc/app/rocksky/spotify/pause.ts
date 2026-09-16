@@ -6,6 +6,7 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/spotify/pause";
 import { decrypt } from "lib/crypto";
+import { transientDbRetry } from "lib/dbRetry";
 import { env } from "lib/env";
 import tables from "schema";
 import type { SelectUser } from "schema/users";
@@ -19,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.flatMap(withSpotifyToken),
       Effect.flatMap(handlePause),
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

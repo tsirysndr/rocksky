@@ -12,7 +12,7 @@ import RightPaneToggle from "../components/RightPaneToggle";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";
-import { API_URL } from "../consts";
+import { API_URL, SELF_HOSTED } from "../consts";
 import useProfile, { useProfileStatsByDidQuery } from "../hooks/useProfile";
 import Navbar from "./Navbar";
 import Search from "./Search";
@@ -70,7 +70,10 @@ function Main(props: MainProps) {
   const profile = useAtomValue(profileAtom);
   const [token, setToken] = useState<string | null>(null);
   const { did, cli, session } = useSearch({ strict: false });
-  const [passwordLogin, setPasswordLogin] = useState(false);
+  // A self-hosted instance reached over anything but localhost cannot use
+  // OAuth — its PDS has no client metadata document to fetch — so open on the
+  // app-password form there. The toggle still offers the other option.
+  const [passwordLogin, setPasswordLogin] = useState(SELF_HOSTED);
   const { enqueue } = useSnackbar();
 
   // The session guard signs the user out on a `pds_session_expired` 401 and
@@ -178,7 +181,10 @@ function Main(props: MainProps) {
       return;
     }
 
-    if (API_URL.includes("localhost")) {
+    // Go straight to our own API on localhost, and on a self-hosted instance
+    // at any address — bouncing through rocksky.pages.dev would send the user
+    // to the hosted service instead of their own.
+    if (SELF_HOSTED || API_URL.includes("localhost")) {
       window.location.href = prompt
         ? `${API_URL}/login?handle=${handle}&prompt=${prompt}`
         : `${API_URL}/login?handle=${handle}`;

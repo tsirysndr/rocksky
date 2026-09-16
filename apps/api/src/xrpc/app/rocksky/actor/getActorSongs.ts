@@ -1,11 +1,12 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { and, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorSongs";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { deepCamelCaseKeys } from "lib";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -17,7 +18,7 @@ export default function (server: Server, ctx: Context) {
         { params, ctx },
         retrieve,
         Effect.flatMap(presentation),
-        Effect.retry({ times: 3 }),
+        Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
   });

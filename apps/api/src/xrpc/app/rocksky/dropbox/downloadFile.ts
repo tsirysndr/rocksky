@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/dropbox/downloadFile";
+import { dbQuery } from "lib/dbQuery";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -24,16 +25,14 @@ const getCurrentUser = ({
   ctx: Context;
   did?: string;
 }) => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.did, did))
-        .execute()
-        .then((users) => ({ user: users[0], ctx, params })),
-    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
-  });
+  return dbQuery("Failed to retrieve current user", async (db) =>
+    db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, did))
+      .execute()
+      .then((users) => ({ user: users[0], ctx, params })),
+  );
 };
 
 const download = () => {

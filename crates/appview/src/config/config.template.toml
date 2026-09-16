@@ -1,0 +1,206 @@
+# Rocksky AppView configuration.
+#
+# Everything here is optional and every line is commented out, so this file as
+# shipped changes nothing — the binary runs with no configuration at all. Set
+# only what you want to differ from the defaults shown.
+#
+# Precedence, highest first:
+#   1. command-line flags   (rocksky-appview --help)
+#   2. environment variables
+#   3. this file
+#   4. the built-in defaults below
+
+[server]
+# host = "0.0.0.0"
+# port = 3004
+
+# The hostname this instance is reached at. REQUIRED when deploying to a public
+# server: it is what public_url and the ATProto OAuth client identity are built
+# from, and without it the instance keeps calling itself "localhost" — which
+# works locally and then breaks login and every absolute URL once anyone else
+# tries to use it.
+#
+# Hostname only: no scheme, no port, no trailing path.
+#   domain = "rocksky.example.com"
+# Leave it unset for local use.
+# domain = ""
+
+# Derived from `domain` as https://<domain> when that is set, and only needs
+# setting by hand for an unusual setup — a non-standard port behind a proxy, or
+# plain http on a private network.
+# public_url = "http://localhost:3004"
+
+# Signing key for this instance's own bearer tokens. Leave it unset: a random
+# key is generated on first boot and saved to jwt.secret next to this file.
+# Setting it by hand only makes sense when several instances share a database.
+# jwt_secret = ""
+
+# Where to forward requests this binary does not handle. Unset by default — a
+# self-hosted instance is meant to be complete on its own. Point it at the
+# TypeScript API (http://localhost:8000) if you are running both side by side.
+# upstream_url = "http://localhost:8000"
+
+# Browser origins allowed to call the API. Unset allows any origin, which is
+# what a personal instance wants. Set it to lock the API to your own front end.
+# cors_origins = ["https://rocksky.example"]
+
+[database]
+# SQLite by default, created next to this file. Point this at an existing
+# Rocksky Postgres instead to run the same API over that data:
+#   url = "postgres://user:pass@host/rocksky"
+# Note that Postgres schemas are owned by the drizzle migrations in apps/api;
+# this binary reads and writes them but never migrates them.
+# url = "sqlite://rocksky.db?mode=rwc"
+
+# OAuth sessions and the DID document cache. Always SQLite, and kept apart from
+# the data above so re-indexing never logs anyone out.
+# auth_url = "sqlite://auth.db?mode=rwc"
+
+[indexer]
+# Fills the local database from the ATProto firehose. On by default: without it
+# a fresh instance has nothing to show.
+# enabled = true
+
+# jetstream_urls = [
+#   "wss://jetstream1.us-east.bsky.network/subscribe",
+#   "wss://jetstream2.us-east.bsky.network/subscribe",
+#   "wss://jetstream1.us-west.bsky.network/subscribe",
+#   "wss://jetstream2.us-west.bsky.network/subscribe",
+# ]
+
+# Whose records to index. Empty (the default) indexes every Rocksky record on
+# the firehose, which is what a public instance wants. List DIDs to index only
+# those accounts — the right choice for a personal instance.
+# dids = ["did:plc:your-did-here"]
+
+[tap]
+# Tap (https://atproto.com/blog/introducing-tap) is a small service that
+# subscribes to a Relay and hands you verified, filtered JSON events. It does
+# the MST verification, signature checking, backfill and per-repo filtering, so
+# this binary only has to store what it is given — the recommended way to keep
+# a self-hosted instance up to date.
+#
+# Run one with:  go install github.com/bluesky-social/indigo/cmd/tap@latest
+# hostname = "localhost:2480"
+
+# Only needed to register repositories from here (see `repos` below). Without
+# it this instance just consumes whatever the Tap instance already tracks.
+# admin_password = ""
+
+# Defaults to on whenever `hostname` is set.
+# enabled = true
+
+# Repositories to ask Tap to start tracking on startup. Requires
+# admin_password.
+# repos = ["did:plc:your-did-here"]
+
+[backfill]
+# Populate the database from repositories that already exist, by downloading
+# each one (com.atproto.sync.getRepo), reading its CAR and storing every
+# app.rocksky.* record. This is how a brand-new instance gets your full history
+# rather than only what happens from now on.
+#
+# Run it on demand with:  rocksky-appview --backfill
+# It is idempotent, so re-running it after a wipe or a schema change is the
+# normal recovery path.
+# dids = ["did:plc:your-did-here"]
+
+# Re-run the backfill on every startup. Off by default: it re-downloads every
+# repository, which is wasted work once the database is populated and Tap is
+# keeping it current.
+# on_start = false
+
+# --- Login -------------------------------------------------------------------
+#
+# Two ways in, and which are available depends on `domain` above:
+#
+#   App password   POST /login with a handle and an app password (created in
+#                  Bluesky settings). Works everywhere, including localhost.
+#
+#   OAuth          GET /login?handle=… redirects to the user's server. Needs no
+#                  configuration beyond `domain`:
+#
+#                    no domain   a loopback client, for local use. The client_id
+#                                encodes the redirect and scope, because no
+#                                authorization server can fetch a document from
+#                                localhost. Refresh tokens are short-lived.
+#
+#                    domain set  a CONFIDENTIAL client. An ES256 keyset is
+#                                generated into oauth-keys.json on first boot
+#                                and published at /jwks.json, and the client
+#                                authenticates with private_key_jwt. This is
+#                                what you want in production: atproto grants
+#                                confidential clients much longer-lived refresh
+#                                tokens, so users stay signed in.
+#
+# Keep oauth-keys.json. Losing it means every OAuth user signs in again.
+#
+# Sessions live in the auth database, in the same format the TypeScript API
+# writes, so pointing [database].auth_url at an existing auth.db keeps everyone
+# signed in.
+
+[atproto]
+# plc_directory_url = "https://plc.directory"
+# bsky_appview_url = "https://public.api.bsky.app"
+
+[cache]
+# Shared response cache. Unset uses an in-process cache, which is all a single
+# binary needs; set this when running several instances behind a load balancer.
+# redis_url = "redis://localhost:6379"
+
+[search]
+# Unset uses SQLite full-text search. Typesense is faster on a large catalogue.
+# typesense_url = "http://localhost:8108"
+# typesense_api_key = ""
+
+[events]
+# Live-update fan-out. Unset delivers in-process, which is correct for one
+# binary; set this to share events across instances.
+# nats_url = "nats://localhost:4222"
+
+[services]
+# Optional companion services. Each feature is simply unavailable while its
+# service is unset — endpoints that need one answer 501 rather than failing.
+
+# Uploaded-music library (the app.rocksky.library.* Subsonic-compatible surface).
+# navidrome_url = "http://127.0.0.1:4533"
+# navidrome_secret = ""
+
+# Spotify playback control and metadata enrichment.
+# spotify_api_url = "https://api.spotify.com/v1"
+
+# Metadata enrichment.
+# musicbrainz_url = "https://musicbrainz.org"
+# deezer_url = "http://localhost:8090"
+
+# Recommendations.
+# drift_url = "http://localhost:8093"
+
+# Tracklist lookups.
+# tracklist_url = "http://localhost:7884"
+
+[storage]
+# S3-compatible object storage for uploaded music and cover art. Uploads are
+# disabled until endpoint, access key, secret and bucket are all set — the rest
+# of the instance works without any of this. Works with Cloudflare R2, MinIO,
+# Backblaze B2, AWS S3, or anything else speaking the S3 API.
+# s3_endpoint = "https://<account>.r2.cloudflarestorage.com"
+# s3_region = "auto"
+# s3_access_key_id = ""
+# s3_secret_access_key = ""
+# s3_bucket = "rocksky-library"
+# s3_covers_bucket = "rocksky"
+
+# Encrypts per-user bring-your-own-storage credentials at rest. Needed only if
+# you let users attach their own buckets. Use 32 random bytes, hex encoded.
+# encryption_key = ""
+
+[web]
+# The embedded web UI is configured at request time, so by default it talks to
+# whatever origin served it — localhost, a LAN address or a public domain, with
+# no rebuild. Set these only to point the UI somewhere else.
+# api_url = "https://api.rocksky.example"
+# ws_url = "wss://ws.rocksky.example"
+
+# cdn_url = "https://cdn.rocksky.app"
+# media_cdn_url = "https://files.rocksky.app"

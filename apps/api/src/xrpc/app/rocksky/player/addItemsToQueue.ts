@@ -5,6 +5,7 @@ import { inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/player/addItemsToQueue";
+import { transientDbRetry } from "lib/dbRetry";
 import * as R from "ramda";
 import tables from "schema";
 
@@ -18,7 +19,7 @@ export default function (server: Server, ctx: Context) {
       },
       handleAddItemsToQueue,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);

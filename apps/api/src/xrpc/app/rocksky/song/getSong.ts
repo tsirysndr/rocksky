@@ -1,16 +1,17 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { InvalidRequestError } from "@atproto/xrpc-server";
-import type { Context } from "context";
 import { consola } from "consola";
-import { type SQL, asc, count, eq, or } from "drizzle-orm";
+import type { Context } from "context";
+import { asc, count, eq, or, type SQL } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/getSong";
+import { transientDbRetry } from "lib/dbRetry";
 import { withLikes } from "lib/trackLikes";
 import tables from "schema";
-import type { SelectTrack } from "schema/tracks";
 import type { SelectArtist } from "schema/artists";
+import type { SelectTrack } from "schema/tracks";
 
 export default function (server: Server, ctx: Context) {
   const getSong = (params: QueryParams, auth: HandlerAuth) =>
@@ -19,10 +20,7 @@ export default function (server: Server, ctx: Context) {
       retrieve,
       Effect.flatMap(presentation),
       // Not-found is definitive; only transient failures are worth retrying.
-      Effect.retry({
-        times: 3,
-        while: (err) => !(err instanceof InvalidRequestError),
-      }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         if (err instanceof InvalidRequestError) {

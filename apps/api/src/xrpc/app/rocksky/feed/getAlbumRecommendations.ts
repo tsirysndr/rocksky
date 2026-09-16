@@ -1,13 +1,14 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { and, desc, eq, inArray, ne, notInArray, or, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type {
-  RecommendedAlbumView,
   RecommendedAlbumsView,
+  RecommendedAlbumView,
 } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getAlbumRecommendations";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
 const DECAY_LAMBDA = 0.02 as const;
@@ -59,7 +60,7 @@ export default function (server: Server, ctx: Context) {
           retrieve,
           Effect.flatMap(hydrate),
           Effect.flatMap(presentation),
-          Effect.retry({ times: 3 }),
+          Effect.retry(transientDbRetry),
           Effect.timeout("30 seconds"),
         );
         return DRIFT_URL

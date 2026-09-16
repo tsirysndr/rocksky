@@ -6,6 +6,8 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/shout/getArtistShouts";
+import { dbQuery } from "lib/dbQuery";
+import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 import type { SelectUser } from "schema/users";
 
@@ -16,7 +18,7 @@ export default function (server: Server, ctx: Context) {
       getCurrentUser,
       Effect.flatMap(retrieve),
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
@@ -44,16 +46,14 @@ const getCurrentUser = ({
   ctx: Context;
   did?: string;
 }) => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.did, did))
-        .execute()
-        .then((users) => ({ user: users[0], ctx, params })),
-    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
-  });
+  return dbQuery("Failed to retrieve current user", async (db) =>
+    db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, did))
+      .execute()
+      .then((users) => ({ user: users[0], ctx, params })),
+  );
 };
 
 const retrieve = ({
@@ -65,66 +65,64 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ shouts: Shouts; users: Users }[], Error> => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
-        .select({
-          shouts: user
-            ? {
-                id: tables.shouts.id,
-                content: tables.shouts.content,
-                createdAt: tables.shouts.createdAt,
-                uri: tables.shouts.uri,
-                parent: tables.shouts.parentId,
-                likes: count(tables.shoutLikes.id).as("likes"),
-                liked: sql<boolean>`
+  return dbQuery("Failed to retrieve artist shouts", async (db) =>
+    db
+      .select({
+        shouts: user
+          ? {
+              id: tables.shouts.id,
+              content: tables.shouts.content,
+              createdAt: tables.shouts.createdAt,
+              uri: tables.shouts.uri,
+              parent: tables.shouts.parentId,
+              likes: count(tables.shoutLikes.id).as("likes"),
+              liked: sql<boolean>`
             EXISTS (
               SELECT 1
               FROM ${tables.shoutLikes}
               WHERE ${tables.shoutLikes.shoutId} = ${tables.shouts.id}
                 AND ${tables.shoutLikes.userId} = ${user.id}
             )`.as("liked"),
-              }
-            : {
-                id: tables.shouts.id,
-                content: tables.shouts.content,
-                createdAt: tables.shouts.createdAt,
-                parent: tables.shouts.parentId,
-                uri: tables.shouts.uri,
-                likes: count(tables.shoutLikes.id).as("likes"),
-              },
-          users: {
-            id: tables.users.id,
-            did: tables.users.did,
-            handle: tables.users.handle,
-            displayName: tables.users.displayName,
-            avatar: tables.users.avatar,
-          },
-        })
-        .from(tables.shouts)
-        .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
-        .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
-        .leftJoin(
-          tables.shoutLikes,
-          eq(tables.shouts.id, tables.shoutLikes.shoutId),
-        )
-        .where(eq(tables.artists.uri, params.uri))
-        .groupBy(
-          tables.shouts.id,
-          tables.shouts.content,
-          tables.shouts.createdAt,
-          tables.shouts.uri,
-          tables.shouts.parentId,
-          tables.users.id,
-          tables.users.did,
-          tables.users.handle,
-          tables.users.displayName,
-          tables.users.avatar,
-        )
-        .orderBy(desc(tables.shouts.createdAt))
-        .execute(),
-    catch: (error) => new Error(`Failed to retrieve artist shouts: ${error}`),
-  });
+            }
+          : {
+              id: tables.shouts.id,
+              content: tables.shouts.content,
+              createdAt: tables.shouts.createdAt,
+              parent: tables.shouts.parentId,
+              uri: tables.shouts.uri,
+              likes: count(tables.shoutLikes.id).as("likes"),
+            },
+        users: {
+          id: tables.users.id,
+          did: tables.users.did,
+          handle: tables.users.handle,
+          displayName: tables.users.displayName,
+          avatar: tables.users.avatar,
+        },
+      })
+      .from(tables.shouts)
+      .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+      .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
+      .leftJoin(
+        tables.shoutLikes,
+        eq(tables.shouts.id, tables.shoutLikes.shoutId),
+      )
+      .where(eq(tables.artists.uri, params.uri))
+      .groupBy(
+        tables.shouts.id,
+        tables.shouts.content,
+        tables.shouts.createdAt,
+        tables.shouts.uri,
+        tables.shouts.parentId,
+        tables.users.id,
+        tables.users.did,
+        tables.users.handle,
+        tables.users.displayName,
+        tables.users.avatar,
+      )
+      .orderBy(desc(tables.shouts.createdAt))
+      .execute(),
+  );
 };
 
 const presentation = (

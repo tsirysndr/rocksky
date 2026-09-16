@@ -1,10 +1,11 @@
-import type { Context } from "context";
 import { consola } from "consola";
+import type { Context } from "context";
 import { and, asc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/googledrive/getFiles";
+import { transientDbRetry } from "lib/dbRetry";
 import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
@@ -15,7 +16,7 @@ export default function (server: Server, ctx: Context) {
       { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
+      Effect.retry(transientDbRetry),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
