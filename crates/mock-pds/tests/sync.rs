@@ -202,7 +202,10 @@ async fn every_record_written_comes_back_with_its_key() {
         .collect();
     expected.sort();
 
-    assert_eq!(keys, expected, "keys must survive prefix compression intact");
+    assert_eq!(
+        keys, expected,
+        "keys must survive prefix compression intact"
+    );
 }
 
 /// The keys the tree yields must point at records that are actually present,
@@ -296,7 +299,9 @@ async fn production_records_survive_the_encoding_unchanged() {
 
     for stored in pds.records(None) {
         let key = format!("{}/{}", stored.collection, stored.rkey);
-        let cid = found.get(&key).unwrap_or_else(|| panic!("{key} is missing"));
+        let cid = found
+            .get(&key)
+            .unwrap_or_else(|| panic!("{key} is missing"));
         let bytes = archive.blocks.get(cid).expect("the block");
 
         let decoded: Ipld = serde_ipld_dagcbor::from_slice(bytes).expect("the record decodes");
@@ -312,7 +317,12 @@ async fn production_records_survive_the_encoding_unchanged() {
         );
 
         // Every field the record had is still there.
-        for field in stored.value.as_object().expect("a record is an object").keys() {
+        for field in stored
+            .value
+            .as_object()
+            .expect("a record is an object")
+            .keys()
+        {
             assert!(
                 decoded.contains_key(field),
                 "{key} lost the field {field:?}"
@@ -354,7 +364,11 @@ async fn a_write_changes_the_commit() {
     let before = fetch(&pds).await;
     let before_root = *before.roots.first().unwrap();
 
-    pds.put_record("app.rocksky.song", "3aaa", serde_json::json!({ "$type": "app.rocksky.song" }));
+    pds.put_record(
+        "app.rocksky.song",
+        "3aaa",
+        serde_json::json!({ "$type": "app.rocksky.song" }),
+    );
 
     let after = fetch(&pds).await;
     assert_ne!(

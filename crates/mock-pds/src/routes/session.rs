@@ -31,10 +31,7 @@ struct Credentials {
     password: Option<String>,
 }
 
-async fn create_session(
-    state: web::Data<State>,
-    body: web::Json<Credentials>,
-) -> HttpResponse {
+async fn create_session(state: web::Data<State>, body: web::Json<Credentials>) -> HttpResponse {
     state.record_call("POST", "/xrpc/com.atproto.server.createSession");
     if let Some(failure) = injected_failure(&state, "com.atproto.server.createSession") {
         return failure;

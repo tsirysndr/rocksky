@@ -63,8 +63,8 @@ const REPLAYGAIN_EXTS: &[&str] = &["mp3", "flac", "m4a", "ogg"];
 /// otherwise be accepted and then fail to decode for everyone.
 pub fn detect_mime(bytes: &[u8]) -> Option<&'static str> {
     const SIGNATURES: &[(&[u8], &str)] = &[
-        (b"ID3", "audio/mpeg"),            // an ID3 tag, so MP3
-        (&[0xff, 0xfb], "audio/mpeg"),     // MPEG frame sync
+        (b"ID3", "audio/mpeg"),        // an ID3 tag, so MP3
+        (&[0xff, 0xfb], "audio/mpeg"), // MPEG frame sync
         (&[0xff, 0xf3], "audio/mpeg"),
         (&[0xff, 0xf2], "audio/mpeg"),
         (b"fLaC", "audio/flac"),
@@ -126,8 +126,8 @@ fn non_empty(value: &str) -> Option<String> {
 /// the players will show. `lofty` then fills what that parser does not hand
 /// back: decoded cover art, ISRC, lyrics, copyright, label and release date.
 pub fn read_tags(path: &Path) -> Result<Tags> {
-    let meta = rockbox_metadata::read(path)
-        .map_err(|err| anyhow!("could not read audio tags: {err}"))?;
+    let meta =
+        rockbox_metadata::read(path).map_err(|err| anyhow!("could not read audio tags: {err}"))?;
 
     let mut tags = Tags {
         title: meta.title.trim().to_string(),
@@ -330,8 +330,10 @@ pub fn measure_replay_gain(bytes: &[u8], extension: &str) -> Option<ReplayGain> 
     use symphonia::core::io::MediaSourceStream;
     use symphonia::core::probe::Hint;
 
-    let source = MediaSourceStream::new(Box::new(std::io::Cursor::new(bytes.to_vec())),
-        Default::default());
+    let source = MediaSourceStream::new(
+        Box::new(std::io::Cursor::new(bytes.to_vec())),
+        Default::default(),
+    );
     let mut hint = Hint::new();
     hint.with_extension(extension);
 
@@ -364,9 +366,8 @@ pub fn measure_replay_gain(bytes: &[u8], extension: &str) -> Option<ReplayGain> 
         };
 
         let spec = *decoded.spec();
-        let target = buffer.get_or_insert_with(|| {
-            SampleBuffer::<f32>::new(decoded.capacity() as u64, spec)
-        });
+        let target =
+            buffer.get_or_insert_with(|| SampleBuffer::<f32>::new(decoded.capacity() as u64, spec));
         target.copy_interleaved_ref(decoded);
         let samples = target.samples();
 
@@ -431,7 +432,10 @@ pub fn write_replay_gain(path: &Path, gain: ReplayGain) -> Result<()> {
     };
 
     // The standard spellings, which is what every reader looks for.
-    tag.insert_text(ItemKey::ReplayGainTrackGain, format!("{:.2} dB", gain.gain_db));
+    tag.insert_text(
+        ItemKey::ReplayGainTrackGain,
+        format!("{:.2} dB", gain.gain_db),
+    );
     tag.insert_text(ItemKey::ReplayGainTrackPeak, format!("{:.6}", gain.peak));
 
     tag.save_to_path(path, WriteOptions::default())?;

@@ -10,10 +10,10 @@
 //! records `iss` but not the token endpoint, so restoring a session involves
 //! fetching that issuer's metadata.
 
-use rocksky_mock_pds::MockPds;
 use jacquard_common::types::string::Did;
 use jacquard_oauth::authstore::ClientAuthStore;
 use rocksky_appview::oauth::store::{SqliteAuthStore, DEFAULT_SESSION_ID};
+use rocksky_mock_pds::MockPds;
 
 /// Stands in for `https://bsky.social`'s authorization server.
 ///
@@ -156,7 +156,6 @@ async fn a_session_written_by_the_typescript_api_is_restored_here() {
     let scopes = session.scopes.to_normalized_string();
     assert!(scopes.contains("atproto"), "{scopes}");
     assert!(scopes.contains("repo:app.rocksky.scrobble"), "{scopes}");
-
 }
 
 /// Writing back must keep the row readable by the TypeScript API, or a user
@@ -213,7 +212,6 @@ async fn a_session_rewritten_here_is_still_readable_by_the_typescript_api() {
             .await
             .unwrap();
     assert_eq!(expires.as_deref(), Some("2027-01-01T00:00:00.000Z"));
-
 }
 
 /// An app-password session lives in the same table under `atp:<did>`; the two
@@ -252,7 +250,6 @@ async fn oauth_and_app_password_sessions_coexist_in_one_table() {
         .await
         .unwrap()
         .is_some());
-
 }
 
 /// If the issuer cannot be reached the session must be reported as a failure,
@@ -435,12 +432,13 @@ async fn every_session_in_a_real_database_restores() {
         // The store re-reads the issuer's metadata, which would mean a network
         // call per row. Parsing is what is under test, so the row is decoded
         // directly instead.
-        let raw: Option<String> = sqlx::query_scalar("SELECT session FROM auth_session WHERE key = ?")
-            .bind(key)
-            .fetch_optional(&db)
-            .await
-            .expect("read the row")
-            .flatten();
+        let raw: Option<String> =
+            sqlx::query_scalar("SELECT session FROM auth_session WHERE key = ?")
+                .bind(key)
+                .fetch_optional(&db)
+                .await
+                .expect("read the row")
+                .flatten();
 
         let Some(raw) = raw else {
             unreadable.push(key.clone());

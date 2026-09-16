@@ -117,7 +117,6 @@ async fn an_app_password_login_issues_a_usable_token() {
         "the token the PDS issued is the one that was kept"
     );
     assert_eq!(stored.handle, HANDLE);
-
 }
 
 #[actix_web::test]
@@ -144,7 +143,6 @@ async fn a_wrong_password_is_a_401_with_a_readable_message() {
     );
     // Nothing was stored for a failed login.
     assert!(session::load(state.auth_db(), DID).await.unwrap().is_none());
-
 }
 
 #[actix_web::test]
@@ -193,7 +191,6 @@ async fn logging_out_forgets_the_session_but_the_account_stays_indexed() {
             .unwrap(),
         1
     );
-
 }
 
 #[actix_web::test]
@@ -213,7 +210,6 @@ async fn a_did_can_be_used_in_place_of_a_handle() {
     )
     .await;
     assert_eq!(res.status(), 200);
-
 }
 
 #[actix_web::test]
@@ -251,5 +247,4 @@ async fn logging_in_twice_replaces_the_session_rather_than_duplicating_it() {
         1,
         "and only one account row"
     );
-
 }

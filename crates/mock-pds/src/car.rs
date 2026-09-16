@@ -184,13 +184,25 @@ mod tests {
         let commit = commit_block("did:plc:test", "3mvlfylougc2l", cid);
         let commit_cid = commit.cid;
 
-        let archive = write(commit_cid, &[commit, Block { cid, bytes: bytes.clone() }]);
+        let archive = write(
+            commit_cid,
+            &[
+                commit,
+                Block {
+                    cid,
+                    bytes: bytes.clone(),
+                },
+            ],
+        );
         let (roots, blocks) = read(&archive);
 
         assert_eq!(roots, vec![commit_cid]);
         assert_eq!(blocks.len(), 2);
 
-        let record = blocks.iter().find(|(id, _)| *id == cid).expect("the record");
+        let record = blocks
+            .iter()
+            .find(|(id, _)| *id == cid)
+            .expect("the record");
         assert_eq!(record.1, bytes, "the payload came back unchanged");
     }
 

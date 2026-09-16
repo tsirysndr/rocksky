@@ -213,12 +213,7 @@ async fn list(state: web::Data<AppState>, auth: AuthDid) -> XrpcResult<HttpRespo
     let user_id = caller_id(db, &auth.did).await?;
 
     let providers = providers::list(db, &user_id).await?;
-    Ok(HttpResponse::Ok().json(
-        providers
-            .iter()
-            .map(ProviderView::from)
-            .collect::<Vec<_>>(),
-    ))
+    Ok(HttpResponse::Ok().json(providers.iter().map(ProviderView::from).collect::<Vec<_>>()))
 }
 
 /// `DELETE /storage/providers/{id}`
@@ -323,7 +318,9 @@ mod tests {
         let app = app!(state);
 
         for request in [
-            test::TestRequest::get().uri("/storage/providers").to_request(),
+            test::TestRequest::get()
+                .uri("/storage/providers")
+                .to_request(),
             test::TestRequest::post()
                 .uri("/storage/providers")
                 .set_json(serde_json::json!({}))
@@ -578,7 +575,13 @@ mod tests {
         // ...and readable with the instance key, which is what lets an upload
         // actually reach the bucket later.
         let key = state.storage_encryption_key();
-        assert_eq!(crypto::decrypt_credential(key, &provider.access_key).unwrap(), "ak");
-        assert_eq!(crypto::decrypt_credential(key, &provider.secret_key).unwrap(), "sk");
+        assert_eq!(
+            crypto::decrypt_credential(key, &provider.access_key).unwrap(),
+            "ak"
+        );
+        assert_eq!(
+            crypto::decrypt_credential(key, &provider.secret_key).unwrap(),
+            "sk"
+        );
     }
 }

@@ -129,15 +129,12 @@ async fn read_multipart(mut payload: Multipart) -> XrpcResult<Submitted> {
             }
             // Unknown parts are ignored rather than rejected: a browser may
             // add its own, and the contract names only these two.
-            _ => {
-                while field.next().await.is_some() {}
-            }
+            _ => while field.next().await.is_some() {},
         }
     }
 
-    let bytes = bytes.ok_or_else(|| {
-        XrpcError::invalid_request("No file provided").named("NO_FILE")
-    })?;
+    let bytes =
+        bytes.ok_or_else(|| XrpcError::invalid_request("No file provided").named("NO_FILE"))?;
 
     Ok(Submitted {
         bytes,
@@ -154,8 +151,7 @@ fn rejected(rejection: audio::Rejection) -> XrpcError {
         audio::Rejection::InvalidFormat => ResponseType::InvalidRequest,
         _ => ResponseType::UnprocessableEntity,
     };
-    let mut error =
-        XrpcError::with_message(kind, rejection.message()).named(rejection.code());
+    let mut error = XrpcError::with_message(kind, rejection.message()).named(rejection.code());
     let missing = rejection.missing_fields();
     if !missing.is_empty() {
         error = error.missing_fields(missing);
@@ -181,8 +177,7 @@ async fn upload_track(
 
     // Tag reading needs a path: `rockbox-metadata` and `lofty` both work on
     // files, and ReplayGain tagging rewrites in place.
-    let scratch = tempfile::tempdir()
-        .map_err(|err| XrpcError::internal(anyhow::anyhow!(err)))?;
+    let scratch = tempfile::tempdir().map_err(|err| XrpcError::internal(anyhow::anyhow!(err)))?;
     let path = scratch.path().join(format!("upload.{extension}"));
     std::fs::write(&path, &submitted.bytes)
         .map_err(|err| XrpcError::internal(anyhow::anyhow!(err)))?;
@@ -381,7 +376,10 @@ async fn store_cover(
     let extension = audio::picture_extension(mime)?;
     let s3 = state.config().s3.as_ref()?;
 
-    let key = format!("covers/{}.{extension}", audio::cover_id(album_artist, album));
+    let key = format!(
+        "covers/{}.{extension}",
+        audio::cover_id(album_artist, album)
+    );
 
     // The covers bucket is configured separately from the media bucket, and is
     // always the instance's own — a user's own bucket is for their audio.
@@ -394,7 +392,10 @@ async fn store_cover(
     };
 
     match bucket.put_object_with_content_type(&key, data, mime).await {
-        Ok(_) => Some(format!("{}/{key}", state.config().cdn_url.trim_end_matches('/'))),
+        Ok(_) => Some(format!(
+            "{}/{key}",
+            state.config().cdn_url.trim_end_matches('/')
+        )),
         Err(err) => {
             // Survivable: the track carries the placeholder cover instead.
             tracing::warn!(error = %err, "could not store the album art");
@@ -422,19 +423,16 @@ async fn publish_records(
         return;
     };
 
-    let pds = match crate::atproto::resolve_pds(
-        state.http(),
-        &state.config().plc_directory_url,
-        did,
-    )
-    .await
-    {
-        Ok(pds) => pds,
-        Err(err) => {
-            tracing::warn!(did, error = %err, "could not resolve the PDS to publish to");
-            return;
-        }
-    };
+    let pds =
+        match crate::atproto::resolve_pds(state.http(), &state.config().plc_directory_url, did)
+            .await
+        {
+            Ok(pds) => pds,
+            Err(err) => {
+                tracing::warn!(did, error = %err, "could not resolve the PDS to publish to");
+                return;
+            }
+        };
 
     let record = records::TrackRecord {
         title: song.title.clone(),
@@ -462,7 +460,10 @@ async fn publish_records(
     // Whatever this repo already holds for the album and artist, so a second
     // track from the same album does not write a second album record.
     let known = records::KnownUris {
-        album: crate::ingest::album_uri(state.db(), song).await.ok().flatten(),
+        album: crate::ingest::album_uri(state.db(), song)
+            .await
+            .ok()
+            .flatten(),
         artist: crate::ingest::artist_uri(state.db(), &song.album_artist)
             .await
             .ok()
@@ -513,7 +514,10 @@ fn spawn_analysis(state: &AppState, bytes: Vec<u8>, extension: String, track_id:
         tracing::info!(
             track_id,
             key = analysis.key.as_deref().unwrap_or("?"),
-            bpm = analysis.bpm.map(|bpm| format!("{bpm:.1}")).unwrap_or_else(|| "?".into()),
+            bpm = analysis
+                .bpm
+                .map(|bpm| format!("{bpm:.1}"))
+                .unwrap_or_else(|| "?".into()),
             "analysed an upload"
         );
     });
@@ -616,7 +620,8 @@ mod tests {
         let (state, token) = signed_in().await;
         let app = app!(state);
         // A JPEG, named .mp3.
-        let (body, content_type) = multipart_body("song.mp3", &[0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+        let (body, content_type) =
+            multipart_body("song.mp3", &[0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
 
         let res = test::call_service(
             &app,

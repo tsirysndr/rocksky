@@ -68,11 +68,7 @@ pub async fn is_in_use(db: &Backend, provider_id: &str) -> Result<bool, sqlx::Er
 }
 
 /// Deletes a provider, scoped to its owner. Returns whether a row went.
-pub async fn delete(
-    db: &Backend,
-    user_id: &str,
-    provider_id: &str,
-) -> Result<bool, sqlx::Error> {
+pub async fn delete(db: &Backend, user_id: &str, provider_id: &str) -> Result<bool, sqlx::Error> {
     let mut sql = db.sql("DELETE FROM user_storage_providers WHERE xata_id = ");
     sql.bind(provider_id).push(" AND user_id = ").bind(user_id);
     Ok(db.execute(&sql).await? > 0)
@@ -126,7 +122,10 @@ mod tests {
 
         assert_eq!(provider.label, "My R2");
         assert_eq!(provider.bucket, "my-music");
-        assert_eq!(provider.public_url.as_deref(), Some("https://music.example"));
+        assert_eq!(
+            provider.public_url.as_deref(),
+            Some("https://music.example")
+        );
         assert!(provider.verified_at.is_some());
         // Still encrypted at this layer.
         assert_eq!(provider.access_key, "encrypted-access");
@@ -135,7 +134,9 @@ mod tests {
     #[tokio::test]
     async fn a_provider_is_invisible_to_another_account() {
         let (db, _user_id) = fixture().await;
-        let bob = crate::ingest::upsert_user(&db, "did:plc:bob").await.unwrap();
+        let bob = crate::ingest::upsert_user(&db, "did:plc:bob")
+            .await
+            .unwrap();
 
         assert!(find(&db, &bob, "rec_provider").await.unwrap().is_none());
         assert!(!delete(&db, &bob, "rec_provider").await.unwrap());

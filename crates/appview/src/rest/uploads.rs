@@ -32,8 +32,14 @@ pub fn configure(cfg: &mut ServiceConfig) {
         .route("/uploads/queue", web::get().to(get_queue))
         .route("/uploads/queue", web::put().to(put_queue))
         .route("/uploads/album", web::delete().to(delete_album))
-        .route("/uploads/by-track/{track_id}", web::delete().to(delete_by_track))
-        .route("/uploads/by-album/{album_id}", web::delete().to(delete_by_album))
+        .route(
+            "/uploads/by-track/{track_id}",
+            web::delete().to(delete_by_track),
+        )
+        .route(
+            "/uploads/by-album/{album_id}",
+            web::delete().to(delete_by_album),
+        )
         .route("/uploads/{id}/stream", web::get().to(stream))
         .route("/uploads/{id}", web::delete().to(delete_one))
         .route("/uploads", web::get().to(list));
@@ -176,7 +182,12 @@ async fn list(
     let db = state.db();
     let user_id = caller_id(db, &auth.did).await?;
 
-    if query.q.as_deref().map(str::trim).is_some_and(|q| !q.is_empty()) {
+    if query
+        .q
+        .as_deref()
+        .map(str::trim)
+        .is_some_and(|q| !q.is_empty())
+    {
         return Err(XrpcError::with_message(
             crate::error::ResponseType::MethodNotImplemented,
             "Full-text search over uploads is not available on this instance.",
@@ -195,24 +206,28 @@ async fn list(
 
     let dialect = db.dialect();
     let mut sql = db.sql("SELECT ");
-    sql.push(models::select_list(uploads::UPLOAD_COLS, dialect, Some("u")))
-        .push(", ")
-        .push(models::select_list_aliased(
-            models::TRACK_COLS,
-            dialect,
-            Some("t"),
-            "track_",
-        ))
-        .push(", al.release_date AS album_release_date, ")
-        .push(models::cast_int(dialect, "al.year"))
-        .push(" AS album_year")
-        .push(
-            " FROM user_uploads u \
+    sql.push(models::select_list(
+        uploads::UPLOAD_COLS,
+        dialect,
+        Some("u"),
+    ))
+    .push(", ")
+    .push(models::select_list_aliased(
+        models::TRACK_COLS,
+        dialect,
+        Some("t"),
+        "track_",
+    ))
+    .push(", al.release_date AS album_release_date, ")
+    .push(models::cast_int(dialect, "al.year"))
+    .push(" AS album_year")
+    .push(
+        " FROM user_uploads u \
              INNER JOIN tracks t ON t.xata_id = u.track_id \
              LEFT JOIN albums al ON al.uri = t.album_uri \
              WHERE u.user_id = ",
-        )
-        .bind(&user_id);
+    )
+    .bind(&user_id);
 
     if let Some(album) = &album {
         sql.push(" AND ");
@@ -527,11 +542,7 @@ pub struct DeleteResult {
     pub deleted: u64,
 }
 
-async fn purge(
-    state: &AppState,
-    user_id: &str,
-    uploads: &[Upload],
-) -> XrpcResult<u64> {
+async fn purge(state: &AppState, user_id: &str, uploads: &[Upload]) -> XrpcResult<u64> {
     Ok(uploads::purge(
         state.db(),
         state.config().s3.as_ref(),
@@ -712,9 +723,13 @@ mod tests {
 
         for request in [
             test::TestRequest::get().uri("/uploads").to_request(),
-            test::TestRequest::get().uri("/uploads/stream-token").to_request(),
+            test::TestRequest::get()
+                .uri("/uploads/stream-token")
+                .to_request(),
             test::TestRequest::get().uri("/uploads/queue").to_request(),
-            test::TestRequest::delete().uri("/uploads/rec_u1").to_request(),
+            test::TestRequest::delete()
+                .uri("/uploads/rec_u1")
+                .to_request(),
         ] {
             let res = test::call_service(&app, request).await;
             assert_eq!(res.status(), 401);
@@ -973,12 +988,16 @@ mod tests {
 
         let db = state.db();
         assert_eq!(
-            db.count(&db.sql("SELECT count(*) FROM user_uploads")).await.unwrap(),
+            db.count(&db.sql("SELECT count(*) FROM user_uploads"))
+                .await
+                .unwrap(),
             1
         );
         // The listening record must survive losing the audio.
         assert_eq!(
-            db.count(&db.sql("SELECT count(*) FROM tracks")).await.unwrap(),
+            db.count(&db.sql("SELECT count(*) FROM tracks"))
+                .await
+                .unwrap(),
             2
         );
     }
@@ -1002,7 +1021,9 @@ mod tests {
 
         let db = state.db();
         assert_eq!(
-            db.count(&db.sql("SELECT count(*) FROM user_uploads")).await.unwrap(),
+            db.count(&db.sql("SELECT count(*) FROM user_uploads"))
+                .await
+                .unwrap(),
             0
         );
     }
@@ -1063,7 +1084,9 @@ mod tests {
 
         let db = state.db();
         assert_eq!(
-            db.count(&db.sql("SELECT count(*) FROM user_uploads")).await.unwrap(),
+            db.count(&db.sql("SELECT count(*) FROM user_uploads"))
+                .await
+                .unwrap(),
             2,
             "nothing of Alice's went"
         );

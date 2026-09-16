@@ -29,11 +29,7 @@ pub fn xrpc_error(status: u16, error: &str, message: &str) -> HttpResponse {
 /// fail without the mock needing a per-endpoint switch.
 pub fn injected_failure(state: &State, nsid: &str) -> Option<HttpResponse> {
     let failure = state.take_failure(nsid)?;
-    Some(xrpc_error(
-        failure.status,
-        &failure.error,
-        &failure.message,
-    ))
+    Some(xrpc_error(failure.status, &failure.error, &failure.message))
 }
 
 /// The bearer token on a request, if there is one.

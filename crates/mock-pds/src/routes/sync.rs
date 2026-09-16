@@ -75,10 +75,7 @@ async fn get_repo(state: web::Data<State>, query: web::Query<RepoQuery>) -> Http
         .body(archive)
 }
 
-async fn get_latest_commit(
-    state: web::Data<State>,
-    query: web::Query<RepoQuery>,
-) -> HttpResponse {
+async fn get_latest_commit(state: web::Data<State>, query: web::Query<RepoQuery>) -> HttpResponse {
     state.record_call("GET", "/xrpc/com.atproto.sync.getLatestCommit");
     if let Some(failure) = injected_failure(&state, "com.atproto.sync.getLatestCommit") {
         return failure;

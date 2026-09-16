@@ -640,7 +640,10 @@ pub async fn album_uri(db: &Backend, song: &SongRecord) -> anyhow::Result<Option
     let hash = album_hash(&song.album, &song.album_artist);
     let mut sql = db.sql("SELECT uri FROM albums WHERE sha256 = ");
     sql.bind(&hash).push(" LIMIT 1");
-    Ok(db.fetch_scalar::<String>(&sql).await?.filter(|uri| !uri.is_empty()))
+    Ok(db
+        .fetch_scalar::<String>(&sql)
+        .await?
+        .filter(|uri| !uri.is_empty()))
 }
 
 /// The AT-URI already recorded for an artist, if any.
@@ -648,15 +651,14 @@ pub async fn artist_uri(db: &Backend, name: &str) -> anyhow::Result<Option<Strin
     let hash = artist_hash(name);
     let mut sql = db.sql("SELECT uri FROM artists WHERE sha256 = ");
     sql.bind(&hash).push(" LIMIT 1");
-    Ok(db.fetch_scalar::<String>(&sql).await?.filter(|uri| !uri.is_empty()))
+    Ok(db
+        .fetch_scalar::<String>(&sql)
+        .await?
+        .filter(|uri| !uri.is_empty()))
 }
 
 /// Fills in an album's AT-URI, found by its content hash.
-pub async fn set_album_uri(
-    db: &Backend,
-    song: &SongRecord,
-    uri: &str,
-) -> anyhow::Result<()> {
+pub async fn set_album_uri(db: &Backend, song: &SongRecord, uri: &str) -> anyhow::Result<()> {
     let hash = album_hash(&song.album, &song.album_artist);
     let mut lookup = db.sql("SELECT xata_id FROM albums WHERE sha256 = ");
     lookup.bind(&hash).push(" LIMIT 1");

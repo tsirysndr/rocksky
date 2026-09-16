@@ -179,7 +179,10 @@ async fn put_record(
     }
 
     let response = http
-        .post(format!("{}/xrpc/com.atproto.repo.putRecord", pds.trim_end_matches('/')))
+        .post(format!(
+            "{}/xrpc/com.atproto.repo.putRecord",
+            pds.trim_end_matches('/')
+        ))
         .bearer_auth(access_jwt)
         .json(&Request {
             repo: did,
@@ -316,7 +319,9 @@ mod tests {
         assert_eq!(mine(&None), None);
         // A DID that merely starts the same is not the same DID.
         assert_eq!(
-            mine(&Some("at://did:plc:aliceandbob/app.rocksky.album/3k2a".into())),
+            mine(&Some(
+                "at://did:plc:aliceandbob/app.rocksky.album/3k2a".into()
+            )),
             None
         );
     }
@@ -395,7 +400,15 @@ mod tests {
         };
         let record = song_record(&bare, "2026-09-16T00:00:00.000Z");
 
-        for absent in ["trackNumber", "year", "releaseDate", "composer", "lyrics", "isrc", "mbid"] {
+        for absent in [
+            "trackNumber",
+            "year",
+            "releaseDate",
+            "composer",
+            "lyrics",
+            "isrc",
+            "mbid",
+        ] {
             assert!(
                 record.get(absent).is_none(),
                 "{absent} should be absent, not null: {record}"

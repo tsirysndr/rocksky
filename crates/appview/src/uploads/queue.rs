@@ -174,13 +174,20 @@ mod tests {
         let (db, user_id) = fixture().await;
 
         // Deliberately not the insertion order, and with a repeat.
-        let ids = vec!["rec_u2".to_string(), "rec_u1".to_string(), "rec_u2".to_string()];
+        let ids = vec![
+            "rec_u2".to_string(),
+            "rec_u1".to_string(),
+            "rec_u2".to_string(),
+        ];
         save(&db, &user_id, &ids, 1).await.unwrap();
 
         let view = load(&db, &user_id).await.unwrap();
         assert_eq!(view.current_index, 1);
         assert_eq!(
-            view.queue.iter().map(|e| e.upload_id.as_str()).collect::<Vec<_>>(),
+            view.queue
+                .iter()
+                .map(|e| e.upload_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["rec_u2", "rec_u1", "rec_u2"],
             "the queue is an ordering, and a track can appear twice"
         );
@@ -194,8 +201,12 @@ mod tests {
     #[tokio::test]
     async fn saving_again_replaces_rather_than_appends() {
         let (db, user_id) = fixture().await;
-        save(&db, &user_id, &["rec_u1".to_string()], 0).await.unwrap();
-        save(&db, &user_id, &["rec_u2".to_string()], 0).await.unwrap();
+        save(&db, &user_id, &["rec_u1".to_string()], 0)
+            .await
+            .unwrap();
+        save(&db, &user_id, &["rec_u2".to_string()], 0)
+            .await
+            .unwrap();
 
         let rows = db
             .count(&db.sql("SELECT count(*) FROM upload_queue_state"))
@@ -230,20 +241,26 @@ mod tests {
     #[tokio::test]
     async fn another_users_uploads_are_not_resolvable_into_a_queue() {
         let (db, user_id) = fixture().await;
-        let bob = crate::ingest::upsert_user(&db, "did:plc:bob").await.unwrap();
+        let bob = crate::ingest::upsert_user(&db, "did:plc:bob")
+            .await
+            .unwrap();
 
         // Bob storing Alice's upload ids resolves to nothing.
         save(&db, &bob, &["rec_u1".to_string()], 0).await.unwrap();
         assert!(load(&db, &bob).await.unwrap().queue.is_empty());
         // And Alice's own queue is unaffected.
-        save(&db, &user_id, &["rec_u1".to_string()], 0).await.unwrap();
+        save(&db, &user_id, &["rec_u1".to_string()], 0)
+            .await
+            .unwrap();
         assert_eq!(load(&db, &user_id).await.unwrap().queue.len(), 1);
     }
 
     #[tokio::test]
     async fn an_empty_queue_can_be_stored() {
         let (db, user_id) = fixture().await;
-        save(&db, &user_id, &["rec_u1".to_string()], 0).await.unwrap();
+        save(&db, &user_id, &["rec_u1".to_string()], 0)
+            .await
+            .unwrap();
         save(&db, &user_id, &[], 0).await.unwrap();
         assert!(load(&db, &user_id).await.unwrap().queue.is_empty());
     }

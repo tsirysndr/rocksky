@@ -27,7 +27,10 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         "/xrpc/com.atproto.repo.deleteRecord",
         web::post().to(delete_record),
     )
-    .route("/xrpc/com.atproto.repo.getRecord", web::get().to(get_record))
+    .route(
+        "/xrpc/com.atproto.repo.getRecord",
+        web::get().to(get_record),
+    )
     .route(
         "/xrpc/com.atproto.repo.listRecords",
         web::get().to(list_records),
@@ -179,8 +182,7 @@ async fn get_record(state: web::Data<State>, query: web::Query<RecordQuery>) -> 
         return failure;
     }
 
-    let (Some(repo), Some(collection), Some(rkey)) =
-        (&query.repo, &query.collection, &query.rkey)
+    let (Some(repo), Some(collection), Some(rkey)) = (&query.repo, &query.collection, &query.rkey)
     else {
         return xrpc_error(
             400,
@@ -257,8 +259,7 @@ async fn list_records(state: web::Data<State>, query: web::Query<ListQuery>) -> 
 
     // A cursor is only returned when there is more, so a caller looping until
     // it is absent terminates.
-    let next = (start + page.len() < all.len())
-        .then(|| all[start + page.len() - 1].rkey.clone());
+    let next = (start + page.len() < all.len()).then(|| all[start + page.len() - 1].rkey.clone());
 
     let mut response = serde_json::json!({ "records": page });
     if let Some(cursor) = next {

@@ -193,7 +193,11 @@ fn an_existing_gain_is_left_alone() {
 
     // Second pass, now told the file is already tagged.
     audio::ensure_replay_gain(&path, "flac", true);
-    assert_eq!(std::fs::read(&path).unwrap(), ours, "the file was untouched");
+    assert_eq!(
+        std::fs::read(&path).unwrap(),
+        ours,
+        "the file was untouched"
+    );
 }
 
 /// WAV has no standard place for a ReplayGain tag, so writing one would be

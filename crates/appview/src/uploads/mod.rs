@@ -253,7 +253,11 @@ mod tests {
             backend.execute(&backend.sql(text)).await.expect(text);
         }
 
-        for (id, track) in [("rec_u1", "rec_t1"), ("rec_u2", "rec_t2"), ("rec_u3", "rec_t3")] {
+        for (id, track) in [
+            ("rec_u1", "rec_t1"),
+            ("rec_u2", "rec_t2"),
+            ("rec_u3", "rec_t3"),
+        ] {
             let mut sql = backend.sql(
                 "INSERT INTO user_uploads \
                  (xata_id, user_id, track_id, r2_key, mime_type, file_size, original_filename) \
@@ -290,7 +294,9 @@ mod tests {
             "the managed path stores NULL"
         );
 
-        let bob = crate::ingest::upsert_user(&db, "did:plc:bob").await.unwrap();
+        let bob = crate::ingest::upsert_user(&db, "did:plc:bob")
+            .await
+            .unwrap();
         assert!(find(&db, &bob, "rec_u1").await.unwrap().is_none());
     }
 
@@ -392,7 +398,9 @@ mod tests {
     #[tokio::test]
     async fn purging_is_scoped_to_the_owner() {
         let (db, user_id) = fixture().await;
-        let bob = crate::ingest::upsert_user(&db, "did:plc:bob").await.unwrap();
+        let bob = crate::ingest::upsert_user(&db, "did:plc:bob")
+            .await
+            .unwrap();
 
         let uploads = find_by_track(&db, &user_id, "rec_t1").await.unwrap();
         // Bob naming Alice's upload must delete nothing.
@@ -406,7 +414,9 @@ mod tests {
         let (db, user_id) = fixture().await;
         assert_eq!(purge(&db, None, "key", &user_id, &[]).await.unwrap(), 0);
         assert_eq!(
-            db.count(&db.sql("SELECT count(*) FROM user_uploads")).await.unwrap(),
+            db.count(&db.sql("SELECT count(*) FROM user_uploads"))
+                .await
+                .unwrap(),
             3
         );
     }

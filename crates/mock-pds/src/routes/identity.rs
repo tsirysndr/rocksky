@@ -26,10 +26,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 }
 
 /// `GET /{did}` — what `plc.directory` serves.
-async fn did_document(
-    state: web::Data<State>,
-    did: web::Path<String>,
-) -> HttpResponse {
+async fn did_document(state: web::Data<State>, did: web::Path<String>) -> HttpResponse {
     let did = did.into_inner();
     state.record_call("GET", &format!("/{did}"));
 
@@ -47,7 +44,11 @@ async fn did_document(
         return xrpc_error(404, "NotFound", "DID not registered");
     };
 
-    HttpResponse::Ok().json(document_for(&account.did, &account.handle, &state.lock().base_url))
+    HttpResponse::Ok().json(document_for(
+        &account.did,
+        &account.handle,
+        &state.lock().base_url,
+    ))
 }
 
 /// The DID document for an account, pointing at this mock.
@@ -82,10 +83,7 @@ struct HandleQuery {
     handle: Option<String>,
 }
 
-async fn resolve_handle(
-    state: web::Data<State>,
-    query: web::Query<HandleQuery>,
-) -> HttpResponse {
+async fn resolve_handle(state: web::Data<State>, query: web::Query<HandleQuery>) -> HttpResponse {
     state.record_call("GET", "/xrpc/com.atproto.identity.resolveHandle");
     if let Some(failure) = injected_failure(&state, "com.atproto.identity.resolveHandle") {
         return failure;
@@ -118,10 +116,7 @@ struct ActorQuery {
     actor: Option<String>,
 }
 
-async fn get_profile(
-    state: web::Data<State>,
-    query: web::Query<ActorQuery>,
-) -> HttpResponse {
+async fn get_profile(state: web::Data<State>, query: web::Query<ActorQuery>) -> HttpResponse {
     state.record_call("GET", "/xrpc/app.bsky.actor.getProfile");
     if let Some(failure) = injected_failure(&state, "app.bsky.actor.getProfile") {
         return failure;

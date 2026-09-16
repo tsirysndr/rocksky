@@ -73,10 +73,7 @@ pub fn layer_for(key: &str) -> usize {
 
 /// Bytes two keys share at the front.
 fn common_prefix(a: &str, b: &str) -> usize {
-    a.bytes()
-        .zip(b.bytes())
-        .take_while(|(x, y)| x == y)
-        .count()
+    a.bytes().zip(b.bytes()).take_while(|(x, y)| x == y).count()
 }
 
 /// Builds the tree over `leaves` and returns its root plus every node.
@@ -150,13 +147,10 @@ fn build_subtree(leaves: &[Leaf], nodes: &mut Vec<BuiltNode>) -> Cid {
     node.insert("e".to_string(), Ipld::List(entries));
     node.insert("l".to_string(), left.map(Ipld::Link).unwrap_or(Ipld::Null));
 
-    let bytes = serde_ipld_dagcbor::to_vec(&Ipld::Map(node))
-        .expect("an MST node is always encodable");
+    let bytes =
+        serde_ipld_dagcbor::to_vec(&Ipld::Map(node)).expect("an MST node is always encodable");
     let cid = crate::car::cid_for(&bytes);
-    nodes.push(BuiltNode {
-        cid,
-        bytes,
-    });
+    nodes.push(BuiltNode { cid, bytes });
     cid
 }
 
@@ -267,17 +261,24 @@ mod tests {
 
         let compressed = nodes.iter().any(|node| {
             let decoded: Ipld = serde_ipld_dagcbor::from_slice(&node.bytes).unwrap();
-            let Ipld::Map(map) = decoded else { return false };
+            let Ipld::Map(map) = decoded else {
+                return false;
+            };
             let Some(Ipld::List(entries)) = map.get("e") else {
                 return false;
             };
             entries.iter().any(|entry| {
-                let Ipld::Map(entry) = entry else { return false };
+                let Ipld::Map(entry) = entry else {
+                    return false;
+                };
                 matches!(entry.get("p"), Some(Ipld::Integer(p)) if *p > 0)
             })
         });
 
-        assert!(compressed, "no entry reused a prefix from the one before it");
+        assert!(
+            compressed,
+            "no entry reused a prefix from the one before it"
+        );
     }
 
     /// Every leaf handed in must be reachable, and exactly once.

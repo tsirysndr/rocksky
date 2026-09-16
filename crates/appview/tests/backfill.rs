@@ -58,7 +58,10 @@ async fn a_production_repository_backfills_into_a_catalogue() {
     let artists = count(&state, "artists").await;
 
     assert!(tracks > 0, "scrobbles imply tracks");
-    assert!(albums > 0 && albums <= tracks, "{albums} albums, {tracks} tracks");
+    assert!(
+        albums > 0 && albums <= tracks,
+        "{albums} albums, {tracks} tracks"
+    );
     assert!(
         artists > 0 && artists <= albums,
         "{artists} artists, {albums} albums"
@@ -209,7 +212,10 @@ async fn an_unknown_did_is_an_error() {
     let state = state_pointing_at(&pds).await;
 
     let result = rocksky_appview::backfill::backfill_repo(&state, "did:plc:nobodyhere").await;
-    assert!(result.is_err(), "an unresolvable DID must not look like success");
+    assert!(
+        result.is_err(),
+        "an unresolvable DID must not look like success"
+    );
     assert_eq!(count(&state, "users").await, 0);
 }
 
@@ -242,14 +248,9 @@ async fn one_failing_repository_does_not_stop_the_others() {
     let pds = MockPds::with_production_data().await;
     let state = state_pointing_at(&pds).await;
 
-    let reports = rocksky_appview::backfill::run(
-        &state,
-        &[
-            "did:plc:nobodyhere".to_string(),
-            pds.did(),
-        ],
-    )
-    .await;
+    let reports =
+        rocksky_appview::backfill::run(&state, &["did:plc:nobodyhere".to_string(), pds.did()])
+            .await;
 
     assert_eq!(reports.len(), 2);
     assert!(

@@ -35,10 +35,7 @@ async fn a_did_document_points_back_at_the_mock() {
 
     // The handle is read back from `alsoKnownAs`, which is how backfill
     // recovers it for a repo with no appview entry.
-    assert_eq!(
-        document["alsoKnownAs"][0],
-        format!("at://{}", pds.handle())
-    );
+    assert_eq!(document["alsoKnownAs"][0], format!("at://{}", pds.handle()));
 
     // And the service endpoint is the mock itself, so following it stays in
     // the test.
@@ -310,7 +307,10 @@ async fn the_call_log_records_what_was_asked_for() {
     .await;
 
     assert!(pds.was_called("/xrpc/com.atproto.identity.resolveHandle"));
-    assert_eq!(pds.call_count("/xrpc/com.atproto.identity.resolveHandle"), 1);
+    assert_eq!(
+        pds.call_count("/xrpc/com.atproto.identity.resolveHandle"),
+        1
+    );
     assert!(!pds.was_called("/xrpc/com.atproto.repo.putRecord"));
 
     pds.clear_calls();
@@ -352,7 +352,11 @@ async fn an_always_failing_endpoint_keeps_failing_until_cleared() {
         pds.handle()
     );
 
-    pds.always_fail("com.atproto.identity.resolveHandle", 500, "InternalServerError");
+    pds.always_fail(
+        "com.atproto.identity.resolveHandle",
+        500,
+        "InternalServerError",
+    );
     for _ in 0..4 {
         assert_eq!(get(&url).await.0, 500);
     }
@@ -395,7 +399,10 @@ async fn the_token_endpoint_issues_a_dpop_token() {
 
     let response = reqwest::Client::new()
         .post(format!("{}/oauth/token", pds.url()))
-        .form(&[("grant_type", "authorization_code"), ("code", "mock-auth-code")])
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("code", "mock-auth-code"),
+        ])
         .send()
         .await
         .expect("request");

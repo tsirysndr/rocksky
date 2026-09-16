@@ -28,7 +28,11 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn new(did: impl Into<String>, handle: impl Into<String>, password: impl Into<String>) -> Self {
+    pub fn new(
+        did: impl Into<String>,
+        handle: impl Into<String>,
+        password: impl Into<String>,
+    ) -> Self {
         let did = did.into();
         let handle = handle.into();
         Self {
@@ -110,7 +114,9 @@ impl State {
     /// rather than propagating keeps one failing assertion from turning every
     /// later request in the test into a second, unrelated panic.
     pub fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
-        self.0.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub fn record_call(&self, method: &str, path: &str) {
@@ -162,13 +168,7 @@ impl State {
             .cloned()
     }
 
-    pub fn put_record(
-        &self,
-        did: &str,
-        collection: &str,
-        rkey: &str,
-        value: serde_json::Value,
-    ) {
+    pub fn put_record(&self, did: &str, collection: &str, rkey: &str, value: serde_json::Value) {
         let mut inner = self.lock();
         inner.revision += 1;
         inner
@@ -188,12 +188,7 @@ impl State {
             .is_some()
     }
 
-    pub fn get_record(
-        &self,
-        did: &str,
-        collection: &str,
-        rkey: &str,
-    ) -> Option<serde_json::Value> {
+    pub fn get_record(&self, did: &str, collection: &str, rkey: &str) -> Option<serde_json::Value> {
         let inner = self.lock();
         inner
             .repos
@@ -225,11 +220,9 @@ mod tests {
 
     fn state() -> State {
         let mut inner = Inner::default();
-        inner.accounts.push(Account::new(
-            "did:plc:alice",
-            "alice.test",
-            "app-password",
-        ));
+        inner
+            .accounts
+            .push(Account::new("did:plc:alice", "alice.test", "app-password"));
         State::new(inner)
     }
 
@@ -237,9 +230,24 @@ mod tests {
     fn records_come_back_sorted_by_collection_then_rkey() {
         let state = state();
         // Inserted out of order on purpose.
-        state.put_record("did:plc:alice", "app.rocksky.song", "3bbb", serde_json::json!({}));
-        state.put_record("did:plc:alice", "app.rocksky.album", "3aaa", serde_json::json!({}));
-        state.put_record("did:plc:alice", "app.rocksky.song", "3aaa", serde_json::json!({}));
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.song",
+            "3bbb",
+            serde_json::json!({}),
+        );
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.album",
+            "3aaa",
+            serde_json::json!({}),
+        );
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.song",
+            "3aaa",
+            serde_json::json!({}),
+        );
 
         let keys: Vec<String> = state
             .records("did:plc:alice", None)
@@ -260,8 +268,18 @@ mod tests {
     #[test]
     fn a_collection_filter_narrows_the_listing() {
         let state = state();
-        state.put_record("did:plc:alice", "app.rocksky.song", "3aaa", serde_json::json!({}));
-        state.put_record("did:plc:alice", "app.rocksky.album", "3bbb", serde_json::json!({}));
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.song",
+            "3aaa",
+            serde_json::json!({}),
+        );
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.album",
+            "3bbb",
+            serde_json::json!({}),
+        );
 
         let songs = state.records("did:plc:alice", Some("app.rocksky.song"));
         assert_eq!(songs.len(), 1);
@@ -273,8 +291,18 @@ mod tests {
     #[test]
     fn putting_the_same_key_twice_replaces_it() {
         let state = state();
-        state.put_record("did:plc:alice", "app.rocksky.song", "3aaa", serde_json::json!({"v": 1}));
-        state.put_record("did:plc:alice", "app.rocksky.song", "3aaa", serde_json::json!({"v": 2}));
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.song",
+            "3aaa",
+            serde_json::json!({"v": 1}),
+        );
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.song",
+            "3aaa",
+            serde_json::json!({"v": 2}),
+        );
 
         let songs = state.records("did:plc:alice", None);
         assert_eq!(songs.len(), 1);
@@ -284,7 +312,12 @@ mod tests {
     #[test]
     fn deleting_reports_whether_anything_was_there() {
         let state = state();
-        state.put_record("did:plc:alice", "app.rocksky.song", "3aaa", serde_json::json!({}));
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.song",
+            "3aaa",
+            serde_json::json!({}),
+        );
 
         assert!(state.delete_record("did:plc:alice", "app.rocksky.song", "3aaa"));
         assert!(!state.delete_record("did:plc:alice", "app.rocksky.song", "3aaa"));
@@ -298,7 +331,12 @@ mod tests {
         let state = state();
         let before = state.lock().revision;
 
-        state.put_record("did:plc:alice", "app.rocksky.song", "3aaa", serde_json::json!({}));
+        state.put_record(
+            "did:plc:alice",
+            "app.rocksky.song",
+            "3aaa",
+            serde_json::json!({}),
+        );
         let after_put = state.lock().revision;
         assert!(after_put > before);
 

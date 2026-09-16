@@ -160,12 +160,8 @@ impl MockPdsBuilder {
         rkey: impl Into<String>,
         value: serde_json::Value,
     ) -> Self {
-        self.repos.push((
-            did.into(),
-            collection.into(),
-            rkey.into(),
-            value,
-        ));
+        self.repos
+            .push((did.into(), collection.into(), rkey.into(), value));
         self
     }
 
@@ -183,10 +179,7 @@ impl MockPdsBuilder {
             .expect("the fixture has a profile");
 
         self = self.account(did, handle, password);
-        self.accounts
-            .last_mut()
-            .expect("just pushed")
-            .profile = fixture["profile"].clone();
+        self.accounts.last_mut().expect("just pushed").profile = fixture["profile"].clone();
 
         // The document is kept as captured, except for its service endpoint:
         // the original points at a real bsky.network host, and a test that
@@ -454,7 +447,9 @@ mod tests {
     fn a_tid_is_thirteen_characters_from_the_sortable_alphabet() {
         let tid = tid(1);
         assert_eq!(tid.len(), 13);
-        assert!(tid.bytes().all(|b| b"234567abcdefghijklmnopqrstuvwxyz".contains(&b)));
+        assert!(tid
+            .bytes()
+            .all(|b| b"234567abcdefghijklmnopqrstuvwxyz".contains(&b)));
     }
 
     /// Monotonic, because consumers order commits by `rev` as a string.

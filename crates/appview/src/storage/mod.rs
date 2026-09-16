@@ -132,11 +132,9 @@ pub async fn resolve(
         .ok_or_else(|| StorageError::ProviderNotFound(provider_id.to_string()))?;
 
     let decrypt = |value: &str| {
-        crypto::decrypt_credential(storage_key, value).map_err(|source| {
-            StorageError::Credentials {
-                provider: provider_id.to_string(),
-                source,
-            }
+        crypto::decrypt_credential(storage_key, value).map_err(|source| StorageError::Credentials {
+            provider: provider_id.to_string(),
+            source,
         })
     };
     let access_key = decrypt(&provider.access_key)?;
@@ -258,9 +256,15 @@ mod tests {
     #[tokio::test]
     async fn another_users_provider_cannot_be_named() {
         let db = crate::db::connect_in_memory().await.unwrap();
-        let err = resolve(&db, Some(&config()), "key", "rec_alice", Some("rec_bobs_bucket"))
-            .await
-            .expect_err("must not resolve");
+        let err = resolve(
+            &db,
+            Some(&config()),
+            "key",
+            "rec_alice",
+            Some("rec_bobs_bucket"),
+        )
+        .await
+        .expect_err("must not resolve");
         assert!(matches!(err, StorageError::ProviderNotFound(_)), "{err:?}");
     }
 
@@ -269,7 +273,10 @@ mod tests {
         use s3::error::S3Error;
 
         let forbidden = describe_failure(&S3Error::HttpFailWithBody(403, String::new()));
-        assert!(forbidden.contains("refused these credentials"), "{forbidden}");
+        assert!(
+            forbidden.contains("refused these credentials"),
+            "{forbidden}"
+        );
         assert!(forbidden.contains("403"), "{forbidden}");
 
         let missing = describe_failure(&S3Error::HttpFailWithBody(404, String::new()));
