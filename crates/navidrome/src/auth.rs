@@ -1,5 +1,5 @@
 use anyhow::Error;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 use crate::repo::user::get_user_with_apikeys;
 use crate::xata::user::UserWithApiKey;

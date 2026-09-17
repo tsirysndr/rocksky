@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 use crate::{handlers::albums::mime_to_suffix, repo, response};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub async fn handle_get_music_directory(
     format: &str,

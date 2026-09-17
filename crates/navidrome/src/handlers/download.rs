@@ -16,7 +16,7 @@ use crate::handlers::albums::mime_to_suffix;
 use crate::handlers::stream::resolve_track_url;
 use crate::xata::track::TrackWithUpload;
 use crate::{repo, response};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 /// Strips what Windows, macOS and zip readers variously choke on.
 fn safe_component(name: &str) -> String {

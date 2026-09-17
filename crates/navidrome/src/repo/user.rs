@@ -4,7 +4,7 @@ use sea_query::{Alias, Expr, JoinType, Query};
 use crate::schema::{ApiKeys, Users};
 use crate::sql;
 use crate::xata::user::UserWithApiKey;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub async fn get_user_did_by_id(db: &Db, user_id: &str) -> Result<Option<String>, Error> {
     let pool = db.primary();

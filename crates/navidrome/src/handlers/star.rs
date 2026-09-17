@@ -3,7 +3,7 @@ use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{api, repo, response};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub async fn handle_star(
     format: &str,

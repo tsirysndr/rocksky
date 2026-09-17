@@ -65,7 +65,7 @@ pub async fn run() -> Result<(), Error> {
     // Library browsing reads from the replica; auth, the guid map, user data
     // and the server id all read back what they just wrote, so they stay on the
     // primary. Collapses to one pool when no replica is configured.
-    let db = rocksky_pgurl::Db::connect("rocksky-jellyfin", |opts| {
+    let db = rocksky_pgurl::connect_handle("rocksky-jellyfin", |opts| {
         opts.max_connections(25)
             .min_connections(5)
             .acquire_timeout(Duration::from_secs(10))

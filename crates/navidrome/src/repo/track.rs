@@ -9,7 +9,7 @@ use crate::schema::{
 };
 use crate::sql;
 use crate::xata::track::TrackWithUpload;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 /// Query-local aliases. Naming them as `Iden`s rather than as strings is the
 /// same bargain the schema makes: `Alb::AlbumId` cannot be misspelled, and the

@@ -1,7 +1,7 @@
 use anyhow::Error;
+use rocksky_db::Handle as Db;
 use rocksky_navidrome::sql;
 use rocksky_navidrome::typesense::TypesenseClient;
-use rocksky_pgurl::Db;
 use sea_query::{Expr, OnConflict, Query};
 use std::sync::Arc;
 

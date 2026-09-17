@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{handlers::songs::track_to_json, repo, response};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub async fn handle_get_play_queue(format: &str, user_id: &str, pool: &Arc<Db>) -> HttpResponse {
     let queue = match repo::playqueue::get_play_queue(pool, user_id).await {

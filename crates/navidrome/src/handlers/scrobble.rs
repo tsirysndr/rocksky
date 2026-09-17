@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Arc};
 
 #[allow(unused_imports)]
 use crate::{api, repo, response};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub async fn publish_song_changed(
     pool: &Arc<Db>,

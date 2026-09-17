@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::{handlers::songs::track_to_json, repo, response};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub(crate) fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
     let mut obj = json!({
@@ -28,8 +28,9 @@ pub(crate) fn playlist_to_json(p: &repo::playlist::PlaylistRow) -> Value {
     if let Some(uri) = &p.uri {
         obj["uri"] = json!(uri);
     }
-    if !p.track_arts.is_empty() {
-        obj["trackArts"] = json!(p.track_arts);
+    let track_arts = p.track_arts();
+    if !track_arts.is_empty() {
+        obj["trackArts"] = json!(track_arts);
     }
     obj
 }

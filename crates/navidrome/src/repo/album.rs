@@ -9,7 +9,7 @@ use crate::repo::track::{lower_eq, unnumbered_key, K};
 use crate::schema::{AlbumTracks, Albums, ArtistAlbums, Artists, Tracks, UserUploads};
 use crate::sql;
 use crate::xata::album::AlbumWithStats;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 #[derive(Iden, Clone, Copy)]
 #[iden = "mine"]

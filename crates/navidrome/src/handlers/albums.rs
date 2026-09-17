@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 use crate::{repo, response, xata::album::AlbumWithStats};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 fn album_to_json(a: &AlbumWithStats, artist_id_override: Option<&str>) -> Value {
     let mut obj = json!({

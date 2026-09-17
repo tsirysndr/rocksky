@@ -19,7 +19,7 @@ use sqlx::{postgres::PgConnectOptions, ConnectOptions, Pool, Postgres};
 use std::str::FromStr;
 
 pub struct Fixture {
-    pub pool: Arc<rocksky_pgurl::Db>,
+    pub pool: Arc<rocksky_db::Handle>,
     pub state: web::Data<AppState>,
     /// Suffix mixed into every seeded id.
     ///
@@ -96,7 +96,12 @@ pub async fn setup() -> Option<Fixture> {
 
     // Both roles share the one pool so the per-test `search_path` applies to
     // reads and writes alike.
-    let db = rocksky_pgurl::Db::from_pool(pool);
+    // The harness has a Postgres pool; the services now take a backend-agnostic
+    // handle, so it is wrapped rather than passed as a pool.
+    let db = rocksky_db::Handle::from_backend(rocksky_db::Backend::Postgres {
+        primary: pool,
+        replica: None,
+    });
 
     rocksky_jellyfin::auth::ensure_tables(&db).await.unwrap();
     rocksky_jellyfin::guid::ensure_table(&db).await.unwrap();
@@ -125,6 +130,18 @@ pub async fn setup() -> Option<Fixture> {
 }
 
 impl Fixture {
+    /// The Postgres pool behind the fixture.
+    ///
+    /// The services take a backend-agnostic handle now, but this harness is
+    /// Postgres-specific — it creates and drops a schema per test — so the
+    /// seeding and assertion helpers still talk to the pool directly.
+    pub fn pg(&self) -> &sqlx::PgPool {
+        self.pool
+            .primary()
+            .pg_pool()
+            .expect("the jellyfin test harness runs on Postgres")
+    }
+
     /// An id in this fixture's namespace, e.g. `id("tr", 1)`.
     pub fn id(&self, prefix: &str, n: u32) -> String {
         format!("{prefix}-{}-{n}", self.tag)
@@ -135,7 +152,7 @@ impl Fixture {
         let pool = self.pool.clone();
         drop(self.state);
         let _ = sqlx::query(&format!("DROP SCHEMA IF EXISTS \"{schema}\" CASCADE"))
-            .execute(pool.primary())
+            .execute(pool.primary().pg_pool().expect("the harness is Postgres"))
             .await;
     }
 }

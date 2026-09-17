@@ -419,7 +419,7 @@ fn playlist_item(
         run_time_ticks: Some(p.duration_ms * TICKS_PER_MS),
         external_urls,
         image_tags: Some(ImageTags {
-            primary: (!p.track_arts.is_empty()).then(|| id.clone()),
+            primary: (!p.track_arts().is_empty()).then(|| id.clone()),
         }),
         image_blur_hashes: Some(ImageBlurHashes::default()),
         user_data: Some(user_item_data(id, &ud, false)),

@@ -21,7 +21,7 @@ use actix_web::{get, post, route, web, HttpRequest, HttpResponse};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{auth, repo, response, typesense::TypesenseClient};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 fn get_format(params: &HashMap<String, String>) -> String {
     params

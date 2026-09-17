@@ -8,11 +8,10 @@
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use rocksky_db::Handle as Db;
 use rocksky_navidrome::schema::LovedTracks;
 use rocksky_navidrome::sql;
-use rocksky_pgurl::Db;
 use sea_query::{ColumnDef, Expr, OnConflict, Order, PostgresQueryBuilder, Query, Table};
-use sqlx::PgPool;
 
 use crate::schema::JellyfinUserItemData as Data;
 
@@ -312,7 +311,7 @@ pub async fn set_last_played(
 /// Upsert one column. `column` is a [`Data`] variant, so — unlike the string it
 /// used to be — it cannot name anything that isn't a column of this table.
 async fn upsert<T>(
-    pool: &PgPool,
+    pool: &rocksky_db::Backend,
     user_id: &str,
     item_id: &str,
     column: Data,

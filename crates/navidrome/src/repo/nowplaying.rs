@@ -4,7 +4,7 @@ use sea_query::{Alias, Expr, JoinType, Order, Query};
 
 use crate::schema::{Scrobbles, Tracks, UserUploads, Users};
 use crate::sql;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub struct NowPlayingEntry {
     pub xata_id: String,
@@ -27,31 +27,29 @@ pub struct NowPlayingEntry {
     pub minutes_ago: i64,
 }
 
-impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for NowPlayingEntry {
-    fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
-        use sqlx::Row;
-        Ok(Self {
-            xata_id: row.try_get("xata_id")?,
-            title: row.try_get("title")?,
-            artist: row.try_get("artist")?,
-            album_artist: row.try_get("album_artist")?,
-            album_art: row.try_get("album_art")?,
-            album: row.try_get("album")?,
-            track_number: row.try_get("track_number")?,
-            disc_number: row.try_get("disc_number")?,
-            duration: row.try_get("duration")?,
-            mb_id: row.try_get("mb_id")?,
-            genre: row.try_get("genre")?,
-            xata_createdat: row.try_get("xata_createdat")?,
-            r2_key: row.try_get("r2_key")?,
-            mime_type: row.try_get("mime_type")?,
-            file_size: row.try_get("file_size")?,
-            sample_rate: row.try_get("sample_rate").unwrap_or(None),
-            handle: row.try_get("handle")?,
-            minutes_ago: row.try_get("minutes_ago")?,
-        })
-    }
-}
+// One impl for both backends: see `from_row_any!`. A hand-written `FromRow`
+// names its row type, and `PgRow` and `SqliteRow` share no trait that
+// `try_get` is defined on.
+rocksky_db::from_row_any!(NowPlayingEntry {
+    xata_id: String,
+    title: String,
+    artist: String,
+    album_artist: String,
+    album_art: Option<String>,
+    album: String,
+    track_number: Option<i32>,
+    disc_number: Option<i32>,
+    duration: i32,
+    mb_id: Option<String>,
+    genre: Option<String>,
+    xata_createdat: DateTime<Utc>,
+    r2_key: String,
+    mime_type: String,
+    file_size: i32,
+    sample_rate: Option<i32>,
+    handle: String,
+    minutes_ago: i64,
+});
 
 // Returns the user's most recent scrobble if within the last 10 minutes.
 pub async fn get_now_playing(db: &Db, user_id: &str) -> Result<Vec<NowPlayingEntry>, Error> {

@@ -11,9 +11,9 @@ use actix_web::{dev::Payload, error::ErrorUnauthorized, web, FromRequest, HttpRe
 use anyhow::Error;
 use futures::future::LocalBoxFuture;
 use rand::RngCore;
+use rocksky_db::Handle as Db;
 use rocksky_navidrome::schema::Users;
 use rocksky_navidrome::sql;
-use rocksky_pgurl::Db;
 use sea_query::{ColumnDef, Expr, Index, JoinType, OnConflict, PostgresQueryBuilder, Query, Table};
 use std::{
     collections::HashMap,

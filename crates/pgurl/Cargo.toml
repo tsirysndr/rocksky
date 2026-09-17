@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 anyhow = "1.0.96"
+rocksky-db = { path = "../db" }
 sqlx = { version = "0.8.3", features = [
   "runtime-tokio-rustls",
   "postgres",

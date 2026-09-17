@@ -5,7 +5,7 @@ use sea_query::{Alias, Expr, Iden, JoinType, Order, Query, SimpleExpr};
 use crate::repo::track::one_upload_join;
 use crate::schema::{AlbumTracks, ArtistTracks, LovedTracks, Tracks, UserUploads};
 use crate::sql;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 #[derive(Iden, Clone, Copy)]
 #[iden = "at2"]
@@ -41,32 +41,30 @@ pub struct StarredTrack {
     pub starred_at: DateTime<Utc>,
 }
 
-impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for StarredTrack {
-    fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
-        use sqlx::Row;
-        Ok(Self {
-            xata_id: row.try_get("xata_id")?,
-            title: row.try_get("title")?,
-            artist: row.try_get("artist")?,
-            album_artist: row.try_get("album_artist")?,
-            album_art: row.try_get("album_art")?,
-            album: row.try_get("album")?,
-            track_number: row.try_get("track_number")?,
-            disc_number: row.try_get("disc_number")?,
-            duration: row.try_get("duration")?,
-            mb_id: row.try_get("mb_id")?,
-            genre: row.try_get("genre")?,
-            xata_createdat: row.try_get("xata_createdat")?,
-            r2_key: row.try_get("r2_key")?,
-            mime_type: row.try_get("mime_type")?,
-            file_size: row.try_get("file_size")?,
-            sample_rate: row.try_get("sample_rate").unwrap_or(None),
-            album_id: row.try_get("album_id")?,
-            artist_id: row.try_get("artist_id")?,
-            starred_at: row.try_get("starred_at")?,
-        })
-    }
-}
+// One impl for both backends: see `from_row_any!`. A hand-written `FromRow`
+// names its row type, and `PgRow` and `SqliteRow` share no trait that
+// `try_get` is defined on.
+rocksky_db::from_row_any!(StarredTrack {
+    xata_id: String,
+    title: String,
+    artist: String,
+    album_artist: String,
+    album_art: Option<String>,
+    album: String,
+    track_number: Option<i32>,
+    disc_number: Option<i32>,
+    duration: i32,
+    mb_id: Option<String>,
+    genre: Option<String>,
+    xata_createdat: DateTime<Utc>,
+    r2_key: String,
+    mime_type: String,
+    file_size: i32,
+    sample_rate: Option<i32>,
+    album_id: Option<String>,
+    artist_id: Option<String>,
+    starred_at: DateTime<Utc>,
+});
 
 /// `(SELECT <col> FROM <junction> WHERE track_id = tracks.xata_id LIMIT 1)`.
 fn first_junction_id(

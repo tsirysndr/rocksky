@@ -4,7 +4,7 @@ use sea_query::{Expr, Func, OnConflict, Query};
 
 use crate::schema::{LovedTracks, Scrobbles};
 use crate::sql;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub async fn create_scrobble(
     db: &Db,

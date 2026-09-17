@@ -22,8 +22,11 @@
 /// one `Backend` renders with — two sea-query versions in a dependency tree
 /// would produce statement types that do not interoperate, with an error
 /// message that does not say so.
+pub use handle::Handle;
 pub use sea_query;
 
+pub mod exec;
+pub mod handle;
 pub mod loaders;
 pub mod models;
 pub mod prepared;

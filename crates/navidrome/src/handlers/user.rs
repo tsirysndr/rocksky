@@ -3,7 +3,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::{response, xata::user::UserWithApiKey};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub fn handle_get_user(format: &str, user: &UserWithApiKey) -> HttpResponse {
     response::ok(

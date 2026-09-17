@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{handlers::songs::track_to_json, repo, response, typesense::TypesenseClient};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 pub async fn handle_search3(
     format: &str,

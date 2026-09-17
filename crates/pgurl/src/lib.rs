@@ -201,3 +201,49 @@ mod tests {
         assert_eq!(opts.get_application_name(), Some("rocksky-test:replica"));
     }
 }
+
+/// Connects a service to whatever is configured, as a [`rocksky_db::Handle`].
+///
+/// The bridge between this crate and `rocksky-db`: Postgres keeps everything
+/// that only means something on Postgres — `application_name` tagging so a
+/// connection can be traced in `pg_stat_activity`, the pool tuning a service
+/// passes in, and the read-only check that turns a misrouted primary into a
+/// refusal to boot rather than hours of silently dropped writes — and with no
+/// Postgres URL set the service falls back to the shared SQLite file.
+///
+/// `configure` is ignored on SQLite, where pool sizing is `rocksky-db`'s to
+/// decide: a file has different constraints from a server, and a service's
+/// Postgres numbers do not transfer to it.
+pub async fn connect_handle(
+    app_name: &str,
+    configure: impl Fn(PgPoolOptions) -> PgPoolOptions,
+) -> Result<rocksky_db::Handle> {
+    use rocksky_db::shared::Source;
+
+    let (_, source) = rocksky_db::shared::resolve();
+    if !matches!(source, Source::Postgres | Source::SplitPostgres) {
+        return Ok(rocksky_db::Handle::connect().await?);
+    }
+
+    let write = configure(PgPoolOptions::new())
+        .connect_with(primary(app_name)?)
+        .await?;
+    ensure_writable(&write, app_name).await?;
+
+    let replica_pool = if is_split() {
+        Some(
+            configure(PgPoolOptions::new())
+                .connect_with(replica(app_name)?)
+                .await?,
+        )
+    } else {
+        None
+    };
+
+    Ok(rocksky_db::Handle::from_backend(
+        rocksky_db::Backend::Postgres {
+            primary: write,
+            replica: replica_pool,
+        },
+    ))
+}

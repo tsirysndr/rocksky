@@ -12,8 +12,8 @@
 //! returns nothing.
 
 use anyhow::Error;
+use rocksky_db::Handle as Db;
 use rocksky_navidrome::sql;
-use rocksky_pgurl::Db;
 use sea_query::{Alias, ColumnDef, Expr, Func, OnConflict, PostgresQueryBuilder, Query, Table};
 use sha2::{Digest, Sha256};
 use std::{

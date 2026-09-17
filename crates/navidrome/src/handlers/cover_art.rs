@@ -2,7 +2,7 @@ use actix_web::HttpResponse;
 use std::sync::Arc;
 
 use crate::{repo, response};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 /// Returns album art for a track: uses the track's own album_art field first,
 /// then falls back to the art of the album the track belongs to.

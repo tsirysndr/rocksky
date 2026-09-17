@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{repo, repo::track::StreamTrack, response, s3};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 // Cache decrypted credentials keyed by the encrypted value — safe against
 // credential rotation since the key changes when the stored bytes change.

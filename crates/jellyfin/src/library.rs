@@ -10,7 +10,7 @@
 //! cached briefly; songs stay paged in SQL with a dedicated count.
 
 use anyhow::Error;
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, OnceLock},

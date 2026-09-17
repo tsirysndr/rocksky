@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::{repo, response, xata::artist::ArtistWithStats};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 const IGNORED_ARTICLES: &str = "The An A Die Das Ein Eine Les Le La";
 

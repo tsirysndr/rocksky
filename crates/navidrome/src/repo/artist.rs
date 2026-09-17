@@ -10,7 +10,7 @@ use crate::schema::{
 };
 use crate::sql;
 use crate::xata::artist::{ArtistRow, ArtistWithStats};
-use rocksky_pgurl::Db;
+use rocksky_db::Handle as Db;
 
 #[derive(Iden, Clone, Copy)]
 #[iden = "mine"]

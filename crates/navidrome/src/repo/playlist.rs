@@ -6,7 +6,9 @@ use crate::repo::track::track_select;
 use crate::schema::{NavidromePlaylistTracks, NavidromePlaylists, Tracks};
 use crate::sql;
 use crate::xata::track::TrackWithUpload;
-use rocksky_pgurl::Db;
+use rocksky_db::models::json_array;
+use rocksky_db::Dialect;
+use rocksky_db::Handle as Db;
 
 #[derive(Iden, Clone, Copy)]
 #[iden = "p"]
@@ -59,8 +61,20 @@ pub struct PlaylistRow {
     /// NULL until the record has been published.
     pub uri: Option<String>,
     /// Album art of the first few distinct covers in the playlist, for the
-    /// cover mosaic. Empty when none of the tracks have art.
-    pub track_arts: Vec<String>,
+    /// cover mosaic, as JSON array text. Read it with [`PlaylistRow::track_arts`].
+    ///
+    /// JSON rather than a list because the two backends aggregate differently
+    /// — `array_agg` into a `text[]` on Postgres, `json_group_array` on SQLite
+    /// — and `Vec<String>` decodes from neither. `track_arts_select` renders
+    /// whichever produces JSON text.
+    pub track_arts: Option<String>,
+}
+
+impl PlaylistRow {
+    /// The cover mosaic's arts. Empty when none of the tracks have art.
+    pub fn track_arts(&self) -> Vec<String> {
+        json_array(self.track_arts.as_deref())
+    }
 }
 
 fn scalar(select: sea_query::SelectStatement) -> SimpleExpr {
@@ -99,7 +113,7 @@ fn duration_select() -> SimpleExpr {
 
 // Up to four distinct album covers, in the order the tracks carrying them were
 // added — enough for a 2×2 mosaic and no more.
-fn track_arts_select() -> SimpleExpr {
+fn track_arts_select(dialect: Dialect) -> SimpleExpr {
     let mut covers = entries_of_playlist();
     covers
         .expr_as(Expr::col((T::Table, Tracks::AlbumArt)), Arts::Art)
@@ -130,21 +144,34 @@ fn track_arts_select() -> SimpleExpr {
         )
         .limit(4);
 
-    let agg = Query::select()
+    // Aggregated to JSON text on both backends, because that is the only
+    // shape `Vec<String>` cannot fail to come back as — see
+    // `PlaylistRow::track_arts`.
+    let aggregate = match dialect {
         // `array_agg(… ORDER BY …)` is an aggregate with its own sort clause,
         // which has no builder form.
-        .expr(Expr::cust(r#"array_agg("art" ORDER BY "added_at")"#))
+        Dialect::Postgres => Expr::cust(r#"to_json(array_agg("art" ORDER BY "added_at"))::text"#),
+        // `json_group_array` has no ORDER BY of its own; it follows the row
+        // order of the subquery, which is already sorted by `added_at`.
+        Dialect::Sqlite => Expr::cust(r#"json_group_array("art")"#),
+    };
+
+    let agg = Query::select()
+        .expr(aggregate)
         .from_subquery(covers, Arts::Table)
         .take();
 
-    Func::coalesce([scalar(agg), Expr::cust("ARRAY[]::text[]")]).into()
+    // An empty playlist aggregates to SQL NULL on Postgres and to `[]` on
+    // SQLite; both read back as an empty list, and the COALESCE makes the
+    // column non-null either way.
+    Func::coalesce([scalar(agg), Expr::val("[]").into()]).into()
 }
 
 // Navidrome playlists live in their own dedicated tables so they stay isolated
 // from playlists ingested from other sources (atproto, Spotify, …).
 
 /// The row projection every playlist lookup shares; only the WHERE differs.
-fn playlist_select(predicate: SimpleExpr) -> sea_query::SelectStatement {
+fn playlist_select(dialect: Dialect, predicate: SimpleExpr) -> sea_query::SelectStatement {
     let count = {
         let mut q = entries_of_playlist();
         q.expr(Func::count(Expr::cust("*")));
@@ -169,7 +196,7 @@ fn playlist_select(predicate: SimpleExpr) -> sea_query::SelectStatement {
         .column((P::Table, NavidromePlaylists::Uri))
         .expr_as(scalar(count), Alias::new("track_count"))
         .expr_as(duration_select(), Alias::new("duration_ms"))
-        .expr_as(track_arts_select(), Alias::new("track_arts"))
+        .expr_as(track_arts_select(dialect), Alias::new("track_arts"))
         .from_as(NavidromePlaylists::Table, P::Table)
         .and_where(predicate)
         .take()
@@ -177,7 +204,10 @@ fn playlist_select(predicate: SimpleExpr) -> sea_query::SelectStatement {
 
 pub async fn get_playlists(db: &Db, user_id: &str) -> Result<Vec<PlaylistRow>, Error> {
     let pool = db.primary();
-    let mut stmt = playlist_select(Expr::col((P::Table, NavidromePlaylists::UserId)).eq(user_id));
+    let mut stmt = playlist_select(
+        pool.dialect(),
+        Expr::col((P::Table, NavidromePlaylists::UserId)).eq(user_id),
+    );
     stmt.order_by((P::Table, NavidromePlaylists::XataCreatedat), Order::Desc);
 
     Ok(sql::fetch_all(pool, &stmt).await?)
@@ -348,6 +378,7 @@ pub async fn get_playlist(
 ) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
     let pool = db.primary();
     let stmt = playlist_select(
+        pool.dialect(),
         Expr::col((P::Table, NavidromePlaylists::XataId))
             .eq(playlist_id)
             .and(Expr::col((P::Table, NavidromePlaylists::UserId)).eq(user_id)),
@@ -371,6 +402,7 @@ pub async fn get_playlist_by_uri(
 ) -> Result<Option<(PlaylistRow, Vec<TrackWithUpload>)>, Error> {
     let pool = db.primary();
     let stmt = playlist_select(
+        pool.dialect(),
         Expr::col((P::Table, NavidromePlaylists::Uri))
             .eq(uri)
             .and(Expr::col((P::Table, NavidromePlaylists::UserId)).eq(user_id)),
@@ -416,29 +448,79 @@ async fn with_tracks(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_query::PostgresQueryBuilder;
+    use sea_query::{PostgresQueryBuilder, SqliteQueryBuilder};
     use sea_query_binder::SqlxBinder;
 
     #[test]
     fn an_empty_playlist_reports_zero_rather_than_null() {
-        let (sql, _) = playlist_select(Expr::col((P::Table, NavidromePlaylists::UserId)).eq("u"))
-            .build_sqlx(PostgresQueryBuilder);
+        let (sql, values) = playlist_select(
+            Dialect::Postgres,
+            Expr::col((P::Table, NavidromePlaylists::UserId)).eq("u"),
+        )
+        .build_sqlx(PostgresQueryBuilder);
         assert!(sql.contains(r#"CAST(COALESCE((SELECT SUM("t"."duration")"#));
-        assert!(sql.contains("ARRAY[]::text[]) AS \"track_arts\""));
+        // An empty playlist's mosaic aggregates to NULL; the COALESCE makes it
+        // an empty JSON array, which reads back as an empty list. The fallback
+        // is a bound value, not inlined text, so it is checked among the
+        // values rather than in the SQL.
+        assert!(sql.contains(r#") AS "track_arts""#), "{sql}");
+        assert!(
+            values.0 .0.iter().any(|v| matches!(
+                v,
+                sea_query::Value::String(Some(s)) if s.as_str() == "[]"
+            )),
+            "the empty-mosaic fallback must be an empty JSON array"
+        );
     }
 
     /// The mosaic takes four covers in the order the tracks carrying them were
     /// added — the aggregate's own ORDER BY, not the subquery's.
     #[test]
     fn the_cover_mosaic_is_ordered_and_capped() {
-        let (sql, values) =
-            playlist_select(Expr::col((P::Table, NavidromePlaylists::Uri)).eq("at://x"))
-                .build_sqlx(PostgresQueryBuilder);
+        let (sql, values) = playlist_select(
+            Dialect::Postgres,
+            Expr::col((P::Table, NavidromePlaylists::Uri)).eq("at://x"),
+        )
+        .build_sqlx(PostgresQueryBuilder);
         assert!(sql.contains(r#"array_agg("art" ORDER BY "added_at")"#));
         assert!(values
             .0
              .0
             .iter()
             .any(|v| matches!(v, sea_query::Value::BigUnsigned(Some(4)))));
+    }
+
+    /// The same query on SQLite. This is what the dual-backend support comes
+    /// down to: `array_agg` and `text[]` do not exist here, so the mosaic is
+    /// aggregated with `json_group_array` instead — and both spellings have to
+    /// produce JSON text, because that is the only form the row struct can
+    /// decode from both.
+    #[test]
+    fn the_mosaic_aggregates_to_json_on_sqlite_too() {
+        let (pg, _) = playlist_select(
+            Dialect::Postgres,
+            Expr::col((P::Table, NavidromePlaylists::UserId)).eq("u"),
+        )
+        .build_sqlx(PostgresQueryBuilder);
+        let (lite, _) = playlist_select(
+            Dialect::Sqlite,
+            Expr::col((P::Table, NavidromePlaylists::UserId)).eq("u"),
+        )
+        .build_sqlx(SqliteQueryBuilder);
+
+        assert!(pg.contains("to_json"), "Postgres must cast to JSON: {pg}");
+        assert!(
+            lite.contains("json_group_array"),
+            "SQLite has no array_agg: {lite}"
+        );
+        assert!(
+            !lite.contains("array_agg") && !lite.contains("text[]"),
+            "no Postgres-only construct may reach SQLite: {lite}"
+        );
+
+        // And the placeholders follow the dialect, which is the other half of
+        // running one statement against two backends.
+        assert!(lite.contains('?') && !lite.contains("$1"), "{lite}");
+        assert!(pg.contains("$1"), "{pg}");
     }
 }

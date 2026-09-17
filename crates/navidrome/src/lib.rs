@@ -10,7 +10,7 @@ pub mod xata;
 
 /// The shared sea-query execution seam, re-exported so `crate::sql` keeps
 /// naming one thing across this crate and the Jellyfin service built on it.
-pub use rocksky_pgurl::sql;
+pub use rocksky_db::exec as sql;
 
 use std::{env, sync::Arc, time::Duration};
 
@@ -70,7 +70,7 @@ pub async fn run() -> Result<(), Error> {
     // Library browsing is almost entirely reads, so they go to the replica;
     // playlists, starring, scrobbles and the play queue write, so they go to
     // the primary. Collapses to a single pool when no replica is configured.
-    let db = rocksky_pgurl::Db::connect("rocksky-navidrome", |opts| {
+    let db = rocksky_pgurl::connect_handle("rocksky-navidrome", |opts| {
         opts.max_connections(25)
             .min_connections(5)
             .acquire_timeout(Duration::from_secs(10))
