@@ -190,6 +190,20 @@ impl Backend {
         }
     }
 
+    /// The Postgres pool behind this handle, when it is a Postgres.
+    ///
+    /// An escape hatch for the few things that are genuinely Postgres-only and
+    /// have no SQLite counterpart to abstract over — `pg_is_in_recovery()`,
+    /// `application_name`, pool statistics. `None` on SQLite, which callers
+    /// must treat as "that question does not apply here" rather than as an
+    /// error.
+    pub fn pg_pool(&self) -> Option<&PgPool> {
+        match self {
+            Self::Sqlite(_) => None,
+            Self::Postgres { primary, .. } => Some(primary),
+        }
+    }
+
     /// Whether a separate read replica is in use.
     pub fn is_split(&self) -> bool {
         matches!(
@@ -460,6 +474,29 @@ impl Backend {
     /// array in TEXT on SQLite — so this is one of the few places the two
     /// dialects are genuinely different SQL. `column` is the qualified column
     /// reference, e.g. `"a.genres"`.
+    /// Projects a `text[]`-style column so it decodes on either backend.
+    ///
+    /// These columns — `genres`, above all — are a real `text[]` on Postgres
+    /// and a JSON array in a TEXT column on SQLite. `sqlx` has no decoder for
+    /// `text[]`, and `Vec<String>` does not decode from SQLite at all, so the
+    /// portable shape is *JSON text on both*: Postgres renders it with
+    /// `to_json(col)::text`, SQLite already holds it that way, and the value
+    /// is parsed in Rust with [`models::json_array`].
+    ///
+    /// A row struct therefore types such a column as `Option<String>`, never
+    /// `Vec<String>`.
+    pub fn text_array(&self, column: impl sea_query::IntoIden) -> sea_query::SimpleExpr {
+        use sea_query::{Alias, Expr, ExprTrait, Func};
+
+        let reference = Expr::col(column.into_iden());
+        match self.dialect() {
+            Dialect::Sqlite => reference.into(),
+            Dialect::Postgres => Func::cust(Alias::new("to_json"))
+                .arg(reference)
+                .cast_as(Alias::new("text")),
+        }
+    }
+
     pub fn array_contains(&self, column: &str, value: &str) -> sea_query::SimpleExpr {
         models::array_contains_expr(self.dialect(), column, value)
     }
@@ -587,6 +624,46 @@ pub async fn migrate_auth(pool: &SqlitePool) -> Result<(), ConnectError> {
 
 #[cfg(test)]
 mod tests {
+    /// A `text[]` column has to come back as JSON text on Postgres and as the
+    /// stored text on SQLite, or the row struct cannot type it at all: `sqlx`
+    /// has no `text[]` decoder, and `Vec<String>` does not decode from SQLite.
+    #[tokio::test]
+    async fn a_text_array_column_is_projected_as_json_text() {
+        use sea_query::{Alias, Query, SqliteQueryBuilder};
+
+        let db = connect_in_memory().await.unwrap();
+        let sql = Query::select()
+            .expr_as(db.text_array(Alias::new("genres")), Alias::new("genres"))
+            .from(Alias::new("artists"))
+            .to_owned()
+            .to_string(SqliteQueryBuilder);
+        // SQLite already holds JSON text, so the column is read as it is.
+        assert_eq!(
+            sql, r#"SELECT "genres" AS "genres" FROM "artists""#,
+            "{sql}"
+        );
+
+        // The Postgres rendering is the one that needs the conversion. It is
+        // checked through `models::column_expr`, which shares this branch and
+        // can be exercised without a Postgres to connect to.
+        let pg = models::column_expr(
+            models::Col {
+                name: "genres",
+                alias: "genres",
+                kind: models::ColKind::TextArray,
+            },
+            Dialect::Postgres,
+            None,
+        );
+        let pg = Query::select()
+            .expr_as(pg, Alias::new("genres"))
+            .from(Alias::new("artists"))
+            .to_owned()
+            .to_string(sea_query::PostgresQueryBuilder);
+        assert!(pg.contains("to_json"), "{pg}");
+        assert!(pg.contains("text"), "{pg}");
+    }
+
     use super::*;
 
     /// A replica is only a second pool when it is genuinely a different
