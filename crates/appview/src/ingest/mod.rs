@@ -454,7 +454,7 @@ pub async fn upsert_album(
 ) -> anyhow::Result<String> {
     let hash = album_hash(title, album_artist);
 
-    find_or_create(
+    let id = find_or_create(
         db,
         Albums::Table,
         Albums::XataId,
@@ -473,14 +473,73 @@ pub async fn upsert_album(
             new_id().into(),
             title.into(),
             album_artist.into(),
-            album_art.into(),
+            album_art.clone().into(),
             year.into(),
             release_date.into(),
             hash.clone().into(),
         ],
         || format!("an album row for {title}"),
     )
-    .await
+    .await?;
+
+    // An album row is created by whichever record happened to arrive first,
+    // and `find_or_create` writes only on create — so an album first seen
+    // through a record carrying no cover (or the placeholder) would keep that
+    // gap forever, even though the next record for the same album has real
+    // art. Filling it here is what keeps the album pages populated as the
+    // firehose runs.
+    fill_album_art(db, &hash, album_art.as_deref()).await?;
+
+    Ok(id)
+}
+
+/// Whether a stored `album_art` value is actually art.
+///
+/// Three values mean "none": NULL, the empty string, and the Last.fm
+/// placeholder — which is a real URL serving a grey record sleeve, written by
+/// [`SongRecord::from_value`] when a record has no cover at all. Anything
+/// rendering it shows the same nothing as an empty column, so every reader
+/// that asks "does this album have art" has to treat all three alike.
+/// `art` is the column to test. Pass it qualified — `(Albums::Table,
+/// Albums::AlbumArt)` — in a statement that joins `tracks`, which has an
+/// `album_art` of its own and would otherwise make the reference ambiguous.
+pub fn album_art_is_missing(
+    art: impl crate::sea_query::IntoColumnRef + Clone,
+) -> crate::sea_query::Cond {
+    crate::sea_query::Cond::any()
+        .add(Expr::col(art.clone()).is_null())
+        .add(Expr::col(art.clone()).eq(""))
+        .add(Expr::col(art).eq(PLACEHOLDER_ALBUM_ART))
+}
+
+/// Whether a value from a record or an API is usable as album art.
+pub fn usable_album_art(art: Option<&str>) -> Option<&str> {
+    art.map(str::trim)
+        .filter(|art| !art.is_empty() && *art != PLACEHOLDER_ALBUM_ART)
+}
+
+/// Writes album art onto the album with this hash, if it has none.
+///
+/// Guarded in the `WHERE` rather than by reading first: the condition and the
+/// write are then one statement, so two records for the same album arriving
+/// together cannot both decide the column is empty. Real art already stored
+/// is never replaced — it came from a record that named this album directly.
+///
+/// Returns whether a row was written.
+pub async fn fill_album_art(db: &Backend, hash: &str, art: Option<&str>) -> anyhow::Result<bool> {
+    let Some(art) = usable_album_art(art) else {
+        return Ok(false);
+    };
+
+    let update = Query::update()
+        .table(Albums::Table)
+        .value(Albums::AlbumArt, art)
+        .value(Albums::XataUpdatedat, crate::db::now_timestamp())
+        .and_where(Expr::col(Albums::Sha256).eq(hash))
+        .cond_where(album_art_is_missing(Albums::AlbumArt))
+        .to_owned();
+
+    Ok(db.execute(&update).await? > 0)
 }
 
 /// Finds or creates the `tracks` row for a record.
@@ -1487,6 +1546,85 @@ mod tests {
             rkey: rkey.into(),
             value,
         }
+    }
+
+    /// An album first seen without a cover is filled in by the next record
+    /// that has one.
+    ///
+    /// `find_or_create` writes only on create, and which record creates an
+    /// album is an accident of firehose ordering — so without this an album
+    /// whose first scrobble carried no cover would stay blank forever, even
+    /// with a hundred later scrobbles that all have the art.
+    #[tokio::test]
+    async fn a_later_record_fills_in_missing_album_art() {
+        let db = db::connect_in_memory().await.unwrap();
+
+        // First sighting: no cover at all, so `SongRecord::from_value` stores
+        // the placeholder.
+        let id = upsert_album(
+            &db,
+            "Music Has the Right to Children",
+            "Boards of Canada",
+            Some(PLACEHOLDER_ALBUM_ART.to_string()),
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+        // A later record for the same album, this one with real art.
+        let again = upsert_album(
+            &db,
+            "Music Has the Right to Children",
+            "Boards of Canada",
+            Some("https://cdn.invalid/mhtrtc.jpg".into()),
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(again, id, "still one album row");
+
+        let hash = album_hash("Music Has the Right to Children", "Boards of Canada");
+        let art = db
+            .fetch_scalar::<String>(
+                &Query::select()
+                    .column(Albums::AlbumArt)
+                    .from(Albums::Table)
+                    .and_where(Expr::col(Albums::Sha256).eq(&hash))
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(art.as_deref(), Some("https://cdn.invalid/mhtrtc.jpg"));
+
+        // And a third record with no cover does not undo it.
+        upsert_album(
+            &db,
+            "Music Has the Right to Children",
+            "Boards of Canada",
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(!fill_album_art(&db, &hash, Some(PLACEHOLDER_ALBUM_ART))
+            .await
+            .unwrap());
+
+        let art = db
+            .fetch_scalar::<String>(
+                &Query::select()
+                    .column(Albums::AlbumArt)
+                    .from(Albums::Table)
+                    .and_where(Expr::col(Albums::Sha256).eq(&hash))
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(art.as_deref(), Some("https://cdn.invalid/mhtrtc.jpg"));
     }
 
     /// The projection must use the shared hashes, not its own copy.
