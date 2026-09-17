@@ -7104,6 +7104,7 @@ dependencies = [
  "hex",
  "owo-colors",
  "rand 0.8.5",
+ "rocksky-db",
  "rocksky-navidrome",
  "rocksky-pgurl",
  "sea-query",
@@ -7234,6 +7235,7 @@ dependencies = [
  "owo-colors",
  "quick-xml 0.37.5",
  "reqwest",
+ "rocksky-db",
  "rocksky-pgurl",
  "rust-s3",
  "sea-query",
@@ -7282,6 +7284,7 @@ name = "rocksky-pgurl"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "rocksky-db",
  "sea-query",
  "sea-query-binder",
  "sqlx",
