@@ -30,6 +30,8 @@ pub mod prepared;
 pub mod query;
 pub mod rsql;
 pub mod schema;
+pub mod shared;
+pub mod tx;
 
 use prepared::{Prepared, Statement};
 use query::Sql;

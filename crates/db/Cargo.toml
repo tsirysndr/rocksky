@@ -32,3 +32,4 @@ sea-query-binder = { version = "0.7", features = ["sqlx-sqlite", "sqlx-postgres"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tempfile = "3"
