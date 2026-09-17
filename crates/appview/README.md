@@ -183,6 +183,22 @@ Set `ROCKSKY_ARTIST_METADATA_URL` to point the sweeps somewhere else, or to
 empty to switch them off. Pointing them at this instance is detected and
 ignored.
 
+### The search index
+
+Typesense is a projection of the database too, and it is rebuilt the same way:
+in the background, on boot, for any collection whose document count is
+materially behind its table. That covers being pointed at a database this
+binary did not fill, and it repairs an index whose build was interrupted —
+which "was the collection just created?" cannot.
+
+It is **not** built before the server binds. Importing a large catalogue is
+hundreds of thousands of documents; done inline the container looks hung for
+minutes, and if it is killed in that window the next boot starts over. The
+import is also paced against Typesense's own write queue: `GET /health`
+answers `{"ok":false}` while it is behind, and the backfill waits rather than
+piling on — that reply is what a container healthcheck reads, so outrunning it
+is how a healthy server gets declared dead.
+
 ## The surface
 
 ```

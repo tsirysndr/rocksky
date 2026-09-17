@@ -135,9 +135,28 @@ services:
           exec 3<>/dev/tcp/127.0.0.1/8108 &&
           printf 'GET /health HTTP/1.0\r\n\r\n' >&3 &&
           grep -q '"ok":true' <&3
-      interval: 5s
-      timeout: 3s
-      retries: 20
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      # The important one on an instance with a real catalogue.
+      #
+      # `/health` answers `{"ok":false}` while Typesense's write queue is
+      # longer than its own healthy-lag thresholds — logging
+      # `N queued writes > healthy write lag of 500`. That happens after a
+      # large index build, and on the next start it replays that queue, which
+      # takes minutes on hundreds of thousands of documents. It is recovering,
+      # not broken.
+      #
+      # Without a start period the default patience is `interval * retries`,
+      # and anything short of the replay time means Compose declares Typesense
+      # dead and refuses to start the appview at all:
+      #
+      #   dependency failed to start: container …-typesense-1 is unhealthy
+      #
+      # Failures inside the start period do not count towards `retries`, so
+      # this waits out a long replay while still failing reasonably fast once
+      # the server is up and answering.
+      start_period: 15m
 
   # How the database fills: a verified, filtered, backfilling firehose
   # consumer. https://github.com/bluesky-social/indigo/tree/main/cmd/tap

@@ -425,3 +425,71 @@ async fn a_bad_api_key_is_named_as_such() {
     );
     assert!(message.contains("TYPESENSE_API_KEY"), "{message}");
 }
+
+/// `document_count` is what decides whether a collection needs building, so
+/// it has to distinguish "missing", "empty" and "has N".
+#[tokio::test]
+async fn the_document_count_is_readable() {
+    let Some(search) = connect().await else {
+        eprintln!("skipping: ROCKSKY_TYPESENSE_URL is not set");
+        return;
+    };
+
+    // A collection that was never created is `None`, not zero — the caller
+    // needs to tell "nothing here yet" from "does not exist".
+    assert_eq!(
+        search.document_count("no_such_collection").await.unwrap(),
+        None
+    );
+
+    let before = search
+        .document_count("tracks")
+        .await
+        .unwrap()
+        .expect("ensure_collections created it");
+
+    let row = track("count-1", "Counted", "Counter", "Counting");
+    search
+        .index(search::TRACKS, &[search::track_doc(&row)])
+        .await
+        .unwrap();
+
+    // Typesense applies writes asynchronously, so give it a moment rather
+    // than asserting on a race.
+    let mut after = before;
+    for _ in 0..20 {
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+        after = search
+            .document_count(search::TRACKS)
+            .await
+            .unwrap()
+            .unwrap();
+        if after > before {
+            break;
+        }
+    }
+    assert!(after > before, "{before} -> {after}");
+}
+
+/// A server that is answering is "keeping up"; the pacing in the backfill
+/// depends on this being true in the normal case, or it would pause for its
+/// full patience on every batch.
+#[tokio::test]
+async fn an_idle_server_is_keeping_up() {
+    let Some(search) = connect().await else {
+        eprintln!("skipping: ROCKSKY_TYPESENSE_URL is not set");
+        return;
+    };
+
+    assert!(search.is_keeping_up().await);
+}
+
+/// An unreachable server is *not* keeping up. The distinction matters: the
+/// backfill's response to "not keeping up" is to wait, which is the right
+/// answer for a server that is down as well as one that is behind.
+#[tokio::test]
+async fn an_unreachable_server_is_not_keeping_up() {
+    // Port 1 is never a Typesense.
+    let search = Search::new("http://127.0.0.1:1", "rocksky").expect("a valid URL");
+    assert!(!search.is_keeping_up().await);
+}

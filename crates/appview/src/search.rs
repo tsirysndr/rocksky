@@ -43,7 +43,7 @@
 use crate::db::models;
 use crate::db::schema::Tracks;
 use crate::db::Backend;
-use crate::sea_query::{Alias, Expr, Order, Query};
+use crate::sea_query::{Alias, Asterisk, Expr, Func, Order, Query};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -245,6 +245,60 @@ impl Search {
             });
         }
         Ok(created)
+    }
+
+    /// How many documents a collection holds, or `None` if it does not exist.
+    ///
+    /// Used to decide whether a collection needs building. "Was it just
+    /// created" is the obvious test and the wrong one: a backfill that is
+    /// interrupted — which is exactly what a container restart does — leaves
+    /// the collection existing and half full, and it would then never be
+    /// completed, because it is never *newly created* again. Comparing the
+    /// count against the table makes that self-healing.
+    pub async fn document_count(&self, name: &str) -> Result<Option<i64>, SearchError> {
+        let path = format!("/collections/{name}");
+        let response = self.send(reqwest::Method::GET, &path, None).await?;
+        match response.status().as_u16() {
+            200 => {
+                let body: serde_json::Value = response.json().await?;
+                Ok(Some(
+                    body.get("num_documents")
+                        .and_then(|n| n.as_i64())
+                        .unwrap_or(0),
+                ))
+            }
+            404 => Ok(None),
+            401 => Err(SearchError::Unauthorized {
+                url: self.base.clone(),
+            }),
+            status => Err(SearchError::Status {
+                status,
+                path,
+                body: response.text().await.unwrap_or_default(),
+            }),
+        }
+    }
+
+    /// Whether Typesense is keeping up with what it has been given.
+    ///
+    /// `GET /health` answers `{"ok":false}` while the write queue is longer
+    /// than its own healthy-lag thresholds, logging
+    /// `N queued writes > healthy write lag of 500`. That is not a failure —
+    /// it drains — but it *is* the signal to stop pushing, and it is what a
+    /// container healthcheck sees. Importing straight through it is how a
+    /// boot-time backfill turns into an unhealthy container.
+    ///
+    /// Anything other than a clear `ok: true` is treated as "not keeping up",
+    /// including an unreachable server: the caller's response either way is to
+    /// wait, and waiting on a server that is down is better than hammering it.
+    pub async fn is_keeping_up(&self) -> bool {
+        match self.send(reqwest::Method::GET, "/health", None).await {
+            Ok(response) => match response.json::<serde_json::Value>().await {
+                Ok(body) => body.get("ok").and_then(|ok| ok.as_bool()).unwrap_or(false),
+                Err(_) => false,
+            },
+            Err(_) => false,
+        }
     }
 
     async fn collection_exists(&self, name: &str) -> Result<bool, SearchError> {
@@ -1133,6 +1187,160 @@ pub async fn backfill(search: &Search, db: &Backend, collections: &[&str]) -> an
     Ok(())
 }
 
+/// How far the index may lag the database before it is rebuilt.
+///
+/// The index is eventually consistent by design — a row is committed, then
+/// indexed — so it is never exactly equal on a live instance.
+const BACKFILL_TOLERANCE: i64 = 50;
+
+/// Builds any collection that is materially behind the database, in the
+/// background.
+///
+/// In the background because it is slow and nothing depends on it being
+/// finished: a half-built index answers queries for what it has, and every
+/// write path keeps it current from here on. Doing it before the server binds
+/// is what made a large instance unbootable — see [`crate::state::AppState`].
+pub fn spawn_backfill(search: &Search, db: &Backend) -> tokio::task::JoinHandle<()> {
+    let (search, db) = (search.clone(), db.clone());
+    tokio::spawn(async move {
+        let wanted = collections_needing_backfill(&search, &db, BACKFILL_TOLERANCE).await;
+        if wanted.is_empty() {
+            return;
+        }
+
+        tracing::info!(
+            collections = ?wanted,
+            "building the search index in the background; search results will be \
+             incomplete until this finishes"
+        );
+
+        if let Err(err) = backfill(&search, &db, &wanted).await {
+            tracing::error!(error = ?err, "could not fully build the search index");
+        }
+    })
+}
+
+/// How long to wait when Typesense reports it is behind.
+const LAG_PAUSE: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// How long to keep waiting before giving up and pushing anyway.
+///
+/// A bound rather than forever: this runs in the background, and a Typesense
+/// that is permanently unhappy — out of memory, say — must not silently stop
+/// the index ever being built. Pushing into a lagging server still works; it
+/// just makes the lag worse, which is why it is the last resort.
+const LAG_PATIENCE: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// Blocks while Typesense is not keeping up with its write queue.
+///
+/// Importing a large catalogue is thousands of batches, and Typesense applies
+/// them through raft. Pushed flat out, the write queue grows to hundreds of
+/// thousands of entries, `GET /health` starts answering `{"ok":false}`, and
+/// anything treating that as liveness — a container healthcheck, an
+/// orchestrator's `depends_on` — concludes the server is broken and kills it.
+/// The backfill is then interrupted, and on the next boot it starts again.
+///
+/// That loop is what this exists to prevent: the import goes only as fast as
+/// Typesense says it can take it.
+async fn wait_until_keeping_up(search: &Search, collection: &str) {
+    let mut waited = std::time::Duration::ZERO;
+    while !search.is_keeping_up().await {
+        if waited >= LAG_PATIENCE {
+            tracing::warn!(
+                collection,
+                seconds = waited.as_secs(),
+                "Typesense is still behind; continuing the backfill anyway"
+            );
+            return;
+        }
+        if waited.is_zero() {
+            tracing::info!(
+                collection,
+                "Typesense is behind on its write queue; pausing the backfill"
+            );
+        }
+        tokio::time::sleep(LAG_PAUSE).await;
+        waited += LAG_PAUSE;
+    }
+}
+
+/// Collections whose index is materially shorter than the table behind it.
+///
+/// This is what decides whether to backfill, rather than whether the
+/// collection was just created — see [`Search::document_count`] for why that
+/// test cannot repair an interrupted build.
+///
+/// A small shortfall is ignored. The index is eventually consistent by
+/// design: rows are written before they are indexed, so a count taken while
+/// scrobbles are arriving is never exactly equal, and re-reading every row of
+/// a large catalogue to chase a difference of five would make every restart an
+/// outage.
+pub async fn collections_needing_backfill(
+    search: &Search,
+    db: &Backend,
+    tolerance: i64,
+) -> Vec<&'static str> {
+    let mut wanted = Vec::new();
+
+    for (collection, table) in [
+        (TRACKS, "tracks"),
+        (ALBUMS, "albums"),
+        (ARTISTS, "artists"),
+        (USERS, "users"),
+        (PLAYLISTS, "playlists"),
+    ] {
+        let rows = match count_rows(db, table).await {
+            Ok(rows) => rows,
+            Err(err) => {
+                tracing::warn!(table, error = ?err, "could not count rows to check the index");
+                continue;
+            }
+        };
+
+        let docs = match search.document_count(collection).await {
+            // Missing entirely: `ensure_collections` will have just made it.
+            Ok(None) => 0,
+            Ok(Some(docs)) => docs,
+            Err(err) => {
+                tracing::warn!(collection, error = %err, "could not read the index size");
+                continue;
+            }
+        };
+
+        if rows - docs > tolerance {
+            tracing::info!(
+                collection,
+                rows,
+                docs,
+                "the search index is behind the database"
+            );
+            wanted.push(collection);
+        }
+    }
+
+    // `library_tracks` is a join over uploads rather than one table, so it has
+    // no row count to compare against. Built when it is empty and there are
+    // uploads to put in it.
+    if let (Ok(Some(0)), Ok(uploads)) = (
+        search.document_count(LIBRARY_TRACKS).await,
+        count_rows(db, "user_tracks").await,
+    ) {
+        if uploads > 0 {
+            wanted.push(LIBRARY_TRACKS);
+        }
+    }
+
+    wanted
+}
+
+async fn count_rows(db: &Backend, table: &str) -> Result<i64, sqlx::Error> {
+    let query = Query::select()
+        .expr(db.cast_int(Func::count(Expr::col(Asterisk))))
+        .from(Alias::new(table))
+        .to_owned();
+    db.count(&query).await
+}
+
 /// Streams one table into the index in batches, ordered by id so the paging is
 /// stable while rows are being written underneath.
 macro_rules! backfill_table {
@@ -1159,6 +1367,10 @@ macro_rules! backfill_table {
 
                 after = rows[rows.len() - 1].id.clone();
                 total += rows.len();
+
+                // Wait if Typesense is behind, before adding to what it is
+                // already struggling with — see `wait_until_keeping_up`.
+                wait_until_keeping_up(search, $collection).await;
 
                 let docs: Vec<serde_json::Value> = rows.iter().map($doc).collect();
                 if let Err(err) = search.index($collection, &docs).await {

@@ -79,24 +79,20 @@ impl AppState {
         // healthy-looking instance with half the system stopped.
         let events = crate::events::Events::connect(&config.nats_url).await?;
 
-        // Also required, and for the same reason. `connect` creates any missing
-        // collection and reports which ones it had to create; those are empty,
-        // so they are filled from the database before the server accepts
-        // traffic — that is what makes search work when this binary is pointed
-        // at a database it did not build.
+        // Also required, and for the same reason.
+        //
+        // The collections are created here; *filling* them is not done here,
+        // deliberately. Building the index for an existing database is
+        // hundreds of thousands of documents, and doing it before the server
+        // binds means a container that looks hung for several minutes while
+        // flooding Typesense's write queue — at which point `GET /health`
+        // answers `{"ok":false}`, the healthcheck fails, the container is
+        // killed mid-import, and the next boot starts the same import again.
+        // See `crate::search::spawn_backfill`.
         let search =
             crate::search::Search::connect(&config.typesense_url, &config.typesense_api_key)
                 .await?;
-        let fresh = search.ensure_collections().await?;
-        if !fresh.is_empty() {
-            if let Err(err) = crate::search::backfill(&search, &db, &fresh).await {
-                // Not fatal: a half-built index still answers, and every write
-                // path keeps it current from here on. Refusing to boot over it
-                // would be worse than a search box that improves as people use
-                // the instance.
-                tracing::error!(error = ?err, "could not fully build the search index");
-            }
-        }
+        search.ensure_collections().await?;
 
         Ok(Self(Arc::new(AppStateInner {
             config,

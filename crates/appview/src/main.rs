@@ -137,6 +137,16 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    // Builds the search index for a database this binary did not fill —
+    // pointed at an existing Postgres, or after a Tap backfill. In the
+    // background and paced against Typesense's own write queue: done inline
+    // it is minutes of apparent hang, and unpaced it drives Typesense into
+    // reporting itself unhealthy.
+    // `search()` is optional only under test, where the index is not built.
+    let _search_backfill = state
+        .search()
+        .map(|search| rocksky_appview::search::spawn_backfill(search, state.db()));
+
     // Accounts learned from the firehose arrive as a bare DID; without this
     // every scrobble in the global feed is attributed to one, with no name and
     // no picture.
