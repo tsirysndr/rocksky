@@ -179,11 +179,11 @@ pub struct WrappedTrack {
     pub artist: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub album_art: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     pub play_count: i64,
 }
@@ -195,7 +195,7 @@ pub struct WrappedArtist {
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub play_count: i64,
 }
@@ -208,7 +208,7 @@ pub struct WrappedAlbum {
     pub artist: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub album_art: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub play_count: i64,
 }
@@ -239,7 +239,7 @@ pub struct WrappedMilestone {
     pub track_title: String,
     pub artist_name: String,
     pub timestamp: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub track_uri: Option<String>,
 }
 

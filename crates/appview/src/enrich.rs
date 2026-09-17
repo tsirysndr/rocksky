@@ -360,7 +360,11 @@ mod tests {
             ("Needs Everything", None, None),
             ("Needs A Picture", None, Some(r#"["rock"]"#)),
             ("Needs Genres", Some("https://cdn/pic.jpg"), Some("[]")),
-            ("Complete", Some("https://cdn/pic.jpg"), Some(r#"["house"]"#)),
+            (
+                "Complete",
+                Some("https://cdn/pic.jpg"),
+                Some(r#"["house"]"#),
+            ),
             // A compilation credit, not an artist.
             ("Various Artists", None, None),
         ] {
@@ -455,7 +459,11 @@ mod tests {
             "the local picture was overwritten"
         );
         // …but the genres, which were an empty array, are filled.
-        assert_eq!(row.1.as_deref(), Some("[]"), "COALESCE keeps the empty array");
+        assert_eq!(
+            row.1.as_deref(),
+            Some("[]"),
+            "COALESCE keeps the empty array"
+        );
     }
 
     /// An answer with neither field is not a write.

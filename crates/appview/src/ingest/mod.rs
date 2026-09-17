@@ -894,7 +894,11 @@ pub async fn denormalise_album_uri(db: &Backend, album_id: &str) -> anyhow::Resu
         .limit(1)
         .to_owned();
 
-    let Some(uri) = db.fetch_scalar::<String>(&uri).await?.filter(|u| !u.is_empty()) else {
+    let Some(uri) = db
+        .fetch_scalar::<String>(&uri)
+        .await?
+        .filter(|u| !u.is_empty())
+    else {
         return Ok(0);
     };
 
@@ -923,7 +927,11 @@ pub async fn denormalise_artist_uri(db: &Backend, artist_id: &str) -> anyhow::Re
         .limit(1)
         .to_owned();
 
-    let Some(uri) = db.fetch_scalar::<String>(&uri).await?.filter(|u| !u.is_empty()) else {
+    let Some(uri) = db
+        .fetch_scalar::<String>(&uri)
+        .await?
+        .filter(|u| !u.is_empty())
+    else {
         return Ok(0);
     };
 
@@ -975,7 +983,13 @@ pub async fn repair_denormalised_uris(db: &Backend) -> anyhow::Result<(u64, u64)
         .execute(
             &Query::update()
                 .table(Tracks::Table)
-                .value(Tracks::AlbumUri, SimpleExpr::SubQuery(None, Box::new(album_uri.clone().into_sub_query_statement())))
+                .value(
+                    Tracks::AlbumUri,
+                    SimpleExpr::SubQuery(
+                        None,
+                        Box::new(album_uri.clone().into_sub_query_statement()),
+                    ),
+                )
                 .and_where(Expr::col(Tracks::AlbumUri).is_null())
                 .and_where(Expr::exists(album_uri))
                 .to_owned(),
@@ -1002,7 +1016,13 @@ pub async fn repair_denormalised_uris(db: &Backend) -> anyhow::Result<(u64, u64)
         .execute(
             &Query::update()
                 .table(Tracks::Table)
-                .value(Tracks::ArtistUri, SimpleExpr::SubQuery(None, Box::new(artist_uri.clone().into_sub_query_statement())))
+                .value(
+                    Tracks::ArtistUri,
+                    SimpleExpr::SubQuery(
+                        None,
+                        Box::new(artist_uri.clone().into_sub_query_statement()),
+                    ),
+                )
                 .and_where(Expr::col(Tracks::ArtistUri).is_null())
                 .and_where(Expr::exists(artist_uri))
                 .to_owned(),
@@ -1257,9 +1277,14 @@ mod denormalised_uris {
             .await
             .unwrap()
             .unwrap();
-        set_record_uri(&db, UriTable::Albums, &album_id, "at://did:plc:alice/app.rocksky.album/3abc")
-            .await
-            .unwrap();
+        set_record_uri(
+            &db,
+            UriTable::Albums,
+            &album_id,
+            "at://did:plc:alice/app.rocksky.album/3abc",
+        )
+        .await
+        .unwrap();
 
         let artist_id = db
             .fetch_scalar::<String>(
@@ -1342,7 +1367,10 @@ mod denormalised_uris {
         // And the track carries the record's own URI.
         let uri = db
             .fetch_scalar::<String>(
-                &Query::select().column(Tracks::Uri).from(Tracks::Table).to_owned(),
+                &Query::select()
+                    .column(Tracks::Uri)
+                    .from(Tracks::Table)
+                    .to_owned(),
             )
             .await
             .unwrap();
@@ -1376,7 +1404,11 @@ mod denormalised_uris {
         // Whichever record arrives first, the second finds the rows there —
         // both are keyed on the same content hashes.
         ingest(&db, &record).await.unwrap();
-        assert_eq!(db.count(&links).await.unwrap(), 1, "the link was duplicated");
+        assert_eq!(
+            db.count(&links).await.unwrap(),
+            1,
+            "the link was duplicated"
+        );
     }
 
     /// A URI already on the track came from a record naming it directly, so
@@ -1387,21 +1419,32 @@ mod denormalised_uris {
 
         let update = Query::update()
             .table(Tracks::Table)
-            .value(Tracks::AlbumUri, "at://did:plc:bob/app.rocksky.album/original")
+            .value(
+                Tracks::AlbumUri,
+                "at://did:plc:bob/app.rocksky.album/original",
+            )
             .and_where(Expr::col(Tracks::XataId).eq(&track_id))
             .to_owned();
         db.execute(&update).await.unwrap();
 
         let album_id = db
             .fetch_scalar::<String>(
-                &Query::select().column(Albums::XataId).from(Albums::Table).to_owned(),
+                &Query::select()
+                    .column(Albums::XataId)
+                    .from(Albums::Table)
+                    .to_owned(),
             )
             .await
             .unwrap()
             .unwrap();
-        set_record_uri(&db, UriTable::Albums, &album_id, "at://did:plc:alice/app.rocksky.album/later")
-            .await
-            .unwrap();
+        set_record_uri(
+            &db,
+            UriTable::Albums,
+            &album_id,
+            "at://did:plc:alice/app.rocksky.album/later",
+        )
+        .await
+        .unwrap();
 
         denormalise_album_uri(&db, &album_id).await.unwrap();
         repair_denormalised_uris(&db).await.unwrap();

@@ -171,11 +171,11 @@ pub struct RecommendationView {
     pub album: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub album_art: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub track_uri: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     #[serde(default)]
     pub genres: Vec<String>,
@@ -197,11 +197,11 @@ pub struct RecommendationsOutput {
 #[serde(rename_all = "camelCase")]
 pub struct RecommendedAlbumView {
     pub id: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub title: String,
     pub artist: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,
@@ -223,7 +223,7 @@ pub struct RecommendedAlbumsOutput {
 #[serde(rename_all = "camelCase")]
 pub struct RecommendedArtistView {
     pub id: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]

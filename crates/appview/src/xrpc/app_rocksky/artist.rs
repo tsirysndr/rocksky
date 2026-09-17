@@ -41,7 +41,7 @@ const ARTIST_DEFAULT_LIMIT: i64 = 20;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     #[serde(default)]
     pub limit: Option<i64>,
@@ -353,6 +353,7 @@ async fn get_artist_tracks(
 #[serde(rename_all = "camelCase")]
 pub struct MostListenedSong {
     pub title: String,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub play_count: i64,
 }
@@ -581,7 +582,11 @@ mod by_name {
     async fn seeded() -> Backend {
         let db = crate::db::connect_in_memory().await.unwrap();
         for (name, picture, genres) in [
-            ("Boards of Canada", Some("https://cdn/boc.jpg"), Some(r#"["electronic"]"#)),
+            (
+                "Boards of Canada",
+                Some("https://cdn/boc.jpg"),
+                Some(r#"["electronic"]"#),
+            ),
             ("Jamiroquai", Some("https://cdn/jamiroquai.jpg"), None),
             ("Earth, Wind & Fire", Some("https://cdn/ewf.jpg"), None),
         ] {
@@ -650,7 +655,10 @@ mod by_name {
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].name, "Boards of Canada");
 
-        assert!(artists_by_name(&db, "Nobody At All").await.unwrap().is_empty());
+        assert!(artists_by_name(&db, "Nobody At All")
+            .await
+            .unwrap()
+            .is_empty());
         assert!(artists_by_name(&db, "").await.unwrap().is_empty());
         assert!(artists_by_name(&db, " , , ").await.unwrap().is_empty());
     }

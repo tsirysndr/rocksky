@@ -49,6 +49,7 @@ const LIKE_COLLECTION: &str = "app.rocksky.like";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct LikeInput {
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
 }
 

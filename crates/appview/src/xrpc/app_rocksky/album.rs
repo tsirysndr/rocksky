@@ -86,7 +86,7 @@ const ALBUM_DEFAULT_LIMIT: i64 = 20;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     #[serde(default)]
     pub limit: Option<i64>,
@@ -106,7 +106,9 @@ pub struct AlbumViewDetailed {
     pub release_date: Option<String>,
     pub year: Option<i64>,
     pub album_art: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     pub apple_music_link: Option<String>,
     pub spotify_link: Option<String>,

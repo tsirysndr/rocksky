@@ -72,11 +72,11 @@ pub struct CurrentlyPlayingView {
     pub currently_playing_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub item: Option<SpotifyItem>,
-    #[serde(rename = "songUri", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "songUri", default, with = "crate::views::uri")]
     pub song_uri: Option<String>,
-    #[serde(rename = "artistUri", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "artistUri", default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
-    #[serde(rename = "albumUri", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "albumUri", default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     #[serde(default)]
     pub liked: bool,
@@ -88,7 +88,7 @@ pub struct SpotifyItem {
     pub id: String,
     #[serde(default)]
     pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<i64>,
@@ -112,7 +112,7 @@ pub struct SpotifyArtistRef {
     pub id: String,
     #[serde(default)]
     pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub uri: Option<String>,
 }
 
@@ -122,7 +122,7 @@ pub struct SpotifyAlbumRef {
     pub id: String,
     #[serde(default)]
     pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub uri: Option<String>,
     #[serde(default)]
     pub images: Vec<SpotifyImage>,
@@ -432,7 +432,20 @@ mod tests {
         assert_eq!(rendered["item"]["duration_ms"], 151_000);
         // Ours are camelCase, Spotify's are not; both appear as they do in
         // production.
-        assert!(rendered.get("songUri").is_none(), "{rendered}");
+        //
+        // `songUri` is `""` rather than absent: the client splits it to build
+        // a route, and `undefined.split(…)` throws just as `null` does. See
+        // `crate::views::uri`.
+        assert_eq!(rendered["songUri"], "", "{rendered}");
+        assert!(rendered["songUri"].is_string(), "{rendered}");
+
+        // Spotify's own `uri` inside the item is passed through untouched —
+        // it is a `spotify:` URI, not an AT-URI, and rewriting a third
+        // party's payload is not this rule's business.
+        assert_eq!(
+            rendered["item"]["uri"],
+            "spotify:track:4uLU6hMCjMI75M1A2tKUQC"
+        );
         assert_eq!(rendered["liked"], false);
     }
 

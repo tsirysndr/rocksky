@@ -74,7 +74,7 @@ pub struct ListQuery {
     /// index rather than from SQL — see [`list`].
     #[serde(default)]
     pub q: Option<String>,
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     #[serde(default)]
     pub album_artist: Option<String>,
@@ -589,7 +589,7 @@ async fn purge(state: &AppState, user_id: &str, uploads: &[Upload]) -> XrpcResul
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumQuery {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     #[serde(default)]
     pub album_artist: Option<String>,

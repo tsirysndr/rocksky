@@ -138,7 +138,7 @@ pub struct ShoutsOutput {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShoutParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     /// `getProfileShouts` names the actor `did` rather than `uri`.
     #[serde(default)]
@@ -394,6 +394,7 @@ async fn hydrate(db: &Backend, rows: Vec<ShoutRow>) -> anyhow::Result<Vec<ShoutV
 #[serde(rename_all = "camelCase")]
 pub struct CreateShoutInput {
     pub message: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     #[serde(default)]
     pub facets: Option<serde_json::Value>,

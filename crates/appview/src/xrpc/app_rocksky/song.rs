@@ -66,7 +66,7 @@ const SONG_DEFAULT_LIMIT: i64 = 20;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     #[serde(default)]
     pub limit: Option<i64>,

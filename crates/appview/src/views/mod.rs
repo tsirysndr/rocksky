@@ -42,6 +42,7 @@ pub struct ArtistView {
     pub died: Option<DateTime<Utc>>,
     pub picture: Option<String>,
     pub sha256: String,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub apple_music_link: Option<String>,
     pub spotify_link: Option<String>,
@@ -114,8 +115,11 @@ pub struct TrackView {
     pub copyright_message: Option<String>,
     pub key: Option<String>,
     pub bpm: Option<f64>,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     #[serde(with = "crate::views::timestamp::required")]
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -173,8 +177,10 @@ pub struct ScrobbleViewBasic {
     /// The scrobble's id, not the track's.
     pub id: String,
     /// The scrobble's AT-URI.
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     /// The track's AT-URI.
+    #[serde(default, with = "crate::views::uri")]
     pub track_uri: Option<String>,
 
     pub title: String,
@@ -197,7 +203,9 @@ pub struct ScrobbleViewBasic {
     pub copyright_message: Option<String>,
     pub key: Option<String>,
     pub bpm: Option<f64>,
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     pub xata_version: Option<i64>,
 
@@ -309,7 +317,9 @@ pub struct FirstScrobbleView {
 #[serde(rename_all = "camelCase")]
 pub struct ScrobbleViewDetailed {
     pub id: String,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub track_uri: Option<String>,
 
     pub title: String,
@@ -334,8 +344,10 @@ pub struct ScrobbleViewDetailed {
     pub copyright_message: Option<String>,
     pub key: Option<String>,
     pub bpm: Option<f64>,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     /// From the album row, not the track's own `album_uri`.
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     pub xata_version: Option<i64>,
 
@@ -430,5 +442,92 @@ impl ScrobbleViewDetailed {
 
             liked: likes.liked,
         }
+    }
+}
+
+/// Serialises an absent URI as `""` rather than `null`.
+///
+/// Every consumer of these fields treats them as strings: the web client
+/// splits them to build a route, and guards with `!uri`, `!!uri` or `||`.
+/// An empty string satisfies all three identically — it is falsy, and
+/// `"".split("at://")[1]` is `undefined`, the same as the guarded path
+/// produces — while `null.split(…)` throws
+/// `Cannot read properties of null (reading 'split')` and takes the page
+/// down.
+///
+/// Paired with `#[serde(default)]` at every use, because `serde(with = …)`
+/// otherwise makes the field mandatory on the way in — and a payload that
+/// simply omits a URI is normal.
+///
+/// The distinction a `null` would carry is not one any caller acts on: a
+/// record with no URI and a record whose URI is unknown are both "nothing to
+/// link to". So the safer spelling costs nothing.
+///
+/// Deliberately different from `apps/api`, which emits `null` here. That is
+/// survivable there because its data is dense — almost every row has a URI —
+/// and it is not survivable on a self-hosted instance, where a track known
+/// only from a scrobble legitimately has none.
+pub mod uri {
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(value: &Option<String>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(value.as_deref().unwrap_or(""))
+    }
+
+    /// Reads either spelling back, so a round trip through this module is
+    /// lossless for anything that matters — `""` and `null` both mean absent.
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Option::<String>::deserialize(deserializer)?.filter(|uri| !uri.is_empty()))
+    }
+}
+
+#[cfg(test)]
+mod uri_tests {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    struct Holder {
+        #[serde(with = "super::uri")]
+        uri: Option<String>,
+    }
+
+    /// The crash this exists to prevent: a client that splits the field must
+    /// receive a string.
+    #[test]
+    fn an_absent_uri_serialises_as_an_empty_string() {
+        let json = serde_json::to_string(&Holder { uri: None }).unwrap();
+        assert_eq!(json, r#"{"uri":""}"#);
+        assert!(!json.contains("null"));
+    }
+
+    #[test]
+    fn a_present_uri_is_unchanged() {
+        let json = serde_json::to_string(&Holder {
+            uri: Some("at://did:plc:alice/app.rocksky.song/3abc".into()),
+        })
+        .unwrap();
+        assert_eq!(
+            json,
+            r#"{"uri":"at://did:plc:alice/app.rocksky.song/3abc"}"#
+        );
+    }
+
+    /// Both spellings read back as absent, so nothing downstream has to know
+    /// which one it was given.
+    #[test]
+    fn either_spelling_reads_back_as_absent() {
+        for body in [r#"{"uri":""}"#, r#"{"uri":null}"#] {
+            let holder: Holder = serde_json::from_str(body).unwrap();
+            assert_eq!(holder.uri, None, "{body}");
+        }
+
+        let holder: Holder = serde_json::from_str(r#"{"uri":"at://x/y/z"}"#).unwrap();
+        assert_eq!(holder.uri.as_deref(), Some("at://x/y/z"));
     }
 }

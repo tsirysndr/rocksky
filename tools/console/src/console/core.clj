@@ -88,7 +88,6 @@
 
    {:group "devops" :ns 'console.devops
     :cmds [[:backup-ddb      "Back up DuckDB analytics+feed databases to R2"]
-           [:build-raichu    "wasm-pack build crates/raichu and copy into apps/web"]
            [:local-proxy     "Run tools/local-proxy.ts for split front/back-end dev"]
            [:mb              "Run musicbrainz Go metadata cache server"]]}
 

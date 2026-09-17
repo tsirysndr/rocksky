@@ -98,6 +98,7 @@ pub struct NotificationView {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shout_content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, with = "crate::views::uri")]
     pub subject_uri: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subject: Option<SubjectView>,

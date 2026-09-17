@@ -74,6 +74,7 @@ pub struct SharedArtist {
     pub id: String,
     pub name: String,
     pub picture: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
 }
 

@@ -164,9 +164,7 @@ async fn a_feed_carries_the_fields_the_ui_renders() {
     assert!(scrobbles.len() <= 5, "the limit is respected");
 
     let first = &scrobbles[0];
-    // The compact row, field for field against the live response. `trackUri`
-    // and `albumUri` may be null for a track this instance has not seen
-    // published, so their presence is what is asserted, not their value.
+    // The compact row, field for field against the live response.
     for field in [
         "id",
         "uri",
@@ -183,7 +181,21 @@ async fn a_feed_carries_the_fields_the_ui_renders() {
             "{field} is null in a feed row: {first}"
         );
     }
-    for field in ["trackId", "trackUri", "albumUri", "artistUri", "albumArt"] {
+    // A URI may legitimately be unknown — a track this instance has not seen
+    // published has none — but it is never `null`. The web client splits
+    // these to build a route, and `null.split(…)` takes the page down, while
+    // `""` is falsy and splits to the same `undefined` the guarded path
+    // produces. See `crate::views::uri`.
+    for field in ["uri", "trackUri", "albumUri", "artistUri"] {
+        let value = first
+            .get(field)
+            .unwrap_or_else(|| panic!("{field} is absent from a feed row: {first}"));
+        assert!(
+            value.is_string(),
+            "{field} must be a string, never null: {first}"
+        );
+    }
+    for field in ["trackId", "albumArt"] {
         assert!(
             first.get(field).is_some(),
             "{field} is absent from a feed row: {first}"

@@ -252,11 +252,15 @@ pub struct ActorScrobbleView {
     pub did: String,
     pub avatar: String,
     /// The scrobble's AT-URI.
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     /// The song's AT-URI.
+    #[serde(default, with = "crate::views::uri")]
     pub track_uri: Option<String>,
     pub liked: bool,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     #[serde(with = "crate::views::timestamp::required")]
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -376,11 +380,14 @@ async fn load_actor_scrobbles(
 #[serde(rename_all = "camelCase")]
 pub struct SongViewBasic {
     pub id: String,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub title: String,
     pub artist: String,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     pub album: String,
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     pub album_art: Option<String>,
     pub album_artist: String,
@@ -478,7 +485,9 @@ pub struct AlbumViewBasic {
     pub title: String,
     pub artist: String,
     pub album_art: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     pub sha256: String,
     pub year: Option<i64>,
@@ -562,6 +571,7 @@ pub struct ArtistViewBasic {
     pub name: String,
     pub picture: Option<String>,
     pub sha256: String,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     /// `null` when the column is NULL, matching the live response.
     pub tags: Option<Vec<String>>,

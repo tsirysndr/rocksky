@@ -119,7 +119,9 @@ mod tests {
             .unwrap();
 
         // Resolved: a real handle.
-        crate::ingest::upsert_user(&db, "did:plc:known").await.unwrap();
+        crate::ingest::upsert_user(&db, "did:plc:known")
+            .await
+            .unwrap();
         crate::ingest::set_handle(&db, "did:plc:known", "alice.example")
             .await
             .unwrap();
@@ -148,7 +150,9 @@ mod tests {
     #[tokio::test]
     async fn a_resolved_database_has_no_work() {
         let db = crate::db::connect_in_memory().await.unwrap();
-        crate::ingest::upsert_user(&db, "did:plc:known").await.unwrap();
+        crate::ingest::upsert_user(&db, "did:plc:known")
+            .await
+            .unwrap();
         crate::ingest::set_handle(&db, "did:plc:known", "alice.example")
             .await
             .unwrap();

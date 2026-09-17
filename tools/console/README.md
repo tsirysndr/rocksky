@@ -56,7 +56,7 @@ tools/console/
     ├── db.clj              # migrate, gen-migration, pkl, pgpull
     ├── sync.clj            # apps/api data-op scripts (12 commands)
     ├── daemons.clj         # all Rust services
-    ├── devops.clj          # backup-ddb, build-raichu, local-proxy, mb
+    ├── devops.clj          # backup-ddb, local-proxy, mb
     └── cron.clj            # wraps tools/cron.ts
 ```
 
@@ -85,7 +85,6 @@ You still need the **underlying toolchain** the scripts shell out to:
 | `cron`, `local-proxy`                    | `deno`                        |
 | `mb`                                     | `go`                          |
 | `backup-ddb`                             | `bash`, `aws` CLI, R2 profile |
-| `build-raichu`                           | `wasm-pack`                   |
 
 The console will surface a useful error if any of these are missing.
 
@@ -169,7 +168,6 @@ Run `(help)` / `bb help` for the live list. Snapshot:
 | `daemons` | `jetstream`, `scrobbler`, … `tracklist` | every `rockskyd <subcommand>`            |
 |           | `connect`, `storage`     | rocksky-connect, rocksky-storage                    |
 | `devops`  | `backup-ddb`             | DuckDB → R2 backup                                  |
-|           | `build-raichu`           | wasm-pack build + copy into apps/web                |
 |           | `local-proxy`            | local dev split-proxy on :8081                      |
 |           | `mb`                     | musicbrainz Go cache server                         |
 | `cron`    | `schedule <min> <cmd>`   | wrap any command in Deno cron                       |

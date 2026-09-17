@@ -126,7 +126,6 @@
 
   ;; ── devops & dev tools ───────────────────────────────────────
   backup:ddb    {:task (do (require 'console.devops) ((resolve 'console.devops/backup-ddb)))}
-  build:raichu  {:task (do (require 'console.devops) ((resolve 'console.devops/build-raichu)))}
   local-proxy   {:task (do (require 'console.devops) ((resolve 'console.devops/local-proxy)))}
   mb            {:doc "Run musicbrainz Go server"
                  :task (do (require 'console.devops) ((resolve 'console.devops/mb)))}

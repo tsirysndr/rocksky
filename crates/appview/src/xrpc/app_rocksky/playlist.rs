@@ -84,6 +84,7 @@ pub struct PlaylistView {
     pub id: String,
     pub title: String,
     pub description: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub cid: Option<String>,
     pub cover_image_url: Option<String>,
@@ -504,7 +505,7 @@ async fn get_actor_playlists(
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct UriParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
 }
 
@@ -714,7 +715,7 @@ pub(super) async fn publish_playlist(
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     #[serde(default)]
     pub name: Option<String>,
@@ -921,7 +922,7 @@ pub(super) async fn retract_playlist(
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AddSongsParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     /// Song AT-URIs. actix parses a repeated `songs=` parameter into this.
     #[serde(default)]
@@ -1142,9 +1143,9 @@ pub(super) async fn remove_one_entry(
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveTrackParams {
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
-    #[serde(default)]
+    #[serde(default, with = "crate::views::uri")]
     pub song_uri: Option<String>,
     /// Position in the list as `getPlaylist` presents it.
     #[serde(default)]

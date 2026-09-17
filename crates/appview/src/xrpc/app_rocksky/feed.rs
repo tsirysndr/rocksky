@@ -559,8 +559,10 @@ pub struct StoryView {
     pub album: String,
     pub album_art: Option<String>,
     pub album_artist: String,
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
     pub artist: String,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     pub avatar: String,
     /// The scrobble's timestamp, not the track row's creation time.
@@ -573,8 +575,10 @@ pub struct StoryView {
     pub id: String,
     pub title: String,
     pub track_id: String,
+    #[serde(default, with = "crate::views::uri")]
     pub track_uri: Option<String>,
     /// The scrobble's AT-URI.
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub liked: bool,
     pub likes_count: i64,

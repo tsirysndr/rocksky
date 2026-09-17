@@ -259,6 +259,7 @@ pub struct ArtistViewBasic {
     pub name: String,
     pub picture: Option<String>,
     pub sha256: String,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub play_count: i64,
     pub unique_listeners: i64,
@@ -428,6 +429,7 @@ pub struct SongViewBasic {
     pub artist: String,
     pub album_artist: String,
     pub album_art: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub uri: Option<String>,
     pub album: String,
     pub duration: i64,
@@ -435,7 +437,9 @@ pub struct SongViewBasic {
     pub disc_number: Option<i64>,
     pub play_count: i64,
     pub unique_listeners: i64,
+    #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
+    #[serde(default, with = "crate::views::uri")]
     pub artist_uri: Option<String>,
     pub sha256: String,
     /// The track's single genre wrapped in a list, or empty.
