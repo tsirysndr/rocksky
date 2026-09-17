@@ -319,6 +319,28 @@ fn pick_or(cli: Option<String>, env_key: &str, file: Option<String>, default: &s
     pick(cli, env_key, file).unwrap_or_else(|| default.to_string())
 }
 
+/// The address this instance calls itself, in precedence order.
+///
+/// An explicit setting wins; otherwise a domain implies https, which is the
+/// only thing a public deployment can be. With neither, localhost is the
+/// honest answer — and the port has to be the resolved one, since it is the
+/// address a browser was told to use.
+///
+/// Separate from [`Config::load`] so the order can be tested without setting
+/// environment variables, which would race the other tests in this module.
+fn resolve_public_url(
+    cli: Option<String>,
+    env: Option<String>,
+    file: Option<String>,
+    domain: Option<&str>,
+    port: u16,
+) -> String {
+    cli.or(env)
+        .or(file)
+        .or_else(|| domain.map(|domain| format!("https://{domain}")))
+        .unwrap_or_else(|| format!("http://localhost:{port}"))
+}
+
 fn env_flag(key: &str) -> Option<bool> {
     env_opt(key)
         .map(|v| v.to_ascii_lowercase())
@@ -661,16 +683,17 @@ impl Config {
             data_dir,
 
             jwt_secret,
-            // An explicit public_url wins; otherwise a domain implies https,
-            // which is the only thing a public deployment can be. With
-            // neither, localhost is the honest answer.
-            public_url: pick(
+            public_url: resolve_public_url(
                 cli.public_url.clone(),
-                "PUBLIC_URL",
+                // `ROCKSKY_PUBLIC_URL` first: every other setting here is
+                // named that way, and the bare `PUBLIC_URL` is a name other
+                // tools use too. Both are read, so neither spelling silently
+                // does nothing.
+                env_opt("ROCKSKY_PUBLIC_URL").or_else(|| env_opt("PUBLIC_URL")),
                 file.server.public_url.clone(),
-            )
-            .or_else(|| domain.as_ref().map(|domain| format!("https://{domain}")))
-            .unwrap_or_else(|| format!("http://localhost:{port}")),
+                domain.as_deref(),
+                port,
+            ),
             domain,
 
             upstream_url: pick(
@@ -1230,6 +1253,45 @@ mod tests {
         assert_eq!(config.public_url, "https://rocksky.example.com");
         assert!(config.is_public_ready());
         assert!(config.summary().contains("domain=rocksky.example.com"));
+    }
+
+    /// Both spellings of the environment variable are read. `compose.yml`
+    /// documents `ROCKSKY_PUBLIC_URL`, matching every other setting; only
+    /// `PUBLIC_URL` used to be read, so following the documentation had no
+    /// effect at all.
+    #[test]
+    fn the_public_url_falls_back_in_order() {
+        let env = || Some("https://from-env.example".to_string());
+        let file = || Some("https://from-file.example".to_string());
+
+        assert_eq!(
+            resolve_public_url(
+                Some("https://cli.example".into()),
+                env(),
+                file(),
+                Some("d"),
+                80
+            ),
+            "https://cli.example"
+        );
+        assert_eq!(
+            resolve_public_url(None, env(), file(), Some("d"), 80),
+            "https://from-env.example"
+        );
+        assert_eq!(
+            resolve_public_url(None, None, file(), Some("d"), 80),
+            "https://from-file.example"
+        );
+        // A domain alone implies https.
+        assert_eq!(
+            resolve_public_url(None, None, None, Some("rocksky.example.com"), 80),
+            "https://rocksky.example.com"
+        );
+        // And with nothing set, the resolved port — not the built-in one.
+        assert_eq!(
+            resolve_public_url(None, None, None, None, 4321),
+            "http://localhost:4321"
+        );
     }
 
     #[test]
