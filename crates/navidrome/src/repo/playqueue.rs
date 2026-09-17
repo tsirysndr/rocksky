@@ -1,5 +1,9 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use sea_query::{ColumnDef, Expr, OnConflict, PostgresQueryBuilder, Query, Table};
+
+use crate::schema::NavidromePlayQueues;
+use crate::sql;
 use rocksky_pgurl::Db;
 
 pub struct PlayQueue {
@@ -13,25 +17,61 @@ pub struct PlayQueue {
 
 pub async fn ensure_table(db: &Db) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS navidrome_play_queues (
-            user_id TEXT PRIMARY KEY,
-            track_ids TEXT[] NOT NULL DEFAULT '{}',
-            current_track_id TEXT,
-            position_ms BIGINT NOT NULL DEFAULT 0,
-            changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            changed_by TEXT NOT NULL DEFAULT ''
+    let ddl = Table::create()
+        .table(NavidromePlayQueues::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new(NavidromePlayQueues::UserId)
+                .text()
+                .not_null()
+                .primary_key(),
         )
-        "#,
-    )
-    .execute(pool)
-    .await?;
+        .col(
+            ColumnDef::new(NavidromePlayQueues::TrackIds)
+                .custom(sea_query::Alias::new("TEXT[]"))
+                .not_null()
+                .default(Expr::cust("'{}'")),
+        )
+        .col(ColumnDef::new(NavidromePlayQueues::CurrentTrackId).text())
+        .col(
+            ColumnDef::new(NavidromePlayQueues::PositionMs)
+                .big_integer()
+                .not_null()
+                .default(0),
+        )
+        .col(
+            ColumnDef::new(NavidromePlayQueues::ChangedAt)
+                .timestamp_with_time_zone()
+                .not_null()
+                .default(Expr::cust("NOW()")),
+        )
+        .col(
+            ColumnDef::new(NavidromePlayQueues::ChangedBy)
+                .text()
+                .not_null()
+                .default(""),
+        )
+        .build(PostgresQueryBuilder);
+
+    sql::execute_schema(pool, ddl).await?;
     Ok(())
 }
 
 pub async fn get_play_queue(db: &Db, user_id: &str) -> Result<Option<PlayQueue>, Error> {
     let pool = db.primary();
+    let stmt = Query::select()
+        .columns([
+            NavidromePlayQueues::UserId,
+            NavidromePlayQueues::TrackIds,
+            NavidromePlayQueues::CurrentTrackId,
+            NavidromePlayQueues::PositionMs,
+            NavidromePlayQueues::ChangedAt,
+            NavidromePlayQueues::ChangedBy,
+        ])
+        .from(NavidromePlayQueues::Table)
+        .and_where(Expr::col(NavidromePlayQueues::UserId).eq(user_id))
+        .take();
+
     let row: Option<(
         String,
         Vec<String>,
@@ -39,16 +79,7 @@ pub async fn get_play_queue(db: &Db, user_id: &str) -> Result<Option<PlayQueue>,
         i64,
         DateTime<Utc>,
         String,
-    )> = sqlx::query_as(
-        r#"
-            SELECT user_id, track_ids, current_track_id, position_ms, changed_at, changed_by
-            FROM navidrome_play_queues
-            WHERE user_id = $1
-            "#,
-    )
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
+    )> = sql::fetch_optional(pool, &stmt).await?;
 
     Ok(row.map(
         |(user_id, track_ids, current_track_id, position_ms, changed_at, changed_by)| PlayQueue {
@@ -71,24 +102,37 @@ pub async fn save_play_queue(
     changed_by: &str,
 ) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(
-        r#"
-        INSERT INTO navidrome_play_queues (user_id, track_ids, current_track_id, position_ms, changed_at, changed_by)
-        VALUES ($1, $2, $3, $4, NOW(), $5)
-        ON CONFLICT (user_id) DO UPDATE SET
-            track_ids = EXCLUDED.track_ids,
-            current_track_id = EXCLUDED.current_track_id,
-            position_ms = EXCLUDED.position_ms,
-            changed_at = EXCLUDED.changed_at,
-            changed_by = EXCLUDED.changed_by
-        "#,
-    )
-    .bind(user_id)
-    .bind(track_ids)
-    .bind(current_track_id)
-    .bind(position_ms)
-    .bind(changed_by)
-    .execute(pool)
-    .await?;
+    let stmt = Query::insert()
+        .into_table(NavidromePlayQueues::Table)
+        .columns([
+            NavidromePlayQueues::UserId,
+            NavidromePlayQueues::TrackIds,
+            NavidromePlayQueues::CurrentTrackId,
+            NavidromePlayQueues::PositionMs,
+            NavidromePlayQueues::ChangedAt,
+            NavidromePlayQueues::ChangedBy,
+        ])
+        .values_panic([
+            user_id.into(),
+            track_ids.to_vec().into(),
+            current_track_id.map(str::to_string).into(),
+            position_ms.into(),
+            Expr::cust("NOW()"),
+            changed_by.into(),
+        ])
+        .on_conflict(
+            OnConflict::column(NavidromePlayQueues::UserId)
+                .update_columns([
+                    NavidromePlayQueues::TrackIds,
+                    NavidromePlayQueues::CurrentTrackId,
+                    NavidromePlayQueues::PositionMs,
+                    NavidromePlayQueues::ChangedAt,
+                    NavidromePlayQueues::ChangedBy,
+                ])
+                .to_owned(),
+        )
+        .to_owned();
+
+    sql::execute(pool, &stmt).await?;
     Ok(())
 }

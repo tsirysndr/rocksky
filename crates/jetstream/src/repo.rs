@@ -4,9 +4,16 @@ use std::sync::{Arc, OnceLock, RwLock};
 use anyhow::Error;
 use chrono::DateTime;
 use owo_colors::OwoColorize;
+use rocksky_pgurl::sql;
+use sea_query::{Alias, Asterisk, Cond, Expr, Func, OnConflict, Order, Query, SelectStatement};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
+
+use crate::schema::{
+    AlbumTracks, Albums, ArtistAlbums, ArtistTracks, Artists, Feeds, Follows, Scrobbles, Tracks,
+    UserAlbums, UserArtists, UserTracks, Users,
+};
 
 // In-memory did → users.xata_id cache. Saves both the SELECT and the
 // did_to_profile HTTPS roundtrip on every scrobble for an existing user
@@ -92,32 +99,41 @@ pub async fn save_scrobble(
                 // listen. RETURNING is empty on conflict — that's the signal to
                 // skip the downstream fan-out (NATS + Discord) so we don't double-
                 // fire for what is, by definition, the same scrobble.
-                let scrobble_id: Option<String> = sqlx::query_scalar(
-                    r#"
-          INSERT INTO scrobbles (
-            album_id,
-            artist_id,
-            track_id,
-            uri,
-            user_id,
-            timestamp
-          ) VALUES ($1, $2, $3, $4, $5, $6)
-          ON CONFLICT (user_id, track_id, timestamp) DO NOTHING
-          RETURNING xata_id
-        "#,
-                )
-                .bind(album_id)
-                .bind(artist_id)
-                .bind(track_id)
-                .bind(uri)
-                .bind(&user_id)
-                .bind(
-                    DateTime::parse_from_rfc3339(&scrobble_record.created_at)
-                        .unwrap()
-                        .with_timezone(&chrono::Utc),
-                )
-                .fetch_optional(&mut *tx)
-                .await?;
+                let insert = Query::insert()
+                    .into_table(Scrobbles::Table)
+                    .columns([
+                        Scrobbles::AlbumId,
+                        Scrobbles::ArtistId,
+                        Scrobbles::TrackId,
+                        Scrobbles::Uri,
+                        Scrobbles::UserId,
+                        Scrobbles::Timestamp,
+                    ])
+                    .values_panic([
+                        album_id.into(),
+                        artist_id.into(),
+                        track_id.into(),
+                        uri.into(),
+                        user_id.clone().into(),
+                        DateTime::parse_from_rfc3339(&scrobble_record.created_at)
+                            .unwrap()
+                            .with_timezone(&chrono::Utc)
+                            .into(),
+                    ])
+                    .on_conflict(
+                        OnConflict::columns([
+                            Scrobbles::UserId,
+                            Scrobbles::TrackId,
+                            Scrobbles::Timestamp,
+                        ])
+                        .do_nothing()
+                        .to_owned(),
+                    )
+                    .returning_col(Scrobbles::XataId)
+                    .to_owned();
+
+                let scrobble_id: Option<String> =
+                    sql::fetch_scalar_optional(&mut *tx, &insert).await?;
 
                 tx.commit().await?;
 
@@ -135,11 +151,15 @@ pub async fn save_scrobble(
                     .await?;
                 publish_user(&nc, &pool, &user_id).await?;
 
-                let users: Vec<User> =
-                    sqlx::query_as::<_, User>("SELECT * FROM users WHERE did = $1")
-                        .bind(did)
-                        .fetch_all(&*pool)
-                        .await?;
+                let users: Vec<User> = sql::fetch_all(
+                    &*pool,
+                    &Query::select()
+                        .column(Asterisk)
+                        .from(Users::Table)
+                        .and_where(Expr::col(Users::Did).eq(did))
+                        .take(),
+                )
+                .await?;
 
                 if users.is_empty() {
                     return Err(anyhow::anyhow!(
@@ -344,11 +364,13 @@ pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error
         return Ok(id);
     }
 
-    if let Some(id) = sqlx::query_scalar::<_, String>("SELECT xata_id FROM users WHERE did = $1")
-        .bind(did)
-        .fetch_optional(pool)
-        .await?
-    {
+    let by_did = Query::select()
+        .column(Users::XataId)
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Did).eq(did))
+        .take();
+
+    if let Some(id) = sql::fetch_scalar_optional::<String>(pool, &by_did).await? {
         user_id_cache()
             .write()
             .unwrap()
@@ -370,18 +392,24 @@ pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error
     // DO UPDATE SET did = users.did is a no-op write that forces RETURNING to
     // fire on conflict, so two parallel inserts of the same DID both get back
     // the existing xata_id instead of one needing a follow-up SELECT.
-    let id: String = sqlx::query_scalar(
-        "INSERT INTO users (display_name, did, handle, avatar)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (did) DO UPDATE SET did = users.did
-         RETURNING xata_id",
-    )
-    .bind(profile.display_name)
-    .bind(did)
-    .bind(profile.handle)
-    .bind(avatar)
-    .fetch_one(pool)
-    .await?;
+    let insert = Query::insert()
+        .into_table(Users::Table)
+        .columns([Users::DisplayName, Users::Did, Users::Handle, Users::Avatar])
+        .values_panic([
+            profile.display_name.into(),
+            did.into(),
+            profile.handle.into(),
+            avatar.into(),
+        ])
+        .on_conflict(
+            OnConflict::column(Users::Did)
+                .value(Users::Did, Expr::col((Users::Table, Users::Did)))
+                .to_owned(),
+        )
+        .returning_col(Users::XataId)
+        .to_owned();
+
+    let id: String = sql::fetch_scalar(pool, &insert).await?;
 
     user_id_cache()
         .write()
@@ -395,10 +423,15 @@ pub async fn publish_user(
     pool: &Pool<Postgres>,
     id: &str,
 ) -> Result<(), Error> {
-    let users: Vec<User> = sqlx::query_as("SELECT * FROM users WHERE xata_id = $1")
-        .bind(id)
-        .fetch_all(pool)
-        .await?;
+    let users: Vec<User> = sql::fetch_all(
+        pool,
+        &Query::select()
+            .column(Asterisk)
+            .from(Users::Table)
+            .and_where(Expr::col(Users::XataId).eq(id))
+            .take(),
+    )
+    .await?;
 
     if users.is_empty() {
         tracing::warn!(user=%id, "user not found");
@@ -423,6 +456,82 @@ pub async fn publish_user(
     nc.flush().await?;
 
     Ok(())
+}
+
+/// `ON CONFLICT (<key>) DO UPDATE SET <key> = <table>.<key>` — a no-op write
+/// whose only job is to make `RETURNING` fire on conflict, so a concurrent
+/// insert of the same row gives us back its id instead of needing a follow-up
+/// SELECT.
+fn keep_existing(
+    table: impl sea_query::IntoIden + Copy + 'static,
+    key: impl sea_query::IntoIden + Copy + 'static,
+) -> OnConflict {
+    OnConflict::column(key)
+        .value(key, Expr::col((table, key)))
+        .to_owned()
+}
+
+/// `SELECT * FROM <table> WHERE sha256 = <hash>` — how every catalogue row is
+/// looked up before it is inserted.
+fn by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatement {
+    Query::select()
+        .column(Asterisk)
+        .from(table)
+        .and_where(Expr::col(Alias::new("sha256")).eq(hash))
+        .take()
+}
+
+/// The `tracks` row a scrobble or song record refers to, by content hash first.
+///
+/// Falls back to MBID and then ISRC when the source supplied one — that covers
+/// cosmetic title variations between scrobble sources that the sha256 would
+/// miss. The ranking is what matters: the same ISRC can map to several `tracks`
+/// rows when one recording is released on more than one album (a single and a
+/// compilation, say), so an unranked `OR ... LIMIT 1` returns a
+/// non-deterministic row that can silently cross albums.
+///
+/// The `$n::text IS NOT NULL` guards the hand-written form needed are gone — a
+/// branch with no value is simply not added.
+fn track_by_hash_or_id(hash: &str, mb_id: Option<&str>, isrc: Option<&str>) -> SelectStatement {
+    let by_sha = || Expr::col(Tracks::Sha256).eq(hash);
+    let by_mb = |v: &str| Expr::col(Tracks::MbId).eq(v);
+    let by_isrc = |v: &str| Expr::col(Tracks::Isrc).eq(v);
+
+    let mut matches = Cond::any().add(by_sha());
+    let mut rank = Expr::case(by_sha(), 0);
+    if let Some(v) = mb_id {
+        matches = matches.add(by_mb(v));
+        rank = rank.case(by_mb(v), 1);
+    }
+    if let Some(v) = isrc {
+        matches = matches.add(by_isrc(v));
+        rank = rank.case(by_isrc(v), 2);
+    }
+
+    Query::select()
+        .column(Asterisk)
+        .from(Tracks::Table)
+        .cond_where(matches)
+        .order_by_expr(rank.finally(3).into(), Order::Asc)
+        .limit(1)
+        .take()
+}
+
+/// `scrobbles = scrobbles + 1, uri = <uri>` on the caller's row in one of the
+/// three per-user rollup tables.
+fn bump_scrobbles(
+    table: impl sea_query::IntoTableRef,
+    scrobbles: impl sea_query::IntoIden + Copy + 'static,
+    uri_col: impl sea_query::IntoIden,
+    uri: &str,
+    predicate: sea_query::SimpleExpr,
+) -> sea_query::UpdateStatement {
+    Query::update()
+        .table(table)
+        .value(scrobbles, Expr::col(scrobbles).add(1))
+        .value(uri_col, uri)
+        .and_where(predicate)
+        .to_owned()
 }
 
 pub async fn save_track(
@@ -451,89 +560,70 @@ pub async fn save_track(
         .map(str::trim)
         .filter(|s| !s.is_empty());
 
-    // Rank exact sha (title+artist+album) above MBID, MBID above ISRC: the same
-    // ISRC can map to multiple `tracks` rows when one recording is released on
-    // several albums (e.g. a single + a compilation), and a bare `OR ... LIMIT 1`
-    // returns a non-deterministic row that can silently cross albums.
-    let tracks: Vec<Track> = sqlx::query_as(
-        "SELECT * FROM tracks WHERE sha256 = $1 \
-         OR ($2::text IS NOT NULL AND mb_id IS NOT NULL AND mb_id = $2) \
-         OR ($3::text IS NOT NULL AND isrc IS NOT NULL AND isrc = $3) \
-         ORDER BY CASE \
-           WHEN sha256 = $1 THEN 0 \
-           WHEN $2::text IS NOT NULL AND mb_id = $2 THEN 1 \
-           WHEN $3::text IS NOT NULL AND isrc = $3 THEN 2 \
-           ELSE 3 \
-         END \
-         LIMIT 1",
+    let existing: Option<Track> = sql::fetch_optional(
+        &mut **tx,
+        &track_by_hash_or_id(&hash, mb_id_filter, isrc_filter),
     )
-    .bind(&hash)
-    .bind(mb_id_filter)
-    .bind(isrc_filter)
-    .fetch_all(&mut **tx)
     .await?;
 
-    if let Some(t) = tracks.first() {
-        return Ok(t.xata_id.clone());
+    if let Some(t) = existing {
+        return Ok(t.xata_id);
     }
 
     // DO UPDATE SET sha256 = tracks.sha256 forces RETURNING to fire on conflict,
     // so a concurrent insert of the same sha256 still gives us back the existing
     // xata_id instead of needing a follow-up SELECT.
-    let id: String = sqlx::query_scalar(
-        r#"
-    INSERT INTO tracks (
-      title,
-      artist,
-      album,
-      album_art,
-      album_artist,
-      track_number,
-      duration,
-      mb_id,
-      isrc,
-      composer,
-      lyrics,
-      disc_number,
-      sha256,
-      copyright_message,
-      uri,
-      spotify_link,
-      apple_music_link,
-      tidal_link,
-      youtube_link,
-      label
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
-    )
-    ON CONFLICT (sha256) DO UPDATE SET sha256 = tracks.sha256
-    RETURNING xata_id
-  "#,
-    )
-    .bind(scrobble_record.title)
-    .bind(scrobble_record.artist)
-    .bind(scrobble_record.album)
-    .bind(scrobble_record.album_art_url)
-    .bind(scrobble_record.album_artist)
-    .bind(scrobble_record.track_number)
-    .bind(scrobble_record.duration)
-    .bind(scrobble_record.mbid)
-    .bind(scrobble_record.isrc)
-    .bind(scrobble_record.composer)
-    .bind(scrobble_record.lyrics)
-    .bind(scrobble_record.disc_number)
-    .bind(&hash)
-    .bind(scrobble_record.copyright_message)
-    .bind(uri)
-    .bind(scrobble_record.spotify_link)
-    .bind(scrobble_record.apple_music_link)
-    .bind(scrobble_record.tidal_link)
-    .bind(scrobble_record.youtube_link)
-    .bind(scrobble_record.label)
-    .fetch_one(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(Tracks::Table)
+        .columns([
+            Tracks::Title,
+            Tracks::Artist,
+            Tracks::Album,
+            Tracks::AlbumArt,
+            Tracks::AlbumArtist,
+            Tracks::TrackNumber,
+            Tracks::Duration,
+            Tracks::MbId,
+            Tracks::Isrc,
+            Tracks::Composer,
+            Tracks::Lyrics,
+            Tracks::DiscNumber,
+            Tracks::Sha256,
+            Tracks::CopyrightMessage,
+            Tracks::Uri,
+            Tracks::SpotifyLink,
+            Tracks::AppleMusicLink,
+            Tracks::TidalLink,
+            Tracks::YoutubeLink,
+            Tracks::Label,
+        ])
+        .values_panic([
+            scrobble_record.title.into(),
+            scrobble_record.artist.into(),
+            scrobble_record.album.into(),
+            scrobble_record.album_art_url.into(),
+            scrobble_record.album_artist.into(),
+            scrobble_record.track_number.into(),
+            scrobble_record.duration.into(),
+            scrobble_record.mbid.into(),
+            scrobble_record.isrc.into(),
+            scrobble_record.composer.into(),
+            scrobble_record.lyrics.into(),
+            scrobble_record.disc_number.into(),
+            hash.clone().into(),
+            scrobble_record.copyright_message.into(),
+            uri.into(),
+            scrobble_record.spotify_link.into(),
+            scrobble_record.apple_music_link.into(),
+            scrobble_record.tidal_link.into(),
+            scrobble_record.youtube_link.into(),
+            scrobble_record.label.into(),
+        ])
+        .on_conflict(keep_existing(Tracks::Table, Tracks::Sha256))
+        .returning_col(Tracks::XataId)
+        .to_owned();
 
-    Ok(id)
+    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
 }
 
 pub async fn save_album(
@@ -548,50 +638,45 @@ pub async fn save_album(
         .to_lowercase(),
     );
 
-    let albums: Vec<Album> = sqlx::query_as("SELECT * FROM albums WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
+    let existing: Option<Album> =
+        sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
 
-    if let Some(a) = albums.first() {
+    if let Some(a) = existing {
         tracing::info!(name = %a.title.magenta(), "Album already exists");
-        return Ok(a.xata_id.clone());
+        return Ok(a.xata_id);
     }
 
     tracing::info!(name = %scrobble_record.album, "Saving new album");
 
     let uri: Option<String> = None;
     let artist_uri: Option<String> = None;
-    let id: String = sqlx::query_scalar(
-        r#"
-    INSERT INTO albums (
-      title,
-      artist,
-      album_art,
-      year,
-      release_date,
-      sha256,
-      uri,
-      artist_uri
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8
-    )
-    ON CONFLICT (sha256) DO UPDATE SET sha256 = albums.sha256
-    RETURNING xata_id
-  "#,
-    )
-    .bind(scrobble_record.album)
-    .bind(scrobble_record.album_artist)
-    .bind(scrobble_record.album_art_url)
-    .bind(scrobble_record.year)
-    .bind(scrobble_record.release_date)
-    .bind(&hash)
-    .bind(uri)
-    .bind(artist_uri)
-    .fetch_one(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(Albums::Table)
+        .columns([
+            Albums::Title,
+            Albums::Artist,
+            Albums::AlbumArt,
+            Albums::Year,
+            Albums::ReleaseDate,
+            Albums::Sha256,
+            Albums::Uri,
+            Albums::ArtistUri,
+        ])
+        .values_panic([
+            scrobble_record.album.into(),
+            scrobble_record.album_artist.into(),
+            scrobble_record.album_art_url.into(),
+            scrobble_record.year.into(),
+            scrobble_record.release_date.into(),
+            hash.clone().into(),
+            uri.into(),
+            artist_uri.into(),
+        ])
+        .on_conflict(keep_existing(Albums::Table, Albums::Sha256))
+        .returning_col(Albums::XataId)
+        .to_owned();
 
-    Ok(id)
+    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
 }
 
 pub async fn save_artist(
@@ -599,44 +684,39 @@ pub async fn save_artist(
     scrobble_record: ScrobbleRecord,
 ) -> Result<String, Error> {
     let hash = sha256::digest(scrobble_record.album_artist.to_lowercase());
-    let artists: Vec<Artist> = sqlx::query_as("SELECT * FROM artists WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
+    let existing: Option<Artist> =
+        sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
 
-    if let Some(a) = artists.first() {
+    if let Some(a) = existing {
         tracing::info!(name = %scrobble_record.album_artist, "Artist already exists");
-        return Ok(a.xata_id.clone());
+        return Ok(a.xata_id);
     }
 
     tracing::info!(name = %scrobble_record.album_artist, "Saving new artist");
 
     let uri: Option<String> = None;
     let picture = "";
-    let id: String = sqlx::query_scalar(
-        r#"
-    INSERT INTO artists (
-      name,
-      sha256,
-      uri,
-      picture,
-      genres
-    ) VALUES (
-      $1, $2, $3, $4, $5
-    )
-    ON CONFLICT (sha256) DO UPDATE SET sha256 = artists.sha256
-    RETURNING xata_id
-  "#,
-    )
-    .bind(scrobble_record.artist)
-    .bind(&hash)
-    .bind(uri)
-    .bind(picture)
-    .bind(scrobble_record.tags)
-    .fetch_one(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(Artists::Table)
+        .columns([
+            Artists::Name,
+            Artists::Sha256,
+            Artists::Uri,
+            Artists::Picture,
+            Artists::Genres,
+        ])
+        .values_panic([
+            scrobble_record.artist.into(),
+            hash.clone().into(),
+            uri.into(),
+            picture.into(),
+            scrobble_record.tags.into(),
+        ])
+        .on_conflict(keep_existing(Artists::Table, Artists::Sha256))
+        .returning_col(Artists::XataId)
+        .to_owned();
 
-    Ok(id)
+    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
 }
 
 pub async fn save_album_track(
@@ -644,35 +724,32 @@ pub async fn save_album_track(
     album_id: &str,
     track_id: &str,
 ) -> Result<(), Error> {
-    let album_tracks: Vec<AlbumTrack> =
-        sqlx::query_as("SELECT * FROM album_tracks WHERE album_id = $1 AND track_id = $2")
-            .bind(album_id)
-            .bind(track_id)
-            .fetch_all(&mut **tx)
-            .await?;
+    let exists: Option<AlbumTrack> = sql::fetch_optional(
+        &mut **tx,
+        &Query::select()
+            .column(Asterisk)
+            .from(AlbumTracks::Table)
+            .and_where(Expr::col(AlbumTracks::AlbumId).eq(album_id))
+            .and_where(Expr::col(AlbumTracks::TrackId).eq(track_id))
+            .take(),
+    )
+    .await?;
 
-    if !album_tracks.is_empty() {
+    if exists.is_some() {
         tracing::info!(album_id = %album_id, track_id = %track_id, "Album track already exists");
         return Ok(());
     }
 
     tracing::info!(album_id = %album_id, track_id = %track_id, "Saving album track");
 
-    sqlx::query(
-        r#"
-    INSERT INTO album_tracks (
-      album_id,
-      track_id
-    ) VALUES (
-      $1, $2
-    )
-    ON CONFLICT DO NOTHING
-  "#,
-    )
-    .bind(album_id)
-    .bind(track_id)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(AlbumTracks::Table)
+        .columns([AlbumTracks::AlbumId, AlbumTracks::TrackId])
+        .values_panic([album_id.into(), track_id.into()])
+        .on_conflict(OnConflict::new().do_nothing().to_owned())
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
     Ok(())
 }
 
@@ -681,35 +758,32 @@ pub async fn save_artist_track(
     artist_id: &str,
     track_id: &str,
 ) -> Result<(), Error> {
-    let artist_tracks: Vec<ArtistTrack> =
-        sqlx::query_as("SELECT * FROM artist_tracks WHERE artist_id = $1 AND track_id = $2")
-            .bind(artist_id)
-            .bind(track_id)
-            .fetch_all(&mut **tx)
-            .await?;
+    let exists: Option<ArtistTrack> = sql::fetch_optional(
+        &mut **tx,
+        &Query::select()
+            .column(Asterisk)
+            .from(ArtistTracks::Table)
+            .and_where(Expr::col(ArtistTracks::ArtistId).eq(artist_id))
+            .and_where(Expr::col(ArtistTracks::TrackId).eq(track_id))
+            .take(),
+    )
+    .await?;
 
-    if !artist_tracks.is_empty() {
+    if exists.is_some() {
         tracing::info!(artist_id = %artist_id, track_id = %track_id, "Artist track already exists");
         return Ok(());
     }
 
     tracing::info!(artist_id = %artist_id, track_id = %track_id, "Saving artist track");
 
-    sqlx::query(
-        r#"
-    INSERT INTO artist_tracks (
-      artist_id,
-      track_id
-    ) VALUES (
-      $1, $2
-    )
-    ON CONFLICT DO NOTHING
-  "#,
-    )
-    .bind(artist_id)
-    .bind(track_id)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(ArtistTracks::Table)
+        .columns([ArtistTracks::ArtistId, ArtistTracks::TrackId])
+        .values_panic([artist_id.into(), track_id.into()])
+        .on_conflict(OnConflict::new().do_nothing().to_owned())
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
     Ok(())
 }
 
@@ -718,35 +792,32 @@ pub async fn save_artist_album(
     artist_id: &str,
     album_id: &str,
 ) -> Result<(), Error> {
-    let artist_albums: Vec<ArtistAlbum> =
-        sqlx::query_as("SELECT * FROM artist_albums WHERE artist_id = $1 AND album_id = $2")
-            .bind(artist_id)
-            .bind(album_id)
-            .fetch_all(&mut **tx)
-            .await?;
+    let exists: Option<ArtistAlbum> = sql::fetch_optional(
+        &mut **tx,
+        &Query::select()
+            .column(Asterisk)
+            .from(ArtistAlbums::Table)
+            .and_where(Expr::col(ArtistAlbums::ArtistId).eq(artist_id))
+            .and_where(Expr::col(ArtistAlbums::AlbumId).eq(album_id))
+            .take(),
+    )
+    .await?;
 
-    if !artist_albums.is_empty() {
+    if exists.is_some() {
         tracing::info!(artist_id = %artist_id, album_id = %album_id, "Artist album already exists");
         return Ok(());
     }
 
     tracing::info!(artist_id = %artist_id, album_id = %album_id, "Saving artist album");
 
-    sqlx::query(
-        r#"
-    INSERT INTO artist_albums (
-      artist_id,
-      album_id
-    ) VALUES (
-      $1, $2
-    )
-    ON CONFLICT DO NOTHING
-  "#,
-    )
-    .bind(artist_id)
-    .bind(album_id)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(ArtistAlbums::Table)
+        .columns([ArtistAlbums::ArtistId, ArtistAlbums::AlbumId])
+        .values_panic([artist_id.into(), album_id.into()])
+        .on_conflict(OnConflict::new().do_nothing().to_owned())
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
     Ok(())
 }
 
@@ -758,91 +829,78 @@ pub async fn save_user_artist(
 ) -> Result<(), Error> {
     let hash = sha256::digest(record.name.to_lowercase());
 
-    let mut artists: Vec<Artist> = sqlx::query_as("SELECT * FROM artists WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
+    let mut artist: Option<Artist> =
+        sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
 
-    let artist_id: &str;
+    if artist.is_none() {
+        tracing::info!(name = %record.name, "Artist not found in database, inserting new artist");
+        let insert = Query::insert()
+            .into_table(Artists::Table)
+            .columns([
+                Artists::Name,
+                Artists::Sha256,
+                Artists::Uri,
+                Artists::Picture,
+            ])
+            .values_panic([
+                record.name.into(),
+                hash.clone().into(),
+                uri.into(),
+                record.picture_url.into(),
+            ])
+            .to_owned();
+        sql::execute(&mut **tx, &insert).await?;
 
-    match artists.is_empty() {
-        true => {
-            tracing::info!(name = %record.name, "Artist not found in database, inserting new artist");
-            sqlx::query(
-                r#"
-        INSERT INTO artists (
-          name,
-          sha256,
-          uri,
-          picture
-        ) VALUES (
-          $1, $2, $3, $4
-        )
-      "#,
-            )
-            .bind(record.name)
-            .bind(&hash)
-            .bind(uri)
-            .bind(record.picture_url)
-            .execute(&mut **tx)
-            .await?;
+        artist = sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
+    }
 
-            artists = sqlx::query_as("SELECT * FROM artists WHERE sha256 = $1")
-                .bind(&hash)
-                .fetch_all(&mut **tx)
-                .await?;
-            artist_id = &artists[0].xata_id;
-        }
-        false => {
-            artist_id = &artists[0].xata_id;
-        }
+    let artist_id = artist
+        .ok_or_else(|| anyhow::anyhow!("Artist {} vanished after insert", hash))?
+        .xata_id;
+
+    let mine = || {
+        Expr::col(UserArtists::UserId)
+            .eq(user_id)
+            .and(Expr::col(UserArtists::ArtistId).eq(&artist_id))
     };
 
-    let user_artists: Vec<UserArtist> =
-        sqlx::query_as("SELECT * FROM user_artists WHERE user_id = $1 AND artist_id = $2")
-            .bind(user_id)
-            .bind(artist_id)
-            .fetch_all(&mut **tx)
-            .await?;
+    let existing: Option<UserArtist> = sql::fetch_optional(
+        &mut **tx,
+        &Query::select()
+            .column(Asterisk)
+            .from(UserArtists::Table)
+            .and_where(mine())
+            .take(),
+    )
+    .await?;
 
-    if !user_artists.is_empty() {
+    if existing.is_some() {
         tracing::info!(user_id = %user_id, artist_id = %artist_id, "Updating user artist");
-        sqlx::query(
-            r#"
-      UPDATE user_artists
-      SET scrobbles = scrobbles + 1,
-          uri = $3
-      WHERE user_id = $1 AND artist_id = $2
-    "#,
-        )
-        .bind(user_id)
-        .bind(artist_id)
-        .bind(uri)
-        .execute(&mut **tx)
-        .await?;
+        let update = bump_scrobbles(
+            UserArtists::Table,
+            UserArtists::Scrobbles,
+            UserArtists::Uri,
+            uri,
+            mine(),
+        );
+        sql::execute(&mut **tx, &update).await?;
         return Ok(());
     }
 
     tracing::info!(user_id = %user_id, artist_id = %artist_id, "Inserting user artist");
 
-    sqlx::query(
-        r#"
-    INSERT INTO user_artists (
-      user_id,
-      artist_id,
-      uri,
-      scrobbles
-    ) VALUES (
-      $1, $2, $3, $4
-    )
-  "#,
-    )
-    .bind(user_id)
-    .bind(artist_id)
-    .bind(uri)
-    .bind(1)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(UserArtists::Table)
+        .columns([
+            UserArtists::UserId,
+            UserArtists::ArtistId,
+            UserArtists::Uri,
+            UserArtists::Scrobbles,
+        ])
+        .values_panic([user_id.into(), artist_id.into(), uri.into(), 1.into()])
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
     Ok(())
 }
 
@@ -853,97 +911,84 @@ pub async fn save_user_album(
     uri: &str,
 ) -> Result<(), Error> {
     let hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
-    let mut albums: Vec<Album> = sqlx::query_as("SELECT * FROM albums WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
+    let mut album: Option<Album> =
+        sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
 
-    let album_id: &str;
+    if album.is_none() {
+        tracing::info!(title = %record.title, artist = %record.artist, "Album not found in database, inserting new album");
+        let insert = Query::insert()
+            .into_table(Albums::Table)
+            .columns([
+                Albums::Title,
+                Albums::Artist,
+                Albums::AlbumArt,
+                Albums::Year,
+                Albums::ReleaseDate,
+                Albums::Sha256,
+                Albums::Uri,
+            ])
+            .values_panic([
+                record.title.into(),
+                record.artist.into(),
+                record.album_art_url.into(),
+                record.year.into(),
+                record.release_date.into(),
+                hash.clone().into(),
+                uri.into(),
+            ])
+            .to_owned();
+        sql::execute(&mut **tx, &insert).await?;
 
-    match albums.is_empty() {
-        true => {
-            tracing::info!(title = %record.title, artist = %record.artist, "Album not found in database, inserting new album");
-            sqlx::query(
-                r#"
-        INSERT INTO albums (
-          title,
-          artist,
-          album_art,
-          year,
-          release_date,
-          sha256,
-          uri
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7
-        )
-      "#,
-            )
-            .bind(record.title)
-            .bind(record.artist)
-            .bind(record.album_art_url)
-            .bind(record.year)
-            .bind(record.release_date)
-            .bind(&hash)
-            .bind(uri)
-            .execute(&mut **tx)
-            .await?;
+        album = sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
+    }
 
-            albums = sqlx::query_as("SELECT * FROM albums WHERE sha256 = $1")
-                .bind(&hash)
-                .fetch_all(&mut **tx)
-                .await?;
-            album_id = &albums[0].xata_id;
-        }
-        false => {
-            album_id = &albums[0].xata_id;
-        }
+    let album_id = album
+        .ok_or_else(|| anyhow::anyhow!("Album {} vanished after insert", hash))?
+        .xata_id;
+
+    let mine = || {
+        Expr::col(UserAlbums::UserId)
+            .eq(user_id)
+            .and(Expr::col(UserAlbums::AlbumId).eq(&album_id))
     };
 
-    let user_albums: Vec<UserAlbum> =
-        sqlx::query_as("SELECT * FROM user_albums WHERE user_id = $1 AND album_id = $2")
-            .bind(user_id)
-            .bind(album_id)
-            .fetch_all(&mut **tx)
-            .await?;
+    let existing: Option<UserAlbum> = sql::fetch_optional(
+        &mut **tx,
+        &Query::select()
+            .column(Asterisk)
+            .from(UserAlbums::Table)
+            .and_where(mine())
+            .take(),
+    )
+    .await?;
 
-    if !user_albums.is_empty() {
+    if existing.is_some() {
         tracing::info!(user_id = %user_id, album_id = %album_id, "Updating user album");
-        sqlx::query(
-            r#"
-      UPDATE user_albums
-      SET scrobbles = scrobbles + 1,
-          uri = $3
-      WHERE user_id = $1 AND album_id = $2
-    "#,
-        )
-        .bind(user_id)
-        .bind(album_id)
-        .bind(uri)
-        .execute(&mut **tx)
-        .await?;
+        let update = bump_scrobbles(
+            UserAlbums::Table,
+            UserAlbums::Scrobbles,
+            UserAlbums::Uri,
+            uri,
+            mine(),
+        );
+        sql::execute(&mut **tx, &update).await?;
         return Ok(());
     }
 
     tracing::info!(user_id = %user_id, album_id = %album_id, "Inserting user album");
 
-    sqlx::query(
-        r#"
-    INSERT INTO user_albums (
-      user_id,
-      album_id,
-      uri,
-      scrobbles
-    ) VALUES (
-      $1, $2, $3, $4
-    )
-  "#,
-    )
-    .bind(user_id)
-    .bind(album_id)
-    .bind(uri)
-    .bind(1)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(UserAlbums::Table)
+        .columns([
+            UserAlbums::UserId,
+            UserAlbums::AlbumId,
+            UserAlbums::Uri,
+            UserAlbums::Scrobbles,
+        ])
+        .values_panic([user_id.into(), album_id.into(), uri.into(), 1.into()])
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
     Ok(())
 }
 
@@ -969,84 +1014,77 @@ pub async fn save_user_track(
         .filter(|s| !s.is_empty());
 
     // Rank sha (exact title+artist+album) above MBID, MBID above ISRC — see
-    // save_track for the rationale (recordings shared across albums).
-    let mut tracks: Vec<Track> = sqlx::query_as(
-        "SELECT * FROM tracks WHERE sha256 = $1 \
-         OR ($2::text IS NOT NULL AND mb_id IS NOT NULL AND mb_id = $2) \
-         OR ($3::text IS NOT NULL AND isrc IS NOT NULL AND isrc = $3) \
-         ORDER BY CASE \
-           WHEN sha256 = $1 THEN 0 \
-           WHEN $2::text IS NOT NULL AND mb_id = $2 THEN 1 \
-           WHEN $3::text IS NOT NULL AND isrc = $3 THEN 2 \
-           ELSE 3 \
-         END \
-         LIMIT 1",
+    // `track_by_hash_or_id` for the rationale (recordings shared across albums).
+    let found: Option<Track> = sql::fetch_optional(
+        &mut **tx,
+        &track_by_hash_or_id(&hash, mb_id_filter, isrc_filter),
     )
-    .bind(&hash)
-    .bind(mb_id_filter)
-    .bind(isrc_filter)
-    .fetch_all(&mut **tx)
     .await?;
 
-    let track_id: &str;
-
-    match tracks.is_empty() {
-        true => {
+    let track_id = match found {
+        None => {
             tracing::info!(title = %record.title, artist = %record.artist, album = %record.album, "Track not found in database, inserting new track");
-            sqlx::query(
-                r#"
-        INSERT INTO tracks (
-          title,
-          artist,
-          album,
-          album_art,
-          album_artist,
-          track_number,
-          duration,
-          mb_id,
-          isrc,
-          composer,
-          lyrics,
-          disc_number,
-          sha256,
-          copyright_message,
-          uri,
-          spotify_link,
-          label
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
-        )
-        ON CONFLICT (sha256) DO UPDATE SET uri = COALESCE(tracks.uri, EXCLUDED.uri)
-      "#,
-            )
-            .bind(record.title)
-            .bind(record.artist)
-            .bind(record.album)
-            .bind(record.album_art_url)
-            .bind(record.album_artist)
-            .bind(record.track_number)
-            .bind(record.duration)
-            .bind(record.mbid)
-            .bind(record.isrc)
-            .bind(record.composer)
-            .bind(record.lyrics)
-            .bind(record.disc_number)
-            .bind(&hash)
-            .bind(record.copyright_message)
-            .bind(uri)
-            .bind(record.spotify_link)
-            .bind(record.label)
-            .execute(&mut **tx)
-            .await?;
+            let insert = Query::insert()
+                .into_table(Tracks::Table)
+                .columns([
+                    Tracks::Title,
+                    Tracks::Artist,
+                    Tracks::Album,
+                    Tracks::AlbumArt,
+                    Tracks::AlbumArtist,
+                    Tracks::TrackNumber,
+                    Tracks::Duration,
+                    Tracks::MbId,
+                    Tracks::Isrc,
+                    Tracks::Composer,
+                    Tracks::Lyrics,
+                    Tracks::DiscNumber,
+                    Tracks::Sha256,
+                    Tracks::CopyrightMessage,
+                    Tracks::Uri,
+                    Tracks::SpotifyLink,
+                    Tracks::Label,
+                ])
+                .values_panic([
+                    record.title.into(),
+                    record.artist.into(),
+                    record.album.into(),
+                    record.album_art_url.into(),
+                    record.album_artist.into(),
+                    record.track_number.into(),
+                    record.duration.into(),
+                    record.mbid.into(),
+                    record.isrc.into(),
+                    record.composer.into(),
+                    record.lyrics.into(),
+                    record.disc_number.into(),
+                    hash.clone().into(),
+                    record.copyright_message.into(),
+                    uri.into(),
+                    record.spotify_link.into(),
+                    record.label.into(),
+                ])
+                .on_conflict(
+                    OnConflict::column(Tracks::Sha256)
+                        .value(
+                            Tracks::Uri,
+                            Func::coalesce([
+                                Expr::col((Tracks::Table, Tracks::Uri)).into(),
+                                Expr::col((Alias::new("excluded"), Tracks::Uri)).into(),
+                            ]),
+                        )
+                        .to_owned(),
+                )
+                .to_owned();
+            sql::execute(&mut **tx, &insert).await?;
 
-            tracks = sqlx::query_as("SELECT * FROM tracks WHERE sha256 = $1")
-                .bind(&hash)
-                .fetch_all(&mut **tx)
-                .await?;
-
-            track_id = &tracks[0].xata_id;
+            let inserted: Option<Track> =
+                sql::fetch_optional(&mut **tx, &by_sha256(Tracks::Table, &hash)).await?;
+            inserted
+                .ok_or_else(|| anyhow::anyhow!("Track {} vanished after insert", hash))?
+                .xata_id
         }
-        false => {
+        Some(track) => {
             // The scrobble path (`save_track`) inserts its `tracks` row with a
             // NULL uri — it only ever sees an `app.rocksky.scrobble` record, so
             // there is no song at-uri to store. `update_track_uri` backfills
@@ -1055,62 +1093,62 @@ pub async fn save_user_track(
             // difference between sources), its sha differs and the row would
             // stay uri-less forever. Guarded on IS NULL so an existing uri —
             // the first publisher's — is never repointed.
-            if tracks[0].uri.is_none() {
-                sqlx::query("UPDATE tracks SET uri = $2 WHERE xata_id = $1 AND uri IS NULL")
-                    .bind(&tracks[0].xata_id)
-                    .bind(uri)
-                    .execute(&mut **tx)
-                    .await?;
+            if track.uri.is_none() {
+                let update = Query::update()
+                    .table(Tracks::Table)
+                    .value(Tracks::Uri, uri)
+                    .and_where(Expr::col(Tracks::XataId).eq(&track.xata_id))
+                    .and_where(Expr::col(Tracks::Uri).is_null())
+                    .to_owned();
+                sql::execute(&mut **tx, &update).await?;
             }
-            track_id = &tracks[0].xata_id;
+            track.xata_id
         }
-    }
+    };
 
-    let user_tracks: Vec<UserTrack> =
-        sqlx::query_as("SELECT * FROM user_tracks WHERE user_id = $1 AND track_id = $2")
-            .bind(user_id)
-            .bind(track_id)
-            .fetch_all(&mut **tx)
-            .await?;
+    let mine = || {
+        Expr::col(UserTracks::UserId)
+            .eq(user_id)
+            .and(Expr::col(UserTracks::TrackId).eq(&track_id))
+    };
 
-    if !user_tracks.is_empty() {
+    let existing: Option<UserTrack> = sql::fetch_optional(
+        &mut **tx,
+        &Query::select()
+            .column(Asterisk)
+            .from(UserTracks::Table)
+            .and_where(mine())
+            .take(),
+    )
+    .await?;
+
+    if existing.is_some() {
         tracing::info!(user_id = %user_id, track_id = %track_id, "Updating user track");
-        sqlx::query(
-            r#"
-      UPDATE user_tracks
-      SET scrobbles = scrobbles + 1,
-          uri = $3
-      WHERE user_id = $1 AND track_id = $2
-    "#,
-        )
-        .bind(user_id)
-        .bind(track_id)
-        .bind(uri)
-        .execute(&mut **tx)
-        .await?;
+        let update = bump_scrobbles(
+            UserTracks::Table,
+            UserTracks::Scrobbles,
+            UserTracks::Uri,
+            uri,
+            mine(),
+        );
+        sql::execute(&mut **tx, &update).await?;
         return Ok(());
     }
 
     tracing::info!(user_id = %user_id, track_id = %track_id, "Inserting user track");
 
-    sqlx::query(
-        r#"
-    INSERT INTO user_tracks (
-      user_id,
-      track_id,
-      uri,
-      scrobbles
-    ) VALUES (
-      $1, $2, $3, $4
-    )
-  "#,
-    )
-    .bind(user_id)
-    .bind(track_id)
-    .bind(uri)
-    .bind(1)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(UserTracks::Table)
+        .columns([
+            UserTracks::UserId,
+            UserTracks::TrackId,
+            UserTracks::Uri,
+            UserTracks::Scrobbles,
+        ])
+        .values_panic([user_id.into(), track_id.into(), uri.into(), 1.into()])
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
 
     Ok(())
 }
@@ -1122,66 +1160,46 @@ pub async fn update_artist_uri(
     uri: &str,
 ) -> Result<(), Error> {
     let hash = sha256::digest(record.name.to_lowercase());
-    let artists: Vec<Artist> = sqlx::query_as("SELECT * FROM artists WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
+    let artist: Option<Artist> =
+        sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
 
-    if artists.is_empty() {
+    let Some(artist) = artist else {
         tracing::warn!(name = %record.name, "Artist not found in database");
         return Ok(());
-    }
+    };
 
-    let artist_id = &artists[0].xata_id;
+    let link_user = Query::update()
+        .table(UserArtists::Table)
+        .value(UserArtists::Uri, uri)
+        .and_where(Expr::col(UserArtists::UserId).eq(user_id))
+        .and_where(Expr::col(UserArtists::ArtistId).eq(&artist.xata_id))
+        .to_owned();
+    sql::execute(&mut **tx, &link_user).await?;
 
-    sqlx::query(
-        r#"
-    UPDATE user_artists
-    SET uri = $3
-    WHERE user_id = $1 AND artist_id = $2
-  "#,
-    )
-    .bind(user_id)
-    .bind(artist_id)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let stamp_tracks = Query::update()
+        .table(Tracks::Table)
+        .value(Tracks::ArtistUri, uri)
+        .and_where(Expr::col(Tracks::ArtistUri).is_null())
+        .and_where(Expr::col(Tracks::AlbumArtist).eq(&record.name))
+        .to_owned();
+    sql::execute(&mut **tx, &stamp_tracks).await?;
 
-    sqlx::query(
-        r#"
-    UPDATE tracks
-    SET artist_uri = $2
-    WHERE artist_uri IS NULL AND album_artist = $1
-  "#,
-    )
-    .bind(&record.name)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let stamp_artist = Query::update()
+        .table(Artists::Table)
+        .value(Artists::Uri, uri)
+        .and_where(Expr::col(Artists::Sha256).eq(&hash))
+        .and_where(Expr::col(Artists::Uri).is_null())
+        .to_owned();
+    sql::execute(&mut **tx, &stamp_artist).await?;
 
-    sqlx::query(
-        r#"
-    UPDATE artists
-    SET uri = $2
-    WHERE sha256 = $1 AND uri IS NULL
-  "#,
-    )
-    .bind(&hash)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let stamp_albums = Query::update()
+        .table(Albums::Table)
+        .value(Albums::ArtistUri, uri)
+        .and_where(Expr::col(Albums::ArtistUri).is_null())
+        .and_where(Expr::col(Albums::Artist).eq(&record.name))
+        .to_owned();
+    sql::execute(&mut **tx, &stamp_albums).await?;
 
-    sqlx::query(
-        r#"
-    UPDATE albums
-    SET artist_uri = $2
-    WHERE artist_uri IS NULL AND artist = $1
-  "#,
-    )
-    .bind(&record.name)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
     Ok(())
 }
 
@@ -1192,51 +1210,37 @@ pub async fn update_album_uri(
     uri: &str,
 ) -> Result<(), Error> {
     let hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
-    let albums: Vec<Album> = sqlx::query_as("SELECT * FROM albums WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
-    if albums.is_empty() {
+    let album: Option<Album> =
+        sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
+
+    let Some(album) = album else {
         tracing::warn!(title = %record.title, "Album not found in database");
         return Ok(());
-    }
-    let album_id = &albums[0].xata_id;
-    sqlx::query(
-        r#"
-    UPDATE user_albums
-    SET uri = $3
-    WHERE user_id = $1 AND album_id = $2
-  "#,
-    )
-    .bind(user_id)
-    .bind(album_id)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    };
 
-    sqlx::query(
-        r#"
-    UPDATE tracks
-    SET album_uri = $2
-    WHERE album_uri IS NULL AND album = $1
-  "#,
-    )
-    .bind(record.title)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let link_user = Query::update()
+        .table(UserAlbums::Table)
+        .value(UserAlbums::Uri, uri)
+        .and_where(Expr::col(UserAlbums::UserId).eq(user_id))
+        .and_where(Expr::col(UserAlbums::AlbumId).eq(&album.xata_id))
+        .to_owned();
+    sql::execute(&mut **tx, &link_user).await?;
 
-    sqlx::query(
-        r#"
-    UPDATE albums
-    SET uri = $2
-    WHERE sha256 = $1 AND uri IS NULL
-  "#,
-    )
-    .bind(&hash)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let stamp_tracks = Query::update()
+        .table(Tracks::Table)
+        .value(Tracks::AlbumUri, uri)
+        .and_where(Expr::col(Tracks::AlbumUri).is_null())
+        .and_where(Expr::col(Tracks::Album).eq(&record.title))
+        .to_owned();
+    sql::execute(&mut **tx, &stamp_tracks).await?;
+
+    let stamp_album = Query::update()
+        .table(Albums::Table)
+        .value(Albums::Uri, uri)
+        .and_where(Expr::col(Albums::Sha256).eq(&hash))
+        .and_where(Expr::col(Albums::Uri).is_null())
+        .to_owned();
+    sql::execute(&mut **tx, &stamp_album).await?;
 
     Ok(())
 }
@@ -1250,41 +1254,29 @@ pub async fn update_track_uri(
     let hash = sha256::digest(
         format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
     );
-    let tracks: Vec<Track> = sqlx::query_as("SELECT * FROM tracks WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
+    let track: Option<Track> =
+        sql::fetch_optional(&mut **tx, &by_sha256(Tracks::Table, &hash)).await?;
 
-    if tracks.is_empty() {
+    let Some(track) = track else {
         tracing::warn!(title = %record.title, "Track not found in database");
         return Ok(());
-    }
+    };
 
-    let track_id = &tracks[0].xata_id;
-    sqlx::query(
-        r#"
-    UPDATE user_tracks
-    SET uri = $3
-    WHERE user_id = $1 AND track_id = $2
-  "#,
-    )
-    .bind(user_id)
-    .bind(track_id)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let link_user = Query::update()
+        .table(UserTracks::Table)
+        .value(UserTracks::Uri, uri)
+        .and_where(Expr::col(UserTracks::UserId).eq(user_id))
+        .and_where(Expr::col(UserTracks::TrackId).eq(&track.xata_id))
+        .to_owned();
+    sql::execute(&mut **tx, &link_user).await?;
 
-    sqlx::query(
-        r#"
-    UPDATE tracks
-    SET uri = $2
-    WHERE sha256 = $1 AND uri IS NULL
-  "#,
-    )
-    .bind(&hash)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let stamp_track = Query::update()
+        .table(Tracks::Table)
+        .value(Tracks::Uri, uri)
+        .and_where(Expr::col(Tracks::Sha256).eq(&hash))
+        .and_where(Expr::col(Tracks::Uri).is_null())
+        .to_owned();
+    sql::execute(&mut **tx, &stamp_track).await?;
 
     Ok(())
 }
@@ -1310,28 +1302,27 @@ pub async fn save_feed_generator(
 
     tracing::info!(user_id = %user_id, display_name = %record.display_name, uri = %uri, "Saving feed generator");
 
-    sqlx::query(
-        r#"
-    INSERT INTO feeds (
-        user_id,
-        uri,
-        display_name,
-        description,
-        did,
-        avatar
-    ) VALUES (
-        $1, $2, $3, $4, $5, $6
-    )
-  "#,
-    )
-    .bind(user_id)
-    .bind(uri)
-    .bind(record.display_name)
-    .bind(record.description)
-    .bind(record.did)
-    .bind(avatar)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(Feeds::Table)
+        .columns([
+            Feeds::UserId,
+            Feeds::Uri,
+            Feeds::DisplayName,
+            Feeds::Description,
+            Feeds::Did,
+            Feeds::Avatar,
+        ])
+        .values_panic([
+            user_id.into(),
+            uri.into(),
+            record.display_name.into(),
+            record.description.into(),
+            record.did.into(),
+            avatar.into(),
+        ])
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
     Ok(())
 }
 
@@ -1343,30 +1334,76 @@ pub async fn save_follow(
 ) -> Result<(), Error> {
     tracing::info!(did = %did, uri = %uri, "Saving follow");
 
-    sqlx::query(
-        r#"
-    INSERT INTO follows (
-        follower_did,
-        subject_did,
-        uri
-    ) VALUES (
-        $1, $2, $3
-    )
-    ON CONFLICT (follower_did, subject_did) DO NOTHING
-  "#,
-    )
-    .bind(did)
-    .bind(record.subject)
-    .bind(uri)
-    .execute(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(Follows::Table)
+        .columns([Follows::FollowerDid, Follows::SubjectDid, Follows::Uri])
+        .values_panic([did.into(), record.subject.into(), uri.into()])
+        .on_conflict(
+            OnConflict::columns([Follows::FollowerDid, Follows::SubjectDid])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+
+    sql::execute(&mut **tx, &insert).await?;
     Ok(())
 }
 
 pub async fn delete_scrobble(pool: &Pool<Postgres>, uri: &str) -> Result<(), Error> {
-    sqlx::query("DELETE FROM scrobbles WHERE uri = $1")
-        .bind(uri)
-        .execute(pool)
-        .await?;
+    let delete = Query::delete()
+        .from_table(Scrobbles::Table)
+        .and_where(Expr::col(Scrobbles::Uri).eq(uri))
+        .to_owned();
+
+    sql::execute(pool, &delete).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_query::PostgresQueryBuilder;
+    use sea_query_binder::SqlxBinder;
+
+    /// The ranking is the point: the same ISRC can name several `tracks` rows,
+    /// so the sha match has to win, then MBID, then ISRC.
+    #[test]
+    fn the_track_lookup_ranks_sha_above_mbid_above_isrc() {
+        let (sql, _) =
+            track_by_hash_or_id("hash", Some("mb"), Some("isrc")).build_sqlx(PostgresQueryBuilder);
+        let case = &sql[sql.find("CASE").unwrap()..];
+        let sha = case.find(r#""sha256""#).unwrap();
+        let mb = case.find(r#""mb_id""#).unwrap();
+        let isrc = case.find(r#""isrc""#).unwrap();
+        assert!(sha < mb && mb < isrc, "{case}");
+    }
+
+    /// A branch with no value is left out entirely, rather than carried as a
+    /// `$n::text IS NOT NULL` guard the way the hand-written SQL had to.
+    #[test]
+    fn absent_identifiers_add_no_branches() {
+        let (sql, values) =
+            track_by_hash_or_id("hash", None, None).build_sqlx(PostgresQueryBuilder);
+        assert!(!sql.contains("mb_id"));
+        assert!(!sql.contains("isrc"));
+        // sha (WHERE), sha (CASE), 0, ELSE 3, LIMIT 1.
+        assert_eq!(values.0 .0.len(), 5);
+    }
+
+    /// The no-op SET is what makes RETURNING fire on conflict, so a concurrent
+    /// insert of the same row hands back its id instead of nothing.
+    #[test]
+    fn keep_existing_returns_the_row_it_collided_with() {
+        let (sql, _) = Query::insert()
+            .into_table(Tracks::Table)
+            .columns([Tracks::Sha256])
+            .values_panic(["h".into()])
+            .on_conflict(keep_existing(Tracks::Table, Tracks::Sha256))
+            .returning_col(Tracks::XataId)
+            .to_owned()
+            .build_sqlx(PostgresQueryBuilder);
+        assert!(sql.contains(
+            r#"ON CONFLICT ("sha256") DO UPDATE SET "sha256" = "tracks"."sha256" RETURNING "xata_id""#
+        ));
+    }
 }

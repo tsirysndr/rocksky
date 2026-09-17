@@ -8,7 +8,18 @@ repository.workspace = true
 
 [dependencies]
 anyhow = "1.0.96"
-sqlx = { version = "0.8.3", features = ["runtime-tokio-rustls", "postgres", "macros"] }
+sqlx = { version = "0.8.3", features = [
+  "runtime-tokio-rustls",
+  "postgres",
+  "chrono",
+  "macros",
+] }
+sea-query = { version = "0.32", features = ["postgres-array", "with-chrono"] }
+sea-query-binder = { version = "0.7", features = [
+  "sqlx-postgres",
+  "postgres-array",
+  "with-chrono",
+] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

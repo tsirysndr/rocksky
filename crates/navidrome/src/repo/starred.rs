@@ -1,8 +1,23 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use sea_query::{Alias, Expr, Iden, JoinType, Order, Query, SimpleExpr};
 
 use crate::repo::track::one_upload_join;
+use crate::schema::{AlbumTracks, ArtistTracks, LovedTracks, Tracks, UserUploads};
+use crate::sql;
 use rocksky_pgurl::Db;
+
+#[derive(Iden, Clone, Copy)]
+#[iden = "at2"]
+enum At2 {
+    Table,
+}
+
+#[derive(Iden, Clone, Copy)]
+#[iden = "at3"]
+enum At3 {
+    Table,
+}
 
 pub struct StarredTrack {
     pub xata_id: String,
@@ -53,40 +68,87 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for StarredTrack {
     }
 }
 
+/// `(SELECT <col> FROM <junction> WHERE track_id = tracks.xata_id LIMIT 1)`.
+fn first_junction_id(
+    table: impl sea_query::IntoTableRef,
+    alias: impl sea_query::IntoIden + Copy + 'static,
+    id_col: impl sea_query::IntoIden + 'static,
+    track_col: impl sea_query::IntoIden + 'static,
+) -> SimpleExpr {
+    SimpleExpr::SubQuery(
+        None,
+        Box::new(
+            Query::select()
+                .column((alias, id_col))
+                .from_as(table, alias)
+                .and_where(Expr::col((alias, track_col)).equals((Tracks::Table, Tracks::XataId)))
+                .limit(1)
+                .take()
+                .into_sub_query_statement(),
+        ),
+    )
+}
+
 pub async fn get_starred_tracks(db: &Db, user_id: &str) -> Result<Vec<StarredTrack>, Error> {
     let pool = db.primary();
-    let rows: Vec<StarredTrack> = sqlx::query_as(&format!(
-        r#"
-        SELECT
-            tracks.xata_id,
-            tracks.title,
-            tracks.artist,
-            tracks.album_artist,
-            tracks.album_art,
-            tracks.album,
-            tracks.track_number,
-            tracks.disc_number,
-            tracks.duration,
-            tracks.mb_id,
-            tracks.genre,
-            tracks.xata_createdat,
-            user_uploads.r2_key,
-            user_uploads.mime_type,
-            user_uploads.file_size,
-            user_uploads.sample_rate,
-            (SELECT at2.album_id FROM album_tracks at2 WHERE at2.track_id = tracks.xata_id LIMIT 1) AS album_id,
-            (SELECT at3.artist_id FROM artist_tracks at3 WHERE at3.track_id = tracks.xata_id LIMIT 1) AS artist_id,
-            loved_tracks.xata_createdat AS starred_at
-        FROM loved_tracks
-        JOIN tracks ON loved_tracks.track_id = tracks.xata_id{upload_join}
-        WHERE loved_tracks.user_id = $1
-        ORDER BY loved_tracks.xata_createdat DESC
-        "#,
-        upload_join = one_upload_join("$1")
-    ))
-    .bind(user_id)
-    .fetch_all(pool)
-    .await?;
+    let mut stmt = Query::select();
+    stmt.columns([
+        (Tracks::Table, Tracks::XataId),
+        (Tracks::Table, Tracks::Title),
+        (Tracks::Table, Tracks::Artist),
+        (Tracks::Table, Tracks::AlbumArtist),
+        (Tracks::Table, Tracks::AlbumArt),
+        (Tracks::Table, Tracks::Album),
+        (Tracks::Table, Tracks::TrackNumber),
+        (Tracks::Table, Tracks::DiscNumber),
+        (Tracks::Table, Tracks::Duration),
+        (Tracks::Table, Tracks::MbId),
+        (Tracks::Table, Tracks::Genre),
+        (Tracks::Table, Tracks::XataCreatedat),
+    ])
+    .columns([
+        (UserUploads::Table, UserUploads::R2Key),
+        (UserUploads::Table, UserUploads::MimeType),
+        (UserUploads::Table, UserUploads::FileSize),
+        (UserUploads::Table, UserUploads::SampleRate),
+    ])
+    .expr_as(
+        first_junction_id(
+            AlbumTracks::Table,
+            At2::Table,
+            AlbumTracks::AlbumId,
+            AlbumTracks::TrackId,
+        ),
+        Alias::new("album_id"),
+    )
+    .expr_as(
+        first_junction_id(
+            ArtistTracks::Table,
+            At3::Table,
+            ArtistTracks::ArtistId,
+            ArtistTracks::TrackId,
+        ),
+        Alias::new("artist_id"),
+    )
+    .expr_as(
+        Expr::col((LovedTracks::Table, LovedTracks::XataCreatedat)),
+        Alias::new("starred_at"),
+    )
+    .from(LovedTracks::Table)
+    .join(
+        JoinType::Join,
+        Tracks::Table,
+        Expr::col((LovedTracks::Table, LovedTracks::TrackId))
+            .equals((Tracks::Table, Tracks::XataId)),
+    );
 
-    Ok(rows)
+    one_upload_join(&mut stmt, user_id);
+
+    stmt.and_where(Expr::col((LovedTracks::Table, LovedTracks::UserId)).eq(user_id))
+        .order_by(
+            (LovedTracks::Table, LovedTracks::XataCreatedat),
+            Order::Desc,
+        );
+
+    Ok(sql::fetch_all(pool, &stmt).await?)
 }

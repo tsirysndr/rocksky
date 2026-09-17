@@ -15,6 +15,7 @@ pub mod guid;
 pub mod handlers;
 pub mod library;
 pub mod query;
+pub mod schema;
 pub mod state;
 pub mod userdata;
 

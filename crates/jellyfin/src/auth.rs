@@ -11,13 +11,17 @@ use actix_web::{dev::Payload, error::ErrorUnauthorized, web, FromRequest, HttpRe
 use anyhow::Error;
 use futures::future::LocalBoxFuture;
 use rand::RngCore;
+use rocksky_navidrome::schema::Users;
+use rocksky_navidrome::sql;
 use rocksky_pgurl::Db;
+use sea_query::{ColumnDef, Expr, Index, JoinType, OnConflict, PostgresQueryBuilder, Query, Table};
 use std::{
     collections::HashMap,
     sync::{Mutex, OnceLock},
     time::{Duration, Instant},
 };
 
+use crate::schema::{JellyfinMeta, JellyfinTokens};
 use crate::state::AppState;
 
 /// The authenticated Rocksky user behind a request. `id` is the `users.xata_id`
@@ -130,35 +134,49 @@ pub fn random_hex(bytes: usize) -> String {
 
 pub async fn ensure_tables(db: &Db) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS jellyfin_tokens (
-            token TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            device_id TEXT,
-            device_name TEXT,
-            client TEXT,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    let tokens = Table::create()
+        .table(JellyfinTokens::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new(JellyfinTokens::Token)
+                .text()
+                .not_null()
+                .primary_key(),
         )
-        "#,
-    )
-    .execute(pool)
-    .await?;
-    sqlx::query(
-        r#"CREATE INDEX IF NOT EXISTS jellyfin_tokens_user_id_idx ON jellyfin_tokens (user_id)"#,
-    )
-    .execute(pool)
-    .await?;
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS jellyfin_meta (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
+        .col(ColumnDef::new(JellyfinTokens::UserId).text().not_null())
+        .col(ColumnDef::new(JellyfinTokens::DeviceId).text())
+        .col(ColumnDef::new(JellyfinTokens::DeviceName).text())
+        .col(ColumnDef::new(JellyfinTokens::Client).text())
+        .col(
+            ColumnDef::new(JellyfinTokens::CreatedAt)
+                .timestamp_with_time_zone()
+                .not_null()
+                .default(Expr::cust("NOW()")),
         )
-        "#,
-    )
-    .execute(pool)
-    .await?;
+        .build(PostgresQueryBuilder);
+    sql::execute_schema(pool, tokens).await?;
+
+    let by_user = Index::create()
+        .if_not_exists()
+        .name("jellyfin_tokens_user_id_idx")
+        .table(JellyfinTokens::Table)
+        .col(JellyfinTokens::UserId)
+        .build(PostgresQueryBuilder);
+    sql::execute_schema(pool, by_user).await?;
+
+    let meta = Table::create()
+        .table(JellyfinMeta::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new(JellyfinMeta::Key)
+                .text()
+                .not_null()
+                .primary_key(),
+        )
+        .col(ColumnDef::new(JellyfinMeta::Value).text().not_null())
+        .build(PostgresQueryBuilder);
+    sql::execute_schema(pool, meta).await?;
+
     Ok(())
 }
 
@@ -187,20 +205,30 @@ pub async fn store_token(
     auth: &EmbyAuth,
 ) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(
-        r#"
-        INSERT INTO jellyfin_tokens (token, user_id, device_id, device_name, client)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (token) DO NOTHING
-        "#,
-    )
-    .bind(token)
-    .bind(user_id)
-    .bind(auth.device_id.as_deref())
-    .bind(auth.device.as_deref())
-    .bind(auth.client.as_deref())
-    .execute(pool)
-    .await?;
+    let stmt = Query::insert()
+        .into_table(JellyfinTokens::Table)
+        .columns([
+            JellyfinTokens::Token,
+            JellyfinTokens::UserId,
+            JellyfinTokens::DeviceId,
+            JellyfinTokens::DeviceName,
+            JellyfinTokens::Client,
+        ])
+        .values_panic([
+            token.into(),
+            user_id.into(),
+            auth.device_id.clone().into(),
+            auth.device.clone().into(),
+            auth.client.clone().into(),
+        ])
+        .on_conflict(
+            OnConflict::column(JellyfinTokens::Token)
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+
+    sql::execute(pool, &stmt).await?;
     Ok(())
 }
 
@@ -226,18 +254,24 @@ pub async fn resolve_token(db: &Db, token: &str) -> Option<AuthedUser> {
         }
     }
 
-    let user: Option<AuthedUser> = sqlx::query_as(
-        r#"
-        SELECT users.xata_id, users.handle, users.display_name, users.avatar
-        FROM jellyfin_tokens
-        JOIN users ON users.xata_id = jellyfin_tokens.user_id
-        WHERE jellyfin_tokens.token = $1
-        "#,
-    )
-    .bind(token)
-    .fetch_optional(pool)
-    .await
-    .unwrap_or(None);
+    let stmt = Query::select()
+        .columns([
+            (Users::Table, Users::XataId),
+            (Users::Table, Users::Handle),
+            (Users::Table, Users::DisplayName),
+            (Users::Table, Users::Avatar),
+        ])
+        .from(JellyfinTokens::Table)
+        .join(
+            JoinType::Join,
+            Users::Table,
+            Expr::col((Users::Table, Users::XataId))
+                .equals((JellyfinTokens::Table, JellyfinTokens::UserId)),
+        )
+        .and_where(Expr::col((JellyfinTokens::Table, JellyfinTokens::Token)).eq(token))
+        .take();
+
+    let user: Option<AuthedUser> = sql::fetch_optional(pool, &stmt).await.unwrap_or(None);
 
     if let Some(u) = &user {
         let mut cache = token_cache().lock().unwrap();

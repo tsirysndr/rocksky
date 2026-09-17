@@ -6,11 +6,14 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use owo_colors::OwoColorize;
+use rocksky_pgurl::sql;
+use sea_query::{Expr, JoinType, OnConflict, Query};
 use sqlx::{Pool, Postgres};
 
 use crate::{
     profile::did_to_pds,
     repo::save_user,
+    schema::{PlaylistTracks, Playlists, Tracks, UserPlaylists, Users},
     subscriber::{PLAYLIST_NSID, PLAYLIST_SONG_NSID},
     types::{PlaylistRecord, PlaylistSongRecord},
 };
@@ -59,48 +62,69 @@ pub async fn save_playlist(
     // update is just a re-publish of the same AT-URI. created_by is deliberately
     // not in the SET list — the repo that authored the record owns it forever,
     // and a conflicting uri necessarily belongs to the same repo anyway.
-    let playlist_id: String = sqlx::query_scalar(
-        r#"
-    INSERT INTO playlists (
-      name, description, picture, uri, cid,
-      spotify_link, tidal_link, apple_music_link, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    ON CONFLICT (uri) DO UPDATE SET
-      name = EXCLUDED.name,
-      description = EXCLUDED.description,
-      picture = EXCLUDED.picture,
-      cid = EXCLUDED.cid,
-      spotify_link = EXCLUDED.spotify_link,
-      tidal_link = EXCLUDED.tidal_link,
-      apple_music_link = EXCLUDED.apple_music_link,
-      xata_updatedat = now()
-    RETURNING xata_id
-  "#,
-    )
-    .bind(&record.name)
-    .bind(&record.description)
-    .bind(&record.picture_url)
-    .bind(&uri)
-    .bind(cid)
-    .bind(&record.spotify_link)
-    .bind(&record.tidal_link)
-    .bind(&record.apple_music_link)
-    .bind(&user_id)
-    .fetch_one(&mut *tx)
-    .await?;
+    let upsert = Query::insert()
+        .into_table(Playlists::Table)
+        .columns([
+            Playlists::Name,
+            Playlists::Description,
+            Playlists::Picture,
+            Playlists::Uri,
+            Playlists::Cid,
+            Playlists::SpotifyLink,
+            Playlists::TidalLink,
+            Playlists::AppleMusicLink,
+            Playlists::CreatedBy,
+        ])
+        .values_panic([
+            record.name.clone().into(),
+            record.description.clone().into(),
+            record.picture_url.clone().into(),
+            uri.clone().into(),
+            cid.map(str::to_string).into(),
+            record.spotify_link.clone().into(),
+            record.tidal_link.clone().into(),
+            record.apple_music_link.clone().into(),
+            user_id.clone().into(),
+        ])
+        .on_conflict(
+            OnConflict::column(Playlists::Uri)
+                .update_columns([
+                    Playlists::Name,
+                    Playlists::Description,
+                    Playlists::Picture,
+                    Playlists::Cid,
+                    Playlists::SpotifyLink,
+                    Playlists::TidalLink,
+                    Playlists::AppleMusicLink,
+                ])
+                .value(Playlists::XataUpdatedat, Expr::cust("now()"))
+                .to_owned(),
+        )
+        .returning_col(Playlists::XataId)
+        .to_owned();
 
-    sqlx::query(
-        r#"
-    INSERT INTO user_playlists (user_id, playlist_id, uri)
-    VALUES ($1, $2, $3)
-    ON CONFLICT (user_id, playlist_id) DO NOTHING
-  "#,
-    )
-    .bind(&user_id)
-    .bind(&playlist_id)
-    .bind(&uri)
-    .execute(&mut *tx)
-    .await?;
+    let playlist_id: String = sql::fetch_scalar(&mut *tx, &upsert).await?;
+
+    let link = Query::insert()
+        .into_table(UserPlaylists::Table)
+        .columns([
+            UserPlaylists::UserId,
+            UserPlaylists::PlaylistId,
+            UserPlaylists::Uri,
+        ])
+        .values_panic([
+            user_id.clone().into(),
+            playlist_id.clone().into(),
+            uri.clone().into(),
+        ])
+        .on_conflict(
+            OnConflict::columns([UserPlaylists::UserId, UserPlaylists::PlaylistId])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+
+    sql::execute(&mut *tx, &link).await?;
 
     tx.commit().await?;
 
@@ -161,17 +185,20 @@ async fn resolve_playlist(
 }
 
 async fn load_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<Option<PlaylistRow>, Error> {
-    let row: Option<(String, String)> = sqlx::query_as(
-        r#"
-    SELECT playlists.xata_id, users.did
-    FROM playlists
-    JOIN users ON users.xata_id = playlists.created_by
-    WHERE playlists.uri = $1
-  "#,
-    )
-    .bind(uri)
-    .fetch_optional(pool)
-    .await?;
+    let stmt = Query::select()
+        .column((Playlists::Table, Playlists::XataId))
+        .column((Users::Table, Users::Did))
+        .from(Playlists::Table)
+        .join(
+            JoinType::Join,
+            Users::Table,
+            Expr::col((Users::Table, Users::XataId))
+                .equals((Playlists::Table, Playlists::CreatedBy)),
+        )
+        .and_where(Expr::col((Playlists::Table, Playlists::Uri)).eq(uri))
+        .take();
+
+    let row: Option<(String, String)> = sql::fetch_optional(pool, &stmt).await?;
 
     Ok(row.map(|(id, owner_did)| PlaylistRow { id, owner_did }))
 }
@@ -223,26 +250,37 @@ pub async fn save_playlist_song(
         "Saving playlist entry"
     );
 
-    sqlx::query(
-        r#"
-    INSERT INTO playlist_tracks (
-      playlist_id, track_id, uri, cid, added_by, added_at
-    ) VALUES ($1, $2, $3, $4, $5, $6)
-    ON CONFLICT (uri) DO UPDATE SET
-      playlist_id = EXCLUDED.playlist_id,
-      track_id = EXCLUDED.track_id,
-      cid = EXCLUDED.cid,
-      added_at = EXCLUDED.added_at
-  "#,
-    )
-    .bind(&playlist.id)
-    .bind(&track_id)
-    .bind(&uri)
-    .bind(cid)
-    .bind(&user_id)
-    .bind(parse_timestamp(&record.added_at))
-    .execute(&mut *tx)
-    .await?;
+    let upsert = Query::insert()
+        .into_table(PlaylistTracks::Table)
+        .columns([
+            PlaylistTracks::PlaylistId,
+            PlaylistTracks::TrackId,
+            PlaylistTracks::Uri,
+            PlaylistTracks::Cid,
+            PlaylistTracks::AddedBy,
+            PlaylistTracks::AddedAt,
+        ])
+        .values_panic([
+            playlist.id.clone().into(),
+            track_id.clone().into(),
+            uri.clone().into(),
+            cid.map(str::to_string).into(),
+            user_id.clone().into(),
+            parse_timestamp(&record.added_at).into(),
+        ])
+        .on_conflict(
+            OnConflict::column(PlaylistTracks::Uri)
+                .update_columns([
+                    PlaylistTracks::PlaylistId,
+                    PlaylistTracks::TrackId,
+                    PlaylistTracks::Cid,
+                    PlaylistTracks::AddedAt,
+                ])
+                .to_owned(),
+        )
+        .to_owned();
+
+    sql::execute(&mut *tx, &upsert).await?;
 
     tx.commit().await?;
 
@@ -261,12 +299,14 @@ async fn resolve_track(
     tx: &mut sqlx::Transaction<'_, Postgres>,
     record: &PlaylistSongRecord,
 ) -> Result<String, Error> {
-    if let Some(id) =
-        sqlx::query_scalar::<_, String>("SELECT xata_id FROM tracks WHERE uri = $1 LIMIT 1")
-            .bind(&record.song.uri)
-            .fetch_optional(&mut **tx)
-            .await?
-    {
+    let by_uri = Query::select()
+        .column(Tracks::XataId)
+        .from(Tracks::Table)
+        .and_where(Expr::col(Tracks::Uri).eq(&record.song.uri))
+        .limit(1)
+        .take();
+
+    if let Some(id) = sql::fetch_scalar_optional::<String>(&mut **tx, &by_uri).await? {
         return Ok(id);
     }
 
@@ -274,35 +314,48 @@ async fn resolve_track(
         format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
     );
 
-    if let Some(id) =
-        sqlx::query_scalar::<_, String>("SELECT xata_id FROM tracks WHERE sha256 = $1 LIMIT 1")
-            .bind(&hash)
-            .fetch_optional(&mut **tx)
-            .await?
-    {
+    let by_hash = Query::select()
+        .column(Tracks::XataId)
+        .from(Tracks::Table)
+        .and_where(Expr::col(Tracks::Sha256).eq(&hash))
+        .limit(1)
+        .take();
+
+    if let Some(id) = sql::fetch_scalar_optional::<String>(&mut **tx, &by_hash).await? {
         return Ok(id);
     }
 
-    let id: String = sqlx::query_scalar(
-        r#"
-    INSERT INTO tracks (title, artist, album, album_artist, album_art, duration, sha256, uri)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    ON CONFLICT (sha256) DO UPDATE SET sha256 = tracks.sha256
-    RETURNING xata_id
-  "#,
-    )
-    .bind(&record.title)
-    .bind(&record.artist)
-    .bind(&record.album)
-    .bind(&record.album_artist)
-    .bind(&record.album_art_url)
-    .bind(record.duration)
-    .bind(&hash)
-    .bind(&record.song.uri)
-    .fetch_one(&mut **tx)
-    .await?;
+    let insert = Query::insert()
+        .into_table(Tracks::Table)
+        .columns([
+            Tracks::Title,
+            Tracks::Artist,
+            Tracks::Album,
+            Tracks::AlbumArtist,
+            Tracks::AlbumArt,
+            Tracks::Duration,
+            Tracks::Sha256,
+            Tracks::Uri,
+        ])
+        .values_panic([
+            record.title.clone().into(),
+            record.artist.clone().into(),
+            record.album.clone().into(),
+            record.album_artist.clone().into(),
+            record.album_art_url.clone().into(),
+            record.duration.into(),
+            hash.clone().into(),
+            record.song.uri.clone().into(),
+        ])
+        .on_conflict(
+            OnConflict::column(Tracks::Sha256)
+                .value(Tracks::Sha256, Expr::col((Tracks::Table, Tracks::Sha256)))
+                .to_owned(),
+        )
+        .returning_col(Tracks::XataId)
+        .to_owned();
 
-    Ok(id)
+    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
 }
 
 /// Removing the playlist record removes the playlist. Entries go with it —
@@ -311,29 +364,36 @@ async fn resolve_track(
 pub async fn delete_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<(), Error> {
     let mut tx = pool.begin().await?;
 
-    let playlist_id: Option<String> =
-        sqlx::query_scalar("SELECT xata_id FROM playlists WHERE uri = $1")
-            .bind(uri)
-            .fetch_optional(&mut *tx)
-            .await?;
+    let by_uri = Query::select()
+        .column(Playlists::XataId)
+        .from(Playlists::Table)
+        .and_where(Expr::col(Playlists::Uri).eq(uri))
+        .take();
+
+    let playlist_id: Option<String> = sql::fetch_scalar_optional(&mut *tx, &by_uri).await?;
 
     let Some(playlist_id) = playlist_id else {
         tx.rollback().await?;
         return Ok(());
     };
 
-    sqlx::query("DELETE FROM playlist_tracks WHERE playlist_id = $1")
-        .bind(&playlist_id)
-        .execute(&mut *tx)
-        .await?;
-    sqlx::query("DELETE FROM user_playlists WHERE playlist_id = $1")
-        .bind(&playlist_id)
-        .execute(&mut *tx)
-        .await?;
-    sqlx::query("DELETE FROM playlists WHERE xata_id = $1")
-        .bind(&playlist_id)
-        .execute(&mut *tx)
-        .await?;
+    let entries = Query::delete()
+        .from_table(PlaylistTracks::Table)
+        .and_where(Expr::col(PlaylistTracks::PlaylistId).eq(&playlist_id))
+        .to_owned();
+    sql::execute(&mut *tx, &entries).await?;
+
+    let links = Query::delete()
+        .from_table(UserPlaylists::Table)
+        .and_where(Expr::col(UserPlaylists::PlaylistId).eq(&playlist_id))
+        .to_owned();
+    sql::execute(&mut *tx, &links).await?;
+
+    let playlist = Query::delete()
+        .from_table(Playlists::Table)
+        .and_where(Expr::col(Playlists::XataId).eq(&playlist_id))
+        .to_owned();
+    sql::execute(&mut *tx, &playlist).await?;
 
     tx.commit().await?;
     tracing::info!(uri = %uri, "Playlist deleted");
@@ -343,11 +403,12 @@ pub async fn delete_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<(), Err
 /// The entry's AT-URI encodes the repo that authored it, so deleting by URI can
 /// only ever remove a row that repo created — no ownership check needed.
 pub async fn delete_playlist_song(pool: &Pool<Postgres>, uri: &str) -> Result<(), Error> {
-    let deleted = sqlx::query("DELETE FROM playlist_tracks WHERE uri = $1")
-        .bind(uri)
-        .execute(pool)
-        .await?
-        .rows_affected();
+    let delete = Query::delete()
+        .from_table(PlaylistTracks::Table)
+        .and_where(Expr::col(PlaylistTracks::Uri).eq(uri))
+        .to_owned();
+
+    let deleted = sql::execute(pool, &delete).await?.rows_affected();
 
     if deleted > 0 {
         tracing::info!(uri = %uri, "Playlist entry deleted");

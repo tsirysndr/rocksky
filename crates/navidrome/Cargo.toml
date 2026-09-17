@@ -36,6 +36,12 @@ reqwest = { version = "0.12.12", features = [
   "stream",
   "json",
 ], default-features = false }
+sea-query = { version = "0.32", features = ["postgres-array", "with-chrono"] }
+sea-query-binder = { version = "0.7", features = [
+  "sqlx-postgres",
+  "postgres-array",
+  "with-chrono",
+] }
 rust-s3 = { version = "0.35.1", features = [
   "tokio-rustls-tls",
 ], default-features = false }

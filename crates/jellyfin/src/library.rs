@@ -19,7 +19,12 @@ use std::{
 
 use rocksky_navidrome::{
     repo::{self, track::track_select},
+    schema::{ArtistTracks, Artists, NavidromePlaylistTracks, Tracks, UserUploads},
+    sql,
     xata::{album::AlbumWithStats, artist::ArtistWithStats, track::TrackWithUpload},
+};
+use sea_query::{
+    Alias, BinOper, Expr, ExprTrait, Func, JoinType, Order, Query, SelectStatement, SimpleExpr,
 };
 
 /// Long enough that browsing an artist → album → track chain costs one fetch,
@@ -86,26 +91,37 @@ pub async fn all_albums(db: &Db, user_id: &str) -> Result<Arc<Vec<AlbumWithStats
 /// substring. Mirrors the `page` CTE inside `repo::track::search_tracks` so the
 /// count and the pages it labels can never disagree.
 pub async fn count_songs(db: &Db, user_id: &str, title_query: &str) -> Result<i64, Error> {
-    let pool = db.replica();
-    let filter = if title_query.is_empty() {
-        ""
-    } else {
-        "AND LOWER(tracks.title) LIKE LOWER($2)"
-    };
-    let sql = format!(
-        r#"
-        SELECT COUNT(DISTINCT tracks.xata_id)
-        FROM tracks
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-          {filter}
-        "#
-    );
-    let mut q = sqlx::query_scalar::<_, i64>(&sql).bind(user_id);
+    let mut stmt = distinct_track_count(user_id);
     if !title_query.is_empty() {
-        q = q.bind(format!("%{}%", title_query));
+        stmt.and_where(title_contains(title_query));
     }
-    Ok(q.fetch_one(pool).await?)
+    Ok(sql::fetch_scalar(db.replica(), &stmt).await?)
+}
+
+/// `SELECT COUNT(DISTINCT tracks.xata_id)` over the caller's library. Callers
+/// add their own narrowing.
+fn distinct_track_count(user_id: &str) -> SelectStatement {
+    Query::select()
+        .expr(Func::count_distinct(Expr::col((
+            Tracks::Table,
+            Tracks::XataId,
+        ))))
+        .from(Tracks::Table)
+        .join(
+            JoinType::Join,
+            UserUploads::Table,
+            Expr::col((Tracks::Table, Tracks::XataId))
+                .equals((UserUploads::Table, UserUploads::TrackId)),
+        )
+        .and_where(Expr::col((UserUploads::Table, UserUploads::UserId)).eq(user_id))
+        .take()
+}
+
+fn title_contains(query: &str) -> SimpleExpr {
+    Func::lower(Expr::col((Tracks::Table, Tracks::Title))).binary(
+        BinOper::Like,
+        Func::lower(Expr::val(format!("%{}%", query))),
+    )
 }
 
 /// Every track credited to one artist, paged.
@@ -125,30 +141,35 @@ pub async fn songs_by_artist(
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
-    let pool = db.replica();
-    let sql = format!(
-        r#"
-        {}
-        WHERE EXISTS (
-            SELECT 1 FROM artist_tracks atk
-            JOIN artists ar ON ar.xata_id = atk.artist_id
-                           AND lower(tracks.album_artist) = lower(ar.name)
-            WHERE atk.track_id = tracks.xata_id
-              AND atk.artist_id = $2
+    let credited = Query::select()
+        .expr(Expr::cust("1"))
+        .from_as(ArtistTracks::Table, Alias::new("atk"))
+        .join_as(
+            JoinType::Join,
+            Artists::Table,
+            Alias::new("ar"),
+            Expr::col((Alias::new("ar"), Artists::XataId))
+                .equals((Alias::new("atk"), ArtistTracks::ArtistId))
+                .and(
+                    Func::lower(Expr::col((Tracks::Table, Tracks::AlbumArtist)))
+                        .eq(Func::lower(Expr::col((Alias::new("ar"), Artists::Name)))),
+                ),
         )
-        ORDER BY tracks.title ASC, tracks.xata_id ASC
-        LIMIT $3 OFFSET $4
-        "#,
-        track_select("$1")
-    );
-    let rows: Vec<TrackWithUpload> = sqlx::query_as(&sql)
-        .bind(user_id)
-        .bind(artist_id)
-        .bind(count)
-        .bind(offset)
-        .fetch_all(pool)
-        .await?;
-    Ok(rows)
+        .and_where(
+            Expr::col((Alias::new("atk"), ArtistTracks::TrackId))
+                .equals((Tracks::Table, Tracks::XataId)),
+        )
+        .and_where(Expr::col((Alias::new("atk"), ArtistTracks::ArtistId)).eq(artist_id))
+        .take();
+
+    let mut stmt = track_select(user_id);
+    stmt.and_where(Expr::exists(credited))
+        .order_by((Tracks::Table, Tracks::Title), Order::Asc)
+        .order_by((Tracks::Table, Tracks::XataId), Order::Asc)
+        .limit(count.max(0) as u64)
+        .offset(offset.max(0) as u64);
+
+    Ok(sql::fetch_all(db.replica(), &stmt).await?)
 }
 
 /// Tracks whose title falls in the range the alpha rail asked for.
@@ -165,24 +186,16 @@ pub async fn songs_filtered(
     count: i64,
     offset: i64,
 ) -> Result<Vec<TrackWithUpload>, Error> {
-    let pool = db.replica();
-    let (predicate, binds) = title_range_predicate(starts_with, geq, less_than, 2);
-    let sql = format!(
-        r#"
-        {}
-        WHERE TRUE {predicate}
-        ORDER BY tracks.title ASC, tracks.xata_id ASC
-        LIMIT ${limit} OFFSET ${offset}
-        "#,
-        track_select("$1"),
-        limit = binds.len() + 2,
-        offset = binds.len() + 3,
-    );
-    let mut q = sqlx::query_as::<_, TrackWithUpload>(&sql).bind(user_id);
-    for b in &binds {
-        q = q.bind(b.clone());
+    let mut stmt = track_select(user_id);
+    for predicate in title_range_predicates(starts_with, geq, less_than) {
+        stmt.and_where(predicate);
     }
-    Ok(q.bind(count).bind(offset).fetch_all(pool).await?)
+    stmt.order_by((Tracks::Table, Tracks::Title), Order::Asc)
+        .order_by((Tracks::Table, Tracks::XataId), Order::Asc)
+        .limit(count.max(0) as u64)
+        .offset(offset.max(0) as u64);
+
+    Ok(sql::fetch_all(db.replica(), &stmt).await?)
 }
 
 pub async fn count_songs_filtered(
@@ -192,73 +205,65 @@ pub async fn count_songs_filtered(
     geq: Option<&str>,
     less_than: Option<&str>,
 ) -> Result<i64, Error> {
-    let pool = db.replica();
-    let (predicate, binds) = title_range_predicate(starts_with, geq, less_than, 2);
-    let sql = format!(
-        r#"
-        SELECT COUNT(DISTINCT tracks.xata_id)
-        FROM tracks
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1 {predicate}
-        "#
-    );
-    let mut q = sqlx::query_scalar::<_, i64>(&sql).bind(user_id);
-    for b in &binds {
-        q = q.bind(b.clone());
+    let mut stmt = distinct_track_count(user_id);
+    for predicate in title_range_predicates(starts_with, geq, less_than) {
+        stmt.and_where(predicate);
     }
-    Ok(q.fetch_one(pool).await?)
+    Ok(sql::fetch_scalar(db.replica(), &stmt).await?)
 }
 
-/// Build the title range clause and the values it binds, numbering placeholders
-/// from `first`. The clause text is assembled from literals only — every value
-/// the caller supplied travels as a bind.
-fn title_range_predicate(
+/// The title range clause, as predicates. This used to hand back a clause and a
+/// separate list of values, with the caller numbering `$n` from an offset it
+/// had to work out — `songs_filtered` and `count_songs_filtered` bind different
+/// things after it, so the offset differed between them. Each value now travels
+/// attached to its own comparison.
+fn title_range_predicates(
     starts_with: Option<&str>,
     geq: Option<&str>,
     less_than: Option<&str>,
-    first: usize,
-) -> (String, Vec<String>) {
-    let mut clause = String::new();
-    let mut binds: Vec<String> = Vec::new();
-    let mut n = first;
+) -> Vec<SimpleExpr> {
+    let title = || Func::lower(Expr::col((Tracks::Table, Tracks::Title)));
+    let mut out = Vec::new();
 
     if let Some(p) = starts_with.filter(|p| !p.is_empty()) {
-        clause.push_str(&format!(" AND LOWER(tracks.title) LIKE ${n}"));
-        binds.push(format!("{}%", p.to_lowercase()));
-        n += 1;
+        out.push(title().binary(BinOper::Like, Expr::val(format!("{}%", p.to_lowercase()))));
     }
     if let Some(p) = geq.filter(|p| !p.is_empty()) {
-        clause.push_str(&format!(" AND LOWER(tracks.title) >= ${n}"));
-        binds.push(p.to_lowercase());
-        n += 1;
+        out.push(title().gte(p.to_lowercase()));
     }
     if let Some(p) = less_than.filter(|p| !p.is_empty()) {
-        clause.push_str(&format!(" AND LOWER(tracks.title) < ${n}"));
-        binds.push(p.to_lowercase());
+        out.push(title().lt(p.to_lowercase()));
     }
-    (clause, binds)
+    out
 }
 
 /// The first cover art in a playlist, for its tile.
 pub async fn playlist_cover(db: &Db, playlist_id: &str) -> Option<String> {
-    let pool = db.replica();
-    let row: Option<(String,)> = sqlx::query_as(
-        r#"
-        SELECT t.album_art
-        FROM navidrome_playlist_tracks pt
-        JOIN tracks t ON t.xata_id = pt.track_id
-        WHERE pt.playlist_id = $1
-          AND t.album_art IS NOT NULL
-          AND t.album_art <> ''
-        ORDER BY pt.xata_createdat ASC
-        LIMIT 1
-        "#,
-    )
-    .bind(playlist_id)
-    .fetch_optional(pool)
-    .await
-    .unwrap_or(None);
-    row.map(|(art,)| art)
+    let stmt = Query::select()
+        .column((Alias::new("t"), Tracks::AlbumArt))
+        .from_as(NavidromePlaylistTracks::Table, Alias::new("pt"))
+        .join_as(
+            JoinType::Join,
+            Tracks::Table,
+            Alias::new("t"),
+            Expr::col((Alias::new("t"), Tracks::XataId))
+                .equals((Alias::new("pt"), NavidromePlaylistTracks::TrackId)),
+        )
+        .and_where(
+            Expr::col((Alias::new("pt"), NavidromePlaylistTracks::PlaylistId)).eq(playlist_id),
+        )
+        .and_where(Expr::col((Alias::new("t"), Tracks::AlbumArt)).is_not_null())
+        .and_where(Expr::col((Alias::new("t"), Tracks::AlbumArt)).ne(""))
+        .order_by(
+            (Alias::new("pt"), NavidromePlaylistTracks::XataCreatedat),
+            Order::Asc,
+        )
+        .limit(1)
+        .take();
+
+    sql::fetch_scalar_optional(db.replica(), &stmt)
+        .await
+        .unwrap_or(None)
 }
 
 /// One artist with the album count the browse tiles show. `get_artist_by_id`

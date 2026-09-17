@@ -1,5 +1,9 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use sea_query::{Expr, Func, OnConflict, Query};
+
+use crate::schema::{LovedTracks, Scrobbles};
+use crate::sql;
 use rocksky_pgurl::Db;
 
 pub async fn create_scrobble(
@@ -11,62 +15,80 @@ pub async fn create_scrobble(
     timestamp: DateTime<Utc>,
 ) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(
-        r#"
-        INSERT INTO scrobbles (user_id, track_id, album_id, artist_id, timestamp)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (user_id, track_id, timestamp) DO NOTHING
-        "#,
-    )
-    .bind(user_id)
-    .bind(track_id)
-    .bind(album_id)
-    .bind(artist_id)
-    .bind(timestamp)
-    .execute(pool)
-    .await?;
+    let stmt = Query::insert()
+        .into_table(Scrobbles::Table)
+        .columns([
+            Scrobbles::UserId,
+            Scrobbles::TrackId,
+            Scrobbles::AlbumId,
+            Scrobbles::ArtistId,
+            Scrobbles::Timestamp,
+        ])
+        .values_panic([
+            user_id.into(),
+            track_id.into(),
+            album_id.map(str::to_string).into(),
+            artist_id.map(str::to_string).into(),
+            timestamp.into(),
+        ])
+        .on_conflict(
+            OnConflict::columns([Scrobbles::UserId, Scrobbles::TrackId, Scrobbles::Timestamp])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
 
+    sql::execute(pool, &stmt).await?;
     Ok(())
 }
 
 pub async fn star_track(db: &Db, user_id: &str, track_id: &str) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(
-        r#"
-        INSERT INTO loved_tracks (user_id, track_id)
-        SELECT $1, $2
-        WHERE NOT EXISTS (
-            SELECT 1 FROM loved_tracks WHERE user_id = $1 AND track_id = $2
-        )
-        "#,
-    )
-    .bind(user_id)
-    .bind(track_id)
-    .execute(pool)
-    .await?;
+    // `loved_tracks` has no unique constraint on (user, track), so there is no
+    // conflict target to name — the guard has to be the WHERE NOT EXISTS.
+    let already = Query::select()
+        .expr(Expr::cust("1"))
+        .from(LovedTracks::Table)
+        .and_where(Expr::col(LovedTracks::UserId).eq(user_id))
+        .and_where(Expr::col(LovedTracks::TrackId).eq(track_id))
+        .take();
 
+    let source = Query::select()
+        .expr(Expr::val(user_id))
+        .expr(Expr::val(track_id))
+        .and_where(Expr::exists(already).not())
+        .take();
+
+    let mut stmt = Query::insert();
+    stmt.into_table(LovedTracks::Table)
+        .columns([LovedTracks::UserId, LovedTracks::TrackId])
+        .select_from(source)?;
+
+    sql::execute(pool, &stmt).await?;
     Ok(())
 }
 
 pub async fn unstar_track(db: &Db, user_id: &str, track_id: &str) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(r#"DELETE FROM loved_tracks WHERE user_id = $1 AND track_id = $2"#)
-        .bind(user_id)
-        .bind(track_id)
-        .execute(pool)
-        .await?;
+    let stmt = Query::delete()
+        .from_table(LovedTracks::Table)
+        .and_where(Expr::col(LovedTracks::UserId).eq(user_id))
+        .and_where(Expr::col(LovedTracks::TrackId).eq(track_id))
+        .to_owned();
 
+    sql::execute(pool, &stmt).await?;
     Ok(())
 }
 
 pub async fn is_track_starred(db: &Db, user_id: &str, track_id: &str) -> Result<bool, Error> {
     let pool = db.primary();
-    let row: Option<(i64,)> =
-        sqlx::query_as(r#"SELECT COUNT(*) FROM loved_tracks WHERE user_id = $1 AND track_id = $2"#)
-            .bind(user_id)
-            .bind(track_id)
-            .fetch_optional(pool)
-            .await?;
+    let stmt = Query::select()
+        .expr(Func::count(Expr::cust("*")))
+        .from(LovedTracks::Table)
+        .and_where(Expr::col(LovedTracks::UserId).eq(user_id))
+        .and_where(Expr::col(LovedTracks::TrackId).eq(track_id))
+        .take();
 
-    Ok(row.map_or(false, |(count,)| count > 0))
+    let count: i64 = sql::fetch_scalar(pool, &stmt).await?;
+    Ok(count > 0)
 }

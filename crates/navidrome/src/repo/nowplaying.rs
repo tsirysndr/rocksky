@@ -1,5 +1,9 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use sea_query::{Alias, Expr, JoinType, Order, Query};
+
+use crate::schema::{Scrobbles, Tracks, UserUploads, Users};
+use crate::sql;
 use rocksky_pgurl::Db;
 
 pub struct NowPlayingEntry {
@@ -52,41 +56,59 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for NowPlayingEntry {
 // Returns the user's most recent scrobble if within the last 10 minutes.
 pub async fn get_now_playing(db: &Db, user_id: &str) -> Result<Vec<NowPlayingEntry>, Error> {
     let pool = db.primary();
-    let rows: Vec<NowPlayingEntry> = sqlx::query_as(
-        r#"
-        SELECT
-            tracks.xata_id,
-            tracks.title,
-            tracks.artist,
-            tracks.album_artist,
-            tracks.album_art,
-            tracks.album,
-            tracks.track_number,
-            tracks.disc_number,
-            tracks.duration,
-            tracks.mb_id,
-            tracks.genre,
-            tracks.xata_createdat,
-            user_uploads.r2_key,
-            user_uploads.mime_type,
-            user_uploads.file_size,
-            user_uploads.sample_rate,
-            users.handle,
-            EXTRACT(EPOCH FROM (NOW() - scrobbles.timestamp))::bigint / 60 AS minutes_ago
-        FROM scrobbles
-        JOIN tracks ON scrobbles.track_id = tracks.xata_id
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        JOIN users ON scrobbles.user_id = users.xata_id
-        WHERE scrobbles.user_id = $1
-          AND user_uploads.user_id = $1
-          AND scrobbles.timestamp >= NOW() - INTERVAL '10 minutes'
-        ORDER BY scrobbles.timestamp DESC
-        LIMIT 1
-        "#,
-    )
-    .bind(user_id)
-    .fetch_all(pool)
-    .await?;
+    let stmt = Query::select()
+        .columns([
+            (Tracks::Table, Tracks::XataId),
+            (Tracks::Table, Tracks::Title),
+            (Tracks::Table, Tracks::Artist),
+            (Tracks::Table, Tracks::AlbumArtist),
+            (Tracks::Table, Tracks::AlbumArt),
+            (Tracks::Table, Tracks::Album),
+            (Tracks::Table, Tracks::TrackNumber),
+            (Tracks::Table, Tracks::DiscNumber),
+            (Tracks::Table, Tracks::Duration),
+            (Tracks::Table, Tracks::MbId),
+            (Tracks::Table, Tracks::Genre),
+            (Tracks::Table, Tracks::XataCreatedat),
+        ])
+        .columns([
+            (UserUploads::Table, UserUploads::R2Key),
+            (UserUploads::Table, UserUploads::MimeType),
+            (UserUploads::Table, UserUploads::FileSize),
+            (UserUploads::Table, UserUploads::SampleRate),
+        ])
+        .column((Users::Table, Users::Handle))
+        .expr_as(
+            Expr::cust(r#"EXTRACT(EPOCH FROM (NOW() - "scrobbles"."timestamp"))::bigint / 60"#),
+            Alias::new("minutes_ago"),
+        )
+        .from(Scrobbles::Table)
+        .join(
+            JoinType::Join,
+            Tracks::Table,
+            Expr::col((Scrobbles::Table, Scrobbles::TrackId))
+                .equals((Tracks::Table, Tracks::XataId)),
+        )
+        .join(
+            JoinType::Join,
+            UserUploads::Table,
+            Expr::col((Tracks::Table, Tracks::XataId))
+                .equals((UserUploads::Table, UserUploads::TrackId)),
+        )
+        .join(
+            JoinType::Join,
+            Users::Table,
+            Expr::col((Scrobbles::Table, Scrobbles::UserId)).equals((Users::Table, Users::XataId)),
+        )
+        .and_where(Expr::col((Scrobbles::Table, Scrobbles::UserId)).eq(user_id))
+        .and_where(Expr::col((UserUploads::Table, UserUploads::UserId)).eq(user_id))
+        .and_where(
+            Expr::col((Scrobbles::Table, Scrobbles::Timestamp))
+                .gte(Expr::cust("NOW() - INTERVAL '10 minutes'")),
+        )
+        .order_by((Scrobbles::Table, Scrobbles::Timestamp), Order::Desc)
+        .limit(1)
+        .take();
 
-    Ok(rows)
+    Ok(sql::fetch_all(pool, &stmt).await?)
 }

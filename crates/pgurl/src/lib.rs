@@ -10,6 +10,8 @@
 //! - `XATA_POSTGRES_URL`       — read+write. The fallback for both of the
 //!   above, so a deployment that sets only this one keeps working unchanged.
 
+pub mod sql;
+
 use std::env::{self, VarError};
 use std::str::FromStr;
 

@@ -4,8 +4,13 @@ pub mod handlers;
 pub mod repo;
 pub mod response;
 pub mod s3;
+pub mod schema;
 pub mod typesense;
 pub mod xata;
+
+/// The shared sea-query execution seam, re-exported so `crate::sql` keeps
+/// naming one thing across this crate and the Jellyfin service built on it.
+pub use rocksky_pgurl::sql;
 
 use std::{env, sync::Arc, time::Duration};
 

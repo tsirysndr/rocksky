@@ -12,12 +12,16 @@
 //! returns nothing.
 
 use anyhow::Error;
+use rocksky_navidrome::sql;
 use rocksky_pgurl::Db;
+use sea_query::{Alias, ColumnDef, Expr, Func, OnConflict, PostgresQueryBuilder, Query, Table};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Mutex, OnceLock},
 };
+
+use crate::schema::JellyfinGuids;
 
 pub const KIND_ARTIST: &str = "artist";
 pub const KIND_ALBUM: &str = "album";
@@ -114,18 +118,40 @@ pub fn year_guid(year: i32) -> String {
 
 pub async fn ensure_table(db: &Db) -> Result<(), Error> {
     let pool = db.primary();
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS jellyfin_guids (
-            guid TEXT PRIMARY KEY,
-            kind TEXT NOT NULL,
-            native_id TEXT NOT NULL
+    let ddl = Table::create()
+        .table(JellyfinGuids::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new(JellyfinGuids::Guid)
+                .text()
+                .not_null()
+                .primary_key(),
         )
-        "#,
-    )
-    .execute(pool)
-    .await?;
+        .col(ColumnDef::new(JellyfinGuids::Kind).text().not_null())
+        .col(ColumnDef::new(JellyfinGuids::NativeId).text().not_null())
+        .build(PostgresQueryBuilder);
+
+    sql::execute_schema(pool, ddl).await?;
     Ok(())
+}
+
+/// One `(guid, kind, native id)` row, `ON CONFLICT DO NOTHING` — a guid is a
+/// pure function of its pair, so re-recording one is a no-op by construction.
+fn remember_stmt(guid: &str, kind: &str, native_id: &str) -> sea_query::InsertStatement {
+    Query::insert()
+        .into_table(JellyfinGuids::Table)
+        .columns([
+            JellyfinGuids::Guid,
+            JellyfinGuids::Kind,
+            JellyfinGuids::NativeId,
+        ])
+        .values_panic([guid.into(), kind.into(), native_id.into()])
+        .on_conflict(
+            OnConflict::column(JellyfinGuids::Guid)
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned()
 }
 
 fn cache_pair(g: &str, kind: &str, native_id: &str) {
@@ -149,18 +175,7 @@ pub async fn remember(db: &Db, kind: &str, native_id: &str) -> String {
         }
     }
 
-    let res = sqlx::query(
-        r#"
-        INSERT INTO jellyfin_guids (guid, kind, native_id)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (guid) DO NOTHING
-        "#,
-    )
-    .bind(&g)
-    .bind(kind)
-    .bind(native_id)
-    .execute(pool)
-    .await;
+    let res = sql::execute(pool, &remember_stmt(&g, kind, native_id)).await;
 
     match res {
         Ok(_) => {
@@ -195,18 +210,7 @@ pub async fn remember_genre(db: &Db, name: &str) -> String {
         }
     }
 
-    let res = sqlx::query(
-        r#"
-        INSERT INTO jellyfin_guids (guid, kind, native_id)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (guid) DO NOTHING
-        "#,
-    )
-    .bind(&g)
-    .bind(KIND_GENRE)
-    .bind(name)
-    .execute(pool)
-    .await;
+    let res = sql::execute(pool, &remember_stmt(&g, KIND_GENRE, name)).await;
 
     match res {
         Ok(_) => {
@@ -248,19 +252,39 @@ pub async fn remember_many(db: &Db, kind: &str, native_ids: &[String]) {
         return;
     }
 
+    // Three arrays rather than a row per value: the SQL text is the same
+    // whatever the page size, so it prepares once however many ids go through
+    // it. Postgres expands several set-returning functions in one select list
+    // in lock-step, and the three arrays are built together, so row *i* of each
+    // belongs to the same pair.
     let kinds = vec![kind.to_string(); guids.len()];
-    let res = sqlx::query(
-        r#"
-        INSERT INTO jellyfin_guids (guid, kind, native_id)
-        SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])
-        ON CONFLICT (guid) DO NOTHING
-        "#,
-    )
-    .bind(&guids)
-    .bind(&kinds)
-    .bind(&natives)
-    .execute(pool)
-    .await;
+    let unnest = |values: Vec<String>| {
+        Func::cust(Alias::new("UNNEST")).arg(Expr::val(values).cast_as(Alias::new("text[]")))
+    };
+    let rows = Query::select()
+        .expr(unnest(guids.clone()))
+        .expr(unnest(kinds))
+        .expr(unnest(natives))
+        .take();
+
+    let mut stmt = Query::insert();
+    stmt.into_table(JellyfinGuids::Table)
+        .columns([
+            JellyfinGuids::Guid,
+            JellyfinGuids::Kind,
+            JellyfinGuids::NativeId,
+        ])
+        .on_conflict(
+            OnConflict::column(JellyfinGuids::Guid)
+                .do_nothing()
+                .to_owned(),
+        );
+    if let Err(e) = stmt.select_from(rows) {
+        tracing::warn!(kind, "jellyfin: guid batch insert not built: {}", e);
+        return;
+    }
+
+    let res = sql::execute(pool, &stmt).await;
 
     match res {
         Ok(_) => {
@@ -286,12 +310,13 @@ pub async fn lookup(db: &Db, input: &str) -> Option<(String, String)> {
         }
     }
 
-    let row: Option<(String, String)> =
-        sqlx::query_as(r#"SELECT kind, native_id FROM jellyfin_guids WHERE guid = $1"#)
-            .bind(&g)
-            .fetch_optional(pool)
-            .await
-            .unwrap_or(None);
+    let stmt = Query::select()
+        .columns([JellyfinGuids::Kind, JellyfinGuids::NativeId])
+        .from(JellyfinGuids::Table)
+        .and_where(Expr::col(JellyfinGuids::Guid).eq(&g))
+        .take();
+
+    let row: Option<(String, String)> = sql::fetch_optional(pool, &stmt).await.unwrap_or(None);
 
     if let Some((kind, native)) = &row {
         cache_pair(&g, kind, native);

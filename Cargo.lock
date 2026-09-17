@@ -7105,6 +7105,8 @@ dependencies = [
  "rand 0.8.5",
  "rocksky-navidrome",
  "rocksky-pgurl",
+ "sea-query",
+ "sea-query-binder",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -7129,6 +7131,8 @@ dependencies = [
  "redis 0.29.5",
  "reqwest",
  "rocksky-pgurl",
+ "sea-query",
+ "sea-query-binder",
  "serde",
  "serde_json",
  "sha256",
@@ -7231,6 +7235,8 @@ dependencies = [
  "reqwest",
  "rocksky-pgurl",
  "rust-s3",
+ "sea-query",
+ "sea-query-binder",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -7275,6 +7281,8 @@ name = "rocksky-pgurl"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "sea-query",
+ "sea-query-binder",
  "sqlx",
  "tokio",
 ]
