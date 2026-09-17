@@ -156,6 +156,33 @@ rocksky-appview --backfill
 
 Safe to re-run: it is how you recover from a wipe or a schema change.
 
+### What records do not carry
+
+A record describes the thing it is about and nothing it references: a scrobble
+names its artist and album but carries no artist picture, and an album row
+created from a record that had no cover has no art. So an instance filled from
+the firehose alone shows a lot of grey squares and nameless accounts.
+
+Three background sweeps fix that, on a timer, from whatever is already to hand
+first and `https://api.rocksky.app` second:
+
+| sweep                     | fills                                     |
+|---------------------------|-------------------------------------------|
+| `profiles`                | handles, display names and avatars, from each account's PDS |
+| `enrich::albums`          | album art — from the album's own tracks where possible, then the API |
+| `enrich::artists`         | artist pictures, and genres where the API has them |
+
+The API is rate limited, and both `enrich` sweeps share **one** request budget
+because they talk to the same service: one batch every 20 seconds, alternating.
+A large instance therefore takes hours to fill in — tens of thousands of rows
+at a few dozen per batch — which is fine, since a missing cover renders a
+placeholder rather than an error. The count still outstanding is logged at
+startup.
+
+Set `ROCKSKY_ARTIST_METADATA_URL` to point the sweeps somewhere else, or to
+empty to switch them off. Pointing them at this instance is detected and
+ignored.
+
 ## The surface
 
 ```

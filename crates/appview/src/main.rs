@@ -142,9 +142,23 @@ async fn main() -> anyhow::Result<()> {
     // no picture.
     let _profiles = rocksky_appview::profiles::spawn(&state);
 
-    // Artists created from the firehose have a name and nothing else; the
-    // hosted API has already resolved pictures and genres for most of them.
-    // Rate limited at the far end, so this is slow by design.
+    // Artists created from the firehose have a name and nothing else, and an
+    // album created from a record that carried no cover has no art; the hosted
+    // API has already resolved both for most of them. Rate limited at the far
+    // end, so this is slow by design — hence the counts, which say how much
+    // there is to get through.
+    match tokio::try_join!(
+        rocksky_appview::enrich::artists::pending_count(state.db()),
+        rocksky_appview::enrich::albums::pending_count(state.db()),
+    ) {
+        Ok((0, 0)) => {}
+        Ok((artists, albums)) => tracing::info!(
+            artists,
+            albums,
+            "filling in missing artist and album metadata in the background"
+        ),
+        Err(err) => tracing::warn!(error = ?err, "could not count missing metadata"),
+    }
     let _enrich = rocksky_appview::enrich::spawn(&state);
 
     let _sync = rocksky_appview::sync::spawn(&state);
