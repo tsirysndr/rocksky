@@ -208,9 +208,17 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
                 stats.skipped += 1;
                 return Ok(stats);
             };
-            // A song record is the canonical URI for a track the user owns,
-            // so it backfills `tracks.uri` on the row the hash resolves to.
-            let track_id = upsert_track(db, &song, None).await?;
+            // The full catalogue, not just the track: a song record names its
+            // album and its artist, and creating only the track leaves a row
+            // with no album, no artist and no junction rows — invisible to
+            // every listing that reaches a track through one of them.
+            //
+            // Identical to what a scrobble builds, and keyed on the same
+            // content hashes, so whichever record arrives first wins and the
+            // second finds the rows already there.
+            let track_id = upsert_catalogue(db, &song).await?;
+
+            // A song record is the canonical URI for the track it names.
             set_record_uri(db, UriTable::Tracks, &track_id, &record.uri()).await?;
             stats.songs += 1;
         }
@@ -232,6 +240,17 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
             )
             .await?;
             set_record_uri(db, UriTable::Albums, &album_id, &record.uri()).await?;
+
+            // An album record names its artist, so the row and the link are
+            // created here too — otherwise an album known only from its own
+            // record has no artist and never appears on that artist's page.
+            let artist_id = upsert_artist(db, &artist, None).await?;
+            link_artist_album(db, &artist_id, &album_id).await?;
+
+            // `tracks.album_uri` is a denormalised copy, and it is what every
+            // view reads — setting only `albums.uri` leaves the copy null, so
+            // the feed answers a null URI for a record it has.
+            denormalise_album_uri(db, &album_id).await?;
             stats.albums += 1;
         }
         ARTIST_NSID => {
@@ -246,6 +265,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
             )
             .await?;
             set_record_uri(db, UriTable::Artists, &artist_id, &record.uri()).await?;
+            denormalise_artist_uri(db, &artist_id).await?;
             stats.artists += 1;
         }
         LIKE_NSID => {
@@ -651,6 +671,20 @@ pub async fn link_catalogue(
         .to_owned();
     db.execute(&artist_track).await?;
 
+    link_artist_album(db, artist_id, album_id).await?;
+
+    Ok(())
+}
+
+/// Links an album to its artist.
+///
+/// Separate from [`link_catalogue`] because an `app.rocksky.album` record
+/// establishes this relation without naming a track.
+pub async fn link_artist_album(
+    db: &Backend,
+    artist_id: &str,
+    album_id: &str,
+) -> anyhow::Result<()> {
     let artist_album = Query::insert()
         .into_table(ArtistAlbums::Table)
         .columns([
@@ -842,6 +876,142 @@ pub async fn set_artist_uri(db: &Backend, name: &str, uri: &str) -> anyhow::Resu
     Ok(())
 }
 
+/// Copies an album's URI onto every track linked to it.
+///
+/// `tracks.album_uri` duplicates `albums.uri`, and the views read the copy.
+/// The copy is written by the local write paths but was never written by the
+/// firehose path, so an instance fed only by Tap answered a null `albumUri`
+/// for every scrobble — which is both wrong and, for a client that splits the
+/// URI, fatal.
+///
+/// Only fills nulls: a track already carrying a URI has one from a record that
+/// named it directly, which is at least as authoritative as this.
+pub async fn denormalise_album_uri(db: &Backend, album_id: &str) -> anyhow::Result<u64> {
+    let uri = Query::select()
+        .column(Albums::Uri)
+        .from(Albums::Table)
+        .and_where(Expr::col(Albums::XataId).eq(album_id))
+        .limit(1)
+        .to_owned();
+
+    let Some(uri) = db.fetch_scalar::<String>(&uri).await?.filter(|u| !u.is_empty()) else {
+        return Ok(0);
+    };
+
+    let tracks_on_album = Query::select()
+        .column(AlbumTracks::TrackId)
+        .from(AlbumTracks::Table)
+        .and_where(Expr::col(AlbumTracks::AlbumId).eq(album_id))
+        .to_owned();
+
+    let update = Query::update()
+        .table(Tracks::Table)
+        .value(Tracks::AlbumUri, uri)
+        .and_where(Expr::col(Tracks::AlbumUri).is_null())
+        .and_where(Expr::col(Tracks::XataId).in_subquery(tracks_on_album))
+        .to_owned();
+
+    Ok(db.execute(&update).await?)
+}
+
+/// The same, for an artist.
+pub async fn denormalise_artist_uri(db: &Backend, artist_id: &str) -> anyhow::Result<u64> {
+    let uri = Query::select()
+        .column(Artists::Uri)
+        .from(Artists::Table)
+        .and_where(Expr::col(Artists::XataId).eq(artist_id))
+        .limit(1)
+        .to_owned();
+
+    let Some(uri) = db.fetch_scalar::<String>(&uri).await?.filter(|u| !u.is_empty()) else {
+        return Ok(0);
+    };
+
+    let tracks_by_artist = Query::select()
+        .column(ArtistTracks::TrackId)
+        .from(ArtistTracks::Table)
+        .and_where(Expr::col(ArtistTracks::ArtistId).eq(artist_id))
+        .to_owned();
+
+    let update = Query::update()
+        .table(Tracks::Table)
+        .value(Tracks::ArtistUri, uri)
+        .and_where(Expr::col(Tracks::ArtistUri).is_null())
+        .and_where(Expr::col(Tracks::XataId).in_subquery(tracks_by_artist))
+        .to_owned();
+
+    Ok(db.execute(&update).await?)
+}
+
+/// Fills every `tracks.album_uri` and `tracks.artist_uri` that a known album
+/// or artist row could have supplied.
+///
+/// The repair for data ingested before the two functions above existed. Runs
+/// at startup and is idempotent — it only touches rows that are still null, so
+/// on a repaired database it updates nothing.
+///
+/// Two statements rather than per-row work: this runs over the whole catalogue
+/// and a query per track would be hundreds of thousands of round trips.
+pub async fn repair_denormalised_uris(db: &Backend) -> anyhow::Result<(u64, u64)> {
+    // The junction row is what links a track to the album, so the URI comes
+    // through it rather than through the track's own (null) copy.
+    let album_uri = Query::select()
+        .column((Albums::Table, Albums::Uri))
+        .from(AlbumTracks::Table)
+        .inner_join(
+            Albums::Table,
+            Expr::col((Albums::Table, Albums::XataId))
+                .equals((AlbumTracks::Table, AlbumTracks::AlbumId)),
+        )
+        .and_where(
+            Expr::col((AlbumTracks::Table, AlbumTracks::TrackId))
+                .equals((Tracks::Table, Tracks::XataId)),
+        )
+        .and_where(Expr::col((Albums::Table, Albums::Uri)).is_not_null())
+        .limit(1)
+        .to_owned();
+
+    let albums = db
+        .execute(
+            &Query::update()
+                .table(Tracks::Table)
+                .value(Tracks::AlbumUri, SimpleExpr::SubQuery(None, Box::new(album_uri.clone().into_sub_query_statement())))
+                .and_where(Expr::col(Tracks::AlbumUri).is_null())
+                .and_where(Expr::exists(album_uri))
+                .to_owned(),
+        )
+        .await?;
+
+    let artist_uri = Query::select()
+        .column((Artists::Table, Artists::Uri))
+        .from(ArtistTracks::Table)
+        .inner_join(
+            Artists::Table,
+            Expr::col((Artists::Table, Artists::XataId))
+                .equals((ArtistTracks::Table, ArtistTracks::ArtistId)),
+        )
+        .and_where(
+            Expr::col((ArtistTracks::Table, ArtistTracks::TrackId))
+                .equals((Tracks::Table, Tracks::XataId)),
+        )
+        .and_where(Expr::col((Artists::Table, Artists::Uri)).is_not_null())
+        .limit(1)
+        .to_owned();
+
+    let artists = db
+        .execute(
+            &Query::update()
+                .table(Tracks::Table)
+                .value(Tracks::ArtistUri, SimpleExpr::SubQuery(None, Box::new(artist_uri.clone().into_sub_query_statement())))
+                .and_where(Expr::col(Tracks::ArtistUri).is_null())
+                .and_where(Expr::exists(artist_uri))
+                .to_owned(),
+        )
+        .await?;
+
+    Ok((albums, artists))
+}
+
 /// Records a track's key and BPM, filling only what is still missing.
 ///
 /// A track is shared across users and sources, so an answer someone else's
@@ -989,6 +1159,259 @@ async fn ingest_like(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bo
         .to_owned();
     db.execute(&insert).await?;
     Ok(true)
+}
+
+/// The denormalised URIs, which a null of crashes the web client.
+#[cfg(test)]
+mod denormalised_uris {
+    use super::*;
+
+    /// Builds a catalogue the way the firehose does: a scrobble first (which
+    /// creates the track, album and artist rows with no URIs), then the album
+    /// and artist records that name them.
+    async fn scrobbled() -> (Backend, String) {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let song = SongRecord::parse(&serde_json::json!({
+            "title": "Roygbiv",
+            "artist": "Boards of Canada",
+            "album": "Music Has the Right to Children",
+            "albumArtist": "Boards of Canada",
+            "duration": 151000,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+        }))
+        .unwrap();
+
+        let track_id = upsert_catalogue(&db, &song).await.unwrap();
+        (db, track_id)
+    }
+
+    /// Both URIs, as `Option`s that really distinguish NULL from empty —
+    /// `fetch_scalar::<String>` cannot, since its `None` means "no rows".
+    async fn uris(db: &Backend, track_id: &str) -> (Option<String>, Option<String>) {
+        let query = Query::select()
+            .columns([Tracks::AlbumUri, Tracks::ArtistUri])
+            .from(Tracks::Table)
+            .and_where(Expr::col(Tracks::XataId).eq(track_id))
+            .to_owned();
+
+        db.fetch_optional::<(Option<String>, Option<String>)>(&query)
+            .await
+            .unwrap()
+            .expect("the track exists")
+    }
+
+    /// Ingesting an album record must fill the copy the views read, not only
+    /// `albums.uri` — that gap is why every scrobble in the feed answered a
+    /// null `albumUri`.
+    #[tokio::test]
+    async fn an_album_record_fills_the_track_copy() {
+        let (db, track_id) = scrobbled().await;
+        assert_eq!(uris(&db, &track_id).await, (None, None));
+
+        let record = IncomingRecord {
+            did: "did:plc:alice".into(),
+            collection: ALBUM_NSID.into(),
+            rkey: "3abc".into(),
+            value: serde_json::json!({
+                "title": "Music Has the Right to Children",
+                "artist": "Boards of Canada",
+            }),
+        };
+        ingest(&db, &record).await.unwrap();
+
+        let (album_uri, _) = uris(&db, &track_id).await;
+        assert_eq!(album_uri.as_deref(), Some(record.uri().as_str()));
+    }
+
+    #[tokio::test]
+    async fn an_artist_record_fills_the_track_copy() {
+        let (db, track_id) = scrobbled().await;
+
+        let record = IncomingRecord {
+            did: "did:plc:alice".into(),
+            collection: ARTIST_NSID.into(),
+            rkey: "3def".into(),
+            value: serde_json::json!({ "name": "Boards of Canada" }),
+        };
+        ingest(&db, &record).await.unwrap();
+
+        let (_, artist_uri) = uris(&db, &track_id).await;
+        assert_eq!(artist_uri.as_deref(), Some(record.uri().as_str()));
+    }
+
+    /// The repair for rows ingested before the above existed: the album row
+    /// has a URI, the track's copy is null, and the sweep closes the gap.
+    #[tokio::test]
+    async fn the_repair_fills_rows_ingested_earlier() {
+        let (db, track_id) = scrobbled().await;
+
+        // Exactly the state the old firehose path left: `albums.uri` and
+        // `artists.uri` set, the copies on `tracks` still null.
+        let album_id = db
+            .fetch_scalar::<String>(
+                &Query::select()
+                    .column(Albums::XataId)
+                    .from(Albums::Table)
+                    .to_owned(),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        set_record_uri(&db, UriTable::Albums, &album_id, "at://did:plc:alice/app.rocksky.album/3abc")
+            .await
+            .unwrap();
+
+        let artist_id = db
+            .fetch_scalar::<String>(
+                &Query::select()
+                    .column(Artists::XataId)
+                    .from(Artists::Table)
+                    .to_owned(),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        set_record_uri(
+            &db,
+            UriTable::Artists,
+            &artist_id,
+            "at://did:plc:alice/app.rocksky.artist/3def",
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(uris(&db, &track_id).await, (None, None));
+
+        let (albums, artists) = repair_denormalised_uris(&db).await.unwrap();
+        assert_eq!((albums, artists), (1, 1));
+
+        assert_eq!(
+            uris(&db, &track_id).await,
+            (
+                Some("at://did:plc:alice/app.rocksky.album/3abc".into()),
+                Some("at://did:plc:alice/app.rocksky.artist/3def".into())
+            )
+        );
+
+        // Idempotent: it runs at every startup.
+        assert_eq!(repair_denormalised_uris(&db).await.unwrap(), (0, 0));
+    }
+
+    /// A song record has to build the same rows a scrobble does. Creating
+    /// only the track leaves it with no album, no artist and no junction
+    /// rows — so it never appears on an album page, an artist page, or
+    /// anywhere else that reaches a track through a relation.
+    #[tokio::test]
+    async fn a_song_record_builds_the_whole_catalogue() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let record = IncomingRecord {
+            did: "did:plc:alice".into(),
+            collection: SONG_NSID.into(),
+            rkey: "3song".into(),
+            value: serde_json::json!({
+                "title": "Roygbiv",
+                "artist": "Boards of Canada",
+                "album": "Music Has the Right to Children",
+                "albumArtist": "Boards of Canada",
+                "duration": 151000,
+                "createdAt": "2026-01-01T00:00:00.000Z",
+            }),
+        };
+        ingest(&db, &record).await.unwrap();
+
+        async fn rows(db: &Backend, table: &str) -> i64 {
+            let query = Query::select()
+                .expr(Func::count(Expr::col(Alias::new("xata_id"))))
+                .from(Alias::new(table))
+                .to_owned();
+            db.count(&query).await.unwrap()
+        }
+
+        for (table, what) in [
+            ("tracks", "the track row"),
+            ("albums", "the album row"),
+            ("artists", "the artist row"),
+            ("album_tracks", "the album link"),
+            ("artist_tracks", "the artist link"),
+            ("artist_albums", "the artist-album link"),
+        ] {
+            assert_eq!(rows(&db, table).await, 1, "{what} is missing");
+        }
+
+        // And the track carries the record's own URI.
+        let uri = db
+            .fetch_scalar::<String>(
+                &Query::select().column(Tracks::Uri).from(Tracks::Table).to_owned(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(uri.as_deref(), Some(record.uri().as_str()));
+    }
+
+    /// An album record names its artist, so it must create and link that
+    /// artist — an album known only from its own record would otherwise never
+    /// appear on the artist's page.
+    #[tokio::test]
+    async fn an_album_record_links_its_artist() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let record = IncomingRecord {
+            did: "did:plc:alice".into(),
+            collection: ALBUM_NSID.into(),
+            rkey: "3album".into(),
+            value: serde_json::json!({
+                "title": "Music Has the Right to Children",
+                "artist": "Boards of Canada",
+            }),
+        };
+        ingest(&db, &record).await.unwrap();
+
+        let links = Query::select()
+            .expr(Func::count(Expr::col(ArtistAlbums::XataId)))
+            .from(ArtistAlbums::Table)
+            .to_owned();
+        assert_eq!(db.count(&links).await.unwrap(), 1);
+
+        // Whichever record arrives first, the second finds the rows there —
+        // both are keyed on the same content hashes.
+        ingest(&db, &record).await.unwrap();
+        assert_eq!(db.count(&links).await.unwrap(), 1, "the link was duplicated");
+    }
+
+    /// A URI already on the track came from a record naming it directly, so
+    /// the sweep must not overwrite it with one inferred from a junction row.
+    #[tokio::test]
+    async fn an_existing_uri_is_not_overwritten() {
+        let (db, track_id) = scrobbled().await;
+
+        let update = Query::update()
+            .table(Tracks::Table)
+            .value(Tracks::AlbumUri, "at://did:plc:bob/app.rocksky.album/original")
+            .and_where(Expr::col(Tracks::XataId).eq(&track_id))
+            .to_owned();
+        db.execute(&update).await.unwrap();
+
+        let album_id = db
+            .fetch_scalar::<String>(
+                &Query::select().column(Albums::XataId).from(Albums::Table).to_owned(),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        set_record_uri(&db, UriTable::Albums, &album_id, "at://did:plc:alice/app.rocksky.album/later")
+            .await
+            .unwrap();
+
+        denormalise_album_uri(&db, &album_id).await.unwrap();
+        repair_denormalised_uris(&db).await.unwrap();
+
+        let (album_uri, _) = uris(&db, &track_id).await;
+        assert_eq!(
+            album_uri.as_deref(),
+            Some("at://did:plc:bob/app.rocksky.album/original")
+        );
+    }
 }
 
 #[cfg(test)]

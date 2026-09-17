@@ -120,6 +120,28 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    // The denormalised album and artist URIs on `tracks` are what every view
+    // reads, and the firehose path used to leave them null — so a database
+    // filled before that was fixed answers a null URI for records it has.
+    // Idempotent: on a repaired database this updates nothing.
+    {
+        let repair_state = state.clone();
+        tokio::spawn(async move {
+            match rocksky_appview::ingest::repair_denormalised_uris(repair_state.db()).await {
+                Ok((0, 0)) => {}
+                Ok((albums, artists)) => {
+                    tracing::info!(albums, artists, "filled in missing record URIs")
+                }
+                Err(err) => tracing::warn!(error = ?err, "could not repair record URIs"),
+            }
+        });
+    }
+
+    // Accounts learned from the firehose arrive as a bare DID; without this
+    // every scrobble in the global feed is attributed to one, with no name and
+    // no picture.
+    let _profiles = rocksky_appview::profiles::spawn(&state);
+
     let _sync = rocksky_appview::sync::spawn(&state);
     // Keeps OAuth sessions from lapsing for users who have not visited in a
     // while; without it, "long-lived" refresh tokens still eventually expire.

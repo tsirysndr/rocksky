@@ -35,6 +35,7 @@ pub mod ingest;
 pub use rocksky_lexicon as lexicon;
 pub mod likes;
 pub mod oauth;
+pub mod profiles;
 pub mod rest;
 pub use rocksky_db::rsql;
 pub use rocksky_db::sea_query;
