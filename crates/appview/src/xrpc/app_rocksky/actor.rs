@@ -154,11 +154,26 @@ pub struct ProfileView {
 ///
 /// Answers `{}` for an unknown actor, which is what the live API does — the
 /// UI treats an empty object as "no such profile" and shows its own message.
+///
+/// # Why `did` is optional
+///
+/// With no `did` this answers the *caller's own* profile, from the bearer
+/// token — `params.did || auth.credentials?.did` upstream. That is not a
+/// convenience: it is how the web UI establishes that a login worked. It
+/// calls this with no parameters right after storing the token, and treats an
+/// empty object as "this token is no good", deleting it and reloading. So
+/// answering `{}` to an authenticated caller here signs them straight back
+/// out, which is indistinguishable from the login having failed.
 async fn get_profile(
     state: web::Data<AppState>,
     params: web::Query<ActorParams>,
+    auth: crate::auth::Auth,
 ) -> XrpcResult<HttpResponse> {
-    let Some(did) = params.did.clone() else {
+    let Some(did) = params
+        .did
+        .clone()
+        .or_else(|| auth.did().map(str::to_string))
+    else {
         return json(serde_json::json!({}));
     };
 
@@ -787,6 +802,102 @@ mod tests {
     use super::*;
     use crate::sea_query::SqliteQueryBuilder;
     use crate::xrpc::MAX_LIMIT;
+    use actix_web::{test as http, App};
+
+    macro_rules! app {
+        ($state:expr) => {
+            http::init_service(
+                App::new()
+                    // Twice: the auth extractor reads the bare `AppState`, the
+                    // handlers take `web::Data`.
+                    .app_data($state.clone())
+                    .app_data(web::Data::new($state.clone()))
+                    .configure(configure),
+            )
+            .await
+        };
+    }
+
+    /// `getProfile` with no `did` answers the bearer token's own profile.
+    ///
+    /// This is the web UI's login check: it stores the token, calls this with
+    /// no parameters, and deletes the token again if the answer is `{}`. An
+    /// empty answer here is therefore not a missing feature — it logs the user
+    /// out immediately after a successful sign-in.
+    #[actix_web::test]
+    async fn a_bare_get_profile_answers_the_caller() {
+        let state = AppState::for_test().await.unwrap();
+        crate::ingest::upsert_user(state.db(), "did:plc:alice")
+            .await
+            .unwrap();
+        crate::ingest::set_handle(state.db(), "did:plc:alice", "alice.example")
+            .await
+            .unwrap();
+        let token =
+            crate::rest::auth::mint_token(&state.config().jwt_secret, "did:plc:alice").unwrap();
+        let app = app!(state);
+
+        let body: serde_json::Value = http::call_and_read_body_json(
+            &app,
+            http::TestRequest::get()
+                .uri("/xrpc/app.rocksky.actor.getProfile")
+                .insert_header(("Authorization", format!("Bearer {token}")))
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(body["did"], "did:plc:alice");
+        assert_eq!(body["handle"], "alice.example");
+    }
+
+    /// Without a token there is nobody to answer for, and `{}` is right —
+    /// the UI renders the signed-out state from it.
+    #[actix_web::test]
+    async fn a_bare_get_profile_without_a_token_is_empty() {
+        let state = AppState::for_test().await.unwrap();
+        let app = app!(state);
+
+        let body: serde_json::Value = http::call_and_read_body_json(
+            &app,
+            http::TestRequest::get()
+                .uri("/xrpc/app.rocksky.actor.getProfile")
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(body, serde_json::json!({}));
+    }
+
+    /// An explicit `did` still wins, or every profile page would show the
+    /// viewer their own profile.
+    #[actix_web::test]
+    async fn an_explicit_did_beats_the_caller() {
+        let state = AppState::for_test().await.unwrap();
+        for (did, handle) in [
+            ("did:plc:alice", "alice.example"),
+            ("did:plc:bob", "bob.example"),
+        ] {
+            crate::ingest::upsert_user(state.db(), did).await.unwrap();
+            crate::ingest::set_handle(state.db(), did, handle)
+                .await
+                .unwrap();
+        }
+        let token =
+            crate::rest::auth::mint_token(&state.config().jwt_secret, "did:plc:alice").unwrap();
+        let app = app!(state);
+
+        let body: serde_json::Value = http::call_and_read_body_json(
+            &app,
+            http::TestRequest::get()
+                // A handle, as the UI passes for a profile page.
+                .uri("/xrpc/app.rocksky.actor.getProfile?did=bob.example")
+                .insert_header(("Authorization", format!("Bearer {token}")))
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(body["did"], "did:plc:bob");
+    }
 
     fn params_with(start: Option<&str>, end: Option<&str>) -> ActorParams {
         ActorParams {

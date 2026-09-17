@@ -91,6 +91,24 @@ async fn an_app_password_login_issues_a_usable_token() {
     .await;
     assert_eq!(res.status(), 200);
 
+    // The check the UI actually makes to decide it is signed in:
+    // `app.rocksky.actor.getProfile` with no parameters at all, the viewer
+    // taken from the bearer token. `useProfile` treats `{}` as a dead token
+    // and deletes it, so an empty answer here signs the user straight back out
+    // — a working `/login` and a working `/profile` are not enough.
+    let res = actix_web::test::call_service(
+        &app,
+        actix_web::test::TestRequest::get()
+            .uri("/xrpc/app.rocksky.actor.getProfile")
+            .insert_header(("authorization", format!("Bearer {token}")))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(res.status(), 200);
+    let own: serde_json::Value = actix_web::test::read_body_json(res).await;
+    assert_eq!(own["did"], DID, "the caller's own profile, not `{{}}`");
+    assert_eq!(own["handle"], HANDLE);
+
     // And the profile is filled in from the stub appview.
     let res = actix_web::test::call_service(
         &app,
