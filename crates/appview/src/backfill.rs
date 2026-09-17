@@ -82,8 +82,24 @@ pub async fn backfill_repo(state: &AppState, did: &str) -> anyhow::Result<Ingest
     let car = atproto::fetch_repo(state.http(), &identity.pds, did).await?;
     tracing::debug!(did = %did, bytes = car.len(), "downloaded repository");
 
-    let records = atproto::records_from_car(&car, SUPPORTED_COLLECTIONS)?;
+    let mut records = atproto::records_from_car(&car, SUPPORTED_COLLECTIONS)?;
     tracing::debug!(did = %did, records = records.len(), "extracted records");
+
+    // Content before commentary.
+    //
+    // A like, a shout or a reply is stored against the thing it refers to,
+    // looked up by URI — so if it is ingested before that thing exists, the
+    // reference cannot be resolved. Records come out of the repository in MST
+    // order, which is alphabetical by collection, and that puts
+    // `app.rocksky.like` and `app.rocksky.graph.follow` *before*
+    // `app.rocksky.song`.
+    //
+    // Sorting by this rank costs one pass over a list already in memory and
+    // removes the whole class of problem within a repository. It cannot help
+    // across repositories — a reply to somebody else's shout depends on their
+    // repository having been read — which is why the links are also fillable
+    // after the fact; see `ingest::fill_shout_link`.
+    records.sort_by_key(|(reference, _)| ingest_rank(&reference.collection));
 
     // The user row is created up front so a repository with no scrobbles still
     // produces a profile, and the handle from the DID document replaces the
@@ -167,10 +183,65 @@ pub async fn run_configured(state: &AppState) {
     );
 }
 
+/// Where a collection belongs in the ingest order.
+///
+/// Lower first: the things that can be referred to, then the things that refer
+/// to them. Anything unlisted sorts last, which is the safe end — a record
+/// this projection does not know cannot be a prerequisite for one it does.
+fn ingest_rank(collection: &str) -> u8 {
+    match collection {
+        // Standalone: a song, album or artist record names only itself.
+        ingest::SONG_NSID | ingest::ALBUM_NSID | ingest::ARTIST_NSID => 0,
+        // Builds on the catalogue, and is itself a shout subject.
+        ingest::SCROBBLE_NSID => 1,
+        // Point at all of the above by URI.
+        ingest::LIKE_NSID | ingest::SHOUT_NSID | ingest::FOLLOW_NSID => 2,
+        _ => 3,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ingest::{ALBUM_NSID, LIKE_NSID, SCROBBLE_NSID, SONG_NSID};
+    use crate::ingest::{
+        ALBUM_NSID, ARTIST_NSID, FOLLOW_NSID, LIKE_NSID, SCROBBLE_NSID, SHOUT_NSID, SONG_NSID,
+    };
+
+    /// The ordering that makes a reference resolvable: everything a like or a
+    /// shout can point at is ingested first.
+    #[test]
+    fn content_is_ingested_before_the_things_that_refer_to_it() {
+        let mut collections = vec![
+            LIKE_NSID,
+            SHOUT_NSID,
+            SONG_NSID,
+            FOLLOW_NSID,
+            SCROBBLE_NSID,
+            ALBUM_NSID,
+            ARTIST_NSID,
+        ];
+        collections.sort_by_key(|c| ingest_rank(c));
+
+        let at = |needle: &str| collections.iter().position(|c| *c == needle).unwrap();
+        for subject in [SONG_NSID, ALBUM_NSID, ARTIST_NSID, SCROBBLE_NSID] {
+            for referrer in [LIKE_NSID, SHOUT_NSID, FOLLOW_NSID] {
+                assert!(
+                    at(subject) < at(referrer),
+                    "{subject} must be ingested before {referrer}"
+                );
+            }
+        }
+        // And a scrobble after the catalogue it is built from, since a shout
+        // can point at either.
+        assert!(at(SONG_NSID) < at(SCROBBLE_NSID));
+    }
+
+    /// An unknown collection sorts last rather than first, so a record this
+    /// projection cannot read never delays one it can.
+    #[test]
+    fn an_unknown_collection_sorts_last() {
+        assert!(ingest_rank("app.bsky.feed.post") > ingest_rank(SHOUT_NSID));
+    }
 
     #[test]
     fn a_report_carries_the_failure_rather_than_throwing_it_away() {

@@ -23,7 +23,8 @@
 //!   same listen, so the URI cannot be the dedupe key.
 
 use crate::db::schema::{
-    AlbumTracks, Albums, ArtistAlbums, ArtistTracks, Artists, LovedTracks, Scrobbles, Tracks, Users,
+    AlbumTracks, Albums, ArtistAlbums, ArtistTracks, Artists, Follows, LovedTracks, Scrobbles,
+    Shouts, Tracks, Users,
 };
 use crate::db::{new_id, Backend};
 use crate::sea_query::{
@@ -36,10 +37,19 @@ pub const SONG_NSID: &str = "app.rocksky.song";
 pub const ALBUM_NSID: &str = "app.rocksky.album";
 pub const ARTIST_NSID: &str = "app.rocksky.artist";
 pub const LIKE_NSID: &str = "app.rocksky.like";
+pub const SHOUT_NSID: &str = "app.rocksky.shout";
+pub const FOLLOW_NSID: &str = "app.rocksky.graph.follow";
 
 /// Every collection this projection understands.
-pub const SUPPORTED_COLLECTIONS: &[&str] =
-    &[SCROBBLE_NSID, SONG_NSID, ALBUM_NSID, ARTIST_NSID, LIKE_NSID];
+pub const SUPPORTED_COLLECTIONS: &[&str] = &[
+    SCROBBLE_NSID,
+    SONG_NSID,
+    ALBUM_NSID,
+    ARTIST_NSID,
+    LIKE_NSID,
+    SHOUT_NSID,
+    FOLLOW_NSID,
+];
 
 /// Stand-in cover used when a record carries no album art, so the UI has
 /// something to render rather than a broken image.
@@ -70,6 +80,8 @@ pub struct IngestStats {
     pub albums: u64,
     pub artists: u64,
     pub likes: u64,
+    pub shouts: u64,
+    pub follows: u64,
     /// Records this projection does not handle, or that were malformed.
     pub skipped: u64,
 }
@@ -82,6 +94,8 @@ impl IngestStats {
         self.albums += other.albums;
         self.artists += other.artists;
         self.likes += other.likes;
+        self.shouts += other.shouts;
+        self.follows += other.follows;
         self.skipped += other.skipped;
     }
 
@@ -271,6 +285,20 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
         LIKE_NSID => {
             if ingest_like(db, record).await? {
                 stats.likes += 1;
+            } else {
+                stats.skipped += 1;
+            }
+        }
+        SHOUT_NSID => {
+            if ingest_shout(db, record).await? {
+                stats.shouts += 1;
+            } else {
+                stats.skipped += 1;
+            }
+        }
+        FOLLOW_NSID => {
+            if ingest_follow(db, record).await? {
+                stats.follows += 1;
             } else {
                 stats.skipped += 1;
             }
@@ -1240,6 +1268,311 @@ async fn ingest_like(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bo
     Ok(true)
 }
 
+/// Projects an `app.rocksky.shout` record into `shouts`.
+///
+/// A shout is a comment, and what it is a comment *on* is `subject`, a
+/// strongRef whose collection says which table to resolve it against:
+///
+/// | `subject.uri` collection  | column        |
+/// |---------------------------|---------------|
+/// | `app.rocksky.song`        | `track_id`    |
+/// | `app.rocksky.album`       | `album_id`    |
+/// | `app.rocksky.artist`      | `artist_id`   |
+/// | `app.rocksky.scrobble`    | `scrobble_id` |
+/// | `app.bsky.actor.profile`  | — see below   |
+///
+/// # Profile shouts cannot be placed, and that is upstream
+///
+/// A shout on someone's profile records the subject as
+/// `at://<did>/app.bsky.actor.profile/self` — where `<did>` is **the author's
+/// own**, because `shouts.service.ts` fetches the ref with
+/// `repo: agent.assertDid` regardless of whose profile is being shouted on.
+/// Checked against the live network: every profile shout in the wild, including
+/// ones the hosted API lists on *other people's* profiles, names its author's
+/// own profile record.
+///
+/// So which profile was shouted on is simply not in the record, and this
+/// cannot reconstruct the `profile_shouts` link. Guessing the author's own
+/// profile would be worse than omitting it: it would move other people's
+/// shouts onto the author's profile. The row is still written, so replies and
+/// likes that reference it resolve, and it is counted as a shout.
+///
+/// Returns `false` for a record that is not a shout at all.
+async fn ingest_shout(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bool> {
+    let Some(subject) = strong_ref_uri(&record.value, "subject") else {
+        return Ok(false);
+    };
+
+    // `message` is optional in the lexicon — a shout may be only a GIF — but
+    // `shouts.content` is NOT NULL, which is how the TypeScript writes it too
+    // (`content: shout.message ?? ""`).
+    let content = string(&record.value, "message").unwrap_or_default();
+    let author_id = upsert_user(db, &record.did).await?;
+
+    // The subject is resolved by looking the URI up in the table its
+    // collection names. A miss means the subject has not been indexed here
+    // yet — the shout is still stored, unattached, rather than dropped: it is
+    // a real record, and the alternative is losing it permanently because two
+    // records arrived in an unlucky order.
+    let (column, subject_id) = match subject_table(&subject) {
+        Some(table) => (
+            Some(table.column()),
+            lookup_by_uri(db, table, &subject).await?,
+        ),
+        None => (None, None),
+    };
+
+    let gif = record.value.get("gif");
+    let mut columns = vec![
+        Shouts::XataId,
+        Shouts::Content,
+        Shouts::Uri,
+        Shouts::AuthorId,
+        Shouts::GifUrl,
+        Shouts::GifPreviewUrl,
+        Shouts::GifAlt,
+        Shouts::GifWidth,
+        Shouts::GifHeight,
+        Shouts::Facets,
+    ];
+    let mut values: Vec<crate::sea_query::SimpleExpr> = vec![
+        new_id().into(),
+        content.into(),
+        record.uri().into(),
+        author_id.into(),
+        gif.and_then(|g| string(g, "url")).into(),
+        gif.and_then(|g| string(g, "previewUrl")).into(),
+        gif.and_then(|g| string(g, "alt")).into(),
+        gif.and_then(|g| integer(g, "width")).into(),
+        gif.and_then(|g| integer(g, "height")).into(),
+        // Stored as JSON text, matching the Postgres `jsonb` column.
+        record
+            .value
+            .get("facets")
+            .filter(|facets| facets.as_array().is_some_and(|f| !f.is_empty()))
+            .map(|facets| facets.to_string())
+            .into(),
+    ];
+
+    // A reply names the shout it answers. Resolved against `shouts.uri`, so a
+    // reply that arrives before its parent is stored without the link rather
+    // than dropped — and attached by a later pass.
+    let parent_id = match strong_ref_uri(&record.value, "parent") {
+        Some(parent) => lookup_by_uri(db, SubjectTable::Shout, &parent).await?,
+        None => None,
+    };
+    if let Some(parent_id) = &parent_id {
+        columns.push(Shouts::ParentId);
+        values.push(parent_id.clone().into());
+    }
+
+    let attachment = match (column, subject_id) {
+        (Some(column), Some(subject_id)) => {
+            columns.push(column);
+            values.push(subject_id.clone().into());
+            Some((column, subject_id))
+        }
+        _ => None,
+    };
+
+    let insert = Query::insert()
+        .into_table(Shouts::Table)
+        .columns(columns)
+        .values_panic(values)
+        // Keyed on the record URI, so re-reading a repository does not
+        // duplicate every comment in it.
+        .on_conflict(OnConflict::column(Shouts::Uri).do_nothing().to_owned())
+        .to_owned();
+    db.execute(&insert).await?;
+
+    // The row may already have existed from a pass where the subject was not
+    // yet indexed, in which case the insert above did nothing — so the links
+    // are filled separately, guarded on still being empty. This is what makes
+    // a second pass able to attach a comment that arrived early, and it is
+    // why re-ingesting a shout is worth doing rather than being a no-op.
+    if let Some((column, subject_id)) = attachment {
+        fill_shout_link(db, &record.uri(), column, &subject_id).await?;
+    }
+    if let Some(parent_id) = &parent_id {
+        fill_shout_link(db, &record.uri(), Shouts::ParentId, parent_id).await?;
+    }
+
+    Ok(true)
+}
+
+/// Points a stored shout at its subject or parent, if it is not pointed yet.
+///
+/// Guarded on the column being NULL rather than read-then-write, so two
+/// passes over the same repository cannot fight over it, and an attachment
+/// already made is never moved.
+async fn fill_shout_link(
+    db: &Backend,
+    uri: &str,
+    column: Shouts,
+    id: &str,
+) -> Result<(), sqlx::Error> {
+    let update = Query::update()
+        .table(Shouts::Table)
+        .value(column, id)
+        .and_where(Expr::col(Shouts::Uri).eq(uri))
+        .and_where(Expr::col(column).is_null())
+        .to_owned();
+    db.execute(&update).await?;
+    Ok(())
+}
+
+/// The tables a shout's subject or parent can point at.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum SubjectTable {
+    Track,
+    Album,
+    Artist,
+    Scrobble,
+    Shout,
+}
+
+impl SubjectTable {
+    /// The `shouts` column this subject fills.
+    fn column(self) -> Shouts {
+        match self {
+            SubjectTable::Track => Shouts::TrackId,
+            SubjectTable::Album => Shouts::AlbumId,
+            SubjectTable::Artist => Shouts::ArtistId,
+            SubjectTable::Scrobble => Shouts::ScrobbleId,
+            SubjectTable::Shout => Shouts::ParentId,
+        }
+    }
+}
+
+/// Which table an AT-URI's collection names.
+fn subject_table(uri: &str) -> Option<SubjectTable> {
+    // `at://<did>/<collection>/<rkey>` — the collection is the third segment,
+    // matched exactly rather than with `contains`, so a handle or rkey that
+    // happens to contain a collection name cannot be mistaken for one.
+    let collection = uri.strip_prefix("at://")?.split('/').nth(1)?;
+    match collection {
+        SONG_NSID => Some(SubjectTable::Track),
+        ALBUM_NSID => Some(SubjectTable::Album),
+        ARTIST_NSID => Some(SubjectTable::Artist),
+        SCROBBLE_NSID => Some(SubjectTable::Scrobble),
+        SHOUT_NSID => Some(SubjectTable::Shout),
+        // Including `app.bsky.actor.profile` — see [`ingest_shout`].
+        _ => None,
+    }
+}
+
+async fn lookup_by_uri(
+    db: &Backend,
+    table: SubjectTable,
+    uri: &str,
+) -> Result<Option<String>, sqlx::Error> {
+    let query = match table {
+        SubjectTable::Track => Query::select()
+            .column(Tracks::XataId)
+            .from(Tracks::Table)
+            .and_where(Expr::col(Tracks::Uri).eq(uri))
+            .limit(1)
+            .to_owned(),
+        SubjectTable::Album => Query::select()
+            .column(Albums::XataId)
+            .from(Albums::Table)
+            .and_where(Expr::col(Albums::Uri).eq(uri))
+            .limit(1)
+            .to_owned(),
+        SubjectTable::Artist => Query::select()
+            .column(Artists::XataId)
+            .from(Artists::Table)
+            .and_where(Expr::col(Artists::Uri).eq(uri))
+            .limit(1)
+            .to_owned(),
+        SubjectTable::Scrobble => Query::select()
+            .column(Scrobbles::XataId)
+            .from(Scrobbles::Table)
+            .and_where(Expr::col(Scrobbles::Uri).eq(uri))
+            .limit(1)
+            .to_owned(),
+        SubjectTable::Shout => Query::select()
+            .column(Shouts::XataId)
+            .from(Shouts::Table)
+            .and_where(Expr::col(Shouts::Uri).eq(uri))
+            .limit(1)
+            .to_owned(),
+    };
+    db.fetch_scalar::<String>(&query).await
+}
+
+/// The `uri` of a `com.atproto.repo.strongRef` field.
+///
+/// Also accepts a bare string, which is how some older records were written.
+fn strong_ref_uri(value: &serde_json::Value, field: &str) -> Option<String> {
+    let reference = value.get(field)?;
+    if let Some(uri) = reference.as_str() {
+        return Some(uri.to_string()).filter(|uri| !uri.is_empty());
+    }
+    string(reference, "uri")
+}
+
+/// Projects an `app.rocksky.graph.follow` record into `follows`.
+///
+/// The row records DIDs rather than row ids, because a follow may name an
+/// account this instance has never indexed — so there is nothing to join to
+/// and no `users` row is created for the subject.
+async fn ingest_follow(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bool> {
+    let Some(subject) = string(&record.value, "subject")
+        .or_else(|| strong_ref_uri(&record.value, "subject"))
+        .map(|subject| {
+            // A follow names its subject by DID. Some records carry it as a
+            // bare `at://<did>`, which is the same thing wearing a URI.
+            subject
+                .strip_prefix("at://")
+                .unwrap_or(&subject)
+                .split('/')
+                .next()
+                .unwrap_or_default()
+                .to_string()
+        })
+        .filter(|subject| subject.starts_with("did:"))
+    else {
+        return Ok(false);
+    };
+
+    // Following yourself is not a relationship, and it would inflate both
+    // counts on the profile it appears on.
+    if subject == record.did {
+        return Ok(false);
+    }
+
+    // The follower must exist as a row: it is the account whose repository
+    // this came from, so it is a real participant.
+    upsert_user(db, &record.did).await?;
+
+    let insert = Query::insert()
+        .into_table(Follows::Table)
+        .columns([
+            Follows::XataId,
+            Follows::Uri,
+            Follows::FollowerDid,
+            Follows::SubjectDid,
+        ])
+        .values_panic([
+            new_id().into(),
+            record.uri().into(),
+            record.did.clone().into(),
+            subject.into(),
+        ])
+        // Two unique keys: the record URI, and the pair. A re-read hits the
+        // first; the same follow re-created under a new rkey hits the second.
+        .on_conflict(OnConflict::column(Follows::Uri).do_nothing().to_owned())
+        .on_conflict(
+            OnConflict::columns([Follows::FollowerDid, Follows::SubjectDid])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+    db.execute(&insert).await?;
+    Ok(true)
+}
+
 /// The denormalised URIs, which a null of crashes the web client.
 #[cfg(test)]
 mod denormalised_uris {
@@ -1521,7 +1854,7 @@ mod tests {
     use super::*;
     use crate::db;
 
-    fn scrobble_value() -> serde_json::Value {
+    pub(super) fn scrobble_value() -> serde_json::Value {
         serde_json::json!({
             "$type": SCROBBLE_NSID,
             "title": "Roygbiv",
@@ -2053,5 +2386,441 @@ mod tests {
         assert_eq!(stats.duplicates, 1);
         // Duplicates and skips are not "ingested".
         assert_eq!(stats.total(), 5);
+    }
+}
+
+/// Shouts and follows, the two record types the projection used to drop.
+#[cfg(test)]
+mod social {
+    use super::*;
+
+    fn shout_record(did: &str, rkey: &str, value: serde_json::Value) -> IncomingRecord {
+        IncomingRecord {
+            did: did.into(),
+            collection: SHOUT_NSID.into(),
+            rkey: rkey.into(),
+            value,
+        }
+    }
+
+    async fn stored_shout(db: &Backend, uri: &str) -> (String, Option<String>, Option<String>) {
+        let query = Query::select()
+            .columns([Shouts::Content, Shouts::TrackId, Shouts::ParentId])
+            .from(Shouts::Table)
+            .and_where(Expr::col(Shouts::Uri).eq(uri))
+            .to_owned();
+        db.fetch_optional::<(String, Option<String>, Option<String>)>(&query)
+            .await
+            .unwrap()
+            .expect("the shout exists")
+    }
+
+    /// A shout on a song, with the subject resolved to the track it names.
+    ///
+    /// The record shape is the one on the network: `subject` is a strongRef,
+    /// and `message` is absent when the shout is only a GIF.
+    #[tokio::test]
+    async fn a_shout_on_a_song_is_attached_to_its_track() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        // The song first, so there is something to attach to.
+        let song = SongRecord::parse(&super::tests::scrobble_value()).unwrap();
+        let track_id = upsert_catalogue(&db, &song).await.unwrap();
+        let song_uri = "at://did:plc:alice/app.rocksky.song/3song";
+        set_record_uri(&db, UriTable::Tracks, &track_id, song_uri)
+            .await
+            .unwrap();
+
+        let stats = ingest(
+            &db,
+            &shout_record(
+                "did:plc:bob",
+                "3shout",
+                serde_json::json!({
+                    "$type": SHOUT_NSID,
+                    "subject": { "uri": song_uri, "cid": "bafyshout" },
+                    "message": "this one is a banger",
+                    "createdAt": "2026-01-01T00:00:00.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.shouts, 1);
+        assert_eq!(stats.skipped, 0);
+
+        let (content, attached_track, parent) =
+            stored_shout(&db, "at://did:plc:bob/app.rocksky.shout/3shout").await;
+        assert_eq!(content, "this one is a banger");
+        assert_eq!(attached_track.as_deref(), Some(track_id.as_str()));
+        assert_eq!(parent, None);
+    }
+
+    /// A GIF-only shout: the lexicon makes `message` optional but
+    /// `shouts.content` is NOT NULL, so it has to become the empty string
+    /// rather than failing the insert. The gif fields are the real payload.
+    #[tokio::test]
+    async fn a_gif_only_shout_is_stored() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let stats = ingest(
+            &db,
+            &shout_record(
+                "did:plc:bob",
+                "3gif",
+                serde_json::json!({
+                    "$type": SHOUT_NSID,
+                    "subject": {
+                        "uri": "at://did:plc:alice/app.rocksky.album/3album",
+                        "cid": "bafy",
+                    },
+                    "gif": {
+                        "url": "https://gif.invalid/a.gif",
+                        "previewUrl": "https://gif.invalid/a-preview.gif",
+                        "alt": "a cat",
+                        "width": 320,
+                        "height": 240,
+                    },
+                    "createdAt": "2026-01-01T00:00:00.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(stats.shouts, 1);
+
+        let query = Query::select()
+            .columns([
+                Shouts::Content,
+                Shouts::GifUrl,
+                Shouts::GifAlt,
+                Shouts::GifWidth,
+            ])
+            .from(Shouts::Table)
+            .to_owned();
+        let (content, url, alt, width) = db
+            .fetch_optional::<(String, Option<String>, Option<String>, Option<i64>)>(&query)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(content, "");
+        assert_eq!(url.as_deref(), Some("https://gif.invalid/a.gif"));
+        assert_eq!(alt.as_deref(), Some("a cat"));
+        assert_eq!(width, Some(320));
+    }
+
+    /// A reply is linked to the shout it answers, by record URI.
+    #[tokio::test]
+    async fn a_reply_is_linked_to_its_parent() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let subject = serde_json::json!({
+            "uri": "at://did:plc:alice/app.rocksky.artist/3artist",
+            "cid": "bafy",
+        });
+
+        ingest(
+            &db,
+            &shout_record(
+                "did:plc:bob",
+                "3parent",
+                serde_json::json!({
+                    "$type": SHOUT_NSID,
+                    "subject": subject,
+                    "message": "first",
+                    "createdAt": "2026-01-01T00:00:00.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        ingest(
+            &db,
+            &shout_record(
+                "did:plc:carol",
+                "3reply",
+                serde_json::json!({
+                    "$type": SHOUT_NSID,
+                    "subject": subject,
+                    "parent": {
+                        "uri": "at://did:plc:bob/app.rocksky.shout/3parent",
+                        "cid": "bafyparent",
+                    },
+                    "message": "agreed",
+                    "createdAt": "2026-01-01T00:00:01.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        let parent_row = stored_shout(&db, "at://did:plc:bob/app.rocksky.shout/3parent").await;
+        let reply_row = stored_shout(&db, "at://did:plc:carol/app.rocksky.shout/3reply").await;
+        assert_eq!(parent_row.2, None, "the parent has no parent");
+        assert!(reply_row.2.is_some(), "the reply points at it");
+    }
+
+    /// Re-reading a repository must not duplicate every comment in it.
+    #[tokio::test]
+    async fn the_same_shout_twice_is_one_row() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let incoming = shout_record(
+            "did:plc:bob",
+            "3dupe",
+            serde_json::json!({
+                "$type": SHOUT_NSID,
+                "subject": { "uri": "at://did:plc:alice/app.rocksky.song/3song", "cid": "bafy" },
+                "message": "twice",
+                "createdAt": "2026-01-01T00:00:00.000Z",
+            }),
+        );
+
+        ingest(&db, &incoming).await.unwrap();
+        ingest(&db, &incoming).await.unwrap();
+
+        let count = db
+            .count(
+                &Query::select()
+                    .expr(db.cast_int(crate::sea_query::Func::count(Expr::col(Shouts::XataId))))
+                    .from(Shouts::Table)
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    /// A shout whose subject has not been indexed here yet is still kept.
+    ///
+    /// Records arrive in whatever order the firehose sends them, and dropping
+    /// the comment would lose it permanently — it is never re-sent.
+    #[tokio::test]
+    async fn a_shout_for_an_unknown_subject_is_kept_unattached() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let stats = ingest(
+            &db,
+            &shout_record(
+                "did:plc:bob",
+                "3orphan",
+                serde_json::json!({
+                    "$type": SHOUT_NSID,
+                    "subject": {
+                        "uri": "at://did:plc:nobody/app.rocksky.song/3unknown",
+                        "cid": "bafy",
+                    },
+                    "message": "early",
+                    "createdAt": "2026-01-01T00:00:00.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.shouts, 1);
+        let (content, track, _) =
+            stored_shout(&db, "at://did:plc:bob/app.rocksky.shout/3orphan").await;
+        assert_eq!(content, "early");
+        assert_eq!(track, None, "nothing to attach to yet");
+    }
+
+    /// The collection is matched exactly, at its own position in the AT-URI.
+    /// A `contains`-style check would mistake an rkey or a handle containing a
+    /// collection name for the collection itself.
+    #[test]
+    fn a_subject_is_routed_by_its_collection() {
+        assert_eq!(
+            subject_table("at://did:plc:a/app.rocksky.song/3x"),
+            Some(SubjectTable::Track)
+        );
+        assert_eq!(
+            subject_table("at://did:plc:a/app.rocksky.album/3x"),
+            Some(SubjectTable::Album)
+        );
+        assert_eq!(
+            subject_table("at://did:plc:a/app.rocksky.artist/3x"),
+            Some(SubjectTable::Artist)
+        );
+        assert_eq!(
+            subject_table("at://did:plc:a/app.rocksky.scrobble/3x"),
+            Some(SubjectTable::Scrobble)
+        );
+        assert_eq!(
+            subject_table("at://did:plc:a/app.rocksky.shout/3x"),
+            Some(SubjectTable::Shout)
+        );
+
+        // A profile shout, which cannot be placed — see `ingest_shout`.
+        assert_eq!(
+            subject_table("at://did:plc:a/app.bsky.actor.profile/self"),
+            None
+        );
+        // And nothing that is not an AT-URI resolves at all.
+        assert_eq!(subject_table("app.rocksky.song"), None);
+        assert_eq!(subject_table("at://did:plc:a"), None);
+        assert_eq!(subject_table(""), None);
+    }
+
+    /// A profile shout is stored but not attached, because the record names
+    /// the author's own profile whoever it was aimed at.
+    #[tokio::test]
+    async fn a_profile_shout_is_stored_without_a_subject() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let stats = ingest(
+            &db,
+            &shout_record(
+                "did:plc:bob",
+                "3profile",
+                serde_json::json!({
+                    "$type": SHOUT_NSID,
+                    // What the network actually holds: bob's own profile,
+                    // even for a shout on somebody else's.
+                    "subject": {
+                        "uri": "at://did:plc:bob/app.bsky.actor.profile/self",
+                        "cid": "bafy",
+                    },
+                    "message": "hello",
+                    "createdAt": "2026-01-01T00:00:00.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.shouts, 1, "counted, not skipped");
+        let (content, track, _) =
+            stored_shout(&db, "at://did:plc:bob/app.rocksky.shout/3profile").await;
+        assert_eq!(content, "hello");
+        assert_eq!(track, None);
+    }
+
+    /// Follower counts come from this table, and they were all zero.
+    #[tokio::test]
+    async fn a_follow_is_recorded_by_did() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let stats = ingest(
+            &db,
+            &IncomingRecord {
+                did: "did:plc:bob".into(),
+                collection: FOLLOW_NSID.into(),
+                rkey: "3follow".into(),
+                value: serde_json::json!({
+                    "$type": FOLLOW_NSID,
+                    "subject": "did:plc:alice",
+                    "createdAt": "2026-01-01T00:00:00.000Z",
+                }),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(stats.follows, 1);
+
+        let query = Query::select()
+            .columns([Follows::FollowerDid, Follows::SubjectDid])
+            .from(Follows::Table)
+            .to_owned();
+        let row = db
+            .fetch_optional::<(String, String)>(&query)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(row, ("did:plc:bob".into(), "did:plc:alice".into()));
+    }
+
+    /// The subject may arrive as a bare DID or wearing an `at://`; both are
+    /// the same relationship, and storing them differently would double a
+    /// follower count.
+    #[tokio::test]
+    async fn a_follow_subject_may_be_a_uri() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        for (rkey, subject) in [
+            ("3bare", serde_json::json!("did:plc:alice")),
+            ("3uri", serde_json::json!("at://did:plc:alice")),
+            ("3ref", serde_json::json!({ "uri": "at://did:plc:alice" })),
+        ] {
+            ingest(
+                &db,
+                &IncomingRecord {
+                    did: "did:plc:bob".into(),
+                    collection: FOLLOW_NSID.into(),
+                    rkey: rkey.into(),
+                    value: serde_json::json!({ "subject": subject }),
+                },
+            )
+            .await
+            .unwrap();
+        }
+
+        let count = db
+            .count(
+                &Query::select()
+                    .expr(db.cast_int(crate::sea_query::Func::count(Expr::col(Follows::XataId))))
+                    .from(Follows::Table)
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 1, "one relationship, however it was spelled");
+    }
+
+    /// Following yourself is not a relationship, and it would inflate both
+    /// counts shown on the profile.
+    #[tokio::test]
+    async fn a_self_follow_is_refused() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let stats = ingest(
+            &db,
+            &IncomingRecord {
+                did: "did:plc:bob".into(),
+                collection: FOLLOW_NSID.into(),
+                rkey: "3self".into(),
+                value: serde_json::json!({ "subject": "did:plc:bob" }),
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.follows, 0);
+        assert_eq!(stats.skipped, 1);
+    }
+
+    /// A subject that is not a DID at all is not a follow.
+    #[tokio::test]
+    async fn a_malformed_follow_is_skipped() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        for value in [
+            serde_json::json!({}),
+            serde_json::json!({ "subject": "" }),
+            serde_json::json!({ "subject": "alice.example" }),
+            serde_json::json!({ "subject": "at://alice.example/app.rocksky.song/3x" }),
+        ] {
+            let stats = ingest(
+                &db,
+                &IncomingRecord {
+                    did: "did:plc:bob".into(),
+                    collection: FOLLOW_NSID.into(),
+                    rkey: "3bad".into(),
+                    value,
+                },
+            )
+            .await
+            .unwrap();
+            assert_eq!(stats.follows, 0);
+            assert_eq!(stats.skipped, 1);
+        }
+    }
+
+    /// Both collections have to be in the subscribed set, or Tap and Jetstream
+    /// never deliver them and none of the above ever runs.
+    #[test]
+    fn the_new_collections_are_subscribed() {
+        assert!(SUPPORTED_COLLECTIONS.contains(&SHOUT_NSID));
+        assert!(SUPPORTED_COLLECTIONS.contains(&FOLLOW_NSID));
     }
 }
