@@ -142,6 +142,11 @@ async fn main() -> anyhow::Result<()> {
     // no picture.
     let _profiles = rocksky_appview::profiles::spawn(&state);
 
+    // Artists created from the firehose have a name and nothing else; the
+    // hosted API has already resolved pictures and genres for most of them.
+    // Rate limited at the far end, so this is slow by design.
+    let _enrich = rocksky_appview::enrich::spawn(&state);
+
     let _sync = rocksky_appview::sync::spawn(&state);
     // Keeps OAuth sessions from lapsing for users who have not visited in a
     // while; without it, "long-lived" refresh tokens still eventually expire.

@@ -148,6 +148,7 @@ pub struct Services {
     pub deezer_url: Option<String>,
     pub drift_url: Option<String>,
     pub tracklist_url: Option<String>,
+    pub artist_metadata_url: Option<String>,
 }
 
 /// Object storage for uploaded music and cover art. Unset means uploads are

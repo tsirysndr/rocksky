@@ -47,6 +47,14 @@ pub struct ArtistParams {
     pub limit: Option<i64>,
     #[serde(default)]
     pub offset: Option<i64>,
+    /// Comma-separated artist names to look up instead of ranking.
+    ///
+    /// The lexicon declares it and `rockbox-zig` depends on it to fill in
+    /// pictures and genres for a local library; ignoring it answered the
+    /// global top artists instead, which silently attaches the wrong picture
+    /// to every artist the caller asked about.
+    #[serde(default)]
+    pub names: Option<String>,
 }
 
 // ------------------------------------------------------------------- detail
@@ -119,11 +127,24 @@ async fn get_artists(
     params: web::Query<ArtistParams>,
 ) -> XrpcResult<HttpResponse> {
     let params = params.into_inner();
+    let db = state.db().reads_may_lag();
+
+    // A lookup by name, not a ranking. Answered first because `names` and
+    // `limit` are unrelated: a caller naming forty artists wants those forty.
+    if let Some(names) = params.names.as_deref() {
+        return match artists_by_name(&db, names).await {
+            Ok(artists) => json(ArtistsOutput { artists }),
+            Err(err) => {
+                tracing::error!(error = ?err, "error looking artists up by name");
+                json(ArtistsOutput::default())
+            }
+        };
+    }
 
     // Cached, global, and nobody expects it to reflect a scrobble from a
     // second ago — so the replica is safe here.
     match top_artists(
-        &state.db().reads_may_lag(),
+        &db,
         &Scope::global(),
         clamp_limit_or(params.limit, ARTIST_DEFAULT_LIMIT),
         clamp_offset(params.offset),
@@ -137,6 +158,70 @@ async fn get_artists(
         }
     }
 }
+
+/// Artists named in a comma-separated list.
+///
+/// Matched on the content hash rather than the name, so the caller's casing
+/// and surrounding whitespace do not have to match what is stored — which is
+/// the whole reason the hash exists.
+///
+/// A name the instance does not know is simply absent from the answer, as
+/// upstream does: the caller asked about a set and gets back the ones that
+/// exist, rather than an error naming the one that does not.
+async fn artists_by_name(
+    db: &Backend,
+    names: &str,
+) -> anyhow::Result<Vec<super::actor::ArtistViewBasic>> {
+    let hashes: Vec<String> = names
+        .split(',')
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .take(MAX_NAMES)
+        .map(rocksky_core::identity::artist_hash)
+        .collect();
+
+    if hashes.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut query = Query::select();
+    db.select_model(&mut query, ARTIST_COLS, None);
+    query
+        .from(Artists::Table)
+        .and_where(Expr::col(Artists::Sha256).is_in(hashes.iter().map(String::as_str)));
+
+    let artists: Vec<Artist> = db.fetch_all(&query).await?;
+    if artists.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // The play counts, so the answer carries the same fields a ranked one
+    // does rather than a second, narrower shape for the same view.
+    let ids: Vec<String> = artists.iter().map(|artist| artist.id.clone()).collect();
+    let scope = Scope::global();
+    let plays = ranking::play_counts(db, "artist_id", &ids, &scope).await?;
+    let listeners = ranking::unique_listeners(db, "artist_id", &ids, &scope).await?;
+
+    Ok(artists
+        .into_iter()
+        .map(|artist| super::actor::ArtistViewBasic {
+            play_count: plays.get(artist.id.as_str()).copied().unwrap_or(0),
+            unique_listeners: listeners.get(artist.id.as_str()).copied().unwrap_or(0),
+            tags: artist.genres.as_deref().map(|_| artist.genres()),
+            id: artist.id,
+            name: artist.name,
+            picture: artist.picture,
+            sha256: artist.sha256,
+            uri: artist.uri,
+        })
+        .collect())
+}
+
+/// Most names one call may look up.
+///
+/// The bound that matters is the SQL parameter limit, not the URL: a caller
+/// with a large library batches, as `rockbox-zig` does.
+const MAX_NAMES: usize = 200;
 
 /// Ranks artists within `scope` and hydrates the winners.
 pub async fn top_artists(
@@ -485,6 +570,122 @@ async fn most_listened(
         });
     }
     Ok(top)
+}
+
+/// The `names` lookup, which `rockbox-zig` uses to fill in a local library's
+/// artist pictures and genres.
+#[cfg(test)]
+mod by_name {
+    use super::*;
+
+    async fn seeded() -> Backend {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        for (name, picture, genres) in [
+            ("Boards of Canada", Some("https://cdn/boc.jpg"), Some(r#"["electronic"]"#)),
+            ("Jamiroquai", Some("https://cdn/jamiroquai.jpg"), None),
+            ("Earth, Wind & Fire", Some("https://cdn/ewf.jpg"), None),
+        ] {
+            let insert = Query::insert()
+                .into_table(Artists::Table)
+                .columns([
+                    Artists::XataId,
+                    Artists::Name,
+                    Artists::Sha256,
+                    Artists::Picture,
+                    Artists::Genres,
+                ])
+                .values_panic([
+                    crate::db::new_id().into(),
+                    name.into(),
+                    rocksky_core::identity::artist_hash(name).into(),
+                    picture.into(),
+                    genres.into(),
+                ])
+                .to_owned();
+            db.execute(&insert).await.unwrap();
+        }
+        db
+    }
+
+    /// The whole point: several names in, the matching artists out, with the
+    /// pictures a caller is asking for.
+    #[tokio::test]
+    async fn several_names_return_their_artists() {
+        let db = seeded().await;
+
+        let found = artists_by_name(&db, "Boards of Canada,Jamiroquai")
+            .await
+            .unwrap();
+
+        let mut names: Vec<&str> = found.iter().map(|a| a.name.as_str()).collect();
+        names.sort_unstable();
+        assert_eq!(names, vec!["Boards of Canada", "Jamiroquai"]);
+
+        let boc = found.iter().find(|a| a.name == "Boards of Canada").unwrap();
+        assert_eq!(boc.picture.as_deref(), Some("https://cdn/boc.jpg"));
+        assert_eq!(boc.tags.as_deref(), Some(&["electronic".to_string()][..]));
+    }
+
+    /// Matched on the content hash, so a caller's casing and spacing do not
+    /// have to match what is stored.
+    #[tokio::test]
+    async fn casing_and_spacing_do_not_matter() {
+        let db = seeded().await;
+
+        let found = artists_by_name(&db, "  boards of canada , JAMIROQUAI ")
+            .await
+            .unwrap();
+        assert_eq!(found.len(), 2, "{found:?}");
+    }
+
+    /// A name the instance does not know is absent rather than an error — the
+    /// caller asked about a set and gets the ones that exist.
+    #[tokio::test]
+    async fn unknown_names_are_simply_absent() {
+        let db = seeded().await;
+
+        let found = artists_by_name(&db, "Boards of Canada,Nobody At All")
+            .await
+            .unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].name, "Boards of Canada");
+
+        assert!(artists_by_name(&db, "Nobody At All").await.unwrap().is_empty());
+        assert!(artists_by_name(&db, "").await.unwrap().is_empty());
+        assert!(artists_by_name(&db, " , , ").await.unwrap().is_empty());
+    }
+
+    /// A name containing a comma cannot be expressed in this parameter at
+    /// all — it arrives as two names. Worth pinning, because it is why the
+    /// enrichment sweep sends those one per request.
+    #[tokio::test]
+    async fn a_name_containing_a_comma_cannot_be_batched() {
+        let db = seeded().await;
+
+        let found = artists_by_name(&db, "Earth, Wind & Fire").await.unwrap();
+        assert!(
+            found.is_empty(),
+            "the comma split it into two names, neither of which exists: {found:?}"
+        );
+
+        // Asked for on its own it is still unreachable through this
+        // parameter, which is the limitation of the lexicon's `names` being
+        // one comma-separated string.
+        assert!(artists_by_name(&db, "Earth").await.unwrap().is_empty());
+    }
+
+    #[cfg(test)]
+    #[tokio::test]
+    async fn the_batch_is_bounded() {
+        let db = seeded().await;
+        let many = (0..MAX_NAMES + 50)
+            .map(|n| format!("Artist {n}"))
+            .collect::<Vec<_>>()
+            .join(",");
+        // Nothing matches, but it must answer rather than build a statement
+        // with two hundred and fifty bound parameters.
+        assert!(artists_by_name(&db, &many).await.unwrap().is_empty());
+    }
 }
 
 #[cfg(test)]

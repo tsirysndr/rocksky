@@ -22,6 +22,7 @@ pub mod crypto;
 /// server. Re-exported rather than imported at each call site because thirty
 /// modules refer to `crate::db::…`.
 pub use rocksky_db as db;
+pub mod enrich;
 pub mod error;
 pub mod events;
 pub mod generators;

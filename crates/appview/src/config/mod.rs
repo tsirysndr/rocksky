@@ -161,6 +161,14 @@ pub struct Config {
     pub backfill_dids: Vec<String>,
     pub backfill_on_start: bool,
 
+    /// Where to fetch artist pictures and genres from.
+    ///
+    /// The hosted API by default: it has already resolved them for most
+    /// artists anybody has scrobbled, and a self-hosted instance has no
+    /// credentials for the four upstreams it would otherwise have to ask.
+    /// Empty disables the sweep.
+    pub artist_metadata_url: String,
+
     /// Whose repository holds the `app.rocksky.feed.generator` records.
     ///
     /// The feed registry is a projection of those records, and a self-hosted
@@ -709,6 +717,13 @@ impl Config {
                 .or(file.backfill.on_start)
                 .unwrap_or(false),
 
+            artist_metadata_url: pick_or(
+                None,
+                "ROCKSKY_ARTIST_METADATA_URL",
+                file.services.artist_metadata_url.clone(),
+                crate::enrich::DEFAULT_SOURCE,
+            ),
+
             feed_publisher_did: pick_or(
                 None,
                 "ROCKSKY_FEED_PUBLISHER_DID",
@@ -911,6 +926,7 @@ impl Config {
             tap_repos: Vec::new(),
             backfill_dids: Vec::new(),
             backfill_on_start: false,
+            artist_metadata_url: crate::enrich::DEFAULT_SOURCE.into(),
             feed_publisher_did: DEFAULT_FEED_PUBLISHER_DID.into(),
             plc_directory_url: "https://plc.directory".into(),
             bsky_appview_url: "https://public.api.bsky.app".into(),
