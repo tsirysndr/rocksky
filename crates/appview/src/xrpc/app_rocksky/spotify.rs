@@ -21,9 +21,14 @@
 //!
 //! Registering those five with no way to decrypt a real token would make every
 //! call answer a plausible-looking failure. They are left unregistered, so they
-//! answer 404 and the gap is visible. Closing it needs the Spotify key and IV
-//! in this crate's config, which is a deliberate decision rather than a
-//! detail of this module.
+//! answer 404 and the gap is visible.
+//!
+//! The half of that which was missing is no longer: `[spotify].encryption_key`
+//! and `encryption_iv` now exist, and [`crate::rest::spotify::decrypt`] reads
+//! the format. What is left is the transport work each of the five needs —
+//! refreshing the access token and proxying to `/me/player/*` — so they stay
+//! unregistered until somebody writes that, rather than because they cannot be
+//! written.
 //!
 //! # `getCurrentlyPlaying` needs no token
 //!

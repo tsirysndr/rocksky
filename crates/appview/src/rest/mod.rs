@@ -19,6 +19,7 @@ pub mod ingest;
 pub mod keys;
 pub mod likes;
 pub mod notifications;
+pub mod spotify;
 pub mod storage;
 pub mod uploads;
 
@@ -31,6 +32,7 @@ pub fn configure(cfg: &mut ServiceConfig) {
     keys::configure(cfg);
     likes::configure(cfg);
     notifications::configure(cfg);
+    spotify::configure(cfg);
     storage::configure(cfg);
     uploads::configure(cfg);
 }

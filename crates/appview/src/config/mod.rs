@@ -86,6 +86,13 @@ pub const DEFAULT_NATS_URL: &str = "nats://127.0.0.1:4222";
 /// The account whose repository publishes the Rocksky feed generators.
 pub const DEFAULT_FEED_PUBLISHER_DID: &str = "did:plc:vegqomyce4ssoqs7zwqvgqty";
 
+/// Where the Spotify authorization and token endpoints live.
+///
+/// Not `api.spotify.com` and therefore not `[services].spotify_api_url`: the
+/// OAuth handshake is a different host from the Web API, and the proxy in
+/// `spotify/` forwards only the latter.
+pub const DEFAULT_SPOTIFY_ACCOUNTS_URL: &str = "https://accounts.spotify.com";
+
 /// Where Typesense is, when nothing says otherwise.
 pub const DEFAULT_TYPESENSE_URL: &str = "http://127.0.0.1:8108";
 
@@ -211,6 +218,17 @@ pub struct Config {
     pub navidrome_internal_url: Option<String>,
     pub navidrome_internal_secret: Option<String>,
     pub spotify_api_url: Option<String>,
+
+    /// Connecting a listener's Spotify account. All of `client_id`,
+    /// `client_secret`, `redirect_uri`, `encryption_key` and `encryption_iv`
+    /// are needed before `/spotify/login` will do anything.
+    pub spotify_client_id: Option<String>,
+    pub spotify_client_secret: Option<String>,
+    pub spotify_redirect_uri: Option<String>,
+    pub spotify_encryption_key: Option<String>,
+    pub spotify_encryption_iv: Option<String>,
+    pub spotify_accounts_url: String,
+
     pub musicbrainz_url: Option<String>,
     pub deezer_url: Option<String>,
     pub drift_url: Option<String>,
@@ -815,6 +833,33 @@ impl Config {
                 "SPOTIFY_API_URL",
                 file.services.spotify_api_url.clone(),
             ),
+            spotify_client_id: pick(None, "SPOTIFY_CLIENT_ID", file.spotify.client_id.clone()),
+            spotify_client_secret: pick(
+                None,
+                "SPOTIFY_CLIENT_SECRET",
+                file.spotify.client_secret.clone(),
+            ),
+            spotify_redirect_uri: pick(
+                None,
+                "SPOTIFY_REDIRECT_URI",
+                file.spotify.redirect_uri.clone(),
+            ),
+            spotify_encryption_key: pick(
+                None,
+                "SPOTIFY_ENCRYPTION_KEY",
+                file.spotify.encryption_key.clone(),
+            ),
+            spotify_encryption_iv: pick(
+                None,
+                "SPOTIFY_ENCRYPTION_IV",
+                file.spotify.encryption_iv.clone(),
+            ),
+            spotify_accounts_url: pick(
+                None,
+                "SPOTIFY_ACCOUNTS_URL",
+                file.spotify.accounts_url.clone(),
+            )
+            .unwrap_or_else(|| DEFAULT_SPOTIFY_ACCOUNTS_URL.to_string()),
             musicbrainz_url: pick(
                 None,
                 "MUSICBRAINZ_URL",
@@ -961,6 +1006,12 @@ impl Config {
             navidrome_internal_url: None,
             navidrome_internal_secret: None,
             spotify_api_url: None,
+            spotify_client_id: None,
+            spotify_client_secret: None,
+            spotify_redirect_uri: None,
+            spotify_encryption_key: None,
+            spotify_encryption_iv: None,
+            spotify_accounts_url: DEFAULT_SPOTIFY_ACCOUNTS_URL.to_string(),
             musicbrainz_url: None,
             deezer_url: None,
             drift_url: None,

@@ -183,6 +183,9 @@
 # Spotify playback control and metadata enrichment.
 # spotify_api_url = "https://api.spotify.com/v1"
 
+# Note the separate [spotify] section below: this one is the Web API, that one
+# is the login handshake that connects a listener's account to it.
+
 # Metadata enrichment.
 # musicbrainz_url = "https://musicbrainz.org"
 # deezer_url = "http://localhost:8090"
@@ -192,6 +195,34 @@
 
 # Tracklist lookups.
 # tracklist_url = "http://localhost:7884"
+
+[spotify]
+# Connecting a listener's Spotify account, so the poller can scrobble what they
+# play there. Entirely optional: with this unset, `/spotify/login` answers 501
+# and nothing else changes.
+#
+# Register an application at developer.spotify.com and add `redirect_uri` to it
+# as a redirect URI — it has to match what is here exactly, including the
+# scheme and any trailing slash, or Spotify refuses the callback.
+#
+# client_id = ""
+# client_secret = ""
+# redirect_uri = "https://rocksky.example.com/spotify/callback"
+
+# Encrypts the stored tokens. Generate with:  openssl rand -hex 32
+# and, for the IV:                            openssl rand -hex 16
+#
+# These are NOT interchangeable with [storage].encryption_key: the tokens use
+# AES-256-CTR because `crates/spotify` and `apps/api` already read that format,
+# while everything else this binary encrypts uses libsodium secretbox. If you
+# run the poller against the same database, it must be given this same pair, or
+# it decrypts rubbish rather than failing.
+# encryption_key = ""
+# encryption_iv = ""
+
+# Only for pointing the handshake at something other than Spotify, which is
+# what the tests do. There is no reason to set it in production.
+# accounts_url = "https://accounts.spotify.com"
 
 [storage]
 # S3-compatible object storage for uploaded music and cover art. Uploads are

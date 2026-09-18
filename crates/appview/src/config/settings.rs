@@ -25,6 +25,7 @@ pub struct Settings {
     pub search: Search,
     pub events: Events,
     pub services: Services,
+    pub spotify: Spotify,
     pub storage: Storage,
     pub web: Web,
 }
@@ -149,6 +150,30 @@ pub struct Services {
     pub drift_url: Option<String>,
     pub tracklist_url: Option<String>,
     pub artist_metadata_url: Option<String>,
+}
+
+/// Connecting a listener's Spotify account, for the poller to scrobble from.
+///
+/// Unset means `/spotify/login` answers 501 and nothing else changes — this is
+/// one optional source among several, not part of signing in to Rocksky.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct Spotify {
+    /// The application registered at developer.spotify.com.
+    pub client_id: Option<String>,
+    pub client_secret: Option<String>,
+    /// Must match a redirect URI registered on that application exactly,
+    /// including scheme and trailing slash, or Spotify refuses the callback.
+    pub redirect_uri: Option<String>,
+    /// Encrypts the stored tokens. Hex, 32 bytes; with `encryption_iv` these
+    /// have to be the pair the poller was given, or it cannot read what this
+    /// writes — see `crate::rest::spotify`.
+    pub encryption_key: Option<String>,
+    /// Hex, 16 bytes.
+    pub encryption_iv: Option<String>,
+    /// Where to exchange the code. Overridable so a test can point it at a
+    /// stub; there is no reason to change it in production.
+    pub accounts_url: Option<String>,
 }
 
 /// Object storage for uploaded music and cover art. Unset means uploads are
