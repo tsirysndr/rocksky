@@ -319,6 +319,39 @@ pub fn column_expr(col: Col, dialect: Dialect, prefix: Option<&str>) -> sea_quer
     }
 }
 
+/// Wraps an integer expression so it decodes as `i64`, for the dialect given.
+///
+/// The free-function form of [`crate::Backend::cast_int`], for the statement
+/// builders that are handed a dialect rather than a connection — a builder
+/// that takes a `Backend` cannot be rendered in a test without one.
+pub fn cast_int_expr(
+    dialect: Dialect,
+    expr: impl Into<sea_query::SimpleExpr>,
+) -> sea_query::SimpleExpr {
+    use sea_query::ExprTrait;
+    match dialect {
+        Dialect::Sqlite => expr.into(),
+        Dialect::Postgres => expr.into().cast_as(sea_query::Alias::new("bigint")),
+    }
+}
+
+/// Wraps a timestamp expression so it decodes as `DateTime<Utc>`.
+///
+/// The free-function form of [`crate::Backend::cast_timestamp`]. SQLite must
+/// *not* get the cast: `CAST(… AS timestamptz)` is not an error there, it is a
+/// no-op with no type affinity, and the ISO text is truncated to its leading
+/// year — a silent wrong answer rather than a failure.
+pub fn cast_timestamp_expr(
+    dialect: Dialect,
+    expr: impl Into<sea_query::SimpleExpr>,
+) -> sea_query::SimpleExpr {
+    use sea_query::ExprTrait;
+    match dialect {
+        Dialect::Sqlite => expr.into(),
+        Dialect::Postgres => expr.into().cast_as(sea_query::Alias::new("timestamptz")),
+    }
+}
+
 /// Whether a "genres"-style array column contains `value`.
 ///
 /// The two backends store these columns differently and there is no common
@@ -336,10 +369,15 @@ pub fn array_contains_expr(dialect: Dialect, column: &str, value: &str) -> sea_q
     // `$1` in the SQLite statement — a condition that binds nothing and
     // matches nothing, with no error to say so.
     match dialect {
-        Dialect::Postgres => Expr::cust_with_values(
-            format!("({column} @> ARRAY[$1]::text[])"),
-            [value.to_string()],
-        ),
+        // `$1 = ANY(col)` rather than `col @> ARRAY[$1]::text[]`, which says
+        // the same thing and does not work: sea-query does not substitute a
+        // `$N` marker that sits inside `ARRAY[…]` — the bracket stops its
+        // tokenizer — so the value was dropped and the literal `$1` collided
+        // with the statement's own first parameter. The query then ran and
+        // matched against whatever that parameter happened to be.
+        Dialect::Postgres => {
+            Expr::cust_with_values(format!("$1 = ANY({column})"), [value.to_string()])
+        }
         Dialect::Sqlite => Expr::cust_with_values(
             format!("EXISTS (SELECT 1 FROM json_each({column}) WHERE json_each.value = ?)"),
             [value.to_string()],
@@ -648,6 +686,49 @@ pub const SCROBBLE_COLS: &[Col] = cols! {
 
 #[cfg(test)]
 mod tests {
+    /// `array_contains_expr` must *bind* its value on both dialects.
+    ///
+    /// The Postgres branch writes a `$1` marker inside a custom fragment, and
+    /// a marker that sea-query does not substitute is worse than an error: the
+    /// literal `$1` collides with the statement's own first parameter, so the
+    /// query runs and matches against the wrong value.
+    #[test]
+    fn array_containment_binds_its_value_on_both_dialects() {
+        use sea_query::{Alias, Expr, PostgresQueryBuilder, Query, SqliteQueryBuilder};
+        use sea_query_binder::SqlxBinder;
+
+        for (dialect, other_value) in [(Dialect::Postgres, "first"), (Dialect::Sqlite, "first")] {
+            let mut query = Query::select();
+            query
+                .expr(Expr::cust("1"))
+                .from(Alias::new("artists"))
+                // A parameter *before* the containment, so a stray `$1` in the
+                // custom fragment would collide with it.
+                .and_where(Expr::col(Alias::new("name")).eq(other_value))
+                .and_where(array_contains_expr(dialect, "artists.genres", "rock"));
+
+            let (sql, values) = match dialect {
+                Dialect::Postgres => query.build_sqlx(PostgresQueryBuilder),
+                Dialect::Sqlite => query.build_sqlx(SqliteQueryBuilder),
+            };
+
+            let bound: Vec<String> = values
+                .0
+                 .0
+                .iter()
+                .filter_map(|v| match v {
+                    sea_query::Value::String(Some(s)) => Some(s.to_string()),
+                    _ => None,
+                })
+                .collect();
+            assert!(
+                bound.contains(&"rock".to_string()),
+                "{dialect:?} did not bind the value: {sql} {bound:?}"
+            );
+            assert!(!sql.contains("'rock'"), "{dialect:?} spliced it: {sql}");
+        }
+    }
+
     use super::*;
     use crate::{self as db, Backend};
 

@@ -430,10 +430,7 @@ impl Backend {
     /// `count(*)::int` inside the materialized views — since sqlx will not
     /// decode an `int4` into an `i64`. A no-op on SQLite.
     pub fn cast_int(&self, expr: impl Into<sea_query::SimpleExpr>) -> sea_query::SimpleExpr {
-        match self.dialect() {
-            Dialect::Sqlite => expr.into(),
-            Dialect::Postgres => expr.into().cast_as(sea_query::Alias::new("bigint")),
-        }
+        models::cast_int_expr(self.dialect(), expr)
     }
 
     /// An ISO-8601 timestamp as a value that can be compared against a
@@ -465,10 +462,7 @@ impl Backend {
     /// [`models::ColKind::Timestamp`]; this is for the hand-written
     /// projections that do not go through one.
     pub fn cast_timestamp(&self, expr: impl Into<sea_query::SimpleExpr>) -> sea_query::SimpleExpr {
-        match self.dialect() {
-            Dialect::Sqlite => expr.into(),
-            Dialect::Postgres => expr.into().cast_as(sea_query::Alias::new("timestamptz")),
-        }
+        models::cast_timestamp_expr(self.dialect(), expr)
     }
 
     /// Whether a `text[]`-style column contains `value`.

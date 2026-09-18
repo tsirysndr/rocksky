@@ -1269,10 +1269,15 @@ fn expr_array_contains(
     // Both forms are backend-specific operators sea-query has no builder for,
     // so they are written out and the value is still bound.
     let expr = match dialect {
-        Dialect::Postgres => Expr::cust_with_values(
-            format!("({} @> ARRAY[$1]::text[])", field.column),
-            [raw.to_string()],
-        ),
+        // `$1 = ANY(col)`, not `col @> ARRAY[$1]::text[]`. The second is the
+        // more natural spelling and silently does not work: sea-query does not
+        // substitute a `$N` marker inside `ARRAY[…]`, so the value was dropped
+        // and the literal `$1` collided with the statement's own first
+        // parameter — `filter=artist.genres==rock` then matched against
+        // whatever that was. See `models::array_contains_expr`.
+        Dialect::Postgres => {
+            Expr::cust_with_values(format!("$1 = ANY({})", field.column), [raw.to_string()])
+        }
         // The column is a JSON array here, so containment is a lookup over its
         // elements. `?` rather than `$1`: sea-query only substitutes the
         // numbered form for Postgres, and a literal `$1` would bind nothing.
@@ -1305,8 +1310,17 @@ fn expr_array_overlap(
     let bound: Vec<String> = values.to_vec();
 
     let expr = match dialect {
+        // `unnest(col) … IN (…)` rather than `col && ARRAY[…]::text[]`, for
+        // the reason in `expr_array_contains`: sea-query leaves a `$N` marker
+        // inside `ARRAY[…]` unsubstituted, so the values were dropped and the
+        // literal markers collided with the statement's real parameters. This
+        // form mirrors the SQLite one below and keeps every marker bindable.
         Dialect::Postgres => Expr::cust_with_values(
-            format!("({} && ARRAY[{placeholders}]::text[])", field.column),
+            format!(
+                "EXISTS (SELECT 1 FROM unnest({}) AS overlap_value \
+                 WHERE overlap_value IN ({placeholders}))",
+                field.column
+            ),
             bound,
         ),
         Dialect::Sqlite => Expr::cust_with_values(
@@ -1568,23 +1582,74 @@ mod equivalence {
     }
 
     /// Array containment is a different operator on each backend, and both are
-    /// hand-written, so both are checked.
+    /// hand-written, so both are checked — through the *binder*, not
+    /// `to_string`.
+    ///
+    /// That distinction is the whole point of this test. `to_string` inlines
+    /// values, so it renders `'house' = ANY(…)` and looks correct however the
+    /// markers were written. Under the binder, a marker sea-query fails to
+    /// substitute shows up as a dropped value — which is what happened: the
+    /// Postgres form was `col @> ARRAY[$1]::text[]`, whose `$1` sits inside
+    /// brackets the tokenizer will not look into, so the value never bound and
+    /// the literal `$1` collided with the statement's own first parameter.
     #[test]
-    fn array_containment_matches_each_backend() {
-        let postgres = compile_expr("genres==house", FIELDS, Dialect::Postgres).unwrap();
-        let rendered = Query::select()
-            .expr(sea_query::Expr::val(1))
-            .and_where(postgres)
-            .to_string(sea_query::PostgresQueryBuilder);
-        assert!(rendered.contains("@>"), "{rendered}");
-        assert!(rendered.contains("text[]"), "{rendered}");
+    fn array_containment_binds_on_each_backend() {
+        use sea_query_binder::SqlxBinder;
 
-        let sqlite = expr_sql("genres==house", Dialect::Sqlite);
-        assert!(sqlite.contains("json_each"), "{sqlite}");
+        for (filter, expected) in [
+            ("genres==house", vec!["house"]),
+            ("genres=in=(house,techno)", vec!["house", "techno"]),
+        ] {
+            for dialect in [Dialect::Postgres, Dialect::Sqlite] {
+                let expr = compile_expr(filter, FIELDS, dialect).unwrap();
+                let mut query = Query::select();
+                query
+                    .expr(sea_query::Expr::val(1))
+                    // A parameter first, so an unsubstituted marker collides
+                    // with it rather than going unnoticed.
+                    .and_where(sea_query::Expr::cust_with_values(
+                        match dialect {
+                            Dialect::Postgres => "1 = $1",
+                            Dialect::Sqlite => "1 = ?",
+                        },
+                        [1],
+                    ))
+                    .and_where(expr);
 
-        // And overlap, which is the =in= form.
-        let overlap = expr_sql("genres=in=(house,techno)", Dialect::Sqlite);
-        assert!(overlap.contains("json_each"), "{overlap}");
+                let (sql, values) = match dialect {
+                    Dialect::Postgres => query.build_sqlx(sea_query::PostgresQueryBuilder),
+                    Dialect::Sqlite => query.build_sqlx(sea_query::SqliteQueryBuilder),
+                };
+
+                let bound: Vec<String> = values
+                    .0
+                     .0
+                    .iter()
+                    .filter_map(|v| match v {
+                        sea_query::Value::String(Some(s)) => Some(s.to_string()),
+                        _ => None,
+                    })
+                    .collect();
+
+                for value in &expected {
+                    assert!(
+                        bound.contains(&value.to_string()),
+                        "{dialect:?} dropped {value:?} from {filter}: {sql} {bound:?}"
+                    );
+                    assert!(
+                        !sql.contains(&format!("'{value}'")),
+                        "{dialect:?} spliced {value:?}: {sql}"
+                    );
+                }
+            }
+        }
+
+        // The operators themselves, so a rewrite cannot quietly become a
+        // no-op that binds correctly.
+        assert!(expr_sql("genres==house", Dialect::Sqlite).contains("json_each"));
+        assert!(expr_sql("genres==house", Dialect::Postgres).contains("ANY"));
+        assert!(expr_sql("genres=in=(house,techno)", Dialect::Sqlite).contains("json_each"));
+        assert!(expr_sql("genres=in=(house,techno)", Dialect::Postgres).contains("unnest"));
     }
 
     /// An unknown selector must still be rejected, and still name what is
@@ -1726,5 +1791,82 @@ mod array_execution {
         let mut others = matching(&db, "genres!=metalcore").await;
         others.sort();
         assert_eq!(others, vec!["Ampersand", "Popband", "Untagged"]);
+    }
+}
+
+/// Array containment, executed against a real Postgres.
+///
+/// Gated on `ROCKSKY_TEST_POSTGRES_URL`, because it needs a server:
+///
+/// ```sh
+/// ROCKSKY_TEST_POSTGRES_URL=postgres://postgres:pw@127.0.0.1:55432/probe \
+///   cargo test -p rocksky-db --lib postgres_arrays
+/// ```
+///
+/// The reason this exists rather than another rendering assertion: the bug it
+/// guards produced *valid SQL that ran and returned wrong rows*. Only
+/// executing it against Postgres, with a real `text[]`, can tell.
+#[cfg(test)]
+mod postgres_arrays {
+    use super::tests::FIELDS;
+    use super::*;
+    use sea_query::Query;
+    use sea_query_binder::SqlxBinder;
+
+    fn url() -> Option<String> {
+        std::env::var("ROCKSKY_TEST_POSTGRES_URL")
+            .ok()
+            .filter(|u| !u.is_empty())
+    }
+
+    async fn matching(pool: &sqlx::PgPool, filter: &str) -> Vec<String> {
+        let expr = compile_expr(filter, FIELDS, Dialect::Postgres).unwrap();
+        let (sql, values) = Query::select()
+            .column(sea_query::Alias::new("name"))
+            .from(sea_query::Alias::new("artists"))
+            // A bound parameter *before* the filter: an unsubstituted marker
+            // in the filter collides with this one, which is exactly how the
+            // original bug turned into wrong rows rather than an error.
+            .and_where(sea_query::Expr::col(sea_query::Alias::new("name")).ne("nobody"))
+            .and_where(expr)
+            .order_by(sea_query::Alias::new("name"), sea_query::Order::Asc)
+            .to_owned()
+            .build_sqlx(sea_query::PostgresQueryBuilder);
+
+        sqlx::query_scalar_with::<sqlx::Postgres, String, _>(&sql, values)
+            .fetch_all(pool)
+            .await
+            .unwrap_or_else(|err| panic!("{filter} failed: {err}\n{}", sql))
+    }
+
+    #[tokio::test]
+    async fn containment_and_overlap_return_the_right_rows() {
+        let Some(url) = url() else {
+            eprintln!("skipping: ROCKSKY_TEST_POSTGRES_URL is not set");
+            return;
+        };
+        let pool = sqlx::PgPool::connect(&url).await.expect("connect");
+
+        // `artists` holds A -> {rock, metal} and B -> {house}.
+        assert_eq!(matching(&pool, "genres==rock").await, vec!["A".to_string()]);
+        assert_eq!(
+            matching(&pool, "genres==house").await,
+            vec!["B".to_string()]
+        );
+        assert!(matching(&pool, "genres==jazz").await.is_empty());
+
+        // Overlap: any of the listed genres.
+        assert_eq!(
+            matching(&pool, "genres=in=(house,metal)").await,
+            vec!["A".to_string(), "B".to_string()]
+        );
+        assert_eq!(
+            matching(&pool, "genres=in=(house)").await,
+            vec!["B".to_string()]
+        );
+        assert!(matching(&pool, "genres=in=(jazz,funk)").await.is_empty());
+
+        // Negation, which is the same operator wrapped in NOT.
+        assert_eq!(matching(&pool, "genres!=rock").await, vec!["B".to_string()]);
     }
 }
