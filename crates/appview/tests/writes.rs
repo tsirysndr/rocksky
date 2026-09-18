@@ -1295,3 +1295,131 @@ async fn starring_needs_the_fields_the_hash_is_built_from() {
         );
     }
 }
+
+// --------------------------------------------------------------- now-playing
+
+/// `POST /now-playing` is how every scrobbling client in this repository
+/// submits — `crates/scrobbler`, `crates/webscrobbler` and `crates/mirror` all
+/// build `format!("{}/now-playing", ROCKSKY_API)`. Before this route existed a
+/// self-hosted instance answered 404 to all of them and recorded none of its
+/// owner's listening.
+#[actix_web::test]
+async fn now_playing_records_a_scrobble_and_publishes_the_record() {
+    let (state, pds, token, _) = signed_in().await;
+    let app = app!(state);
+
+    let response = actix_web::test::call_service(
+        &app,
+        actix_web::test::TestRequest::post()
+            .uri("/now-playing")
+            .insert_header(("Authorization", format!("Bearer {token}")))
+            .set_json(serde_json::json!({
+                "title": "Roygbiv",
+                "artist": "Boards of Canada",
+                "album": "Music Has the Right to Children",
+                "albumArtist": "Boards of Canada",
+                "duration": 151_000,
+                "timestamp": 1_789_000_000,
+            }))
+            .to_request(),
+    )
+    .await;
+
+    assert_eq!(response.status(), 200);
+    let body: serde_json::Value = actix_web::test::read_body_json(response).await;
+    assert_eq!(
+        body["status"], "ok",
+        "the clients read this shape from apps/api: {body}"
+    );
+
+    // The row, and the record — this goes through the same path as
+    // `createScrobble`, so the repository must have the scrobble in it.
+    let count = state
+        .db()
+        .count(&state.db().sql("SELECT count(*) FROM scrobbles"))
+        .await
+        .unwrap();
+    assert_eq!(count, 1, "the listen was not recorded");
+
+    let published = pds.records(Some("app.rocksky.scrobble"));
+    assert_eq!(
+        published.len(),
+        1,
+        "a scrobble has to reach the repository, not just the database"
+    );
+    assert_eq!(published[0].value["title"], "Roygbiv");
+}
+
+/// Anonymous callers cannot scrobble for somebody else.
+#[actix_web::test]
+async fn now_playing_needs_a_token() {
+    let (state, _pds, _token, _) = signed_in().await;
+    let app = app!(state);
+
+    let response = actix_web::test::call_service(
+        &app,
+        actix_web::test::TestRequest::post()
+            .uri("/now-playing")
+            .set_json(serde_json::json!({ "title": "x", "artist": "y" }))
+            .to_request(),
+    )
+    .await;
+
+    assert!(
+        response.status().is_client_error(),
+        "got {}",
+        response.status()
+    );
+    assert_eq!(
+        state
+            .db()
+            .count(&state.db().sql("SELECT count(*) FROM scrobbles"))
+            .await
+            .unwrap(),
+        0
+    );
+}
+
+/// The same listen reported twice — which is the normal case, since several
+/// sources report one play — collapses, because this shares `createScrobble`'s
+/// dedupe rather than reimplementing it.
+#[actix_web::test]
+async fn now_playing_shares_the_dedupe_window() {
+    let (state, pds, token, _) = signed_in().await;
+    let app = app!(state);
+
+    for _ in 0..2 {
+        let response = actix_web::test::call_service(
+            &app,
+            actix_web::test::TestRequest::post()
+                .uri("/now-playing")
+                .insert_header(("Authorization", format!("Bearer {token}")))
+                .set_json(serde_json::json!({
+                    "title": "Roygbiv",
+                    "artist": "Boards of Canada",
+                    "album": "Music Has the Right to Children",
+                    "albumArtist": "Boards of Canada",
+                    "duration": 151_000,
+                    "timestamp": 1_789_000_000,
+                }))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), 200, "a retry must not be an error");
+    }
+
+    assert_eq!(
+        state
+            .db()
+            .count(&state.db().sql("SELECT count(*) FROM scrobbles"))
+            .await
+            .unwrap(),
+        1,
+        "one listen, one row"
+    );
+    assert_eq!(
+        pds.records(Some("app.rocksky.scrobble")).len(),
+        1,
+        "and one record: a duplicate record cannot be taken back"
+    );
+}

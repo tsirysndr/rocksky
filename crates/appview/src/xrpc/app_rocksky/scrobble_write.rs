@@ -125,13 +125,30 @@ async fn create_scrobble(
     auth: AuthDid,
     body: web::Json<CreateScrobbleInput>,
 ) -> XrpcResult<HttpResponse> {
-    let mut input = body.into_inner();
+    let scrobble_id = record_scrobble(&state, &auth.did, body.into_inner()).await?;
+    answer(state.db(), &scrobble_id).await
+}
+
+/// Records one listen, returning the `scrobbles` row id.
+///
+/// The whole of `createScrobble` except for shaping the reply, because
+/// `POST /now-playing` — which is how every scrobbling client actually submits
+/// — has to do exactly this and answer differently. Two copies of the dedupe,
+/// the put-lock and the publish would be two chances to diverge on the one
+/// write this application exists for.
+pub(crate) async fn record_scrobble(
+    state: &AppState,
+    did: &str,
+    input: CreateScrobbleInput,
+) -> XrpcResult<String> {
+    let mut input = input;
+    let auth = Caller { did };
 
     let title = required(&input.title, "title")?;
     let artist = required(&input.artist, "artist")?;
 
     let db = state.db();
-    let user_id = caller_id(db, &auth.did).await?;
+    let user_id = caller_id(db, auth.did).await?;
 
     let listened_at = match input.timestamp {
         Some(seconds) => chrono::DateTime::from_timestamp(seconds, 0).ok_or_else(|| {
@@ -160,11 +177,13 @@ async fn create_scrobble(
             title = %title,
             "a scrobble for this song is already recorded within the window"
         );
-        return answer(db, &existing).await;
+        // The row that is already there, so both callers answer as though
+        // this request had written it — which is what makes a retry safe.
+        return Ok(existing);
     }
 
     // The lock, before anything is published.
-    let lock = put_lock_key(&auth.did, &title, &artist, listened_at);
+    let lock = put_lock_key(auth.did, &title, &artist, listened_at);
     let publish = state.cache().claim(&lock, PUT_LOCK_TTL).await;
     if !publish {
         tracing::info!(
@@ -182,13 +201,13 @@ async fn create_scrobble(
 
     // The track, its album and its artist, so a brand-new record is findable
     // immediately rather than after the next restart.
-    crate::search::index_track_tree(&state, &track_id).await;
+    crate::search::index_track_tree(state, &track_id).await;
 
     // Published before the row is written, so the row can carry the record's
     // URI — which is the key the projection dedupes on when the same scrobble
     // comes back over the firehose.
     let uri = if publish {
-        publish_records(&state, &auth.did, &song, listened_at).await
+        publish_records(state, auth.did, &song, listened_at).await
     } else {
         None
     };
@@ -218,7 +237,7 @@ async fn create_scrobble(
     // subject table in `crate::events`.
     if let Some(events) = state.events() {
         events
-            .publish_text(crate::events::subject::SCROBBLE_SYNC, &auth.did)
+            .publish_text(crate::events::subject::SCROBBLE_SYNC, auth.did)
             .await;
     }
 
@@ -232,7 +251,13 @@ async fn create_scrobble(
         )
         .await;
 
-    answer(db, &scrobble_id).await
+    Ok(scrobble_id)
+}
+
+/// Stands in for the `AuthDid` extractor, so the body below reads the same
+/// whether the caller came through XRPC or REST.
+struct Caller<'a> {
+    did: &'a str,
 }
 
 // ------------------------------------------------------------------- pieces
