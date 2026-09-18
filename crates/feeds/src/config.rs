@@ -57,15 +57,21 @@ impl Config {
     pub fn load(cli: Cli) -> anyhow::Result<Self> {
         let _ = dotenv::dotenv();
 
-        let database_url = cli
-            .database_url
-            .filter(|url| !url.is_empty())
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "no database configured: set XATA_POSTGRES_URL (or --database-url) to the \
-                     Rocksky database holding the scrobbles"
-                )
-            })?;
+        // A Postgres URL when one is given, and otherwise the SQLite file the
+        // appview uses — this service only reads the scrobbles, so joining the
+        // self-hosted database is exactly as valid as joining a Postgres.
+        // `rocksky_db::shared` is the one place that decides, so every service
+        // lands on the same file.
+        let (database_url, source) = match cli.database_url.filter(|url| !url.is_empty()) {
+            Some(url) => (url, None),
+            None => {
+                let (url, source) = rocksky_db::shared::resolve();
+                (url, Some(source))
+            }
+        };
+        if let Some(source) = source {
+            tracing::info!(database = %source, "no database configured; using the shared one");
+        }
 
         Ok(Self {
             host: cli.host.unwrap_or_else(|| "0.0.0.0".to_string()),
@@ -124,11 +130,20 @@ mod tests {
         );
     }
 
-    /// A missing database is a startup error naming the variable, not a
-    /// process that starts and fails every request.
+    /// With no database configured this used to refuse to start, which is
+    /// what kept the service behind a compose profile. It joins the shared
+    /// database instead now — it only reads scrobbles, so a self-hosted
+    /// SQLite file is as valid a source as a Postgres.
     #[test]
-    fn no_database_is_refused_with_a_useful_message() {
-        let error = Config::load(Cli {
+    fn no_database_falls_back_to_the_shared_one() {
+        let _guard = env_lock();
+        // Blank rather than removed: `Config::load` runs `dotenv`, and the
+        // repository's own `.env` names a Postgres. dotenv does not overwrite
+        // a variable that is already set, and a blank one reads as unset.
+        let _vars = BlankPostgres::new();
+        std::env::set_var("ROCKSKY_DATA_DIR", "/srv/rocksky");
+
+        let config = Config::load(Cli {
             host: None,
             port: None,
             domain: None,
@@ -136,9 +151,69 @@ mod tests {
             read_database_url: None,
             publisher_did: None,
         })
-        .unwrap_err()
-        .to_string();
+        .expect("the shared database is a valid answer");
 
-        assert!(error.contains("XATA_POSTGRES_URL"), "{error}");
+        assert_eq!(
+            config.database_url,
+            "sqlite:///srv/rocksky/rocksky.db?mode=rwc"
+        );
+        std::env::remove_var("ROCKSKY_DATA_DIR");
+    }
+
+    /// An explicit URL still wins, so a Postgres deployment is unaffected.
+    #[test]
+    fn an_explicit_url_is_used_as_given() {
+        let _guard = env_lock();
+        let config = Config::load(Cli {
+            host: None,
+            port: None,
+            domain: None,
+            database_url: Some("postgres://host/rocksky".into()),
+            read_database_url: None,
+            publisher_did: None,
+        })
+        .expect("a config");
+        assert_eq!(config.database_url, "postgres://host/rocksky");
+    }
+
+    /// These read process-wide environment, so they take a lock rather than
+    /// racing each other.
+    fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// Blanks the Postgres variables for the duration of a test, and puts
+    /// whatever was there back afterwards.
+    struct BlankPostgres(Vec<(&'static str, Option<String>)>);
+
+    impl BlankPostgres {
+        fn new() -> Self {
+            const KEYS: [&str; 4] = [
+                "XATA_POSTGRES_URL",
+                "XATA_WRITE_POSTGRES_URL",
+                "XATA_READ_POSTGRES_URL",
+                "APPVIEW_DB_URL",
+            ];
+            let saved = KEYS
+                .iter()
+                .map(|key| (*key, std::env::var(key).ok()))
+                .collect();
+            for key in KEYS {
+                std::env::set_var(key, "");
+            }
+            Self(saved)
+        }
+    }
+
+    impl Drop for BlankPostgres {
+        fn drop(&mut self) {
+            for (key, value) in &self.0 {
+                match value {
+                    Some(value) => std::env::set_var(key, value),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
     }
 }

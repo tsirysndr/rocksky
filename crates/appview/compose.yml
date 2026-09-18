@@ -34,6 +34,22 @@
 # without it and answers from whatever is already stored — but a new instance
 # with no Tap and no `--backfill` has nothing to show.
 #
+# # One database, shared by path
+#
+# With no `XATA_POSTGRES_URL` set, every service here opens the *same SQLite
+# file* in the `data` volume, in WAL mode, so readers do not block the writer.
+# That is why each of them mounts `data:/data` and sets `ROCKSKY_DATA_DIR` to
+# the same place: a SQLite database is a path, not an address, so "the same
+# database" means the same file.
+#
+# A service given its own volume, or a different `ROCKSKY_DATA_DIR`, creates an
+# empty database and reports an empty library — with no error to say so. If a
+# service starts up healthy and shows nothing, that is the first thing to
+# check; each one logs which database it opened at startup.
+#
+# Set `XATA_POSTGRES_URL` and they all use that instead, and the volume stops
+# mattering.
+#
 # # Going public
 #
 # Two things change when this is reachable from the internet:
@@ -208,10 +224,14 @@ services:
     ports:
       - "8002:8002"
     environment:
-      # The same database the appview writes. A SQLite file cannot be shared
-      # between containers, so this is only usable when the appview is running
-      # on Postgres — which is why the service sits behind a profile.
+      # The same database the appview writes. Set this to point both at a
+      # Postgres; leave it blank and the service joins the appview's SQLite
+      # file through the shared `data` volume below.
       XATA_POSTGRES_URL: ${XATA_POSTGRES_URL:-}
+
+      # Where that file is. Has to match the appview's, since a SQLite
+      # database is a path rather than an address — see the volume note.
+      ROCKSKY_DATA_DIR: /data
 
       # The did:web is derived from this, so it must be the public hostname.
       ROCKSKY_FEEDGEN_DOMAIN: ${ROCKSKY_FEEDGEN_DOMAIN:-localhost}
@@ -223,10 +243,19 @@ services:
       ROCKSKY_FEEDGEN_PUBLISHER_DID: ${ROCKSKY_FEEDGEN_PUBLISHER_DID:-}
 
       RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
-    profiles:
-      # Started only with `--profile feeds`, since it needs a Postgres URL and
-      # the default setup is SQLite.
-      - feeds
+    volumes:
+      # The *same* volume the appview mounts, which is what makes the SQLite
+      # fallback work across containers: the file is shared, in WAL mode, so
+      # this reads while the appview writes.
+      #
+      # A service given its own volume would quietly create an empty database
+      # and report an empty library — no error, just no feeds. That is the one
+      # way to get this wrong.
+      - data:/data
+    depends_on:
+      # Only for the file to exist and carry the schema; this service reads.
+      appview:
+        condition: service_started
 
   # Optional. Without it the response cache is in-process, which is the right
   # answer for a single instance.

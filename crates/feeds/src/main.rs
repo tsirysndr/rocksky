@@ -15,6 +15,16 @@ async fn main() -> anyhow::Result<()> {
 
     // The replica is passed to the pool rather than swapped in per query: this
     // service only reads, so there is nothing that needs the primary.
+    // Creates the data directory when the URL is the shared SQLite file — a
+    // service may well start before the appview has made it.
+    if let Some(parent) = config
+        .database_url
+        .strip_prefix("sqlite://")
+        .and_then(|path| std::path::Path::new(path.split('?').next().unwrap_or(path)).parent())
+    {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
     let db = rocksky_db::Backend::connect_split(
         &config.database_url,
         config.read_database_url.as_deref(),
