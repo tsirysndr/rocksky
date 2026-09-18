@@ -5,7 +5,6 @@ use sea_query::{Alias, Expr, JoinType, Order, Query};
 use crate::schema::{Scrobbles, Tracks, UserUploads, Users};
 use crate::sql;
 use rocksky_db::models::{minutes_ago_sql, minutes_since_sql};
-use rocksky_db::Dialect;
 use rocksky_db::Handle as Db;
 
 pub struct NowPlayingEntry {
@@ -124,6 +123,7 @@ pub async fn get_now_playing(db: &Db, user_id: &str) -> Result<Vec<NowPlayingEnt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rocksky_db::Dialect;
 
     /// The now-playing lookup on SQLite.
     ///

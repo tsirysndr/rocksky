@@ -383,7 +383,6 @@ pub fn cast_int_expr(
     dialect: Dialect,
     expr: impl Into<sea_query::SimpleExpr>,
 ) -> sea_query::SimpleExpr {
-    use sea_query::ExprTrait;
     match dialect {
         Dialect::Sqlite => expr.into(),
         Dialect::Postgres => expr.into().cast_as(sea_query::Alias::new("bigint")),
@@ -400,7 +399,6 @@ pub fn cast_timestamp_expr(
     dialect: Dialect,
     expr: impl Into<sea_query::SimpleExpr>,
 ) -> sea_query::SimpleExpr {
-    use sea_query::ExprTrait;
     match dialect {
         Dialect::Sqlite => expr.into(),
         Dialect::Postgres => expr.into().cast_as(sea_query::Alias::new("timestamptz")),

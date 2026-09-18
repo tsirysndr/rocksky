@@ -1,11 +1,11 @@
 use anyhow::Error;
 use sea_query::{
-    Alias, BinOper, CommonTableExpression, Expr, ExprTrait, Func, Iden, IntoColumnRef, IntoIden,
-    JoinType, NullOrdering, Order, OverStatement, Query, SelectStatement, SimpleExpr,
-    WindowStatement, WithClause,
+    Alias, BinOper, CommonTableExpression, Expr, ExprTrait, Func, Iden, IntoIden, JoinType,
+    NullOrdering, Order, OverStatement, Query, SelectStatement, SimpleExpr, WindowStatement,
+    WithClause,
 };
 
-use crate::repo::track::{lower_eq, one_per_partition, unnumbered_key, K};
+use crate::repo::track::{lower_eq, one_per_partition, unnumbered_key_expr, K};
 use crate::schema::{AlbumTracks, Albums, ArtistAlbums, Artists, Tracks, UserUploads};
 use crate::sql;
 use crate::xata::album::AlbumWithStats;
@@ -100,6 +100,14 @@ enum Member {
     Duration,
     #[iden = "uploaded_at"]
     UploadedAt,
+    // Carried out of the subquery so the correlation with `albums` can live in
+    // the join's ON clause instead of making it lateral.
+    #[iden = "album_id"]
+    AlbumId,
+    #[iden = "album"]
+    Album,
+    #[iden = "album_artist"]
+    AlbumArtist,
 }
 
 #[derive(Iden, Clone, Copy)]
@@ -320,17 +328,13 @@ fn album_stats_cte(dialect: Dialect, user_id: &str) -> WithClause {
         .column(AlbumMembers::AlbumId)
         .expr_as(Func::count(Expr::cust("*")), AlbumStats::SongCount)
         .expr_as(
-            Func::cast_as(
-                Func::sum(Expr::col(AlbumMembers::Duration)),
-                Alias::new("bigint"),
-            ),
+            cast_int_expr(dialect, Func::sum(Expr::col(AlbumMembers::Duration))),
             AlbumStats::TotalDuration,
         )
         .expr_as(
-            Func::cast_as(
-                Func::min(Expr::col(AlbumMembers::UploadedAt)),
-                Alias::new("timestamptz"),
-            ),
+            // On SQLite `CAST(… AS timestamptz)` is a no-op with no type
+            // affinity and truncates the ISO text to its year.
+            cast_timestamp_expr(dialect, Func::min(Expr::col(AlbumMembers::UploadedAt))),
             AlbumStats::CreatedAt,
         )
         .from(AlbumMembers::Table)
@@ -371,7 +375,7 @@ fn album_stats_cte(dialect: Dialect, user_id: &str) -> WithClause {
 /// a whole second `tracks` row for the same position on the record. EXISTS
 /// handles the first two; DISTINCT ON the slot handles the third, keeping the
 /// oldest row so the header agrees with `get_tracks_by_album`.
-fn member_tracks(dialect: Dialect, query: &mut SelectStatement, user_id: &str) {
+fn member_tracks(query: &mut SelectStatement, user_id: &str) {
     let earliest_upload = scalar(
         Query::select()
             .expr(Func::min(Expr::col((Uu::Table, UserUploads::UploadedAt))))
@@ -384,17 +388,6 @@ fn member_tracks(dialect: Dialect, query: &mut SelectStatement, user_id: &str) {
             .take(),
     );
 
-    let in_album = Query::select()
-        .expr(Expr::cust("1"))
-        .from_as(AlbumTracks::Table, Atr::Table)
-        .and_where(
-            Expr::col((Atr::Table, AlbumTracks::AlbumId)).equals((Albums::Table, Albums::XataId)),
-        )
-        .and_where(
-            Expr::col((Atr::Table, AlbumTracks::TrackId)).equals((Tracks::Table, Tracks::XataId)),
-        )
-        .take();
-
     let uploaded_by_caller = Query::select()
         .expr(Expr::cust("1"))
         .from_as(UserUploads::Table, Uu::Table)
@@ -404,42 +397,81 @@ fn member_tracks(dialect: Dialect, query: &mut SelectStatement, user_id: &str) {
         .and_where(Expr::col((Uu::Table, UserUploads::UserId)).eq(user_id))
         .take();
 
+    // One row per position on the record, as a *plain* join rather than a
+    // correlated `JOIN LATERAL`, which SQLite has no form of.
+    //
+    // What made it lateral was the correlation with the outer `albums` row:
+    // the album id, and the title/artist agreeing case-insensitively with the
+    // track's own. So the subquery exposes those three columns and the
+    // correlation moves into the join's ON clause, where a plain join can
+    // express it.
+    //
+    // The album id now comes from a join on `album_tracks` instead of an
+    // EXISTS, which by itself would re-admit the duplicate junction rows that
+    // EXISTS was avoiding — so `album_id` joins the partition key below, where
+    // duplicates collapse into one row. Same dedup, one mechanism.
     let mut member = Query::select();
     member
-        .distinct_on([
-            (Tracks::Table, Tracks::DiscNumber).into_column_ref(),
-            (Tracks::Table, Tracks::TrackNumber).into_column_ref(),
-            (K::Table, K::Unnumbered).into_column_ref(),
-        ])
         .columns([
             (Tracks::Table, Tracks::XataId),
             (Tracks::Table, Tracks::Duration),
         ])
         .expr_as(earliest_upload, Member::UploadedAt)
-        .from(Tracks::Table)
-        .join_lateral(
-            JoinType::Join,
-            unnumbered_key(Tracks::Table),
-            K::Table,
-            Expr::cust("TRUE"),
+        .expr_as(
+            Expr::col((Atr::Table, AlbumTracks::AlbumId)),
+            Member::AlbumId,
         )
-        .and_where(lower_eq(
-            Expr::col((Tracks::Table, Tracks::Album)),
-            Expr::col((Albums::Table, Albums::Title)),
-        ))
-        .and_where(lower_eq(
+        .expr_as(Expr::col((Tracks::Table, Tracks::Album)), Member::Album)
+        .expr_as(
             Expr::col((Tracks::Table, Tracks::AlbumArtist)),
-            Expr::col((Albums::Table, Albums::Artist)),
-        ))
-        .and_where(Expr::exists(in_album))
-        .and_where(Expr::exists(uploaded_by_caller))
-        .order_by((Tracks::Table, Tracks::DiscNumber), Order::Asc)
-        .order_by((Tracks::Table, Tracks::TrackNumber), Order::Asc)
-        .order_by((K::Table, K::Unnumbered), Order::Asc)
-        .order_by((Tracks::Table, Tracks::XataCreatedat), Order::Asc)
-        .order_by((Tracks::Table, Tracks::XataId), Order::Asc);
+            Member::AlbumArtist,
+        )
+        .from(Tracks::Table)
+        .join_as(
+            JoinType::Join,
+            AlbumTracks::Table,
+            Atr::Table,
+            Expr::col((Atr::Table, AlbumTracks::TrackId)).equals((Tracks::Table, Tracks::XataId)),
+        )
+        .and_where(Expr::exists(uploaded_by_caller));
 
-    query.join_lateral(JoinType::Join, member, Member::Table, Expr::cust("TRUE"));
+    let member = one_per_partition(
+        member,
+        WindowStatement::partition_by((Atr::Table, AlbumTracks::AlbumId))
+            .partition_by((Tracks::Table, Tracks::DiscNumber))
+            .partition_by((Tracks::Table, Tracks::TrackNumber))
+            // Unnumbered tracks keep their row id in the key, so two of them
+            // never collapse into each other.
+            .add_partition_by(unnumbered_key_expr(Tracks::Table))
+            // Oldest wins, so the header agrees with `get_tracks_by_album`.
+            .order_by((Tracks::Table, Tracks::XataCreatedat), Order::Asc)
+            .order_by((Tracks::Table, Tracks::XataId), Order::Asc)
+            .to_owned(),
+        [
+            Tracks::XataId.into_iden(),
+            Tracks::Duration.into_iden(),
+            Member::UploadedAt.into_iden(),
+            Member::AlbumId.into_iden(),
+            Member::Album.into_iden(),
+            Member::AlbumArtist.into_iden(),
+        ],
+    );
+
+    query.join_subquery(
+        JoinType::Join,
+        member,
+        Member::Table,
+        Expr::col((Member::Table, Member::AlbumId))
+            .equals((Albums::Table, Albums::XataId))
+            .and(lower_eq(
+                Expr::col((Member::Table, Member::Album)),
+                Expr::col((Albums::Table, Albums::Title)),
+            ))
+            .and(lower_eq(
+                Expr::col((Member::Table, Member::AlbumArtist)),
+                Expr::col((Albums::Table, Albums::Artist)),
+            )),
+    );
 }
 
 /// The `albums` columns plus the aggregates computed over `member`, and the
@@ -511,7 +543,7 @@ fn albums_by_artist_stmt(dialect: Dialect, artist_id: &str, user_id: &str) -> Se
         Expr::col((Albums::Table, Albums::XataId))
             .equals((ArtistAlbums::Table, ArtistAlbums::AlbumId)),
     );
-    member_tracks(dialect, &mut stmt, user_id);
+    member_tracks(&mut stmt, user_id);
     stmt.and_where(Expr::col((ArtistAlbums::Table, ArtistAlbums::ArtistId)).eq(artist_id));
     group_by_album(&mut stmt);
     stmt.order_by_with_nulls(
@@ -566,7 +598,7 @@ fn album_by_stmt(dialect: Dialect, predicate: SimpleExpr, user_id: &str) -> Sele
     let mut stmt = Query::select();
     album_with_member_stats(dialect, &mut stmt, first_artist_id());
     stmt.from(Albums::Table);
-    member_tracks(dialect, &mut stmt, user_id);
+    member_tracks(&mut stmt, user_id);
     stmt.and_where(predicate);
     group_by_album(&mut stmt);
     stmt
@@ -822,7 +854,7 @@ fn albums_by_names_stmt(
     let mut stmt = Query::select();
     album_with_member_stats(dialect, &mut stmt, first_artist_id());
     stmt.from(Albums::Table);
-    member_tracks(dialect, &mut stmt, user_id);
+    member_tracks(&mut stmt, user_id);
     stmt.and_where(Expr::col((Albums::Table, Albums::Title)).is_in(titles))
         .and_where(Expr::col((Albums::Table, Albums::Artist)).is_in(artists));
     group_by_album(&mut stmt);
@@ -989,5 +1021,256 @@ mod tests {
             })
             .collect();
         assert!(ints.windows(2).any(|w| w == [1990, 1999]));
+    }
+}
+
+/// The album statistics, executed against a real SQLite.
+///
+/// This is the query the "15 songs / 97 min" bugs lived in: three different
+/// duplicate shapes each used to multiply the counts, and the rules guarding
+/// them were `DISTINCT ON` and a correlated `JOIN LATERAL`. Both are gone, so
+/// the rules are re-checked by seeding those shapes and reading the numbers.
+#[cfg(test)]
+mod sqlite_behaviour {
+    use super::*;
+    use rocksky_db::{new_id, Backend, Handle};
+
+    async fn insert(db: &Backend, table: &str, values: &[(&str, &str)]) {
+        let mut stmt = Query::insert();
+        stmt.into_table(Alias::new(table))
+            .columns(values.iter().map(|(c, _)| Alias::new(*c)))
+            .values_panic(values.iter().map(|(_, v)| (*v).into()));
+        db.execute(&stmt).await.unwrap();
+    }
+
+    struct Fixture {
+        handle: Handle,
+        user: String,
+        album: String,
+        artist: String,
+    }
+
+    async fn fixture() -> Fixture {
+        let db = rocksky_db::connect_in_memory().await.unwrap();
+
+        let user = new_id();
+        insert(
+            &db,
+            "users",
+            &[
+                ("xata_id", &user),
+                ("did", "did:plc:alice"),
+                ("handle", "alice.test"),
+                ("avatar", ""),
+            ],
+        )
+        .await;
+
+        let artist = new_id();
+        insert(
+            &db,
+            "artists",
+            &[
+                ("xata_id", &artist),
+                ("name", "Kate Bush"),
+                ("sha256", &new_id()),
+            ],
+        )
+        .await;
+
+        let album = new_id();
+        insert(
+            &db,
+            "albums",
+            &[
+                ("xata_id", &album),
+                ("title", "Hounds of Love"),
+                ("artist", "Kate Bush"),
+                ("sha256", &new_id()),
+            ],
+        )
+        .await;
+        insert(
+            &db,
+            "artist_albums",
+            &[
+                ("xata_id", &new_id()),
+                ("artist_id", &artist),
+                ("album_id", &album),
+            ],
+        )
+        .await;
+
+        Fixture {
+            handle: Handle::from_backend(db),
+            user,
+            album,
+            artist,
+        }
+    }
+
+    /// Adds a track on the album, with one upload, returning its id.
+    async fn add_track(
+        fx: &Fixture,
+        title: &str,
+        track_number: Option<&str>,
+        duration_ms: &str,
+        created_at: &str,
+    ) -> String {
+        let db = fx.handle.primary();
+        let track = new_id();
+        let mut values = vec![
+            ("xata_id", track.as_str()),
+            ("title", title),
+            ("artist", "Kate Bush"),
+            ("album_artist", "Kate Bush"),
+            ("album", "Hounds of Love"),
+            ("duration", duration_ms),
+            ("sha256", track.as_str()),
+            ("xata_createdat", created_at),
+        ];
+        if let Some(n) = track_number {
+            values.push(("track_number", n));
+        }
+        insert(db, "tracks", &values).await;
+        insert(
+            db,
+            "album_tracks",
+            &[
+                ("xata_id", &new_id()),
+                ("album_id", &fx.album),
+                ("track_id", &track),
+            ],
+        )
+        .await;
+        add_upload(fx, &track, "2026-01-01T00:00:00.000Z").await;
+        track
+    }
+
+    async fn add_upload(fx: &Fixture, track: &str, uploaded_at: &str) {
+        insert(
+            fx.handle.primary(),
+            "user_uploads",
+            &[
+                ("xata_id", &new_id()),
+                ("user_id", &fx.user),
+                ("track_id", track),
+                ("r2_key", &format!("key-{}", new_id())),
+                ("mime_type", "audio/flac"),
+                ("file_size", "1000"),
+                ("original_filename", "t.flac"),
+                ("uploaded_at", uploaded_at),
+            ],
+        )
+        .await;
+    }
+
+    /// Two tracks, one of them uploaded twice, and a second `tracks` row for
+    /// one of the slots. The header must read 2 songs and their two durations
+    /// — not 3 or 4 of either.
+    #[tokio::test]
+    async fn the_stats_count_each_slot_once() {
+        let fx = fixture().await;
+
+        let first = add_track(
+            &fx,
+            "Running Up That Hill",
+            Some("1"),
+            "300000",
+            "2026-01-01T00:00:00.000Z",
+        )
+        .await;
+        add_track(
+            &fx,
+            "Hounds of Love",
+            Some("2"),
+            "200000",
+            "2026-01-01T00:00:00.000Z",
+        )
+        .await;
+
+        // A re-upload of track 1.
+        add_upload(&fx, &first, "2026-06-01T00:00:00.000Z").await;
+        // A re-upload whose tags differed, so it became a second `tracks` row
+        // on the same slot.
+        add_track(
+            &fx,
+            "Running Up That Hil",
+            Some("1"),
+            "999999",
+            "2026-09-01T00:00:00.000Z",
+        )
+        .await;
+
+        let albums = get_albums_by_artist(&fx.handle, &fx.artist, &fx.user)
+            .await
+            .unwrap();
+        assert_eq!(albums.len(), 1, "one album");
+        let album = &albums[0];
+        assert_eq!(album.song_count, 2, "two positions on the record");
+        assert_eq!(
+            album.total_duration,
+            Some(500_000),
+            "the two kept tracks' durations, in ms"
+        );
+        // The oldest of the two spellings is the one kept, so the duration
+        // above is 300000 + 200000 rather than 999999 + 200000.
+        assert!(album.created_at.is_some(), "the date has to decode");
+    }
+
+    /// `get_album_by_id` goes through the same joins, and is what the album
+    /// page reads.
+    #[tokio::test]
+    async fn one_album_by_id_agrees_with_the_listing() {
+        let fx = fixture().await;
+        add_track(
+            &fx,
+            "Cloudbusting",
+            Some("5"),
+            "300000",
+            "2026-01-01T00:00:00.000Z",
+        )
+        .await;
+
+        let one = get_album_by_id(&fx.handle, &fx.album, &fx.user)
+            .await
+            .unwrap()
+            .expect("the album");
+        assert_eq!(one.song_count, 1);
+        assert_eq!(one.total_duration, Some(300_000));
+        assert_eq!(one.title, "Hounds of Love");
+    }
+
+    /// An album whose tracks belong to somebody else is not in this caller's
+    /// library at all — the upload scope is per user.
+    #[tokio::test]
+    async fn another_users_uploads_do_not_appear() {
+        let fx = fixture().await;
+        add_track(
+            &fx,
+            "Cloudbusting",
+            Some("5"),
+            "300000",
+            "2026-01-01T00:00:00.000Z",
+        )
+        .await;
+
+        let other = new_id();
+        insert(
+            fx.handle.primary(),
+            "users",
+            &[
+                ("xata_id", &other),
+                ("did", "did:plc:bob"),
+                ("handle", "bob.test"),
+                ("avatar", ""),
+            ],
+        )
+        .await;
+
+        let albums = get_albums_by_artist(&fx.handle, &fx.artist, &other)
+            .await
+            .unwrap();
+        assert!(albums.is_empty(), "bob uploaded nothing");
     }
 }
