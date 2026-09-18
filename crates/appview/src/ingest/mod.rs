@@ -132,6 +132,34 @@ fn string(value: &serde_json::Value, key: &str) -> Option<String> {
         .map(str::to_string)
 }
 
+/// A record's own `createdAt`, as the TEXT form the date columns hold.
+///
+/// Falls back to now for a record that omits it or carries something
+/// unparseable — every lexicon here makes `createdAt` required, so the
+/// fallback is for malformed records rather than a normal path.
+///
+/// # Why this is written into `xata_createdat`
+///
+/// `loved_tracks` and `shouts` have no timestamp of their own, on either
+/// backend: the only date is `xata_createdat`, which defaults to `now`. On the
+/// hosted API that is close enough to the truth, because the row is written the
+/// moment somebody clicks — but this appview writes rows when it *projects a
+/// record*, so the default dated every like and every shout to the moment of
+/// the backfill.
+///
+/// These rows are projections, so the creation that matters is the record's,
+/// not the row's. Writing it here keeps the fix to one column that already
+/// exists everywhere — the alternative, a new column, would live only in
+/// SQLite, since this binary deliberately does not migrate Postgres
+/// (`rocksky_db::ConnectError::IncompleteSchema`) — and it makes the existing
+/// `ORDER BY xata_createdat` correct for free.
+fn record_created_at(value: &serde_json::Value) -> String {
+    string(value, "createdAt")
+        .and_then(|raw| chrono::DateTime::parse_from_rfc3339(&raw).ok())
+        .map(|parsed| crate::db::format_timestamp(parsed.with_timezone(&chrono::Utc)))
+        .unwrap_or_else(crate::db::now_timestamp)
+}
+
 /// Reads an integer field. Records in the wild sometimes carry numbers as
 /// strings, so both are accepted.
 fn integer(value: &serde_json::Value, key: &str) -> Option<i64> {
@@ -1626,12 +1654,16 @@ async fn ingest_like(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bo
             LovedTracks::UserId,
             LovedTracks::TrackId,
             LovedTracks::Uri,
+            // When the like happened, not when this instance heard about it —
+            // see `record_created_at`.
+            LovedTracks::XataCreatedat,
         ])
         .values_panic([
             new_id().into(),
             user_id.into(),
             track_id.into(),
             record.uri().into(),
+            record_created_at(&record.value).into(),
         ])
         .on_conflict(OnConflict::column(LovedTracks::Uri).do_nothing().to_owned())
         .to_owned();
@@ -1694,6 +1726,7 @@ async fn ingest_shout(db: &Backend, record: &IncomingRecord) -> anyhow::Result<b
     };
 
     let gif = record.value.get("gif");
+    let created_at = record_created_at(&record.value);
     let mut columns = vec![
         Shouts::XataId,
         Shouts::Content,
@@ -1705,6 +1738,10 @@ async fn ingest_shout(db: &Backend, record: &IncomingRecord) -> anyhow::Result<b
         Shouts::GifWidth,
         Shouts::GifHeight,
         Shouts::Facets,
+        // When the shout was posted, not when this instance heard about it —
+        // see `record_created_at`.
+        Shouts::XataCreatedat,
+        Shouts::XataUpdatedat,
     ];
     let mut values: Vec<crate::sea_query::SimpleExpr> = vec![
         new_id().into(),
@@ -1723,6 +1760,8 @@ async fn ingest_shout(db: &Backend, record: &IncomingRecord) -> anyhow::Result<b
             .filter(|facets| facets.as_array().is_some_and(|f| !f.is_empty()))
             .map(|facets| facets.to_string())
             .into(),
+        created_at.clone().into(),
+        created_at.into(),
     ];
 
     // A reply names the shout it answers. Resolved against `shouts.uri`, so a
@@ -3077,6 +3116,103 @@ mod tests {
             uri.as_deref(),
             Some("at://did:plc:alice/app.rocksky.song/3song")
         );
+    }
+
+    /// A like is dated by the record, not by when it was projected.
+    ///
+    /// `loved_tracks` has no timestamp but `xata_createdat`, which defaults to
+    /// `now` — so before this, every like in a backfilled database was dated to
+    /// the moment of the backfill, and the loved list came back in backfill
+    /// order rather than in the order things were loved.
+    #[tokio::test]
+    async fn a_like_is_dated_by_its_record() {
+        let db = db::connect_in_memory().await.unwrap();
+        ingest(&db, &record(SONG_NSID, "3song", scrobble_value()))
+            .await
+            .unwrap();
+
+        ingest(
+            &db,
+            &record(
+                LIKE_NSID,
+                "3like",
+                serde_json::json!({
+                    "subject": "at://did:plc:alice/app.rocksky.song/3song",
+                    "createdAt": "2021-03-04T05:06:07.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        let dated: Option<String> = db
+            .fetch_scalar(&db.sql("SELECT xata_createdat FROM loved_tracks"))
+            .await
+            .unwrap();
+        assert_eq!(dated.as_deref(), Some("2021-03-04T05:06:07.000Z"));
+    }
+
+    /// The same for a shout, which has the same one-date shape.
+    #[tokio::test]
+    async fn a_shout_is_dated_by_its_record() {
+        let db = db::connect_in_memory().await.unwrap();
+        ingest(&db, &record(SCROBBLE_NSID, "3aaa", scrobble_value()))
+            .await
+            .unwrap();
+
+        ingest(
+            &db,
+            &record(
+                SHOUT_NSID,
+                "3shout",
+                serde_json::json!({
+                    "content": "this rules",
+                    "subject": {
+                        "uri": "at://did:plc:alice/app.rocksky.scrobble/3aaa",
+                        "cid": "bafyreia",
+                    },
+                    "createdAt": "2021-03-04T05:06:07.000Z",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        let dated: Option<String> = db
+            .fetch_scalar(&db.sql("SELECT xata_createdat FROM shouts"))
+            .await
+            .unwrap();
+        assert_eq!(dated.as_deref(), Some("2021-03-04T05:06:07.000Z"));
+    }
+
+    /// A record with no usable `createdAt` still gets a row, dated now.
+    #[tokio::test]
+    async fn a_record_with_an_unparseable_date_still_lands() {
+        let db = db::connect_in_memory().await.unwrap();
+        ingest(&db, &record(SONG_NSID, "3song", scrobble_value()))
+            .await
+            .unwrap();
+
+        let stats = ingest(
+            &db,
+            &record(
+                LIKE_NSID,
+                "3like",
+                serde_json::json!({
+                    "subject": "at://did:plc:alice/app.rocksky.song/3song",
+                    "createdAt": "last tuesday",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.likes, 1);
+        let dated: Option<String> = db
+            .fetch_scalar(&db.sql("SELECT xata_createdat FROM loved_tracks"))
+            .await
+            .unwrap();
+        assert!(dated.is_some_and(|d| d.starts_with("20")), "dated to now");
     }
 
     #[tokio::test]

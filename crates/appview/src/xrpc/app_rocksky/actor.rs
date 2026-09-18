@@ -707,25 +707,44 @@ async fn load_loved_songs(
         return Ok(LovedSongsOutput::default());
     };
 
-    let mut query = Query::select();
-    db.select_model(&mut query, TRACK_COLS, Some("t"));
-    query
+    // Which tracks, and when each was loved. Two queries rather than one
+    // because `select_model` fills a `Track`, and the date wanted here belongs
+    // to the `loved_tracks` row rather than to the track — the same shape
+    // `load_actor_songs` uses to carry a play count alongside a track.
+    let mut loved = Query::select();
+    loved
+        .column((Alias::new("l"), LovedTracks::TrackId))
+        .column((Alias::new("l"), LovedTracks::XataCreatedat))
         .from_as(LovedTracks::Table, Alias::new("l"))
-        .join_as(
-            JoinType::InnerJoin,
-            Tracks::Table,
-            Alias::new("t"),
-            Expr::col((Alias::new("t"), Tracks::XataId))
-                .equals((Alias::new("l"), LovedTracks::TrackId)),
-        )
         .and_where(Expr::col((Alias::new("l"), LovedTracks::UserId)).eq(&user.id))
         .order_by((Alias::new("l"), LovedTracks::XataCreatedat), Order::Desc)
         .limit(params.limit() as u64)
         .offset(params.offset() as u64);
 
-    let tracks: Vec<Track> = db.fetch_all(&query).await?;
+    let loved: Vec<(String, chrono::DateTime<chrono::Utc>)> = db.fetch_all(&loved).await?;
+    if loved.is_empty() {
+        return Ok(LovedSongsOutput::default());
+    }
+
+    let by_id = loaders::tracks_by_id(db, loved.iter().map(|(id, _)| Some(id.clone()))).await?;
+
+    // Walked in loved order, so the response keeps it. A track that vanished
+    // between the two queries is skipped rather than faked.
     Ok(LovedSongsOutput {
-        tracks: tracks.iter().map(TrackView::from).collect(),
+        tracks: loved
+            .iter()
+            .filter_map(|(track_id, loved_at)| {
+                let mut view = TrackView::from(by_id.get(track_id.as_str())?);
+                // The date the client renders in its "Date" column. It has to
+                // be when the track was *loved*: `TrackView::from` fills this
+                // from the track row, so a loved list answered the moment each
+                // track first entered this catalogue — nothing to do with the
+                // listener, and identical for two people who loved the same
+                // song years apart.
+                view.created_at = *loved_at;
+                Some(view)
+            })
+            .collect(),
     })
 }
 
@@ -902,6 +921,68 @@ mod tests {
             body["scrobbles"][0]["createdAt"], "2021-03-04T05:06:07.000Z",
             "the profile feed must carry the play time, not the row's \
              xata_createdat: {body}"
+        );
+    }
+
+    /// The loved list dates each row by when it was loved.
+    ///
+    /// Two bugs met here. The date came from `TrackView`, i.e. the *track
+    /// row's* creation — so the "Date" column showed when the track first
+    /// entered this catalogue, which is the same for two people who loved the
+    /// same song years apart. And `loved_tracks.xata_createdat`, the only date
+    /// the table has, defaulted to `now`, so a backfill dated every like to
+    /// itself.
+    #[actix_web::test]
+    async fn the_loved_list_dates_a_track_by_when_it_was_loved() {
+        let state = AppState::for_test().await.unwrap();
+        let db = state.db();
+
+        // The track enters the catalogue now; the like is years old.
+        crate::ingest::ingest(
+            db,
+            &crate::ingest::IncomingRecord {
+                did: "did:plc:alice".into(),
+                collection: crate::ingest::SONG_NSID.into(),
+                rkey: "3song".into(),
+                value: serde_json::json!({
+                    "title": "Roygbiv",
+                    "artist": "Boards of Canada",
+                    "album": "Music Has the Right to Children",
+                    "albumArtist": "Boards of Canada",
+                    "duration": 151000,
+                    "createdAt": "2026-09-15T19:59:13.000Z",
+                }),
+            },
+        )
+        .await
+        .unwrap();
+        crate::ingest::ingest(
+            db,
+            &crate::ingest::IncomingRecord {
+                did: "did:plc:alice".into(),
+                collection: crate::ingest::LIKE_NSID.into(),
+                rkey: "3like".into(),
+                value: serde_json::json!({
+                    "subject": "at://did:plc:alice/app.rocksky.song/3song",
+                    "createdAt": "2021-03-04T05:06:07.000Z",
+                }),
+            },
+        )
+        .await
+        .unwrap();
+
+        let app = app!(state);
+        let body: serde_json::Value = http::call_and_read_body_json(
+            &app,
+            http::TestRequest::get()
+                .uri("/xrpc/app.rocksky.actor.getActorLovedSongs?did=did:plc:alice")
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(
+            body["tracks"][0]["createdAt"], "2021-03-04T05:06:07.000Z",
+            "the loved list must carry the date of the like, not of the track: {body}"
         );
     }
 
