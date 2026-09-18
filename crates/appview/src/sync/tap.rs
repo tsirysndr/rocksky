@@ -113,6 +113,13 @@ pub async fn run(state: AppState) {
                         records = stats.total(),
                         "history replayed; now following live events"
                     );
+                    // Nothing was indexed during the replay, so the index is
+                    // now as far behind as the replay was long. This rebuild
+                    // is batched and paces itself against Typesense's write
+                    // queue, which the per-record path cannot do.
+                    if let Some(search) = state.search() {
+                        crate::search::spawn_backfill(search, state.db());
+                    }
                 }
 
                 // A delete carries no body, so it is projected from the URI
@@ -179,7 +186,17 @@ pub async fn run(state: AppState) {
                                 .await;
                         }
                         stats.merge(result);
-                        crate::search::index_record(&state, &incoming).await;
+                        // Not while replaying. `index_record` issues one
+                        // Typesense import per record — up to four, since a
+                        // scrobble indexes its track, album and artist — and a
+                        // replay delivers them as fast as the socket allows.
+                        // That buried the server under a write queue it could
+                        // not drain, and a Typesense behind on its queue stops
+                        // answering searches at all. The rebuild when the
+                        // replay ends covers these rows in batches instead.
+                        if !replaying {
+                            crate::search::index_record(&state, &incoming).await;
+                        }
                     }
                     Err(err) => {
                         tracing::warn!(

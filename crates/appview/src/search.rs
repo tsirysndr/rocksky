@@ -66,6 +66,14 @@ const BASE_DELAY: Duration = Duration::from_millis(200);
 /// blip in the middle of a million rows.
 const IMPORT_BATCH: usize = 500;
 
+/// How long one collection's search may take before its results are dropped.
+///
+/// The search box is one part of a page, and a collection whose index has
+/// stopped answering must cost only its own rows rather than the whole
+/// response. Longer than `REQUEST_TIMEOUT` so an ordinary retry still fits
+/// inside it, and short enough that a page never visibly hangs on search.
+const SEARCH_DEADLINE: Duration = Duration::from_secs(5);
+
 pub const ALBUMS: &str = "albums";
 pub const ARTISTS: &str = "artists";
 pub const TRACKS: &str = "tracks";
@@ -404,67 +412,109 @@ impl Search {
 
     /// The federated search behind `app.rocksky.feed.search`.
     ///
-    /// One `multi_search` request rather than five searches, so the five
-    /// collections cost one round trip.
+    /// One request *per collection*, issued concurrently, rather than the five
+    /// bundled into a single `multi_search`.
+    ///
+    /// # Why not one `multi_search`
+    ///
+    /// Because one request means one failure. A collection whose index stops
+    /// answering — Typesense buried under its own write queue, which
+    /// [`index_record`] could previously cause during a Tap replay — hangs the
+    /// whole bundled request, and the search box answers "no results" for a
+    /// catalogue that is sitting right there, healthy, in the other four
+    /// collections. Observed exactly that way: `users` deadlocked while
+    /// `albums`, `artists` and `tracks` each answered in milliseconds.
+    ///
+    /// Fanned out, a dead collection costs only its own rows. The round-trip
+    /// latency is unchanged because the requests overlap; it costs five
+    /// connections instead of one, against a server on the same network.
+    ///
+    /// Each search also gets [`SEARCH_DEADLINE`] to answer, so a collection
+    /// that hangs cannot hold the page open for the retry budget.
     pub async fn federated(
         &self,
         query: &str,
         per_collection: usize,
     ) -> Result<FederatedResults, SearchError> {
-        let searches: Vec<serde_json::Value> = FEDERATED
-            .iter()
-            .map(|collection| {
-                serde_json::json!({
-                    "collection": collection,
-                    "q": query,
-                    "query_by": query_by(collection),
-                    "per_page": per_collection,
-                    "page": 1,
-                    "prioritize_exact_match": true,
-                })
-            })
-            .collect();
-
         let started = std::time::Instant::now();
-        let response = self
-            .post(
-                "/multi_search",
-                &serde_json::json!({ "searches": searches }),
-            )
-            .await?;
-        let elapsed = started.elapsed();
 
-        // Parsed rather than defaulted on failure: a response this code cannot
-        // read means Typesense changed under it, and answering "no results"
-        // would hide that behind an empty search box.
-        let parsed: MultiSearchResponse =
-            serde_json::from_str(&response).map_err(|source| SearchError::Malformed {
-                path: "/multi_search".into(),
-                source,
-            })?;
+        let searches =
+            FEDERATED.iter().map(|&collection| async move {
+                // Still `/multi_search`, with one search in it: the request stays
+                // a POST with a JSON body, so nothing has to be URL-encoded, and
+                // the response parses with the same type.
+                let body = serde_json::json!({
+                    "searches": [{
+                        "collection": collection,
+                        "q": query,
+                        "query_by": query_by(collection),
+                        "per_page": per_collection,
+                        "page": 1,
+                        "prioritize_exact_match": true,
+                    }],
+                });
+
+                let response =
+                    match tokio::time::timeout(SEARCH_DEADLINE, self.post("/multi_search", &body))
+                        .await
+                    {
+                        Ok(Ok(response)) => response,
+                        Ok(Err(err)) => {
+                            tracing::warn!(collection, error = %err, "a search collection failed");
+                            return None;
+                        }
+                        Err(_) => {
+                            tracing::warn!(
+                                collection,
+                                seconds = SEARCH_DEADLINE.as_secs(),
+                                "a search collection did not answer in time"
+                            );
+                            return None;
+                        }
+                    };
+
+                match serde_json::from_str::<MultiSearchResponse>(&response) {
+                    Ok(parsed) => Some((collection, parsed)),
+                    Err(err) => {
+                        // Logged and dropped rather than failing the search: the
+                        // other four collections still have answers, and a shape
+                        // this code cannot read is reported here rather than
+                        // hidden behind an empty box.
+                        tracing::error!(
+                            collection,
+                            error = %err,
+                            "could not read a search response"
+                        );
+                        None
+                    }
+                }
+            });
+
+        let responses = futures::future::join_all(searches).await;
+        let elapsed = started.elapsed();
 
         let mut hits = Vec::new();
         let mut estimated_total_hits = 0;
-        for (index, result) in parsed.results.iter().enumerate() {
-            let Some(&collection) = FEDERATED.get(index) else {
-                continue;
-            };
-            // Typesense reports a per-search failure inside a 200 response, so
-            // one missing collection must not empty the whole answer.
-            if let Some(error) = &result.error {
-                tracing::warn!(collection, error = %error, "a search collection failed");
-                continue;
-            }
-            estimated_total_hits += result.found.unwrap_or(0);
-            for hit in &result.hits {
-                let mut document = hit.document.clone();
-                if let Some(object) = document.as_object_mut() {
-                    object.insert(
-                        "_federation".into(),
-                        serde_json::json!({ "indexUid": collection }),
-                    );
+        for (collection, parsed) in responses.into_iter().flatten() {
+            for result in &parsed.results {
+                // Typesense reports a per-search failure inside a 200
+                // response, so one missing collection must not empty the
+                // whole answer.
+                if let Some(error) = &result.error {
+                    tracing::warn!(collection, error = %error, "a search collection failed");
+                    continue;
                 }
-                hits.push(document);
+                estimated_total_hits += result.found.unwrap_or(0);
+                for hit in &result.hits {
+                    let mut document = hit.document.clone();
+                    if let Some(object) = document.as_object_mut() {
+                        object.insert(
+                            "_federation".into(),
+                            serde_json::json!({ "indexUid": collection }),
+                        );
+                    }
+                    hits.push(document);
+                }
             }
         }
 
@@ -1455,6 +1505,75 @@ async fn backfill_library(search: &Search, db: &Backend) -> anyhow::Result<usize
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A collection that stops answering must cost only its own rows.
+    ///
+    /// This is the regression the fan-out exists for. Bundled into one
+    /// `multi_search`, a single wedged collection hung the entire request, so
+    /// the search box answered "no results" while four healthy collections sat
+    /// behind it — which is exactly what a Typesense buried under its own
+    /// write queue did to `users` in production.
+    #[tokio::test]
+    async fn a_wedged_collection_does_not_empty_the_whole_search() {
+        use std::io::{Read, Write};
+
+        // A stand-in Typesense: every collection answers with one hit, except
+        // `users`, whose socket is accepted and then never written to. Held
+        // open rather than closed, because a closed connection is an error —
+        // what happened in production was a server that took the request and
+        // never answered it.
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let mut wedged = Vec::new();
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { continue };
+
+                // The body carries the collection name, and it may arrive in a
+                // second read after the headers.
+                let mut request = String::new();
+                let mut buf = [0u8; 8192];
+                loop {
+                    match stream.read(&mut buf) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => request.push_str(&String::from_utf8_lossy(&buf[..n])),
+                    }
+                    if request.contains("\"collection\"") {
+                        break;
+                    }
+                }
+
+                if request.contains("\"collection\":\"users\"") {
+                    wedged.push(stream);
+                    continue;
+                }
+
+                let body = r#"{"results":[{"found":1,"hits":[{"document":{"id":"x"}}]}]}"#;
+                let _ = write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\
+                     Content-Length: {}\r\n\r\n{body}",
+                    body.len()
+                );
+            }
+        });
+
+        let search = Search::new(&format!("http://{addr}"), "test-key").unwrap();
+        let results = search.federated("radiohead", 5).await.unwrap();
+
+        // Four healthy collections, one hit each. The whole point: not zero.
+        assert_eq!(
+            results.hits.len(),
+            FEDERATED.len() - 1,
+            "a wedged collection must not take the healthy ones with it"
+        );
+        assert_eq!(results.estimated_total_hits, (FEDERATED.len() - 1) as i64);
+
+        // And every hit is tagged, so the client can still discriminate.
+        for hit in &results.hits {
+            assert!(hit.get("_federation").is_some());
+        }
+    }
 
     /// The five collection names are the discriminant the web client switches
     /// on (`apps/web/src/types/search.ts`). A rename here is a search box that
