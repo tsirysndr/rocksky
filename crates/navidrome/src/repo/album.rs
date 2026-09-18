@@ -1,14 +1,16 @@
 use anyhow::Error;
 use sea_query::{
-    Alias, BinOper, CommonTableExpression, Expr, ExprTrait, Func, Iden, IntoColumnRef, JoinType,
-    NullOrdering, Order, OverStatement, Query, SelectStatement, SimpleExpr, WindowStatement,
-    WithClause,
+    Alias, BinOper, CommonTableExpression, Expr, ExprTrait, Func, Iden, IntoColumnRef, IntoIden,
+    JoinType, NullOrdering, Order, OverStatement, Query, SelectStatement, SimpleExpr,
+    WindowStatement, WithClause,
 };
 
-use crate::repo::track::{lower_eq, unnumbered_key, K};
+use crate::repo::track::{lower_eq, one_per_partition, unnumbered_key, K};
 use crate::schema::{AlbumTracks, Albums, ArtistAlbums, Artists, Tracks, UserUploads};
 use crate::sql;
 use crate::xata::album::AlbumWithStats;
+use rocksky_db::models::{array_contains_expr, cast_int_expr, cast_timestamp_expr};
+use rocksky_db::Dialect;
 use rocksky_db::Handle as Db;
 
 #[derive(Iden, Clone, Copy)]
@@ -211,62 +213,74 @@ fn first_artist_id() -> SimpleExpr {
 /// all hashes to a whole new `tracks` row for the same track number). The slot
 /// keeps the oldest track and `mine` the earliest upload, matching what
 /// `member_tracks` and `get_tracks_by_album` pick, so the three agree.
-fn album_stats_cte(user_id: &str) -> WithClause {
+fn album_stats_cte(dialect: Dialect, user_id: &str) -> WithClause {
     let mut mine = Query::select();
-    mine.distinct_on([(Uu::Table, UserUploads::TrackId).into_column_ref()])
-        .columns([
-            (Uu::Table, UserUploads::TrackId),
-            (Uu::Table, UserUploads::UploadedAt),
-        ])
-        .columns([
-            (Alias::new("t"), Tracks::Album),
-            (Alias::new("t"), Tracks::AlbumArtist),
-            (Alias::new("t"), Tracks::Duration),
-            (Alias::new("t"), Tracks::DiscNumber),
-            (Alias::new("t"), Tracks::TrackNumber),
-            (Alias::new("t"), Tracks::XataCreatedat),
-        ])
-        .expr_as(
-            Expr::case(
-                Expr::col((Alias::new("t"), Tracks::TrackNumber)).is_null(),
-                Expr::col((Alias::new("t"), Tracks::XataId)),
-            )
-            .finally(Expr::val("")),
-            K::Unnumbered,
+    mine.columns([
+        (Uu::Table, UserUploads::TrackId),
+        (Uu::Table, UserUploads::UploadedAt),
+    ])
+    .columns([
+        (Alias::new("t"), Tracks::Album),
+        (Alias::new("t"), Tracks::AlbumArtist),
+        (Alias::new("t"), Tracks::Duration),
+        (Alias::new("t"), Tracks::DiscNumber),
+        (Alias::new("t"), Tracks::TrackNumber),
+        (Alias::new("t"), Tracks::XataCreatedat),
+    ])
+    .expr_as(
+        Expr::case(
+            Expr::col((Alias::new("t"), Tracks::TrackNumber)).is_null(),
+            Expr::col((Alias::new("t"), Tracks::XataId)),
         )
-        .from_as(UserUploads::Table, Uu::Table)
-        .join_as(
-            JoinType::Join,
-            Tracks::Table,
-            Alias::new("t"),
-            Expr::col((Alias::new("t"), Tracks::XataId)).equals((Uu::Table, UserUploads::TrackId)),
-        )
-        .and_where(Expr::col((Uu::Table, UserUploads::UserId)).eq(user_id))
-        .order_by((Uu::Table, UserUploads::TrackId), Order::Asc)
-        .order_by((Uu::Table, UserUploads::UploadedAt), Order::Asc)
-        .order_by((Uu::Table, UserUploads::XataId), Order::Asc);
+        .finally(Expr::val("")),
+        K::Unnumbered,
+    )
+    .from_as(UserUploads::Table, Uu::Table)
+    .join_as(
+        JoinType::Join,
+        Tracks::Table,
+        Alias::new("t"),
+        Expr::col((Alias::new("t"), Tracks::XataId)).equals((Uu::Table, UserUploads::TrackId)),
+    )
+    .and_where(Expr::col((Uu::Table, UserUploads::UserId)).eq(user_id));
 
-    // The junction lookup is DISTINCT so that duplicate `album_tracks` rows for
-    // one (album, track) pair cannot multiply the stats.
-    let album_ids = Query::select()
-        .distinct()
-        .column((Atr0::Table, AlbumTracks::AlbumId))
-        .from_as(AlbumTracks::Table, Atr0::Table)
-        .and_where(Expr::col((Atr0::Table, AlbumTracks::TrackId)).equals((M::Table, Mine::TrackId)))
-        .take();
+    // One upload per track, the earliest — `DISTINCT ON (track_id)` with that
+    // ORDER BY, which is Postgres-only. The window says the same thing.
+    let mine = one_per_partition(
+        mine,
+        WindowStatement::partition_by((Uu::Table, UserUploads::TrackId))
+            .order_by((Uu::Table, UserUploads::UploadedAt), Order::Asc)
+            .order_by((Uu::Table, UserUploads::XataId), Order::Asc)
+            .to_owned(),
+        [
+            Mine::TrackId.into_iden(),
+            Mine::UploadedAt.into_iden(),
+            Mine::Album.into_iden(),
+            Mine::AlbumArtist.into_iden(),
+            Mine::Duration.into_iden(),
+            Mine::DiscNumber.into_iden(),
+            Mine::TrackNumber.into_iden(),
+            Mine::XataCreatedat.into_iden(),
+            Mine::Unnumbered.into_iden(),
+        ],
+    );
 
     let mut album_members = Query::select();
     album_members
-        .distinct_on([
-            (Atr::Table, Atr::AlbumId).into_column_ref(),
-            (M::Table, Mine::DiscNumber).into_column_ref(),
-            (M::Table, Mine::TrackNumber).into_column_ref(),
-            (M::Table, Mine::Unnumbered).into_column_ref(),
-        ])
-        .column((Atr::Table, Atr::AlbumId))
+        .expr_as(Expr::col((Atr::Table, AlbumTracks::AlbumId)), Atr::AlbumId)
         .columns([(M::Table, Mine::Duration), (M::Table, Mine::UploadedAt)])
         .from_as(Mine::Table, M::Table)
-        .join_lateral(JoinType::Join, album_ids, Atr::Table, Expr::cust("TRUE"))
+        // A plain join, where this was a correlated `SELECT DISTINCT album_id`
+        // joined laterally. The DISTINCT was there so duplicate `album_tracks`
+        // rows for one (album, track) pair could not multiply the stats — and
+        // it is redundant now: duplicates land in the same partition below,
+        // where only the first row survives. One dedup instead of two.
+        .join_as(
+            JoinType::Join,
+            AlbumTracks::Table,
+            Atr::Table,
+            Expr::col((Atr::Table, AlbumTracks::TrackId)).equals((M::Table, Mine::TrackId)),
+        )
         .join_as(
             JoinType::Join,
             Albums::Table,
@@ -281,13 +295,26 @@ fn album_stats_cte(user_id: &str) -> WithClause {
                     Expr::col((Al::Table, Albums::Artist)),
                     Expr::col((M::Table, Mine::AlbumArtist)),
                 )),
-        )
-        .order_by((Atr::Table, Atr::AlbumId), Order::Asc)
-        .order_by((M::Table, Mine::DiscNumber), Order::Asc)
-        .order_by((M::Table, Mine::TrackNumber), Order::Asc)
-        .order_by((M::Table, Mine::Unnumbered), Order::Asc)
-        .order_by((M::Table, Mine::XataCreatedat), Order::Asc)
-        .order_by((M::Table, Mine::TrackId), Order::Asc);
+        );
+
+    // One track per (album, slot), the oldest — the re-upload whose tags
+    // differ at all hashes to a whole new `tracks` row for the same track
+    // number. Was `DISTINCT ON` over the same key.
+    let album_members = one_per_partition(
+        album_members,
+        WindowStatement::partition_by((Atr::Table, AlbumTracks::AlbumId))
+            .partition_by((M::Table, Mine::DiscNumber))
+            .partition_by((M::Table, Mine::TrackNumber))
+            .partition_by((M::Table, Mine::Unnumbered))
+            .order_by((M::Table, Mine::XataCreatedat), Order::Asc)
+            .order_by((M::Table, Mine::TrackId), Order::Asc)
+            .to_owned(),
+        [
+            Atr::AlbumId.into_iden(),
+            Mine::Duration.into_iden(),
+            Mine::UploadedAt.into_iden(),
+        ],
+    );
 
     let album_stats = Query::select()
         .column(AlbumMembers::AlbumId)
@@ -344,7 +371,7 @@ fn album_stats_cte(user_id: &str) -> WithClause {
 /// a whole second `tracks` row for the same position on the record. EXISTS
 /// handles the first two; DISTINCT ON the slot handles the third, keeping the
 /// oldest row so the header agrees with `get_tracks_by_album`.
-fn member_tracks(query: &mut SelectStatement, user_id: &str) {
+fn member_tracks(dialect: Dialect, query: &mut SelectStatement, user_id: &str) {
     let earliest_upload = scalar(
         Query::select()
             .expr(Func::min(Expr::col((Uu::Table, UserUploads::UploadedAt))))
@@ -417,7 +444,7 @@ fn member_tracks(query: &mut SelectStatement, user_id: &str) {
 
 /// The `albums` columns plus the aggregates computed over `member`, and the
 /// GROUP BY they need. Shared by every lookup that drives off `member_tracks`.
-fn album_with_member_stats(query: &mut SelectStatement, artist_id: SimpleExpr) {
+fn album_with_member_stats(dialect: Dialect, query: &mut SelectStatement, artist_id: SimpleExpr) {
     query
         .columns([
             (Albums::Table, Albums::XataId),
@@ -429,16 +456,19 @@ fn album_with_member_stats(query: &mut SelectStatement, artist_id: SimpleExpr) {
         ])
         .expr_as(Func::count(Expr::cust("*")), AlbumStats::SongCount)
         .expr_as(
-            Func::cast_as(
+            cast_int_expr(
+                dialect,
                 Func::sum(Expr::col((Member::Table, Member::Duration))),
-                Alias::new("bigint"),
             ),
             AlbumStats::TotalDuration,
         )
         .expr_as(
-            Func::cast_as(
+            // Not `CAST(… AS timestamptz)` unconditionally: on SQLite that
+            // is a no-op with no type affinity, and the ISO text is truncated
+            // to its leading year — a silently wrong date rather than an error.
+            cast_timestamp_expr(
+                dialect,
                 Func::min(Expr::col((Member::Table, Member::UploadedAt))),
-                Alias::new("timestamptz"),
             ),
             AlbumStats::CreatedAt,
         )
@@ -461,19 +491,27 @@ pub async fn get_albums_by_artist(
     artist_id: &str,
     user_id: &str,
 ) -> Result<Vec<AlbumWithStats>, Error> {
-    Ok(sql::fetch_all(db.replica(), &albums_by_artist_stmt(artist_id, user_id)).await?)
+    Ok(sql::fetch_all(
+        db.replica(),
+        &albums_by_artist_stmt(db.replica().dialect(), artist_id, user_id),
+    )
+    .await?)
 }
 
-fn albums_by_artist_stmt(artist_id: &str, user_id: &str) -> SelectStatement {
+fn albums_by_artist_stmt(dialect: Dialect, artist_id: &str, user_id: &str) -> SelectStatement {
     let mut stmt = Query::select();
-    album_with_member_stats(&mut stmt, Expr::val(artist_id).cast_as(Alias::new("text")));
+    album_with_member_stats(
+        dialect,
+        &mut stmt,
+        Expr::val(artist_id).cast_as(Alias::new("text")),
+    );
     stmt.from(Albums::Table).join(
         JoinType::Join,
         ArtistAlbums::Table,
         Expr::col((Albums::Table, Albums::XataId))
             .equals((ArtistAlbums::Table, ArtistAlbums::AlbumId)),
     );
-    member_tracks(&mut stmt, user_id);
+    member_tracks(dialect, &mut stmt, user_id);
     stmt.and_where(Expr::col((ArtistAlbums::Table, ArtistAlbums::ArtistId)).eq(artist_id));
     group_by_album(&mut stmt);
     stmt.order_by_with_nulls(
@@ -517,14 +555,18 @@ async fn album_by(
     predicate: SimpleExpr,
     user_id: &str,
 ) -> Result<Option<AlbumWithStats>, Error> {
-    Ok(sql::fetch_optional(db.replica(), &album_by_stmt(predicate, user_id)).await?)
+    Ok(sql::fetch_optional(
+        db.replica(),
+        &album_by_stmt(db.replica().dialect(), predicate, user_id),
+    )
+    .await?)
 }
 
-fn album_by_stmt(predicate: SimpleExpr, user_id: &str) -> SelectStatement {
+fn album_by_stmt(dialect: Dialect, predicate: SimpleExpr, user_id: &str) -> SelectStatement {
     let mut stmt = Query::select();
-    album_with_member_stats(&mut stmt, first_artist_id());
+    album_with_member_stats(dialect, &mut stmt, first_artist_id());
     stmt.from(Albums::Table);
-    member_tracks(&mut stmt, user_id);
+    member_tracks(dialect, &mut stmt, user_id);
     stmt.and_where(predicate);
     group_by_album(&mut stmt);
     stmt
@@ -540,12 +582,22 @@ pub async fn get_album_list(
     to_year: Option<i32>,
     genre: Option<&str>,
 ) -> Result<Vec<AlbumWithStats>, Error> {
-    let stmt = album_list_stmt(user_id, list_type, count, offset, from_year, to_year, genre);
+    let stmt = album_list_stmt(
+        db.replica().dialect(),
+        user_id,
+        list_type,
+        count,
+        offset,
+        from_year,
+        to_year,
+        genre,
+    );
     Ok(sql::fetch_all(db.replica(), &stmt).await?)
 }
 
 #[allow(clippy::too_many_arguments)]
 fn album_list_stmt(
+    dialect: Dialect,
     user_id: &str,
     list_type: &str,
     count: i64,
@@ -582,7 +634,10 @@ fn album_list_stmt(
                         Expr::col((Ag::Table, ArtistAlbums::AlbumId))
                             .equals((Albums::Table, Albums::XataId)),
                     )
-                    .and_where(Expr::cust_with_values(r#"$1 = ANY("ar"."genres")"#, [g]))
+                    // `= ANY(text[])` on Postgres, a `json_each` walk on
+                    // SQLite — the storage differs, so there is no one
+                    // spelling.
+                    .and_where(array_contains_expr(dialect, "ar.genres", g))
                     .take(),
             ));
         }
@@ -633,7 +688,7 @@ fn album_list_stmt(
         .limit(count.max(0) as u64)
         .offset(offset.max(0) as u64);
 
-    outer.with(album_stats_cte(user_id))
+    outer.with(album_stats_cte(dialect, user_id))
 }
 
 pub async fn search_albums(
@@ -643,11 +698,17 @@ pub async fn search_albums(
     count: i64,
     offset: i64,
 ) -> Result<Vec<AlbumWithStats>, Error> {
-    let stmt = search_albums_stmt(user_id, query, count, offset);
+    let stmt = search_albums_stmt(db.replica().dialect(), user_id, query, count, offset);
     Ok(sql::fetch_all(db.replica(), &stmt).await?)
 }
 
-fn search_albums_stmt(user_id: &str, query: &str, count: i64, offset: i64) -> sea_query::WithQuery {
+fn search_albums_stmt(
+    dialect: Dialect,
+    user_id: &str,
+    query: &str,
+    count: i64,
+    offset: i64,
+) -> sea_query::WithQuery {
     // Same shape as get_album_list — see `album_stats_cte` for why it is built
     // this way, why the junction guard has to stay, and what the dedup is for.
     let mut inner = dedup_ranked_albums();
@@ -665,7 +726,7 @@ fn search_albums_stmt(user_id: &str, query: &str, count: i64, offset: i64) -> se
         .limit(count.max(0) as u64)
         .offset(offset.max(0) as u64);
 
-    outer.with(album_stats_cte(user_id))
+    outer.with(album_stats_cte(dialect, user_id))
 }
 
 /// Ingestion stores album_artist verbatim, so featured-artist tracks
@@ -743,17 +804,25 @@ pub async fn get_albums_by_names(
     if pairs.is_empty() {
         return Ok(vec![]);
     }
-    Ok(sql::fetch_all(db.replica(), &albums_by_names_stmt(user_id, pairs)).await?)
+    Ok(sql::fetch_all(
+        db.replica(),
+        &albums_by_names_stmt(db.replica().dialect(), user_id, pairs),
+    )
+    .await?)
 }
 
-fn albums_by_names_stmt(user_id: &str, pairs: &[(String, String)]) -> SelectStatement {
+fn albums_by_names_stmt(
+    dialect: Dialect,
+    user_id: &str,
+    pairs: &[(String, String)],
+) -> SelectStatement {
     let titles: Vec<String> = pairs.iter().map(|(t, _)| t.clone()).collect();
     let artists: Vec<String> = pairs.iter().map(|(_, a)| a.clone()).collect();
 
     let mut stmt = Query::select();
-    album_with_member_stats(&mut stmt, first_artist_id());
+    album_with_member_stats(dialect, &mut stmt, first_artist_id());
     stmt.from(Albums::Table);
-    member_tracks(&mut stmt, user_id);
+    member_tracks(dialect, &mut stmt, user_id);
     stmt.and_where(Expr::col((Albums::Table, Albums::Title)).is_in(titles))
         .and_where(Expr::col((Albums::Table, Albums::Artist)).is_in(artists));
     group_by_album(&mut stmt);
@@ -786,18 +855,64 @@ mod tests {
     /// to avoid — so MATERIALIZED is part of the query, not a hint.
     #[test]
     fn the_stats_ctes_stay_materialized() {
-        let (sql, _) = album_list_stmt("rec_user", "newest", 20, 0, None, None, None)
-            .build_sqlx(PostgresQueryBuilder);
+        let (sql, _) = album_list_stmt(
+            Dialect::Postgres,
+            "rec_user",
+            "newest",
+            20,
+            0,
+            None,
+            None,
+            None,
+        )
+        .build_sqlx(PostgresQueryBuilder);
         assert_eq!(sql.matches("AS  MATERIALIZED").count(), 3);
         assert!(sql.contains(r#"WITH "mine" AS  MATERIALIZED"#));
     }
 
+    /// The genre filter on SQLite, where `= ANY` and `text[]` do not exist.
+    #[test]
+    fn the_genre_filter_walks_json_on_sqlite() {
+        let (sql, values) = album_list_stmt(
+            Dialect::Sqlite,
+            "rec_user",
+            "byGenre",
+            20,
+            0,
+            None,
+            None,
+            Some("shoegaze"),
+        )
+        .build_sqlx(sea_query::SqliteQueryBuilder);
+
+        assert!(sql.contains("json_each(ar.genres)"), "{sql}");
+        assert!(!sql.contains("ANY"), "{sql}");
+        assert!(!sql.contains("text[]"), "{sql}");
+        // Still bound, not spliced.
+        assert!(!sql.contains("shoegaze"));
+        assert!(values
+            .0
+             .0
+            .iter()
+            .any(|v| matches!(v, sea_query::Value::String(Some(s)) if **s == *"shoegaze")));
+    }
+
     #[test]
     fn the_genre_filter_binds_its_value() {
-        let (sql, values) =
-            album_list_stmt("rec_user", "byGenre", 20, 0, None, None, Some("shoegaze"))
-                .build_sqlx(PostgresQueryBuilder);
-        assert!(sql.contains(r#"= ANY("ar"."genres")"#));
+        let (sql, values) = album_list_stmt(
+            Dialect::Postgres,
+            "rec_user",
+            "byGenre",
+            20,
+            0,
+            None,
+            None,
+            Some("shoegaze"),
+        )
+        .build_sqlx(PostgresQueryBuilder);
+        // Containment against a `text[]`, through the shared helper — so
+        // SQLite gets a `json_each` walk from the same call site.
+        assert!(sql.contains("= ANY(ar.genres)"), "{sql}");
         assert!(!sql.contains("shoegaze"));
         assert!(values
             .0
@@ -819,25 +934,51 @@ mod tests {
             "byGenre",
             "unrecognised",
         ] {
-            let (sql, _) = album_list_stmt("rec_user", list_type, 20, 0, None, None, Some("g"))
-                .build_sqlx(PostgresQueryBuilder);
+            let (sql, _) = album_list_stmt(
+                Dialect::Postgres,
+                "rec_user",
+                list_type,
+                20,
+                0,
+                None,
+                None,
+                Some("g"),
+            )
+            .build_sqlx(PostgresQueryBuilder);
             let order = &sql[sql.rfind("ORDER BY").unwrap()..];
             assert!(
                 order.contains(r#""xata_id" ASC"#),
                 "{list_type} does not tiebreak on the row id: {order}"
             );
         }
-        let (sql, _) = album_list_stmt("rec_user", "random", 20, 0, None, None, None)
-            .build_sqlx(PostgresQueryBuilder);
+        let (sql, _) = album_list_stmt(
+            Dialect::Postgres,
+            "rec_user",
+            "random",
+            20,
+            0,
+            None,
+            None,
+            None,
+        )
+        .build_sqlx(PostgresQueryBuilder);
         assert!(sql[sql.rfind("ORDER BY").unwrap()..].contains("RANDOM()"));
     }
 
     /// The year range is normalised, so a reversed from/to still selects rows.
     #[test]
     fn a_reversed_year_range_is_ordered_before_it_binds() {
-        let (_, values) =
-            album_list_stmt("rec_user", "byYear", 20, 0, Some(1999), Some(1990), None)
-                .build_sqlx(PostgresQueryBuilder);
+        let (_, values) = album_list_stmt(
+            Dialect::Postgres,
+            "rec_user",
+            "byYear",
+            20,
+            0,
+            Some(1999),
+            Some(1990),
+            None,
+        )
+        .build_sqlx(PostgresQueryBuilder);
         let ints: Vec<i32> = values
             .0
              .0

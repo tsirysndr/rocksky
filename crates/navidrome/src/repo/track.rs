@@ -454,6 +454,33 @@ pub(crate) fn unnumbered_key_expr(table: impl sea_query::IntoIden + Copy + 'stat
     .into()
 }
 
+/// Keeps only the first row of each partition.
+///
+/// The portable form of `DISTINCT ON`: wrap the select in a derived table
+/// carrying `ROW_NUMBER() OVER (<window>)` and keep the rows numbered 1. The
+/// window's ORDER BY is the tie-break, exactly as `DISTINCT ON`'s ORDER BY
+/// was, so a caller moving from one to the other keeps its ordering.
+///
+/// `outputs` are the columns the derived table re-projects — the inner
+/// select's own output names, since that is what they are called once it
+/// becomes a subquery.
+pub(crate) fn one_per_partition(
+    mut inner: SelectStatement,
+    window: WindowStatement,
+    outputs: impl IntoIterator<Item = sea_query::DynIden>,
+) -> SelectStatement {
+    inner.expr_window_as(Func::cust(RowNumber), window, Rank::Row);
+
+    let mut outer = Query::select();
+    for column in outputs {
+        outer.column((Rank::Table, column));
+    }
+    outer
+        .from_subquery(inner, Rank::Table)
+        .and_where(Expr::col((Rank::Table, Rank::Row)).eq(1));
+    outer
+}
+
 /// `ROW_NUMBER`, which sea-query has no builder for.
 #[derive(Iden, Clone, Copy)]
 #[iden = "ROW_NUMBER"]
@@ -462,7 +489,7 @@ struct RowNumber;
 /// The derived table the window's rank is filtered on.
 #[derive(Iden, Clone, Copy)]
 #[iden = "rank"]
-enum Rank {
+pub(crate) enum Rank {
     Table,
     #[iden = "slot_rank"]
     Row,
