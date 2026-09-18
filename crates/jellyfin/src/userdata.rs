@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use rocksky_db::Handle as Db;
 use rocksky_navidrome::schema::LovedTracks;
 use rocksky_navidrome::sql;
-use sea_query::{ColumnDef, Expr, OnConflict, Order, PostgresQueryBuilder, Query, Table};
+use sea_query::{ColumnDef, Expr, OnConflict, Order, Query, Table};
 
 use crate::schema::JellyfinUserItemData as Data;
 
@@ -37,6 +37,7 @@ const DATA_COLUMNS: [Data; 6] = [
 
 pub async fn ensure_table(db: &Db) -> Result<(), Error> {
     let pool = db.primary();
+    let schema = sql::schema_builder(pool);
     let ddl = Table::create()
         .table(Data::Table)
         .if_not_exists()
@@ -68,9 +69,9 @@ pub async fn ensure_table(db: &Db) -> Result<(), Error> {
                 .col(Data::UserId)
                 .col(Data::ItemId),
         )
-        .build(PostgresQueryBuilder);
+        .take();
 
-    sql::execute_schema(pool, ddl).await?;
+    sql::execute_schema(pool, schema.build(&ddl)).await?;
     Ok(())
 }
 
@@ -200,11 +201,19 @@ pub async fn set_played(
     at: Option<DateTime<Utc>>,
 ) -> Result<(), Error> {
     let pool = db.primary();
+    let dialect = pool.dialect();
     // Marking played bumps the count and stamps the date; un-marking clears
     // both, which is what the reference server does for `DELETE
     // /UserPlayedItems/{id}`.
     let stmt = if played {
-        let when = || sea_query::Func::coalesce([Expr::val(at).into(), Expr::cust("NOW()")]);
+        // `NOW()` has no SQLite spelling, and the fallback has to be in the
+        // same ISO text these columns hold.
+        let when = || {
+            sea_query::Func::coalesce([
+                Expr::val(at).into(),
+                Expr::cust(rocksky_db::models::now_sql(dialect)),
+            ])
+        };
         Query::insert()
             .into_table(Data::Table)
             .columns([
@@ -333,4 +342,52 @@ where
 
     sql::execute(pool, &stmt).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod sqlite_tests {
+    use super::*;
+
+    /// Jellyfin's own tables, created and used on SQLite.
+    ///
+    /// These are not part of the Rocksky schema — this service creates them —
+    /// so their DDL was rendered with `PostgresQueryBuilder` and their
+    /// defaults were `NOW()`. Both are per-dialect now, and the only way to
+    /// know it works is to run it.
+    #[tokio::test]
+    async fn play_state_round_trips_on_sqlite() {
+        let db = rocksky_db::connect_in_memory().await.unwrap();
+        let handle = rocksky_db::Handle::from_backend(db);
+
+        ensure_table(&handle).await.unwrap();
+
+        // Nothing recorded yet: defaults, not an error.
+        let empty = get(&handle, "user-1", "item-1").await;
+        assert_eq!(empty.playback_position_ticks, 0);
+        assert!(!empty.played);
+
+        set_position(&handle, "user-1", "item-1", 1_234_567)
+            .await
+            .unwrap();
+        set_played(&handle, "user-1", "item-1", true, None)
+            .await
+            .unwrap();
+
+        let state = get(&handle, "user-1", "item-1").await;
+        assert_eq!(state.playback_position_ticks, 1_234_567);
+        assert!(state.played, "marked played");
+        assert!(state.play_count >= 1);
+        assert!(
+            state.last_played_date.is_some(),
+            "the NOW() fallback has to produce a date SQLite can store and \
+             sqlx can decode"
+        );
+
+        // Un-marking clears both, which is the reference server's behaviour.
+        set_played(&handle, "user-1", "item-1", false, None)
+            .await
+            .unwrap();
+        let state = get(&handle, "user-1", "item-1").await;
+        assert!(!state.played);
+    }
 }

@@ -319,6 +319,61 @@ pub fn column_expr(col: Col, dialect: Dialect, prefix: Option<&str>) -> sea_quer
     }
 }
 
+/// The year of a timestamp column, as SQL text for the dialect given.
+///
+/// `EXTRACT(YEAR FROM …)` against `strftime('%Y', …)`. The SQLite form yields
+/// text, so it is cast — otherwise `BETWEEN 1990 AND 2000` compares a string
+/// against numbers and matches nothing.
+pub fn year_of(dialect: Dialect, column: &str) -> String {
+    match dialect {
+        Dialect::Postgres => format!("EXTRACT(YEAR FROM {column})"),
+        Dialect::Sqlite => format!("CAST(strftime('%Y', {column}) AS INTEGER)"),
+    }
+}
+
+/// `NOW()`, as SQL text for the dialect given.
+///
+/// SQLite keeps these columns as ISO-8601 text, so "now" has to be produced in
+/// that same shape — `strftime`, not `CURRENT_TIMESTAMP`, whose format
+/// (`YYYY-MM-DD HH:MM:SS`, space-separated, no milliseconds, no `Z`) does not
+/// compare correctly against the stored values.
+pub fn now_sql(dialect: Dialect) -> &'static str {
+    match dialect {
+        Dialect::Postgres => "NOW()",
+        Dialect::Sqlite => "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
+    }
+}
+
+/// `NOW() - INTERVAL '<n> minutes'`, for the dialect given.
+///
+/// Used to bound a "recently" window. SQLite has no interval type; the
+/// equivalent is a modifier on `strftime`, which yields the same ISO text the
+/// column holds.
+pub fn minutes_ago_sql(dialect: Dialect, minutes: u32) -> String {
+    match dialect {
+        Dialect::Postgres => format!("NOW() - INTERVAL '{minutes} minutes'"),
+        Dialect::Sqlite => {
+            format!("(strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-{minutes} minutes'))")
+        }
+    }
+}
+
+/// Whole minutes between `column` and now.
+///
+/// `EXTRACT(EPOCH FROM (NOW() - ts))` has no SQLite spelling; there, the two
+/// timestamps go through `julianday` and the difference is in days, so it is
+/// scaled. Both round towards zero, which is what "3 minutes ago" wants.
+pub fn minutes_since_sql(dialect: Dialect, column: &str) -> String {
+    match dialect {
+        Dialect::Postgres => {
+            format!("EXTRACT(EPOCH FROM (NOW() - {column}))::bigint / 60")
+        }
+        Dialect::Sqlite => {
+            format!("CAST((julianday('now') - julianday({column})) * 1440 AS INTEGER)")
+        }
+    }
+}
+
 /// Wraps an integer expression so it decodes as `i64`, for the dialect given.
 ///
 /// The free-function form of [`crate::Backend::cast_int`], for the statement
@@ -686,6 +741,64 @@ pub const SCROBBLE_COLS: &[Col] = cols! {
 
 #[cfg(test)]
 mod tests {
+    /// The time helpers, executed — a wrong `strftime` format compares against
+    /// the stored ISO text incorrectly and silently, which no rendering
+    /// assertion catches.
+    #[tokio::test]
+    async fn the_time_helpers_agree_with_the_stored_format() {
+        use sea_query::{Alias, Expr, Query};
+
+        let db = crate::connect_in_memory().await.unwrap();
+
+        // `now_sql` has to produce the same shape `format_timestamp` writes,
+        // or every "since" comparison is wrong.
+        let now: Option<String> = db
+            .fetch_scalar(&db.sql(format!("SELECT {}", now_sql(crate::Dialect::Sqlite))))
+            .await
+            .unwrap();
+        let now = now.expect("a value");
+        assert!(now.ends_with('Z'), "{now}");
+        assert!(now.contains('T'), "{now}");
+        assert_eq!(now.len(), crate::now_timestamp().len(), "{now}");
+
+        // A row five minutes old is inside a ten-minute window and outside a
+        // one-minute one. This is the comparison the now-playing lookup makes.
+        let five_minutes_ago =
+            crate::format_timestamp(chrono::Utc::now() - chrono::Duration::minutes(5));
+        let inside: Option<i64> = db
+            .fetch_scalar(&db.sql(format!(
+                "SELECT 1 WHERE '{five_minutes_ago}' >= {}",
+                minutes_ago_sql(crate::Dialect::Sqlite, 10)
+            )))
+            .await
+            .unwrap();
+        assert_eq!(inside, Some(1), "five minutes ago is within ten");
+
+        let outside: Option<i64> = db
+            .fetch_scalar(&db.sql(format!(
+                "SELECT 1 WHERE '{five_minutes_ago}' >= {}",
+                minutes_ago_sql(crate::Dialect::Sqlite, 1)
+            )))
+            .await
+            .unwrap();
+        assert_eq!(outside, None, "five minutes ago is not within one");
+
+        // Elapsed minutes. Both dialects truncate — Postgres by integer
+        // division, SQLite by the CAST — so five minutes and a few
+        // milliseconds ago reads as 4, not 5. Which is why the assertion is a
+        // range: the property is "about five and never negative", and pinning
+        // it to one value would make the test fail on the millisecond.
+        let elapsed: Option<i64> = db
+            .fetch_scalar(&db.sql(format!(
+                "SELECT {}",
+                minutes_since_sql(crate::Dialect::Sqlite, &format!("'{five_minutes_ago}'"))
+            )))
+            .await
+            .unwrap();
+        let elapsed = elapsed.expect("a value");
+        assert!((4..=5).contains(&elapsed), "elapsed minutes: {elapsed}");
+    }
+
     /// `array_contains_expr` must *bind* its value on both dialects.
     ///
     /// The Postgres branch writes a `$1` marker inside a custom fragment, and

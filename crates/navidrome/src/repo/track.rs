@@ -9,6 +9,7 @@ use crate::schema::{
 };
 use crate::sql;
 use crate::xata::track::TrackWithUpload;
+use rocksky_db::Dialect;
 use rocksky_db::Handle as Db;
 
 /// Query-local aliases. Naming them as `Iden`s rather than as strings is the
@@ -582,11 +583,19 @@ pub async fn get_random_songs(
     from_year: Option<i32>,
     to_year: Option<i32>,
 ) -> Result<Vec<TrackWithUpload>, Error> {
-    let stmt = random_songs_stmt(user_id, count, genre, from_year, to_year);
+    let stmt = random_songs_stmt(
+        db.replica().dialect(),
+        user_id,
+        count,
+        genre,
+        from_year,
+        to_year,
+    );
     Ok(sql::fetch_all(db.replica(), &stmt).await?)
 }
 
 fn random_songs_stmt(
+    dialect: Dialect,
     user_id: &str,
     count: i64,
     genre: Option<&str>,
@@ -605,8 +614,13 @@ fn random_songs_stmt(
     }
     if let (Some(from), Some(to)) = (from_year, to_year) {
         stmt.and_where(
-            Expr::cust(r#"EXTRACT(YEAR FROM "tracks"."xata_createdat")"#)
-                .between(from.min(to), from.max(to)),
+            // `EXTRACT(YEAR …)` and `strftime('%Y', …)` have no common
+            // spelling; `current_year`'s sibling in `rocksky_db::models` picks.
+            Expr::cust(rocksky_db::models::year_of(
+                dialect,
+                r#""tracks"."xata_createdat""#,
+            ))
+            .between(from.min(to), from.max(to)),
         );
     }
 
@@ -832,8 +846,15 @@ mod tests {
     /// as SQL.
     #[test]
     fn a_genre_with_a_quote_in_it_binds_rather_than_escaping() {
-        let (sql, values) = random_songs_stmt("rec_user", 10, Some("rock 'n' roll"), None, None)
-            .build_sqlx(PostgresQueryBuilder);
+        let (sql, values) = random_songs_stmt(
+            Dialect::Postgres,
+            "rec_user",
+            10,
+            Some("rock 'n' roll"),
+            None,
+            None,
+        )
+        .build_sqlx(PostgresQueryBuilder);
         assert!(!sql.contains("rock"));
         assert!(sql.contains(r#"LOWER("tracks"."genre") = LOWER($"#));
         assert!(values

@@ -14,7 +14,7 @@
 use anyhow::Error;
 use rocksky_db::Handle as Db;
 use rocksky_navidrome::sql;
-use sea_query::{Alias, ColumnDef, Expr, Func, OnConflict, PostgresQueryBuilder, Query, Table};
+use sea_query::{Alias, ColumnDef, Expr, Func, OnConflict, Query, Table};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{HashMap, HashSet},
@@ -118,6 +118,7 @@ pub fn year_guid(year: i32) -> String {
 
 pub async fn ensure_table(db: &Db) -> Result<(), Error> {
     let pool = db.primary();
+    let schema = sql::schema_builder(pool);
     let ddl = Table::create()
         .table(JellyfinGuids::Table)
         .if_not_exists()
@@ -129,9 +130,9 @@ pub async fn ensure_table(db: &Db) -> Result<(), Error> {
         )
         .col(ColumnDef::new(JellyfinGuids::Kind).text().not_null())
         .col(ColumnDef::new(JellyfinGuids::NativeId).text().not_null())
-        .build(PostgresQueryBuilder);
+        .take();
 
-    sql::execute_schema(pool, ddl).await?;
+    sql::execute_schema(pool, schema.build(&ddl)).await?;
     Ok(())
 }
 

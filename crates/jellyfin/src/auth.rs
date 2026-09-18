@@ -14,7 +14,7 @@ use rand::RngCore;
 use rocksky_db::Handle as Db;
 use rocksky_navidrome::schema::Users;
 use rocksky_navidrome::sql;
-use sea_query::{ColumnDef, Expr, Index, JoinType, OnConflict, PostgresQueryBuilder, Query, Table};
+use sea_query::{ColumnDef, Expr, Index, JoinType, OnConflict, Query, Table};
 use std::{
     collections::HashMap,
     sync::{Mutex, OnceLock},
@@ -134,6 +134,10 @@ pub fn random_hex(bytes: usize) -> String {
 
 pub async fn ensure_tables(db: &Db) -> Result<(), Error> {
     let pool = db.primary();
+    let dialect = pool.dialect();
+    // The DDL these tables need differs by more than placeholders, so it is
+    // rendered for whichever backend this is.
+    let schema = sql::schema_builder(pool);
     let tokens = Table::create()
         .table(JellyfinTokens::Table)
         .if_not_exists()
@@ -151,18 +155,18 @@ pub async fn ensure_tables(db: &Db) -> Result<(), Error> {
             ColumnDef::new(JellyfinTokens::CreatedAt)
                 .timestamp_with_time_zone()
                 .not_null()
-                .default(Expr::cust("NOW()")),
+                .default(Expr::cust(rocksky_db::models::now_sql(dialect))),
         )
-        .build(PostgresQueryBuilder);
-    sql::execute_schema(pool, tokens).await?;
+        .take();
+    sql::execute_schema(pool, schema.build(&tokens)).await?;
 
     let by_user = Index::create()
         .if_not_exists()
         .name("jellyfin_tokens_user_id_idx")
         .table(JellyfinTokens::Table)
         .col(JellyfinTokens::UserId)
-        .build(PostgresQueryBuilder);
-    sql::execute_schema(pool, by_user).await?;
+        .take();
+    sql::execute_schema(pool, schema.build(&by_user)).await?;
 
     let meta = Table::create()
         .table(JellyfinMeta::Table)
@@ -174,8 +178,8 @@ pub async fn ensure_tables(db: &Db) -> Result<(), Error> {
                 .primary_key(),
         )
         .col(ColumnDef::new(JellyfinMeta::Value).text().not_null())
-        .build(PostgresQueryBuilder);
-    sql::execute_schema(pool, meta).await?;
+        .take();
+    sql::execute_schema(pool, schema.build(&meta)).await?;
 
     Ok(())
 }
