@@ -17,13 +17,13 @@
 //! fetched after. The order of the ranking query is what the response
 //! preserves — re-sorting the hydrated rows would lose ties' ordering.
 
-use crate::db::models::{Scrobble, Track, User, SCROBBLE_COLS, TRACK_COLS, USER_COLS};
+use crate::db::models::{Scrobble, User, SCROBBLE_COLS, USER_COLS};
 use crate::db::schema::{
-    Follows, LovedTracks, Scrobbles, Tracks, UserAlbums, UserArtists, UserTracks, Users,
+    Follows, LovedTracks, Scrobbles, UserAlbums, UserArtists, UserTracks, Users,
 };
 use crate::db::{loaders, Backend};
 use crate::error::XrpcResult;
-use crate::sea_query::{Alias, Asterisk, Expr, Func, JoinType, Order, Query, SelectStatement};
+use crate::sea_query::{Alias, Asterisk, Expr, Func, Order, Query, SelectStatement};
 use crate::state::AppState;
 use crate::views::TrackView;
 use crate::xrpc::{clamp_limit_or, clamp_offset, json};

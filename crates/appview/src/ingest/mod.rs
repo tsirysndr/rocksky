@@ -555,13 +555,6 @@ async fn delete_playlist(db: &Backend, uri: &str) -> anyhow::Result<u64> {
     Ok(db.execute(&delete).await?)
 }
 
-/// Ensures a `users` row exists for `did`, returning its id.
-///
-/// Records carry no profile, so the DID stands in for the handle until one is
-/// known — `handle` is NOT NULL and UNIQUE, so it has to be something, and a
-/// DID is guaranteed unique. [`set_handle`] replaces it once the DID document
-/// has been read.
-
 /// Finds a row by its unique key, or inserts it and finds it again.
 ///
 /// Four tables need exactly this — users by DID, and artists, albums and
@@ -634,6 +627,12 @@ impl UriTable {
     }
 }
 
+/// Ensures a `users` row exists for `did`, returning its id.
+///
+/// Records carry no profile, so the DID stands in for the handle until one is
+/// known — `handle` is NOT NULL and UNIQUE, so it has to be something, and a
+/// DID is guaranteed unique. [`set_handle`] replaces it once the DID document
+/// has been read.
 pub async fn upsert_user(db: &Backend, did: &str) -> anyhow::Result<String> {
     find_or_create(
         db,
