@@ -50,7 +50,27 @@
 #   url = "postgres://user:pass@host/rocksky"
 # Note that Postgres schemas are owned by the drizzle migrations in apps/api;
 # this binary reads and writes them but never migrates them.
+#
+# On Postgres this is the PRIMARY: every write goes here, and so does every
+# read unless the call site opts into the replica below.
 # url = "sqlite://rocksky.db?mode=rwc"
+
+# An optional Postgres read replica, for reads that tolerate replication lag.
+# Ignored when it is the same URL as `url`: two pools onto one server only
+# halve the connections available to each.
+#
+# Reads go here only where a handler asks them to, so a lagging replica cannot
+# break read-after-write. It has to be a replica OF `url` — setting one to
+# Postgres and the other to SQLite is refused at startup, because writes and
+# reads would go to different databases and the symptom is reads that cannot
+# see what was just written.
+# read_url = "postgres://user:pass@replica-host/rocksky"
+#
+# The environment equivalents, highest first:
+#   primary   APPVIEW_DB_URL, then XATA_WRITE_POSTGRES_URL, then XATA_POSTGRES_URL
+#   replica   APPVIEW_DB_READ_URL, then XATA_READ_POSTGRES_URL
+# The XATA_* names are what the hosted deployment already uses, so an existing
+# Doppler environment resolves both without being rewritten.
 
 # OAuth sessions and the DID document cache. Always SQLite, and kept apart from
 # the data above so re-indexing never logs anyone out.

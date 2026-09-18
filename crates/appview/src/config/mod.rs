@@ -306,6 +306,28 @@ pub enum ConfigError {
     Settings(SettingsError),
 }
 
+/// Whether a database URL names Postgres.
+fn is_postgres(url: &str) -> bool {
+    url.starts_with("postgres:") || url.starts_with("postgresql:")
+}
+
+/// A database URL with any password removed, for an error message.
+///
+/// These strings carry credentials, and a misconfiguration is exactly when
+/// somebody pastes the output into an issue.
+fn redact_url(url: &str) -> String {
+    let Some((scheme, rest)) = url.split_once("://") else {
+        return url.to_string();
+    };
+    match rest.split_once('@') {
+        Some((credentials, host)) => {
+            let user = credentials.split_once(':').map_or(credentials, |(u, _)| u);
+            format!("{scheme}://{user}:***@{host}")
+        }
+        None => url.to_string(),
+    }
+}
+
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -704,11 +726,19 @@ impl Config {
             .or(file.server.port)
             .unwrap_or(3004);
 
-        // `XATA_*` are the names the production deployment already uses, so a
-        // Doppler environment works unchanged; `APPVIEW_*` are the generic
-        // ones a self-hoster would reach for first.
+        // `XATA_READ_POSTGRES_URL` is the name the production deployment uses,
+        // so an existing Doppler environment supplies the replica without
+        // being rewritten; `APPVIEW_*` are the generic names a self-hoster
+        // would reach for first.
+        //
+        // The *primary* deliberately reads no `XATA_*` name. This crate's
+        // headline promise is that an empty environment boots on SQLite, and
+        // `XATA_POSTGRES_URL` is set in this repository's own `.env` — honouring
+        // it here would silently move every developer's instance onto Postgres.
+        // A Postgres primary is asked for explicitly, with `[database].url`,
+        // `APPVIEW_DB_URL` or `--database-url`.
         let read_database_url = pick(None, "APPVIEW_DB_READ_URL", file.database.read_url.clone())
-            .or_else(|| std::env::var("XATA_READ_POSTGRES_URL").ok())
+            .or_else(|| env_opt("XATA_READ_POSTGRES_URL"))
             .filter(|url| !url.is_empty());
 
         let database_url = pick(
@@ -718,6 +748,31 @@ impl Config {
         )
         .map(|url| anchor_sqlite_url(url, &data_dir))
         .unwrap_or_else(|| sqlite_url(&data_dir, "rocksky.db"));
+
+        // A replica is a replica *of* the primary, so one on Postgres beside a
+        // SQLite primary is not a split read — it is writes and reads landing
+        // in different databases, and the symptom is reads that cannot see what
+        // was just written.
+        //
+        // Dropped with a warning rather than refused: the usual way to arrive
+        // here is an inherited `XATA_READ_POSTGRES_URL` — which this
+        // repository's `.env` sets — next to the default SQLite primary, and
+        // failing to boot over an environment variable nobody set on purpose
+        // would break every developer checkout. Ignoring it leaves a working
+        // instance that reads what it writes.
+        let read_database_url = read_database_url.filter(|replica| {
+            if is_postgres(replica) == is_postgres(&database_url) {
+                return true;
+            }
+            tracing::warn!(
+                primary = %redact_url(&database_url),
+                replica = %redact_url(replica),
+                "ignoring the read replica: it is a different database from the primary, \
+                 so reads would not see what was written. Set [database].url and \
+                 [database].read_url to the same server to split reads."
+            );
+            false
+        });
 
         let auth_database_url = pick(None, "APPVIEW_AUTH_DB_URL", file.database.auth_url.clone())
             .map(|url| anchor_sqlite_url(url, &data_dir))
@@ -1272,6 +1327,107 @@ mod tests {
 
         assert_eq!(config.port, 5555);
         assert!(!config.indexer_enabled);
+    }
+
+    /// Both halves of a split-read Postgres come from the config file.
+    #[test]
+    fn a_primary_and_a_read_replica_are_both_read_from_the_file() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("config.toml"),
+            "[database]\n\
+             url = \"postgres://user:pw@primary/rocksky\"\n\
+             read_url = \"postgres://user:pw@replica/rocksky\"\n",
+        )
+        .unwrap();
+
+        let config = Config::load(Cli {
+            data_dir: Some(dir.path().to_path_buf()),
+            ..Default::default()
+        })
+        .unwrap();
+
+        assert_eq!(config.database_url, "postgres://user:pw@primary/rocksky");
+        assert_eq!(
+            config.read_database_url.as_deref(),
+            Some("postgres://user:pw@replica/rocksky")
+        );
+        // And the startup line says a replica is in use, which is otherwise
+        // indistinguishable from a deployment that meant to split reads and
+        // did not.
+        assert!(config.summary().contains("backend=postgres+replica"));
+    }
+
+    /// A replica has to be a replica *of* the primary.
+    ///
+    /// A Postgres replica beside a SQLite primary is not a split read: writes
+    /// and reads land in different databases, and the symptom — reads that
+    /// cannot see what was just written — reads as a caching bug. Reachable
+    /// without anybody meaning it, because this repository's `.env` sets
+    /// `XATA_READ_POSTGRES_URL` while the primary defaults to SQLite.
+    #[test]
+    fn a_replica_on_a_different_backend_is_dropped_rather_than_used() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("config.toml"),
+            "[database]\n\
+             url = \"sqlite://rocksky.db?mode=rwc\"\n\
+             read_url = \"postgres://user:secret@replica/rocksky\"\n",
+        )
+        .unwrap();
+
+        // Still boots: refusing over an environment variable nobody set on
+        // purpose would break every developer checkout.
+        let config = Config::load(Cli {
+            data_dir: Some(dir.path().to_path_buf()),
+            ..Default::default()
+        })
+        .expect("a mismatched replica must not stop the instance");
+
+        assert!(config.database_url.starts_with("sqlite://"));
+        assert_eq!(
+            config.read_database_url, None,
+            "the replica must be dropped, not used for reads"
+        );
+    }
+
+    /// A matching pair is kept, and the startup line says so.
+    #[test]
+    fn a_matching_replica_is_kept_and_reported() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("config.toml"),
+            "[database]\n\
+             url = \"postgres://user:pw@primary/rocksky\"\n\
+             read_url = \"postgres://user:pw@replica/rocksky\"\n",
+        )
+        .unwrap();
+
+        let config = Config::load(Cli {
+            data_dir: Some(dir.path().to_path_buf()),
+            ..Default::default()
+        })
+        .unwrap();
+
+        assert_eq!(
+            config.read_database_url.as_deref(),
+            Some("postgres://user:pw@replica/rocksky")
+        );
+        assert!(config.summary().contains("backend=postgres+replica"));
+    }
+
+    #[test]
+    fn a_url_is_redacted_without_losing_the_host() {
+        assert_eq!(
+            redact_url("postgres://alice:hunter2@db.example/rocksky"),
+            "postgres://alice:***@db.example/rocksky"
+        );
+        // Nothing to redact, and nothing lost.
+        assert_eq!(
+            redact_url("postgres://db.example/rocksky"),
+            "postgres://db.example/rocksky"
+        );
+        assert_eq!(redact_url("sqlite://rocksky.db"), "sqlite://rocksky.db");
     }
 
     #[test]
