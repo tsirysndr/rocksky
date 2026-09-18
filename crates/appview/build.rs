@@ -24,11 +24,23 @@ fn main() {
         None => manifest_dir.join("../../apps/web/dist"),
     };
 
+    // Watched whether or not it exists yet.
+    //
+    // Emitting any `rerun-if-changed` tells cargo those paths are the *only*
+    // triggers, so a script that watched nothing in the absent case never ran
+    // again: build the Rust before `bun run build`, and the "no web UI" result
+    // is cached forever. The binary then serves no UI however many times it is
+    // rebuilt, and the warning is replayed from cache rather than re-checked —
+    // which is exactly what happened in production, where the dist appeared
+    // fourteen minutes after the last build-script run.
+    println!("cargo:rerun-if-changed={}", dist.display());
+    // The parent too, because a directory's mtime changes when a child is
+    // created — that is what notices `dist` appearing for the first time.
+    if let Some(parent) = dist.parent() {
+        println!("cargo:rerun-if-changed={}", parent.display());
+    }
+
     let files = if dist.is_dir() {
-        // Re-run when the build output changes. Watching the directory itself
-        // catches added and removed files; individual files are watched below
-        // so a rebuilt asset is picked up too.
-        println!("cargo:rerun-if-changed={}", dist.display());
         collect(&dist)
     } else {
         println!(
