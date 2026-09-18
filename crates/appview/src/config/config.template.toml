@@ -216,6 +216,46 @@
 # Tracklist lookups.
 # tracklist_url = "http://localhost:7884"
 
+[telemetry]
+# OpenTelemetry: traces, metrics and logs. All off by default — a personal
+# instance should not need an observability stack to boot.
+#
+# One endpoint covers most backends, because OTLP is the protocol they all
+# speak. This is the collector's BASE url; each signal hangs off it
+# (/v1/traces, /v1/metrics, /v1/logs).
+#
+#   Jaeger      otlp_endpoint = "http://jaeger:4318"
+#   Grafana/Tempo, or any OpenTelemetry Collector
+#               otlp_endpoint = "http://collector:4318"
+#   Honeycomb   otlp_endpoint = "https://api.honeycomb.io"
+#               otlp_headers = { x-honeycomb-team = "YOUR_KEY" }
+#
+# Zipkin and Datadog have no OTLP ingest of their own: run an OpenTelemetry
+# Collector with a zipkin/datadog exporter and point this at the collector.
+# otlp_endpoint = ""
+# otlp_headers = {}
+
+# Per-signal switches, for sending traces to a backend and keeping metrics
+# local. Each defaults to on once otlp_endpoint is set.
+# traces = true
+# metrics = true
+# logs = true
+
+# The fraction of traces kept, 0.0-1.0. Worth lowering on a busy public
+# instance; worth leaving at 1.0 on a personal one, since a sampled-out trace
+# is one you cannot look up when somebody reports the request that made it.
+# Parent-based, so a trace that arrives already sampled is kept whole.
+# sample_ratio = 1.0
+
+# Serve GET /metrics for Prometheus to scrape. Independent of otlp_endpoint:
+# Prometheus pulls, so it needs nothing pushed to it.
+# prometheus = false
+
+# What this process calls itself in the backend, and which environment it
+# reports as. Default: the binary name, and no environment.
+# service_name = "rocksky-appview"
+# environment = "production"
+
 [tealfm]
 # Rocksky publishes each listen into the listener's own repository a second
 # time, in teal.fm's vocabulary — an `fm.teal.feed.play` record per scrobble,

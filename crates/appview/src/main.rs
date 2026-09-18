@@ -42,18 +42,7 @@ async fn main() -> anyhow::Result<()> {
         banner();
     }
 
-    // The one place this binary configures tracing, and `try_init` rather than
-    // `init` so it can only ever be the one place: a second installation
-    // panics, and `rockskyd` — which also runs `startup::run` — installs its
-    // own before dispatching.
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                // sqlx logs every statement at INFO, which drowns everything
-                // else out on a busy instance.
-                .unwrap_or_else(|_| "info,sqlx=warn".into()),
-        )
-        .try_init();
+    let _telemetry = rocksky_appview::startup::telemetry(&cli);
 
     rocksky_appview::startup::run(cli).await
 }

@@ -57,28 +57,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_ansi(true)
         .compact();
 
-    // The one place this binary configures tracing, for every subcommand
-    // including the appview — which installs none of its own, precisely so
-    // that stays true. `try_init` rather than `init` because a second
-    // installation panics, and that must never be how a service fails to
-    // start.
-    let _ = tracing_subscriber::fmt()
-        .event_format(format)
-        .with_max_level(tracing::Level::INFO)
-        .try_init();
-
     dotenv().ok();
+
+    let args = cli().get_matches();
+    let service = args.subcommand_name().unwrap_or("appview");
+
+    // Telemetry is installed here, once, before any service starts — which is
+    // what makes `tracing::info!` in *any* crate reach the configured backend
+    // without that crate knowing this exists. It also installs the tracing
+    // subscriber, because OpenTelemetry layers cannot be added to one after
+    // the fact, so nothing else may install one first.
+    //
+    // Held for the life of the process: dropping it flushes whatever the batch
+    // exporters are still holding, which is the difference between a one-shot
+    // command exporting its spans and exporting nothing.
+    let _telemetry = match telemetry_settings(&args) {
+        Ok(settings) => match rocksky_telemetry::init(service, &settings) {
+            Ok(telemetry) => Some(telemetry),
+            Err(err) => {
+                // A subscriber is still needed, so fall back to a plain one
+                // rather than running blind.
+                let _ = tracing_subscriber::fmt()
+                    .event_format(format.clone())
+                    .with_max_level(tracing::Level::INFO)
+                    .try_init();
+                tracing::error!(error = %err, "could not set up telemetry");
+                None
+            }
+        },
+        Err(err) => {
+            let _ = tracing_subscriber::fmt()
+                .event_format(format.clone())
+                .with_max_level(tracing::Level::INFO)
+                .try_init();
+            tracing::warn!(error = %err, "could not read the telemetry settings");
+            None
+        }
+    };
 
     // After `dotenv`, so anything actually configured wins, and before any
     // service starts a thread, because this sets process-wide variables.
-    //
-    // Without it a self-hosted Subsonic or Jellyfin container has no
-    // `JWT_SECRET`, so the token it signs each play with is not one
-    // `rocksky-appview` accepts, and nothing played through it is ever
-    // scrobbled. See `rocksky_db::keys`.
     rocksky_db::keys::hydrate();
-
-    let args = cli().get_matches();
 
     match args.subcommand() {
         Some(("appview", sub_m)) => {
@@ -136,4 +155,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+/// The `[telemetry]` section of the appview's `config.toml`.
+///
+/// Read here rather than by each service so one file configures the whole
+/// daemon. A missing or unreadable file is not an error — the common case is a
+/// service that has no config file at all, and telemetry simply stays off.
+fn telemetry_settings(args: &clap::ArgMatches) -> anyhow::Result<rocksky_telemetry::Settings> {
+    // The same path resolution the appview uses, so `--data-dir` and
+    // `--config` land on the file it would have read.
+    let cli = match args.subcommand() {
+        Some(("appview", sub_m)) => AppviewCli::from_arg_matches(sub_m)?,
+        _ => AppviewCli::default(),
+    };
+    let (_, config_path) = rocksky_appview::Config::paths(&cli);
+
+    let Ok(raw) = std::fs::read_to_string(&config_path) else {
+        return Ok(rocksky_telemetry::Settings::default());
+    };
+
+    // Only this section: the rest of the file is the appview's and may name
+    // settings this binary knows nothing about.
+    #[derive(serde::Deserialize, Default)]
+    struct Section {
+        #[serde(default)]
+        telemetry: rocksky_telemetry::Settings,
+    }
+    let section: Section = toml::from_str(&raw)?;
+    Ok(section.telemetry)
 }

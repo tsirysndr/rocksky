@@ -13,6 +13,9 @@ dotenv = "0.15.0"
 anyhow = "1.0.96"
 rocksky-appview = { path = "../appview" }
 rocksky-db = { path = "../db" }
+rocksky-telemetry = { path = "../telemetry" }
+toml = "0.8"
+serde = { version = "1", features = ["derive"] }
 rocksky-dropbox = { path = "../dropbox" }
 rocksky-googledrive = { path = "../googledrive" }
 rocksky-jellyfin = { path = "../jellyfin" }

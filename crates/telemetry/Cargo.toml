@@ -1,0 +1,54 @@
+[package]
+name = "rocksky-telemetry"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# OpenTelemetry over OTLP `http-proto` rather than gRPC: it needs no tonic or
+# protoc toolchain, every backend and the collector accept it, and it goes
+# through the `reqwest` the services already link.
+opentelemetry = { version = "0.32", features = ["trace", "metrics", "logs"] }
+opentelemetry_sdk = { version = "0.32", features = [
+  "trace",
+  "metrics",
+  "logs",
+  "rt-tokio",
+] }
+opentelemetry-otlp = { version = "0.32", default-features = false, features = [
+  "http-proto",
+  # The *blocking* client, not the async one. The batch processors run on
+  # their own OS threads, which have no Tokio reactor, and the async client
+  # panics there with "there is no reactor running" — so nothing is ever
+  # exported and the only hint is a dead exporter thread.
+  "reqwest-blocking-client",
+  "trace",
+  "metrics",
+  "logs",
+  # The SDK's own export failures, routed into `tracing`. Without it a
+  # collector that is refusing everything looks exactly like one that is
+  # working.
+  "internal-logs",
+] }
+opentelemetry-appender-tracing = "0.32"
+opentelemetry-semantic-conventions = "0.32"
+tracing-opentelemetry = "0.33"
+# Not `opentelemetry-prometheus`: it is pinned to opentelemetry 0.29 and would
+# drag a third copy of the SDK into the graph. Prometheus scrapes a text page,
+# so the `prometheus` crate serves one directly — see `metrics`.
+prometheus = "0.14"
+
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+anyhow = "1"
+
+# The actix middleware, for the services that serve HTTP.
+actix-web = { version = "4", optional = true }
+futures-util = { version = "0.3", optional = true }
+
+[features]
+default = ["actix"]
+actix = ["dep:actix-web", "dep:futures-util"]

@@ -221,6 +221,10 @@ pub async fn run(state: AppState) -> std::io::Result<()> {
             .wrap(cors(&state))
             .wrap(middleware::Compress::default())
             .wrap(tracing_actix_middleware())
+            // One span and one metric sample per request, for every route
+            // this app serves — all 123 XRPC methods and the REST surface,
+            // without any of them being annotated individually.
+            .wrap(rocksky_telemetry::middleware::Tracing)
             .route("/healthz", axweb::get().to(healthz))
             .configure(crate::rest::configure)
             .configure(crate::xrpc::configure)
@@ -233,10 +237,25 @@ pub async fn run(state: AppState) -> std::io::Result<()> {
 
 /// Request logging through `tracing` rather than actix's `Logger`, so the
 /// output joins the same structured stream as everything else.
+///
+/// # `%U` and not `%r`, because `%r` carries the query string
+///
+/// `%r` is the request line, and actix interpolates `path?query` into it.
+/// Three routes take a session JWT as a query parameter — the notification
+/// stream, the import event stream and an upload's stream URL, all of which
+/// the browser opens with `EventSource` or an `<audio src>` and so cannot send
+/// an `Authorization` header on. Logging `%r` put those tokens in the log, and
+/// since these logs are now exported over OTLP it would put them in whatever
+/// backend `[telemetry]` names.
+///
+/// `%U` is `req.path()`, which has no query string in it. The method is
+/// prefixed explicitly, since dropping `%r` drops that too.
 fn tracing_actix_middleware() -> middleware::Logger {
     // actix's Logger writes via the `log` facade, which `tracing-subscriber`
     // picks up through the `log` tracer installed in main.
-    middleware::Logger::new("%r %s %Dms").log_target("rocksky_appview::http")
+    middleware::Logger::new("%{METHOD}xi %U %s %Dms")
+        .custom_request_replace("METHOD", |req| req.method().to_string())
+        .log_target("rocksky_appview::http")
 }
 
 #[cfg(test)]

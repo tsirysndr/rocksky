@@ -690,7 +690,7 @@ dependencies = [
  "p256",
  "p384",
  "rand 0.10.2",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_json",
  "sha2 0.11.0",
@@ -712,7 +712,7 @@ dependencies = [
  "futures",
  "http 1.4.2",
  "itoa",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -823,6 +823,12 @@ name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "base64ct"
@@ -3481,16 +3487,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
 
 [[package]]
-name = "iri-string"
-version = "0.7.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbc5ebe9c3a1a7a5127f920a418f7585e9e758e911d0466ed004f393b0e380b2"
-dependencies = [
- "memchr",
- "serde",
-]
-
-[[package]]
 name = "is-terminal"
 version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3547,7 +3543,7 @@ dependencies = [
  "miette",
  "regex",
  "regex-lite",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_html_form",
  "serde_json",
@@ -3604,7 +3600,7 @@ dependencies = [
  "regex",
  "regex-automata",
  "regex-lite",
- "reqwest",
+ "reqwest 0.12.23",
  "rustversion",
  "serde",
  "serde_bytes",
@@ -3649,7 +3645,7 @@ dependencies = [
  "miette",
  "mini-moka-wasm",
  "n0-future",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_html_form",
  "serde_json",
@@ -3708,7 +3704,7 @@ dependencies = [
  "p256",
  "p384",
  "rand 0.8.5",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_html_form",
  "serde_json",
@@ -4741,6 +4737,96 @@ name = "openssl-probe"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
+
+[[package]]
+name = "opentelemetry"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0142c63252a9e054e68a4c61a5778f7b14f576274d593f8ce883d191a099682"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "js-sys",
+ "pin-project-lite",
+ "thiserror 2.0.17",
+ "tracing",
+]
+
+[[package]]
+name = "opentelemetry-appender-tracing"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c0080f0dc1d7c786f467cd85a4e395fcab11ee852004f39a29a18ab7c25d837"
+dependencies = [
+ "opentelemetry",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "opentelemetry-http"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5683015d09e2df236ef005b17f6f196f0d5f6313c4fa43a7b6a53b52776e4331"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "http 1.4.2",
+ "opentelemetry",
+ "reqwest 0.13.5",
+]
+
+[[package]]
+name = "opentelemetry-otlp"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9966929966d17620d7c316c643ba62631826e10021409357772d5eea84f62c35"
+dependencies = [
+ "http 1.4.2",
+ "opentelemetry",
+ "opentelemetry-http",
+ "opentelemetry-proto",
+ "opentelemetry_sdk",
+ "prost",
+ "reqwest 0.13.5",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "opentelemetry-proto"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56d658ba1faf63f7b9c492cfbe6e0ec365440a16132d3270c1065f7b33f1b638"
+dependencies = [
+ "opentelemetry",
+ "opentelemetry_sdk",
+ "prost",
+]
+
+[[package]]
+name = "opentelemetry-semantic-conventions"
+version = "0.32.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c913ac17a6c451661ee255f4625d143e51647ae78ebd969b75e41c4442f4fe47"
+
+[[package]]
+name = "opentelemetry_sdk"
+version = "0.32.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b59f80e1ac4d5ff7a2db8fb6c80badb7f0f3f858211fba08dd9aaec750894f9"
+dependencies = [
+ "futures-channel",
+ "futures-executor",
+ "futures-util",
+ "opentelemetry",
+ "percent-encoding",
+ "portable-atomic",
+ "rand 0.9.2",
+ "thiserror 2.0.17",
+ "tokio",
+ "tokio-stream",
+]
 
 [[package]]
 name = "option-ext"
@@ -5895,6 +5981,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "prometheus"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ca5326d8d0b950a9acd87e6a3f94745394f62e4dae1b1ee22b2bc0c394af43a"
+dependencies = [
+ "cfg-if",
+ "fnv",
+ "lazy_static",
+ "memchr",
+ "parking_lot",
+ "protobuf",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "proptest"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5912,6 +6013,49 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
+]
+
+[[package]]
+name = "prost"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "528ac67416ff8646872a3c02cad9cc4ee5dc9f9540c9b10771855c95cb2e5ae1"
+dependencies = [
+ "bytes",
+ "prost-derive",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b570b25f7617e43d59005d0990ccb79e950a423952cea19671b7a876da390adf"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "protobuf"
+version = "3.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d65a1d4ddae7d8b5de68153b48f6aa3bba8cb002b243dbdbc55a5afbc98f99f4"
+dependencies = [
+ "once_cell",
+ "protobuf-support",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "protobuf-support"
+version = "3.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e36c2f31e0a47f9280fb347ef5e461ffcd2c52dd520d8e216b52f93b0b0d7d6"
+dependencies = [
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6352,6 +6496,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "reqwest"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16a1cfa75cc186dd73d5818e510e042e40927bccc9c236b061cea97e1eb08029"
+dependencies = [
+ "base64 0.23.1",
+ "bytes",
+ "futures-channel",
+ "futures-core",
+ "futures-util",
+ "http 1.4.2",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper 1.7.0",
+ "hyper-util",
+ "js-sys",
+ "log",
+ "percent-encoding",
+ "pin-project-lite",
+ "sync_wrapper",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tower-service",
+ "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "resolv-conf"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6442,13 +6617,14 @@ dependencies = [
  "md5",
  "rand 0.8.5",
  "redis 0.29.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-atproto",
  "rocksky-audio",
  "rocksky-core",
  "rocksky-db",
  "rocksky-lexicon",
  "rocksky-mock-pds",
+ "rocksky-telemetry",
  "rust-s3",
  "serde",
  "serde_bytes",
@@ -6483,7 +6659,7 @@ dependencies = [
  "cid",
  "ipld-core",
  "rand 0.8.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-core",
  "serde",
  "serde_bytes",
@@ -6527,7 +6703,7 @@ dependencies = [
  "http 1.4.2",
  "jsonrpsee",
  "owo-colors",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_json",
  "tokio",
@@ -6588,7 +6764,7 @@ dependencies = [
  "md5",
  "owo-colors",
  "redis 0.29.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-pgurl",
  "serde",
  "serde_json",
@@ -6640,7 +6816,7 @@ dependencies = [
  "md5",
  "owo-colors",
  "redis 0.29.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-pgurl",
  "serde",
  "serde_json",
@@ -6659,7 +6835,7 @@ name = "rocksky-identity"
 version = "0.1.0"
 dependencies = [
  "hickory-resolver 0.24.4",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -6708,7 +6884,7 @@ dependencies = [
  "lru 0.12.5",
  "owo-colors",
  "redis 0.29.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-db",
  "rocksky-pgurl",
  "sea-query",
@@ -6763,7 +6939,7 @@ dependencies = [
  "jsonwebtoken",
  "owo-colors",
  "rand 0.9.2",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-db",
  "rocksky-pgurl",
  "sea-query",
@@ -6787,7 +6963,7 @@ dependencies = [
  "actix-web",
  "cid",
  "ipld-core",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_ipld_dagcbor",
  "serde_json",
@@ -6815,7 +6991,7 @@ dependencies = [
  "md5",
  "owo-colors",
  "quick-xml 0.37.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-db",
  "rocksky-pgurl",
  "rust-s3",
@@ -6887,7 +7063,7 @@ dependencies = [
  "jsonwebtoken",
  "owo-colors",
  "polars",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-pgurl",
  "serde",
  "serde_json",
@@ -6920,7 +7096,7 @@ dependencies = [
  "quick-xml 0.37.5",
  "rand 0.9.2",
  "redis 0.29.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-db",
  "rocksky-pgurl",
  "serde",
@@ -6946,7 +7122,7 @@ dependencies = [
  "jacquard-derive",
  "jacquard-lexicon",
  "redb",
- "reqwest",
+ "reqwest 0.12.23",
  "serde",
  "serde_bytes",
  "serde_ipld_dagcbor",
@@ -6974,7 +7150,7 @@ dependencies = [
  "hex",
  "jsonwebtoken",
  "redis 0.29.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-db",
  "rocksky-pgurl",
  "sea-query",
@@ -7002,6 +7178,25 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+]
+
+[[package]]
+name = "rocksky-telemetry"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "futures-util",
+ "opentelemetry",
+ "opentelemetry-appender-tracing",
+ "opentelemetry-otlp",
+ "opentelemetry-semantic-conventions",
+ "opentelemetry_sdk",
+ "prometheus",
+ "serde",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -7059,7 +7254,7 @@ dependencies = [
  "owo-colors",
  "rand 0.9.2",
  "redis 0.29.5",
- "reqwest",
+ "reqwest 0.12.23",
  "rocksky-db",
  "rocksky-pgurl",
  "serde",
@@ -7091,9 +7286,12 @@ dependencies = [
  "rocksky-playlists",
  "rocksky-scrobbler",
  "rocksky-spotify",
+ "rocksky-telemetry",
  "rocksky-tracklist",
  "rocksky-webscrobbler",
+ "serde",
  "tokio",
+ "toml 0.8.23",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
@@ -9150,20 +9348,20 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.6"
+version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
+checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
 dependencies = [
  "bitflags 2.9.4",
  "bytes",
  "futures-util",
  "http 1.4.2",
  "http-body 1.0.1",
- "iri-string",
  "pin-project-lite",
  "tower",
  "tower-layer",
  "tower-service",
+ "url",
 ]
 
 [[package]]
@@ -9180,9 +9378,9 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 
 [[package]]
 name = "tracing"
-version = "0.1.41"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
+checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
 dependencies = [
  "log",
  "pin-project-lite",
@@ -9192,9 +9390,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.30"
+version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81383ab64e72a7a8b8e13130c49e3dab29def6d0c7d76a03087b3cf71c5c6903"
+checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -9203,9 +9401,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9d12581f227e93f094d3af2ae690a574abb8a2b9b7a96e7cfe9647b2b617678"
+checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
  "valuable",
@@ -9223,10 +9421,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "tracing-subscriber"
-version = "0.3.20"
+name = "tracing-opentelemetry"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2054a14f5307d601f88daf0553e1cbf472acc4f2c51afab632431cdcd72124d5"
+checksum = "adbc64cba7137545b8044cb1fe9814f7aacf3c6b5f9b45be8bb5db538befdb26"
+dependencies = [
+ "js-sys",
+ "opentelemetry",
+ "smallvec",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber",
+ "web-time",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
 dependencies = [
  "matchers",
  "nu-ansi-term",

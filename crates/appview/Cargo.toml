@@ -108,6 +108,7 @@ actix-multipart = "0.7"
 rust-s3 = { version = "0.35.1", default-features = false, features = [
   "tokio-rustls-tls",
 ] }
+rocksky-telemetry = { path = "../telemetry" }
 hex = "0.4.3"
 # AES-256-CTR, for the Spotify tokens only — the scheme `apps/api` and the
 # poller in `crates/spotify` already share. Everything else this crate

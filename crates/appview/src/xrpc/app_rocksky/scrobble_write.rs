@@ -136,6 +136,17 @@ async fn create_scrobble(
 /// — has to do exactly this and answer differently. Two copies of the dedupe,
 /// the put-lock and the publish would be two chances to diverge on the one
 /// write this application exists for.
+#[tracing::instrument(
+    name = "scrobble.record",
+    skip_all,
+    fields(
+        did = %did,
+        title = tracing::field::Empty,
+        artist = tracing::field::Empty,
+        scrobble.duplicate = tracing::field::Empty,
+        scrobble.published = tracing::field::Empty,
+    )
+)]
 pub(crate) async fn record_scrobble(
     state: &AppState,
     did: &str,
@@ -146,6 +157,11 @@ pub(crate) async fn record_scrobble(
 
     let title = required(&input.title, "title")?;
     let artist = required(&input.artist, "artist")?;
+
+    // The two fields anybody looking for one listen searches by.
+    let span = tracing::Span::current();
+    span.record("title", title.as_str());
+    span.record("artist", artist.as_str());
 
     let db = state.db();
     let user_id = caller_id(db, auth.did).await?;
@@ -179,12 +195,15 @@ pub(crate) async fn record_scrobble(
         );
         // The row that is already there, so both callers answer as though
         // this request had written it — which is what makes a retry safe.
+        span.record("scrobble.duplicate", true);
         return Ok(existing);
     }
 
     // The lock, before anything is published.
     let lock = put_lock_key(auth.did, &title, &artist, listened_at);
     let publish = state.cache().claim(&lock, PUT_LOCK_TTL).await;
+    span.record("scrobble.duplicate", false);
+    span.record("scrobble.published", publish);
     if !publish {
         tracing::info!(
             did = %auth.did,
@@ -337,6 +356,7 @@ async fn caller_id(db: &Backend, did: &str) -> Result<String, XrpcError> {
 /// moments ago by `upsert_catalogue`, and a NULL either side is a scrobble that
 /// renders without a cover.
 #[allow(clippy::too_many_arguments)]
+#[tracing::instrument(name = "scrobble.insert_row", skip_all)]
 async fn insert_scrobble(
     db: &Backend,
     scrobble_id: &str,
@@ -409,6 +429,7 @@ where
 ///
 /// Only fills what is missing: a source that *did* report a cover keeps its
 /// own, which may be the higher-resolution one.
+#[tracing::instrument(name = "scrobble.enrich_from_album", skip_all)]
 async fn enrich_from_album(
     db: &Backend,
     input: &mut CreateScrobbleInput,
@@ -450,6 +471,7 @@ async fn enrich_from_album(
 }
 
 /// An existing scrobble of the same song within the window.
+#[tracing::instrument(name = "scrobble.recent_duplicate", skip_all)]
 async fn recent_duplicate(
     db: &Backend,
     user_id: &str,
@@ -529,6 +551,7 @@ pub fn put_lock_key(
 }
 
 /// Publishes the scrobble, song, album and artist records.
+#[tracing::instrument(name = "scrobble.publish_records", skip_all)]
 async fn publish_records(
     state: &AppState,
     did: &str,
@@ -653,6 +676,7 @@ async fn publish_records(
 /// — so the wait would delay a confirmed listen to re-answer a question
 /// already answered, and the lookback would re-implement a dedupe that has
 /// already run against a better source than teal.fm's last five records.
+#[tracing::instrument(name = "scrobble.publish_teal", skip_all)]
 async fn publish_teal(
     state: &AppState,
     writer: &Writer,

@@ -8,6 +8,39 @@
 
 use crate::config::Cli;
 
+/// Installs telemetry from the `[telemetry]` section, returning the guard.
+///
+/// Separate from [`run`] and called by `main` before it, because the guard has
+/// to outlive the whole process: dropping it flushes the batch exporters, and
+/// dropping it early means a short run exports nothing.
+///
+/// `rockskyd` does not call this — it installs telemetry itself, once, for
+/// every subcommand. Telemetry is set up exactly once per process, and this is
+/// the standalone binary's turn at it.
+///
+/// Never fatal. An instance that cannot reach its collector should still serve
+/// music; the failure is reported through the subscriber this falls back to.
+pub fn telemetry(cli: &Cli) -> Option<rocksky_telemetry::Telemetry> {
+    let settings = crate::config::settings::Settings::load(&crate::Config::paths(cli).1)
+        .map(|file| file.telemetry)
+        .unwrap_or_default();
+
+    match rocksky_telemetry::init("rocksky-appview", &settings) {
+        Ok(telemetry) => Some(telemetry),
+        Err(err) => {
+            // Still needs a subscriber, or the process runs blind.
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter(
+                    tracing_subscriber::EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| "info,sqlx=warn".into()),
+                )
+                .try_init();
+            tracing::error!(error = %err, "could not set up telemetry");
+            None
+        }
+    }
+}
+
 /// Runs whatever the arguments ask for: generate a config, print one, backfill
 /// once, or serve.
 ///

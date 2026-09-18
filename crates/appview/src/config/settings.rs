@@ -27,6 +27,9 @@ pub struct Settings {
     pub services: Services,
     pub spotify: Spotify,
     pub tealfm: Tealfm,
+    /// Where to send traces, metrics and logs. See
+    /// [`rocksky_telemetry::Settings`].
+    pub telemetry: rocksky_telemetry::Settings,
     pub storage: Storage,
     pub web: Web,
 }
