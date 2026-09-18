@@ -43,6 +43,7 @@ pub use rocksky_db::rsql;
 pub use rocksky_db::sea_query;
 pub mod search;
 pub mod server;
+pub mod startup;
 pub mod state;
 pub mod storage;
 pub mod sync;

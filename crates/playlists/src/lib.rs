@@ -5,12 +5,11 @@ use std::{
 
 use anyhow::Error;
 use async_nats::connect;
-use duckdb::Connection;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
 use crate::{
-    core::{create_tables, find_spotify_users, load_users, save_playlists},
+    core::{find_spotify_users, save_playlists},
     spotify::get_user_playlists,
     subscriber::subscribe,
 };
@@ -23,11 +22,7 @@ pub mod types;
 pub mod xata;
 
 pub async fn start() -> Result<(), Error> {
-    let conn = Connection::open("./rocksky-playlists.ddb")?;
-    let conn = Arc::new(Mutex::new(conn));
-    create_tables(conn.clone())?;
-
-    subscribe(conn.clone()).await?;
+    subscribe().await?;
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -35,8 +30,6 @@ pub async fn start() -> Result<(), Error> {
         .await?;
     rocksky_pgurl::ensure_writable(&pool, "rocksky-playlists").await?;
     let users = find_spotify_users(&pool, 0, 100).await?;
-
-    load_users(conn.clone(), &pool).await?;
 
     let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
     let nc = connect(&addr).await?;

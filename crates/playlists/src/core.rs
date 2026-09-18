@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::Error;
-use duckdb::{params, Connection};
 use owo_colors::OwoColorize;
 use reqwest::Client;
 use serde_json::json;
@@ -18,89 +17,6 @@ use crate::{
 };
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
-
-pub fn create_tables(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
-    let conn = conn.lock().unwrap();
-    conn.execute_batch(
-        r#"
-    CREATE TABLE IF NOT EXISTS tracks (
-        id VARCHAR PRIMARY KEY,
-        title VARCHAR,
-        artist VARCHAR,
-        album_artist VARCHAR,
-        album_art VARCHAR,
-        album VARCHAR,
-        track_number INTEGER,
-        duration INTEGER,
-        mb_id VARCHAR,
-        youtube_link VARCHAR,
-        spotify_link VARCHAR,
-        tidal_link VARCHAR,
-        apple_music_link VARCHAR,
-        sha256 VARCHAR NOT NULL,
-        lyrics TEXT,
-        composer VARCHAR,
-        genre VARCHAR,
-        disc_number INTEGER,
-        copyright_message VARCHAR,
-        label VARCHAR,
-        uri VARCHAR,
-        artist_uri VARCHAR,
-        album_uri VARCHAR,
-        created_at TIMESTAMP,
-    );
-     CREATE TABLE IF NOT EXISTS users (
-        id VARCHAR PRIMARY KEY,
-        display_name VARCHAR,
-        did VARCHAR,
-        handle VARCHAR,
-        avatar VARCHAR,
-    );
-  "#,
-    )?;
-    Ok(())
-}
-
-pub async fn load_users(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
-    let conn = conn.lock().unwrap();
-    let users: Vec<xata::user::User> = sqlx::query_as(
-        r#"
-      SELECT * FROM users
-  "#,
-    )
-    .fetch_all(pool)
-    .await?;
-
-    for (i, user) in users.clone().into_iter().enumerate() {
-        println!("user {} - {}", i, user.display_name.bright_green());
-        match conn.execute(
-            "INSERT INTO users (
-              id,
-              display_name,
-              did,
-              handle,
-              avatar
-          ) VALUES (?,
-              ?,
-              ?,
-              ?,
-              ?) ON CONFLICT DO NOTHING",
-            params![
-                user.xata_id,
-                user.display_name,
-                user.did,
-                user.handle,
-                user.avatar,
-            ],
-        ) {
-            Ok(_) => (),
-            Err(e) => println!("error: {}", e),
-        }
-    }
-
-    println!("users: {:?}", users.len());
-    Ok(())
-}
 
 pub async fn find_spotify_users(
     pool: &Pool<Postgres>,
