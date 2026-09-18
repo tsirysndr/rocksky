@@ -20,6 +20,7 @@ pub mod enrich;
 pub mod lastfm;
 pub mod listenbrainz;
 pub mod rocksky;
+pub mod schema;
 pub mod supervisor;
 pub mod tealfm;
 pub mod token;

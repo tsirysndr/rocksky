@@ -12,6 +12,7 @@
 //!   3. `lastfm_link` isn't a column on `tracks`, so it always needs the
 //!      Last.fm API.
 
+use rocksky_db::Backend;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -21,7 +22,6 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::Deserialize;
-use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use tracing::{info, warn};
 
@@ -58,7 +58,7 @@ impl Enricher {
 
     /// Mutate `track` in place. Logs and swallows failures — enrichment is
     /// strictly best-effort and must never block a scrobble.
-    pub async fn enrich(&self, pool: &Pool<Postgres>, http: &Client, track: &mut NormalizedTrack) {
+    pub async fn enrich(&self, pool: &Backend, http: &Client, track: &mut NormalizedTrack) {
         // 1. Rocksky DB lookup first.
         if track.album_art.is_none() || track.spotify_link.is_none() || track.isrc.is_none() {
             match db::track_enrichment(pool, &track.title, &track.artist, &track.album).await {

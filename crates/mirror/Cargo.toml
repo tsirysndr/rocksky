@@ -7,6 +7,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+rocksky-db = { path = "../db" }
+sea-query = { version = "0.32", features = ["postgres-array", "with-chrono"] }
 rocksky-pgurl = { path = "../pgurl" }
 aes = "0.8.4"
 anyhow = "1.0.98"
@@ -45,3 +47,12 @@ tokio-tungstenite = { version = "0.26.2", features = [
 tokio-util = { version = "0.7.13", features = ["rt"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+
+[dev-dependencies]
+# For asserting that the Postgres fragments bind every value they declare.
+sea-query-binder = { version = "0.7", features = [
+  "sqlx-postgres",
+  "sqlx-sqlite",
+  "postgres-array",
+  "with-chrono",
+] }

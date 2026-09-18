@@ -4,13 +4,13 @@
 //! with `min_ts` (exclusive lower bound) so the watermark trims the response
 //! server-side.
 
+use rocksky_db::Backend;
 use std::time::Duration;
 
 use anyhow::Error;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use reqwest::Client;
 use serde::Deserialize;
-use sqlx::{Pool, Postgres};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
@@ -36,7 +36,7 @@ const RECENT_LIMIT: u32 = 50;
 const BACKFILL_HOURS: i64 = 24;
 
 pub async fn run_user(
-    pool: Pool<Postgres>,
+    pool: Backend,
     http: Client,
     enricher: Enricher,
     row: MirrorSourceRow,
@@ -109,7 +109,7 @@ pub async fn run_user(
 }
 
 async fn poll_once(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     http: &Client,
     enricher: &Enricher,
     row: &MirrorSourceRow,

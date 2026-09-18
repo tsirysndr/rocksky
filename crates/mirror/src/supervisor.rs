@@ -3,6 +3,7 @@
 //! [`crate::MIRROR_NATS_TOPIC`] (payload: `"<provider>:<user_id>"`) trigger
 //! reconciliation for a single (provider, user_id).
 
+use rocksky_db::Backend;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,7 +13,6 @@ use async_nats::connect;
 use futures_util::{FutureExt, StreamExt};
 use owo_colors::OwoColorize;
 use reqwest::Client;
-use sqlx::{Pool, Postgres};
 use std::panic::AssertUnwindSafe;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
@@ -134,7 +134,7 @@ pub async fn run() -> Result<(), Error> {
 async fn reconcile(
     provider: Provider,
     user_id: String,
-    pool: Pool<Postgres>,
+    pool: Backend,
     http: Client,
     enricher: Enricher,
     tasks: TaskMap,
@@ -174,7 +174,7 @@ async fn cancel_task(tasks: &TaskMap, key: &(Provider, String)) {
 
 async fn spawn_for(
     provider: Provider,
-    pool: Pool<Postgres>,
+    pool: Backend,
     http: Client,
     enricher: Enricher,
     row: db::MirrorSourceRow,
@@ -219,7 +219,7 @@ async fn spawn_for(
 ///   * Cancellation during backoff sleep returns immediately.
 async fn run_supervised(
     provider: Provider,
-    pool: Pool<Postgres>,
+    pool: Backend,
     http: Client,
     enricher: Enricher,
     row: db::MirrorSourceRow,

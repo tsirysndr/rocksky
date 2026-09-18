@@ -6,6 +6,7 @@
 //! everything outside these collections, so the only work we do per event is a
 //! DID set lookup + optional dedup query.
 
+use rocksky_db::Backend;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,7 +15,6 @@ use chrono::{DateTime, Utc};
 use futures_util::StreamExt;
 use reqwest::Client;
 use serde::Deserialize;
-use sqlx::{Pool, Postgres};
 use std::collections::HashSet;
 use std::env;
 use tokio::sync::RwLock;
@@ -35,7 +35,7 @@ use crate::{
 pub type EnabledDids = Arc<RwLock<HashSet<String>>>;
 
 pub async fn run(
-    pool: Pool<Postgres>,
+    pool: Backend,
     http: Client,
     enricher: Enricher,
     enabled_dids: EnabledDids,
@@ -65,7 +65,7 @@ pub async fn run(
 }
 
 async fn run_once(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     http: &Client,
     enricher: &Enricher,
     enabled_dids: &EnabledDids,
@@ -106,7 +106,7 @@ async fn run_once(
 }
 
 async fn handle_event(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     http: &Client,
     enricher: &Enricher,
     enabled_dids: &EnabledDids,

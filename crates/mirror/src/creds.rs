@@ -13,12 +13,15 @@
 //! Pools are refreshed in the background every 5 minutes. If a fetch fails
 //! the cached snapshot is kept rather than going empty.
 
+use rocksky_db::sea_query::{Expr, Query};
+use rocksky_db::Backend;
+
+use crate::schema::{MirrorSources, SpotifyApps};
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Error;
 use rand::seq::IndexedRandom;
-use sqlx::{Pool, Postgres};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
@@ -45,7 +48,7 @@ impl CredentialPool {
 
     /// Single refresh — used both for the initial load and by the background
     /// timer task. Logs counts; failures are logged but don't clear the cache.
-    pub async fn refresh(&self, pool: &Pool<Postgres>) {
+    pub async fn refresh(&self, pool: &Backend) {
         match load_spotify(pool).await {
             Ok(rows) => {
                 let n = rows.len();
@@ -66,7 +69,7 @@ impl CredentialPool {
 
     /// Spawn a long-running background task that refreshes the pools every
     /// [`REFRESH_INTERVAL`].
-    pub fn spawn_refresher(&self, pool: Pool<Postgres>) {
+    pub fn spawn_refresher(&self, pool: Backend) {
         let this = self.clone();
         tokio::spawn(async move {
             loop {
@@ -89,11 +92,12 @@ impl CredentialPool {
     }
 }
 
-async fn load_spotify(pool: &Pool<Postgres>) -> Result<Vec<SpotifyCred>, Error> {
-    let rows: Vec<(String, String)> =
-        sqlx::query_as(r#"SELECT spotify_app_id, spotify_secret FROM spotify_apps"#)
-            .fetch_all(pool)
-            .await?;
+async fn load_spotify(pool: &Backend) -> Result<Vec<SpotifyCred>, Error> {
+    let stmt = Query::select()
+        .columns([SpotifyApps::SpotifyAppId, SpotifyApps::SpotifySecret])
+        .from(SpotifyApps::Table)
+        .to_owned();
+    let rows: Vec<(String, String)> = pool.fetch_all(&stmt).await?;
 
     let mut out = Vec::with_capacity(rows.len());
     for (client_id, encrypted_secret) in rows {
@@ -108,20 +112,17 @@ async fn load_spotify(pool: &Pool<Postgres>) -> Result<Vec<SpotifyCred>, Error> 
     Ok(out)
 }
 
-async fn load_lastfm(pool: &Pool<Postgres>) -> Result<Vec<String>, Error> {
-    let rows: Vec<(String,)> = sqlx::query_as(
-        r#"
-        SELECT encrypted_api_key
-        FROM mirror_sources
-        WHERE provider = 'lastfm'
-          AND encrypted_api_key IS NOT NULL
-        "#,
-    )
-    .fetch_all(pool)
-    .await?;
+async fn load_lastfm(pool: &Backend) -> Result<Vec<String>, Error> {
+    let stmt = Query::select()
+        .column(MirrorSources::EncryptedApiKey)
+        .from(MirrorSources::Table)
+        .and_where(Expr::col(MirrorSources::Provider).eq("lastfm"))
+        .and_where(Expr::col(MirrorSources::EncryptedApiKey).is_not_null())
+        .to_owned();
+    let rows: Vec<String> = pool.fetch_scalars(&stmt).await?;
 
     let mut out = Vec::with_capacity(rows.len());
-    for (enc,) in rows {
+    for enc in rows {
         match crypto::decrypt(&enc) {
             Ok(key) if !key.trim().is_empty() => out.push(key),
             Ok(_) => {}
