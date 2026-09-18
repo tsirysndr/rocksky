@@ -678,7 +678,7 @@ pub async fn set_handle(db: &Backend, did: &str, handle: &str) -> anyhow::Result
     let update = Query::update()
         .table(Users::Table)
         .value(Users::Handle, handle)
-        .value(Users::XataUpdatedat, crate::db::now_timestamp())
+        .value(Users::XataUpdatedat, db.now())
         .and_where(Expr::col(Users::Did).eq(did))
         // Only when it differs, so the return value means "the handle
         // changed" rather than "a row matched".
@@ -807,7 +807,7 @@ pub async fn fill_album_art(db: &Backend, hash: &str, art: Option<&str>) -> anyh
     let update = Query::update()
         .table(Albums::Table)
         .value(Albums::AlbumArt, art)
-        .value(Albums::XataUpdatedat, crate::db::now_timestamp())
+        .value(Albums::XataUpdatedat, db.now())
         .and_where(Expr::col(Albums::Sha256).eq(hash))
         .cond_where(album_art_is_missing(Albums::AlbumArt))
         .to_owned();
@@ -1594,9 +1594,10 @@ async fn ingest_scrobble(
             track_id.clone().into(),
             record.uri().into(),
             user_id.clone().into(),
-            // As text, not a native timestamp: SQLite stores these in a TEXT
-            // column and compares them lexicographically.
-            crate::db::format_timestamp(song.created_at).into(),
+            // Through `timestamp_value`, not as a bare string: SQLite stores
+            // these as TEXT, and Postgres needs the cast or assigning to a
+            // `timestamptz` column is a type error.
+            db.timestamp(song.created_at),
         ])
         .on_conflict(
             OnConflict::columns([Scrobbles::UserId, Scrobbles::TrackId, Scrobbles::Timestamp])
@@ -1662,7 +1663,7 @@ async fn ingest_like(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bo
             user_id.into(),
             track_id.into(),
             record.uri().into(),
-            record_created_at(&record.value).into(),
+            db.timestamp_value(record_created_at(&record.value)),
         ])
         .on_conflict(OnConflict::column(LovedTracks::Uri).do_nothing().to_owned())
         .to_owned();
@@ -1759,8 +1760,8 @@ async fn ingest_shout(db: &Backend, record: &IncomingRecord) -> anyhow::Result<b
             .filter(|facets| facets.as_array().is_some_and(|f| !f.is_empty()))
             .map(|facets| facets.to_string())
             .into(),
-        created_at.clone().into(),
-        created_at.into(),
+        db.timestamp_value(created_at.clone()),
+        db.timestamp_value(created_at),
     ];
 
     // A reply names the shout it answers. Resolved against `shouts.uri`, so a
@@ -2036,7 +2037,7 @@ async fn ingest_playlist(db: &Backend, record: &IncomingRecord) -> anyhow::Resul
                     Playlists::TidalLink,
                     Playlists::AppleMusicLink,
                 ])
-                .value(Playlists::XataUpdatedat, crate::db::now_timestamp())
+                .value(Playlists::XataUpdatedat, db.now())
                 .to_owned(),
         )
         .to_owned();

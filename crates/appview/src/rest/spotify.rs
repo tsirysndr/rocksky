@@ -412,7 +412,7 @@ async fn store_tokens(
         .table(SpotifyTokens::Table)
         .value(SpotifyTokens::AccessToken, access.clone())
         .value(SpotifyTokens::SpotifyAppId, client_id)
-        .value(SpotifyTokens::XataUpdatedat, crate::db::now_timestamp())
+        .value(SpotifyTokens::XataUpdatedat, db.now())
         .and_where(Expr::col(SpotifyTokens::UserId).eq(user_id));
     if let Some(refresh) = &refresh {
         update.value(SpotifyTokens::RefreshToken, refresh.clone());

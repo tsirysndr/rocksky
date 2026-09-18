@@ -252,7 +252,7 @@ async fn update_identity(
     let update = Query::update()
         .table(Users::Table)
         .value(Users::Handle, handle)
-        .value(Users::XataUpdatedat, crate::db::now_timestamp())
+        .value(Users::XataUpdatedat, db.now())
         .and_where(Expr::col(Users::Did).eq(&did))
         .and_where(Expr::col(Users::Handle).ne(handle))
         .to_owned();

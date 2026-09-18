@@ -463,6 +463,19 @@ impl Backend {
         self.timestamp_value(format_timestamp(at))
     }
 
+    /// Now, as a value that can be *written* to a timestamp column.
+    ///
+    /// The writing counterpart of [`Backend::timestamp_value`], and needed for
+    /// the same reason: a bound parameter is `text` on Postgres, and assigning
+    /// text to a `timestamptz` column is an error there —
+    /// `column "xata_updatedat" is of type timestamp with time zone but
+    /// expression is of type text`. It is fine on SQLite, where the column is
+    /// TEXT, which is why every one of these worked in development and none of
+    /// them worked against the hosted database.
+    pub fn now(&self) -> sea_query::SimpleExpr {
+        self.timestamp_value(now_timestamp())
+    }
+
     /// Wraps a timestamp expression so it decodes as `DateTime<Utc>`.
     ///
     /// Most of the Postgres schema is `timestamp without time zone`, which sqlx
@@ -805,6 +818,73 @@ mod tests {
     ///     -e POSTGRES_DB=xata -p 5434:5432 postgres:16-alpine
     ///   ROCKSKY_TEST_POSTGRES_URL=postgres://xata:pw@localhost:5434/xata \
     ///     cargo test -p rocksky-db
+    /// Writing a timestamp has to go through the backend, not bind a string.
+    ///
+    /// A bound parameter is typed `text` on Postgres, and assigning text to a
+    /// `timestamptz` column is an error there:
+    ///
+    ///   column "xata_updatedat" is of type timestamp with time zone
+    ///   but expression is of type text
+    ///
+    /// It is fine on SQLite, where the column is TEXT — which is why every one
+    /// of these worked in development and none of them worked against the
+    /// hosted database. Needs a Postgres; see the note on
+    /// `a_table_outside_public_still_counts_as_present`.
+    #[tokio::test]
+    async fn a_timestamp_is_written_through_the_backend_not_as_text() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            eprintln!("skipped: set ROCKSKY_TEST_POSTGRES_URL to run this");
+            return;
+        };
+
+        let pool = sqlx::postgres::PgPool::connect(&url)
+            .await
+            .expect("connect");
+        sqlx::query("DROP TABLE IF EXISTS stamped")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("CREATE TABLE stamped (id text primary key, at timestamptz)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stamped VALUES ('one', now())")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let backend = Backend::Postgres {
+            primary: pool.clone(),
+            replica: None,
+        };
+
+        // What the handlers do now.
+        let update = sea_query::Query::update()
+            .table(sea_query::Alias::new("stamped"))
+            .value(sea_query::Alias::new("at"), backend.now())
+            .and_where(sea_query::Expr::col(sea_query::Alias::new("id")).eq("one"))
+            .to_owned();
+        backend
+            .execute(&update)
+            .await
+            .expect("a timestamp written through the backend must be accepted");
+
+        // And what they used to do, which is the failure being pinned.
+        let raw = sea_query::Query::update()
+            .table(sea_query::Alias::new("stamped"))
+            .value(sea_query::Alias::new("at"), now_timestamp())
+            .and_where(sea_query::Expr::col(sea_query::Alias::new("id")).eq("one"))
+            .to_owned();
+        let error = backend
+            .execute(&raw)
+            .await
+            .expect_err("binding a bare string must still be rejected by Postgres");
+        assert!(
+            error.to_string().contains("is of type text"),
+            "the regression this guards against: {error}"
+        );
+    }
+
     #[tokio::test]
     async fn a_table_outside_public_still_counts_as_present() {
         let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {

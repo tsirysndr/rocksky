@@ -193,7 +193,7 @@ async fn apply(db: &Backend, artist: &RemoteArtist) -> anyhow::Result<bool> {
         let update = Query::update()
             .table(Artists::Table)
             .value(Artists::Picture, picture)
-            .value(Artists::XataUpdatedat, crate::db::now_timestamp())
+            .value(Artists::XataUpdatedat, db.now())
             .and_where(Expr::col(Artists::Sha256).eq(&hash))
             .cond_where(
                 crate::sea_query::Cond::any()
@@ -209,7 +209,7 @@ async fn apply(db: &Backend, artist: &RemoteArtist) -> anyhow::Result<bool> {
         let update = Query::update()
             .table(Artists::Table)
             .value(Artists::Genres, genres)
-            .value(Artists::XataUpdatedat, crate::db::now_timestamp())
+            .value(Artists::XataUpdatedat, db.now())
             .and_where(Expr::col(Artists::Sha256).eq(&hash))
             .cond_where(
                 crate::sea_query::Cond::any()

@@ -130,7 +130,7 @@ async fn upsert(
                     Feeds::Did,
                     Feeds::Avatar,
                 ])
-                .value(Feeds::XataUpdatedat, crate::db::now_timestamp())
+                .value(Feeds::XataUpdatedat, db.now())
                 .to_owned(),
         )
         .to_owned();

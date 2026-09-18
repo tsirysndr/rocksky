@@ -151,7 +151,9 @@ async fn create(
     let encrypted_secret = encrypt(secret_key)?;
 
     let id = new_id();
-    let verified_at = crate::db::now_timestamp();
+    // Through the backend, not as a bare string: `verified_at` is a timestamp
+    // column on Postgres and assigning text to one is a type error there.
+    let verified_at = db.now();
 
     let insert = Query::insert()
         .into_table(UserStorageProviders::Table)
@@ -177,7 +179,7 @@ async fn create(
             encrypted_access.into(),
             encrypted_secret.into(),
             body.public_url.clone().into(),
-            verified_at.into(),
+            verified_at,
         ])
         .to_owned();
     db.execute(&insert).await?;

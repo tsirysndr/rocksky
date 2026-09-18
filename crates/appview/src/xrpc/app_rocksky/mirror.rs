@@ -383,7 +383,7 @@ async fn update_source(
     let mut update = Query::update();
     update
         .table(MirrorSources::Table)
-        .value(MirrorSources::XataUpdatedat, crate::db::now_timestamp());
+        .value(MirrorSources::XataUpdatedat, db.now());
 
     if let Some(enabled) = input.enabled {
         update.value(MirrorSources::Enabled, enabled);

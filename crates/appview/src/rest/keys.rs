@@ -265,7 +265,7 @@ async fn update_api_key(
     // timestamp included — it is not a change.
     if touched {
         update
-            .value(ApiKeys::XataUpdatedat, crate::db::now_timestamp())
+            .value(ApiKeys::XataUpdatedat, db.now())
             .and_where(Expr::col(ApiKeys::XataId).eq(&id))
             .and_where(Expr::col(ApiKeys::UserId).eq(&user_id));
         db.execute(&update).await?;

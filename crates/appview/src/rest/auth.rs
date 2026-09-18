@@ -510,7 +510,7 @@ pub async fn sync_user(state: &AppState, did: &str, known_handle: Option<&str>) 
 
     if fetched_anything {
         update
-            .value(Users::XataUpdatedat, crate::db::now_timestamp())
+            .value(Users::XataUpdatedat, db.now())
             .and_where(Expr::col(Users::Did).eq(did));
 
         if let Err(err) = db.execute(&update).await {

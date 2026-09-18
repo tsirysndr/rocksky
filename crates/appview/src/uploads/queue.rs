@@ -120,7 +120,6 @@ pub async fn save(
     current_index: i64,
 ) -> Result<(), sqlx::Error> {
     let encoded = serde_json::to_string(upload_ids).unwrap_or_else(|_| "[]".to_string());
-    let now = crate::db::now_timestamp();
 
     // `user_id` is UNIQUE, so the upsert keeps one row per user.
     let insert = Query::insert()
@@ -140,7 +139,7 @@ pub async fn save(
         .on_conflict(
             OnConflict::column(UploadQueueState::UserId)
                 .update_columns([UploadQueueState::UploadIds, UploadQueueState::CurrentIndex])
-                .value(UploadQueueState::XataUpdatedat, now)
+                .value(UploadQueueState::XataUpdatedat, db.now())
                 .to_owned(),
         )
         .to_owned();
