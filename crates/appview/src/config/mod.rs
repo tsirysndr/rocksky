@@ -35,7 +35,12 @@ pub use settings::TEMPLATE as CONFIG_TEMPLATE;
 )]
 pub struct Cli {
     /// Path to config.toml. Defaults to <data-dir>/config.toml.
-    #[arg(long, value_name = "PATH")]
+    ///
+    /// Naming it explicitly also stops the starter template being written:
+    /// that only happens at the default location, so a deployment pointing at
+    /// `/etc/rocksky/config.toml` is never surprised by a file appearing
+    /// beside the one it asked for.
+    #[arg(short = 'c', long, value_name = "PATH", env = "ROCKSKY_CONFIG")]
     pub config: Option<PathBuf>,
 
     /// Directory for the databases, the signing key and config.toml.

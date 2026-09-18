@@ -1,0 +1,55 @@
+[Unit]
+Description=Rocksky AppView (app.rocksky.* XRPC API, REST routes and the web UI)
+# NATS and Typesense are required — the appview refuses to start without them
+# rather than running with half the system silently doing nothing. These are
+# `Wants`, not `Requires`: a restart of either should not take the appview
+# down with it, and `Restart=on-failure` below covers the startup race.
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+
+# The config path is explicit rather than left to the default.
+#
+# Two reasons. A unit that depends on the process's data directory resolving
+# the same way — which follows $ROCKSKY_DATA_DIR, $XDG_DATA_HOME and $HOME —
+# is one `User=` change away from silently reading a different file. And
+# naming it suppresses the starter-template write, which only happens at the
+# default location, so nothing appears beside the file you asked for.
+#
+# It holds this instance's secrets. Generate one with:
+#   ./target/release/rockskyd appview -c /etc/rocksky/config.toml --generate-config
+# which fills in the signing key, the storage key and the Spotify pair, and
+# reuses anything already in the data directory rather than replacing it.
+ExecStart=/bin/bash -ic 'exec doppler run -- ./target/release/rockskyd appview -c /etc/rocksky/config.toml'
+
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-appview
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+# Overrides, for anything that should not live in the config file or in
+# Doppler — a one-off log level, a different NATS while debugging, an OTLP
+# endpoint for a single afternoon. The leading `-` makes the file optional, so
+# the unit starts whether or not it exists.
+#
+# Environment beats the config file for every setting that has both spellings
+# (see the resolution order in `crates/appview/src/config`), so this overrides
+# config.toml rather than the other way round.
+#
+#   /etc/default/rocksky-appview
+#     RUST_LOG=info,sqlx=warn,rocksky_appview::ingest=debug
+#     NATS_URL=nats://127.0.0.1:4222
+#     TYPESENSE_URL=http://127.0.0.1:8108
+EnvironmentFile=-/etc/default/rocksky-appview
+
+[Install]
+WantedBy=multi-user.target
