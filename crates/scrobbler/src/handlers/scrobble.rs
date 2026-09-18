@@ -1,7 +1,7 @@
 use actix_web::HttpResponse;
 use anyhow::Error;
+use rocksky_db::Backend;
 use serde_json::json;
-use sqlx::Pool;
 use std::collections::BTreeMap;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 
 pub async fn handle_scrobble(
     form: BTreeMap<String, String>,
-    conn: &Pool<sqlx::Postgres>,
+    conn: &Backend,
     cache: &Cache,
     mb_client: &MusicbrainzClient,
 ) -> Result<HttpResponse, Error> {

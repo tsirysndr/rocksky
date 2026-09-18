@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::Error;
+use rocksky_db::Backend;
 use scrobble::handle_scrobble;
-use sqlx::{Pool, Postgres};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use v1::authenticate::authenticate;
@@ -17,7 +17,7 @@ pub mod v1;
 
 #[get("/")]
 pub async fn index(
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
     params: web::Query<BTreeMap<String, String>>,
 ) -> impl Responder {
@@ -32,7 +32,7 @@ pub async fn index(
 
 #[post("/nowplaying")]
 pub async fn handle_nowplaying(
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
     form: web::Form<BTreeMap<String, String>>,
 ) -> impl Responder {
@@ -42,7 +42,7 @@ pub async fn handle_nowplaying(
 
 #[post("/submission")]
 pub async fn handle_submission(
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
     mb_client: web::Data<Arc<MusicbrainzClient>>,
     form: web::Form<BTreeMap<String, String>>,
@@ -64,7 +64,7 @@ pub async fn handle_get() -> impl Responder {
 
 #[post("/2.0")]
 pub async fn handle_methods(
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
     form: web::Form<BTreeMap<String, String>>,
     mb_client: web::Data<Arc<MusicbrainzClient>>,
@@ -81,7 +81,7 @@ pub async fn handle_methods(
 
 pub async fn call_method(
     method: &str,
-    pool: &Arc<Pool<Postgres>>,
+    pool: &Arc<Backend>,
     cache: &Cache,
     mb_client: &Arc<MusicbrainzClient>,
     form: BTreeMap<String, String>,

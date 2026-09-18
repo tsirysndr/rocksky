@@ -1,8 +1,8 @@
+use rocksky_db::Backend;
 use std::{collections::BTreeMap, env};
 
 use anyhow::Error;
 use rand::Rng;
-use sqlx::{Pool, Postgres};
 
 use crate::{
     auth::{decode_token, extract_did},
@@ -194,7 +194,7 @@ async fn submit_scrobble(
 }
 
 pub async fn scrobble(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     cache: &Cache,
     mb_client: &MusicbrainzClient,
     form: &BTreeMap<String, String>,
@@ -449,7 +449,7 @@ pub async fn scrobble(
 }
 
 pub async fn scrobble_v1(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     cache: &Cache,
     mb_client: &MusicbrainzClient,
     form: &BTreeMap<String, String>,
@@ -755,7 +755,7 @@ pub async fn scrobble_v1(
 }
 
 pub async fn scrobble_listenbrainz(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     cache: &Cache,
     mb_client: &MusicbrainzClient,
     req: &SubmitListensRequest,

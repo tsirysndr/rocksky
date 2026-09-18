@@ -9,7 +9,7 @@ use crate::{
 };
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use owo_colors::OwoColorize;
-use sqlx::{Pool, Postgres};
+use rocksky_db::Backend;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
 
@@ -34,7 +34,7 @@ pub async fn index() -> impl Responder {
 
 #[post("/{id}")]
 async fn handle_scrobble(
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
     mb_client: web::Data<Arc<MusicbrainzClient>>,
     events: web::Data<Arc<Events>>,

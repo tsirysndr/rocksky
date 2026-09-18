@@ -1,7 +1,7 @@
+use rocksky_db::Backend;
 use std::sync::Arc;
 
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
-use sqlx::{Pool, Postgres};
 
 use crate::{
     auth::{decode_token, validate_bearer_token},
@@ -40,7 +40,7 @@ macro_rules! read_payload {
 #[post("/1/submit-listens")]
 pub async fn handle_submit_listens(
     req: HttpRequest,
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
     mb_client: web::Data<Arc<MusicbrainzClient>>,
     events: web::Data<Arc<Events>>,
@@ -148,7 +148,7 @@ pub async fn handle_submit_listens(
 
 #[get("/1/validate-token")]
 pub async fn handle_validate_token(
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
     req: HttpRequest,
 ) -> impl Responder {
     let pool = data.get_ref();
@@ -202,7 +202,7 @@ pub async fn handle_validate_token(
 #[get("/1/search/users")]
 pub async fn handle_search_users(
     query: web::Query<String>,
-    data: web::Data<Arc<Pool<Postgres>>>,
+    data: web::Data<Arc<Backend>>,
 ) -> impl Responder {
     let _pool = data.get_ref();
     let query = query.into_inner();

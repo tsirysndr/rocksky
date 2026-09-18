@@ -1,5 +1,6 @@
 use actix_web::HttpResponse;
 use anyhow::Error;
+use rocksky_db::Backend;
 use serde_json::json;
 use std::{collections::BTreeMap, sync::Arc};
 
@@ -11,7 +12,7 @@ use crate::{
 pub async fn submission(
     form: BTreeMap<String, String>,
     cache: &Cache,
-    pool: &Arc<sqlx::Pool<sqlx::Postgres>>,
+    pool: &Arc<Backend>,
     mb_client: &Arc<MusicbrainzClient>,
 ) -> Result<HttpResponse, Error> {
     match validate_required_params(&form, &["s", "a[0]", "t[0]", "i[0]"]) {

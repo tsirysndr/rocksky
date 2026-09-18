@@ -1,3 +1,4 @@
+use rocksky_db::Backend;
 use std::{collections::BTreeMap, env, sync::Arc};
 
 use actix_web::HttpResponse;
@@ -13,7 +14,7 @@ use crate::{
 pub async fn authenticate(
     params: BTreeMap<String, String>,
     cache: &Cache,
-    pool: &Arc<sqlx::Pool<sqlx::Postgres>>,
+    pool: &Arc<Backend>,
 ) -> Result<HttpResponse, Error> {
     match validate_required_params(&params, &["hs", "u", "t", "a"]) {
         Ok(_) => {

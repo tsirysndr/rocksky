@@ -1,28 +1,23 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_db::schema::{ApiKeys, Users};
+use rocksky_db::sea_query::{Asterisk, Expr, JoinType, Query};
+use rocksky_db::Backend;
 
 use crate::xata::api_key::ApiKey;
 
-pub async fn get_apikey(
-    pool: &Pool<Postgres>,
-    apikey: &str,
-    did: &str,
-) -> Result<Option<ApiKey>, Error> {
-    let results: Vec<ApiKey> = sqlx::query_as(
-        r#"
-    SELECT * FROM api_keys
-    LEFT JOIN users ON api_keys.user_id = users.xata_id
-    WHERE api_keys.api_key = $1 AND users.did = $2
-  "#,
-    )
-    .bind(apikey)
-    .bind(did)
-    .fetch_all(pool)
-    .await?;
+pub async fn get_apikey(pool: &Backend, apikey: &str, did: &str) -> Result<Option<ApiKey>, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(ApiKeys::Table)
+        .join(
+            JoinType::LeftJoin,
+            Users::Table,
+            Expr::col((ApiKeys::Table, ApiKeys::UserId)).equals((Users::Table, Users::XataId)),
+        )
+        .and_where(Expr::col((ApiKeys::Table, ApiKeys::ApiKey)).eq(apikey))
+        .and_where(Expr::col((Users::Table, Users::Did)).eq(did))
+        .limit(1)
+        .to_owned();
 
-    if results.len() == 0 {
-        return Ok(None);
-    }
-
-    Ok(Some(results[0].clone()))
+    Ok(pool.fetch_optional(&stmt).await?)
 }

@@ -1,3 +1,4 @@
+use rocksky_db::Backend;
 use std::env;
 
 use crate::cache::Cache;
@@ -13,7 +14,6 @@ use crate::{repo, rocksky};
 use anyhow::Error;
 use owo_colors::OwoColorize;
 use rand::Rng;
-use sqlx::{Pool, Postgres};
 
 const MAX_SPOTIFY_RETRIES: u32 = 3;
 const INITIAL_RETRY_DELAY_MS: u64 = 1000;
@@ -21,7 +21,7 @@ const INITIAL_RETRY_DELAY_MS: u64 = 1000;
 /// Resolve a track by artist/title through cache → DB → Spotify → MusicBrainz.
 /// Returns `None` if no match is found anywhere.
 pub async fn resolve_track(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     cache: &Cache,
     mb_client: &MusicbrainzClient,
     artist: &str,
@@ -228,7 +228,7 @@ pub async fn resolve_track(
 }
 
 pub async fn scrobble(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     cache: &Cache,
     mb_client: &MusicbrainzClient,
     scrobble: ScrobbleRequest,

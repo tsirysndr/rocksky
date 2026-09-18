@@ -1,24 +1,17 @@
-use crate::xata::webscrobbler::Webscrobbler;
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_db::schema::Webscrobblers;
+use rocksky_db::sea_query::{Asterisk, Expr, Query};
+use rocksky_db::Backend;
 
-pub async fn get_webscrobbler(
-    pool: &Pool<Postgres>,
-    uuid: &str,
-) -> Result<Option<Webscrobbler>, Error> {
-    let results: Vec<Webscrobbler> = sqlx::query_as(
-        r#"
-    SELECT * FROM webscrobblers
-    WHERE uuid = $1
-  "#,
-    )
-    .bind(uuid)
-    .fetch_all(pool)
-    .await?;
+use crate::xata::webscrobbler::Webscrobbler;
 
-    if results.len() == 0 {
-        return Ok(None);
-    }
+pub async fn get_webscrobbler(pool: &Backend, uuid: &str) -> Result<Option<Webscrobbler>, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Webscrobblers::Table)
+        .and_where(Expr::col(Webscrobblers::Uuid).eq(uuid))
+        .limit(1)
+        .to_owned();
 
-    Ok(Some(results[0].clone()))
+    Ok(pool.fetch_optional(&stmt).await?)
 }

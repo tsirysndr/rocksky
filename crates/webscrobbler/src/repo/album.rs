@@ -1,19 +1,29 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_db::schema::{AlbumTracks, Albums};
+use rocksky_db::sea_query::{Asterisk, Expr, JoinType, Query};
+use rocksky_db::Backend;
 
 use crate::xata::album::Album;
 
-pub async fn get_album_by_track_id(pool: &Pool<Postgres>, track_id: &str) -> Result<Album, Error> {
-    let results: Vec<Album> = sqlx::query_as(
-        r#"
-    SELECT * FROM albums
-    LEFT JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-    WHERE album_tracks.track_id = $1
-    "#,
-    )
-    .bind(track_id)
-    .fetch_all(pool)
-    .await?;
+pub async fn get_album_by_track_id(pool: &Backend, track_id: &str) -> Result<Album, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Albums::Table)
+        .join(
+            JoinType::LeftJoin,
+            AlbumTracks::Table,
+            Expr::col((Albums::Table, Albums::XataId))
+                .equals((AlbumTracks::Table, AlbumTracks::AlbumId)),
+        )
+        .and_where(Expr::col((AlbumTracks::Table, AlbumTracks::TrackId)).eq(track_id))
+        .limit(1)
+        .to_owned();
 
-    Ok(results[0].clone())
+    // The caller treats a missing album as a bug rather than an outcome, which
+    // is why this returns `Album` and not `Option<Album>` — but it used to
+    // index into an empty vector to say so, and a panic in the scrobble path
+    // takes the request down with no explanation.
+    pool.fetch_optional(&stmt)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("no album for track {track_id}"))
 }

@@ -5,6 +5,7 @@ use crate::{cache::Cache, scrobbler::scrobble_listenbrainz};
 use actix_web::HttpResponse;
 use anyhow::Error;
 use owo_colors::OwoColorize;
+use rocksky_db::Backend;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -13,7 +14,7 @@ use crate::listenbrainz::types::SubmitListensRequest;
 pub async fn submit_listens(
     payload: SubmitListensRequest,
     cache: &Cache,
-    pool: &Arc<sqlx::Pool<sqlx::Postgres>>,
+    pool: &Arc<Backend>,
     mb_client: &Arc<MusicbrainzClient>,
     token: &str,
 ) -> Result<HttpResponse, Error> {

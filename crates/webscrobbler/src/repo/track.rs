@@ -1,45 +1,44 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_db::schema::Tracks;
+use rocksky_db::sea_query::{Asterisk, Expr, ExprTrait, Func, Query, SimpleExpr};
+use rocksky_db::Backend;
 
 use crate::xata::track::Track;
 
-pub async fn get_track(
-    pool: &Pool<Postgres>,
-    title: &str,
-    artist: &str,
-) -> Result<Option<Track>, Error> {
-    let results: Vec<Track> = sqlx::query_as(
-        r#"
-    SELECT * FROM tracks
-    WHERE LOWER(title) = LOWER($1)
-    AND (LOWER(artist) = LOWER($2) OR LOWER(album_artist) = LOWER($2)) AND LOWER(album_artist) != 'various artists'
-    "#,
-    )
-    .bind(title)
-    .bind(artist)
-    .fetch_all(pool)
-    .await?;
-
-    if results.len() == 0 {
-        return Ok(None);
-    }
-
-    Ok(Some(results[0].clone()))
+/// `LOWER(x)` as something comparable.
+///
+/// `Func::lower` hands back a `FunctionCall`, whose `.eq` is `PartialEq`'s —
+/// comparing two function calls for structural equality and yielding a `bool`,
+/// which is not a SQL condition. `Expr::expr` is what turns it into one.
+fn lower(expr: impl Into<SimpleExpr>) -> SimpleExpr {
+    Expr::expr(Func::lower(expr)).into()
 }
 
-pub async fn get_track_by_mbid(pool: &Pool<Postgres>, mbid: &str) -> Result<Option<Track>, Error> {
-    let results: Vec<Track> = sqlx::query_as(
-        r#"
-    SELECT * FROM tracks WHERE mb_id = $1
-    "#,
-    )
-    .bind(mbid)
-    .fetch_all(pool)
-    .await?;
+pub async fn get_track(pool: &Backend, title: &str, artist: &str) -> Result<Option<Track>, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Tracks::Table)
+        .and_where(lower(Expr::col(Tracks::Title)).eq(lower(Expr::val(title))))
+        .and_where(
+            lower(Expr::col(Tracks::Artist))
+                .eq(lower(Expr::val(artist)))
+                .or(lower(Expr::col(Tracks::AlbumArtist)).eq(lower(Expr::val(artist)))),
+        )
+        // A compilation credit matches everyone, so it matches nobody.
+        .and_where(lower(Expr::col(Tracks::AlbumArtist)).ne("various artists"))
+        .limit(1)
+        .to_owned();
 
-    if results.len() == 0 {
-        return Ok(None);
-    }
+    Ok(pool.fetch_optional(&stmt).await?)
+}
 
-    Ok(Some(results[0].clone()))
+pub async fn get_track_by_mbid(pool: &Backend, mbid: &str) -> Result<Option<Track>, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Tracks::Table)
+        .and_where(Expr::col(Tracks::MbId).eq(mbid))
+        .limit(1)
+        .to_owned();
+
+    Ok(pool.fetch_optional(&stmt).await?)
 }

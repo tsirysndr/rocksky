@@ -1,26 +1,23 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_db::schema::{Users, Webscrobblers};
+use rocksky_db::sea_query::{Asterisk, Expr, JoinType, Query};
+use rocksky_db::Backend;
 
 use crate::xata::user::User;
 
-pub async fn get_user_by_webscrobbler(
-    pool: &Pool<Postgres>,
-    uuid: &str,
-) -> Result<Option<User>, Error> {
-    let results: Vec<User> = sqlx::query_as(
-        r#"
-    SELECT * FROM users
-    LEFT JOIN webscrobblers ON users.xata_id = webscrobblers.user_id
-    WHERE webscrobblers.uuid = $1
-  "#,
-    )
-    .bind(uuid)
-    .fetch_all(pool)
-    .await?;
+pub async fn get_user_by_webscrobbler(pool: &Backend, uuid: &str) -> Result<Option<User>, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Users::Table)
+        .join(
+            JoinType::LeftJoin,
+            Webscrobblers::Table,
+            Expr::col((Users::Table, Users::XataId))
+                .equals((Webscrobblers::Table, Webscrobblers::UserId)),
+        )
+        .and_where(Expr::col((Webscrobblers::Table, Webscrobblers::Uuid)).eq(uuid))
+        .limit(1)
+        .to_owned();
 
-    if results.len() == 0 {
-        return Ok(None);
-    }
-
-    Ok(Some(results[0].clone()))
+    Ok(pool.fetch_optional(&stmt).await?)
 }

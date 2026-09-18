@@ -1,22 +1,26 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_db::schema::{ArtistTracks, Artists};
+use rocksky_db::sea_query::{Asterisk, Expr, JoinType, Query};
+use rocksky_db::Backend;
 
 use crate::xata::artist::Artist;
 
-pub async fn get_artist_by_track_id(
-    pool: &Pool<Postgres>,
-    track_id: &str,
-) -> Result<Artist, Error> {
-    let results: Vec<Artist> = sqlx::query_as(
-        r#"
-    SELECT * FROM artists
-    LEFT JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-    WHERE artist_tracks.track_id = $1
-    "#,
-    )
-    .bind(track_id)
-    .fetch_all(pool)
-    .await?;
+pub async fn get_artist_by_track_id(pool: &Backend, track_id: &str) -> Result<Artist, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Artists::Table)
+        .join(
+            JoinType::LeftJoin,
+            ArtistTracks::Table,
+            Expr::col((Artists::Table, Artists::XataId))
+                .equals((ArtistTracks::Table, ArtistTracks::ArtistId)),
+        )
+        .and_where(Expr::col((ArtistTracks::Table, ArtistTracks::TrackId)).eq(track_id))
+        .limit(1)
+        .to_owned();
 
-    Ok(results[0].clone())
+    // As in `get_album_by_track_id`: an error rather than an index panic.
+    pool.fetch_optional(&stmt)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("no artist for track {track_id}"))
 }

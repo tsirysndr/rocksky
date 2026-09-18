@@ -10,7 +10,6 @@ use actix_web::{
 };
 use anyhow::Error;
 use owo_colors::OwoColorize;
-use sqlx::postgres::PgPoolOptions;
 
 use crate::{cache::Cache, consts::BANNER, events::Events, musicbrainz::client::MusicbrainzClient};
 
@@ -38,17 +37,20 @@ pub async fn start_server() -> Result<(), Error> {
     let nc = async_nats::connect(&nats_url).await?;
     let events = Arc::new(Events::new(nc));
 
-    let pool = PgPoolOptions::new()
-        .max_connections(10)
-        .min_connections(5)
-        .acquire_timeout(Duration::from_secs(10))
-        .idle_timeout(Duration::from_secs(300))
-        .max_lifetime(Duration::from_secs(1800))
-        .connect_with(rocksky_pgurl::primary("rocksky-webscrobbler")?)
-        .await?;
-    rocksky_pgurl::ensure_writable(&pool, "rocksky-webscrobbler").await?;
+    // Postgres when one is configured — keeping the read-only check, since
+    // this service writes every scrobble it receives — and otherwise the
+    // SQLite file the appview uses.
+    let db = rocksky_pgurl::connect_handle("rocksky-webscrobbler", |opts| {
+        opts.max_connections(10)
+            .min_connections(5)
+            .acquire_timeout(Duration::from_secs(10))
+            .idle_timeout(Duration::from_secs(300))
+            .max_lifetime(Duration::from_secs(1800))
+    })
+    .await?;
+    tracing::info!(database = %db.source(), "webscrobbler database");
 
-    let conn = Arc::new(pool);
+    let conn = Arc::new(db.primary().clone());
 
     let mb_client = MusicbrainzClient::new().await?;
     let mb_client = Arc::new(mb_client);

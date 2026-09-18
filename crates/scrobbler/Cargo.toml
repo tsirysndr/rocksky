@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 rocksky-pgurl = { path = "../pgurl" }
+rocksky-db = { path = "../db" }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.139"
 sqlx = { version = "0.8.3", features = [

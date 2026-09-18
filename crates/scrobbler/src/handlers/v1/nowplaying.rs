@@ -1,3 +1,4 @@
+use rocksky_db::Backend;
 use std::{collections::BTreeMap, sync::Arc};
 
 use actix_web::HttpResponse;
@@ -10,7 +11,7 @@ use crate::{auth::verify_session_id, cache::Cache, params::validate_required_par
 pub fn nowplaying(
     form: BTreeMap<String, String>,
     cache: &Cache,
-    _conn: &Arc<sqlx::Pool<sqlx::Postgres>>,
+    _conn: &Arc<Backend>,
 ) -> Result<HttpResponse, Error> {
     match validate_required_params(&form, &["s", "a", "t"]) {
         Ok(_) => {

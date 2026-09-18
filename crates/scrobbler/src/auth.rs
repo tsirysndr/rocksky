@@ -3,8 +3,8 @@ use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
+use rocksky_db::Backend;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
 use std::collections::BTreeMap;
 use std::env;
 
@@ -22,7 +22,7 @@ pub struct Claims {
 }
 
 pub async fn authenticate_v1(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     api_key: &str,
     timestamp: &str,
     password_md5: &str,
@@ -48,7 +48,7 @@ pub async fn authenticate_v1(
 }
 
 pub async fn authenticate(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     api_key: &str,
     api_sig: &str,
     session_key: &str,
@@ -73,10 +73,7 @@ pub async fn authenticate(
     Ok(())
 }
 
-pub async fn extract_did(
-    pool: &Pool<Postgres>,
-    form: &BTreeMap<String, String>,
-) -> Result<String, Error> {
+pub async fn extract_did(pool: &Backend, form: &BTreeMap<String, String>) -> Result<String, Error> {
     let apikey = form
         .get("api_key")
         .ok_or_else(|| Error::msg("Missing api_key"))?;
@@ -121,7 +118,7 @@ pub fn decode_token(token: &str) -> Result<Claims, Error> {
 }
 
 pub async fn generate_session_id(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     cache: &Cache,
     api_key: &str,
 ) -> Result<String, Error> {
@@ -152,7 +149,7 @@ pub fn verify_session_id(cache: &Cache, session_id: &str) -> Result<String, Erro
     Ok(user.xata_id)
 }
 
-pub async fn validate_bearer_token(pool: &Pool<Postgres>, token: &str) -> Result<(), Error> {
+pub async fn validate_bearer_token(pool: &Backend, token: &str) -> Result<(), Error> {
     let user = repo::user::get_user_by_apikey(pool, token).await?;
     if user.is_none() {
         return Err(Error::msg("Invalid token"));

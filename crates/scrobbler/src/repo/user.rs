@@ -1,47 +1,36 @@
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
+use rocksky_db::schema::{ApiKeys, Users};
+use rocksky_db::sea_query::{Asterisk, Expr, JoinType, Query};
+use rocksky_db::Backend;
 
 use crate::xata::user::{User, UserWithoutSecret};
 
-pub async fn get_user_by_apikey(
-    pool: &Pool<Postgres>,
-    apikey: &str,
-) -> Result<Option<User>, Error> {
-    let results: Vec<User> = sqlx::query_as(
-        r#"
-    SELECT * FROM users
-    LEFT JOIN api_keys ON users.xata_id = api_keys.user_id
-    WHERE api_keys.api_key = $1
-  "#,
-    )
-    .bind(apikey)
-    .fetch_all(pool)
-    .await?;
+pub async fn get_user_by_apikey(pool: &Backend, apikey: &str) -> Result<Option<User>, Error> {
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Users::Table)
+        .join(
+            JoinType::LeftJoin,
+            ApiKeys::Table,
+            Expr::col((Users::Table, Users::XataId)).equals((ApiKeys::Table, ApiKeys::UserId)),
+        )
+        .and_where(Expr::col((ApiKeys::Table, ApiKeys::ApiKey)).eq(apikey))
+        .limit(1)
+        .to_owned();
 
-    if results.is_empty() {
-        return Ok(None);
-    }
-
-    Ok(Some(results[0].clone()))
+    Ok(pool.fetch_optional(&stmt).await?)
 }
 
 pub async fn get_user_by_did(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     did: &str,
 ) -> Result<Option<UserWithoutSecret>, Error> {
-    let results: Vec<UserWithoutSecret> = sqlx::query_as(
-        r#"
-    SELECT * FROM users
-    WHERE did = $1
-  "#,
-    )
-    .bind(did)
-    .fetch_all(pool)
-    .await?;
+    let stmt = Query::select()
+        .column(Asterisk)
+        .from(Users::Table)
+        .and_where(Expr::col(Users::Did).eq(did))
+        .limit(1)
+        .to_owned();
 
-    if results.is_empty() {
-        return Ok(None);
-    }
-
-    Ok(Some(results[0].clone()))
+    Ok(pool.fetch_optional(&stmt).await?)
 }
