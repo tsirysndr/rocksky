@@ -409,6 +409,36 @@ mod tests {
         );
     }
 
+    /// The keyset has to be one `/jwks.json` can actually publish.
+    ///
+    /// `every_secret_is_filled_in` only proves a file appeared. This proves it
+    /// loads, holds a real ES256 key, and yields a public JWKS with no private
+    /// scalar in it — the thing `rest::auth::jwks_document` serves and the
+    /// authorization server fetches on every login. A generated file that
+    /// parsed but published nothing usable would only show up as login
+    /// failures against a live PDS.
+    #[test]
+    fn the_generated_keyset_publishes_a_usable_jwks() {
+        let dir = tempfile::tempdir().unwrap();
+        generate(dir.path(), &dir.path().join("config.toml"), false).unwrap();
+
+        let keyset = crate::oauth::keys::load_or_create(dir.path()).expect("must reload");
+        let published = serde_json::to_value(keyset.public_jwks()).unwrap();
+
+        let keys = published["keys"].as_array().expect("a keys array");
+        assert!(!keys.is_empty(), "an empty JWKS authenticates nothing");
+        assert_eq!(keys[0]["kty"], "EC");
+        assert_eq!(keys[0]["crv"], "P-256", "the alg the metadata advertises");
+        assert!(
+            keys[0].get("kid").is_some(),
+            "the authorization server selects the key by kid"
+        );
+        assert!(
+            !published.to_string().contains("\"d\""),
+            "publishing the private scalar would hand out the client's identity: {published}"
+        );
+    }
+
     /// The keyset is what live sessions refresh against.
     #[test]
     fn an_existing_keyset_is_left_alone() {
