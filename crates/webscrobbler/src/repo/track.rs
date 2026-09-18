@@ -1,6 +1,6 @@
 use anyhow::Error;
 use rocksky_db::schema::Tracks;
-use rocksky_db::sea_query::{Asterisk, Expr, ExprTrait, Func, Query, SimpleExpr};
+use rocksky_db::sea_query::{Asterisk, Expr, Func, Query, SimpleExpr};
 use rocksky_db::Backend;
 
 use crate::xata::track::Track;

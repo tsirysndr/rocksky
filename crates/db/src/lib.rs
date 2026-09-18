@@ -27,6 +27,7 @@ pub use sea_query;
 
 pub mod exec;
 pub mod handle;
+pub mod keys;
 pub mod loaders;
 pub mod models;
 pub mod prepared;

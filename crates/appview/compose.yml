@@ -15,14 +15,20 @@
 #
 # # What is required, and why
 #
-# | service    | required | what breaks without it                                  |
-# |------------|----------|---------------------------------------------------------|
-# | appview    | —        | —                                                       |
-# | nats       | yes      | the scrobble mirrors, the Spotify poller and the playlist importer never fire |
-# | typesense  | yes      | the search box and the search over your own uploads      |
-# | tap        | no       | the database stops filling — no new scrobbles arrive     |
-# | feeds      | no       | the genre feeds; the rest of the instance is unaffected  |
-# | redis      | no       | nothing; the cache falls back to an in-process map       |
+# | service      | required | what breaks without it                                  |
+# |--------------|----------|---------------------------------------------------------|
+# | appview      | —        | —                                                       |
+# | nats         | yes      | the mirrors, the Spotify poller, the playlist importer  |
+# | typesense    | yes      | the search box and the search over your own uploads     |
+# | tap          | no       | the database stops filling — no new scrobbles arrive    |
+# | feeds        | no       | the genre feeds; the rest of the instance is unaffected |
+# | redis        | no       | nothing; the cache falls back to an in-process map      |
+# | navidrome    | no       | your library in Subsonic clients                        |
+# | jellyfin     | no       | your library in Jellyfin clients                        |
+# | spotify      | no       | nothing yet; off by default, see the service comment    |
+# | mirror       | no       | scrobbles mirrored from Last.fm, ListenBrainz, Teal.fm  |
+# | scrobbler    | no       | the Last.fm-compatible endpoint desktop clients use     |
+# | webscrobbler | no       | scrobbles from the Web Scrobbler browser extension      |
 #
 # NATS and Typesense are *required*, and the appview refuses to start without
 # them rather than running in a state where half the system silently does
@@ -50,6 +56,26 @@
 # Set `XATA_POSTGRES_URL` and they all use that instead, and the volume stops
 # mattering.
 #
+# # The secrets are shared the same way
+#
+# The volume matters even on Postgres, because the services also have to agree
+# on a signing key. The appview generates its own `JWT_SECRET` into the data
+# directory on first boot, and `navidrome` and `jellyfin` sign a token with it
+# for every play they publish. With a different key the appview answers 401, so
+# the library works in your client and nothing you play is ever scrobbled.
+#
+# (Logging in to Subsonic is not affected: that checks the password against
+# your API keys in the database.)
+#
+# So the keys live beside the database, generated once and read by whoever
+# starts next: `jwt.secret`, `storage.key`, `spotify.key`, `spotify.iv`. None of
+# them is set in this file on purpose. A default here would be a signing key
+# published in a public repository, which anyone could use to mint a token for
+# any account on any instance that had not changed it.
+#
+# Set `JWT_SECRET` yourself and *every* service needs the same value, including
+# the appview. Easier to leave it alone and let the volume do it.
+#
 # # Going public
 #
 # Two things change when this is reachable from the internet:
@@ -65,6 +91,46 @@
 # Put a TLS terminator in front; this listens on plain HTTP by design.
 
 name: rocksky
+
+# The six music services below are one binary — `rockskyd <service>` — so they
+# share one image and one build. Anchors rather than six copies of the same
+# twelve lines; a service overrides what it needs.
+x-rockskyd: &rockskyd
+  build:
+    context: ../..
+    dockerfile: crates/rockskyd/Dockerfile
+  # The same tag on all six, so the image is built once and reused.
+  image: rocksky-services:local
+  restart: unless-stopped
+  volumes:
+    # The appview's volume: the shared SQLite database *and* the shared
+    # secrets. See the note on the appview service — a service given its own
+    # volume reports an empty library, and signs its scrobbles with a key the
+    # appview does not accept.
+    - data:/data
+  depends_on:
+    nats:
+      condition: service_started
+    appview:
+      condition: service_started
+
+# What every one of them reads.
+x-rockskyd-env: &rockskyd-env
+  # Blank means "join the appview's SQLite file through the volume below".
+  # Set it — here or in `.env` — and all of them use that Postgres instead.
+  XATA_POSTGRES_URL: ${XATA_POSTGRES_URL:-}
+  ROCKSKY_DATA_DIR: /data
+
+  NATS_URL: nats://nats:4222
+  REDIS_URL: redis://redis:6379
+
+  # Deliberately *not* set: JWT_SECRET, STORAGE_ENCRYPTION_KEY,
+  # SPOTIFY_ENCRYPTION_KEY and SPOTIFY_ENCRYPTION_IV. They are read from the
+  # data directory, generated on first boot and shared by path — see
+  # `rocksky_db::keys`. A default here would be a publicly known signing key,
+  # and setting one would also override the random key the appview generated.
+
+  RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
 
 services:
   appview:
@@ -256,6 +322,134 @@ services:
       # Only for the file to exist and carry the schema; this service reads.
       appview:
         condition: service_started
+
+  # ----------------------------------------------------------- the music services
+  #
+  # All optional, and all off the same image. None of them is needed for the
+  # web UI to work; each adds one way of getting music in or out.
+  #
+  # | service      | what it gives you                                         |
+  # |--------------|-----------------------------------------------------------|
+  # | navidrome    | your library in any Subsonic client                       |
+  # | jellyfin     | your library in any Jellyfin client                       |
+  # | mirror       | scrobbles mirrored from Last.fm, ListenBrainz and Teal.fm |
+  # | scrobbler    | the Last.fm-compatible scrobble API, for desktop clients  |
+  # | webscrobbler | scrobbles from the Web Scrobbler browser extension        |
+  # | spotify      | nothing here yet — see the commented-out service below    |
+  #
+  # Comment out what you do not use: each is a process and a database
+  # connection, and the mirror wakes up on a timer whether or not any account
+  # has given it credentials.
+
+  # Your library in any Subsonic client — play:Sub, Symfonium, Substreamer,
+  # Sonixd. Log in with your Rocksky handle and an API key from /access-tokens.
+  navidrome:
+    <<: *rockskyd
+    command: ["navidrome"]
+    ports:
+      - "4533:4533"
+    environment:
+      <<: *rockskyd-env
+      # Without this it listens on 127.0.0.1 *inside the container*, which no
+      # client can reach — the port is published and nothing answers.
+      NAVIDROME_HOST: 0.0.0.0
+      NAVIDROME_PORT: "4533"
+
+      # Where to send a play and a star. Left unset it posts to
+      # api.rocksky.app, which would scrobble your self-hosted plays to the
+      # hosted instance — with a token that instance does not accept.
+      #
+      # Scrobbles land. Starring does not yet: the appview serves
+      # `app.rocksky.scrobble.createScrobble` but not the `/likes` REST route
+      # this uses, so a star from a Subsonic client 404s for now.
+      ROCKSKY_API_URL: http://appview:3004
+
+      # Search inside the Subsonic API. Optional — without it, search falls
+      # back to the database, which is slower but correct.
+      TYPESENSE_PROTOCOL: http
+      TYPESENSE_HOST: typesense
+      TYPESENSE_PORT: "8108"
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-rocksky}
+
+  # The same library, for Jellyfin clients (Finamp, Feishin, the Jellyfin apps).
+  jellyfin:
+    <<: *rockskyd
+    command: ["jellyfin"]
+    ports:
+      - "8096:8096"
+    environment:
+      <<: *rockskyd-env
+      JELLYFIN_HOST: 0.0.0.0
+      JELLYFIN_PORT: "8096"
+      # What clients show in their server list.
+      JELLYFIN_SERVER_NAME: ${JELLYFIN_SERVER_NAME:-Rocksky}
+
+  # Polls Spotify for accounts that have connected it, and scrobbles what they
+  # played. No port: it polls rather than serving.
+  #
+  # Commented out, because on a self-hosted instance it has nothing to poll.
+  # The appview does not serve the Spotify OAuth connect flow yet — see the
+  # header of `crates/appview/src/xrpc/app_rocksky/spotify.rs` — so no
+  # `spotify_tokens` row is ever written here, and the poller finds no accounts.
+  #
+  # It is useful in one case: a database imported from the hosted instance,
+  # where those rows already exist. Those tokens were encrypted with the hosted
+  # deployment's `SPOTIFY_ENCRYPTION_KEY` and IV, so uncomment this *and*
+  # supply that exact pair — the generated ones in the data directory cannot
+  # decrypt somebody else's ciphertext.
+  # spotify:
+  #   <<: *rockskyd
+  #   command: ["spotify"]
+  #   environment:
+  #     <<: *rockskyd-env
+  #     SPOTIFY_ENCRYPTION_KEY: ${SPOTIFY_ENCRYPTION_KEY:?the hosted key is required}
+  #     SPOTIFY_ENCRYPTION_IV: ${SPOTIFY_ENCRYPTION_IV:?the hosted IV is required}
+  #     # Point at a proxy of your own to go through `spotify/`; the default is
+  #     # api.spotify.com.
+  #     SPOTIFY_API_URL: ${SPOTIFY_API_URL:-}
+
+  # Mirrors plays from Last.fm, ListenBrainz and Teal.fm into Rocksky, for
+  # accounts that have given it credentials. Also no port.
+  mirror:
+    <<: *rockskyd
+    command: ["mirror"]
+    environment:
+      <<: *rockskyd-env
+      # Same reason as navidrome's: without it the mirrored scrobbles are
+      # posted to the hosted instance rather than this one.
+      ROCKSKY_API: http://appview:3004
+      # Teal.fm arrives over the firehose rather than an API.
+      JETSTREAM_SERVER: ${JETSTREAM_SERVER:-}
+      SPOTIFY_API_URL: ${SPOTIFY_API_URL:-}
+      DEEZER_URL: ${DEEZER_URL:-}
+
+  # The Last.fm-compatible scrobble API: what the desktop app, `rocksky` CLI
+  # and any AudioScrobbler client post to.
+  scrobbler:
+    <<: *rockskyd
+    command: ["scrobbler"]
+    ports:
+      - "7882:7882"
+    environment:
+      <<: *rockskyd-env
+      SCROBBLE_HOST: 0.0.0.0
+      SCROBBLE_PORT: "7882"
+      SPOTIFY_API_URL: ${SPOTIFY_API_URL:-}
+      DEEZER_URL: ${DEEZER_URL:-}
+
+  # Scrobbles from the Web Scrobbler browser extension — YouTube, Bandcamp,
+  # SoundCloud and the rest. Point the extension's webhook at this port.
+  webscrobbler:
+    <<: *rockskyd
+    command: ["webscrobbler"]
+    ports:
+      - "7883:7883"
+    environment:
+      <<: *rockskyd-env
+      WEBSCROBBLER_HOST: 0.0.0.0
+      WEBSCROBBLER_PORT: "7883"
+      SPOTIFY_API_URL: ${SPOTIFY_API_URL:-}
+      DEEZER_URL: ${DEEZER_URL:-}
 
   # Optional. Without it the response cache is in-process, which is the right
   # answer for a single instance.

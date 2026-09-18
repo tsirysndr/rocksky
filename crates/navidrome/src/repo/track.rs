@@ -18,7 +18,6 @@ use rocksky_db::Handle as Db;
 #[derive(Iden, Clone, Copy)]
 #[iden = "alb"]
 enum Alb {
-    Table,
     #[iden = "album_id"]
     AlbumId,
 }
@@ -26,7 +25,6 @@ enum Alb {
 #[derive(Iden, Clone, Copy)]
 #[iden = "art"]
 enum Art {
-    Table,
     #[iden = "artist_id"]
     ArtistId,
 }
@@ -85,7 +83,6 @@ enum Tr {
 #[derive(Iden, Clone, Copy)]
 #[iden = "k"]
 pub(crate) enum K {
-    Table,
     #[iden = "unnumbered"]
     Unnumbered,
 }
@@ -425,19 +422,6 @@ fn tracks_by_album_stmt(album_id: &str, user_id: &str) -> sea_query::WithQuery {
             )
             .to_owned(),
     )
-}
-
-/// `CASE WHEN <table>.track_number IS NULL THEN <table>.xata_id ELSE '' END`,
-/// wrapped in a one-row SELECT so it can be joined laterally and referred to by
-/// name.
-///
-/// Kept for the callers that still join it; the album listing uses
-/// [`unnumbered_key_expr`] directly, inside a window's PARTITION BY, where
-/// there is nothing to name it for.
-pub(crate) fn unnumbered_key(table: impl sea_query::IntoIden + Copy + 'static) -> SelectStatement {
-    Query::select()
-        .expr_as(unnumbered_key_expr(table), K::Unnumbered)
-        .take()
 }
 
 /// The slot key itself: a track's own id when it has no track number, and the

@@ -50,6 +50,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     dotenv().ok();
 
+    // After `dotenv`, so anything actually configured wins, and before any
+    // service starts a thread, because this sets process-wide variables.
+    //
+    // Without it a self-hosted Subsonic or Jellyfin container has no
+    // `JWT_SECRET`, so the token it signs each play with is not one
+    // `rocksky-appview` accepts, and nothing played through it is ever
+    // scrobbled. See `rocksky_db::keys`.
+    rocksky_db::keys::hydrate();
+
     let args = cli().get_matches();
 
     match args.subcommand() {

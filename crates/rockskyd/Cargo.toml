@@ -11,6 +11,7 @@ clap = "4.5.31"
 tokio = { version = "1.43.0", features = ["full"] }
 dotenv = "0.15.0"
 anyhow = "1.0.96"
+rocksky-db = { path = "../db" }
 rocksky-dropbox = { path = "../dropbox" }
 rocksky-googledrive = { path = "../googledrive" }
 rocksky-jellyfin = { path = "../jellyfin" }

@@ -149,12 +149,6 @@ enum Atr {
 }
 
 #[derive(Iden, Clone, Copy)]
-#[iden = "atr0"]
-enum Atr0 {
-    Table,
-}
-
-#[derive(Iden, Clone, Copy)]
 #[iden = "ar"]
 enum Ar {
     Table,
