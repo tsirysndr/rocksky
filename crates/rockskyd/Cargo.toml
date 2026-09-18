@@ -16,8 +16,6 @@ rocksky-db = { path = "../db" }
 rocksky-telemetry = { path = "../telemetry" }
 toml = "0.8"
 serde = { version = "1", features = ["derive"] }
-rocksky-dropbox = { path = "../dropbox" }
-rocksky-googledrive = { path = "../googledrive" }
 rocksky-jellyfin = { path = "../jellyfin" }
 rocksky-jetstream = { path = "../jetstream" }
 rocksky-mirror = { path = "../mirror" }

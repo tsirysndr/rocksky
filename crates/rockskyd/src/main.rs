@@ -22,18 +22,6 @@ fn cli() -> Command {
                  the web UI. The default when no subcommand is given.",
             ),
         )
-        .subcommand(
-            Command::new("dropbox")
-                .about("Dropbox related commands")
-                .subcommand(Command::new("scan").about("Scan Dropbox Music Folder"))
-                .subcommand(Command::new("serve").about("Serve Rocksky Dropbox API")),
-        )
-        .subcommand(
-            Command::new("googledrive")
-                .about("Google Drive related commands")
-                .subcommand(Command::new("scan").about("Scan Google Drive Music Folder"))
-                .subcommand(Command::new("serve").about("Serve Rocksky Google Drive API")),
-        )
         .subcommand(Command::new("jellyfin").about("Start Jellyfin-compatible API"))
         .subcommand(Command::new("jetstream").about("Start JetStream Subscriber Service"))
         .subcommand(Command::new("mirror").about("Mirror plays from Last.fm, ListenBrainz, Teal.fm into Rocksky"))
@@ -103,16 +91,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(("appview", sub_m)) => {
             cmd::appview::start_appview_service(AppviewCli::from_arg_matches(sub_m)?).await?;
         }
-        Some(("dropbox", sub_m)) => match sub_m.subcommand() {
-            Some(("scan", _)) => cmd::dropbox::scan().await?,
-            Some(("serve", _)) => cmd::dropbox::serve().await?,
-            _ => println!("Unknown dropbox command"),
-        },
-        Some(("googledrive", sub_m)) => match sub_m.subcommand() {
-            Some(("scan", _)) => cmd::googledrive::scan().await?,
-            Some(("serve", _)) => cmd::googledrive::serve().await?,
-            _ => println!("Unknown googledrive command"),
-        },
         Some(("jellyfin", _)) => {
             cmd::jellyfin::start_jellyfin_service().await?;
         }

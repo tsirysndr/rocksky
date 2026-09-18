@@ -5957,38 +5957,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rocksky-dropbox"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "aes",
- "anyhow",
- "async-nats",
- "chrono",
- "clap",
- "ctr",
- "dotenv",
- "futures",
- "hex",
- "jsonwebtoken",
- "lofty",
- "md5",
- "owo-colors",
- "redis 0.29.5",
- "reqwest 0.12.23",
- "rocksky-pgurl",
- "serde",
- "serde_json",
- "sha256",
- "sqlx",
- "symphonia",
- "tempfile",
- "tokio",
- "tokio-stream",
- "tracing",
-]
-
-[[package]]
 name = "rocksky-feeds"
 version = "0.1.0"
 dependencies = [
@@ -6006,39 +5974,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "rocksky-googledrive"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "aes",
- "anyhow",
- "async-nats",
- "chrono",
- "clap",
- "ctr",
- "dotenv",
- "futures",
- "hex",
- "jsonwebtoken",
- "lofty",
- "md5",
- "owo-colors",
- "redis 0.29.5",
- "reqwest 0.12.23",
- "rocksky-pgurl",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sha256",
- "sqlx",
- "symphonia",
- "tempfile",
- "tokio",
- "tokio-stream",
- "tracing",
 ]
 
 [[package]]
@@ -6485,8 +6420,6 @@ dependencies = [
  "owo-colors",
  "rocksky-appview",
  "rocksky-db",
- "rocksky-dropbox",
- "rocksky-googledrive",
  "rocksky-jellyfin",
  "rocksky-jetstream",
  "rocksky-mirror",
@@ -7785,9 +7718,7 @@ dependencies = [
  "symphonia-codec-pcm",
  "symphonia-codec-vorbis",
  "symphonia-core",
- "symphonia-format-caf",
  "symphonia-format-isomp4",
- "symphonia-format-mkv",
  "symphonia-format-ogg",
  "symphonia-format-riff",
  "symphonia-metadata",
@@ -7883,36 +7814,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "symphonia-format-caf"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e43c99c696a388295a29fe71b133079f5d8b18041cf734c5459c35ad9097af50"
-dependencies = [
- "log",
- "symphonia-core",
- "symphonia-metadata",
-]
-
-[[package]]
 name = "symphonia-format-isomp4"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abfdf178d697e50ce1e5d9b982ba1b94c47218e03ec35022d9f0e071a16dc844"
 dependencies = [
  "encoding_rs",
- "log",
- "symphonia-core",
- "symphonia-metadata",
- "symphonia-utils-xiph",
-]
-
-[[package]]
-name = "symphonia-format-mkv"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bb43471a100f7882dc9937395bd5ebee8329298e766250b15b3875652fe3d6f"
-dependencies = [
- "lazy_static",
  "log",
  "symphonia-core",
  "symphonia-metadata",
