@@ -27,6 +27,7 @@ pub mod error;
 pub mod events;
 pub mod generators;
 pub mod ingest;
+pub mod materialise;
 /// Types generated from the ATProto lexicons.
 ///
 /// The crate `rocksky-lexicon`, re-exported: it has no dependencies beyond

@@ -127,7 +127,17 @@ pub async fn run(state: AppState) {
                 };
 
                 match ingest::ingest(state.db(), &incoming).await {
-                    Ok(result) => {
+                    Ok(mut result) => {
+                        // A like whose song is not indexed here carries nothing
+                        // to build a track from, so it cannot be stored
+                        // unattached — fetch the song and try once more. On the
+                        // firehose this is the common case rather than the
+                        // exception: a like on a track somebody else published
+                        // arrives with no guarantee their repository is read.
+                        if result.skipped > 0 && incoming.collection == ingest::LIKE_NSID {
+                            result = crate::materialise::resolve_like(&state, &incoming).await;
+                        }
+
                         // A new scrobble invalidates every cached feed page.
                         if result.scrobbles > 0 {
                             state

@@ -146,10 +146,16 @@ pub async fn backfill_repo(state: &AppState, did: &str) -> anyhow::Result<Ingest
 
     for record in deferred {
         match ingest::ingest(state.db(), &record).await {
-            Ok(result) => {
+            Ok(result) if result.skipped == 0 => {
                 stats.merge(result);
                 crate::search::index_record(state, &record).await;
             }
+            // Still unresolvable after the whole repository is in, which means
+            // the song is in *somebody else's* repository — a like on a track
+            // another account published. A like carries nothing but the
+            // reference, so it cannot be stored unattached the way a shout
+            // can; the song has to be fetched or the like is lost.
+            Ok(_) => stats.merge(crate::materialise::resolve_like(state, &record).await),
             Err(err) => {
                 tracing::warn!(uri = %record.uri(), error = ?err, "deferred record failed");
                 stats.skipped += 1;
