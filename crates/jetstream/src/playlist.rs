@@ -6,9 +6,9 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use owo_colors::OwoColorize;
-use rocksky_pgurl::sql;
+use rocksky_db::exec as sql;
+use rocksky_db::Backend;
 use sea_query::{Expr, JoinType, OnConflict, Query};
-use sqlx::{Pool, Postgres};
 
 use crate::{
     profile::did_to_pds,
@@ -44,7 +44,7 @@ struct PlaylistRow {
 
 /// Upserts a playlist keyed on its AT-URI, and links it to its owner.
 pub async fn save_playlist(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     nc: &async_nats::Client,
     did: &str,
     rkey: &str,
@@ -65,6 +65,7 @@ pub async fn save_playlist(
     let upsert = Query::insert()
         .into_table(Playlists::Table)
         .columns([
+            Playlists::XataId,
             Playlists::Name,
             Playlists::Description,
             Playlists::Picture,
@@ -76,6 +77,7 @@ pub async fn save_playlist(
             Playlists::CreatedBy,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             record.name.clone().into(),
             record.description.clone().into(),
             record.picture_url.clone().into(),
@@ -103,16 +105,21 @@ pub async fn save_playlist(
         .returning_col(Playlists::XataId)
         .to_owned();
 
-    let playlist_id: String = sql::fetch_scalar(&mut *tx, &upsert).await?;
+    let playlist_id: String = tx
+        .fetch_scalar(&upsert)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("the playlist upsert returned no row"))?;
 
     let link = Query::insert()
         .into_table(UserPlaylists::Table)
         .columns([
+            UserPlaylists::XataId,
             UserPlaylists::UserId,
             UserPlaylists::PlaylistId,
             UserPlaylists::Uri,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             user_id.clone().into(),
             playlist_id.clone().into(),
             uri.clone().into(),
@@ -124,7 +131,7 @@ pub async fn save_playlist(
         )
         .to_owned();
 
-    sql::execute(&mut *tx, &link).await?;
+    tx.execute(&link).await?;
 
     tx.commit().await?;
 
@@ -142,7 +149,7 @@ pub async fn save_playlist(
 /// entry can reach us before we've indexed the playlist it names, and dropping
 /// it would lose the entry permanently.
 async fn resolve_playlist(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     nc: &async_nats::Client,
     playlist_uri: &str,
 ) -> Result<Option<PlaylistRow>, Error> {
@@ -184,7 +191,7 @@ async fn resolve_playlist(
     load_playlist(pool, playlist_uri).await
 }
 
-async fn load_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<Option<PlaylistRow>, Error> {
+async fn load_playlist(pool: &Backend, uri: &str) -> Result<Option<PlaylistRow>, Error> {
     let stmt = Query::select()
         .column((Playlists::Table, Playlists::XataId))
         .column((Users::Table, Users::Did))
@@ -214,7 +221,7 @@ fn authorize_entry(playlist: &PlaylistRow, author_did: &str) -> bool {
 
 /// Upserts a playlist entry keyed on the entry record's own AT-URI.
 pub async fn save_playlist_song(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     nc: &async_nats::Client,
     did: &str,
     rkey: &str,
@@ -253,6 +260,7 @@ pub async fn save_playlist_song(
     let upsert = Query::insert()
         .into_table(PlaylistTracks::Table)
         .columns([
+            PlaylistTracks::XataId,
             PlaylistTracks::PlaylistId,
             PlaylistTracks::TrackId,
             PlaylistTracks::Uri,
@@ -261,6 +269,7 @@ pub async fn save_playlist_song(
             PlaylistTracks::AddedAt,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             playlist.id.clone().into(),
             track_id.clone().into(),
             uri.clone().into(),
@@ -280,7 +289,7 @@ pub async fn save_playlist_song(
         )
         .to_owned();
 
-    sql::execute(&mut *tx, &upsert).await?;
+    tx.execute(&upsert).await?;
 
     tx.commit().await?;
 
@@ -296,7 +305,7 @@ pub async fn save_playlist_song(
 /// that metadata as a last resort. The metadata is in the record precisely so an
 /// entry stays resolvable when we have never ingested the song itself.
 async fn resolve_track(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     record: &PlaylistSongRecord,
 ) -> Result<String, Error> {
     let by_uri = Query::select()
@@ -306,7 +315,7 @@ async fn resolve_track(
         .limit(1)
         .take();
 
-    if let Some(id) = sql::fetch_scalar_optional::<String>(&mut **tx, &by_uri).await? {
+    if let Some(id) = tx.fetch_scalar::<String>(&by_uri).await? {
         return Ok(id);
     }
 
@@ -321,13 +330,14 @@ async fn resolve_track(
         .limit(1)
         .take();
 
-    if let Some(id) = sql::fetch_scalar_optional::<String>(&mut **tx, &by_hash).await? {
+    if let Some(id) = tx.fetch_scalar::<String>(&by_hash).await? {
         return Ok(id);
     }
 
     let insert = Query::insert()
         .into_table(Tracks::Table)
         .columns([
+            Tracks::XataId,
             Tracks::Title,
             Tracks::Artist,
             Tracks::Album,
@@ -338,6 +348,7 @@ async fn resolve_track(
             Tracks::Uri,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             record.title.clone().into(),
             record.artist.clone().into(),
             record.album.clone().into(),
@@ -355,13 +366,17 @@ async fn resolve_track(
         .returning_col(Tracks::XataId)
         .to_owned();
 
-    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
+    // `RETURNING` always yields a row; no row means the insert did not
+    // happen, which is a bug rather than an outcome.
+    tx.fetch_scalar(&insert)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("insert returned no row"))
 }
 
 /// Removing the playlist record removes the playlist. Entries go with it —
 /// they are only reachable through the playlist, and leaving them behind would
 /// strand rows that no record backs.
-pub async fn delete_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<(), Error> {
+pub async fn delete_playlist(pool: &Backend, uri: &str) -> Result<(), Error> {
     let mut tx = pool.begin().await?;
 
     let by_uri = Query::select()
@@ -370,7 +385,7 @@ pub async fn delete_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<(), Err
         .and_where(Expr::col(Playlists::Uri).eq(uri))
         .take();
 
-    let playlist_id: Option<String> = sql::fetch_scalar_optional(&mut *tx, &by_uri).await?;
+    let playlist_id: Option<String> = tx.fetch_scalar(&by_uri).await?;
 
     let Some(playlist_id) = playlist_id else {
         tx.rollback().await?;
@@ -381,19 +396,19 @@ pub async fn delete_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<(), Err
         .from_table(PlaylistTracks::Table)
         .and_where(Expr::col(PlaylistTracks::PlaylistId).eq(&playlist_id))
         .to_owned();
-    sql::execute(&mut *tx, &entries).await?;
+    tx.execute(&entries).await?;
 
     let links = Query::delete()
         .from_table(UserPlaylists::Table)
         .and_where(Expr::col(UserPlaylists::PlaylistId).eq(&playlist_id))
         .to_owned();
-    sql::execute(&mut *tx, &links).await?;
+    tx.execute(&links).await?;
 
     let playlist = Query::delete()
         .from_table(Playlists::Table)
         .and_where(Expr::col(Playlists::XataId).eq(&playlist_id))
         .to_owned();
-    sql::execute(&mut *tx, &playlist).await?;
+    tx.execute(&playlist).await?;
 
     tx.commit().await?;
     tracing::info!(uri = %uri, "Playlist deleted");
@@ -402,13 +417,13 @@ pub async fn delete_playlist(pool: &Pool<Postgres>, uri: &str) -> Result<(), Err
 
 /// The entry's AT-URI encodes the repo that authored it, so deleting by URI can
 /// only ever remove a row that repo created — no ownership check needed.
-pub async fn delete_playlist_song(pool: &Pool<Postgres>, uri: &str) -> Result<(), Error> {
+pub async fn delete_playlist_song(pool: &Backend, uri: &str) -> Result<(), Error> {
     let delete = Query::delete()
         .from_table(PlaylistTracks::Table)
         .and_where(Expr::col(PlaylistTracks::Uri).eq(uri))
         .to_owned();
 
-    let deleted = sql::execute(pool, &delete).await?.rows_affected();
+    let deleted = sql::execute(pool, &delete).await?;
 
     if deleted > 0 {
         tracing::info!(uri = %uri, "Playlist entry deleted");

@@ -27,8 +27,16 @@ sqlx = { version = "0.8.6", default-features = false, features = [
   "macros",
   "migrate",
 ] }
-sea-query = "0.32"
-sea-query-binder = { version = "0.7", features = ["sqlx-sqlite", "sqlx-postgres", "with-chrono"] }
+# `postgres-array` so a `text[]` column can be *written*: without it
+# `Vec<String>` has no `Into<Value>` and `models::text_array_value` cannot bind
+# the Postgres side at all.
+sea-query = { version = "0.32", features = ["postgres-array"] }
+sea-query-binder = { version = "0.7", features = [
+  "sqlx-sqlite",
+  "sqlx-postgres",
+  "postgres-array",
+  "with-chrono",
+] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

@@ -319,6 +319,30 @@ pub fn column_expr(col: Col, dialect: Dialect, prefix: Option<&str>) -> sea_quer
     }
 }
 
+/// A list of strings, as a value this backend can store in a `text[]`-style
+/// column.
+///
+/// The write-side counterpart of [`crate::Backend::text_array`]. Postgres
+/// takes a real array; SQLite has no array type and the binder *panics* —
+/// "Sqlite doesn't support array arguments" — so the list goes in as the JSON
+/// text that [`json_array`] reads back.
+///
+/// `None` is stored as NULL on both, which is different from an empty list:
+/// "we do not know this artist's genres" against "we know they have none".
+pub fn text_array_value(dialect: Dialect, values: Option<&[String]>) -> sea_query::SimpleExpr {
+    let Some(values) = values else {
+        return Option::<String>::None.into();
+    };
+    match dialect {
+        Dialect::Postgres => values.to_vec().into(),
+        // A list of strings cannot fail to serialise; an empty array is the
+        // right answer if it somehow did.
+        Dialect::Sqlite => serde_json::to_string(values)
+            .unwrap_or_else(|_| "[]".to_string())
+            .into(),
+    }
+}
+
 /// The year of a timestamp column, as SQL text for the dialect given.
 ///
 /// `EXTRACT(YEAR FROM …)` against `strftime('%Y', …)`. The SQLite form yields

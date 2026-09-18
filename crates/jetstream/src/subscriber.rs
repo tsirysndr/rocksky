@@ -8,11 +8,10 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context, Error};
+use anyhow::Error;
 use futures_util::{FutureExt, StreamExt};
 use lru::LruCache;
 use owo_colors::OwoColorize;
-use sqlx::postgres::PgPoolOptions;
 use std::panic::AssertUnwindSafe;
 use tokio::sync::{mpsc, Mutex, Semaphore};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -56,10 +55,6 @@ impl MultiSourceSubscriber {
             anyhow::bail!("MultiSourceSubscriber: no JETSTREAM servers configured");
         }
 
-        // Ingest: everything here writes, so it always talks to the primary.
-        let db_opts = rocksky_pgurl::primary("rocksky-jetstream")
-            .context("Failed to resolve the primary Postgres URL")?;
-
         // Match apps/api/src/drizzle.ts (max: 20, connectionTimeoutMillis: 10_000)
         // — that's the established per-process budget for long-lived services
         // against this Xata Postgres. Bump via env if the tier allows more.
@@ -76,18 +71,23 @@ impl MultiSourceSubscriber {
             .and_then(|s| s.parse().ok())
             .unwrap_or(50_000);
 
-        let pool = PgPoolOptions::new()
-            .max_connections(max_connections)
-            .min_connections(2)
-            .acquire_timeout(Duration::from_secs(10))
-            .max_lifetime(Some(Duration::from_secs(60 * 14)))
-            .test_before_acquire(true)
-            .connect_with(db_opts)
-            .await?;
-        // This service exists to write; refuse to start rather than drop every
-        // ingested record into a read-only endpoint.
-        rocksky_pgurl::ensure_writable(&pool, "rocksky-jetstream").await?;
-        let pool = Arc::new(pool);
+        // Ingest: everything here writes, so it always talks to the primary.
+        // Postgres when one is configured — keeping the pool budget and the
+        // read-only check, since this service exists to write and must refuse
+        // to start rather than drop every record into a replica — and
+        // otherwise the shared SQLite file.
+        let db = rocksky_pgurl::connect_handle("rocksky-jetstream", |opts| {
+            // Match apps/api/src/drizzle.ts: the established per-process
+            // budget against this Postgres.
+            opts.max_connections(max_connections)
+                .min_connections(2)
+                .acquire_timeout(Duration::from_secs(10))
+                .max_lifetime(Some(Duration::from_secs(60 * 14)))
+                .test_before_acquire(true)
+        })
+        .await?;
+        tracing::info!(database = %db.source(), "jetstream database");
+        let pool = Arc::new(db.primary().clone());
 
         let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
         let nc = Arc::new(async_nats::connect(&addr).await?);
@@ -255,7 +255,7 @@ fn build_subscribe_url(server: &str, watermark_us: i64) -> String {
 
 fn spawn_handler(
     state: Arc<Mutex<AppState>>,
-    pool: Arc<sqlx::PgPool>,
+    pool: Arc<rocksky_db::Backend>,
     nc: Arc<async_nats::Client>,
     permit: tokio::sync::OwnedSemaphorePermit,
     did: String,

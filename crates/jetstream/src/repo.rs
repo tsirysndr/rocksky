@@ -4,10 +4,10 @@ use std::sync::{Arc, OnceLock, RwLock};
 use anyhow::Error;
 use chrono::DateTime;
 use owo_colors::OwoColorize;
-use rocksky_pgurl::sql;
+use rocksky_db::exec as sql;
+use rocksky_db::Backend;
 use sea_query::{Alias, Asterisk, Cond, Expr, Func, OnConflict, Order, Query, SelectStatement};
 use serde_json::json;
-use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 
 use crate::schema::{
@@ -43,15 +43,15 @@ use crate::{
     },
     webhook_worker::{push_to_queue, AppState},
     xata::{
-        album::Album, album_track::AlbumTrack, artist::Artist, artist_album::ArtistAlbum,
-        artist_track::ArtistTrack, track::Track, user::User, user_album::UserAlbum,
-        user_artist::UserArtist, user_track::UserTrack,
+        album_track::AlbumTrack, artist_album::ArtistAlbum, artist_track::ArtistTrack,
+        track::Track, user::User, user_album::UserAlbum, user_artist::UserArtist,
+        user_track::UserTrack,
     },
 };
 
 pub async fn save_scrobble(
     state: Arc<Mutex<AppState>>,
-    pool: Arc<Pool<Postgres>>,
+    pool: Arc<Backend>,
     nc: Arc<async_nats::Client>,
     did: &str,
     commit: Commit,
@@ -102,6 +102,7 @@ pub async fn save_scrobble(
                 let insert = Query::insert()
                     .into_table(Scrobbles::Table)
                     .columns([
+                        Scrobbles::XataId,
                         Scrobbles::AlbumId,
                         Scrobbles::ArtistId,
                         Scrobbles::TrackId,
@@ -110,6 +111,7 @@ pub async fn save_scrobble(
                         Scrobbles::Timestamp,
                     ])
                     .values_panic([
+                        rocksky_db::new_id().into(),
                         album_id.into(),
                         artist_id.into(),
                         track_id.into(),
@@ -132,8 +134,7 @@ pub async fn save_scrobble(
                     .returning_col(Scrobbles::XataId)
                     .to_owned();
 
-                let scrobble_id: Option<String> =
-                    sql::fetch_scalar_optional(&mut *tx, &insert).await?;
+                let scrobble_id: Option<String> = tx.fetch_scalar(&insert).await?;
 
                 tx.commit().await?;
 
@@ -342,7 +343,7 @@ pub async fn save_scrobble(
 /// Create and update are the same write for playlist records: both carry the
 /// full record, and both upsert on the record's AT-URI.
 async fn save_playlist_commit(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     nc: &async_nats::Client,
     did: &str,
     collection: &str,
@@ -359,7 +360,7 @@ async fn save_playlist_commit(
     }
 }
 
-pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error> {
+pub async fn save_user(pool: &Backend, did: &str) -> Result<String, Error> {
     if let Some(id) = user_id_cache().read().unwrap().get(did).cloned() {
         return Ok(id);
     }
@@ -394,8 +395,15 @@ pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error
     // the existing xata_id instead of one needing a follow-up SELECT.
     let insert = Query::insert()
         .into_table(Users::Table)
-        .columns([Users::DisplayName, Users::Did, Users::Handle, Users::Avatar])
+        .columns([
+            Users::XataId,
+            Users::DisplayName,
+            Users::Did,
+            Users::Handle,
+            Users::Avatar,
+        ])
         .values_panic([
+            rocksky_db::new_id().into(),
             profile.display_name.into(),
             did.into(),
             profile.handle.into(),
@@ -418,11 +426,7 @@ pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error
     Ok(id)
 }
 
-pub async fn publish_user(
-    nc: &async_nats::Client,
-    pool: &Pool<Postgres>,
-    id: &str,
-) -> Result<(), Error> {
+pub async fn publish_user(nc: &async_nats::Client, pool: &Backend, id: &str) -> Result<(), Error> {
     let users: Vec<User> = sql::fetch_all(
         pool,
         &Query::select()
@@ -473,9 +477,16 @@ fn keep_existing(
 
 /// `SELECT * FROM <table> WHERE sha256 = <hash>` — how every catalogue row is
 /// looked up before it is inserted.
-fn by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatement {
+/// The id of the row with this content hash.
+///
+/// One column, not `SELECT *`: every caller of this is a find-or-create that
+/// needs only the id. Narrowing it also keeps `artists.genres` out of the
+/// result — a `text[]` on Postgres and a JSON array in TEXT on SQLite, which
+/// decodes into `Vec<String>` from neither, so selecting it at all would tie
+/// this lookup to one backend.
+fn id_by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatement {
     Query::select()
-        .column(Asterisk)
+        .column(Alias::new("xata_id"))
         .from(table)
         .and_where(Expr::col(Alias::new("sha256")).eq(hash))
         .take()
@@ -535,7 +546,7 @@ fn bump_scrobbles(
 }
 
 pub async fn save_track(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     scrobble_record: ScrobbleRecord,
 ) -> Result<String, Error> {
     let uri: Option<String> = None;
@@ -560,11 +571,9 @@ pub async fn save_track(
         .map(str::trim)
         .filter(|s| !s.is_empty());
 
-    let existing: Option<Track> = sql::fetch_optional(
-        &mut **tx,
-        &track_by_hash_or_id(&hash, mb_id_filter, isrc_filter),
-    )
-    .await?;
+    let existing: Option<Track> = tx
+        .fetch_optional(&track_by_hash_or_id(&hash, mb_id_filter, isrc_filter))
+        .await?;
 
     if let Some(t) = existing {
         return Ok(t.xata_id);
@@ -576,6 +585,7 @@ pub async fn save_track(
     let insert = Query::insert()
         .into_table(Tracks::Table)
         .columns([
+            Tracks::XataId,
             Tracks::Title,
             Tracks::Artist,
             Tracks::Album,
@@ -598,6 +608,7 @@ pub async fn save_track(
             Tracks::Label,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             scrobble_record.title.into(),
             scrobble_record.artist.into(),
             scrobble_record.album.into(),
@@ -623,11 +634,15 @@ pub async fn save_track(
         .returning_col(Tracks::XataId)
         .to_owned();
 
-    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
+    // `RETURNING` always yields a row; no row means the insert did not
+    // happen, which is a bug rather than an outcome.
+    tx.fetch_scalar(&insert)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("insert returned no row"))
 }
 
 pub async fn save_album(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     scrobble_record: ScrobbleRecord,
 ) -> Result<String, Error> {
     let hash = sha256::digest(
@@ -638,12 +653,11 @@ pub async fn save_album(
         .to_lowercase(),
     );
 
-    let existing: Option<Album> =
-        sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
+    let existing: Option<String> = tx.fetch_scalar(&id_by_sha256(Albums::Table, &hash)).await?;
 
-    if let Some(a) = existing {
-        tracing::info!(name = %a.title.magenta(), "Album already exists");
-        return Ok(a.xata_id);
+    if let Some(id) = existing {
+        tracing::info!(name = %scrobble_record.album.magenta(), "Album already exists");
+        return Ok(id);
     }
 
     tracing::info!(name = %scrobble_record.album, "Saving new album");
@@ -653,6 +667,7 @@ pub async fn save_album(
     let insert = Query::insert()
         .into_table(Albums::Table)
         .columns([
+            Albums::XataId,
             Albums::Title,
             Albums::Artist,
             Albums::AlbumArt,
@@ -663,6 +678,7 @@ pub async fn save_album(
             Albums::ArtistUri,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             scrobble_record.album.into(),
             scrobble_record.album_artist.into(),
             scrobble_record.album_art_url.into(),
@@ -676,20 +692,25 @@ pub async fn save_album(
         .returning_col(Albums::XataId)
         .to_owned();
 
-    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
+    // `RETURNING` always yields a row; no row means the insert did not
+    // happen, which is a bug rather than an outcome.
+    tx.fetch_scalar(&insert)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("insert returned no row"))
 }
 
 pub async fn save_artist(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     scrobble_record: ScrobbleRecord,
 ) -> Result<String, Error> {
     let hash = sha256::digest(scrobble_record.album_artist.to_lowercase());
-    let existing: Option<Artist> =
-        sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
+    let existing: Option<String> = tx
+        .fetch_scalar(&id_by_sha256(Artists::Table, &hash))
+        .await?;
 
-    if let Some(a) = existing {
+    if let Some(id) = existing {
         tracing::info!(name = %scrobble_record.album_artist, "Artist already exists");
-        return Ok(a.xata_id);
+        return Ok(id);
     }
 
     tracing::info!(name = %scrobble_record.album_artist, "Saving new artist");
@@ -699,6 +720,7 @@ pub async fn save_artist(
     let insert = Query::insert()
         .into_table(Artists::Table)
         .columns([
+            Artists::XataId,
             Artists::Name,
             Artists::Sha256,
             Artists::Uri,
@@ -706,34 +728,41 @@ pub async fn save_artist(
             Artists::Genres,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             scrobble_record.artist.into(),
             hash.clone().into(),
             uri.into(),
             picture.into(),
-            scrobble_record.tags.into(),
+            // A real array on Postgres, JSON text on SQLite — whose binder
+            // panics outright on an array argument.
+            rocksky_db::models::text_array_value(tx.dialect(), scrobble_record.tags.as_deref()),
         ])
         .on_conflict(keep_existing(Artists::Table, Artists::Sha256))
         .returning_col(Artists::XataId)
         .to_owned();
 
-    Ok(sql::fetch_scalar(&mut **tx, &insert).await?)
+    // `RETURNING` always yields a row; no row means the insert did not
+    // happen, which is a bug rather than an outcome.
+    tx.fetch_scalar(&insert)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("insert returned no row"))
 }
 
 pub async fn save_album_track(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     album_id: &str,
     track_id: &str,
 ) -> Result<(), Error> {
-    let exists: Option<AlbumTrack> = sql::fetch_optional(
-        &mut **tx,
-        &Query::select()
-            .column(Asterisk)
-            .from(AlbumTracks::Table)
-            .and_where(Expr::col(AlbumTracks::AlbumId).eq(album_id))
-            .and_where(Expr::col(AlbumTracks::TrackId).eq(track_id))
-            .take(),
-    )
-    .await?;
+    let exists: Option<AlbumTrack> = tx
+        .fetch_optional(
+            &Query::select()
+                .column(Asterisk)
+                .from(AlbumTracks::Table)
+                .and_where(Expr::col(AlbumTracks::AlbumId).eq(album_id))
+                .and_where(Expr::col(AlbumTracks::TrackId).eq(track_id))
+                .take(),
+        )
+        .await?;
 
     if exists.is_some() {
         tracing::info!(album_id = %album_id, track_id = %track_id, "Album track already exists");
@@ -744,30 +773,38 @@ pub async fn save_album_track(
 
     let insert = Query::insert()
         .into_table(AlbumTracks::Table)
-        .columns([AlbumTracks::AlbumId, AlbumTracks::TrackId])
-        .values_panic([album_id.into(), track_id.into()])
+        .columns([
+            AlbumTracks::XataId,
+            AlbumTracks::AlbumId,
+            AlbumTracks::TrackId,
+        ])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            album_id.into(),
+            track_id.into(),
+        ])
         .on_conflict(OnConflict::new().do_nothing().to_owned())
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
     Ok(())
 }
 
 pub async fn save_artist_track(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     artist_id: &str,
     track_id: &str,
 ) -> Result<(), Error> {
-    let exists: Option<ArtistTrack> = sql::fetch_optional(
-        &mut **tx,
-        &Query::select()
-            .column(Asterisk)
-            .from(ArtistTracks::Table)
-            .and_where(Expr::col(ArtistTracks::ArtistId).eq(artist_id))
-            .and_where(Expr::col(ArtistTracks::TrackId).eq(track_id))
-            .take(),
-    )
-    .await?;
+    let exists: Option<ArtistTrack> = tx
+        .fetch_optional(
+            &Query::select()
+                .column(Asterisk)
+                .from(ArtistTracks::Table)
+                .and_where(Expr::col(ArtistTracks::ArtistId).eq(artist_id))
+                .and_where(Expr::col(ArtistTracks::TrackId).eq(track_id))
+                .take(),
+        )
+        .await?;
 
     if exists.is_some() {
         tracing::info!(artist_id = %artist_id, track_id = %track_id, "Artist track already exists");
@@ -778,30 +815,38 @@ pub async fn save_artist_track(
 
     let insert = Query::insert()
         .into_table(ArtistTracks::Table)
-        .columns([ArtistTracks::ArtistId, ArtistTracks::TrackId])
-        .values_panic([artist_id.into(), track_id.into()])
+        .columns([
+            ArtistTracks::XataId,
+            ArtistTracks::ArtistId,
+            ArtistTracks::TrackId,
+        ])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            artist_id.into(),
+            track_id.into(),
+        ])
         .on_conflict(OnConflict::new().do_nothing().to_owned())
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
     Ok(())
 }
 
 pub async fn save_artist_album(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     artist_id: &str,
     album_id: &str,
 ) -> Result<(), Error> {
-    let exists: Option<ArtistAlbum> = sql::fetch_optional(
-        &mut **tx,
-        &Query::select()
-            .column(Asterisk)
-            .from(ArtistAlbums::Table)
-            .and_where(Expr::col(ArtistAlbums::ArtistId).eq(artist_id))
-            .and_where(Expr::col(ArtistAlbums::AlbumId).eq(album_id))
-            .take(),
-    )
-    .await?;
+    let exists: Option<ArtistAlbum> = tx
+        .fetch_optional(
+            &Query::select()
+                .column(Asterisk)
+                .from(ArtistAlbums::Table)
+                .and_where(Expr::col(ArtistAlbums::ArtistId).eq(artist_id))
+                .and_where(Expr::col(ArtistAlbums::AlbumId).eq(album_id))
+                .take(),
+        )
+        .await?;
 
     if exists.is_some() {
         tracing::info!(artist_id = %artist_id, album_id = %album_id, "Artist album already exists");
@@ -812,51 +857,63 @@ pub async fn save_artist_album(
 
     let insert = Query::insert()
         .into_table(ArtistAlbums::Table)
-        .columns([ArtistAlbums::ArtistId, ArtistAlbums::AlbumId])
-        .values_panic([artist_id.into(), album_id.into()])
+        .columns([
+            ArtistAlbums::XataId,
+            ArtistAlbums::ArtistId,
+            ArtistAlbums::AlbumId,
+        ])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            artist_id.into(),
+            album_id.into(),
+        ])
         .on_conflict(OnConflict::new().do_nothing().to_owned())
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
     Ok(())
 }
 
 pub async fn save_user_artist(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     user_id: &str,
     record: ArtistRecord,
     uri: &str,
 ) -> Result<(), Error> {
     let hash = sha256::digest(record.name.to_lowercase());
 
-    let mut artist: Option<Artist> =
-        sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
+    let mut artist: Option<String> = tx
+        .fetch_scalar(&id_by_sha256(Artists::Table, &hash))
+        .await?;
 
     if artist.is_none() {
         tracing::info!(name = %record.name, "Artist not found in database, inserting new artist");
         let insert = Query::insert()
             .into_table(Artists::Table)
             .columns([
+                Artists::XataId,
                 Artists::Name,
                 Artists::Sha256,
                 Artists::Uri,
                 Artists::Picture,
             ])
             .values_panic([
+                rocksky_db::new_id().into(),
                 record.name.into(),
                 hash.clone().into(),
                 uri.into(),
                 record.picture_url.into(),
             ])
             .to_owned();
-        sql::execute(&mut **tx, &insert).await?;
+        tx.execute(&insert).await?;
 
-        artist = sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
+        artist = tx
+            .fetch_scalar(&id_by_sha256(Artists::Table, &hash))
+            .await?;
     }
 
-    let artist_id = artist
-        .ok_or_else(|| anyhow::anyhow!("Artist {} vanished after insert", hash))?
-        .xata_id;
+    let artist_id =
+        artist.ok_or_else(|| anyhow::anyhow!("Artist {} vanished after insert", hash))?;
 
     let mine = || {
         Expr::col(UserArtists::UserId)
@@ -864,15 +921,15 @@ pub async fn save_user_artist(
             .and(Expr::col(UserArtists::ArtistId).eq(&artist_id))
     };
 
-    let existing: Option<UserArtist> = sql::fetch_optional(
-        &mut **tx,
-        &Query::select()
-            .column(Asterisk)
-            .from(UserArtists::Table)
-            .and_where(mine())
-            .take(),
-    )
-    .await?;
+    let existing: Option<UserArtist> = tx
+        .fetch_optional(
+            &Query::select()
+                .column(Asterisk)
+                .from(UserArtists::Table)
+                .and_where(mine())
+                .take(),
+        )
+        .await?;
 
     if existing.is_some() {
         tracing::info!(user_id = %user_id, artist_id = %artist_id, "Updating user artist");
@@ -883,7 +940,7 @@ pub async fn save_user_artist(
             uri,
             mine(),
         );
-        sql::execute(&mut **tx, &update).await?;
+        tx.execute(&update).await?;
         return Ok(());
     }
 
@@ -892,33 +949,40 @@ pub async fn save_user_artist(
     let insert = Query::insert()
         .into_table(UserArtists::Table)
         .columns([
+            UserArtists::XataId,
             UserArtists::UserId,
             UserArtists::ArtistId,
             UserArtists::Uri,
             UserArtists::Scrobbles,
         ])
-        .values_panic([user_id.into(), artist_id.into(), uri.into(), 1.into()])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            user_id.into(),
+            artist_id.into(),
+            uri.into(),
+            1.into(),
+        ])
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
     Ok(())
 }
 
 pub async fn save_user_album(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     user_id: &str,
     record: AlbumRecord,
     uri: &str,
 ) -> Result<(), Error> {
     let hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
-    let mut album: Option<Album> =
-        sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
+    let mut album: Option<String> = tx.fetch_scalar(&id_by_sha256(Albums::Table, &hash)).await?;
 
     if album.is_none() {
         tracing::info!(title = %record.title, artist = %record.artist, "Album not found in database, inserting new album");
         let insert = Query::insert()
             .into_table(Albums::Table)
             .columns([
+                Albums::XataId,
                 Albums::Title,
                 Albums::Artist,
                 Albums::AlbumArt,
@@ -928,6 +992,7 @@ pub async fn save_user_album(
                 Albums::Uri,
             ])
             .values_panic([
+                rocksky_db::new_id().into(),
                 record.title.into(),
                 record.artist.into(),
                 record.album_art_url.into(),
@@ -937,14 +1002,12 @@ pub async fn save_user_album(
                 uri.into(),
             ])
             .to_owned();
-        sql::execute(&mut **tx, &insert).await?;
+        tx.execute(&insert).await?;
 
-        album = sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
+        album = tx.fetch_scalar(&id_by_sha256(Albums::Table, &hash)).await?;
     }
 
-    let album_id = album
-        .ok_or_else(|| anyhow::anyhow!("Album {} vanished after insert", hash))?
-        .xata_id;
+    let album_id = album.ok_or_else(|| anyhow::anyhow!("Album {} vanished after insert", hash))?;
 
     let mine = || {
         Expr::col(UserAlbums::UserId)
@@ -952,15 +1015,15 @@ pub async fn save_user_album(
             .and(Expr::col(UserAlbums::AlbumId).eq(&album_id))
     };
 
-    let existing: Option<UserAlbum> = sql::fetch_optional(
-        &mut **tx,
-        &Query::select()
-            .column(Asterisk)
-            .from(UserAlbums::Table)
-            .and_where(mine())
-            .take(),
-    )
-    .await?;
+    let existing: Option<UserAlbum> = tx
+        .fetch_optional(
+            &Query::select()
+                .column(Asterisk)
+                .from(UserAlbums::Table)
+                .and_where(mine())
+                .take(),
+        )
+        .await?;
 
     if existing.is_some() {
         tracing::info!(user_id = %user_id, album_id = %album_id, "Updating user album");
@@ -971,7 +1034,7 @@ pub async fn save_user_album(
             uri,
             mine(),
         );
-        sql::execute(&mut **tx, &update).await?;
+        tx.execute(&update).await?;
         return Ok(());
     }
 
@@ -980,20 +1043,27 @@ pub async fn save_user_album(
     let insert = Query::insert()
         .into_table(UserAlbums::Table)
         .columns([
+            UserAlbums::XataId,
             UserAlbums::UserId,
             UserAlbums::AlbumId,
             UserAlbums::Uri,
             UserAlbums::Scrobbles,
         ])
-        .values_panic([user_id.into(), album_id.into(), uri.into(), 1.into()])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            user_id.into(),
+            album_id.into(),
+            uri.into(),
+            1.into(),
+        ])
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
     Ok(())
 }
 
 pub async fn save_user_track(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     user_id: &str,
     record: SongRecord,
     uri: &str,
@@ -1015,11 +1085,9 @@ pub async fn save_user_track(
 
     // Rank sha (exact title+artist+album) above MBID, MBID above ISRC — see
     // `track_by_hash_or_id` for the rationale (recordings shared across albums).
-    let found: Option<Track> = sql::fetch_optional(
-        &mut **tx,
-        &track_by_hash_or_id(&hash, mb_id_filter, isrc_filter),
-    )
-    .await?;
+    let found: Option<Track> = tx
+        .fetch_optional(&track_by_hash_or_id(&hash, mb_id_filter, isrc_filter))
+        .await?;
 
     let track_id = match found {
         None => {
@@ -1027,6 +1095,7 @@ pub async fn save_user_track(
             let insert = Query::insert()
                 .into_table(Tracks::Table)
                 .columns([
+                    Tracks::XataId,
                     Tracks::Title,
                     Tracks::Artist,
                     Tracks::Album,
@@ -1046,6 +1115,7 @@ pub async fn save_user_track(
                     Tracks::Label,
                 ])
                 .values_panic([
+                    rocksky_db::new_id().into(),
                     record.title.into(),
                     record.artist.into(),
                     record.album.into(),
@@ -1076,13 +1146,11 @@ pub async fn save_user_track(
                         .to_owned(),
                 )
                 .to_owned();
-            sql::execute(&mut **tx, &insert).await?;
+            tx.execute(&insert).await?;
 
-            let inserted: Option<Track> =
-                sql::fetch_optional(&mut **tx, &by_sha256(Tracks::Table, &hash)).await?;
-            inserted
-                .ok_or_else(|| anyhow::anyhow!("Track {} vanished after insert", hash))?
-                .xata_id
+            let inserted: Option<String> =
+                tx.fetch_scalar(&id_by_sha256(Tracks::Table, &hash)).await?;
+            inserted.ok_or_else(|| anyhow::anyhow!("Track {} vanished after insert", hash))?
         }
         Some(track) => {
             // The scrobble path (`save_track`) inserts its `tracks` row with a
@@ -1100,7 +1168,7 @@ pub async fn save_user_track(
                     .and_where(Expr::col(Tracks::XataId).eq(&track.xata_id))
                     .and_where(Expr::col(Tracks::Uri).is_null())
                     .to_owned();
-                sql::execute(&mut **tx, &update).await?;
+                tx.execute(&update).await?;
             }
             track.xata_id
         }
@@ -1112,15 +1180,15 @@ pub async fn save_user_track(
             .and(Expr::col(UserTracks::TrackId).eq(&track_id))
     };
 
-    let existing: Option<UserTrack> = sql::fetch_optional(
-        &mut **tx,
-        &Query::select()
-            .column(Asterisk)
-            .from(UserTracks::Table)
-            .and_where(mine())
-            .take(),
-    )
-    .await?;
+    let existing: Option<UserTrack> = tx
+        .fetch_optional(
+            &Query::select()
+                .column(Asterisk)
+                .from(UserTracks::Table)
+                .and_where(mine())
+                .take(),
+        )
+        .await?;
 
     if existing.is_some() {
         tracing::info!(user_id = %user_id, track_id = %track_id, "Updating user track");
@@ -1131,7 +1199,7 @@ pub async fn save_user_track(
             uri,
             mine(),
         );
-        sql::execute(&mut **tx, &update).await?;
+        tx.execute(&update).await?;
         return Ok(());
     }
 
@@ -1140,28 +1208,36 @@ pub async fn save_user_track(
     let insert = Query::insert()
         .into_table(UserTracks::Table)
         .columns([
+            UserTracks::XataId,
             UserTracks::UserId,
             UserTracks::TrackId,
             UserTracks::Uri,
             UserTracks::Scrobbles,
         ])
-        .values_panic([user_id.into(), track_id.into(), uri.into(), 1.into()])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            user_id.into(),
+            track_id.into(),
+            uri.into(),
+            1.into(),
+        ])
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
 
     Ok(())
 }
 
 pub async fn update_artist_uri(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     user_id: &str,
     record: ArtistRecord,
     uri: &str,
 ) -> Result<(), Error> {
     let hash = sha256::digest(record.name.to_lowercase());
-    let artist: Option<Artist> =
-        sql::fetch_optional(&mut **tx, &by_sha256(Artists::Table, &hash)).await?;
+    let artist: Option<String> = tx
+        .fetch_scalar(&id_by_sha256(Artists::Table, &hash))
+        .await?;
 
     let Some(artist) = artist else {
         tracing::warn!(name = %record.name, "Artist not found in database");
@@ -1172,9 +1248,9 @@ pub async fn update_artist_uri(
         .table(UserArtists::Table)
         .value(UserArtists::Uri, uri)
         .and_where(Expr::col(UserArtists::UserId).eq(user_id))
-        .and_where(Expr::col(UserArtists::ArtistId).eq(&artist.xata_id))
+        .and_where(Expr::col(UserArtists::ArtistId).eq(&artist))
         .to_owned();
-    sql::execute(&mut **tx, &link_user).await?;
+    tx.execute(&link_user).await?;
 
     let stamp_tracks = Query::update()
         .table(Tracks::Table)
@@ -1182,7 +1258,7 @@ pub async fn update_artist_uri(
         .and_where(Expr::col(Tracks::ArtistUri).is_null())
         .and_where(Expr::col(Tracks::AlbumArtist).eq(&record.name))
         .to_owned();
-    sql::execute(&mut **tx, &stamp_tracks).await?;
+    tx.execute(&stamp_tracks).await?;
 
     let stamp_artist = Query::update()
         .table(Artists::Table)
@@ -1190,7 +1266,7 @@ pub async fn update_artist_uri(
         .and_where(Expr::col(Artists::Sha256).eq(&hash))
         .and_where(Expr::col(Artists::Uri).is_null())
         .to_owned();
-    sql::execute(&mut **tx, &stamp_artist).await?;
+    tx.execute(&stamp_artist).await?;
 
     let stamp_albums = Query::update()
         .table(Albums::Table)
@@ -1198,20 +1274,19 @@ pub async fn update_artist_uri(
         .and_where(Expr::col(Albums::ArtistUri).is_null())
         .and_where(Expr::col(Albums::Artist).eq(&record.name))
         .to_owned();
-    sql::execute(&mut **tx, &stamp_albums).await?;
+    tx.execute(&stamp_albums).await?;
 
     Ok(())
 }
 
 pub async fn update_album_uri(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     user_id: &str,
     record: AlbumRecord,
     uri: &str,
 ) -> Result<(), Error> {
     let hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
-    let album: Option<Album> =
-        sql::fetch_optional(&mut **tx, &by_sha256(Albums::Table, &hash)).await?;
+    let album: Option<String> = tx.fetch_scalar(&id_by_sha256(Albums::Table, &hash)).await?;
 
     let Some(album) = album else {
         tracing::warn!(title = %record.title, "Album not found in database");
@@ -1222,9 +1297,9 @@ pub async fn update_album_uri(
         .table(UserAlbums::Table)
         .value(UserAlbums::Uri, uri)
         .and_where(Expr::col(UserAlbums::UserId).eq(user_id))
-        .and_where(Expr::col(UserAlbums::AlbumId).eq(&album.xata_id))
+        .and_where(Expr::col(UserAlbums::AlbumId).eq(&album))
         .to_owned();
-    sql::execute(&mut **tx, &link_user).await?;
+    tx.execute(&link_user).await?;
 
     let stamp_tracks = Query::update()
         .table(Tracks::Table)
@@ -1232,7 +1307,7 @@ pub async fn update_album_uri(
         .and_where(Expr::col(Tracks::AlbumUri).is_null())
         .and_where(Expr::col(Tracks::Album).eq(&record.title))
         .to_owned();
-    sql::execute(&mut **tx, &stamp_tracks).await?;
+    tx.execute(&stamp_tracks).await?;
 
     let stamp_album = Query::update()
         .table(Albums::Table)
@@ -1240,13 +1315,13 @@ pub async fn update_album_uri(
         .and_where(Expr::col(Albums::Sha256).eq(&hash))
         .and_where(Expr::col(Albums::Uri).is_null())
         .to_owned();
-    sql::execute(&mut **tx, &stamp_album).await?;
+    tx.execute(&stamp_album).await?;
 
     Ok(())
 }
 
 pub async fn update_track_uri(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     user_id: &str,
     record: SongRecord,
     uri: &str,
@@ -1254,8 +1329,7 @@ pub async fn update_track_uri(
     let hash = sha256::digest(
         format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
     );
-    let track: Option<Track> =
-        sql::fetch_optional(&mut **tx, &by_sha256(Tracks::Table, &hash)).await?;
+    let track: Option<String> = tx.fetch_scalar(&id_by_sha256(Tracks::Table, &hash)).await?;
 
     let Some(track) = track else {
         tracing::warn!(title = %record.title, "Track not found in database");
@@ -1266,9 +1340,9 @@ pub async fn update_track_uri(
         .table(UserTracks::Table)
         .value(UserTracks::Uri, uri)
         .and_where(Expr::col(UserTracks::UserId).eq(user_id))
-        .and_where(Expr::col(UserTracks::TrackId).eq(&track.xata_id))
+        .and_where(Expr::col(UserTracks::TrackId).eq(&track))
         .to_owned();
-    sql::execute(&mut **tx, &link_user).await?;
+    tx.execute(&link_user).await?;
 
     let stamp_track = Query::update()
         .table(Tracks::Table)
@@ -1276,13 +1350,13 @@ pub async fn update_track_uri(
         .and_where(Expr::col(Tracks::Sha256).eq(&hash))
         .and_where(Expr::col(Tracks::Uri).is_null())
         .to_owned();
-    sql::execute(&mut **tx, &stamp_track).await?;
+    tx.execute(&stamp_track).await?;
 
     Ok(())
 }
 
 pub async fn save_feed_generator(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     user_id: &str,
     record: FeedGeneratorRecord,
     uri: &str,
@@ -1305,6 +1379,7 @@ pub async fn save_feed_generator(
     let insert = Query::insert()
         .into_table(Feeds::Table)
         .columns([
+            Feeds::XataId,
             Feeds::UserId,
             Feeds::Uri,
             Feeds::DisplayName,
@@ -1313,6 +1388,7 @@ pub async fn save_feed_generator(
             Feeds::Avatar,
         ])
         .values_panic([
+            rocksky_db::new_id().into(),
             user_id.into(),
             uri.into(),
             record.display_name.into(),
@@ -1322,12 +1398,12 @@ pub async fn save_feed_generator(
         ])
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
     Ok(())
 }
 
 pub async fn save_follow(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
+    tx: &mut rocksky_db::tx::Tx<'_>,
     did: &str,
     record: FollowRecord,
     uri: &str,
@@ -1336,8 +1412,18 @@ pub async fn save_follow(
 
     let insert = Query::insert()
         .into_table(Follows::Table)
-        .columns([Follows::FollowerDid, Follows::SubjectDid, Follows::Uri])
-        .values_panic([did.into(), record.subject.into(), uri.into()])
+        .columns([
+            Follows::XataId,
+            Follows::FollowerDid,
+            Follows::SubjectDid,
+            Follows::Uri,
+        ])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            did.into(),
+            record.subject.into(),
+            uri.into(),
+        ])
         .on_conflict(
             OnConflict::columns([Follows::FollowerDid, Follows::SubjectDid])
                 .do_nothing()
@@ -1345,11 +1431,11 @@ pub async fn save_follow(
         )
         .to_owned();
 
-    sql::execute(&mut **tx, &insert).await?;
+    tx.execute(&insert).await?;
     Ok(())
 }
 
-pub async fn delete_scrobble(pool: &Pool<Postgres>, uri: &str) -> Result<(), Error> {
+pub async fn delete_scrobble(pool: &Backend, uri: &str) -> Result<(), Error> {
     let delete = Query::delete()
         .from_table(Scrobbles::Table)
         .and_where(Expr::col(Scrobbles::Uri).eq(uri))
@@ -1405,5 +1491,115 @@ mod tests {
         assert!(sql.contains(
             r#"ON CONFLICT ("sha256") DO UPDATE SET "sha256" = "tracks"."sha256" RETURNING "xata_id""#
         ));
+    }
+}
+
+/// The transactional writes, executed against a real SQLite.
+///
+/// jetstream's ingest is the one place in the repository that groups writes
+/// into transactions — a playlist and the rows linking it to its tracks have
+/// to land together — and `sqlx`'s transactions are typed by driver, so those
+/// eighteen sites were Postgres-only by construction. They go through
+/// `rocksky_db::tx::Tx` now, and the only way to know that works is to run it.
+#[cfg(test)]
+mod sqlite_behaviour {
+    use super::*;
+    use rocksky_db::sea_query::Query as SqQuery;
+
+    async fn db() -> Backend {
+        rocksky_db::connect_in_memory().await.unwrap()
+    }
+
+    fn a_scrobble(title: &str, album: &str, artist: &str) -> ScrobbleRecord {
+        ScrobbleRecord {
+            track_number: Some(1),
+            disc_number: Some(1),
+            title: title.into(),
+            artist: artist.into(),
+            album_artist: artist.into(),
+            album: album.into(),
+            duration: 240_000,
+            release_date: None,
+            year: Some(1985),
+            genre: None,
+            tags: None,
+            composer: None,
+            lyrics: None,
+            copyright_message: None,
+            wiki: None,
+            album_art: None,
+            album_art_url: None,
+            youtube_link: None,
+            spotify_link: None,
+            tidal_link: None,
+            apple_music_link: None,
+            created_at: "2026-01-01T00:00:00.000Z".into(),
+            label: None,
+            mbid: None,
+            isrc: None,
+            artists: None,
+        }
+    }
+
+    async fn count(db: &Backend, table: &str) -> i64 {
+        db.count(
+            &SqQuery::select()
+                .expr(db.cast_int(Func::count(Expr::col(Alias::new("xata_id")))))
+                .from(Alias::new(table))
+                .to_owned(),
+        )
+        .await
+        .unwrap()
+    }
+
+    /// An artist and an album, created inside a transaction and committed.
+    ///
+    /// `save_artist` and `save_album` are find-or-create: they look the row up
+    /// by content hash, insert when it is missing, and return the id. Both
+    /// halves have to work through the transaction handle.
+    #[tokio::test]
+    async fn the_find_or_create_writes_commit_on_sqlite() {
+        let db = db().await;
+        let record = a_scrobble("Cloudbusting", "Hounds of Love", "Kate Bush");
+
+        let mut tx = db.begin().await.unwrap();
+        let artist = save_artist(&mut tx, record.clone()).await.unwrap();
+        let album = save_album(&mut tx, record.clone()).await.unwrap();
+        tx.commit().await.unwrap();
+
+        assert!(!artist.is_empty());
+        assert!(!album.is_empty());
+        assert_eq!(count(&db, "artists").await, 1);
+        assert_eq!(count(&db, "albums").await, 1);
+
+        // Again, in a second transaction: found rather than created, so the
+        // ids match and nothing is duplicated. This is the property the
+        // content hashes exist for.
+        let mut tx = db.begin().await.unwrap();
+        let artist_again = save_artist(&mut tx, record.clone()).await.unwrap();
+        let album_again = save_album(&mut tx, record).await.unwrap();
+        tx.commit().await.unwrap();
+
+        assert_eq!(artist_again, artist);
+        assert_eq!(album_again, album);
+        assert_eq!(count(&db, "artists").await, 1);
+        assert_eq!(count(&db, "albums").await, 1);
+    }
+
+    /// A transaction dropped without committing leaves nothing behind — which
+    /// is what makes a half-written group impossible.
+    #[tokio::test]
+    async fn an_abandoned_transaction_writes_nothing() {
+        let db = db().await;
+
+        {
+            let mut tx = db.begin().await.unwrap();
+            save_artist(&mut tx, a_scrobble("x", "y", "Rolled Back"))
+                .await
+                .unwrap();
+            // No commit.
+        }
+
+        assert_eq!(count(&db, "artists").await, 0);
     }
 }

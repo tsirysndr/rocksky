@@ -158,6 +158,8 @@ pub enum Scrobbles {
 #[iden = "album_tracks"]
 pub enum AlbumTracks {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "album_id"]
     AlbumId,
     #[iden = "track_id"]
@@ -169,6 +171,8 @@ pub enum AlbumTracks {
 #[iden = "artist_tracks"]
 pub enum ArtistTracks {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "artist_id"]
     ArtistId,
     #[iden = "track_id"]
@@ -180,6 +184,8 @@ pub enum ArtistTracks {
 #[iden = "artist_albums"]
 pub enum ArtistAlbums {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "artist_id"]
     ArtistId,
     #[iden = "album_id"]
@@ -191,6 +197,8 @@ pub enum ArtistAlbums {
 #[iden = "user_artists"]
 pub enum UserArtists {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "user_id"]
     UserId,
     #[iden = "artist_id"]
@@ -206,6 +214,8 @@ pub enum UserArtists {
 #[iden = "user_albums"]
 pub enum UserAlbums {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "user_id"]
     UserId,
     #[iden = "album_id"]
@@ -221,6 +231,8 @@ pub enum UserAlbums {
 #[iden = "user_tracks"]
 pub enum UserTracks {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "user_id"]
     UserId,
     #[iden = "track_id"]
@@ -236,6 +248,8 @@ pub enum UserTracks {
 #[iden = "feeds"]
 pub enum Feeds {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "user_id"]
     UserId,
     #[iden = "uri"]
@@ -255,6 +269,8 @@ pub enum Feeds {
 #[iden = "follows"]
 pub enum Follows {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "follower_did"]
     FollowerDid,
     #[iden = "subject_did"]
@@ -297,6 +313,8 @@ pub enum Playlists {
 #[iden = "playlist_tracks"]
 pub enum PlaylistTracks {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "playlist_id"]
     PlaylistId,
     #[iden = "track_id"]
@@ -316,6 +334,8 @@ pub enum PlaylistTracks {
 #[iden = "user_playlists"]
 pub enum UserPlaylists {
     Table,
+    #[iden = "xata_id"]
+    XataId,
     #[iden = "user_id"]
     UserId,
     #[iden = "playlist_id"]
