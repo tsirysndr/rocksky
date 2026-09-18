@@ -241,22 +241,33 @@ impl Backend {
 
     /// Confirms the tables the handlers read actually exist. Only meaningful on
     /// Postgres; SQLite has just been migrated.
+    ///
+    /// # Resolved the way a query resolves them, not by schema name
+    ///
+    /// `to_regclass` follows `search_path`, which is the only definition of
+    /// "exists" that matches what the handlers will do: every query this crate
+    /// builds names tables unqualified, so a table is present exactly when an
+    /// unqualified reference finds it.
+    ///
+    /// Looking in `public` instead is subtly wrong, and it took production
+    /// down. The hosted database is Xata, which connects as the user `xata`
+    /// against `search_path = "$user", public` — so `"$user"` resolves to the
+    /// `xata` schema, and `notifications` and `access_tokens` live there while
+    /// the other eleven tables are in `public`. Both were perfectly readable;
+    /// the check reported them missing and the instance refused to start, in a
+    /// restart loop, over a database that was fine.
     async fn verify_schema(&self) -> Result<(), ConnectError> {
         let Self::Postgres { primary: pool, .. } = self else {
             return Ok(());
         };
 
-        let present: Vec<String> = sqlx::query_scalar(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
+        // One round trip: each name is resolved the way the planner would.
+        let missing: Vec<String> = sqlx::query_scalar(
+            "SELECT name FROM unnest($1::text[]) AS name WHERE to_regclass(name) IS NULL",
         )
+        .bind(REQUIRED_TABLES)
         .fetch_all(pool)
         .await?;
-
-        let missing: Vec<&str> = REQUIRED_TABLES
-            .iter()
-            .copied()
-            .filter(|table| !present.iter().any(|p| p == table))
-            .collect();
 
         if missing.is_empty() {
             Ok(())
@@ -778,7 +789,75 @@ mod tests {
         assert_eq!(count, 0);
     }
 
+    /// The schema check must resolve tables the way a query does.
+    ///
+    /// Reproduces the shape that took production down: the hosted database is
+    /// Xata, connected as the user `xata` with `search_path = "$user", public`,
+    /// and two of the thirteen required tables live in the `xata` schema while
+    /// the rest are in `public`. Both are perfectly readable — an unqualified
+    /// `SELECT` finds them through `"$user"` — but a check that looked only in
+    /// `public` called them missing, and the instance refused to start.
+    ///
+    /// Needs a Postgres, so it is skipped unless one is named. Point it at a
+    /// throwaway:
+    ///
+    ///   docker run --rm -e POSTGRES_PASSWORD=pw -e POSTGRES_USER=xata \
+    ///     -e POSTGRES_DB=xata -p 5434:5432 postgres:16-alpine
+    ///   ROCKSKY_TEST_POSTGRES_URL=postgres://xata:pw@localhost:5434/xata \
+    ///     cargo test -p rocksky-db
     #[tokio::test]
+    async fn a_table_outside_public_still_counts_as_present() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            eprintln!("skipped: set ROCKSKY_TEST_POSTGRES_URL to run this");
+            return;
+        };
+
+        let pool = sqlx::postgres::PgPool::connect(&url)
+            .await
+            .expect("connect to the test Postgres");
+
+        // The split that matters: everything in `public` except these two.
+        sqlx::query("CREATE SCHEMA IF NOT EXISTS xata")
+            .execute(&pool)
+            .await
+            .unwrap();
+        for table in REQUIRED_TABLES {
+            let schema = match *table {
+                "notifications" | "access_tokens" => "xata",
+                _ => "public",
+            };
+            sqlx::query(&format!(
+                "CREATE TABLE IF NOT EXISTS {schema}.{table} (id text)"
+            ))
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+
+        let backend = Backend::Postgres {
+            primary: pool.clone(),
+            replica: None,
+        };
+        backend
+            .verify_schema()
+            .await
+            .expect("tables reachable through search_path are not missing");
+
+        // And it still catches one that genuinely is not there.
+        sqlx::query("DROP TABLE IF EXISTS xata.notifications")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let error = backend
+            .verify_schema()
+            .await
+            .expect_err("a dropped table must still be reported");
+        assert!(
+            error.to_string().contains("notifications"),
+            "the message has to name it: {error}"
+        );
+    }
+
     async fn a_non_database_url_is_rejected_with_a_clear_message() {
         let err = Backend::connect("mysql://localhost/rocksky")
             .await
