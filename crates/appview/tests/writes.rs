@@ -1195,7 +1195,10 @@ async fn starring_a_song_over_rest_writes_the_same_record_and_row() {
 async fn unstarring_removes_the_record_and_the_row() {
     let (state, pds, token, _song_uri) = signed_in().await;
 
-    assert_eq!(post(&state, &token, "/likes", subsonic_star_payload()).await, 200);
+    assert_eq!(
+        post(&state, &token, "/likes", subsonic_star_payload()).await,
+        200
+    );
     assert_eq!(count(&state, "loved_tracks").await, 1);
 
     // Subsonic's unstar carries only the hash, which is what navidrome sends.
@@ -1204,7 +1207,10 @@ async fn unstarring_removes_the_record_and_the_row() {
         "Boards of Canada",
         "Music Has the Right to Children",
     );
-    assert_eq!(delete(&state, &token, &format!("/likes/{sha256}")).await, 200);
+    assert_eq!(
+        delete(&state, &token, &format!("/likes/{sha256}")).await,
+        200
+    );
 
     assert_eq!(count(&state, "loved_tracks").await, 0, "the row is gone");
     assert!(
@@ -1221,7 +1227,10 @@ async fn starring_twice_is_one_like() {
     let (state, pds, token, _song_uri) = signed_in().await;
 
     for _ in 0..2 {
-        assert_eq!(post(&state, &token, "/likes", subsonic_star_payload()).await, 200);
+        assert_eq!(
+            post(&state, &token, "/likes", subsonic_star_payload()).await,
+            200
+        );
     }
 
     assert_eq!(count(&state, "loved_tracks").await, 1);

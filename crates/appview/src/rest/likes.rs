@@ -139,7 +139,10 @@ mod tests {
     fn every_field_the_hash_needs_is_required() {
         assert!(required(&None, "title").is_err());
         assert!(required(&Some("   ".into()), "album").is_err());
-        assert_eq!(required(&Some(" Roygbiv ".into()), "title").unwrap(), "Roygbiv");
+        assert_eq!(
+            required(&Some(" Roygbiv ".into()), "title").unwrap(),
+            "Roygbiv"
+        );
     }
 
     /// Both routes exist. Before this module they answered 404, and a star in
