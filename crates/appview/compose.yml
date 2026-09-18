@@ -110,9 +110,15 @@ x-rockskyd: &rockskyd
     - data:/data
   depends_on:
     nats:
+      # Every one of these connects to NATS at startup and exits if it cannot.
       condition: service_started
     appview:
-      condition: service_started
+      # `service_healthy`, not `started`: the appview owns the schema and
+      # generates the secrets, and `mode=rwc` means a service that opens the
+      # SQLite file first gets an *empty* one rather than an error. It would
+      # then crash on its first query and be restarted until the appview caught
+      # up — which works, but looks like six broken services for a minute.
+      condition: service_healthy
 
 # What every one of them reads.
 x-rockskyd-env: &rockskyd-env
