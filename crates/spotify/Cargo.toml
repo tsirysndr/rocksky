@@ -7,6 +7,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+rocksky-db = { path = "../db" }
+sea-query = { version = "0.32", features = ["postgres-array", "with-chrono"] }
 rocksky-pgurl = { path = "../pgurl" }
 aes = "0.8.4"
 anyhow = "1.0.96"

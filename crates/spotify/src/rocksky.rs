@@ -1,6 +1,6 @@
 use anyhow::Error;
 use reqwest::Client;
-use sqlx::{Pool, Postgres};
+use rocksky_db::Backend;
 
 use crate::{
     cache::Cache,
@@ -21,7 +21,7 @@ pub async fn scrobble(
     refresh_token: &str,
     client_id: &str,
     client_secret: &str,
-    pool: &Pool<Postgres>,
+    pool: &Backend,
 ) -> Result<(), Error> {
     let cached = cache.get(spotify_email).await?;
     if cached.is_none() {
@@ -126,7 +126,7 @@ pub async fn update_library(
     refresh_token: &str,
     client_id: &str,
     client_secret: &str,
-    pool: &Pool<Postgres>,
+    pool: &Backend,
 ) -> Result<(), Error> {
     let cached = cache.get(spotify_email).await?;
     if cached.is_none() {

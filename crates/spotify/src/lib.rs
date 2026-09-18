@@ -1,3 +1,7 @@
+use rocksky_db::Backend;
+pub mod schema;
+use crate::schema::{SpotifyAccounts, SpotifyApps, SpotifyTokens, Users};
+use sea_query::{Expr, Query};
 use std::{
     collections::HashMap,
     env,
@@ -8,7 +12,6 @@ use std::{
 use anyhow::Error;
 use async_nats::connect;
 use reqwest::Client;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
@@ -40,11 +43,13 @@ pub fn base_url() -> String {
 
 pub async fn run() -> Result<(), Error> {
     let cache = Cache::new().await?;
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect_with(rocksky_pgurl::primary("rocksky-spotify")?)
-        .await?;
-    rocksky_pgurl::ensure_writable(&pool, "rocksky-spotify").await?;
+    // Postgres when one is configured — keeping the read-only check, since
+    // this poller writes every scrobble it finds — and otherwise the shared
+    // SQLite file.
+    let db =
+        rocksky_pgurl::connect_handle("rocksky-spotify", |opts| opts.max_connections(5)).await?;
+    tracing::info!(database = %db.source(), "spotify database");
+    let pool = db.primary().clone();
 
     let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
     let nc = connect(&addr).await?;
@@ -69,7 +74,7 @@ pub async fn run() -> Result<(), Error> {
                            cancel: CancellationToken,
                            cache: Cache,
                            nc: async_nats::Client,
-                           pool: Pool<Postgres>| {
+                           pool: Backend| {
         tokio::spawn(async move {
             let mut retry_count = 0u32;
             let max_retries = 5u32;
@@ -272,7 +277,7 @@ pub async fn refresh_token(
     token: &str,
     client_id: &str,
     client_secret: &str,
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     email: &str,
 ) -> Result<AccessToken, Error> {
     let client = Client::new();
@@ -321,21 +326,22 @@ pub async fn refresh_token(
     Ok(json_token.unwrap())
 }
 
-pub async fn delete_spotify_token_by_email(
-    pool: &Pool<Postgres>,
-    email: &str,
-) -> Result<(), Error> {
-    sqlx::query(
-        r#"
-        DELETE FROM spotify_tokens
-        USING spotify_accounts
-        WHERE spotify_tokens.user_id = spotify_accounts.user_id
-          AND spotify_accounts.email = $1
-        "#,
-    )
-    .bind(email)
-    .execute(pool)
-    .await?;
+pub async fn delete_spotify_token_by_email(pool: &Backend, email: &str) -> Result<(), Error> {
+    // Was `DELETE … USING`, which is Postgres-only. A subquery says the same
+    // thing, and sea-query renders the placeholder for whichever backend this
+    // is.
+    let accounts = Query::select()
+        .column(SpotifyAccounts::UserId)
+        .from(SpotifyAccounts::Table)
+        .and_where(Expr::col(SpotifyAccounts::Email).eq(email))
+        .to_owned();
+
+    let delete = Query::delete()
+        .from_table(SpotifyTokens::Table)
+        .and_where(Expr::col(SpotifyTokens::UserId).in_subquery(accounts))
+        .to_owned();
+
+    pool.execute(&delete).await?;
     Ok(())
 }
 
@@ -345,7 +351,7 @@ pub async fn get_currently_playing(
     token: &str,
     client_id: &str,
     client_secret: &str,
-    pool: &Pool<Postgres>,
+    pool: &Backend,
 ) -> Result<Option<(CurrentlyPlaying, bool)>, Error> {
     if let Ok(Some(data)) = cache.get(user_id).await {
         tracing::debug!(email = %user_id, "using cache");
@@ -586,7 +592,7 @@ pub async fn get_artist(
     token: &str,
     client_id: &str,
     client_secret: &str,
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     email: &str,
 ) -> Result<Option<Artist>, Error> {
     if let Ok(Some(data)) = cache.get(artist_id).await {
@@ -662,7 +668,7 @@ pub async fn get_album(
     token: &str,
     client_id: &str,
     client_secret: &str,
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     email: &str,
 ) -> Result<Option<Album>, Error> {
     if let Ok(Some(data)) = cache.get(album_id).await {
@@ -738,7 +744,7 @@ pub async fn get_album_tracks(
     token: &str,
     client_id: &str,
     client_secret: &str,
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     email: &str,
 ) -> Result<AlbumTracks, Error> {
     if let Ok(Some(data)) = cache.get(&format!("{}:tracks", album_id)).await {
@@ -815,24 +821,41 @@ pub async fn get_album_tracks(
     })
 }
 
+/// Every Spotify token, with the account, user and app it belongs to.
+///
+/// `SELECT *` across the joins, which is what `SpotifyTokenWithEmail`
+/// expects: it names columns from all four tables. Shared by the two lookups
+/// so their projections cannot drift.
+fn tokens_with_email() -> sea_query::SelectStatement {
+    Query::select()
+        .column(sea_query::Asterisk)
+        .from(SpotifyTokens::Table)
+        .left_join(
+            SpotifyAccounts::Table,
+            Expr::col((SpotifyTokens::Table, SpotifyTokens::UserId))
+                .equals((SpotifyAccounts::Table, SpotifyAccounts::UserId)),
+        )
+        .left_join(
+            Users::Table,
+            Expr::col((SpotifyAccounts::Table, SpotifyAccounts::UserId))
+                .equals((Users::Table, Users::XataId)),
+        )
+        .left_join(
+            SpotifyApps::Table,
+            Expr::col((SpotifyTokens::Table, SpotifyTokens::SpotifyAppId))
+                .equals((SpotifyApps::Table, SpotifyApps::SpotifyAppId)),
+        )
+        .to_owned()
+}
+
 pub async fn find_spotify_users(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     offset: usize,
     limit: usize,
 ) -> Result<Vec<(String, String, String, String, String)>, Error> {
-    let results: Vec<SpotifyTokenWithEmail> = sqlx::query_as(
-        r#"
-    SELECT * FROM spotify_tokens
-    LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
-    LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
-    LEFT JOIN spotify_apps ON spotify_tokens.spotify_app_id = spotify_apps.spotify_app_id
-    LIMIT $1 OFFSET $2
-  "#,
-    )
-    .bind(limit as i64)
-    .bind(offset as i64)
-    .fetch_all(pool)
-    .await?;
+    let mut stmt = tokens_with_email();
+    stmt.limit(limit as u64).offset(offset as u64);
+    let results: Vec<SpotifyTokenWithEmail> = pool.fetch_all(&stmt).await?;
 
     let mut user_tokens = vec![];
 
@@ -858,21 +881,12 @@ pub async fn find_spotify_users(
 }
 
 pub async fn find_spotify_user(
-    pool: &Pool<Postgres>,
+    pool: &Backend,
     email: &str,
 ) -> Result<Option<(String, String, String, String, String)>, Error> {
-    let result: Vec<SpotifyTokenWithEmail> = sqlx::query_as(
-        r#"
-    SELECT * FROM spotify_tokens
-    LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
-    LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
-    LEFT JOIN spotify_apps ON spotify_tokens.spotify_app_id = spotify_apps.spotify_app_id
-    WHERE spotify_accounts.email = $1
-  "#,
-    )
-    .bind(email)
-    .fetch_all(pool)
-    .await?;
+    let mut stmt = tokens_with_email();
+    stmt.and_where(Expr::col((SpotifyAccounts::Table, SpotifyAccounts::Email)).eq(email));
+    let result: Vec<SpotifyTokenWithEmail> = pool.fetch_all(&stmt).await?;
 
     match result.first() {
         Some(result) => {
@@ -905,7 +919,7 @@ pub async fn watch_currently_playing(
     client_id: String,
     client_secret: String,
     nc: async_nats::Client,
-    pool: Pool<Postgres>,
+    pool: Backend,
 ) -> Result<(), Error> {
     tracing::info!(email = %spotify_email, "checking currently playing");
 
@@ -1218,4 +1232,50 @@ pub async fn watch_currently_playing(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod sqlite_tests {
+    use super::*;
+
+    /// The three queries this service makes, executed against a real SQLite.
+    ///
+    /// All three were Postgres-only: `$1` placeholders, which SQLite reads as
+    /// nothing, and a `DELETE … USING`, which it cannot parse at all. Empty
+    /// results are the point — what is being checked is that they run.
+    #[tokio::test]
+    async fn the_queries_run_on_sqlite() {
+        let db = rocksky_db::connect_in_memory().await.unwrap();
+
+        let users = find_spotify_users(&db, 0, 50).await.unwrap();
+        assert!(users.is_empty());
+
+        let one = find_spotify_user(&db, "nobody@example.invalid")
+            .await
+            .unwrap();
+        assert!(one.is_none());
+
+        // The one that used `DELETE … USING`. Deleting nothing is fine; the
+        // statement parsing and binding is what matters.
+        delete_spotify_token_by_email(&db, "nobody@example.invalid")
+            .await
+            .unwrap();
+    }
+
+    /// The same statements rendered for both dialects, which is what sea-query
+    /// buys: one builder, two placeholder syntaxes, no call site choosing.
+    #[test]
+    fn the_listing_renders_for_both_dialects() {
+        let mut stmt = tokens_with_email();
+        stmt.and_where(Expr::col((SpotifyAccounts::Table, SpotifyAccounts::Email)).eq("a@b.c"));
+
+        let pg = stmt.to_string(sea_query::PostgresQueryBuilder);
+        let lite = stmt.to_string(sea_query::SqliteQueryBuilder);
+        for rendered in [&pg, &lite] {
+            assert!(rendered.contains("LEFT JOIN"), "{rendered}");
+            assert!(rendered.contains(r#""spotify_apps""#), "{rendered}");
+        }
+        // Nothing Postgres-only survives into the SQLite rendering.
+        assert!(!lite.contains("USING"), "{lite}");
+    }
 }
