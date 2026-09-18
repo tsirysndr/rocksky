@@ -12,6 +12,8 @@
 //! the wild names its own author's `app.bsky.actor.profile/self` as the
 //! subject, so a shout on someone else's profile cannot be placed from the
 //! record alone.
+//!
+//! Playlists are covered here too, for the same reason.
 
 use rocksky_appview::db::schema::{Follows, Shouts};
 use rocksky_appview::ingest::{self, IncomingRecord};
@@ -173,4 +175,87 @@ async fn real_follow_records_are_projected() {
         .await
         .unwrap();
     assert_eq!(rows, stats.follows as i64);
+}
+
+#[tokio::test]
+async fn real_playlist_records_are_projected() {
+    if !enabled() {
+        return;
+    }
+
+    let http = reqwest::Client::new();
+    let db = rocksky_appview::db::connect_in_memory().await.unwrap();
+
+    let playlists = records(&http, ingest::PLAYLIST_NSID).await;
+    assert!(!playlists.is_empty(), "the test repo has playlists");
+
+    let mut stats = ingest::IngestStats::default();
+    for (uri, value) in &playlists {
+        stats.merge(
+            ingest::ingest(&db, &incoming(uri, ingest::PLAYLIST_NSID, value.clone()))
+                .await
+                .unwrap(),
+        );
+    }
+    eprintln!(
+        "{} playlist records -> {} stored, {} skipped",
+        playlists.len(),
+        stats.playlists,
+        stats.skipped
+    );
+    assert_eq!(
+        stats.playlists as usize,
+        playlists.len(),
+        "a real playlist record was not projected"
+    );
+
+    // Then the entries, which is where the ownership rule and the
+    // track-from-metadata path are exercised against real records.
+    let entries = records(&http, ingest::PLAYLIST_SONG_NSID).await;
+    assert!(!entries.is_empty(), "the test repo has playlist entries");
+
+    let mut entry_stats = ingest::IngestStats::default();
+    for (uri, value) in &entries {
+        entry_stats.merge(
+            ingest::ingest(
+                &db,
+                &incoming(uri, ingest::PLAYLIST_SONG_NSID, value.clone()),
+            )
+            .await
+            .unwrap(),
+        );
+    }
+    eprintln!(
+        "{} entry records -> {} stored, {} skipped",
+        entries.len(),
+        entry_stats.playlist_songs,
+        entry_stats.skipped
+    );
+
+    // Not all of them will land: only the 100 most recent playlists were
+    // fetched, so an entry for an older one has nothing to attach to. What
+    // matters is that the ones that can attach do, and that each stored entry
+    // brought its track with it.
+    assert!(
+        entry_stats.playlist_songs > 0,
+        "no real playlist entry was projected"
+    );
+
+    let tracks = db
+        .count(
+            &Query::select()
+                .expr(db.cast_int(Func::count(Expr::col(
+                    rocksky_appview::db::schema::Tracks::XataId,
+                ))))
+                .from(rocksky_appview::db::schema::Tracks::Table)
+                .to_owned(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        tracks >= entry_stats.playlist_songs as i64,
+        "each stored entry has to have created its track: {tracks} tracks for \
+         {} entries",
+        entry_stats.playlist_songs
+    );
 }

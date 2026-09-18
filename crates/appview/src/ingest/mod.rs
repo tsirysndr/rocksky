@@ -23,8 +23,8 @@
 //!   same listen, so the URI cannot be the dedupe key.
 
 use crate::db::schema::{
-    AlbumTracks, Albums, ArtistAlbums, ArtistTracks, Artists, Follows, LovedTracks, Scrobbles,
-    Shouts, Tracks, Users,
+    AlbumTracks, Albums, ArtistAlbums, ArtistTracks, Artists, Follows, LovedTracks, PlaylistTracks,
+    Playlists, Scrobbles, Shouts, Tracks, UserPlaylists, Users,
 };
 use crate::db::{new_id, Backend};
 use crate::sea_query::{
@@ -39,6 +39,8 @@ pub const ARTIST_NSID: &str = "app.rocksky.artist";
 pub const LIKE_NSID: &str = "app.rocksky.like";
 pub const SHOUT_NSID: &str = "app.rocksky.shout";
 pub const FOLLOW_NSID: &str = "app.rocksky.graph.follow";
+pub const PLAYLIST_NSID: &str = "app.rocksky.playlist";
+pub const PLAYLIST_SONG_NSID: &str = "app.rocksky.playlist.song";
 
 /// Every collection this projection understands.
 pub const SUPPORTED_COLLECTIONS: &[&str] = &[
@@ -49,6 +51,8 @@ pub const SUPPORTED_COLLECTIONS: &[&str] = &[
     LIKE_NSID,
     SHOUT_NSID,
     FOLLOW_NSID,
+    PLAYLIST_NSID,
+    PLAYLIST_SONG_NSID,
 ];
 
 /// Stand-in cover used when a record carries no album art, so the UI has
@@ -82,6 +86,9 @@ pub struct IngestStats {
     pub likes: u64,
     pub shouts: u64,
     pub follows: u64,
+    pub playlists: u64,
+    /// Entries, i.e. `app.rocksky.playlist.song` records.
+    pub playlist_songs: u64,
     /// Records this projection does not handle, or that were malformed.
     pub skipped: u64,
 }
@@ -96,6 +103,8 @@ impl IngestStats {
         self.likes += other.likes;
         self.shouts += other.shouts;
         self.follows += other.follows;
+        self.playlists += other.playlists;
+        self.playlist_songs += other.playlist_songs;
         self.skipped += other.skipped;
     }
 
@@ -162,7 +171,12 @@ impl SongRecord {
     /// Parses a record, or `None` when a required field is missing — which is
     /// a skip rather than an error, since a repository can contain anything.
     pub fn parse(value: &serde_json::Value) -> Option<Self> {
+        // `createdAt` on a scrobble, a song, an album; `addedAt` on an
+        // `app.rocksky.playlist.song`, whose lexicon has no `createdAt` at
+        // all. Reading only the first meant every real playlist entry parsed
+        // as `None` and was silently dropped.
         let created_at = string(value, "createdAt")
+            .or_else(|| string(value, "addedAt"))
             .and_then(|raw| chrono::DateTime::parse_from_rfc3339(&raw).ok())
             .map(|value| value.with_timezone(&chrono::Utc))?;
 
@@ -299,6 +313,20 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
         FOLLOW_NSID => {
             if ingest_follow(db, record).await? {
                 stats.follows += 1;
+            } else {
+                stats.skipped += 1;
+            }
+        }
+        PLAYLIST_NSID => {
+            if ingest_playlist(db, record).await? {
+                stats.playlists += 1;
+            } else {
+                stats.skipped += 1;
+            }
+        }
+        PLAYLIST_SONG_NSID => {
+            if ingest_playlist_song(db, record).await? {
+                stats.playlist_songs += 1;
             } else {
                 stats.skipped += 1;
             }
@@ -1573,6 +1601,212 @@ async fn ingest_follow(db: &Backend, record: &IncomingRecord) -> anyhow::Result<
     Ok(true)
 }
 
+/// Projects an `app.rocksky.playlist` record into `playlists`.
+///
+/// Keyed on the record's own AT-URI, so re-reading a repository updates the
+/// row rather than duplicating it, and a playlist renamed upstream is renamed
+/// here.
+///
+/// `created_by` is set only on insert. It names the repository the record came
+/// from, which cannot change for a given AT-URI — and pinning it is what makes
+/// the ownership check in [`ingest_playlist_song`] meaningful.
+async fn ingest_playlist(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bool> {
+    let Some(name) = string(&record.value, "name") else {
+        // NOT NULL, and a playlist with no name cannot be rendered.
+        return Ok(false);
+    };
+
+    let owner_id = upsert_user(db, &record.did).await?;
+    let uri = record.uri();
+
+    let insert = Query::insert()
+        .into_table(Playlists::Table)
+        .columns([
+            Playlists::XataId,
+            Playlists::Name,
+            Playlists::Description,
+            Playlists::Picture,
+            Playlists::Uri,
+            Playlists::Cid,
+            Playlists::SpotifyLink,
+            Playlists::TidalLink,
+            Playlists::AppleMusicLink,
+            Playlists::CreatedBy,
+        ])
+        .values_panic([
+            new_id().into(),
+            name.clone().into(),
+            string(&record.value, "description").into(),
+            string(&record.value, "pictureUrl").into(),
+            uri.clone().into(),
+            string(&record.value, "cid").into(),
+            string(&record.value, "spotifyLink").into(),
+            string(&record.value, "tidalLink").into(),
+            string(&record.value, "appleMusicLink").into(),
+            owner_id.clone().into(),
+        ])
+        .on_conflict(
+            OnConflict::column(Playlists::Uri)
+                .update_columns([
+                    Playlists::Name,
+                    Playlists::Description,
+                    Playlists::Picture,
+                    Playlists::SpotifyLink,
+                    Playlists::TidalLink,
+                    Playlists::AppleMusicLink,
+                ])
+                .value(Playlists::XataUpdatedat, crate::db::now_timestamp())
+                .to_owned(),
+        )
+        .to_owned();
+    db.execute(&insert).await?;
+
+    // The owner's own listing. Separate from `created_by` because
+    // `user_playlists` is what "playlists I have" reads, and a collaborator
+    // would get a row here without becoming the creator.
+    let Some(playlist_id) = playlist_id_by_uri(db, &uri).await? else {
+        return Ok(false);
+    };
+    let link = Query::insert()
+        .into_table(UserPlaylists::Table)
+        .columns([
+            UserPlaylists::XataId,
+            UserPlaylists::UserId,
+            UserPlaylists::PlaylistId,
+            UserPlaylists::Uri,
+        ])
+        .values_panic([
+            new_id().into(),
+            owner_id.into(),
+            playlist_id.into(),
+            uri.into(),
+        ])
+        .on_conflict(
+            OnConflict::column(UserPlaylists::Uri)
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+    db.execute(&link).await?;
+
+    Ok(true)
+}
+
+/// Projects an `app.rocksky.playlist.song` record into `playlist_tracks`.
+///
+/// # The entry is only accepted from the playlist's owner
+///
+/// An entry names its playlist by AT-URI, and anyone can publish a record
+/// naming anyone else's. Taking one at face value would let a stranger push
+/// songs into somebody's playlist, so the author's DID has to match the
+/// repository the playlist came from — the same rule `crates/jetstream`
+/// applies.
+///
+/// # A song that is not indexed yet
+///
+/// The entry carries the song's metadata as well as a reference to it, so the
+/// track is created from that rather than dropped: an entry whose
+/// `app.rocksky.song` record has not arrived is normal, and dropping it would
+/// lose the playlist position permanently.
+async fn ingest_playlist_song(db: &Backend, record: &IncomingRecord) -> anyhow::Result<bool> {
+    let Some(playlist_uri) = strong_ref_uri(&record.value, "playlist") else {
+        return Ok(false);
+    };
+
+    let Some((playlist_id, owner_did)) = playlist_owner(db, &playlist_uri).await? else {
+        // The playlist has not been indexed here yet. Nothing to attach to,
+        // and inventing a playlist row from a URI alone would create one with
+        // no name.
+        tracing::debug!(playlist = %playlist_uri, "playlist entry for an unknown playlist");
+        return Ok(false);
+    };
+
+    if owner_did != record.did {
+        tracing::warn!(
+            playlist = %playlist_uri,
+            author = %record.did,
+            owner = %owner_did,
+            "refusing a playlist entry from someone who does not own the playlist"
+        );
+        return Ok(false);
+    }
+
+    // The entry carries the song's own metadata, which is what lets a track be
+    // created for an entry whose song record has not arrived.
+    let Some(song) = SongRecord::parse(&record.value) else {
+        return Ok(false);
+    };
+    let track_id = upsert_catalogue(db, &song).await?;
+    if let Some(song_uri) = strong_ref_uri(&record.value, "song") {
+        set_record_uri(db, UriTable::Tracks, &track_id, &song_uri).await?;
+    }
+
+    let author_id = upsert_user(db, &record.did).await?;
+    let insert = Query::insert()
+        .into_table(PlaylistTracks::Table)
+        .columns([
+            PlaylistTracks::XataId,
+            PlaylistTracks::PlaylistId,
+            PlaylistTracks::TrackId,
+            PlaylistTracks::Uri,
+            PlaylistTracks::Cid,
+            PlaylistTracks::AddedBy,
+            PlaylistTracks::AddedAt,
+        ])
+        .values_panic([
+            new_id().into(),
+            playlist_id.into(),
+            track_id.into(),
+            record.uri().into(),
+            string(&record.value, "cid").into(),
+            author_id.into(),
+            // The record's own timestamp, which is the order the playlist is
+            // read in — not when this instance happened to see it. The field
+            // is `addedAt` here; `createdAt` is accepted for records written
+            // before the lexicon settled.
+            string(&record.value, "addedAt")
+                .or_else(|| string(&record.value, "createdAt"))
+                .unwrap_or_else(crate::db::now_timestamp)
+                .into(),
+        ])
+        .on_conflict(
+            OnConflict::column(PlaylistTracks::Uri)
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+    db.execute(&insert).await?;
+
+    Ok(true)
+}
+
+async fn playlist_id_by_uri(db: &Backend, uri: &str) -> Result<Option<String>, sqlx::Error> {
+    let query = Query::select()
+        .column(Playlists::XataId)
+        .from(Playlists::Table)
+        .and_where(Expr::col(Playlists::Uri).eq(uri))
+        .limit(1)
+        .to_owned();
+    db.fetch_scalar::<String>(&query).await
+}
+
+/// A playlist's row id and the DID of the repository it came from.
+async fn playlist_owner(db: &Backend, uri: &str) -> Result<Option<(String, String)>, sqlx::Error> {
+    let query = Query::select()
+        .column((Playlists::Table, Playlists::XataId))
+        .column((Users::Table, Users::Did))
+        .from(Playlists::Table)
+        .inner_join(
+            Users::Table,
+            Expr::col((Users::Table, Users::XataId))
+                .equals((Playlists::Table, Playlists::CreatedBy)),
+        )
+        .and_where(Expr::col((Playlists::Table, Playlists::Uri)).eq(uri))
+        .limit(1)
+        .to_owned();
+    db.fetch_optional::<(String, String)>(&query).await
+}
+
 /// The denormalised URIs, which a null of crashes the web client.
 #[cfg(test)]
 mod denormalised_uris {
@@ -2822,5 +3056,305 @@ mod social {
     fn the_new_collections_are_subscribed() {
         assert!(SUPPORTED_COLLECTIONS.contains(&SHOUT_NSID));
         assert!(SUPPORTED_COLLECTIONS.contains(&FOLLOW_NSID));
+    }
+}
+
+/// Playlists, the other record types the projection used to drop.
+#[cfg(test)]
+mod playlists {
+    use super::*;
+
+    fn record_of(
+        did: &str,
+        collection: &str,
+        rkey: &str,
+        value: serde_json::Value,
+    ) -> IncomingRecord {
+        IncomingRecord {
+            did: did.into(),
+            collection: collection.into(),
+            rkey: rkey.into(),
+            value,
+        }
+    }
+
+    fn a_playlist(name: &str) -> serde_json::Value {
+        serde_json::json!({
+            "$type": PLAYLIST_NSID,
+            "name": name,
+            "description": "Songs for a long drive",
+            "pictureUrl": "https://cdn.invalid/cover.jpg",
+            "spotifyLink": "https://open.spotify.com/playlist/abc",
+            "createdAt": "2026-01-01T00:00:00.000Z",
+        })
+    }
+
+    fn an_entry(playlist_uri: &str, title: &str) -> serde_json::Value {
+        serde_json::json!({
+            "$type": PLAYLIST_SONG_NSID,
+            "playlist": { "uri": playlist_uri, "cid": "bafyplaylist" },
+            "song": { "uri": "at://did:plc:alice/app.rocksky.song/3song", "cid": "bafysong" },
+            "title": title,
+            "artist": "Boards of Canada",
+            "album": "Music Has the Right to Children",
+            "albumArtist": "Boards of Canada",
+            "duration": 151000,
+            // `addedAt`, which is what the lexicon declares and what real
+            // records carry — this fixture said `createdAt` and so passed
+            // while every record on the network was being dropped.
+            "addedAt": "2026-01-02T00:00:00.000Z",
+        })
+    }
+
+    async fn count(db: &Backend, table: impl crate::sea_query::IntoTableRef) -> i64 {
+        db.count(
+            &Query::select()
+                .expr(db.cast_int(crate::sea_query::Func::count(Expr::col(
+                    crate::sea_query::Alias::new("xata_id"),
+                ))))
+                .from(table)
+                .to_owned(),
+        )
+        .await
+        .unwrap()
+    }
+
+    /// A playlist and one of its songs, from the owner's own repository.
+    #[tokio::test]
+    async fn a_playlist_and_its_entries_are_projected() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let playlist_uri = "at://did:plc:alice/app.rocksky.playlist/3road";
+
+        let stats = ingest(
+            &db,
+            &record_of(
+                "did:plc:alice",
+                PLAYLIST_NSID,
+                "3road",
+                a_playlist("Road Trip"),
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(stats.playlists, 1);
+
+        let stats = ingest(
+            &db,
+            &record_of(
+                "did:plc:alice",
+                PLAYLIST_SONG_NSID,
+                "3entry",
+                an_entry(playlist_uri, "Roygbiv"),
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(stats.playlist_songs, 1);
+
+        assert_eq!(count(&db, Playlists::Table).await, 1);
+        assert_eq!(count(&db, PlaylistTracks::Table).await, 1);
+        // The owner's own listing, which is what "my playlists" reads.
+        assert_eq!(count(&db, UserPlaylists::Table).await, 1);
+
+        // The entry created the track from its own metadata, so the playlist
+        // is readable even though no song record has arrived.
+        assert_eq!(count(&db, Tracks::Table).await, 1);
+
+        let name = db
+            .fetch_scalar::<String>(
+                &Query::select()
+                    .column(Playlists::Name)
+                    .from(Playlists::Table)
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(name.as_deref(), Some("Road Trip"));
+    }
+
+    /// The rule that matters: anyone can publish a record naming somebody
+    /// else's playlist, and taking one at face value would let a stranger push
+    /// songs into it.
+    #[tokio::test]
+    async fn an_entry_from_someone_else_is_refused() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let playlist_uri = "at://did:plc:alice/app.rocksky.playlist/3road";
+
+        ingest(
+            &db,
+            &record_of(
+                "did:plc:alice",
+                PLAYLIST_NSID,
+                "3road",
+                a_playlist("Road Trip"),
+            ),
+        )
+        .await
+        .unwrap();
+
+        // Bob, publishing into Alice's playlist.
+        let stats = ingest(
+            &db,
+            &record_of(
+                "did:plc:bob",
+                PLAYLIST_SONG_NSID,
+                "3sneaky",
+                an_entry(playlist_uri, "Not Yours"),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.playlist_songs, 0);
+        assert_eq!(stats.skipped, 1);
+        assert_eq!(count(&db, PlaylistTracks::Table).await, 0);
+    }
+
+    /// An entry for a playlist this instance has not indexed is dropped rather
+    /// than inventing a nameless playlist from a URI.
+    #[tokio::test]
+    async fn an_entry_for_an_unknown_playlist_is_skipped() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let stats = ingest(
+            &db,
+            &record_of(
+                "did:plc:alice",
+                PLAYLIST_SONG_NSID,
+                "3orphan",
+                an_entry(
+                    "at://did:plc:alice/app.rocksky.playlist/3missing",
+                    "Roygbiv",
+                ),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.playlist_songs, 0);
+        assert_eq!(stats.skipped, 1);
+        assert_eq!(count(&db, Playlists::Table).await, 0);
+    }
+
+    /// Re-reading a repository updates the playlist rather than duplicating
+    /// it, and a rename upstream is a rename here.
+    #[tokio::test]
+    async fn re_reading_renames_rather_than_duplicating() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        ingest(
+            &db,
+            &record_of(
+                "did:plc:alice",
+                PLAYLIST_NSID,
+                "3road",
+                a_playlist("Road Trip"),
+            ),
+        )
+        .await
+        .unwrap();
+        ingest(
+            &db,
+            &record_of(
+                "did:plc:alice",
+                PLAYLIST_NSID,
+                "3road",
+                a_playlist("Road Trip 2026"),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(count(&db, Playlists::Table).await, 1, "the URI is the key");
+        assert_eq!(count(&db, UserPlaylists::Table).await, 1);
+
+        let name = db
+            .fetch_scalar::<String>(
+                &Query::select()
+                    .column(Playlists::Name)
+                    .from(Playlists::Table)
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(name.as_deref(), Some("Road Trip 2026"));
+    }
+
+    /// A playlist with no name cannot be rendered, and `name` is NOT NULL.
+    #[tokio::test]
+    async fn a_nameless_playlist_is_skipped() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+
+        let stats = ingest(
+            &db,
+            &record_of(
+                "did:plc:alice",
+                PLAYLIST_NSID,
+                "3blank",
+                serde_json::json!({ "$type": PLAYLIST_NSID, "description": "no name" }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stats.playlists, 0);
+        assert_eq!(stats.skipped, 1);
+    }
+
+    /// The entry's timestamp is `addedAt`, and it is what the playlist is
+    /// ordered by. `createdAt` is accepted too, for records written before the
+    /// lexicon settled.
+    #[tokio::test]
+    async fn the_entry_timestamp_comes_from_added_at() {
+        for (field, when) in [
+            ("addedAt", "2026-03-01T00:00:00.000Z"),
+            ("createdAt", "2026-04-01T00:00:00.000Z"),
+        ] {
+            let db = crate::db::connect_in_memory().await.unwrap();
+            let playlist_uri = "at://did:plc:alice/app.rocksky.playlist/3road";
+            ingest(
+                &db,
+                &record_of(
+                    "did:plc:alice",
+                    PLAYLIST_NSID,
+                    "3road",
+                    a_playlist("Road Trip"),
+                ),
+            )
+            .await
+            .unwrap();
+
+            let mut entry = an_entry(playlist_uri, "Roygbiv");
+            let object = entry.as_object_mut().unwrap();
+            object.remove("addedAt");
+            object.insert(field.to_string(), serde_json::json!(when));
+
+            let stats = ingest(
+                &db,
+                &record_of("did:plc:alice", PLAYLIST_SONG_NSID, "3entry", entry),
+            )
+            .await
+            .unwrap();
+            assert_eq!(stats.playlist_songs, 1, "{field} must be accepted");
+
+            let added_at = db
+                .fetch_scalar::<String>(
+                    &Query::select()
+                        .column(PlaylistTracks::AddedAt)
+                        .from(PlaylistTracks::Table)
+                        .to_owned(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(added_at.as_deref(), Some(when), "ordered by {field}");
+        }
+    }
+
+    /// Both collections have to be subscribed, or Tap never delivers them and
+    /// none of the above runs.
+    #[test]
+    fn the_playlist_collections_are_subscribed() {
+        assert!(SUPPORTED_COLLECTIONS.contains(&PLAYLIST_NSID));
+        assert!(SUPPORTED_COLLECTIONS.contains(&PLAYLIST_SONG_NSID));
     }
 }

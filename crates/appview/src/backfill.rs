@@ -196,7 +196,14 @@ fn ingest_rank(collection: &str) -> u8 {
         ingest::SCROBBLE_NSID => 1,
         // Point at all of the above by URI.
         ingest::LIKE_NSID | ingest::SHOUT_NSID | ingest::FOLLOW_NSID => 2,
-        _ => 3,
+        // A playlist before its entries: an entry names its playlist by URI
+        // and is dropped when that playlist is not indexed yet. MST order
+        // happens to put `app.rocksky.playlist` before
+        // `app.rocksky.playlist.song`, but relying on that would make this
+        // work by accident.
+        ingest::PLAYLIST_NSID => 2,
+        ingest::PLAYLIST_SONG_NSID => 3,
+        _ => 4,
     }
 }
 
@@ -204,7 +211,8 @@ fn ingest_rank(collection: &str) -> u8 {
 mod tests {
     use super::*;
     use crate::ingest::{
-        ALBUM_NSID, ARTIST_NSID, FOLLOW_NSID, LIKE_NSID, SCROBBLE_NSID, SHOUT_NSID, SONG_NSID,
+        ALBUM_NSID, ARTIST_NSID, FOLLOW_NSID, LIKE_NSID, PLAYLIST_NSID, PLAYLIST_SONG_NSID,
+        SCROBBLE_NSID, SHOUT_NSID, SONG_NSID,
     };
 
     /// The ordering that makes a reference resolvable: everything a like or a
@@ -241,6 +249,19 @@ mod tests {
     #[test]
     fn an_unknown_collection_sorts_last() {
         assert!(ingest_rank("app.bsky.feed.post") > ingest_rank(SHOUT_NSID));
+        assert!(ingest_rank("app.bsky.feed.post") > ingest_rank(PLAYLIST_SONG_NSID));
+    }
+
+    /// A playlist has to be ingested before its entries: an entry names its
+    /// playlist by URI and is dropped when that playlist is not indexed yet.
+    #[test]
+    fn a_playlist_precedes_its_entries() {
+        assert!(ingest_rank(PLAYLIST_NSID) < ingest_rank(PLAYLIST_SONG_NSID));
+        // And both come after the catalogue, since an entry also creates the
+        // track it names.
+        for subject in [SONG_NSID, ALBUM_NSID, ARTIST_NSID] {
+            assert!(ingest_rank(subject) < ingest_rank(PLAYLIST_SONG_NSID));
+        }
     }
 
     #[test]
