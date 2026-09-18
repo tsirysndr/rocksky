@@ -277,6 +277,8 @@ pub struct ActorScrobbleView {
     pub artist_uri: Option<String>,
     #[serde(default, with = "crate::views::uri")]
     pub album_uri: Option<String>,
+    /// When the play happened — the scrobble's timestamp, not the row's
+    /// `xata_createdat`. This is the only date the profile page has.
     #[serde(with = "crate::views::timestamp::required")]
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -377,7 +379,11 @@ async fn load_actor_scrobbles(
                         .and_then(|artist| artist.uri.clone())
                         .or_else(|| track.artist_uri.clone()),
                     album_uri: track.album_uri.clone(),
-                    created_at: scrobble.created_at,
+                    // The play time, not the row's. `xata_createdat` is when
+                    // this instance ingested the record, so on a re-synced
+                    // database every scrobble on the profile dated to the
+                    // moment of the backfill.
+                    created_at: scrobble.timestamp,
                 })
             })
             .collect(),
@@ -848,6 +854,55 @@ mod tests {
 
         assert_eq!(body["did"], "did:plc:alice");
         assert_eq!(body["handle"], "alice.example");
+    }
+
+    /// The profile feed dates a scrobble by when the play happened, not by
+    /// when this instance heard about it.
+    ///
+    /// `xata_createdat` defaults to `now`, so on a database filled by a
+    /// backfill or a Tap resync it is the moment of the sync — which made
+    /// every row on the profile page read as "just now", however old the
+    /// listen. The record's own `createdAt` is years apart from it here so the
+    /// two cannot be confused.
+    #[actix_web::test]
+    async fn the_profile_feed_dates_a_scrobble_by_the_play_not_the_ingest() {
+        let state = AppState::for_test().await.unwrap();
+        let value = serde_json::json!({
+            "$type": crate::ingest::SCROBBLE_NSID,
+            "title": "Roygbiv",
+            "artist": "Boards of Canada",
+            "album": "Music Has the Right to Children",
+            "albumArtist": "Boards of Canada",
+            "duration": 151000,
+            // Years before the row's `xata_createdat`, which is `now`.
+            "createdAt": "2021-03-04T05:06:07.000Z",
+        });
+        crate::ingest::ingest(
+            state.db(),
+            &crate::ingest::IncomingRecord {
+                did: "did:plc:alice".into(),
+                collection: crate::ingest::SCROBBLE_NSID.into(),
+                rkey: "3aaa".into(),
+                value,
+            },
+        )
+        .await
+        .unwrap();
+        let app = app!(state);
+
+        let body: serde_json::Value = http::call_and_read_body_json(
+            &app,
+            http::TestRequest::get()
+                .uri("/xrpc/app.rocksky.actor.getActorScrobbles?did=did:plc:alice")
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(
+            body["scrobbles"][0]["createdAt"], "2021-03-04T05:06:07.000Z",
+            "the profile feed must carry the play time, not the row's \
+             xata_createdat: {body}"
+        );
     }
 
     /// Without a token there is nobody to answer for, and `{}` is right —
