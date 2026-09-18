@@ -292,6 +292,22 @@ mod tests {
         assert!(matches!(result, Err(sqlx::Error::RowNotFound)));
     }
 
+    /// `MATERIALIZED` on a CTE is a Postgres-ism that SQLite also accepts
+    /// (3.35+), and the services use it to stop a paging CTE being inlined.
+    /// Worth pinning: if it were not accepted, every paged listing would fail
+    /// on SQLite.
+    #[tokio::test]
+    async fn a_materialized_cte_runs_on_sqlite() {
+        let db = crate::connect_in_memory().await.unwrap();
+        let count: Option<i64> = db
+            .fetch_scalar(
+                &db.sql("WITH page AS MATERIALIZED (SELECT 1 AS n) SELECT COUNT(*) FROM page"),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, Some(1));
+    }
+
     /// DDL differs between the backends in more than placeholders, so the
     /// builder has to match the connection.
     #[tokio::test]

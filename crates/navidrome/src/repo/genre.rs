@@ -197,19 +197,10 @@ mod tests {
         assert!(genres.is_empty());
     }
 
-    /// The genre *songs* listing does not run on SQLite yet.
-    ///
-    /// Not because of anything in this file — the containment filter is
-    /// portable now — but because it builds on `track_select`, whose album and
-    /// artist lookups are `JOIN LATERAL`. SQLite has no LATERAL, and the
-    /// equivalent is a correlated scalar subquery per column, which is a
-    /// rewrite of the projection every Subsonic endpoint shares rather than a
-    /// change here.
-    ///
-    /// Ignored rather than deleted so the gap is visible and the test is ready
-    /// when the projection is portable. Remove the attribute then.
+    /// The genre songs listing, which goes through `track_select` — the
+    /// projection every Subsonic endpoint shares. It was `JOIN LATERAL` and
+    /// unrunnable here; the lookups are correlated subqueries now.
     #[tokio::test]
-    #[ignore = "track_select uses JOIN LATERAL, which SQLite does not support"]
     async fn a_genre_songs_listing_runs_on_sqlite() {
         let db = rocksky_db::connect_in_memory().await.unwrap();
         let handle = rocksky_db::Handle::from_backend(db);
