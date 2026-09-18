@@ -13,6 +13,7 @@
 //! 3. `config.toml` in the data directory ([`Settings`])
 //! 4. the built-in defaults here
 
+pub mod generate;
 pub mod settings;
 
 use clap::Parser;
@@ -70,6 +71,19 @@ pub struct Cli {
     /// Print the resolved configuration and exit.
     #[arg(long)]
     pub print_config: bool,
+
+    /// Write a config.toml with every secret filled in, then exit.
+    ///
+    /// Secrets already in the data directory are reused rather than replaced,
+    /// so this is safe to run against a live instance.
+    #[arg(long)]
+    pub generate_config: bool,
+
+    /// Overwrite an existing config.toml. Only meaningful with
+    /// --generate-config, and destructive: the file may hold the only copy of
+    /// this instance's secrets.
+    #[arg(long)]
+    pub force: bool,
 
     /// Backfill the database from the configured repositories, then exit
     /// without starting the server. Safe to re-run.
@@ -611,6 +625,24 @@ impl Config {
     /// Resolves the configuration, creating whatever is missing. `.env` is
     /// loaded first when present so running from the repo root behaves like the
     /// TypeScript API's `bun dev`.
+    /// Where the data directory and the config file will be, without reading
+    /// or creating either.
+    ///
+    /// `--generate-config` needs these before there is a `Config` to ask, and
+    /// it has to agree with [`Config::load`] exactly — writing a file the next
+    /// boot would not read is the one way this command can quietly fail.
+    pub fn paths(cli: &Cli) -> (PathBuf, PathBuf) {
+        let _ = dotenv::dotenv();
+
+        let data_dir = default_data_dir(cli.data_dir.clone());
+        let config_path = cli
+            .config
+            .clone()
+            .or_else(|| env_opt("ROCKSKY_CONFIG").map(PathBuf::from))
+            .unwrap_or_else(|| data_dir.join("config.toml"));
+        (data_dir, config_path)
+    }
+
     pub fn load(cli: Cli) -> Result<Self, ConfigError> {
         let _ = dotenv::dotenv();
 

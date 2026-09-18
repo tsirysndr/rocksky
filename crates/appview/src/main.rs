@@ -52,6 +52,33 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
+    // Before `Config::load`, which would write a template over the path this
+    // is about to generate into.
+    if cli.generate_config {
+        let (data_dir, config_path) = Config::paths(&cli);
+        let report =
+            rocksky_appview::config::generate::generate(&data_dir, &config_path, cli.force)?;
+
+        println!("Wrote {}", report.config_path.display());
+        println!("      {}", report.keyset_path.display());
+        if !report.created.is_empty() {
+            println!("\nGenerated: {}", report.created.join(", "));
+        }
+        if !report.reused.is_empty() {
+            println!(
+                "Reused:    {} (already in {})",
+                report.reused.join(", "),
+                data_dir.display()
+            );
+        }
+        println!(
+            "\nThe config now holds this instance's secrets. Keep it: a new signing \
+             key logs everyone out, and a new storage key makes stored credentials \
+             unreadable."
+        );
+        return Ok(());
+    }
+
     let print_config = cli.print_config;
     let backfill_only = cli.backfill;
     let config = Config::load(cli)?;
