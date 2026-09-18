@@ -17,6 +17,7 @@ pub mod auth;
 pub mod images;
 pub mod ingest;
 pub mod keys;
+pub mod likes;
 pub mod notifications;
 pub mod storage;
 pub mod uploads;
@@ -28,6 +29,7 @@ pub fn configure(cfg: &mut ServiceConfig) {
     images::configure(cfg);
     ingest::configure(cfg);
     keys::configure(cfg);
+    likes::configure(cfg);
     notifications::configure(cfg);
     storage::configure(cfg);
     uploads::configure(cfg);

@@ -158,6 +158,41 @@ async fn post(state: &AppState, token: &str, uri: &str, body: serde_json::Value)
     response.status().as_u16()
 }
 
+async fn delete(state: &AppState, token: &str, uri: &str) -> u16 {
+    let app = app!(state);
+    let response = actix_web::test::call_service(
+        &app,
+        actix_web::test::TestRequest::delete()
+            .uri(uri)
+            .insert_header(("authorization", format!("Bearer {token}")))
+            .to_request(),
+    )
+    .await;
+    response.status().as_u16()
+}
+
+/// How many rows a table holds.
+async fn count(state: &AppState, table: &str) -> i64 {
+    let db = state.db();
+    db.count(&db.sql(&format!("SELECT count(*) FROM {table}")))
+        .await
+        .unwrap()
+}
+
+/// The payload `crates/navidrome` posts when a Subsonic client stars a song.
+fn subsonic_star_payload() -> serde_json::Value {
+    serde_json::json!({
+        "title": "Roygbiv",
+        "artist": "Boards of Canada",
+        "album": "Music Has the Right to Children",
+        "albumArtist": "Boards of Canada",
+        "duration": 151_000,
+        "albumArt": "https://example.invalid/cover.jpg",
+        "trackNumber": 4,
+        "discNumber": 1,
+    })
+}
+
 #[actix_web::test]
 async fn liking_a_song_writes_a_record_and_a_row() {
     let (state, pds, token, song_uri) = signed_in().await;
@@ -1119,5 +1154,135 @@ async fn notifications_require_authentication() {
         )
         .await;
         assert_eq!(response.status(), 401, "{uri}");
+    }
+}
+
+// ------------------------------------------------- starring from a Subsonic client
+//
+// `crates/navidrome` cannot address a song by AT-URI — a Subsonic client has
+// never heard of one — so it posts the track itself to `POST /likes` and
+// unstars with `DELETE /likes/{sha256}`. Both routes answered 404 until they
+// were served, which made starring in a Subsonic client silently do nothing.
+
+#[actix_web::test]
+async fn starring_a_song_over_rest_writes_the_same_record_and_row() {
+    let (state, pds, token, song_uri) = signed_in().await;
+
+    let status = post(&state, &token, "/likes", subsonic_star_payload()).await;
+    assert_eq!(status, 200);
+
+    // The same record the XRPC procedure writes, pinned to the song's CID.
+    let likes = pds.records(Some("app.rocksky.like"));
+    assert_eq!(likes.len(), 1, "one like record");
+    assert_eq!(likes[0].value["subject"]["uri"], song_uri);
+    assert!(
+        likes[0].value["subject"]["cid"]
+            .as_str()
+            .is_some_and(|cid| !cid.is_empty()),
+        "the strong ref must carry the song's CID: {}",
+        likes[0].value
+    );
+
+    assert_eq!(count(&state, "loved_tracks").await, 1);
+
+    // And it attached to the track that was already there rather than making a
+    // second one — the payload is resolved by content hash, which is the whole
+    // reason this route can work without a URI.
+    assert_eq!(count(&state, "tracks").await, 1, "no duplicate track row");
+}
+
+#[actix_web::test]
+async fn unstarring_removes_the_record_and_the_row() {
+    let (state, pds, token, _song_uri) = signed_in().await;
+
+    assert_eq!(post(&state, &token, "/likes", subsonic_star_payload()).await, 200);
+    assert_eq!(count(&state, "loved_tracks").await, 1);
+
+    // Subsonic's unstar carries only the hash, which is what navidrome sends.
+    let sha256 = rocksky_core::track_hash(
+        "Roygbiv",
+        "Boards of Canada",
+        "Music Has the Right to Children",
+    );
+    assert_eq!(delete(&state, &token, &format!("/likes/{sha256}")).await, 200);
+
+    assert_eq!(count(&state, "loved_tracks").await, 0, "the row is gone");
+    assert!(
+        pds.records(Some("app.rocksky.like")).is_empty(),
+        "the record is gone from the repository too"
+    );
+}
+
+/// Starring twice must not produce two records: a client that retries, or a
+/// user double-tapping, would otherwise leave a second like in the repository
+/// that nothing ever removes.
+#[actix_web::test]
+async fn starring_twice_is_one_like() {
+    let (state, pds, token, _song_uri) = signed_in().await;
+
+    for _ in 0..2 {
+        assert_eq!(post(&state, &token, "/likes", subsonic_star_payload()).await, 200);
+    }
+
+    assert_eq!(count(&state, "loved_tracks").await, 1);
+    assert_eq!(pds.records(Some("app.rocksky.like")).len(), 1);
+}
+
+/// A song nobody has published: the star still counts, it simply has no record
+/// to point at. A like's subject is a strongRef, so there is nothing to write
+/// to the repository until a scrobble creates the song record.
+#[actix_web::test]
+async fn starring_an_unpublished_song_records_the_like_locally() {
+    let (state, pds, token, _song_uri) = signed_in().await;
+
+    let status = post(
+        &state,
+        &token,
+        "/likes",
+        serde_json::json!({
+            "title": "Olson",
+            "artist": "Boards of Canada",
+            "album": "Music Has the Right to Children",
+            "albumArtist": "Boards of Canada",
+            "duration": 90_000,
+        }),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    assert_eq!(count(&state, "loved_tracks").await, 1);
+    // Created by the star itself, beside the one the fixture seeded.
+    assert_eq!(count(&state, "tracks").await, 2);
+    // And nothing in the repository, because there is no song record to point
+    // at — a like with a fabricated strong ref would not validate anywhere.
+    assert!(
+        pds.records(Some("app.rocksky.like")).is_empty(),
+        "a like was published for a song with no record"
+    );
+}
+
+/// Unstarring something this instance has never seen is the state the caller
+/// asked for, not an error — `apps/api` answers the same.
+#[actix_web::test]
+async fn unstarring_an_unknown_song_succeeds() {
+    let (state, _pds, token, _song_uri) = signed_in().await;
+    assert_eq!(delete(&state, &token, "/likes/deadbeef").await, 200);
+}
+
+/// The four fields the content hash is built from are required: a star that
+/// hashed differently from the scrobble of the same song would attach to a
+/// different row, and the song would appear both liked and not.
+#[actix_web::test]
+async fn starring_needs_the_fields_the_hash_is_built_from() {
+    let (state, _pds, token, _song_uri) = signed_in().await;
+
+    for missing in ["title", "artist", "album", "albumArtist"] {
+        let mut body = subsonic_star_payload();
+        body.as_object_mut().unwrap().remove(missing);
+        assert_eq!(
+            post(&state, &token, "/likes", body).await,
+            400,
+            "{missing} must be required"
+        );
     }
 }

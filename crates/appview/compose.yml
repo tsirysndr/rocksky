@@ -364,10 +364,6 @@ services:
       # Where to send a play and a star. Left unset it posts to
       # api.rocksky.app, which would scrobble your self-hosted plays to the
       # hosted instance — with a token that instance does not accept.
-      #
-      # Scrobbles land. Starring does not yet: the appview serves
-      # `app.rocksky.scrobble.createScrobble` but not the `/likes` REST route
-      # this uses, so a star from a Subsonic client 404s for now.
       ROCKSKY_API_URL: http://appview:3004
 
       # Search inside the Subsonic API. Optional — without it, search falls

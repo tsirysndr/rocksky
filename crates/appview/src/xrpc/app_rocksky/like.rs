@@ -87,26 +87,62 @@ async fn like_song(
     body: web::Json<LikeInput>,
 ) -> XrpcResult<HttpResponse> {
     let uri = required_uri(&body)?;
-    let db = state.db();
 
-    let track = find_track(db, &uri)
+    let track = find_track(state.db(), &uri)
         .await?
         .ok_or_else(|| XrpcError::invalid_request("No song at that URI").named("TrackNotFound"))?;
-    let user_id = caller_id(db, &auth.did).await?;
+
+    like_track(&state, &auth.did, &track).await?;
+    ok_empty()
+}
+
+/// Likes `track` on behalf of `did`: the record, then the row, then the event.
+///
+/// Split out from [`like_song`] because `POST /likes` wants the same work from
+/// a different starting point — navidrome sends a track payload rather than a
+/// song URI, since a Subsonic client knows nothing about AT-URIs.
+pub(crate) async fn like_track(
+    state: &AppState,
+    did: &str,
+    track: &Track,
+) -> Result<(), XrpcError> {
+    let db = state.db();
+    let user_id = caller_id(db, did).await?;
 
     // Already liked: answer success rather than writing a second record. The
     // UI toggles, so a double-click must not produce two likes.
     if existing_like(db, &user_id, &track.id).await?.is_some() {
-        tracing::debug!(did = %auth.did, uri = %uri, "already liked; nothing written");
-        return ok_empty();
+        tracing::debug!(did, title = %track.title, "already liked; nothing written");
+        return Ok(());
     }
 
-    let subject = strong_ref(&state, &uri).await?;
-    let writer = Writer::for_did(&state, &auth.did).await?;
-    let rkey = crate::atproto::records::next_tid();
-    let written = writer
-        .create(LIKE_COLLECTION, &rkey, &LikeRecord::new(subject))
-        .await?;
+    // A like's subject is a strongRef, so there has to be a song record to
+    // point at. Reached from the XRPC side the track was *found* by its URI, so
+    // this is always `Some`; reached from `POST /likes` the track may have just
+    // been created here and never published by anyone. The row is still
+    // written in that case — the like is true and the UI shows it — it simply
+    // is not in the repository, which is what `apps/api` does too.
+    let published = match track.uri.as_deref() {
+        Some(uri) if !uri.is_empty() => {
+            let subject = strong_ref(state, uri).await?;
+            let writer = Writer::for_did(state, did).await?;
+            let rkey = crate::atproto::records::next_tid();
+            Some(
+                writer
+                    .create(LIKE_COLLECTION, &rkey, &LikeRecord::new(subject))
+                    .await?
+                    .uri,
+            )
+        }
+        _ => {
+            tracing::debug!(
+                did,
+                title = %track.title,
+                "no song record to point at; recording the like locally only"
+            );
+            None
+        }
+    };
 
     let like_id = new_id();
     let insert = Query::insert()
@@ -121,12 +157,12 @@ async fn like_song(
             like_id.clone().into(),
             user_id.clone().into(),
             track.id.clone().into(),
-            written.uri.clone().into(),
+            published.clone().into(),
         ])
         .to_owned();
     db.execute(&insert).await?;
 
-    tracing::info!(did = %auth.did, title = %track.title, "liked a song");
+    tracing::info!(did, title = %track.title, published = published.is_some(), "liked a song");
 
     // The mirrors push this to Last.fm and ListenBrainz; without the event
     // they never learn about it.
@@ -136,7 +172,7 @@ async fn like_song(
             .publish_json(
                 crate::events::subject::LIKE,
                 &crate::events::LikeEvent {
-                    uri: Some(written.uri.clone()),
+                    uri: published,
                     user_id: crate::events::XataRef::new(&user_id),
                     track_id: crate::events::XataRef::new(&track.id),
                     xata_id: like_id,
@@ -148,7 +184,7 @@ async fn like_song(
             .await;
     }
 
-    ok_empty()
+    Ok(())
 }
 
 /// `app.rocksky.like.dislikeSong`
@@ -161,22 +197,36 @@ async fn dislike_song(
     body: web::Json<LikeInput>,
 ) -> XrpcResult<HttpResponse> {
     let uri = required_uri(&body)?;
-    let db = state.db();
 
-    let Some(track) = find_track(db, &uri).await? else {
+    let Some(track) = find_track(state.db(), &uri).await? else {
         // Nothing to unlike, which is the state the caller wanted.
         return ok_empty();
     };
-    let user_id = caller_id(db, &auth.did).await?;
+
+    unlike_track(&state, &auth.did, &track).await?;
+    ok_empty()
+}
+
+/// Removes `did`'s like of `track`, if there is one.
+///
+/// The counterpart to [`like_track`], and shared with `DELETE /likes/{sha256}`
+/// for the same reason.
+pub(crate) async fn unlike_track(
+    state: &AppState,
+    did: &str,
+    track: &Track,
+) -> Result<(), XrpcError> {
+    let db = state.db();
+    let user_id = caller_id(db, did).await?;
 
     let Some(like_uri) = existing_like(db, &user_id, &track.id).await? else {
-        return ok_empty();
+        return Ok(());
     };
 
     // The record is removed first. If that fails the row stays, and the like
     // is still true — which is better than a row saying otherwise.
     if let Some(rkey) = rkey_of(&like_uri) {
-        let writer = Writer::for_did(&state, &auth.did).await?;
+        let writer = Writer::for_did(state, did).await?;
         writer.delete(LIKE_COLLECTION, &rkey).await?;
     }
 
@@ -187,7 +237,7 @@ async fn dislike_song(
         .to_owned();
     db.execute(&delete).await?;
 
-    tracing::info!(did = %auth.did, title = %track.title, "unliked a song");
+    tracing::info!(did, title = %track.title, "unliked a song");
 
     if let Some(events) = state.events() {
         let now = crate::views::timestamp::to_iso8601(&chrono::Utc::now());
@@ -209,7 +259,7 @@ async fn dislike_song(
             .await;
     }
 
-    ok_empty()
+    Ok(())
 }
 
 /// `app.rocksky.like.likeShout`
@@ -336,6 +386,27 @@ async fn find_track(db: &Backend, uri: &str) -> Result<Option<Track>, sqlx::Erro
     query
         .from(Tracks::Table)
         .and_where(Expr::col(Tracks::Uri).eq(uri))
+        .limit(1);
+
+    db.fetch_optional::<Track>(&query).await
+}
+
+/// The same lookup by content hash, which is how a client that has never seen
+/// an AT-URI names a song — `DELETE /likes/{sha256}` is the whole of Subsonic's
+/// unstar request.
+pub(crate) async fn track_by_sha256(
+    db: &Backend,
+    sha256: &str,
+) -> Result<Option<Track>, sqlx::Error> {
+    let mut query = Query::select();
+    db.select_model(&mut query, TRACK_COLS, None);
+    query
+        .from(Tracks::Table)
+        .and_where(Expr::col(Tracks::Sha256).eq(sha256))
+        // A hash can name more than one row — the same recording on a single
+        // and on a compilation — and the oldest is the one everything else
+        // already points at.
+        .order_by(Tracks::XataCreatedat, crate::sea_query::Order::Asc)
         .limit(1);
 
     db.fetch_optional::<Track>(&query).await

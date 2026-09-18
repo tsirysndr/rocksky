@@ -174,36 +174,7 @@ async fn create_scrobble(
         );
     }
 
-    let song = crate::ingest::SongRecord {
-        title: title.clone(),
-        artist: artist.clone(),
-        album: album.clone(),
-        album_artist: album_artist.clone(),
-        duration: input.duration.unwrap_or(0),
-        created_at: listened_at,
-        album_art: Some(
-            input
-                .album_art
-                .clone()
-                .filter(|art| !art.is_empty())
-                .unwrap_or_else(|| rocksky_core::PLACEHOLDER_ALBUM_ART.to_string()),
-        ),
-        track_number: input.track_number,
-        disc_number: Some(input.disc_number.filter(|d| *d > 0).unwrap_or(1)),
-        year: input.year,
-        release_date: input.release_date.clone(),
-        genre: None,
-        composer: input.composer.clone(),
-        lyrics: input.lyrics.clone(),
-        copyright_message: input.copyright_message.clone(),
-        label: input.label.clone(),
-        mb_id: input.mb_id.clone(),
-        isrc: input.isrc.clone(),
-        spotify_link: input.spotify_link.clone(),
-        youtube_link: input.youtube_link.clone(),
-        tidal_link: input.tidal_link.clone(),
-        apple_music_link: input.apple_music_link.clone(),
-    };
+    let song = song_from_input(&input, &title, &artist, &album, &album_artist, listened_at);
 
     let track_id = crate::ingest::upsert_catalogue(db, &song)
         .await
@@ -265,6 +236,52 @@ async fn create_scrobble(
 }
 
 // ------------------------------------------------------------------- pieces
+
+/// The projection's view of what a source reported.
+///
+/// Shared with `POST /likes`, which takes the same payload — `apps/api`
+/// validates both routes with one `trackSchema` — and has to produce the same
+/// track row, or liking a song would create a second copy of it beside the one
+/// scrobbling created.
+pub(crate) fn song_from_input(
+    input: &CreateScrobbleInput,
+    title: &str,
+    artist: &str,
+    album: &str,
+    album_artist: &str,
+    created_at: chrono::DateTime<chrono::Utc>,
+) -> crate::ingest::SongRecord {
+    crate::ingest::SongRecord {
+        title: title.to_string(),
+        artist: artist.to_string(),
+        album: album.to_string(),
+        album_artist: album_artist.to_string(),
+        duration: input.duration.unwrap_or(0),
+        created_at,
+        album_art: Some(
+            input
+                .album_art
+                .clone()
+                .filter(|art| !art.is_empty())
+                .unwrap_or_else(|| rocksky_core::PLACEHOLDER_ALBUM_ART.to_string()),
+        ),
+        track_number: input.track_number,
+        disc_number: Some(input.disc_number.filter(|d| *d > 0).unwrap_or(1)),
+        year: input.year,
+        release_date: input.release_date.clone(),
+        genre: None,
+        composer: input.composer.clone(),
+        lyrics: input.lyrics.clone(),
+        copyright_message: input.copyright_message.clone(),
+        label: input.label.clone(),
+        mb_id: input.mb_id.clone(),
+        isrc: input.isrc.clone(),
+        spotify_link: input.spotify_link.clone(),
+        youtube_link: input.youtube_link.clone(),
+        tidal_link: input.tidal_link.clone(),
+        apple_music_link: input.apple_music_link.clone(),
+    }
+}
 
 fn required(value: &Option<String>, field: &str) -> Result<String, XrpcError> {
     value
