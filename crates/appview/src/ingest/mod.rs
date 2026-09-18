@@ -89,6 +89,8 @@ pub struct IngestStats {
     pub playlists: u64,
     /// Entries, i.e. `app.rocksky.playlist.song` records.
     pub playlist_songs: u64,
+    /// Rows removed because the record behind them was deleted.
+    pub deletions: u64,
     /// Records this projection does not handle, or that were malformed.
     pub skipped: u64,
 }
@@ -105,6 +107,7 @@ impl IngestStats {
         self.follows += other.follows;
         self.playlists += other.playlists;
         self.playlist_songs += other.playlist_songs;
+        self.deletions += other.deletions;
         self.skipped += other.skipped;
     }
 
@@ -279,6 +282,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
             // view reads — setting only `albums.uri` leaves the copy null, so
             // the feed answers a null URI for a record it has.
             denormalise_album_uri(db, &album_id).await?;
+            denormalise_album_artist_uri(db, &artist_id).await?;
             stats.albums += 1;
         }
         ARTIST_NSID => {
@@ -294,6 +298,7 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
             .await?;
             set_record_uri(db, UriTable::Artists, &artist_id, &record.uri()).await?;
             denormalise_artist_uri(db, &artist_id).await?;
+            denormalise_album_artist_uri(db, &artist_id).await?;
             stats.artists += 1;
         }
         LIKE_NSID => {
@@ -335,6 +340,191 @@ pub async fn ingest(db: &Backend, record: &IncomingRecord) -> anyhow::Result<Ing
     }
 
     Ok(stats)
+}
+
+/// Un-projects a record the repository no longer has.
+///
+/// Deletes used to be counted and dropped, which left the row behind forever —
+/// on the live instance one account alone had 949 `scrobbles` rows whose
+/// records answer `RecordNotFound`, and the count only ever grew.
+///
+/// # The catalogue is deliberately not touched
+///
+/// A `song`, `album` or `artist` record is one user's description of something
+/// shared: the `tracks` row it created is pointed at by every other user's
+/// scrobbles, their loved tracks and their playlist entries. Deleting it would
+/// take all of those with it — a user removing their own song record would
+/// erase a track from everyone's history. The row stays and keeps its URI,
+/// which is the same thing prod does.
+///
+/// So this removes only rows that belong to the deleting repository and mean
+/// nothing without their record.
+pub async fn delete(
+    db: &Backend,
+    did: &str,
+    collection: &str,
+    rkey: &str,
+) -> anyhow::Result<IngestStats> {
+    let mut stats = IngestStats::default();
+    let uri = format!("at://{did}/{collection}/{rkey}");
+
+    let removed = match collection {
+        SCROBBLE_NSID => delete_scrobble(db, &uri).await?,
+        LIKE_NSID => delete_by_uri(db, LovedTracks::Table, LovedTracks::Uri, &uri).await?,
+        SHOUT_NSID => delete_by_uri(db, Shouts::Table, Shouts::Uri, &uri).await?,
+        FOLLOW_NSID => delete_by_uri(db, Follows::Table, Follows::Uri, &uri).await?,
+        PLAYLIST_NSID => delete_playlist(db, &uri).await?,
+        PLAYLIST_SONG_NSID => {
+            delete_by_uri(db, PlaylistTracks::Table, PlaylistTracks::Uri, &uri).await?
+        }
+        _ => {
+            stats.skipped += 1;
+            return Ok(stats);
+        }
+    };
+
+    if removed > 0 {
+        stats.deletions += removed;
+    } else {
+        // Nothing to remove: a record this instance never projected, or one
+        // already deleted. At-least-once delivery makes the second normal.
+        stats.skipped += 1;
+    }
+    Ok(stats)
+}
+
+/// Deletes the single row a record URI identifies.
+async fn delete_by_uri<T, C>(db: &Backend, table: T, column: C, uri: &str) -> anyhow::Result<u64>
+where
+    T: IntoIden + 'static,
+    C: IntoIden + 'static,
+{
+    let delete = Query::delete()
+        .from_table(table)
+        .and_where(Expr::col(column.into_iden()).eq(uri))
+        .to_owned();
+    Ok(db.execute(&delete).await?)
+}
+
+/// Removes a scrobble and the play it contributed to the three counters.
+///
+/// The counters are what the profile and the charts read, so leaving them at
+/// the old value would keep the deleted play visible everywhere except the
+/// listening history. A counter that reaches zero is removed rather than left
+/// at 0: "unique artists" counts rows, so a zero row still counts as one.
+async fn delete_scrobble(db: &Backend, uri: &str) -> anyhow::Result<u64> {
+    let lookup = Query::select()
+        .columns([
+            Scrobbles::UserId,
+            Scrobbles::ArtistId,
+            Scrobbles::AlbumId,
+            Scrobbles::TrackId,
+        ])
+        .from(Scrobbles::Table)
+        .and_where(Expr::col(Scrobbles::Uri).eq(uri))
+        .limit(1)
+        .to_owned();
+
+    let Some((user_id, artist_id, album_id, track_id)) = db
+        .fetch_optional::<(
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+        )>(&lookup)
+        .await?
+    else {
+        return Ok(0);
+    };
+
+    let removed = delete_by_uri(db, Scrobbles::Table, Scrobbles::Uri, uri).await?;
+    if removed == 0 {
+        return Ok(0);
+    }
+
+    // Only with a user: the counters are per-user, and a scrobble row whose
+    // `user_id` is null has nothing to decrement.
+    if let Some(user_id) = user_id {
+        for (counter, entity) in [
+            (Counter::Artists, artist_id),
+            (Counter::Albums, album_id),
+            (Counter::Tracks, track_id),
+        ] {
+            if let Some(entity) = entity {
+                drop_counter(db, counter, &user_id, &entity).await?;
+            }
+        }
+    }
+
+    Ok(removed)
+}
+
+/// Takes one play back off a per-user counter.
+async fn drop_counter(
+    db: &Backend,
+    counter: Counter,
+    user_id: &str,
+    entity_id: &str,
+) -> anyhow::Result<()> {
+    let scrobbles = Alias::new("scrobbles");
+    let update = Query::update()
+        .table(counter.table())
+        .value(
+            scrobbles.clone(),
+            Expr::expr(Func::coalesce([
+                Expr::col(Alias::new("scrobbles")).into(),
+                Expr::val(0).into(),
+            ]))
+            .sub(1),
+        )
+        .and_where(Expr::col(Alias::new("user_id")).eq(user_id))
+        .and_where(Expr::col(counter.entity_column()).eq(entity_id))
+        .to_owned();
+    db.execute(&update).await?;
+
+    let prune = Query::delete()
+        .from_table(counter.table())
+        .and_where(Expr::col(Alias::new("user_id")).eq(user_id))
+        .and_where(Expr::col(counter.entity_column()).eq(entity_id))
+        .and_where(Expr::col(scrobbles).lte(0))
+        .to_owned();
+    db.execute(&prune).await?;
+    Ok(())
+}
+
+/// Removes a playlist together with what only exists to point at it.
+///
+/// `playlist_tracks` and `user_playlists` both have a foreign key to
+/// `playlists`, so the rows have to go first or the delete is rejected.
+async fn delete_playlist(db: &Backend, uri: &str) -> anyhow::Result<u64> {
+    let lookup = Query::select()
+        .column(Playlists::XataId)
+        .from(Playlists::Table)
+        .and_where(Expr::col(Playlists::Uri).eq(uri))
+        .limit(1)
+        .to_owned();
+    let Some(playlist_id) = db.fetch_scalar::<String>(&lookup).await? else {
+        return Ok(0);
+    };
+
+    for statement in [
+        Query::delete()
+            .from_table(PlaylistTracks::Table)
+            .and_where(Expr::col(PlaylistTracks::PlaylistId).eq(&playlist_id))
+            .to_owned(),
+        Query::delete()
+            .from_table(UserPlaylists::Table)
+            .and_where(Expr::col(UserPlaylists::PlaylistId).eq(&playlist_id))
+            .to_owned(),
+    ] {
+        db.execute(&statement).await?;
+    }
+
+    let delete = Query::delete()
+        .from_table(Playlists::Table)
+        .and_where(Expr::col(Playlists::XataId).eq(&playlist_id))
+        .to_owned();
+    Ok(db.execute(&delete).await?)
 }
 
 /// Ensures a `users` row exists for `did`, returning its id.
@@ -928,6 +1118,7 @@ pub async fn upsert_catalogue(db: &Backend, song: &SongRecord) -> anyhow::Result
     let track_id = upsert_track(db, song, None).await?;
 
     link_catalogue(db, &artist_id, &album_id, &track_id).await?;
+    denormalise_new_rows(db, &track_id, &album_id, &artist_id).await?;
     Ok(track_id)
 }
 
@@ -989,6 +1180,121 @@ pub async fn set_artist_uri(db: &Backend, name: &str, uri: &str) -> anyhow::Resu
         set_record_uri(db, UriTable::Artists, &id, uri).await?;
     }
     Ok(())
+}
+
+/// Fills the denormalised URI copies on rows a scrobble or song just created.
+///
+/// [`denormalise_album_uri`] and [`denormalise_artist_uri`] run when an
+/// `app.rocksky.album` or `app.rocksky.artist` record arrives, which only
+/// covers tracks that already existed at that moment. A scrobble for a track
+/// the catalogue has never seen creates it *after* those records were
+/// projected, and nothing filled its copies — so on a live instance the share
+/// of null `album_uri` grew with every new track, and the startup repair only
+/// masked it for rows that predated the boot.
+///
+/// Three columns, one statement per table, both scoped to a single row by
+/// primary key: this runs on every scrobble, so it cannot afford the
+/// whole-album sweeps the record-driven functions do.
+async fn denormalise_new_rows(
+    db: &Backend,
+    track_id: &str,
+    album_id: &str,
+    artist_id: &str,
+) -> anyhow::Result<()> {
+    let album_uri = Query::select()
+        .column(Albums::Uri)
+        .from(Albums::Table)
+        .and_where(Expr::col(Albums::XataId).eq(album_id))
+        .limit(1)
+        .to_owned();
+    let artist_uri = Query::select()
+        .column(Artists::Uri)
+        .from(Artists::Table)
+        .and_where(Expr::col(Artists::XataId).eq(artist_id))
+        .limit(1)
+        .to_owned();
+
+    // COALESCE rather than a `WHERE ... IS NULL` per column: one statement has
+    // to leave a column that is already set alone, and a URI a record named
+    // directly is at least as authoritative as this copy.
+    let track = Query::update()
+        .table(Tracks::Table)
+        .value(
+            Tracks::AlbumUri,
+            Func::coalesce([
+                Expr::col(Tracks::AlbumUri).into(),
+                SimpleExpr::SubQuery(None, Box::new(album_uri.clone().into_sub_query_statement())),
+            ]),
+        )
+        .value(
+            Tracks::ArtistUri,
+            Func::coalesce([
+                Expr::col(Tracks::ArtistUri).into(),
+                SimpleExpr::SubQuery(
+                    None,
+                    Box::new(artist_uri.clone().into_sub_query_statement()),
+                ),
+            ]),
+        )
+        .and_where(Expr::col(Tracks::XataId).eq(track_id))
+        .and_where(
+            Expr::col(Tracks::AlbumUri)
+                .is_null()
+                .or(Expr::col(Tracks::ArtistUri).is_null()),
+        )
+        .to_owned();
+    db.execute(&track).await?;
+
+    // `albums.artist_uri` had no writer at all — only a reader, in
+    // `recommendations`, whose `IN` therefore matched nothing.
+    let album = Query::update()
+        .table(Albums::Table)
+        .value(
+            Albums::ArtistUri,
+            SimpleExpr::SubQuery(None, Box::new(artist_uri.into_sub_query_statement())),
+        )
+        .and_where(Expr::col(Albums::XataId).eq(album_id))
+        .and_where(Expr::col(Albums::ArtistUri).is_null())
+        .to_owned();
+    db.execute(&album).await?;
+
+    Ok(())
+}
+
+/// Copies an artist's URI onto every album linked to it.
+///
+/// The album counterpart of [`denormalise_artist_uri`], for the case where the
+/// artist record arrives after the albums.
+pub async fn denormalise_album_artist_uri(db: &Backend, artist_id: &str) -> anyhow::Result<u64> {
+    let uri = Query::select()
+        .column(Artists::Uri)
+        .from(Artists::Table)
+        .and_where(Expr::col(Artists::XataId).eq(artist_id))
+        .limit(1)
+        .to_owned();
+
+    let Some(uri) = db
+        .fetch_scalar::<String>(&uri)
+        .await?
+        .filter(|u| !u.is_empty())
+    else {
+        return Ok(0);
+    };
+
+    let albums_by_artist = Query::select()
+        .column(ArtistAlbums::AlbumId)
+        .from(ArtistAlbums::Table)
+        .and_where(Expr::col(ArtistAlbums::ArtistId).eq(artist_id))
+        .to_owned();
+
+    let update = Query::update()
+        .table(Albums::Table)
+        .value(Albums::ArtistUri, uri)
+        .and_where(Expr::col(Albums::ArtistUri).is_null())
+        .and_where(Expr::col(Albums::XataId).in_subquery(albums_by_artist))
+        .to_owned();
+
+    Ok(db.execute(&update).await?)
 }
 
 /// Copies an album's URI onto every track linked to it.
@@ -1066,16 +1372,17 @@ pub async fn denormalise_artist_uri(db: &Backend, artist_id: &str) -> anyhow::Re
     Ok(db.execute(&update).await?)
 }
 
-/// Fills every `tracks.album_uri` and `tracks.artist_uri` that a known album
-/// or artist row could have supplied.
+/// Fills every `tracks.album_uri`, `tracks.artist_uri` and `albums.artist_uri`
+/// that a known album or artist row could have supplied.
 ///
-/// The repair for data ingested before the two functions above existed. Runs
-/// at startup and is idempotent — it only touches rows that are still null, so
-/// on a repaired database it updates nothing.
+/// The repair for data ingested before the functions above existed. Runs at
+/// startup and is idempotent — it only touches rows that are still null, so on
+/// a repaired database it updates nothing.
 ///
-/// Two statements rather than per-row work: this runs over the whole catalogue
-/// and a query per track would be hundreds of thousands of round trips.
-pub async fn repair_denormalised_uris(db: &Backend) -> anyhow::Result<(u64, u64)> {
+/// Three statements rather than per-row work: this runs over the whole
+/// catalogue and a query per track would be hundreds of thousands of round
+/// trips.
+pub async fn repair_denormalised_uris(db: &Backend) -> anyhow::Result<(u64, u64, u64)> {
     // The junction row is what links a track to the album, so the URI comes
     // through it rather than through the track's own (null) copy.
     let album_uri = Query::select()
@@ -1144,7 +1451,42 @@ pub async fn repair_denormalised_uris(db: &Backend) -> anyhow::Result<(u64, u64)
         )
         .await?;
 
-    Ok((albums, artists))
+    // `albums.artist_uri` reaches its artist through `artist_albums`, the same
+    // way a track reaches its album.
+    let album_artist_uri = Query::select()
+        .column((Artists::Table, Artists::Uri))
+        .from(ArtistAlbums::Table)
+        .inner_join(
+            Artists::Table,
+            Expr::col((Artists::Table, Artists::XataId))
+                .equals((ArtistAlbums::Table, ArtistAlbums::ArtistId)),
+        )
+        .and_where(
+            Expr::col((ArtistAlbums::Table, ArtistAlbums::AlbumId))
+                .equals((Albums::Table, Albums::XataId)),
+        )
+        .and_where(Expr::col((Artists::Table, Artists::Uri)).is_not_null())
+        .limit(1)
+        .to_owned();
+
+    let album_artists = db
+        .execute(
+            &Query::update()
+                .table(Albums::Table)
+                .value(
+                    Albums::ArtistUri,
+                    SimpleExpr::SubQuery(
+                        None,
+                        Box::new(album_artist_uri.clone().into_sub_query_statement()),
+                    ),
+                )
+                .and_where(Expr::col(Albums::ArtistUri).is_null())
+                .and_where(Expr::exists(album_artist_uri))
+                .to_owned(),
+        )
+        .await?;
+
+    Ok((albums, artists, album_artists))
 }
 
 /// Records a track's key and BPM, filling only what is still missing.
@@ -1203,6 +1545,7 @@ async fn ingest_scrobble(
     let track_id = upsert_track(db, song, None).await?;
 
     link_catalogue(db, &artist_id, &album_id, &track_id).await?;
+    denormalise_new_rows(db, &track_id, &album_id, &artist_id).await?;
 
     // The composite UNIQUE is the real dedupe key: several sources publish
     // their own URI for the same listen.
@@ -1933,8 +2276,8 @@ mod denormalised_uris {
 
         assert_eq!(uris(&db, &track_id).await, (None, None));
 
-        let (albums, artists) = repair_denormalised_uris(&db).await.unwrap();
-        assert_eq!((albums, artists), (1, 1));
+        let (albums, artists, album_artists) = repair_denormalised_uris(&db).await.unwrap();
+        assert_eq!((albums, artists, album_artists), (1, 1, 1));
 
         assert_eq!(
             uris(&db, &track_id).await,
@@ -1945,7 +2288,7 @@ mod denormalised_uris {
         );
 
         // Idempotent: it runs at every startup.
-        assert_eq!(repair_denormalised_uris(&db).await.unwrap(), (0, 0));
+        assert_eq!(repair_denormalised_uris(&db).await.unwrap(), (0, 0, 0));
     }
 
     /// A song record has to build the same rows a scrobble does. Creating
@@ -2244,6 +2587,205 @@ mod tests {
                 .unwrap();
             assert_eq!(count, expected, "{table}");
         }
+    }
+
+    /// The denormalised copies have to be filled when the *track* is the new
+    /// row, not only when the album or artist record arrives.
+    ///
+    /// The record-driven sweeps only reach tracks that already exist, so a
+    /// scrobble for a track first seen after its album record was projected
+    /// used to keep a null `album_uri` forever — which is how 31% of the live
+    /// catalogue ended up with one.
+    #[tokio::test]
+    async fn a_scrobble_after_the_album_record_still_gets_the_uris() {
+        let db = db::connect_in_memory().await.unwrap();
+
+        // The album and artist records land first, with no track to fill.
+        ingest(
+            &db,
+            &record(
+                ALBUM_NSID,
+                "3album",
+                serde_json::json!({
+                    "title": "Music Has the Right to Children",
+                    "artist": "Boards of Canada",
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+        ingest(
+            &db,
+            &record(
+                ARTIST_NSID,
+                "3artist",
+                serde_json::json!({ "name": "Boards of Canada" }),
+            ),
+        )
+        .await
+        .unwrap();
+
+        ingest(&db, &record(SCROBBLE_NSID, "3aaa", scrobble_value()))
+            .await
+            .unwrap();
+
+        let uris: Option<(Option<String>, Option<String>)> = db
+            .fetch_optional(&db.sql("SELECT album_uri, artist_uri FROM tracks"))
+            .await
+            .unwrap();
+        assert_eq!(
+            uris,
+            Some((
+                Some("at://did:plc:alice/app.rocksky.album/3album".into()),
+                Some("at://did:plc:alice/app.rocksky.artist/3artist".into())
+            ))
+        );
+    }
+
+    /// `albums.artist_uri` had a reader and no writer.
+    #[tokio::test]
+    async fn an_album_learns_its_artists_uri_in_either_order() {
+        for artist_first in [true, false] {
+            let db = db::connect_in_memory().await.unwrap();
+            let artist = record(
+                ARTIST_NSID,
+                "3artist",
+                serde_json::json!({ "name": "Boards of Canada" }),
+            );
+            let scrobble = record(SCROBBLE_NSID, "3aaa", scrobble_value());
+
+            if artist_first {
+                ingest(&db, &artist).await.unwrap();
+                ingest(&db, &scrobble).await.unwrap();
+            } else {
+                ingest(&db, &scrobble).await.unwrap();
+                ingest(&db, &artist).await.unwrap();
+            }
+
+            let uri: Option<String> = db
+                .fetch_scalar(&db.sql("SELECT artist_uri FROM albums"))
+                .await
+                .unwrap();
+            assert_eq!(
+                uri.as_deref(),
+                Some("at://did:plc:alice/app.rocksky.artist/3artist"),
+                "artist record first: {artist_first}"
+            );
+        }
+    }
+
+    /// A deleted scrobble has to leave the counters as if it had never been.
+    #[tokio::test]
+    async fn deleting_a_scrobble_removes_the_row_and_the_play() {
+        let db = db::connect_in_memory().await.unwrap();
+        ingest(&db, &record(SCROBBLE_NSID, "3aaa", scrobble_value()))
+            .await
+            .unwrap();
+
+        let stats = delete(&db, "did:plc:alice", SCROBBLE_NSID, "3aaa")
+            .await
+            .unwrap();
+        assert_eq!(stats.deletions, 1);
+
+        for table in ["scrobbles", "user_artists", "user_albums", "user_tracks"] {
+            let count = db
+                .count(&db.sql(format!("SELECT count(*) FROM {table}")))
+                .await
+                .unwrap();
+            assert_eq!(count, 0, "{table}");
+        }
+
+        // The catalogue is shared, so it stays: another user's scrobbles point
+        // at these rows.
+        for table in ["tracks", "albums", "artists"] {
+            let count = db
+                .count(&db.sql(format!("SELECT count(*) FROM {table}")))
+                .await
+                .unwrap();
+            assert_eq!(count, 1, "{table}");
+        }
+    }
+
+    /// Two plays, one deleted: the counter goes back to one rather than away.
+    #[tokio::test]
+    async fn deleting_one_of_two_plays_decrements_the_counter() {
+        let db = db::connect_in_memory().await.unwrap();
+        ingest(&db, &record(SCROBBLE_NSID, "3aaa", scrobble_value()))
+            .await
+            .unwrap();
+        let mut later = scrobble_value();
+        later["createdAt"] = serde_json::json!("2026-09-15T20:30:00.000Z");
+        ingest(&db, &record(SCROBBLE_NSID, "3bbb", later))
+            .await
+            .unwrap();
+
+        delete(&db, "did:plc:alice", SCROBBLE_NSID, "3bbb")
+            .await
+            .unwrap();
+
+        assert_eq!(
+            db.count(&db.sql("SELECT count(*) FROM scrobbles"))
+                .await
+                .unwrap(),
+            1
+        );
+        let plays: Option<i64> = db
+            .fetch_scalar(&db.sql("SELECT scrobbles FROM user_tracks"))
+            .await
+            .unwrap();
+        assert_eq!(plays, Some(1));
+    }
+
+    /// At-least-once delivery means the same delete can arrive twice.
+    #[tokio::test]
+    async fn deleting_an_unknown_record_changes_nothing() {
+        let db = db::connect_in_memory().await.unwrap();
+        ingest(&db, &record(SCROBBLE_NSID, "3aaa", scrobble_value()))
+            .await
+            .unwrap();
+
+        let stats = delete(&db, "did:plc:alice", SCROBBLE_NSID, "3zzz")
+            .await
+            .unwrap();
+        assert_eq!(stats.deletions, 0);
+        assert_eq!(stats.skipped, 1);
+        assert_eq!(
+            db.count(&db.sql("SELECT count(*) FROM scrobbles"))
+                .await
+                .unwrap(),
+            1
+        );
+    }
+
+    /// A song record deleted by its author must not take the track — and every
+    /// other user's scrobbles — with it.
+    #[tokio::test]
+    async fn deleting_a_song_record_leaves_the_catalogue_alone() {
+        let db = db::connect_in_memory().await.unwrap();
+        ingest(&db, &record(SCROBBLE_NSID, "3aaa", scrobble_value()))
+            .await
+            .unwrap();
+        ingest(&db, &record(SONG_NSID, "3song", scrobble_value()))
+            .await
+            .unwrap();
+
+        let stats = delete(&db, "did:plc:alice", SONG_NSID, "3song")
+            .await
+            .unwrap();
+        assert_eq!(stats.deletions, 0);
+        assert_eq!(stats.skipped, 1);
+        assert_eq!(
+            db.count(&db.sql("SELECT count(*) FROM tracks"))
+                .await
+                .unwrap(),
+            1
+        );
+        assert_eq!(
+            db.count(&db.sql("SELECT count(*) FROM scrobbles"))
+                .await
+                .unwrap(),
+            1
+        );
     }
 
     #[tokio::test]

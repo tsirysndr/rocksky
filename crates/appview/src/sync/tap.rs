@@ -14,6 +14,10 @@
 //!   before switching to live events, so a fresh instance fills itself just by
 //!   connecting. The flag is only used for logging; both kinds project the
 //!   same way.
+//! - **Deletes carry no body**, so they are projected from the URI alone by
+//!   [`ingest::delete`]. Dropping them, as this used to, leaves a row behind
+//!   for a record the repository no longer has — permanently, since nothing
+//!   else revisits it.
 
 use crate::db::schema::Users;
 use crate::ingest::{self, IncomingRecord, IngestStats, SUPPORTED_COLLECTIONS};
@@ -111,10 +115,39 @@ pub async fn run(state: AppState) {
                     );
                 }
 
+                // A delete carries no body, so it is projected from the URI
+                // alone. Keyed on the action rather than on the missing body:
+                // a create whose body failed to decode is a different thing
+                // and must not remove the row.
+                if record.action == atproto_tap::RecordAction::Delete {
+                    match ingest::delete(state.db(), &record.did, &record.collection, &record.rkey)
+                        .await
+                    {
+                        Ok(result) => {
+                            if result.deletions > 0 {
+                                state
+                                    .cache()
+                                    .incr(SCROBBLES_VERSION_KEY, Duration::from_secs(86_400))
+                                    .await;
+                            }
+                            stats.merge(result);
+                        }
+                        Err(err) => {
+                            tracing::warn!(
+                                did = %record.did,
+                                collection = %record.collection,
+                                rkey = %record.rkey,
+                                error = ?err,
+                                "failed to project a deletion"
+                            );
+                            stats.skipped += 1;
+                        }
+                    }
+                    seen += 1;
+                    continue;
+                }
+
                 let Some(value) = record.record.clone() else {
-                    // A delete carries no body. Deletions are not projected
-                    // yet — the tables have no tombstones — so they are
-                    // counted and ignored rather than silently dropped.
                     stats.skipped += 1;
                     continue;
                 };

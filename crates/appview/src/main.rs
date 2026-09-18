@@ -128,9 +128,14 @@ async fn main() -> anyhow::Result<()> {
         let repair_state = state.clone();
         tokio::spawn(async move {
             match rocksky_appview::ingest::repair_denormalised_uris(repair_state.db()).await {
-                Ok((0, 0)) => {}
-                Ok((albums, artists)) => {
-                    tracing::info!(albums, artists, "filled in missing record URIs")
+                Ok((0, 0, 0)) => {}
+                Ok((albums, artists, album_artists)) => {
+                    tracing::info!(
+                        albums,
+                        artists,
+                        album_artists,
+                        "filled in missing record URIs"
+                    )
                 }
                 Err(err) => tracing::warn!(error = ?err, "could not repair record URIs"),
             }
