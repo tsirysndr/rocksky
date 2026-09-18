@@ -49,6 +49,10 @@ pub fn configure(cfg: &mut ServiceConfig) {
 /// Every provider, in the order the UI lists them.
 const PROVIDERS: [&str; 3] = ["lastfm", "listenbrainz", "tealfm"];
 
+/// The push provider, named once so the publish path and these endpoints
+/// cannot drift apart on the spelling.
+pub(crate) const TEALFM: &str = "tealfm";
+
 /// Providers that read someone else's service and therefore need to know who
 /// to read.
 const NEEDS_USERNAME: [&str; 2] = ["lastfm", "listenbrainz"];
@@ -121,7 +125,14 @@ fn select_source(query: &mut SelectStatement) {
 /// A stored value is the person's own choice and stands. `NULL` means they
 /// never chose: the default is on, and the operator's `disabled_tealfm` list
 /// only gets to change that default.
+///
+/// `[tealfm].enabled = false` is different from both, and overrides them: it
+/// turns the feature off for the instance, so reporting anyone as enabled
+/// would be telling them a publish will happen that never will.
 fn resolve_push_enabled(stored: Option<bool>, did: &str, state: &AppState) -> bool {
+    if !state.config().tealfm_enabled {
+        return false;
+    }
     match stored {
         Some(choice) => choice,
         None => !state
@@ -130,6 +141,49 @@ fn resolve_push_enabled(stored: Option<bool>, did: &str, state: &AppState) -> bo
             .iter()
             .any(|entry| entry == did),
     }
+}
+
+/// Whether Rocksky may write `fm.teal.*` records into this person's repo.
+///
+/// The preference lives in `mirror_sources` because that is where the
+/// per-provider toggles are, but the feature it gates is not the mirror: it is
+/// the publish that happens when a scrobble is written — see
+/// [`crate::xrpc::app_rocksky::scrobble_write`]. This is the one place outside
+/// these endpoints that reads it, and before it existed the toggle was stored,
+/// reported back as on, and acted on nowhere.
+///
+/// A missing row means enabled, which is why this cannot just look for `true`.
+pub(crate) async fn is_teal_push_enabled(state: &AppState, did: &str) -> bool {
+    // The operator's switch wins over everything. Checked first so an instance
+    // with teal.fm off does not query the database per scrobble.
+    if !state.config().tealfm_enabled {
+        return false;
+    }
+
+    let query = Query::select()
+        .column((MirrorSources::Table, MirrorSources::PushEnabled))
+        .from(MirrorSources::Table)
+        .inner_join(
+            Users::Table,
+            Expr::col((Users::Table, Users::XataId))
+                .equals((MirrorSources::Table, MirrorSources::UserId)),
+        )
+        .and_where(Expr::col((Users::Table, Users::Did)).eq(did))
+        .and_where(Expr::col((MirrorSources::Table, MirrorSources::Provider)).eq(TEALFM))
+        .limit(1)
+        .to_owned();
+
+    // A query failure resolves the same way a missing row does. The
+    // alternative is dropping a publish because of a transient database error,
+    // and the stored default is "on" anyway.
+    let stored = state
+        .db()
+        .fetch_optional::<(Option<bool>,)>(&query)
+        .await
+        .unwrap_or_default()
+        .and_then(|(stored,)| stored);
+
+    resolve_push_enabled(stored, did, state)
 }
 
 impl SourceRow {
@@ -719,6 +773,38 @@ mod tests {
         // not a decision someone already made.
         assert!(resolve_push_enabled(Some(true), "did:plc:blocked", &state));
         assert!(!resolve_push_enabled(Some(false), "did:plc:alice", &state));
+    }
+
+    /// `[tealfm].enabled = false` is the operator's switch over the instance,
+    /// and it is a different lever from `disabled_dids`: it overrides an
+    /// explicit choice rather than only the default.
+    ///
+    /// It has to be reflected in what is reported, too. Answering `true` for
+    /// someone whose publish will never happen is the bug this whole feature
+    /// had before the writer existed.
+    #[tokio::test]
+    async fn the_instance_switch_overrides_even_an_explicit_choice() {
+        let mut config = crate::Config::for_test();
+        config.tealfm_enabled = false;
+        let state = crate::state::AppState::for_test_with(config).await.unwrap();
+
+        assert!(!resolve_push_enabled(None, "did:plc:alice", &state));
+        assert!(
+            !resolve_push_enabled(Some(true), "did:plc:alice", &state),
+            "an instance with teal.fm off must not report anyone as enabled"
+        );
+        assert!(
+            !is_teal_push_enabled(&state, "did:plc:alice").await,
+            "and the publish path must agree with what is reported"
+        );
+    }
+
+    /// On by default: a fresh instance publishes without being configured to.
+    #[tokio::test]
+    async fn the_instance_switch_defaults_on() {
+        let state = crate::state::AppState::for_test().await.unwrap();
+        assert!(state.config().tealfm_enabled);
+        assert!(is_teal_push_enabled(&state, "did:plc:alice").await);
     }
 
     /// Every provider is reported even with no rows, so the UI has three

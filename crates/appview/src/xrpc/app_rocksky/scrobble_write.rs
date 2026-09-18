@@ -603,7 +603,75 @@ async fn publish_records(
         }
     }
 
+    publish_teal(state, &writer, did, &record, listened_at).await;
+
     uri
+}
+
+/// Publishes the same listen into the repo again, in teal.fm's vocabulary.
+///
+/// A play record, and the `self` status that says what is on right now. Both
+/// fail independently and neither can fail the scrobble: this is a courtesy
+/// copy for teal.fm clients reading the repo, not the record of the listen.
+///
+/// # No sixty-second wait, unlike `apps/api`
+///
+/// The TypeScript sleeps 60 seconds and then checks the last five plays for a
+/// duplicate before publishing. That is because it hangs off the *now-playing*
+/// poller, which sees a track the moment it starts and has no idea yet whether
+/// it will be listened to — the wait is what turns "started" into "played",
+/// and the lookback is what stops two pollers publishing the same start twice.
+///
+/// `createScrobble` is downstream of both problems. The caller is asserting a
+/// play happened, and this function is only reached by the request that won
+/// the put-lock and passed the ±60s window described at the top of this module
+/// — so the wait would delay a confirmed listen to re-answer a question
+/// already answered, and the lookback would re-implement a dedupe that has
+/// already run against a better source than teal.fm's last five records.
+async fn publish_teal(
+    state: &AppState,
+    writer: &Writer,
+    did: &str,
+    record: &records::TrackRecord,
+    listened_at: chrono::DateTime<chrono::Utc>,
+) {
+    if !crate::xrpc::app_rocksky::mirror::is_teal_push_enabled(state, did).await {
+        return;
+    }
+
+    // Seconds, not the milliseconds `app.rocksky.scrobble` carries — see
+    // `records::teal_play_record`.
+    let duration_seconds = record.duration / 1000;
+
+    if let Err(err) = writer
+        .create(
+            records::TEAL_PLAY_NSID,
+            &records::next_tid(),
+            &records::teal_play_record(record, listened_at, duration_seconds),
+        )
+        .await
+    {
+        tracing::warn!(did, error = %err, "could not publish the teal.fm play record");
+        // The status says "this is playing now"; publishing it after the play
+        // itself failed would advertise a listen that was never recorded.
+        return;
+    }
+
+    // `put`, and deliberately without a compare-and-swap. `apps/api` reads the
+    // current CID and swaps against it, which makes two concurrent scrobbles
+    // race and one of them fail. For a "what is on right now" record that is
+    // the wrong trade: last write wins is exactly the semantics wanted, and a
+    // failed swap would leave the status showing the older track.
+    if let Err(err) = writer
+        .put(
+            records::TEAL_STATUS_NSID,
+            "self",
+            &records::teal_status_record(record, listened_at, duration_seconds, chrono::Utc::now()),
+        )
+        .await
+    {
+        tracing::warn!(did, error = %err, "could not publish the teal.fm status record");
+    }
 }
 
 /// Reads back the scrobble that was just written, as the feed presents it.

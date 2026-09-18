@@ -196,6 +196,25 @@
 # Tracklist lookups.
 # tracklist_url = "http://localhost:7884"
 
+[tealfm]
+# Rocksky publishes each listen into the listener's own repository a second
+# time, in teal.fm's vocabulary — an `fm.teal.feed.play` record per scrobble,
+# and an `fm.teal.actor.status` saying what is on right now. A teal.fm client
+# reading their repo then sees what they played here.
+#
+# This writes to the listener's repo, so it needs the fm.teal.* OAuth scopes,
+# which this instance already asks for at login.
+
+# The operator's switch over the whole instance. On by default. Off writes no
+# fm.teal.* record at all, whatever any individual has chosen — and the mirror
+# settings then report teal.fm push as off, so nobody is told otherwise.
+# enabled = true
+
+# DIDs that default to *not* publishing. Only a default: anyone who has set the
+# toggle for themselves keeps their own choice either way. This exists because
+# teal.fm asked for specific accounts not to be published by default.
+# disabled_dids = []
+
 [spotify]
 # Connecting a listener's Spotify account, so the poller can scrobble what they
 # play there. Entirely optional: with this unset, `/spotify/login` answers 501

@@ -26,6 +26,7 @@ pub struct Settings {
     pub events: Events,
     pub services: Services,
     pub spotify: Spotify,
+    pub tealfm: Tealfm,
     pub storage: Storage,
     pub web: Web,
 }
@@ -150,6 +151,24 @@ pub struct Services {
     pub drift_url: Option<String>,
     pub tracklist_url: Option<String>,
     pub artist_metadata_url: Option<String>,
+}
+
+/// Publishing each listen into the listener's own repository a second time, in
+/// teal.fm's vocabulary, so teal.fm clients reading their repo see it.
+///
+/// Two levers, and they are not the same one. `enabled` is the operator's
+/// switch over the whole instance. `disabled_dids` only changes the *default*
+/// for people who have never chosen — anyone who has set the toggle themselves
+/// keeps their choice either way.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct Tealfm {
+    /// Defaults to on. Off means no `fm.teal.*` record is ever written,
+    /// whatever any individual has chosen.
+    pub enabled: Option<bool>,
+    /// DIDs that default to *not* publishing. Overridden by anyone who sets
+    /// the toggle for themselves.
+    pub disabled_dids: Option<Vec<String>>,
 }
 
 /// Connecting a listener's Spotify account, for the poller to scrobble from.

@@ -229,6 +229,12 @@ pub struct Config {
     /// for specific accounts not to be mirrored by default.
     pub disabled_tealfm: Vec<String>,
 
+    /// The operator's switch over teal.fm publishing for the whole instance.
+    ///
+    /// Off writes no `fm.teal.*` record at all, whatever anyone has chosen for
+    /// themselves — unlike `disabled_tealfm`, which only moves the default.
+    pub tealfm_enabled: bool,
+
     pub navidrome_internal_url: Option<String>,
     pub navidrome_internal_secret: Option<String>,
     pub spotify_api_url: Option<String>,
@@ -848,7 +854,12 @@ impl Config {
                 .filter(|url| !url.is_empty())
                 .unwrap_or_else(|| DEFAULT_NATS_URL.to_string()),
 
-            disabled_tealfm: env_list("DISABLED_TEALFM").unwrap_or_default(),
+            disabled_tealfm: env_list("DISABLED_TEALFM")
+                .or(file.tealfm.disabled_dids.clone())
+                .unwrap_or_default(),
+            tealfm_enabled: env_flag("TEALFM_ENABLED")
+                .or(file.tealfm.enabled)
+                .unwrap_or(true),
 
             navidrome_internal_url: pick(
                 None,
@@ -1035,6 +1046,7 @@ impl Config {
             typesense_api_key: DEFAULT_TYPESENSE_API_KEY.to_string(),
             nats_url: DEFAULT_NATS_URL.to_string(),
             disabled_tealfm: Vec::new(),
+            tealfm_enabled: true,
             navidrome_internal_url: None,
             navidrome_internal_secret: None,
             spotify_api_url: None,

@@ -175,6 +175,117 @@ pub fn artist_record(track: &TrackRecord, created_at: &str) -> Value {
     }))
 }
 
+// ------------------------------------------------------------------- teal.fm
+//
+// Rocksky publishes each listen into the listener's own repository a second
+// time, as teal.fm's vocabulary, so a teal.fm client reading their repo sees
+// it. The schemas live in `apps/api/src/tealfm/lexicons/fm.teal/`.
+//
+// Built by hand rather than generated: the codegen vendors `app.rocksky`,
+// `com.atproto` and `app.bsky`, and teaching it a fourth namespace to produce
+// two record shapes is more machinery than the shapes are worth.
+
+pub const TEAL_PLAY_NSID: &str = "fm.teal.feed.play";
+pub const TEAL_STATUS_NSID: &str = "fm.teal.actor.status";
+
+/// What teal.fm records as the client that submitted a play.
+pub const TEAL_CLIENT_AGENT: &str = "rocksky/v0.0.1";
+
+/// MusicBrainz ids are URIs in this vocabulary: `mbid:<uuid>`.
+///
+/// Idempotent, because some sources already store the prefix and double
+/// prefixing produces an id that resolves to nothing.
+fn mbid_uri(mbid: Option<&str>) -> Option<String> {
+    let mbid = mbid.map(str::trim).filter(|id| !id.is_empty())?;
+    Some(if mbid.starts_with("mbid:") {
+        mbid.to_string()
+    } else {
+        format!("mbid:{mbid}")
+    })
+}
+
+/// The credited artists, as `fm.teal.feed.defs#artist`.
+///
+/// Rocksky keeps one comma-separated `artist` string where teal.fm wants a
+/// list, so it is split here. Only the album artist has a MusicBrainz id in
+/// this shape, and attaching it to each name would be wrong — so names go out
+/// without one rather than with somebody else's.
+fn teal_artists(track: &TrackRecord) -> Vec<Value> {
+    let names: Vec<&str> = track
+        .artist
+        .split(',')
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .collect();
+
+    // `artists` is required and must not be empty; fall back to the album
+    // artist when the track's own field is unusable.
+    if names.is_empty() {
+        return vec![serde_json::json!({ "artistName": track.album_artist })];
+    }
+
+    names
+        .into_iter()
+        .map(|name| serde_json::json!({ "artistName": name }))
+        .collect()
+}
+
+/// The body both the play record and the status item carry.
+fn teal_play_view(track: &TrackRecord, played_at: &str, duration_seconds: i64) -> Value {
+    prune(serde_json::json!({
+        "trackName": track.title,
+        "artists": teal_artists(track),
+        "duration": duration_seconds,
+        "playedTime": played_at,
+        "releaseName": track.album,
+        "recordingMbId": mbid_uri(track.mb_id.as_deref()),
+        "isrc": track.isrc,
+        "submissionClientAgent": TEAL_CLIENT_AGENT,
+    }))
+}
+
+/// An `fm.teal.feed.play` record.
+///
+/// `duration` is **seconds** here, where `app.rocksky.scrobble` carries
+/// milliseconds — the two vocabularies disagree, and publishing milliseconds
+/// into this field claims a three-minute song lasted two days.
+pub fn teal_play_record(
+    track: &TrackRecord,
+    played_at: chrono::DateTime<chrono::Utc>,
+    duration_seconds: i64,
+) -> Value {
+    let played_at = rocksky_core::timestamp::to_iso8601(&played_at);
+    let mut value = teal_play_view(track, &played_at, duration_seconds);
+    if let Some(object) = value.as_object_mut() {
+        object.insert("$type".into(), Value::String(TEAL_PLAY_NSID.into()));
+    }
+    value
+}
+
+/// An `fm.teal.actor.status` record — "this is on right now".
+///
+/// One per repository, at rkey `self`, replaced on each play. `expiry` is what
+/// stops a stale status showing forever when someone stops listening; ten
+/// minutes is the default the lexicon names.
+pub fn teal_status_record(
+    track: &TrackRecord,
+    played_at: chrono::DateTime<chrono::Utc>,
+    duration_seconds: i64,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Value {
+    let item = teal_play_view(
+        track,
+        &rocksky_core::timestamp::to_iso8601(&played_at),
+        duration_seconds,
+    );
+    serde_json::json!({
+        "$type": TEAL_STATUS_NSID,
+        "item": item,
+        "time": rocksky_core::timestamp::to_iso8601(&now),
+        "expiry": rocksky_core::timestamp::to_iso8601(&(now + chrono::Duration::minutes(10))),
+    })
+}
+
 /// Writes a record and returns its AT-URI.
 ///
 /// Uses the stored app-password session's access token. An OAuth session needs
@@ -315,6 +426,110 @@ pub async fn publish(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn teal_track() -> TrackRecord {
+        TrackRecord {
+            title: "Roygbiv".into(),
+            artist: "Boards of Canada, Someone Else".into(),
+            album: "Music Has the Right to Children".into(),
+            album_artist: "Boards of Canada".into(),
+            duration: 151_000,
+            mb_id: Some("68bd5063-d006-40ec-8aff-a43bd66f00ce".into()),
+            ..Default::default()
+        }
+    }
+
+    fn at(iso: &str) -> chrono::DateTime<chrono::Utc> {
+        chrono::DateTime::parse_from_rfc3339(iso)
+            .unwrap()
+            .with_timezone(&chrono::Utc)
+    }
+
+    /// `app.rocksky.scrobble` carries milliseconds and `fm.teal.feed.play`
+    /// carries seconds. Publishing one into the other claims a three-minute
+    /// song lasted two days.
+    #[test]
+    fn a_teal_play_carries_seconds_not_milliseconds() {
+        let record = teal_play_record(&teal_track(), at("2026-09-15T19:59:13Z"), 151_000 / 1000);
+        assert_eq!(record["duration"], 151);
+        assert_eq!(record["$type"], TEAL_PLAY_NSID);
+        assert_eq!(record["playedTime"], "2026-09-15T19:59:13.000Z");
+    }
+
+    /// Rocksky keeps one comma-separated string; teal.fm wants a list, and
+    /// `artists` is required and must not be empty.
+    #[test]
+    fn the_artist_string_becomes_a_list() {
+        let record = teal_play_record(&teal_track(), at("2026-09-15T19:59:13Z"), 151);
+        let artists = record["artists"].as_array().expect("an array");
+        assert_eq!(artists.len(), 2);
+        assert_eq!(artists[0]["artistName"], "Boards of Canada");
+        assert_eq!(artists[1]["artistName"], "Someone Else");
+        // Only the album artist has an id in this shape, and attaching it to
+        // every name would credit the wrong person.
+        assert!(artists[1].get("artistMbId").is_none());
+    }
+
+    /// `artists` is required, so a track whose artist field is unusable still
+    /// has to produce one.
+    #[test]
+    fn an_empty_artist_field_falls_back_to_the_album_artist() {
+        let mut track = teal_track();
+        track.artist = "  ,  ".into();
+        let record = teal_play_record(&track, at("2026-09-15T19:59:13Z"), 151);
+        let artists = record["artists"].as_array().unwrap();
+        assert_eq!(artists.len(), 1);
+        assert_eq!(artists[0]["artistName"], "Boards of Canada");
+    }
+
+    /// MusicBrainz ids are URIs here, and double prefixing produces an id that
+    /// resolves to nothing.
+    #[test]
+    fn the_mbid_is_prefixed_once() {
+        assert_eq!(mbid_uri(Some("abc")).as_deref(), Some("mbid:abc"));
+        assert_eq!(mbid_uri(Some("mbid:abc")).as_deref(), Some("mbid:abc"));
+        assert_eq!(mbid_uri(Some("   ")), None);
+        assert_eq!(mbid_uri(None), None);
+
+        let record = teal_play_record(&teal_track(), at("2026-09-15T19:59:13Z"), 151);
+        assert_eq!(
+            record["recordingMbId"],
+            "mbid:68bd5063-d006-40ec-8aff-a43bd66f00ce"
+        );
+    }
+
+    /// The lexicon declares optional fields absent-or-present, so a null is a
+    /// validation failure rather than "no value".
+    #[test]
+    fn absent_fields_are_dropped_rather_than_nulled() {
+        let mut track = teal_track();
+        track.mb_id = None;
+        track.isrc = None;
+        let record = teal_play_record(&track, at("2026-09-15T19:59:13Z"), 151);
+
+        assert!(record.get("recordingMbId").is_none());
+        assert!(record.get("isrc").is_none());
+        assert!(record.as_object().unwrap().values().all(|v| !v.is_null()));
+    }
+
+    /// Ten minutes after the status is recorded, which is the default the
+    /// lexicon names — without it a stale status shows forever.
+    #[test]
+    fn a_status_expires_ten_minutes_out() {
+        let record = teal_status_record(
+            &teal_track(),
+            at("2026-09-15T19:59:13Z"),
+            151,
+            at("2026-09-15T20:00:00Z"),
+        );
+        assert_eq!(record["$type"], TEAL_STATUS_NSID);
+        assert_eq!(record["time"], "2026-09-15T20:00:00.000Z");
+        assert_eq!(record["expiry"], "2026-09-15T20:10:00.000Z");
+        // The item is the play, so a client has the track without resolving
+        // the play record too.
+        assert_eq!(record["item"]["trackName"], "Roygbiv");
+        assert_eq!(record["item"]["duration"], 151);
+    }
 
     /// Only a URI from this repo is reusable — an album row is shared between
     /// users, so its URI is often someone else's record.
