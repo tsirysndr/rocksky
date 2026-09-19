@@ -16,7 +16,11 @@ const lovedTracks = pgTable(
     uri: text("uri").unique(),
     createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   },
-  (t) => [index("loved_tracks_track_id_idx").on(t.trackId)],
+  (t) => [
+    index("loved_tracks_track_id_idx").on(t.trackId),
+    // The profile counts loved songs by listener. See drizzle/0028.
+    index("loved_tracks_user_id_idx").on(t.userId),
+  ],
 );
 
 export type SelectLovedTrack = InferSelectModel<typeof lovedTracks>;
