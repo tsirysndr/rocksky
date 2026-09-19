@@ -12,6 +12,7 @@ tokio = { version = "1.43.0", features = ["full"] }
 dotenv = "0.15.0"
 anyhow = "1.0.96"
 rocksky-appview = { path = "../appview" }
+rocksky-analytics = { path = "../analytics" }
 rocksky-db = { path = "../db" }
 rocksky-telemetry = { path = "../telemetry" }
 toml = "0.8"

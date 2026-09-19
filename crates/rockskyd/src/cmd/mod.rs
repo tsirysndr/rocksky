@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod appview;
 pub mod jellyfin;
 pub mod jetstream;

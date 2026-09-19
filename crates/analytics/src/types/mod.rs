@@ -1,0 +1,9 @@
+pub mod album;
+pub mod artist;
+pub mod filters;
+pub mod pagination;
+pub mod playlist;
+pub mod scrobble;
+pub mod stats;
+pub mod track;
+pub mod user;

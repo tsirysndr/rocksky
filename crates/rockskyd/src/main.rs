@@ -22,6 +22,12 @@ fn cli() -> Command {
                  the web UI. The default when no subcommand is given.",
             ),
         )
+        .subcommand(
+            Command::new("analytics")
+                .about("Precomputed listening statistics, served to apps/api over HTTP")
+                .subcommand(Command::new("sync").about("Sync the analytics store from Postgres"))
+                .subcommand(Command::new("serve").about("Serve the analytics API")),
+        )
         .subcommand(Command::new("jellyfin").about("Start Jellyfin-compatible API"))
         .subcommand(Command::new("jetstream").about("Start JetStream Subscriber Service"))
         .subcommand(Command::new("mirror").about("Mirror plays from Last.fm, ListenBrainz, Teal.fm into Rocksky"))
@@ -91,6 +97,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(("appview", sub_m)) => {
             cmd::appview::start_appview_service(AppviewCli::from_arg_matches(sub_m)?).await?;
         }
+        Some(("analytics", sub_m)) => match sub_m.subcommand() {
+            Some(("sync", _)) => cmd::analytics::sync().await?,
+            Some(("serve", _)) => cmd::analytics::serve().await?,
+            _ => println!("Unknown analytics command"),
+        },
         Some(("jellyfin", _)) => {
             cmd::jellyfin::start_jellyfin_service().await?;
         }
