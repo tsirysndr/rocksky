@@ -1,7 +1,6 @@
 //! `app.rocksky.stats.*`
 
 use crate::actors;
-use crate::analytics;
 use crate::db::loaders::{albums_by_id, artists_by_id, tracks_by_id};
 use crate::db::schema::{Albums, Artists, LovedTracks, Scrobbles, Tracks, Users};
 use crate::db::Backend;
@@ -91,27 +90,11 @@ async fn get_stats(
     state: web::Data<AppState>,
     params: web::Query<GetStatsParams>,
 ) -> XrpcResult<HttpResponse> {
-    if let Some(stats) = analytics::stats(&state, &params.did).await {
-        return json(StatsView::from(stats));
-    }
-
     match load_stats(state.db(), &params.did).await {
         Ok(view) => json(view),
         Err(err) => {
             tracing::error!(error = %err, did = %params.did, "failed to retrieve stats");
             json(StatsView::default())
-        }
-    }
-}
-
-impl From<analytics::Stats> for StatsView {
-    fn from(stats: analytics::Stats) -> Self {
-        Self {
-            scrobbles: stats.scrobbles,
-            artists: stats.artists,
-            loved_tracks: stats.loved_tracks,
-            albums: stats.albums,
-            tracks: stats.tracks,
         }
     }
 }

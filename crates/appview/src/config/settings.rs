@@ -170,9 +170,6 @@ pub struct Services {
     pub drift_url: Option<String>,
     pub tracklist_url: Option<String>,
     pub artist_metadata_url: Option<String>,
-    /// Precomputed listening aggregates. Unset queries the database instead —
-    /// correct either way, and much slower over a remote Postgres.
-    pub analytics_url: Option<String>,
 }
 
 /// Publishing each listen into the listener's own repository a second time, in

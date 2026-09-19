@@ -9,7 +9,6 @@
 //! Rocksky from the docker-compose file in this directory.
 
 pub mod actors;
-pub mod analytics;
 pub mod atproto;
 pub mod auth;
 pub mod backfill;
