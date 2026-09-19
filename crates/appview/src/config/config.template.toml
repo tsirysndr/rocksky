@@ -224,7 +224,14 @@
 # speak. This is the collector's BASE url; each signal hangs off it
 # (/v1/traces, /v1/metrics, /v1/logs).
 #
-#   Jaeger      otlp_endpoint = "http://jaeger:4318"
+# Prefer a literal 127.0.0.1 over `localhost` for a collector on the same
+# host. `localhost` resolves to ::1 first on most Linux distributions, and a
+# collector bound to 127.0.0.1 — which is what Jaeger's default and every
+# loopback-only deployment does — is not listening there. The export then
+# fails with a bare "network error" while `curl http://localhost:4318` works,
+# because curl falls back to IPv4 and the exporter does not.
+#
+#   Jaeger      otlp_endpoint = "http://127.0.0.1:4318"
 #   Grafana/Tempo, or any OpenTelemetry Collector
 #               otlp_endpoint = "http://collector:4318"
 #   Honeycomb   otlp_endpoint = "https://api.honeycomb.io"
