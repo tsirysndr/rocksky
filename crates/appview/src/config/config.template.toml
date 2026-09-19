@@ -237,6 +237,12 @@
 # Tracklist lookups.
 # tracklist_url = "http://localhost:7884"
 
+# Where /ws — the remote-player websocket the miniplayer and device picker
+# use — is proxied to. The protocol belongs to the Elixir remote-ws service
+# and this binary pipes frames rather than reimplementing it. Defaults to the
+# official deployment; point it at your own remote-ws to self-host that too.
+# remote_ws_url = "wss://api.rocksky.app/ws"
+
 [telemetry]
 # OpenTelemetry: traces, metrics and logs. All off by default — a personal
 # instance should not need an observability stack to boot.

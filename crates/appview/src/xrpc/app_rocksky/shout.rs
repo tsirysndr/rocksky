@@ -433,9 +433,11 @@ struct Subject {
 
 /// Resolves a subject URI to the row it hangs off.
 async fn resolve_subject(db: &Backend, uri: &str) -> Result<Subject, XrpcError> {
-    // A bare DID is a profile shout. Checked first, because a DID contains no
-    // collection segment and would otherwise fall through to "unknown".
-    if uri.starts_with("did:") {
+    // A bare DID — or a handle, which is what the legacy REST path carries
+    // when the UI only had one — is a profile shout. Checked first, because
+    // neither contains a collection segment and both would otherwise fall
+    // through to "unknown".
+    if uri.starts_with("did:") || !uri.contains('/') {
         let user = find_user(db, uri)
             .await?
             .ok_or_else(|| XrpcError::invalid_request("No such account"))?;
@@ -485,7 +487,11 @@ async fn resolve_subject(db: &Backend, uri: &str) -> Result<Subject, XrpcError> 
 }
 
 /// `app.rocksky.shout.createShout`
-async fn create_shout(
+///
+/// `pub(crate)`: the legacy REST routes under `/users` (see
+/// [`crate::rest::users`]) accept the same writes at their old paths and
+/// delegate here rather than re-implementing the record write.
+pub(crate) async fn create_shout(
     state: web::Data<AppState>,
     auth: AuthDid,
     body: web::Json<CreateShoutInput>,
@@ -519,7 +525,7 @@ pub struct ReplyShoutInput {
 ///
 /// A reply inherits its parent's subject, so it appears under the same song or
 /// album as the shout it answers.
-async fn reply_shout(
+pub(crate) async fn reply_shout(
     state: web::Data<AppState>,
     auth: AuthDid,
     body: web::Json<ReplyShoutInput>,
@@ -717,7 +723,7 @@ pub struct RemoveShoutParams {
 /// Only the author may remove their own shout. Checked in the `WHERE` rather
 /// than by reading first and then deleting, so there is no window between the
 /// two.
-async fn remove_shout(
+pub(crate) async fn remove_shout(
     state: web::Data<AppState>,
     auth: AuthDid,
     params: web::Query<RemoveShoutParams>,
@@ -784,7 +790,7 @@ pub struct ReportShoutInput {
 }
 
 /// `app.rocksky.shout.reportShout`
-async fn report_shout(
+pub(crate) async fn report_shout(
     state: web::Data<AppState>,
     auth: AuthDid,
     body: web::Json<ReportShoutInput>,
@@ -859,7 +865,7 @@ async fn record_report(db: &Backend, did: &str, shout_ref: &str) -> Result<Strin
 
 /// `shoutId` may be a row id or the shout's AT-URI; both are accepted, as the
 /// TypeScript handler accepts them.
-async fn resolve_shout_id(db: &Backend, id_or_uri: &str) -> Result<String, XrpcError> {
+pub(crate) async fn resolve_shout_id(db: &Backend, id_or_uri: &str) -> Result<String, XrpcError> {
     let column = if id_or_uri.starts_with("at://") {
         Shouts::Uri
     } else {

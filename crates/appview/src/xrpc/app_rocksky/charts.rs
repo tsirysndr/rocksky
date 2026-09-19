@@ -734,7 +734,7 @@ async fn precomputed_chart(
     db.fetch_all(&query).await
 }
 
-async fn load_scrobbles_chart(
+pub(crate) async fn load_scrobbles_chart(
     db: &Backend,
     params: &ScrobblesChartParams,
 ) -> Result<Vec<ChartPoint>, sqlx::Error> {

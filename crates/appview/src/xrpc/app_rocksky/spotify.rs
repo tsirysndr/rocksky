@@ -153,7 +153,7 @@ pub struct GetCurrentlyPlayingParams {
 }
 
 /// `app.rocksky.spotify.getCurrentlyPlaying`
-async fn get_currently_playing(
+pub(crate) async fn get_currently_playing(
     state: web::Data<AppState>,
     auth: Auth,
     params: web::Query<GetCurrentlyPlayingParams>,

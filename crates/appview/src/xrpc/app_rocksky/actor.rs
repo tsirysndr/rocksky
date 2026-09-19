@@ -186,9 +186,13 @@ async fn get_profile(
     match load_profile(state.db(), &did).await {
         Ok(Some(profile)) => json(serde_json::to_value(profile).unwrap_or_default()),
         Ok(None) => json(serde_json::json!({})),
+        // A 500, never `{}`. The UI reads `{}` as "this token is no good" and
+        // deletes it (useProfile.tsx), so answering `{}` here turned every
+        // transient database error into a forced sign-out — which is what
+        // "I randomly get logged out" was. A 500 it shows and retries past.
         Err(err) => {
             tracing::error!(error = ?err, did = %did, "error retrieving a profile");
-            json(serde_json::json!({}))
+            Err(crate::error::XrpcError::internal(err))
         }
     }
 }

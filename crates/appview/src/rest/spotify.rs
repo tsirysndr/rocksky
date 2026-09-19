@@ -87,6 +87,19 @@ const USER_SUBJECT: &str = "rocksky.spotify.user";
 pub fn configure(cfg: &mut ServiceConfig) {
     cfg.route("/spotify/login", web::get().to(login));
     cfg.route("/spotify/callback", web::get().to(callback));
+
+    // The player controls the sticky player's transport buttons call
+    // (`useSpotify.tsx`). Methods as `apps/api` declares them: transport
+    // state changes are PUT, queue movement is POST.
+    cfg.route(
+        "/spotify/currently-playing",
+        web::get().to(currently_playing),
+    );
+    cfg.route("/spotify/play", web::put().to(play));
+    cfg.route("/spotify/pause", web::put().to(pause));
+    cfg.route("/spotify/next", web::post().to(next));
+    cfg.route("/spotify/previous", web::post().to(previous));
+    cfg.route("/spotify/seek", web::put().to(seek));
 }
 
 /// The settings all of this needs, proven present together.
@@ -550,4 +563,208 @@ mod tests {
         assert!(SCOPES.contains(&"user-read-currently-playing"));
         assert!(SCOPES.contains(&"user-read-playback-state"));
     }
+}
+
+// ------------------------------------------------------------- the player
+
+/// `GET /spotify/currently-playing`
+///
+/// The same cache read as `app.rocksky.spotify.getCurrentlyPlaying`; the REST
+/// spelling names the listener `did` where the lexicon says `actor`.
+async fn currently_playing(
+    state: web::Data<AppState>,
+    auth: crate::auth::Auth,
+    params: web::Query<std::collections::HashMap<String, String>>,
+) -> XrpcResult<HttpResponse> {
+    let actor = params.get("did").cloned();
+    crate::xrpc::app_rocksky::spotify::get_currently_playing(
+        state,
+        auth,
+        web::Query(crate::xrpc::app_rocksky::spotify::GetCurrentlyPlayingParams { actor }),
+    )
+    .await
+}
+
+/// The listener's refresh token and the application it was issued under.
+///
+/// The application comes from the token row's own `spotify_app_id` — the app
+/// the token was issued under is the only one that can refresh it — with the
+/// configured application as the fallback for a row written before the column
+/// was, and for a self-hosted instance that has exactly one app.
+async fn refresh_credentials(
+    db: &Backend,
+    config: &SpotifyConfig,
+    user_id: &str,
+) -> XrpcResult<(String, String, String)> {
+    let query = Query::select()
+        .column((SpotifyTokens::Table, SpotifyTokens::RefreshToken))
+        .column((SpotifyApps::Table, SpotifyApps::SpotifyAppId))
+        .column((SpotifyApps::Table, SpotifyApps::SpotifySecret))
+        .from(SpotifyTokens::Table)
+        .left_join(
+            SpotifyApps::Table,
+            Expr::col((SpotifyApps::Table, SpotifyApps::SpotifyAppId))
+                .equals((SpotifyTokens::Table, SpotifyTokens::SpotifyAppId)),
+        )
+        .and_where(Expr::col((SpotifyTokens::Table, SpotifyTokens::UserId)).eq(user_id))
+        .limit(1)
+        .to_owned();
+
+    type Row = (String, Option<String>, Option<String>);
+    let Some((encrypted_refresh, app_id, app_secret)) = db.fetch_optional::<Row>(&query).await?
+    else {
+        // The same answer `apps/api` gives: no linked account is a 401, which
+        // the UI reads as "show the connect banner", not as an outage.
+        return Err(XrpcError::auth_required("No Spotify account is linked"));
+    };
+
+    let refresh = decrypt(
+        &config.encryption_key,
+        &config.encryption_iv,
+        &encrypted_refresh,
+    )
+    .map_err(XrpcError::internal)?;
+
+    let (client_id, client_secret) = match (app_id, app_secret) {
+        (Some(id), Some(encrypted)) => {
+            let secret = decrypt(&config.encryption_key, &config.encryption_iv, &encrypted)
+                .map_err(XrpcError::internal)?;
+            (id, secret)
+        }
+        _ => (config.client_id.clone(), config.client_secret.clone()),
+    };
+
+    Ok((refresh, client_id, client_secret))
+}
+
+/// A fresh access token for the caller.
+///
+/// Refreshed on every call, as `apps/api` does. Not as wasteful as it looks:
+/// these are transport buttons, pressed a few times a minute at most, and
+/// storing the short-lived access token would add a staleness path for no
+/// saved round trip that matters.
+async fn access_token_for(
+    state: &AppState,
+    config: &SpotifyConfig,
+    did: &str,
+) -> XrpcResult<String> {
+    let db = state.db();
+    let user_id = user_id_for(db, did)
+        .await?
+        .ok_or_else(|| XrpcError::auth_required("No account for this token"))?;
+    let (refresh, client_id, client_secret) = refresh_credentials(db, config, &user_id).await?;
+
+    let response = state
+        .http()
+        .post(format!("{}/api/token", config.accounts_url))
+        .form(&[
+            ("grant_type", "refresh_token"),
+            ("refresh_token", refresh.as_str()),
+            ("client_id", client_id.as_str()),
+            ("client_secret", client_secret.as_str()),
+        ])
+        .send()
+        .await
+        .map_err(XrpcError::internal)?;
+
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Err(XrpcError::internal(anyhow::anyhow!(
+            "Spotify answered {status} for the token refresh: {body}"
+        )));
+    }
+    let tokens: TokenResponse = serde_json::from_str(&body).map_err(XrpcError::internal)?;
+    Ok(tokens.access_token)
+}
+
+/// Calls one `/me/player/…` endpoint with the caller's freshly refreshed
+/// token and passes Spotify's answer through.
+///
+/// A 2xx with an empty body — which is Spotify's normal answer for the
+/// transport commands — becomes `{}`, because the client does
+/// `response.data` and nothing more. A 403 is passed through with Spotify's
+/// own text: it is how "this account has no active device" and "this needs
+/// Premium" reach the user, and rewording it here would hide which one it
+/// was.
+async fn player_call(
+    state: &AppState,
+    auth: &AuthDid,
+    method: reqwest::Method,
+    path_and_query: &str,
+) -> XrpcResult<HttpResponse> {
+    let config = SpotifyConfig::read(state).ok_or_else(not_configured)?;
+    let token = access_token_for(state, &config, &auth.did).await?;
+
+    let base = state
+        .config()
+        .spotify_api_url
+        .as_deref()
+        .unwrap_or("https://api.spotify.com/v1")
+        .trim_end_matches('/');
+
+    let response = state
+        .http()
+        .request(method, format!("{base}{path_and_query}"))
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(XrpcError::internal)?;
+
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+
+    if status.is_success() {
+        let value: serde_json::Value =
+            serde_json::from_str(&body).unwrap_or_else(|_| serde_json::json!({}));
+        return Ok(HttpResponse::Ok().json(value));
+    }
+    Ok(actix_web::HttpResponseBuilder::new(
+        actix_web::http::StatusCode::from_u16(status.as_u16())
+            .unwrap_or(actix_web::http::StatusCode::BAD_GATEWAY),
+    )
+    .body(body))
+}
+
+/// `PUT /spotify/play`
+async fn play(state: web::Data<AppState>, auth: AuthDid) -> XrpcResult<HttpResponse> {
+    player_call(&state, &auth, reqwest::Method::PUT, "/me/player/play").await
+}
+
+/// `PUT /spotify/pause`
+async fn pause(state: web::Data<AppState>, auth: AuthDid) -> XrpcResult<HttpResponse> {
+    player_call(&state, &auth, reqwest::Method::PUT, "/me/player/pause").await
+}
+
+/// `POST /spotify/next`
+async fn next(state: web::Data<AppState>, auth: AuthDid) -> XrpcResult<HttpResponse> {
+    player_call(&state, &auth, reqwest::Method::POST, "/me/player/next").await
+}
+
+/// `POST /spotify/previous`
+async fn previous(state: web::Data<AppState>, auth: AuthDid) -> XrpcResult<HttpResponse> {
+    player_call(&state, &auth, reqwest::Method::POST, "/me/player/previous").await
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct SeekQuery {
+    position_ms: Option<u64>,
+}
+
+/// `PUT /spotify/seek?position_ms=…`
+async fn seek(
+    state: web::Data<AppState>,
+    auth: AuthDid,
+    query: web::Query<SeekQuery>,
+) -> XrpcResult<HttpResponse> {
+    let position = query
+        .position_ms
+        .ok_or_else(|| XrpcError::invalid_request("position_ms is required"))?;
+    player_call(
+        &state,
+        &auth,
+        reqwest::Method::PUT,
+        &format!("/me/player/seek?position_ms={position}"),
+    )
+    .await
 }

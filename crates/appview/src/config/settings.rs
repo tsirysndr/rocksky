@@ -170,6 +170,9 @@ pub struct Services {
     pub drift_url: Option<String>,
     pub tracklist_url: Option<String>,
     pub artist_metadata_url: Option<String>,
+    /// Where `/ws` — the remote-player socket — is proxied to. Defaults to
+    /// the official `remote-ws` deployment.
+    pub remote_ws_url: Option<String>,
 }
 
 /// Publishing each listen into the listener's own repository a second time, in

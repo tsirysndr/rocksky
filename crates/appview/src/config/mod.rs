@@ -263,6 +263,10 @@ pub struct Config {
     pub drift_url: Option<String>,
     pub tracklist_url: Option<String>,
 
+    /// The upstream for the `/ws` remote-player proxy. `None` uses the
+    /// official deployment — see `crate::rest::remote`.
+    pub remote_ws_url: Option<String>,
+
     /// Object storage for uploads. `None` for any of these means uploads are
     /// unavailable — the rest of the instance is unaffected.
     pub s3: Option<S3Config>,
@@ -981,6 +985,7 @@ impl Config {
             deezer_url: pick(None, "DEEZER_URL", file.services.deezer_url.clone()),
             drift_url: pick(None, "DRIFT_URL", file.services.drift_url.clone()),
             tracklist_url: pick(None, "TRACKLIST", file.services.tracklist_url.clone()),
+            remote_ws_url: pick(None, "REMOTE_WS_URL", file.services.remote_ws_url.clone()),
 
             s3: S3Config::resolve(&file.storage),
             storage_encryption_key,
@@ -1135,6 +1140,7 @@ impl Config {
             deezer_url: None,
             drift_url: None,
             tracklist_url: None,
+            remote_ws_url: None,
             s3: None,
             storage_encryption_key:
                 "0000000000000000000000000000000000000000000000000000000000000001".into(),

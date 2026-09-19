@@ -139,16 +139,19 @@ fn runtime_config(req: &HttpRequest, config: &Config) -> serde_json::Value {
         .or_else(|| origin.clone())
         .unwrap_or_else(|| config.public_url.clone());
 
-    let ws_url = config.web_ws_url.clone().or_else(|| {
-        // Same origin, ws(s) scheme — the websocket endpoint is served by this
-        // binary too.
-        let origin = origin.as_ref()?;
-        Some(
-            origin
-                .replacen("https://", "wss://", 1)
-                .replacen("http://", "ws://", 1),
-        )
-    });
+    // The live-feed websocket. This binary serves no socket of its own, so
+    // the same-origin default the other URLs use would be wrong here — an
+    // upgrade against this origin falls through to the SPA fallback and the
+    // handshake dies on an HTML answer, which is what "the feed never moves"
+    // looked like. The official `apps/ws` deployment is the default;
+    // `[web] ws_url` points a self-hosted instance at its own.
+    //
+    // It has to be injected rather than redirected: the browser WebSocket
+    // API does not follow a 3xx on the handshake.
+    let ws_url = config
+        .web_ws_url
+        .clone()
+        .unwrap_or_else(|| "wss://ws.rocksky.app".to_string());
 
     let mut value = serde_json::json!({
         "apiUrl": api_url,
@@ -157,9 +160,7 @@ fn runtime_config(req: &HttpRequest, config: &Config) -> serde_json::Value {
         "selfHosted": true,
     });
 
-    if let Some(ws_url) = ws_url {
-        value["wsUrl"] = serde_json::Value::String(ws_url);
-    }
+    value["wsUrl"] = serde_json::Value::String(ws_url);
     value
 }
 
@@ -370,7 +371,12 @@ mod tests {
             .to_http_request();
         let value = runtime_config(&req, &config);
         assert_eq!(value["apiUrl"], "http://rocksky.local:3004");
-        assert_eq!(value["wsUrl"], "ws://rocksky.local:3004");
+        // NOT the request origin: `wsUrl` is the *feed* socket, which only
+        // `apps/ws` speaks — this binary serves no socket at that path, so a
+        // same-origin default was a handshake against the SPA fallback. The
+        // remote-player socket is different: it is `apiUrl` + `/ws`, which
+        // this binary proxies (`rest::remote`), so it does follow the origin.
+        assert_eq!(value["wsUrl"], "wss://ws.rocksky.app");
     }
 
     #[test]
@@ -388,7 +394,8 @@ mod tests {
         // Answering http:// here would get every API call blocked as mixed
         // content on an https page.
         assert_eq!(value["apiUrl"], "https://rocksky.example");
-        assert_eq!(value["wsUrl"], "wss://rocksky.example");
+        // The feed socket does not follow the origin — see above.
+        assert_eq!(value["wsUrl"], "wss://ws.rocksky.app");
     }
 
     #[test]

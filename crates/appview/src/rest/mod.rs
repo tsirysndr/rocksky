@@ -5,10 +5,12 @@
 //! sign anyone in. The paths and payloads match `apps/api` exactly, because
 //! the same `apps/web` bundle talks to both.
 //!
-//! The legacy REST surface is deliberately absent. `/users/{did}/albums`,
-//! `/artists`, `/tracks`, `/scrobbles` and `/stats` duplicate what the
-//! `app.rocksky.*` methods already answer, and `apps/web` calls the XRPC ones.
-//! Porting them would mean a second implementation of the same queries.
+//! Most of the legacy `/users/*` surface is deliberately absent —
+//! `/users/{did}/albums`, `/artists`, `/tracks`, `/scrobbles` and `/stats`
+//! duplicate what the `app.rocksky.*` methods answer, and `apps/web` calls
+//! the XRPC ones. The exceptions live in [`users`]: playlists, the shout
+//! threads and like-by-row-id, which the UI still reaches at their old
+//! paths.
 
 pub mod auth;
 pub mod images;
@@ -18,9 +20,11 @@ pub mod likes;
 pub mod metrics;
 pub mod notifications;
 pub mod nowplaying;
+pub mod remote;
 pub mod spotify;
 pub mod storage;
 pub mod uploads;
+pub mod users;
 
 use actix_web::web::ServiceConfig;
 
@@ -33,7 +37,9 @@ pub fn configure(cfg: &mut ServiceConfig) {
     metrics::configure(cfg);
     notifications::configure(cfg);
     nowplaying::configure(cfg);
+    remote::configure(cfg);
     spotify::configure(cfg);
     storage::configure(cfg);
     uploads::configure(cfg);
+    users::configure(cfg);
 }

@@ -21,6 +21,10 @@ rocksky-db = { path = "../db" }
 # jacquard's `HttpClient` takes.
 http = "1"
 actix-web = "4.11.0"
+# The `/ws` remote-player proxy: actix-ws terminates the browser's side,
+# tokio-tungstenite dials the upstream remote-ws.
+actix-ws = "0.3"
+tokio-tungstenite = { version = "0.26.2", features = ["rustls-tls-webpki-roots"] }
 actix-cors = "0.7.1"
 
 sqlx = { version = "0.8.6", default-features = false, features = [

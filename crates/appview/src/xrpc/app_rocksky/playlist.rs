@@ -191,7 +191,10 @@ struct PlaylistRow {
 }
 
 /// Turns rows into views, counting each playlist's entries.
-async fn hydrate(db: &Backend, rows: Vec<PlaylistRow>) -> anyhow::Result<Vec<PlaylistView>> {
+pub(crate) async fn hydrate(
+    db: &Backend,
+    rows: Vec<PlaylistRow>,
+) -> anyhow::Result<Vec<PlaylistView>> {
     if rows.is_empty() {
         return Ok(Vec::new());
     }
@@ -358,7 +361,7 @@ fn filters_on_tracks(filter: Option<&str>) -> bool {
 /// PRIMARY KEY, and `xata_id` is UNIQUE instead — which is why `apps/api` hit
 /// "column must appear in the GROUP BY clause" here and swallowed it as an
 /// empty list.
-fn playlist_from(db: &Backend, with_tracks: bool) -> SelectStatement {
+pub(crate) fn playlist_from(db: &Backend, with_tracks: bool) -> SelectStatement {
     let mut query = Query::select();
     if with_tracks {
         query.distinct();
@@ -547,7 +550,7 @@ async fn get_playlist(
 /// A playlist's tracks, in the order it presents them.
 ///
 /// `added_at` then the ingest time — see the module note on entry order.
-async fn entries(
+pub(crate) async fn entries(
     db: &Backend,
     playlist_id: &str,
 ) -> Result<Vec<crate::views::TrackView>, sqlx::Error> {
