@@ -231,7 +231,19 @@
 # fails with a bare "network error" while `curl http://localhost:4318` works,
 # because curl falls back to IPv4 and the exporter does not.
 #
+# Jaeger is a TRACING backend and ingests traces only: its OTLP endpoint
+# answers /v1/traces but 404s /v1/logs and /v1/metrics. Leaving `logs` and
+# `metrics` on against it produces an endless
+#
+#   BatchLogProcessor.ExportError error="HTTP export failed: network error"
+#
+# — the SDK reports a 404 as a network error, so the message does not say what
+# is wrong. Turn both off, and scrape metrics with `prometheus` below instead.
+#
 #   Jaeger      otlp_endpoint = "http://127.0.0.1:4318"
+#               traces = true
+#               logs = false
+#               metrics = false
 #   Grafana/Tempo, or any OpenTelemetry Collector
 #               otlp_endpoint = "http://collector:4318"
 #   Honeycomb   otlp_endpoint = "https://api.honeycomb.io"
