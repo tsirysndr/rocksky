@@ -546,11 +546,34 @@ async fn load_decades(
         None => None,
     };
 
+    db.fetch_all(&decades_query(db, user_id.as_deref(), params))
+        .await
+}
+
+/// The decades statement on its own, so the rendered SQL can be asserted —
+/// which matters here, because this query broke in a way only the *bound*
+/// Postgres form shows (see the note on `decade` below).
+fn decades_query(db: &Backend, user_id: Option<&str>, params: &ChartParams) -> SelectStatement {
     let s = Alias::new("s");
     let al = Alias::new("al");
     // Integer division truncates to the decade on both backends, since `year`
     // is an integer column.
-    let decade = Expr::col((al.clone(), Albums::Year)).div(10).mul(10);
+    //
+    // The tens are `cust` rather than values, and that is load-bearing. A
+    // value renders inline in `to_string` but *binds* in the executed query,
+    // so this expression became `(year / $1) * $2` in SELECT and
+    // `(year / $3) * $4` in GROUP BY — and Postgres, which cannot assume two
+    // placeholders are equal, rejected it:
+    //
+    //   column "al.year" must appear in the GROUP BY clause or be used in an
+    //   aggregate function
+    //
+    // The same statement pasted into psql worked, because pasting inlines the
+    // constants — which is what made this fun to find. Written literally, both
+    // clauses are the same expression again.
+    let decade = Expr::col((al.clone(), Albums::Year))
+        .div(Expr::cust("10"))
+        .mul(Expr::cust("10"));
 
     let mut query = Query::select();
     query
@@ -584,14 +607,14 @@ async fn load_decades(
         params.start_date.as_deref(),
         params.end_date.as_deref(),
     );
-    if let Some(user_id) = &user_id {
+    if let Some(user_id) = user_id {
         query.and_where(Expr::col((s, Scrobbles::UserId)).eq(user_id));
     }
 
     query
         .add_group_by([decade.clone()])
         .order_by_expr(decade, Order::Asc);
-    db.fetch_all(&query).await
+    query
 }
 
 // ------------------------------------------------------ getScrobblesChart
@@ -779,7 +802,18 @@ async fn load_scrobbles_chart(
 
     let mut query = Query::select();
     query
-        .expr_as(date.clone(), Alias::new("date"))
+        // Projected through `cast_text` because on Postgres `DATE(...)` is a
+        // `date`, which sqlx refuses to decode into the row's `String` — every
+        // selector chart answered empty over exactly this:
+        //
+        //   error occurred while decoding column "date": mismatched types;
+        //   Rust type `alloc::string::String` (as SQL type `TEXT`) is not
+        //   compatible with SQL type `DATE`
+        //
+        // GROUP BY and ORDER BY keep the uncast expression: grouping by the
+        // cast would be correct too, but there is no reason to make the group
+        // key anything other than what is grouped.
+        .expr_as(db.cast_text(date.clone()), Alias::new("date"))
         .expr_as(
             db.cast_int(Func::count(Expr::col((s.clone(), Scrobbles::XataId)))),
             Alias::new("count"),
@@ -1186,5 +1220,103 @@ mod tests {
         let json = serde_json::to_string(&view).unwrap();
         assert!(json.contains("\"uniqueAlbums\""), "{json}");
         assert!(!json.contains("unique_albums"), "{json}");
+    }
+
+    // ------------------------------------------------- the bound-SQL bugs
+    //
+    // Both of the following broke only in the executed Postgres form, which
+    // is why the fixture tests above — SQLite, and `to_string`, which inlines
+    // values — never saw either. They are pinned on `build()`, the form that
+    // is actually sent.
+
+    /// The GROUP BY must not contain a placeholder.
+    ///
+    /// `year.div(10)` binds its 10, so SELECT held `(year / $1) * $2` and
+    /// GROUP BY `(year / $3) * $4` — and Postgres, which cannot assume two
+    /// placeholders are equal, rejected the statement:
+    ///
+    ///   column "al.year" must appear in the GROUP BY clause or be used in
+    ///   an aggregate function
+    ///
+    /// The same statement pasted into psql worked, because pasting inlines
+    /// the constants. The tens are now `cust`, i.e. literal SQL.
+    #[tokio::test]
+    async fn the_decade_expression_survives_parameter_binding() {
+        use crate::sea_query::PostgresQueryBuilder;
+
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let params = ChartParams {
+            did: None,
+            start_date: None,
+            end_date: None,
+            limit: None,
+            offset: None,
+        };
+        let (sql, _) = decades_query(&db, None, &params).build(PostgresQueryBuilder);
+
+        let group_by = sql.split("GROUP BY").nth(1).expect("has a GROUP BY");
+        assert!(
+            !group_by.contains('$'),
+            "a bound value split the grouping: {sql}"
+        );
+        // SELECT, GROUP BY and ORDER BY carry the same literal expression.
+        assert_eq!(
+            sql.matches(r#"("al"."year" / (10)) * (10)"#).count(),
+            3,
+            "{sql}"
+        );
+    }
+
+    /// The date column must reach the wire as text on Postgres.
+    ///
+    /// `DATE(timestamp)` is a `date` there, and sqlx refuses to decode a
+    /// `date` into the row's `String` — every selector-filtered chart
+    /// answered empty over exactly that decode error, while the unfiltered
+    /// chart (served from the view, already cast) kept working.
+    #[tokio::test]
+    async fn a_selector_chart_projects_its_date_as_text() {
+        let db = fixture().await;
+
+        // Behavioural on SQLite: two plays on Jan 1, one on Feb 1.
+        let params = ScrobblesChartParams {
+            did: Some("did:plc:alice".into()),
+            artisturi: None,
+            albumuri: None,
+            songuri: None,
+            genre: None,
+            from: Some("2026-01-01".into()),
+            to: Some("2026-02-28".into()),
+        };
+        let points = load_scrobbles_chart(&db, &params).await.unwrap();
+        assert_eq!(
+            points,
+            vec![
+                ChartPoint {
+                    date: "2026-01-01".into(),
+                    count: 2
+                },
+                ChartPoint {
+                    date: "2026-02-01".into(),
+                    count: 1
+                },
+            ]
+        );
+
+        // Structural for Postgres: the projection is cast to text. Asserted on
+        // the rendered expression because SQLite cannot execute the cast
+        // meaningfully — its `cast_text` is a no-op.
+        let date =
+            Func::cust(Alias::new("DATE")).arg(Expr::col((Alias::new("s"), Scrobbles::Timestamp)));
+        let rendered = Query::select()
+            .expr(crate::db::models::cast_text_expr(
+                crate::db::Dialect::Postgres,
+                date,
+            ))
+            .to_owned()
+            .to_string(crate::sea_query::PostgresQueryBuilder);
+        assert!(
+            rendered.contains(r#"CAST(DATE("s"."timestamp") AS text)"#),
+            "{rendered}"
+        );
     }
 }

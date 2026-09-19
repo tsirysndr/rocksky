@@ -413,6 +413,22 @@ pub fn cast_int_expr(
     }
 }
 
+/// Projects an expression so it decodes as `String` on either backend.
+///
+/// The free-function form of [`crate::Backend::cast_text`], for tests that
+/// need the Postgres rendering without a Postgres to connect to — the class
+/// of bug it guards (a `date` reaching sqlx where a `String` is expected)
+/// is invisible on SQLite.
+pub fn cast_text_expr(
+    dialect: Dialect,
+    expr: impl Into<sea_query::SimpleExpr>,
+) -> sea_query::SimpleExpr {
+    match dialect {
+        Dialect::Sqlite => expr.into(),
+        Dialect::Postgres => expr.into().cast_as(sea_query::Alias::new("text")),
+    }
+}
+
 /// Wraps a timestamp expression so it decodes as `DateTime<Utc>`.
 ///
 /// The free-function form of [`crate::Backend::cast_timestamp`]. SQLite must

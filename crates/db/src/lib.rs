@@ -480,12 +480,7 @@ impl Backend {
     /// A `date` on Postgres has no `String` decoder in sqlx; on SQLite the
     /// column is already text and the cast is a no-op.
     pub fn cast_text(&self, expr: impl Into<sea_query::SimpleExpr>) -> sea_query::SimpleExpr {
-        use sea_query::Alias;
-
-        match self.dialect() {
-            Dialect::Sqlite => expr.into(),
-            Dialect::Postgres => expr.into().cast_as(Alias::new("text")),
-        }
+        models::cast_text_expr(self.dialect(), expr)
     }
 
     /// The same, for a `DateTime` rather than text already in the right shape.

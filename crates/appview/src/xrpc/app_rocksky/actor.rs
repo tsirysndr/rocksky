@@ -19,11 +19,12 @@
 
 use crate::db::models::{Scrobble, User, SCROBBLE_COLS, USER_COLS};
 use crate::db::schema::{
-    Follows, LovedTracks, Scrobbles, UserAlbums, UserArtists, UserTracks, Users,
+    Artists, Follows, LovedTracks, Scrobbles, SpotifyTokens, UserAlbums, UserArtists, UserTracks,
+    Users,
 };
 use crate::db::{loaders, Backend};
 use crate::error::XrpcResult;
-use crate::sea_query::{Alias, Asterisk, Expr, Func, Order, Query, SelectStatement};
+use crate::sea_query::{Alias, Asterisk, Expr, Func, JoinType, Order, Query, SelectStatement};
 use crate::state::AppState;
 use crate::views::TrackView;
 use crate::xrpc::{clamp_limit_or, clamp_offset, json};
@@ -148,6 +149,11 @@ pub struct ProfileView {
     /// Whether this account has been flagged as a bot. The UI greys out a
     /// flagged profile's charts rather than hiding the account.
     pub is_bot: bool,
+    /// Whether a Spotify account is linked — `!!spotifyToken` in the
+    /// TypeScript handler. Without it the UI's "Connect your Spotify account"
+    /// banner shows to people who connected long ago: the atom reads
+    /// `profile.spotifyConnected`, and an absent key is falsy.
+    pub spotify_connected: bool,
 }
 
 /// `app.rocksky.actor.getProfile`
@@ -192,34 +198,40 @@ async fn load_profile(db: &Backend, did: &str) -> Result<Option<ProfileView>, sq
         return Ok(None);
     };
 
-    // One count per relation. Separate queries rather than a single one with
-    // six correlated subselects: on SQLite the planner handles these far
-    // better, and a slow profile is the page users notice most.
-    let scrobbles = db
-        .count(&count_by(Scrobbles::Table, Scrobbles::UserId, &user.id))
-        .await?;
-    let artists = db
-        .count(&count_by(UserArtists::Table, UserArtists::UserId, &user.id))
-        .await?;
-    let albums = db
-        .count(&count_by(UserAlbums::Table, UserAlbums::UserId, &user.id))
-        .await?;
-    let tracks = db
-        .count(&count_by(UserTracks::Table, UserTracks::UserId, &user.id))
-        .await?;
-    let loved = db
-        .count(&count_by(LovedTracks::Table, LovedTracks::UserId, &user.id))
-        .await?;
-
+    // One count per relation, and all of them at once: none needs another's
+    // answer, and against the hosted Postgres each round trip costs 95 ms
+    // before the count itself runs — sequentially these eight were most of
+    // the profile's load time.
+    //
+    // Separate queries rather than a single one with correlated subselects:
+    // on SQLite the planner handles these far better, and a slow profile is
+    // the page users notice most.
+    //
     // `follows` records DIDs rather than row ids — it is written straight from
     // the `app.rocksky.graph.follow` record, which names the subject by DID
     // and may reference an account this instance has never indexed.
-    let followers = db
-        .count(&count_by(Follows::Table, Follows::SubjectDid, &user.did))
-        .await?;
-    let following = db
-        .count(&count_by(Follows::Table, Follows::FollowerDid, &user.did))
-        .await?;
+    let queries = [
+        count_by(Scrobbles::Table, Scrobbles::UserId, &user.id),
+        count_by(UserArtists::Table, UserArtists::UserId, &user.id),
+        count_by(UserAlbums::Table, UserAlbums::UserId, &user.id),
+        count_by(UserTracks::Table, UserTracks::UserId, &user.id),
+        count_by(LovedTracks::Table, LovedTracks::UserId, &user.id),
+        count_by(Follows::Table, Follows::SubjectDid, &user.did),
+        count_by(Follows::Table, Follows::FollowerDid, &user.did),
+        count_by(SpotifyTokens::Table, SpotifyTokens::UserId, &user.id),
+    ];
+    let [scrobbles, artists, albums, tracks, loved, followers, following, spotify_tokens] =
+        tokio::try_join!(
+            db.count(&queries[0]),
+            db.count(&queries[1]),
+            db.count(&queries[2]),
+            db.count(&queries[3]),
+            db.count(&queries[4]),
+            db.count(&queries[5]),
+            db.count(&queries[6]),
+            db.count(&queries[7]),
+        )
+        .map(|(a, b, c, d, e, f, g, h)| [a, b, c, d, e, f, g, h])?;
 
     Ok(Some(ProfileView {
         id: user.id,
@@ -235,6 +247,7 @@ async fn load_profile(db: &Backend, did: &str) -> Result<Option<ProfileView>, sq
         followers_count: followers,
         following_count: following,
         is_bot: user.is_bot,
+        spotify_connected: spotify_tokens > 0,
     }))
 }
 
@@ -775,11 +788,29 @@ fn ranking_query(
 ) -> SelectStatement {
     let mut query = Query::select();
     query
-        .expr_as(Expr::col(column), Alias::new("id"))
+        .expr_as(Expr::col((Scrobbles::Table, column)), Alias::new("id"))
         .expr_as(Func::count(Expr::col(Asterisk)), Alias::new("plays"))
         .from(Scrobbles::Table)
-        .and_where(Expr::col(Scrobbles::UserId).eq(user_id))
-        .and_where(Expr::col(column).is_not_null());
+        .and_where(Expr::col((Scrobbles::Table, Scrobbles::UserId)).eq(user_id))
+        .and_where(Expr::col((Scrobbles::Table, column)).is_not_null());
+
+    // "Various Artists" is a compilation placeholder, not someone anyone
+    // listens to, and with no join it topped every profile — a heavy
+    // compilation listener's number-one artist was the placeholder. The
+    // `getActorArtists` in `apps/api` ranks with exactly this join and
+    // exclusion; the song and album charts are left alone there too, since a
+    // compilation is still a real album and its tracks real tracks.
+    if column == Scrobbles::ArtistId {
+        query
+            .join(
+                JoinType::InnerJoin,
+                Artists::Table,
+                Expr::col((Artists::Table, Artists::XataId))
+                    .equals((Scrobbles::Table, Scrobbles::ArtistId)),
+            )
+            .and_where(Expr::col((Artists::Table, Artists::Name)).ne("Various Artists"));
+    }
+
     apply_date_window(db, &mut query, params);
     query
         .add_group_by([Expr::col(column).into()])
@@ -1111,6 +1142,60 @@ mod tests {
         );
         // And NULLs are excluded, or the group would have no row to hydrate.
         assert!(sql.contains(r#""track_id" IS NOT NULL"#), "{sql}");
+    }
+
+    /// "Various Artists" is a compilation placeholder, and with no exclusion
+    /// it topped every compilation listener's profile. `apps/api` ranks with
+    /// this join and filter in `getActorArtists`; this pins the port.
+    #[tokio::test]
+    async fn the_artist_ranking_excludes_various_artists() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let sql = ranking_query(&db, "u", Scrobbles::ArtistId, &params_with(None, None))
+            .to_string(SqliteQueryBuilder);
+
+        assert!(sql.contains(r#"INNER JOIN "artists""#), "{sql}");
+        assert!(sql.contains(r#"<> 'Various Artists'"#), "{sql}");
+    }
+
+    /// Only the artist chart excludes it: a compilation is still a real album
+    /// and its tracks real tracks, which is also how `apps/api` draws the
+    /// line. The other rankings must not pay for a join they do not use.
+    #[tokio::test]
+    async fn the_song_and_album_rankings_join_nothing() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        for column in [Scrobbles::TrackId, Scrobbles::AlbumId] {
+            let sql = ranking_query(&db, "u", column, &params_with(None, None))
+                .to_string(SqliteQueryBuilder);
+            assert!(!sql.contains("JOIN"), "{sql}");
+        }
+    }
+
+    /// `spotifyConnected` is read straight off the profile by the UI's atoms,
+    /// and an absent key is falsy — which showed "Connect your Spotify
+    /// account" to people who connected long ago, because this view did not
+    /// carry the field at all.
+    #[tokio::test]
+    async fn the_profile_reports_a_connected_spotify_account() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        for text in [
+            "INSERT INTO users (xata_id, did, handle, avatar) VALUES \
+             ('rec_with', 'did:plc:with', 'with.test', 'a'), \
+             ('rec_without', 'did:plc:without', 'without.test', 'b')",
+            "INSERT INTO spotify_tokens (xata_id, access_token, refresh_token, user_id, spotify_app_id) \
+             VALUES ('rec_tok', 'enc-access', 'enc-refresh', 'rec_with', 'rec_app')",
+        ] {
+            db.execute(&db.sql(text)).await.expect(text);
+        }
+
+        let connected = load_profile(&db, "did:plc:with").await.unwrap().unwrap();
+        assert!(connected.spotify_connected);
+
+        let not_connected = load_profile(&db, "did:plc:without").await.unwrap().unwrap();
+        assert!(!not_connected.spotify_connected);
+
+        // On the wire it is the exact key the atom reads.
+        let json = serde_json::to_value(&connected).unwrap();
+        assert_eq!(json["spotifyConnected"], serde_json::Value::Bool(true));
     }
 
     /// One placeholder per id, rather than an interpolated list.
