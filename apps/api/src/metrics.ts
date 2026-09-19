@@ -1,23 +1,8 @@
-import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
-import {
-  MeterProvider,
-  PeriodicExportingMetricReader,
-} from "@opentelemetry/sdk-metrics";
+import { metrics } from "@opentelemetry/api";
 
-const exporter = new OTLPMetricExporter({
-  url: "http://localhost:4318/v1/metrics",
-});
-
-const reader = new PeriodicExportingMetricReader({
-  exporter,
-  exportIntervalMillis: 10000,
-});
-
-const meterProvider = new MeterProvider({
-  readers: [reader],
-});
-
-const meter = meterProvider.getMeter("rocksky-hono");
+// Instruments bind to the global MeterProvider, so "./otel" must be imported
+// before this module or every metric silently becomes a no-op.
+const meter = metrics.getMeter("rocksky-api");
 
 const requestCounter = meter.createCounter("http_requests_total", {
   description: "Count of incoming requests",
@@ -27,4 +12,21 @@ const requestDuration = meter.createHistogram("http_request_duration_seconds", {
   description: "Request duration in seconds",
 });
 
-export { meter, requestCounter, requestDuration };
+const xrpcRequestCounter = meter.createCounter("xrpc_requests_total", {
+  description: "Count of XRPC requests, by NSID and status code",
+});
+
+const xrpcRequestDuration = meter.createHistogram(
+  "xrpc_request_duration_seconds",
+  {
+    description: "XRPC request duration in seconds, by NSID",
+  },
+);
+
+export {
+  meter,
+  requestCounter,
+  requestDuration,
+  xrpcRequestCounter,
+  xrpcRequestDuration,
+};

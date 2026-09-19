@@ -1,3 +1,4 @@
+import "./otel";
 import dns from "node:dns";
 import { consola } from "consola";
 import { ctx } from "context";
@@ -7,6 +8,7 @@ import type { Request, Response } from "express";
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { createServer } from "lexicon";
+import { xrpcTelemetry } from "lib/xrpcTelemetry";
 import cron from "node-cron";
 import API from "./xrpc";
 
@@ -61,6 +63,7 @@ server = API(server, ctx);
 
 const app = express();
 app.use(cors());
+app.use(xrpcTelemetry());
 app.use(server.xrpc.router);
 app.use(proxyMiddleware);
 

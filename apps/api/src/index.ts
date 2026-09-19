@@ -1,3 +1,4 @@
+import "./otel";
 import dns from "node:dns";
 import { serve } from "@hono/node-server";
 import { trace } from "@opentelemetry/api";
@@ -36,6 +37,7 @@ import notificationsSse from "./notifications/sse";
 import storageApp from "./storage/app";
 import uploadsApp from "./uploads/app";
 import "./profiling";
+import opengraph from "./opengraph/app";
 import albumTracks from "./schema/album-tracks";
 import albums from "./schema/albums";
 import artistTracks from "./schema/artist-tracks";
@@ -44,8 +46,6 @@ import scrobbles from "./schema/scrobbles";
 import tracks from "./schema/tracks";
 import users from "./schema/users";
 import spotify from "./spotify/app";
-import "./tracing";
-import opengraph from "./opengraph/app";
 import usersApp from "./users/app";
 import webscrobbler from "./webscrobbler/app";
 
@@ -65,6 +65,7 @@ app.use(
 
 app.use("*", async (c, next) => {
   const span = trace.getActiveSpan();
+  span?.updateName(`${c.req.method} ${c.req.path}`);
   span?.setAttribute("http.route", c.req.path);
   await next();
 });
