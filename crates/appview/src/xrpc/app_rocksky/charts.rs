@@ -16,6 +16,7 @@
 //!   aggregates `scrobbles` directly.
 
 use crate::actors;
+use crate::analytics;
 use crate::db::loaders::{artists_by_id, tracks_by_id};
 use crate::db::schema::{Albums, Artists, Scrobbles, TopScrobblersMv, Tracks, Users};
 use crate::db::Backend;
@@ -630,6 +631,10 @@ async fn get_scrobbles_chart(
     state: web::Data<AppState>,
     params: web::Query<ScrobblesChartParams>,
 ) -> XrpcResult<HttpResponse> {
+    if let Some(scrobbles) = from_analytics(&state, &params).await {
+        return json(ChartsView { scrobbles });
+    }
+
     match load_scrobbles_chart(state.db(), &params).await {
         Ok(scrobbles) => json(ChartsView { scrobbles }),
         Err(err) => {
@@ -637,6 +642,50 @@ async fn get_scrobbles_chart(
             json(ChartsView::default())
         }
     }
+}
+
+/// The chart from the analytics service, when one is configured.
+///
+/// The selector order is the one `apps/api` checks in — `did`, then artist,
+/// album, song — with `genre` added, which this API has and that one does not.
+/// `None` for any reason at all sends the caller to the database.
+async fn from_analytics(
+    state: &AppState,
+    params: &ScrobblesChartParams,
+) -> Option<Vec<ChartPoint>> {
+    if !analytics::configured(state) {
+        return None;
+    }
+
+    let (from, to) = default_range(params);
+    let point = |day: analytics::DayCount| ChartPoint {
+        date: day.date,
+        count: day.count,
+    };
+
+    let days = if let Some(did) = params.did.as_deref() {
+        analytics::scrobbles_per_day(state, Some(did), None, &from, &to).await?
+    } else if let Some(uri) = params.artisturi.as_deref() {
+        analytics::artist_scrobbles(state, uri, &from, &to).await?
+    } else if let Some(uri) = params.albumuri.as_deref() {
+        analytics::album_scrobbles(state, uri, &from, &to).await?
+    } else if let Some(uri) = params.songuri.as_deref() {
+        // A scrobble URI names a play, not a song, and the service matches
+        // neither — so that one case is resolved here first. Song URIs go
+        // straight through: `t.id = ? OR t.uri = ?` accepts them as they are.
+        let track = if uri.contains("app.rocksky.scrobble") {
+            resolve_track(state.db(), uri).await.ok().flatten()?
+        } else {
+            uri.to_string()
+        };
+        analytics::track_scrobbles(state, &track, &from, &to).await?
+    } else if let Some(genre) = params.genre.as_deref() {
+        analytics::scrobbles_per_day(state, None, Some(genre), &from, &to).await?
+    } else {
+        analytics::scrobbles_per_day(state, None, None, &from, &to).await?
+    };
+
+    Some(days.into_iter().map(point).collect())
 }
 
 /// The six-month window the chart defaults to, as `YYYY-MM-DD` bounds.

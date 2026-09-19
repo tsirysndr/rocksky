@@ -466,7 +466,7 @@ impl Backend {
     /// answer nothing. SQLite keeps these as ISO text and must not get the
     /// cast.
     pub fn date_value(&self, text: impl Into<String>) -> sea_query::SimpleExpr {
-        use sea_query::{Alias, Expr, ExprTrait};
+        use sea_query::{Alias, Expr};
 
         let value = Expr::val(text.into());
         match self.dialect() {
@@ -480,7 +480,7 @@ impl Backend {
     /// A `date` on Postgres has no `String` decoder in sqlx; on SQLite the
     /// column is already text and the cast is a no-op.
     pub fn cast_text(&self, expr: impl Into<sea_query::SimpleExpr>) -> sea_query::SimpleExpr {
-        use sea_query::{Alias, ExprTrait};
+        use sea_query::Alias;
 
         match self.dialect() {
             Dialect::Sqlite => expr.into(),

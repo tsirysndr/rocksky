@@ -263,6 +263,12 @@ pub struct Config {
     pub drift_url: Option<String>,
     pub tracklist_url: Option<String>,
 
+    /// Precomputed listening aggregates — `crates/analytics`, the service
+    /// `apps/api` has always used for these. Set, the top-N and chart
+    /// endpoints answer from it; unset, they aggregate `scrobbles` themselves.
+    /// See [`crate::analytics`] for which calls route where and why.
+    pub analytics_url: Option<String>,
+
     /// Object storage for uploads. `None` for any of these means uploads are
     /// unavailable — the rest of the instance is unaffected.
     pub s3: Option<S3Config>,
@@ -981,6 +987,13 @@ impl Config {
             deezer_url: pick(None, "DEEZER_URL", file.services.deezer_url.clone()),
             drift_url: pick(None, "DRIFT_URL", file.services.drift_url.clone()),
             tracklist_url: pick(None, "TRACKLIST", file.services.tracklist_url.clone()),
+            // Two spellings because the rest of the monorepo has two:
+            // `apps/ws` reads `ANALYTICS_URL`, `apps/api` reads `ANALYTICS`.
+            // Both are checked before the file so the usual "environment beats
+            // config" order holds for either one.
+            analytics_url: env_opt("ANALYTICS_URL")
+                .or_else(|| env_opt("ANALYTICS"))
+                .or_else(|| file.services.analytics_url.clone()),
 
             s3: S3Config::resolve(&file.storage),
             storage_encryption_key,
@@ -1135,6 +1148,7 @@ impl Config {
             deezer_url: None,
             drift_url: None,
             tracklist_url: None,
+            analytics_url: None,
             s3: None,
             storage_encryption_key:
                 "0000000000000000000000000000000000000000000000000000000000000001".into(),

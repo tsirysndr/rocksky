@@ -237,6 +237,22 @@
 # Tracklist lookups.
 # tracklist_url = "http://localhost:7884"
 
+# Precomputed listening aggregates (`rockskyd analytics serve`).
+#
+# Top artists, top tracks, top albums, per-listener stats and the scrobbles
+# chart answer from here when it is set. They are GROUP BY over the whole of
+# `scrobbles`, which against a remote Postgres is a network-bound read of every
+# row — measured at 26 seconds for the global chart. The service answers the
+# same questions from a local columnar snapshot instead.
+#
+# Unset is the default and is not a degraded mode: the queries simply run
+# against the database. Worth setting for a Postgres instance with a large
+# `scrobbles`; pointless for a personal SQLite one, whose data is already
+# local, which is the only thing this service is recreating.
+#
+# `ANALYTICS_URL` (or `ANALYTICS`, which is what apps/api reads) overrides it.
+# analytics_url = "http://localhost:7879"
+
 [telemetry]
 # OpenTelemetry: traces, metrics and logs. All off by default — a personal
 # instance should not need an observability stack to boot.

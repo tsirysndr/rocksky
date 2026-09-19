@@ -17,6 +17,7 @@
 //! fetched after. The order of the ranking query is what the response
 //! preserves — re-sorting the hydrated rows would lose ties' ordering.
 
+use crate::analytics;
 use crate::db::models::{Scrobble, User, SCROBBLE_COLS, USER_COLS};
 use crate::db::schema::{
     Follows, LovedTracks, Scrobbles, UserAlbums, UserArtists, UserTracks, Users,
@@ -438,11 +439,52 @@ async fn get_actor_songs(
         return json(SongsOutput::default());
     };
 
+    if let Some(tracks) = analytics::top_tracks(
+        &state,
+        Some(&did),
+        params.limit(),
+        params.offset(),
+        params.start_date.as_deref(),
+        params.end_date.as_deref(),
+    )
+    .await
+    {
+        return json(SongsOutput {
+            tracks: tracks.into_iter().map(Into::into).collect(),
+        });
+    }
+
     match load_actor_songs(state.db(), &did, &params).await {
         Ok(output) => json(output),
         Err(err) => {
             tracing::error!(error = ?err, did = %did, "error retrieving actor songs");
             json(SongsOutput::default())
+        }
+    }
+}
+
+impl From<analytics::Track> for SongViewBasic {
+    fn from(track: analytics::Track) -> Self {
+        Self {
+            id: track.id,
+            uri: track.uri,
+            title: track.title,
+            artist: track.artist,
+            artist_uri: track.artist_uri,
+            album: track.album,
+            album_uri: track.album_uri,
+            album_art: track.album_art,
+            album_artist: track.album_artist,
+            // Not among the columns `getTopTracks` selects. `apps/ws` answers
+            // this endpoint with the same gap.
+            copyright_message: None,
+            disc_number: track.disc_number,
+            duration: track.duration,
+            sha256: track.sha256,
+            track_number: track.track_number,
+            play_count: track.play_count,
+            unique_listeners: track.unique_listeners,
+            created_at: track.created_at.map(|at| at.and_utc()).unwrap_or_default(),
         }
     }
 }
@@ -532,11 +574,44 @@ async fn get_actor_albums(
         return json(AlbumsOutput::default());
     };
 
+    if let Some(albums) = analytics::top_albums(
+        &state,
+        Some(&did),
+        params.limit(),
+        params.offset(),
+        params.start_date.as_deref(),
+        params.end_date.as_deref(),
+    )
+    .await
+    {
+        return json(AlbumsOutput {
+            albums: albums.into_iter().map(Into::into).collect(),
+        });
+    }
+
     match load_actor_albums(state.db(), &did, &params).await {
         Ok(output) => json(output),
         Err(err) => {
             tracing::error!(error = ?err, did = %did, "error retrieving actor albums");
             json(AlbumsOutput::default())
+        }
+    }
+}
+
+impl From<analytics::Album> for AlbumViewBasic {
+    fn from(album: analytics::Album) -> Self {
+        Self {
+            id: album.id,
+            title: album.title,
+            artist: album.artist,
+            album_art: album.album_art,
+            uri: album.uri,
+            artist_uri: album.artist_uri,
+            sha256: album.sha256,
+            year: album.year,
+            release_date: album.release_date,
+            play_count: album.play_count,
+            unique_listeners: album.unique_listeners,
         }
     }
 }
@@ -615,11 +690,43 @@ async fn get_actor_artists(
         return json(ArtistsOutput::default());
     };
 
+    if let Some(artists) = analytics::top_artists(
+        &state,
+        Some(&did),
+        params.limit(),
+        params.offset(),
+        params.start_date.as_deref(),
+        params.end_date.as_deref(),
+    )
+    .await
+    {
+        return json(ArtistsOutput {
+            artists: artists.into_iter().map(Into::into).collect(),
+        });
+    }
+
     match load_actor_artists(state.db(), &did, &params).await {
         Ok(output) => json(output),
         Err(err) => {
             tracing::error!(error = ?err, did = %did, "error retrieving actor artists");
             json(ArtistsOutput::default())
+        }
+    }
+}
+
+impl From<analytics::Artist> for ArtistViewBasic {
+    fn from(artist: analytics::Artist) -> Self {
+        Self {
+            id: artist.id,
+            name: artist.name,
+            picture: artist.picture,
+            sha256: artist.sha256,
+            uri: artist.uri,
+            // `null` rather than `[]` when the column is NULL, which is what
+            // the database path reports and what the live response carries.
+            tags: artist.genres,
+            play_count: artist.play_count,
+            unique_listeners: artist.unique_listeners,
         }
     }
 }
