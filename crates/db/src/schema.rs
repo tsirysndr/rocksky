@@ -938,6 +938,17 @@ pub enum SpotifyTokens {
     XataUpdatedat,
 }
 
+/// `scrobbles_per_day_mv` — the global chart, precomputed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Iden)]
+#[iden = "scrobbles_per_day_mv"]
+pub enum ScrobblesPerDayMv {
+    Table,
+    #[iden = "day"]
+    Day,
+    #[iden = "count"]
+    Count,
+}
+
 /// `user_artists_mv` (view).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Iden)]
 #[iden = "user_artists_mv"]

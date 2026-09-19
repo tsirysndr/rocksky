@@ -458,6 +458,36 @@ impl Backend {
         models::timestamp_expr(self.dialect(), text)
     }
 
+    /// A `YYYY-MM-DD` string as a value comparable against a `date` column.
+    ///
+    /// The date counterpart of [`Backend::timestamp_value`], and needed for
+    /// the same reason: a bound parameter is `text` on Postgres and
+    /// `date >= text` has no operator, which is what made the scrobbles chart
+    /// answer nothing. SQLite keeps these as ISO text and must not get the
+    /// cast.
+    pub fn date_value(&self, text: impl Into<String>) -> sea_query::SimpleExpr {
+        use sea_query::{Alias, Expr, ExprTrait};
+
+        let value = Expr::val(text.into());
+        match self.dialect() {
+            Dialect::Sqlite => value.into(),
+            Dialect::Postgres => value.cast_as(Alias::new("date")),
+        }
+    }
+
+    /// Projects a column so it decodes as `String` on either backend.
+    ///
+    /// A `date` on Postgres has no `String` decoder in sqlx; on SQLite the
+    /// column is already text and the cast is a no-op.
+    pub fn cast_text(&self, expr: impl Into<sea_query::SimpleExpr>) -> sea_query::SimpleExpr {
+        use sea_query::{Alias, ExprTrait};
+
+        match self.dialect() {
+            Dialect::Sqlite => expr.into(),
+            Dialect::Postgres => expr.into().cast_as(Alias::new("text")),
+        }
+    }
+
     /// The same, for a `DateTime` rather than text already in the right shape.
     pub fn timestamp(&self, at: chrono::DateTime<chrono::Utc>) -> sea_query::SimpleExpr {
         self.timestamp_value(format_timestamp(at))
@@ -833,9 +863,23 @@ mod tests {
                 .fetch_all(pool)
                 .await
                 .expect("list views");
-        assert_eq!(views, vec!["top_scrobblers_mv", "user_artists_mv"]);
+        // These mirror the Postgres materialized views by name, so a query
+        // written against one backend runs on the other.
+        assert_eq!(
+            views,
+            vec![
+                "scrobbles_per_day_mv",
+                "top_scrobblers_mv",
+                "user_artists_mv"
+            ]
+        );
 
         // Empty, but the SQL has to be valid against the real schema.
+        let count = backend
+            .count(&backend.sql("SELECT count(*) FROM scrobbles_per_day_mv"))
+            .await
+            .expect("query view");
+        assert_eq!(count, 0);
         let count = backend
             .count(&backend.sql("SELECT count(*) FROM top_scrobblers_mv"))
             .await

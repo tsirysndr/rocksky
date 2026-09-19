@@ -592,6 +592,21 @@ JOIN artists a ON a.xata_id = s.artist_id
 WHERE a.name NOT LIKE 'Various Artists'
 GROUP BY s.user_id, s.artist_id;
 
+-- The global scrobbles-per-day chart, precomputed.
+--
+-- Postgres has this as a real materialized view; here it is a plain view,
+-- which is enough because SQLite is reading a local file rather than 1.6M
+-- rows over a network. The definition matches the Postgres one, including
+-- excluding today — a day that is still accumulating would be cached at a
+-- partial count there, so the chart adds today from the live table instead.
+CREATE VIEW IF NOT EXISTS scrobbles_per_day_mv AS
+SELECT
+  DATE(s.timestamp) AS day,
+  count(*)          AS count
+FROM scrobbles s
+WHERE DATE(s.timestamp) < DATE('now')
+GROUP BY DATE(s.timestamp);
+
 CREATE VIEW IF NOT EXISTS top_scrobblers_mv AS
 SELECT
   s.user_id                        AS user_id,

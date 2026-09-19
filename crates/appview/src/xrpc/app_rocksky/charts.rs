@@ -654,6 +654,63 @@ fn default_range(params: &ScrobblesChartParams) -> (String, String) {
     (from, to)
 }
 
+/// `YYYY-MM-DD` day bounds as the half-open timestamp range covering them.
+///
+/// The upper bound is midnight of the following day, so the whole of `to` is
+/// included without a `23:59:59.999` that would drop the last millisecond.
+/// An unparseable bound falls back to the day itself at midnight, which is
+/// what the string already meant.
+fn timestamp_bounds(from: &str, to: &str) -> (String, String) {
+    let midnight = |day: &str| {
+        chrono::NaiveDate::parse_from_str(day, "%Y-%m-%d")
+            .ok()
+            .map(|date| date.and_hms_opt(0, 0, 0).unwrap_or_default())
+    };
+    let start = midnight(from)
+        .map(|at| rocksky_db::format_timestamp(at.and_utc()))
+        .unwrap_or_else(|| format!("{from}T00:00:00.000Z"));
+    let end = midnight(to)
+        .map(|at| rocksky_db::format_timestamp((at + chrono::Duration::days(1)).and_utc()))
+        .unwrap_or_else(|| format!("{to}T00:00:00.000Z"));
+    (start, end)
+}
+
+/// The unfiltered chart, read from the precomputed per-day counts.
+///
+/// This is the homepage chart and by far the most requested. Aggregated live
+/// it is a full pass over `scrobbles` — measured at 26s against the hosted
+/// Postgres, almost all of it I/O, because grouping 1.6M rows by day has to
+/// read 1.6M rows. The materialized view holds one row per day instead, so the
+/// same answer is a few thousand rows.
+///
+/// The view excludes today, deliberately: a day still accumulating would be
+/// cached at a partial count. Today is therefore added from the live table,
+/// which is one day's range on an indexed column and costs nothing.
+async fn precomputed_chart(
+    db: &Backend,
+    from: &str,
+    to: &str,
+) -> Result<Vec<ChartPoint>, sqlx::Error> {
+    let day = Expr::col((Alias::new("m"), crate::db::schema::ScrobblesPerDayMv::Day));
+
+    let mut query = Query::select();
+    query
+        .expr_as(db.cast_text(day.clone()), Alias::new("date"))
+        .expr_as(
+            db.cast_int(Expr::col((
+                Alias::new("m"),
+                crate::db::schema::ScrobblesPerDayMv::Count,
+            ))),
+            Alias::new("count"),
+        )
+        .from_as(crate::db::schema::ScrobblesPerDayMv::Table, Alias::new("m"))
+        .and_where(day.clone().gte(db.date_value(from)))
+        .and_where(day.clone().lte(db.date_value(to)))
+        .order_by_expr(day.into(), Order::Asc);
+
+    db.fetch_all(&query).await
+}
+
 async fn load_scrobbles_chart(
     db: &Backend,
     params: &ScrobblesChartParams,
@@ -689,7 +746,31 @@ async fn load_scrobbles_chart(
     } else if let Some(genre) = params.genre.as_deref() {
         Some(Expr::col((t.clone(), Tracks::Genre)).eq(genre))
     } else {
-        None
+        // No selector: the homepage chart, which is the one worth not
+        // computing. Everything below aggregates the whole of `scrobbles`.
+        let mut points = precomputed_chart(db, &from, &to).await?;
+
+        // The view stops before today, so the current day is counted live —
+        // one day's range on an indexed column.
+        let today = Utc::now().format("%Y-%m-%d").to_string();
+        if today.as_str() >= from.as_str() && today.as_str() <= to.as_str() {
+            let (start, end) = timestamp_bounds(&today, &today);
+            let mut live = Query::select();
+            live.expr_as(
+                db.cast_int(Func::count(Expr::col(Scrobbles::XataId))),
+                Alias::new("count"),
+            )
+            .from(Scrobbles::Table)
+            .and_where(Expr::col(Scrobbles::Timestamp).gte(db.timestamp_value(start)))
+            .and_where(Expr::col(Scrobbles::Timestamp).lt(db.timestamp_value(end)));
+
+            if let Some(count) = db.fetch_scalar::<i64>(&live).await? {
+                if count > 0 {
+                    points.push(ChartPoint { date: today, count });
+                }
+            }
+        }
+        return Ok(points);
     };
 
     // DATE() truncates a timestamp on Postgres and ISO text on SQLite, and
@@ -711,11 +792,30 @@ async fn load_scrobbles_chart(
             JoinType::InnerJoin,
             Tracks::Table,
             t.clone(),
-            Expr::col((t, Tracks::XataId)).equals((s, Scrobbles::TrackId)),
+            Expr::col((t, Tracks::XataId)).equals((s.clone(), Scrobbles::TrackId)),
         );
     }
 
-    query.and_where(Expr::expr(date.clone()).between(from, to));
+    // Filtered on the raw column, never on `DATE(timestamp)`.
+    //
+    // Two reasons, and the first one broke production. `DATE(...)` yields a
+    // `date` on Postgres while the bounds bind as `text`, so the comparison is
+    // `date >= text` — an operator that does not exist, and the chart answered
+    // empty on every request.
+    //
+    // The second is why it was slow even where it worked: wrapping the column
+    // in a function makes the predicate unusable by
+    // `idx_scrobbles_ts_id (timestamp DESC, xata_id DESC)`, so every request
+    // scanned all 1.6M rows. The analytics service this replaces filters
+    // `created_at BETWEEN ? AND ?` on the bare column for exactly this reason.
+    //
+    // The upper bound is exclusive at midnight of the day *after* `to`, which
+    // is how a half-open range over timestamps includes the whole final day
+    // without naming 23:59:59.999.
+    let (from_ts, to_ts) = timestamp_bounds(&from, &to);
+    query
+        .and_where(Expr::col((s.clone(), Scrobbles::Timestamp)).gte(db.timestamp_value(from_ts)))
+        .and_where(Expr::col((s.clone(), Scrobbles::Timestamp)).lt(db.timestamp_value(to_ts)));
     if let Some(condition) = condition {
         query.and_where(condition);
     }
