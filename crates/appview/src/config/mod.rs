@@ -173,6 +173,10 @@ pub struct Config {
     pub indexer_dids: Vec<String>,
     /// On by default: without it a fresh self-host has nothing to show.
     pub indexer_enabled: bool,
+    /// Run the denormalised-URI repair at startup. On by default.
+    pub repair_uris: bool,
+    /// Rebuild the search index from the database at startup. On by default.
+    pub search_backfill: bool,
 
     /// A Tap instance to consume verified, filtered events from. `None` means
     /// Tap is not used; see [`settings::Tap`].
@@ -838,6 +842,12 @@ impl Config {
                     .or(file.indexer.enabled)
                     .unwrap_or(true)
             },
+            repair_uris: env_flag("ROCKSKY_REPAIR_URIS")
+                .or(file.indexer.repair_uris)
+                .unwrap_or(true),
+            search_backfill: env_flag("ROCKSKY_SEARCH_BACKFILL")
+                .or(file.search.backfill)
+                .unwrap_or(true),
 
             tap_hostname: pick(None, "TAP_HOSTNAME", file.tap.hostname.clone()),
             tap_admin_password: pick(None, "TAP_ADMIN_PASSWORD", file.tap.admin_password.clone()),
@@ -1043,6 +1053,7 @@ impl Config {
         };
         format!(
             "listen={}:{} domain={} backend={backend} data_dir={} config={} indexer={} \
+             repair_uris={} search_backfill={} \
              cache={} search={} events={} uploads={} tap={} backfill={} \
              upstream={} cors={}",
             self.host,
@@ -1051,6 +1062,8 @@ impl Config {
             self.data_dir.display(),
             self.config_path.display(),
             if self.indexer_enabled { "on" } else { "off" },
+            if self.repair_uris { "on" } else { "off" },
+            if self.search_backfill { "on" } else { "off" },
             if self.redis_url.is_some() {
                 "redis"
             } else {
@@ -1091,6 +1104,8 @@ impl Config {
             jetstream_urls: Vec::new(),
             indexer_dids: Vec::new(),
             indexer_enabled: false,
+            repair_uris: true,
+            search_backfill: true,
             tap_hostname: None,
             tap_admin_password: None,
             tap_enabled: false,
@@ -1433,6 +1448,42 @@ mod tests {
             "postgres://db.example/rocksky"
         );
         assert_eq!(redact_url("sqlite://rocksky.db"), "sqlite://rocksky.db");
+    }
+
+    /// Both startup batch jobs are on by default and switchable off.
+    ///
+    /// They exist for a database that has never been indexed or repaired, and
+    /// both cost a full scan to decide they have nothing to do — which on a
+    /// large remote Postgres is tens of seconds of every boot.
+    #[test]
+    fn the_startup_batch_jobs_can_be_turned_off() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = Config::load(Cli {
+            data_dir: Some(dir.path().to_path_buf()),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(config.repair_uris, "on by default");
+        assert!(config.search_backfill, "on by default");
+
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("config.toml"),
+            "[indexer]\nrepair_uris = false\n\n[search]\nbackfill = false\n",
+        )
+        .unwrap();
+        let config = Config::load(Cli {
+            data_dir: Some(dir.path().to_path_buf()),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(!config.repair_uris);
+        assert!(!config.search_backfill);
+        // And the startup line says so, since a job silently not running is
+        // indistinguishable from one that ran and found nothing.
+        let summary = config.summary();
+        assert!(summary.contains("repair_uris=off"), "{summary}");
+        assert!(summary.contains("search_backfill=off"), "{summary}");
     }
 
     #[test]

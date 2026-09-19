@@ -146,8 +146,11 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
     // The denormalised album and artist URIs on `tracks` are what every view
     // reads, and the firehose path used to leave them null — so a database
     // filled before that was fixed answers a null URI for records it has.
-    // Idempotent: on a repaired database this updates nothing.
-    {
+    // Idempotent: on a repaired database this updates nothing — but it still
+    // scans `tracks` and `albums` to find that out, which is slow enough
+    // against a remote Postgres to be worth switching off once a database is
+    // known to be repaired. `[indexer].repair_uris = false`.
+    if state.config().repair_uris {
         let repair_state = state.clone();
         tokio::spawn(async move {
             match crate::ingest::repair_denormalised_uris(repair_state.db()).await {
@@ -171,9 +174,20 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
     // it is minutes of apparent hang, and unpaced it drives Typesense into
     // reporting itself unhealthy.
     // `search()` is optional only under test, where the index is not built.
+    //
+    // Switched off with `[search].backfill = false`, which is worth doing
+    // against a large remote database: deciding whether to run at all counts
+    // every row of every indexed table, and on a few hundred thousand tracks
+    // that is tens of seconds before a single document is written.
     let _search_backfill = state
-        .search()
-        .map(|search| crate::search::spawn_backfill(search, state.db()));
+        .config()
+        .search_backfill
+        .then(|| {
+            state
+                .search()
+                .map(|search| crate::search::spawn_backfill(search, state.db()))
+        })
+        .flatten();
 
     // Accounts learned from the firehose arrive as a bare DID; without this
     // every scrobble in the global feed is attributed to one, with no name and

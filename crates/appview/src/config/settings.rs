@@ -79,6 +79,15 @@ pub struct Database {
 #[serde(deny_unknown_fields, default)]
 pub struct Indexer {
     pub enabled: Option<bool>,
+    /// Fill in `tracks.album_uri`, `tracks.artist_uri` and
+    /// `albums.artist_uri` from the records that supply them, at startup.
+    ///
+    /// On by default. It is a repair for rows written before those copies were
+    /// filled in, so once a database is repaired every later run updates
+    /// nothing — but it still has to look, and looking is a full scan of
+    /// `tracks` and `albums`, which is slow enough to notice against a remote
+    /// Postgres.
+    pub repair_uris: Option<bool>,
     pub jetstream_urls: Option<Vec<String>>,
     /// DIDs to index. Empty indexes everything on the firehose.
     pub dids: Option<Vec<String>>,
@@ -134,6 +143,13 @@ pub struct Search {
     /// Unset uses SQLite FTS5.
     pub typesense_url: Option<String>,
     pub typesense_api_key: Option<String>,
+    /// Rebuild the index from the database at startup when it is behind.
+    ///
+    /// On by default, and worth turning off against a large remote database:
+    /// deciding whether to run it counts every row of every indexed table, and
+    /// on a few hundred thousand tracks over a network that is tens of seconds
+    /// before a single document is written.
+    pub backfill: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]

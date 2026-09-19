@@ -81,6 +81,16 @@
 # a fresh instance has nothing to show.
 # enabled = true
 
+# Fill in tracks.album_uri, tracks.artist_uri and albums.artist_uri from the
+# records that supply them, once at startup. On by default.
+#
+# It is a repair for rows written before those copies were filled in, so on a
+# repaired database every later run updates nothing — but it still scans
+# `tracks` and `albums` to find that out. Against a remote Postgres with a few
+# hundred thousand tracks that is tens of seconds of every boot, so turn it off
+# once the database is known to be repaired.
+# repair_uris = true
+
 # jetstream_urls = [
 #   "wss://jetstream1.us-east.bsky.network/subscribe",
 #   "wss://jetstream2.us-east.bsky.network/subscribe",
@@ -183,6 +193,17 @@
 # without an import step.
 # typesense_url = "http://localhost:8108"
 # typesense_api_key = "rocksky"
+
+# Rebuild the index from the database at startup when it is behind. On by
+# default, and how a new instance pointed at an existing database gets a
+# working search box without an import step.
+#
+# Deciding whether to run counts every row of every indexed table, so on a
+# large remote database it costs tens of seconds before a single document is
+# written. Turn it off and the index is kept current by the write paths alone —
+# which is correct once it has been built, and wrong for an index that never
+# has been.
+# backfill = true
 
 [events]
 # NATS. REQUIRED — the scrobble mirrors, the Spotify poller and the playlist
