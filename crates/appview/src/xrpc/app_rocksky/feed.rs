@@ -22,7 +22,7 @@
 
 use crate::auth::Auth;
 use crate::db::models::{Scrobble, SCROBBLE_COLS};
-use crate::db::schema::{Feeds, Follows, Scrobbles, Users};
+use crate::db::schema::{Albums, Artists, Feeds, Follows, Scrobbles, Tracks, Users};
 use crate::db::{format_timestamp, loaders, Backend};
 use crate::error::{XrpcError, XrpcResult};
 use crate::likes;
@@ -323,16 +323,6 @@ fn feed_cache_key(params: &GetFeedParams, version: Option<String>, did: Option<&
     )
 }
 
-/// Scrobbles read per pass when a genre has to be matched in Rust.
-const SCAN_CHUNK: i64 = 200;
-
-/// How many passes a genre page makes before coming back short.
-///
-/// A short page still carries a cursor, so a client following it sees the rest;
-/// the budget is what keeps a rare genre from walking the whole table inside
-/// one request.
-const SCAN_PASSES: usize = 5;
-
 async fn load_page(
     state: &AppState,
     algorithm: Algorithm,
@@ -343,22 +333,21 @@ async fn load_page(
     let db = state.db();
     let before = cursor.and_then(parse_cursor);
 
-    let (scrobbles, resume) = match algorithm {
-        Algorithm::All => {
-            let query = scrobble_page(db, Bounds::before(before), limit);
-            let scrobbles: Vec<Scrobble> = db.fetch_all(&query).await?;
-            // A cursor only for a full page, so a caller looping until it is
-            // absent terminates. `apps/feeds` returns one for a short page too,
-            // which costs that caller one extra empty request.
-            let resume = (scrobbles.len() as i64 == limit)
-                .then(|| scrobbles.last().map(|scrobble| scrobble.timestamp))
-                .flatten();
-            (scrobbles, resume)
-        }
-        Algorithm::Genre(genre) => {
-            walk_genre(db, genre, Bounds::before(before), limit as usize, |_| true).await?
-        }
+    // A genre feed differs from the everything feed only by a predicate — see
+    // `apply_bounds`. Both are one query for one page.
+    let genre = match algorithm {
+        Algorithm::All => None,
+        Algorithm::Genre(genre) => Some(genre),
     };
+
+    let query = scrobble_page(db, Bounds::before(before).genre(genre), limit);
+    let scrobbles: Vec<Scrobble> = db.fetch_all(&query).await?;
+    // A cursor only for a full page, so a caller looping until it is absent
+    // terminates. `apps/feeds` returns one for a short page too, which costs
+    // that caller one extra empty request.
+    let resume = (scrobbles.len() as i64 == limit)
+        .then(|| scrobbles.last().map(|scrobble| scrobble.timestamp))
+        .flatten();
 
     Ok(FeedPage {
         scrobbles: hydrate(db, &scrobbles, viewer).await?,
@@ -366,7 +355,7 @@ async fn load_page(
     })
 }
 
-/// What narrows a walk over `scrobbles`, besides the genre.
+/// What narrows a read of `scrobbles`.
 #[derive(Debug, Default, Clone, Copy)]
 struct Bounds<'a> {
     /// Strictly older than this — the feed's cursor.
@@ -375,6 +364,8 @@ struct Bounds<'a> {
     after: Option<DateTime<Utc>>,
     /// Only these listeners' rows.
     listeners: Option<&'a [String]>,
+    /// Only rows whose artist carries this genre.
+    genre: Option<&'a str>,
 }
 
 impl<'a> Bounds<'a> {
@@ -383,6 +374,10 @@ impl<'a> Bounds<'a> {
             before: at,
             ..Self::default()
         }
+    }
+
+    fn genre(self, genre: Option<&'a str>) -> Self {
+        Self { genre, ..self }
     }
 }
 
@@ -404,6 +399,23 @@ fn apply_bounds(db: &Backend, query: &mut SelectStatement, bounds: Bounds<'_>) {
             Expr::col((Alias::new("s"), Scrobbles::UserId))
                 .is_in(listeners.iter().map(String::as_str)),
         );
+    }
+
+    // The genre lives on the artist, so it costs a join — an inner one, which
+    // also drops the scrobbles whose artist row is missing, exactly as the
+    // Rust-side match used to.
+    //
+    // `artist_id` is unique in `artists`, so this cannot multiply rows.
+    if let Some(genre) = bounds.genre {
+        query
+            .join_as(
+                JoinType::InnerJoin,
+                Artists::Table,
+                Alias::new("a"),
+                Expr::col((Alias::new("s"), Scrobbles::ArtistId))
+                    .equals((Alias::new("a"), Artists::XataId)),
+            )
+            .and_where(db.array_contains("a.genres", genre));
     }
 }
 
@@ -429,64 +441,6 @@ fn scrobble_page(db: &Backend, bounds: Bounds<'_>, limit: i64) -> SelectStatemen
     query
 }
 
-/// Walks scrobbles newest first, keeping the rows whose artist carries `genre`
-/// and that `accept` also wants, until `wanted` of them are found.
-///
-/// The genre is matched in Rust because `artists.genres` is `text[]` on
-/// Postgres and JSON text on SQLite, so containment has no spelling the two
-/// share — `recommendations.rs` resolves the same column the same way. The walk
-/// is what keeps that bounded: at most [`SCAN_PASSES`] pages of
-/// [`SCAN_CHUNK`] rows are examined, and where it stopped comes back so the
-/// caller can resume there.
-///
-/// The second value is where to continue from: the last row *kept* when the
-/// page filled — the rows scanned past it have not been reported yet — the last
-/// row *seen* when the budget ran out, and `None` when the feed ran out, which
-/// is the only case that means "there is no more".
-async fn walk_genre(
-    db: &Backend,
-    genre: &str,
-    bounds: Bounds<'_>,
-    wanted: usize,
-    mut accept: impl FnMut(&Scrobble) -> bool,
-) -> anyhow::Result<(Vec<Scrobble>, Option<DateTime<Utc>>)> {
-    let chunk_size = SCAN_CHUNK.max(wanted as i64);
-    let mut bounds = bounds;
-    let mut kept: Vec<Scrobble> = Vec::new();
-
-    for _ in 0..SCAN_PASSES {
-        let chunk: Vec<Scrobble> = db.fetch_all(&scrobble_page(db, bounds, chunk_size)).await?;
-        let exhausted = (chunk.len() as i64) < chunk_size;
-        if let Some(last) = chunk.last() {
-            bounds.before = Some(last.timestamp);
-        }
-
-        let artists = loaders::artists_by_id(db, chunk.iter().map(|s| s.artist_id.clone())).await?;
-        for scrobble in chunk {
-            let carries = scrobble
-                .artist_id
-                .as_deref()
-                .and_then(|id| artists.get(id))
-                .is_some_and(|artist| artist.genres().iter().any(|carried| carried == genre));
-            if !carries || !accept(&scrobble) {
-                continue;
-            }
-
-            let at = scrobble.timestamp;
-            kept.push(scrobble);
-            if kept.len() == wanted {
-                return Ok((kept, Some(at)));
-            }
-        }
-
-        if exhausted {
-            return Ok((kept, None));
-        }
-    }
-
-    Ok((kept, bounds.before))
-}
-
 /// Reads a cursor as an epoch-millisecond timestamp.
 ///
 /// Anything unparseable is treated as absent rather than erroring: a stale
@@ -505,12 +459,28 @@ async fn hydrate(
         return Ok(Vec::new());
     }
 
-    let tracks = loaders::tracks_by_id(db, scrobbles.iter().map(|s| s.track_id.clone())).await?;
-    let users = loaders::users_by_id(db, scrobbles.iter().map(|s| s.user_id.clone())).await?;
-    let artists = loaders::artists_by_id(db, scrobbles.iter().map(|s| s.artist_id.clone())).await?;
+    // All four at once, because none of them needs another's answer.
+    //
+    // `getFeed.ts` hydrates in a single joined statement; these are four, but
+    // they are four *concurrent* statements, so the page waits for one round
+    // trip rather than four. Against the hosted database that is the whole
+    // difference — 95 ms of latency before any of them does any work.
+    //
+    // The like lookup takes its ids from the scrobbles rather than from the
+    // loaded tracks, which is what used to make it wait for them. The two sets
+    // differ only by tracks that no longer exist, and those simply have no
+    // likes to find.
+    let track_ids: Vec<String> = scrobbles
+        .iter()
+        .filter_map(|scrobble| scrobble.track_id.clone())
+        .collect();
 
-    let track_ids: Vec<String> = tracks.keys().cloned().collect();
-    let likes = likes::for_track_ids(db, &track_ids, viewer).await?;
+    let (tracks, users, artists, likes) = tokio::try_join!(
+        loaders::tracks_by_id(db, scrobbles.iter().map(|s| s.track_id.clone())),
+        loaders::users_by_id(db, scrobbles.iter().map(|s| s.user_id.clone())),
+        loaders::artists_by_id(db, scrobbles.iter().map(|s| s.artist_id.clone())),
+        likes::for_track_ids(db, &track_ids, viewer),
+    )?;
 
     Ok(scrobbles
         .iter()
@@ -680,57 +650,80 @@ async fn load_stories(
     // `scrobbles`; bound it to recent activity and only pay for the unbounded
     // scan when the window cannot fill the page.
     let since = Utc::now() - chrono::Duration::days(STORIES_WINDOW_DAYS);
-    let mut scrobbles = latest_per_user(db, genre, followed.as_deref(), Some(since), size).await?;
-    if (scrobbles.len() as i64) < size {
-        scrobbles = latest_per_user(db, genre, followed.as_deref(), None, size).await?;
+    let mut rows = db
+        .fetch_all::<StoryRow>(&stories_query(
+            db,
+            genre,
+            followed.as_deref(),
+            Some(since),
+            size,
+        ))
+        .await?;
+    if (rows.len() as i64) < size {
+        rows = db
+            .fetch_all::<StoryRow>(&stories_query(db, genre, followed.as_deref(), None, size))
+            .await?;
     }
-    if scrobbles.is_empty() {
+    if rows.is_empty() {
         return Ok(Vec::new());
     }
 
-    let tracks = loaders::tracks_by_id(db, scrobbles.iter().map(|s| s.track_id.clone())).await?;
-    let users = loaders::users_by_id(db, scrobbles.iter().map(|s| s.user_id.clone())).await?;
-    let artists = loaders::artists_by_id(db, scrobbles.iter().map(|s| s.artist_id.clone())).await?;
-    let albums = loaders::albums_by_id(db, scrobbles.iter().map(|s| s.album_id.clone())).await?;
-
-    let track_ids: Vec<String> = tracks.keys().cloned().collect();
+    let track_ids: Vec<String> = rows.iter().map(|row| row.track_id.clone()).collect();
     let likes = likes::for_track_ids(db, &track_ids, viewer).await?;
 
-    Ok(scrobbles
-        .iter()
-        .filter_map(|scrobble| {
-            let track = tracks.get(scrobble.track_id.as_deref()?)?;
-            let user = users.get(scrobble.user_id.as_deref()?)?;
-            let like = likes.get(&track.id).copied().unwrap_or_default();
-            Some(StoryView {
-                album: track.album.clone(),
-                album_art: track.album_art.clone(),
-                album_artist: track.album_artist.clone(),
-                album_uri: scrobble
-                    .album_id
-                    .as_deref()
-                    .and_then(|id| albums.get(id))
-                    .and_then(|album| album.uri.clone()),
-                artist: track.artist.clone(),
-                artist_uri: scrobble
-                    .artist_id
-                    .as_deref()
-                    .and_then(|id| artists.get(id))
-                    .and_then(|artist| artist.uri.clone()),
-                avatar: user.avatar.clone(),
-                created_at: scrobble.timestamp,
-                did: user.did.clone(),
-                handle: user.handle.clone(),
-                id: track.id.clone(),
-                title: track.title.clone(),
-                track_id: track.id.clone(),
-                track_uri: track.uri.clone(),
-                uri: scrobble.uri.clone(),
+    Ok(rows
+        .into_iter()
+        .map(|row| {
+            let like = likes.get(&row.track_id).copied().unwrap_or_default();
+            StoryView {
+                album: row.album,
+                album_art: row.album_art,
+                album_artist: row.album_artist,
+                album_uri: row.album_uri,
+                artist: row.artist,
+                artist_uri: row.artist_uri,
+                avatar: row.avatar,
+                created_at: row.timestamp,
+                did: row.did,
+                handle: row.handle,
+                // The *track* row id, which is what `getStories.ts` puts here.
+                id: row.track_id.clone(),
+                title: row.title,
+                track_id: row.track_id,
+                track_uri: row.track_uri,
+                uri: row.uri,
                 liked: like.liked,
                 likes_count: like.count,
-            })
+            }
         })
         .collect())
+}
+
+/// Exactly the columns `getStories.ts` selects, and no more.
+///
+/// The TypeScript hydrates a story in the same statement that finds it — one
+/// `select(baseSelect)` with four joins — and that is what is copied here. The
+/// previous shape found the scrobbles, then loaded tracks, users, artists and
+/// albums as four further round trips. That is not a query-planning problem:
+/// the hosted database answers in 95 ms before it does any work, so four extra
+/// trips are 380 ms of waiting however narrow they are.
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct StoryRow {
+    uri: Option<String>,
+    #[sqlx(rename = "ts")]
+    timestamp: DateTime<Utc>,
+    track_id: String,
+    title: String,
+    artist: String,
+    album_artist: String,
+    album: String,
+    album_art: Option<String>,
+    track_uri: Option<String>,
+    artist_uri: Option<String>,
+    album_uri: Option<String>,
+    handle: String,
+    did: String,
+    avatar: String,
 }
 
 /// Row ids of the users `did` follows.
@@ -753,56 +746,120 @@ async fn followed_user_ids(db: &Backend, did: &str) -> Result<Vec<String>, sqlx:
     db.fetch_scalars(&query).await
 }
 
-/// The newest scrobble per listener, newest listener first.
-async fn latest_per_user(
+/// A page of stories: the newest scrobble per listener, hydrated, in one
+/// statement.
+///
+/// This is `getStories.ts`'s query, column for column —
+///
+/// ```sql
+/// SELECT s.uri, s.timestamp, t.xata_id, t.title, …, ar.uri, al.uri, u.handle, …
+/// FROM scrobbles s
+/// LEFT JOIN artists ar ON s.artist_id = ar.xata_id
+/// LEFT JOIN albums  al ON s.album_id  = al.xata_id
+/// LEFT JOIN tracks  t  ON s.track_id  = t.xata_id
+/// LEFT JOIN users   u  ON s.user_id   = u.xata_id
+/// WHERE s.xata_id IN (<the newest scrobble per listener>)
+/// ORDER BY s.timestamp DESC
+/// LIMIT size
+/// ```
+///
+/// — with one deliberate difference. The TypeScript writes the subquery as
+/// `DISTINCT ON (user_id)`, which only Postgres has; [`latest_per_user_query`]
+/// is the portable spelling of the same ranking, tie-break included.
+///
+/// The joins are LEFT, as upstream, so a scrobble whose album has not been
+/// indexed still appears — it simply has no `albumUri`. `tracks` and `users`
+/// are the exceptions the row struct enforces: a story with neither a title
+/// nor a listener cannot be rendered, and the non-null columns make such a row
+/// a decode error rather than a half-empty card.
+fn stories_query(
     db: &Backend,
     genre: Option<&str>,
     followed: Option<&[String]>,
     since: Option<DateTime<Utc>>,
     size: i64,
-) -> anyhow::Result<Vec<Scrobble>> {
+) -> SelectStatement {
     let bounds = Bounds {
         before: None,
         after: since,
         listeners: followed,
+        genre,
     };
 
-    if let Some(genre) = genre {
-        // With the genre matched in Rust the ranking has to be too: newest
-        // first, the first row kept for a listener is that listener's newest.
-        let mut seen = std::collections::HashSet::new();
-        let (scrobbles, _) = walk_genre(db, genre, bounds, size as usize, |scrobble| {
-            scrobble
-                .user_id
-                .as_deref()
-                .is_some_and(|id| seen.insert(id.to_string()))
-        })
-        .await?;
-        return Ok(scrobbles);
-    }
-
-    let ids: Vec<String> = db
-        .fetch_scalars(&latest_per_user_query(db, bounds, size))
-        .await?;
-    if ids.is_empty() {
-        return Ok(Vec::new());
-    }
+    let s = Alias::new("s");
+    let t = Alias::new("t");
+    let u = Alias::new("u");
+    let ar = Alias::new("ar");
+    let al = Alias::new("al");
 
     let mut query = Query::select();
-    db.select_model(&mut query, SCROBBLE_COLS, None);
     query
-        .from(Scrobbles::Table)
-        .and_where(Expr::col(Scrobbles::XataId).is_in(ids.iter().map(String::as_str)));
-
-    let mut by_id: std::collections::HashMap<String, Scrobble> = db
-        .fetch_all::<Scrobble>(&query)
-        .await?
-        .into_iter()
-        .map(|scrobble| (scrobble.id.clone(), scrobble))
-        .collect();
-    // Walked in the order the ranking returned; re-sorting the fetched rows
-    // would lose the tie-break the ranking applied.
-    Ok(ids.iter().filter_map(|id| by_id.remove(id)).collect())
+        .expr_as(Expr::col((s.clone(), Scrobbles::Uri)), Alias::new("uri"))
+        // Aliased away from `timestamp`: the row struct renames it, and two
+        // tables in this join have a column by that name.
+        .expr_as(
+            Expr::col((s.clone(), Scrobbles::Timestamp)),
+            Alias::new("ts"),
+        )
+        .expr_as(
+            Expr::col((t.clone(), Tracks::XataId)),
+            Alias::new("track_id"),
+        )
+        .expr_as(Expr::col((t.clone(), Tracks::Title)), Alias::new("title"))
+        .expr_as(Expr::col((t.clone(), Tracks::Artist)), Alias::new("artist"))
+        .expr_as(
+            Expr::col((t.clone(), Tracks::AlbumArtist)),
+            Alias::new("album_artist"),
+        )
+        .expr_as(Expr::col((t.clone(), Tracks::Album)), Alias::new("album"))
+        .expr_as(
+            Expr::col((t.clone(), Tracks::AlbumArt)),
+            Alias::new("album_art"),
+        )
+        .expr_as(Expr::col((t.clone(), Tracks::Uri)), Alias::new("track_uri"))
+        .expr_as(
+            Expr::col((ar.clone(), Artists::Uri)),
+            Alias::new("artist_uri"),
+        )
+        .expr_as(
+            Expr::col((al.clone(), Albums::Uri)),
+            Alias::new("album_uri"),
+        )
+        .expr_as(Expr::col((u.clone(), Users::Handle)), Alias::new("handle"))
+        .expr_as(Expr::col((u.clone(), Users::Did)), Alias::new("did"))
+        .expr_as(Expr::col((u.clone(), Users::Avatar)), Alias::new("avatar"))
+        .from_as(Scrobbles::Table, s.clone())
+        .join_as(
+            JoinType::LeftJoin,
+            Artists::Table,
+            ar.clone(),
+            Expr::col((s.clone(), Scrobbles::ArtistId)).equals((ar, Artists::XataId)),
+        )
+        .join_as(
+            JoinType::LeftJoin,
+            Albums::Table,
+            al.clone(),
+            Expr::col((s.clone(), Scrobbles::AlbumId)).equals((al, Albums::XataId)),
+        )
+        .join_as(
+            JoinType::LeftJoin,
+            Tracks::Table,
+            t.clone(),
+            Expr::col((s.clone(), Scrobbles::TrackId)).equals((t, Tracks::XataId)),
+        )
+        .join_as(
+            JoinType::LeftJoin,
+            Users::Table,
+            u.clone(),
+            Expr::col((s.clone(), Scrobbles::UserId)).equals((u, Users::XataId)),
+        )
+        .and_where(
+            Expr::col((s.clone(), Scrobbles::XataId))
+                .in_subquery(latest_per_user_query(db, bounds, size)),
+        )
+        .order_by((s, Scrobbles::Timestamp), Order::Desc)
+        .limit(size as u64);
+    query
 }
 
 /// Ranks each listener's scrobbles and keeps the newest, newest listener first.
@@ -1164,6 +1221,7 @@ mod tests {
                 before: Some(at),
                 after: Some(at),
                 listeners: Some(&listeners),
+                genre: Some("rock"),
             },
             50,
         )
@@ -1182,6 +1240,59 @@ mod tests {
             sql.contains(r#""s"."user_id" IN ('rec_alice', 'rec_bob')"#),
             "{sql}"
         );
+        // The genre is a predicate on a joined `artists`, not a filter applied
+        // to rows already fetched.
+        assert!(sql.contains(r#"INNER JOIN "artists" AS "a""#), "{sql}");
+        assert!(sql.contains("json_each(a.genres)"), "{sql}");
+    }
+
+    /// The whole point of the join: the database returns the page, so no
+    /// scrobble is read only to be discarded in Rust.
+    ///
+    /// The previous implementation walked up to five pages of two hundred rows
+    /// and loaded each page's artists to test them — ten round trips against a
+    /// database that costs 95 ms before it does any work — and for a rare
+    /// genre still came back short, because the scan budget ran out before the
+    /// rows did.
+    #[tokio::test]
+    async fn a_genre_feed_is_one_statement_with_the_limit_in_it() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let sql = scrobble_page(&db, Bounds::before(None).genre(Some("r&b")), 20)
+            .to_string(SqliteQueryBuilder);
+
+        assert!(sql.contains("LIMIT 20"), "{sql}");
+        assert!(sql.contains(r#"ORDER BY "s"."timestamp" DESC"#), "{sql}");
+        // One statement: the only nested SELECT is the containment test, which
+        // the planner evaluates per row rather than as a second trip.
+        assert_eq!(sql.matches("FROM \"scrobbles\"").count(), 1, "{sql}");
+    }
+
+    /// The genre reaches the statement as a bound value.
+    ///
+    /// `rnb` filters on the literal `r&b`, and two of the feeds carry an
+    /// apostrophe-free but still punctuated name; a genre spliced into the SQL
+    /// would be one quote away from a broken statement.
+    #[tokio::test]
+    async fn the_genre_is_a_bound_parameter() {
+        use crate::sea_query::SqliteQueryBuilder;
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let (sql, values) = scrobble_page(&db, Bounds::before(None).genre(Some("r&b")), 20)
+            .build(SqliteQueryBuilder);
+
+        assert!(sql.contains("json_each.value = ?"), "{sql}");
+        assert!(
+            values.iter().any(|v| format!("{v:?}").contains("r&b")),
+            "the genre should be bound, not spliced: {values:?}"
+        );
+    }
+
+    /// No genre must leave the statement exactly as it was — the everything
+    /// feed does not pay for a join it has no use for.
+    #[tokio::test]
+    async fn the_everything_feed_does_not_join_artists() {
+        let db = crate::db::connect_in_memory().await.unwrap();
+        let sql = scrobble_page(&db, Bounds::before(None), 20).to_string(SqliteQueryBuilder);
+        assert!(!sql.contains("artists"), "{sql}");
     }
 
     #[test]
