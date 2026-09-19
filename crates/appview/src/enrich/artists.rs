@@ -205,18 +205,14 @@ async fn apply(db: &Backend, artist: &RemoteArtist) -> anyhow::Result<bool> {
     }
 
     if !artist.genres.is_empty() {
-        let genres = serde_json::to_string(&artist.genres)?;
         let update = Query::update()
             .table(Artists::Table)
-            .value(Artists::Genres, genres)
+            // A real array on Postgres, JSON text on SQLite — the column is
+            // `text[]` there and assigning JSON text to one is a type error.
+            .value(Artists::Genres, db.text_array_value(&artist.genres))
             .value(Artists::XataUpdatedat, db.now())
             .and_where(Expr::col(Artists::Sha256).eq(&hash))
-            .cond_where(
-                crate::sea_query::Cond::any()
-                    .add(Expr::col(Artists::Genres).is_null())
-                    .add(Expr::col(Artists::Genres).eq(""))
-                    .add(Expr::col(Artists::Genres).eq("[]")),
-            )
+            .and_where(db.array_is_empty(Artists::Genres))
             .to_owned();
         filled |= db.execute(&update).await? > 0;
     }
@@ -233,12 +229,7 @@ async fn incomplete(db: &Backend, limit: i64, offset: u64) -> Result<Vec<String>
     let missing_picture = Expr::col(Artists::Picture)
         .is_null()
         .or(Expr::col(Artists::Picture).eq(""));
-    let missing_genres = Expr::col(Artists::Genres)
-        .is_null()
-        .or(Expr::col(Artists::Genres).eq(""))
-        // An empty JSON array is how a "no genres" answer is stored, and it is
-        // as unhelpful as a NULL to anything rendering tags.
-        .or(Expr::col(Artists::Genres).eq("[]"));
+    let missing_genres = db.array_is_empty(Artists::Genres);
 
     let query = Query::select()
         .column(Artists::Name)

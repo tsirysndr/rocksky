@@ -523,6 +523,47 @@ impl Backend {
         models::array_contains_expr(self.dialect(), column, value)
     }
 
+    /// A list, as a value that can be *written* to a `text[]`-style column.
+    ///
+    /// The writing counterpart of [`Backend::text_array`]: a real array on
+    /// Postgres, JSON text on SQLite. Assigning the JSON text to a `text[]`
+    /// column is an error on Postgres, which is why this cannot just be
+    /// `serde_json::to_string`.
+    pub fn text_array_value(&self, values: &[String]) -> sea_query::SimpleExpr {
+        models::text_array_value(self.dialect(), Some(values))
+    }
+
+    /// Whether a `text[]`-style column holds nothing worth rendering.
+    ///
+    /// NULL on either backend, plus the empty array — which is stored as a
+    /// real empty array on Postgres and as the text `[]` on SQLite. The
+    /// SQLite spellings must not be used on Postgres: `text[] = text` has no
+    /// operator, and the sweep that asked for one failed every pass with
+    ///
+    ///   operator does not exist: text[] = text
+    ///
+    /// so no artist ever had its genres filled in.
+    pub fn array_is_empty(&self, column: impl sea_query::IntoIden) -> sea_query::SimpleExpr {
+        use sea_query::{Alias, Expr, ExprTrait, Func};
+
+        let iden = column.into_iden();
+        match self.dialect() {
+            Dialect::Postgres => {
+                Expr::col(iden.clone())
+                    .is_null()
+                    .or(Func::cust(Alias::new("cardinality"))
+                        .arg(Expr::col(iden))
+                        .eq(0))
+            }
+            // An empty JSON array is how "no genres" is stored here, and it is
+            // as unhelpful as a NULL to anything rendering tags.
+            Dialect::Sqlite => Expr::col(iden.clone())
+                .is_null()
+                .or(Expr::col(iden.clone()).eq(""))
+                .or(Expr::col(iden).eq("[]")),
+        }
+    }
+
     /// The current year, as an integer expression.
     ///
     /// `strftime('%Y', 'now')` and `EXTRACT(YEAR FROM CURRENT_DATE)` have no
@@ -830,6 +871,79 @@ mod tests {
     /// of these worked in development and none of them worked against the
     /// hosted database. Needs a Postgres; see the note on
     /// `a_table_outside_public_still_counts_as_present`.
+    /// `genres` is a real `text[]` on Postgres and JSON text on SQLite, so
+    /// neither reading it as empty nor writing it can be spelled one way.
+    ///
+    /// The sweep asked `genres = ''` and got
+    ///
+    ///   operator does not exist: text[] = text
+    ///
+    /// on every pass, so no artist was ever filled in. Needs a Postgres; see
+    /// the note on `a_table_outside_public_still_counts_as_present`.
+    #[tokio::test]
+    async fn a_text_array_is_tested_and_written_per_dialect() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            eprintln!("skipped: set ROCKSKY_TEST_POSTGRES_URL to run this");
+            return;
+        };
+
+        let pool = sqlx::postgres::PgPool::connect(&url)
+            .await
+            .expect("connect");
+        sqlx::query("DROP TABLE IF EXISTS tagged")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("CREATE TABLE tagged (id text primary key, genres text[])")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO tagged VALUES ('empty','{}'), ('null',NULL), ('full',ARRAY['rock'])",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let backend = Backend::Postgres {
+            primary: pool.clone(),
+            replica: None,
+        };
+        let genres = sea_query::Alias::new("genres");
+
+        // Reading: the empty and the NULL, and not the one that has tags.
+        let mut select = sea_query::Query::select();
+        select
+            .column(sea_query::Alias::new("id"))
+            .from(sea_query::Alias::new("tagged"))
+            .and_where(backend.array_is_empty(genres.clone()))
+            .order_by(sea_query::Alias::new("id"), sea_query::Order::Asc);
+        let found: Vec<String> = backend.fetch_scalars(&select).await.expect("select");
+        assert_eq!(found, vec!["empty".to_string(), "null".to_string()]);
+
+        // Writing: a list, not JSON text — which `text[]` would reject.
+        let update = sea_query::Query::update()
+            .table(sea_query::Alias::new("tagged"))
+            .value(
+                genres.clone(),
+                backend.text_array_value(&["jazz".to_string(), "funk".to_string()]),
+            )
+            .and_where(sea_query::Expr::col(sea_query::Alias::new("id")).eq("empty"))
+            .to_owned();
+        backend.execute(&update).await.expect("write a text[]");
+
+        // And it reads back as the JSON text the models parse.
+        let mut read = sea_query::Query::select();
+        read.expr_as(backend.text_array(genres), sea_query::Alias::new("genres"))
+            .from(sea_query::Alias::new("tagged"))
+            .and_where(sea_query::Expr::col(sea_query::Alias::new("id")).eq("empty"));
+        let raw: Option<String> = backend.fetch_scalar(&read).await.expect("read back");
+        assert_eq!(
+            models::json_array(raw.as_deref()),
+            vec!["jazz".to_string(), "funk".to_string()]
+        );
+    }
+
     #[tokio::test]
     async fn a_timestamp_is_written_through_the_backend_not_as_text() {
         let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
