@@ -191,19 +191,25 @@
         # default go 1.24.
         buildGoModule = pkgs.buildGoModule.override { go = pkgs.go_1_25; };
 
+        # deezer, spotify and musicbrainz each `replace` the shared ./otel
+        # module with a relative path (../otel from their own go.mod), so
+        # their src has to include ./otel as a sibling and modRoot points
+        # go at the service's own subdirectory within it.
         deezer = buildGoModule {
           pname = "deezer";
           version = "0.1.0";
 
           src = fs.toSource {
-            root = ./deezer;
+            root = ./.;
             fileset = fs.unions [
               ./deezer/go.mod
               ./deezer/go.sum
               ./deezer/main.go
               ./deezer/service
+              ./otel
             ];
           };
+          modRoot = "deezer";
 
           vendorHash = "sha256-kXvtrj31GqekXjfG0ySbC/GP2E0lJJ+IOMrecEw/mD0=";
 
@@ -217,14 +223,16 @@
           version = "0.1.0";
 
           src = fs.toSource {
-            root = ./spotify;
+            root = ./.;
             fileset = fs.unions [
               ./spotify/go.mod
               ./spotify/go.sum
               ./spotify/main.go
               ./spotify/service
+              ./otel
             ];
           };
+          modRoot = "spotify";
 
           vendorHash = "sha256-waGx/C2yn7xKGOEHFRCMZd4IdoZd3CahuX0EApbdjyE=";
 
@@ -240,13 +248,15 @@
           # An explicit union rather than the whole directory: a stray
           # `go build` leaves a 17M `musicbrainz` binary next to main.go.
           src = fs.toSource {
-            root = ./musicbrainz;
+            root = ./.;
             fileset = fs.unions [
               ./musicbrainz/go.mod
               ./musicbrainz/go.sum
               ./musicbrainz/main.go
+              ./otel
             ];
           };
+          modRoot = "musicbrainz";
 
           vendorHash = "sha256-pkW0F384+tVmb3AyFXu37+odU+ylr6NxrOrdSvYVVWQ=";
 
