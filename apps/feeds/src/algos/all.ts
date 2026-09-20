@@ -1,7 +1,7 @@
 import { Context } from "../context.ts";
 import { Algorithm, feedParams } from "./types.ts";
 import schema from "../schema/mod.ts";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, lt } from "drizzle-orm";
 
 const handler = async (
   ctx: Context,
@@ -17,19 +17,22 @@ const handler = async (
     whereConditions.push(lt(schema.scrobbles.timestamp, cursorDate));
   }
 
+  // Only `uri`/`timestamp` are used below — the algo doesn't rank or
+  // personalize, so there's no need to join artists or pull full rows.
   const scrobbles = await ctx.db
-    .select()
+    .select({
+      uri: schema.scrobbles.uri,
+      timestamp: schema.scrobbles.timestamp,
+    })
     .from(schema.scrobbles)
-    .leftJoin(schema.artists, eq(schema.scrobbles.artistId, schema.artists.id))
     .where(and(...whereConditions))
     .orderBy(desc(schema.scrobbles.timestamp))
     .limit(limit)
     .execute();
 
-  const feed = scrobbles.map(({ scrobbles }) => ({ scrobble: scrobbles.uri }));
+  const feed = scrobbles.map(({ uri }) => ({ scrobble: uri }));
 
-  const { scrobbles: lastScrobble } =
-    scrobbles.length > 0 ? scrobbles.at(-1)! : { scrobbles: null };
+  const lastScrobble = scrobbles.length > 0 ? scrobbles.at(-1)! : null;
   const nextCursor = lastScrobble
     ? lastScrobble.timestamp.getTime().toString(10)
     : undefined;

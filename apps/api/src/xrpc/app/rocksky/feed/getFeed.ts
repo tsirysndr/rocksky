@@ -2,7 +2,7 @@ import type { HandlerAuth } from "@atproto/xrpc-server";
 import axios from "axios";
 import { consola } from "consola";
 import type { Context } from "context";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { FeedView } from "lexicon/types/app/rocksky/feed/defs";
@@ -91,7 +91,7 @@ const retrieve = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
-      const [feed] = await ctx.db
+      const [feed] = await ctx.readDb
         .select()
         .from(tables.feeds)
         .where(eq(tables.feeds.uri, params.feed))
@@ -136,8 +136,21 @@ const hydrate = ({
 }): Effect.Effect<ScrobblesWithCursor | undefined, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      const scrobbles = await ctx.db
-        .select()
+      const scrobbles = await ctx.readDb
+        .select({
+          scrobbles: tables.scrobbles,
+          // `lyrics` can be several KB of text per track; presentation()
+          // never reads it, so it's excluded rather than fetched and dropped.
+          tracks: R.omit(["lyrics"], getTableColumns(tables.tracks)),
+          users: {
+            handle: tables.users.handle,
+            displayName: tables.users.displayName,
+            avatar: tables.users.avatar,
+          },
+          // Only `genres` is surfaced (as `tags`) — the rest of the artist
+          // row (biography, links, etc.) would just be fetched and discarded.
+          artists: { genres: tables.artists.genres },
+        })
         .from(tables.scrobbles)
         .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
         .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
@@ -149,57 +162,45 @@ const hydrate = ({
         .orderBy(desc(tables.scrobbles.timestamp))
         .execute();
 
-      const trackIds = scrobbles.map((row) => row.tracks?.id).filter(Boolean);
+      const trackIds = [
+        ...new Set(scrobbles.map((row) => row.tracks?.id).filter(Boolean)),
+      ];
 
-      const likes = await ctx.db
-        .select()
-        .from(tables.lovedTracks)
-        .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
-        .where(inArray(tables.lovedTracks.trackId, trackIds))
-        .execute();
+      const [likeCounts, likedRows] = trackIds.length
+        ? await Promise.all([
+            ctx.readDb
+              .select({ trackId: tables.lovedTracks.trackId, count: count() })
+              .from(tables.lovedTracks)
+              .where(inArray(tables.lovedTracks.trackId, trackIds))
+              .groupBy(tables.lovedTracks.trackId)
+              .execute(),
+            did
+              ? ctx.readDb
+                  .select({ trackId: tables.lovedTracks.trackId })
+                  .from(tables.lovedTracks)
+                  .innerJoin(
+                    tables.users,
+                    eq(tables.lovedTracks.userId, tables.users.id),
+                  )
+                  .where(
+                    and(
+                      inArray(tables.lovedTracks.trackId, trackIds),
+                      eq(tables.users.did, did),
+                    ),
+                  )
+                  .execute()
+              : Promise.resolve([]),
+          ])
+        : [[], []];
 
-      const likesMap = new Map<string, { count: number; liked: boolean }>();
-
-      for (const trackId of trackIds) {
-        const trackLikes = likes.filter(
-          (l) => l.loved_tracks.trackId === trackId,
-        );
-        likesMap.set(trackId, {
-          count: trackLikes.length,
-          liked: trackLikes.some((l) => l.users.did === did),
-        });
-      }
+      const likesCountMap = new Map(likeCounts.map((r) => [r.trackId, r.count]));
+      const likedSet = new Set(likedRows.map((r) => r.trackId));
 
       const result = scrobbles.map((row) => ({
         ...row,
-        likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
-        liked: likesMap.get(row.tracks?.id)?.liked ?? false,
+        likesCount: likesCountMap.get(row.tracks?.id ?? "") ?? 0,
+        liked: row.tracks?.id ? likedSet.has(row.tracks.id) : false,
       }));
-
-      if (did) {
-        const [u] = await ctx.db
-          .select()
-          .from(tables.users)
-          .where(eq(tables.users.did, did))
-          .limit(1)
-          .execute();
-
-        const userPayload = {
-          xata_id: u.id,
-          did: u.did,
-          handle: u.handle,
-          display_name: u.displayName,
-          avatar: u.avatar,
-          xata_createdat: u.createdAt.toISOString(),
-          xata_updatedat: u.updatedAt.toISOString(),
-          xata_version: u.xataVersion,
-        };
-
-        ctx.nc.publish(
-          "rocksky.user",
-          Buffer.from(JSON.stringify(userPayload)),
-        );
-      }
 
       return { scrobbles: result, cursor };
     },
@@ -215,7 +216,7 @@ const presentation = (
     feed: data.scrobbles.map(
       ({ scrobbles, tracks, users, likesCount, liked, artists }) => ({
         scrobble: {
-          ...R.omit(["albumArt", "id", "lyrics"])(tracks),
+          ...R.omit(["albumArt", "id"])(tracks),
           cover: tracks.albumArt,
           date: scrobbles.timestamp.toISOString(),
           user: users.handle,
@@ -238,9 +239,9 @@ const presentation = (
 
 type Scrobbles = {
   scrobbles: SelectScrobble;
-  tracks: SelectTrack;
-  users: SelectUser;
-  artists: SelectArtist;
+  tracks: Omit<SelectTrack, "lyrics">;
+  users: Pick<SelectUser, "handle" | "displayName" | "avatar">;
+  artists: Pick<SelectArtist, "genres"> | null;
   likesCount: number;
   liked: boolean;
 }[];

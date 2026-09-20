@@ -1,6 +1,6 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
@@ -131,7 +131,7 @@ const getFilterUserIds = async (
     return null;
   }
 
-  const rows = await ctx.db
+  const rows = await ctx.readDb
     .select({ userId: tables.users.id })
     .from(tables.follows)
     .innerJoin(tables.users, eq(tables.users.did, tables.follows.subject_did))
@@ -146,8 +146,21 @@ const fetchScrobbles = async (
   params: QueryParams,
   filterUserIds: string[] | null,
 ) => {
-  const baseQuery = ctx.db
-    .select()
+  const baseQuery = ctx.readDb
+    .select({
+      scrobbles: tables.scrobbles,
+      // `lyrics` can be several KB of text per track; presentation() never
+      // reads it, so it's excluded rather than fetched and dropped.
+      tracks: R.omit(["lyrics"], getTableColumns(tables.tracks)),
+      users: {
+        handle: tables.users.handle,
+        displayName: tables.users.displayName,
+        avatar: tables.users.avatar,
+      },
+      // Only `genres` is surfaced (as `tags`) — the rest of the artist row
+      // (biography, links, etc.) would just be fetched and discarded.
+      artists: { genres: tables.artists.genres },
+    })
     .from(tables.scrobbles)
     .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
     .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
@@ -172,35 +185,47 @@ const enrichWithLikes = async (
   scrobbles: Awaited<ReturnType<typeof fetchScrobbles>>,
   currentUserDid?: string,
 ) => {
-  const trackIds = scrobbles
-    .map((row) => row.tracks?.id)
-    .filter((id): id is string => Boolean(id));
+  const trackIds = [
+    ...new Set(
+      scrobbles
+        .map((row) => row.tracks?.id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
 
   if (trackIds.length === 0) {
     return scrobbles.map((row) => ({ ...row, likesCount: 0, liked: false }));
   }
 
-  const likes = await ctx.db
-    .select()
-    .from(tables.lovedTracks)
-    .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
-    .where(inArray(tables.lovedTracks.trackId, trackIds))
-    .execute();
+  const [likeCounts, likedRows] = await Promise.all([
+    ctx.readDb
+      .select({ trackId: tables.lovedTracks.trackId, count: count() })
+      .from(tables.lovedTracks)
+      .where(inArray(tables.lovedTracks.trackId, trackIds))
+      .groupBy(tables.lovedTracks.trackId)
+      .execute(),
+    currentUserDid
+      ? ctx.readDb
+          .select({ trackId: tables.lovedTracks.trackId })
+          .from(tables.lovedTracks)
+          .innerJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
+          .where(
+            and(
+              inArray(tables.lovedTracks.trackId, trackIds),
+              eq(tables.users.did, currentUserDid),
+            ),
+          )
+          .execute()
+      : Promise.resolve([]),
+  ]);
 
-  const likesMap = new Map<string, { count: number; liked: boolean }>();
-
-  for (const trackId of trackIds) {
-    const trackLikes = likes.filter((l) => l.loved_tracks.trackId === trackId);
-    likesMap.set(trackId, {
-      count: trackLikes.length,
-      liked: trackLikes.some((l) => l.users?.did === currentUserDid),
-    });
-  }
+  const likesCountMap = new Map(likeCounts.map((r) => [r.trackId, r.count]));
+  const likedSet = new Set(likedRows.map((r) => r.trackId));
 
   return scrobbles.map((row) => ({
     ...row,
-    likesCount: likesMap.get(row.tracks?.id ?? "")?.count ?? 0,
-    liked: likesMap.get(row.tracks?.id ?? "")?.liked ?? false,
+    likesCount: likesCountMap.get(row.tracks?.id ?? "") ?? 0,
+    liked: row.tracks?.id ? likedSet.has(row.tracks.id) : false,
   }));
 };
 
@@ -215,7 +240,7 @@ const presentation = (
         // whereas tracks.createdAt is the track row's Date. `date`/`cover`/
         // `user` are kept for backward compatibility (allowed by the view's
         // open index signature).
-        ...R.omit(["albumArt", "id", "lyrics", "createdAt"])(tracks),
+        ...R.omit(["albumArt", "id", "createdAt"])(tracks),
         cover: tracks.albumArt,
         date: scrobbles.timestamp.toISOString(),
         createdAt: scrobbles.timestamp.toISOString(),
@@ -235,9 +260,9 @@ const presentation = (
 
 type Scrobbles = {
   scrobbles: SelectScrobble;
-  tracks: SelectTrack;
-  users: SelectUser;
-  artists: SelectArtist;
+  tracks: Omit<SelectTrack, "lyrics">;
+  users: Pick<SelectUser, "handle" | "displayName" | "avatar">;
+  artists: Pick<SelectArtist, "genres"> | null;
   liked: boolean;
   likesCount: number;
 }[];

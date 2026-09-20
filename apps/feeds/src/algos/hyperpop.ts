@@ -18,7 +18,10 @@ const handler = async (
   }
 
   const scrobbles = await ctx.db
-    .select()
+    .select({
+      uri: schema.scrobbles.uri,
+      timestamp: schema.scrobbles.timestamp,
+    })
     .from(schema.scrobbles)
     .innerJoin(schema.artists, eq(schema.scrobbles.artistId, schema.artists.id))
     .where(and(...whereConditions))
@@ -26,10 +29,9 @@ const handler = async (
     .limit(limit)
     .execute();
 
-  const feed = scrobbles.map(({ scrobbles }) => ({ scrobble: scrobbles.uri }));
+  const feed = scrobbles.map(({ uri }) => ({ scrobble: uri }));
 
-  const { scrobbles: lastScrobble } =
-    scrobbles.length > 0 ? scrobbles.at(-1)! : { scrobbles: null };
+  const lastScrobble = scrobbles.length > 0 ? scrobbles.at(-1)! : null;
   const nextCursor = lastScrobble
     ? lastScrobble.timestamp.getTime().toString(10)
     : undefined;
