@@ -67,6 +67,52 @@ pub fn record_request(route: &str, method: &str, status: u16, seconds: f64) {
     }
 }
 
+// ------------------------------------------------------------- Background work
+//
+// The services that serve no HTTP — the jetstream subscriber, the mirror
+// pollers, the Spotify listener — still have a unit of work worth counting and
+// timing. One pair of instruments labelled by `work` rather than one pair per
+// service, so "how many units, how long, how many failed" is the same query
+// everywhere.
+
+/// How long one unit of background work took, in seconds.
+pub fn work_duration() -> &'static Histogram<f64> {
+    static HISTOGRAM: OnceLock<Histogram<f64>> = OnceLock::new();
+    HISTOGRAM.get_or_init(|| {
+        meter()
+            .f64_histogram("rocksky.work.duration")
+            .with_unit("s")
+            .with_description("How long each unit of background work took")
+            .build()
+    })
+}
+
+/// Units of background work, by kind and outcome.
+pub fn work_items() -> &'static Counter<u64> {
+    static COUNTER: OnceLock<Counter<u64>> = OnceLock::new();
+    COUNTER.get_or_init(|| {
+        meter()
+            .u64_counter("rocksky.work.items")
+            .with_description("Units of background work processed")
+            .build()
+    })
+}
+
+/// Records one finished unit of background work against both instruments.
+///
+/// `work` names the kind — `jetstream.commit`, `mirror.poll`,
+/// `spotify.scrobble` — and matches the span name, so a spike in the metric
+/// leads straight to the traces for it. `outcome` is `ok` or `error`; keep it
+/// to that handful of values, since every distinct one is a new series.
+pub fn record_work(work: &str, outcome: &str, seconds: f64) {
+    let attributes = [
+        KeyValue::new("work", work.to_string()),
+        KeyValue::new("outcome", outcome.to_string()),
+    ];
+    work_items().add(1, &attributes);
+    work_duration().record(seconds, &attributes);
+}
+
 // ------------------------------------------------------------------ Prometheus
 //
 // Prometheus scrapes a text page rather than being pushed to, so it is served

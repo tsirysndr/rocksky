@@ -7,6 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+rocksky-telemetry = { path = "../telemetry", default-features = false }
 rocksky-db = { path = "../db" }
 sea-query = { version = "0.32", features = ["postgres-array", "with-chrono"] }
 rocksky-pgurl = { path = "../pgurl" }

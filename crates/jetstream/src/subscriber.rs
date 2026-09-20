@@ -277,6 +277,7 @@ fn spawn_handler(
 
     tokio::spawn(async move {
         let _permit = permit;
+        let started = std::time::Instant::now();
         let collection = commit.collection.clone();
         let rkey = commit.rkey.clone();
         // Wrap in catch_unwind so a panic inside save_scrobble (e.g.
@@ -286,6 +287,13 @@ fn spawn_handler(
         let outcome = AssertUnwindSafe(save_scrobble(state, pool, nc, &did, commit))
             .catch_unwind()
             .await;
+        let elapsed = started.elapsed().as_secs_f64();
+        let result = match &outcome {
+            Ok(Ok(_)) => "ok",
+            _ => "error",
+        };
+        rocksky_telemetry::metrics::record_work("jetstream.commit", result, elapsed);
+
         match outcome {
             Ok(Ok(_)) => {
                 tracing::Span::current().record("otel.status_code", "OK");

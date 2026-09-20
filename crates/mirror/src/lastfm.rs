@@ -76,6 +76,7 @@ pub async fn run_user(
             _ = tokio::time::sleep(POLL_INTERVAL) => {}
         }
 
+        let started = std::time::Instant::now();
         let poll = tokio::time::timeout(
             POLL_TIMEOUT,
             poll_once(
@@ -87,17 +88,32 @@ pub async fn run_user(
                 info!(user_id = %row.user_id, "Last.fm: cancelled mid-poll");
                 return Ok(());
             }
-            result = poll => match result {
-                Ok(Ok(new_watermark)) => watermark = new_watermark,
-                Ok(Err(e)) => {
-                    error!(user_id = %row.user_id, error = %e, "Last.fm: poll failed");
-                }
-                Err(_) => {
-                    error!(
-                        user_id = %row.user_id,
-                        timeout_secs = POLL_TIMEOUT.as_secs(),
-                        "Last.fm: poll_once timed out, will retry next interval"
-                    );
+            result = poll => {
+                // Timeouts count separately from errors: a provider that has
+                // started hanging looks nothing like one returning 500s, and
+                // averaging them into one failure rate hides that.
+                let outcome = match &result {
+                    Ok(Ok(_)) => "ok",
+                    Ok(Err(_)) => "error",
+                    Err(_) => "timeout",
+                };
+                rocksky_telemetry::metrics::record_work(
+                    "mirror.poll",
+                    outcome,
+                    started.elapsed().as_secs_f64(),
+                );
+                match result {
+                    Ok(Ok(new_watermark)) => watermark = new_watermark,
+                    Ok(Err(e)) => {
+                        error!(user_id = %row.user_id, error = %e, "Last.fm: poll failed");
+                    }
+                    Err(_) => {
+                        error!(
+                            user_id = %row.user_id,
+                            timeout_secs = POLL_TIMEOUT.as_secs(),
+                            "Last.fm: poll_once timed out, will retry next interval"
+                        );
+                    }
                 }
             }
         }

@@ -1159,7 +1159,12 @@ pub async fn watch_currently_playing(
                             percentage = format!("{:.2}", percentage),
                             "scrobbling track"
                         );
-                        scrobble(
+                        // Counted here rather than inside `scrobble`, which
+                        // returns early when nothing is cached: this call site
+                        // is reached only when a play has actually crossed the
+                        // threshold, so the count is submissions, not attempts.
+                        let started = std::time::Instant::now();
+                        let submitted = scrobble(
                             cache.clone(),
                             &spotify_email,
                             &did,
@@ -1168,7 +1173,13 @@ pub async fn watch_currently_playing(
                             &client_secret,
                             &pool,
                         )
-                        .await?;
+                        .await;
+                        rocksky_telemetry::metrics::record_work(
+                            "spotify.scrobble",
+                            if submitted.is_ok() { "ok" } else { "error" },
+                            started.elapsed().as_secs_f64(),
+                        );
+                        submitted?;
 
                         match cache
                             .del(&format!("changed:{}:{}", spotify_email, data_item.id))
