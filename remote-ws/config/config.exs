@@ -13,7 +13,10 @@ config :remote_ws,
   store: RemoteWs.Store.Ecto,
   # Whether to boot the external clients (Repo, Redix, NATS) in the supervision
   # tree. Disabled in test.
-  start_externals: true
+  start_externals: true,
+  # Whether to install the OTLP logger handler. Disabled in test, where there is
+  # no collector to ship to. See lib/remote_ws/telemetry.ex.
+  otlp_logs: true
 
 # The raw-JSON WebSocket relay is served by a Bandit-backed Phoenix endpoint.
 config :remote_ws, RemoteWsWeb.Endpoint,
@@ -27,5 +30,14 @@ config :phoenix, :json_library, Jason
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id, :did]
+
+# OpenTelemetry. The name this process reports itself as; OTEL_SERVICE_NAME wins
+# over it when set, which is how the SDK's resource detector is meant to be
+# overridden. The endpoint and the per-signal exporters are environment, so they
+# live in config/runtime.exs.
+config :opentelemetry,
+  span_processor: :batch,
+  traces_exporter: :otlp,
+  resource: %{service: %{name: "remote-ws", version: Mix.Project.config()[:version]}}
 
 import_config "#{config_env()}.exs"

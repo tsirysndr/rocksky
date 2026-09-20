@@ -49,8 +49,14 @@ defmodule RemoteWs.StopDebouncer do
 
   @impl true
   def handle_info({:fire, did}, state) do
-    RemoteWs.Redis.del("ws_lastsong:#{did}")
-    RemoteWs.Nats.publish("rocksky.song.stopped", Jason.encode!(%{did: did}))
+    # Its own root span: the frame that scheduled this finished up to 15s ago,
+    # and the public profile going quiet is exactly the thing somebody comes
+    # looking for a trace of.
+    RemoteWs.Telemetry.work("ws.song_stopped", %{"rocksky.did": did}, fn ->
+      RemoteWs.Redis.del("ws_lastsong:#{did}")
+      RemoteWs.Nats.publish("rocksky.song.stopped", Jason.encode!(%{did: did}))
+    end)
+
     {:noreply, %{state | timers: Map.delete(state.timers, did)}}
   end
 

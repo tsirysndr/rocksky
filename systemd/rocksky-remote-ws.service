@@ -11,6 +11,9 @@ WorkingDirectory=/root/github/rocksky/remote-ws
 # serves the /ws relay. Config (JWT_SECRET, XATA_POSTGRES_URL, REDIS_URL,
 # NATS_URL, REMOTE_WS_PORT) is injected by doppler; REDIS_URL/REMOTE_WS_PORT fall
 # back to sensible defaults. No SECRET_KEY_BASE is required.
+# Telemetry goes to the local collector over OTLP without any extra config —
+# OTEL_EXPORTER_OTLP_ENDPOINT defaults to http://127.0.0.1:4318, and
+# OTEL_EXPORTER_OTLP_HEADERS comes from doppler like the other services'.
 ExecStartPre=/bin/bash -ic 'mix deps.get && mix compile'
 ExecStart=/bin/bash -ic 'exec doppler run -- mix phx.server'
 Restart=on-failure

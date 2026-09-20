@@ -4,6 +4,9 @@ defmodule RemoteWs.Application do
 
   @impl true
   def start(_type, _args) do
+    # Before the endpoint listens, so the first request is already traced.
+    RemoteWs.Telemetry.setup()
+
     children =
       [
         # PubSub is referenced by the Phoenix endpoint config.

@@ -10,34 +10,82 @@ defmodule RemoteWs.Ws.Handler do
 
   Auth failures and unknown messages are swallowed (return `{[], state}`),
   mirroring the Node handler's try/catch which logs and drops.
+
+  `handle/2` is the telemetry boundary: it wraps `dispatch/2` in one root span
+  named after what the frame does, and one `rocksky.work.*` sample under the same
+  name. See `RemoteWs.Telemetry`.
   """
 
-  alias RemoteWs.{Auth, Devices, NowPlaying}
+  require OpenTelemetry.Tracer
+
+  alias RemoteWs.{Auth, Devices, NowPlaying, Telemetry}
 
   @type state :: %{device_id: String.t() | nil, did: String.t() | nil}
 
   @spec handle(map(), state()) :: {[String.t()], state()}
-  def handle(%{"type" => "register"} = msg, state), do: register(msg, state)
-  def handle(%{"type" => "command"} = msg, state), do: command(msg, state)
-  def handle(%{"type" => "set_primary"} = msg, state), do: set_primary(msg, state)
-  def handle(%{"type" => "message"} = msg, state), do: device_message(msg, state)
-  def handle(_msg, state), do: {[], state}
+  def handle(msg, state) do
+    Telemetry.work(span_name(msg), span_attributes(msg, state), fn ->
+      {frames, new_state} = dispatch(msg, state)
+      # `register` is where the connection learns its did and device id, so its
+      # span can only be labelled with them once the work is done.
+      OpenTelemetry.Tracer.set_attributes(identity(new_state))
+      {frames, new_state}
+    end)
+  end
+
+  defp dispatch(%{"type" => "register"} = msg, state), do: register(msg, state)
+  defp dispatch(%{"type" => "command"} = msg, state), do: command(msg, state)
+  defp dispatch(%{"type" => "set_primary"} = msg, state), do: set_primary(msg, state)
+  defp dispatch(%{"type" => "message"} = msg, state), do: device_message(msg, state)
+  defp dispatch(_msg, state), do: {[], state}
+
+  # ---- telemetry labelling ----
+
+  defp span_name(%{"type" => "message"} = msg), do: "ws.message." <> data_type(msg)
+
+  defp span_name(%{"type" => type}) when type in ~w(register command set_primary),
+    do: "ws." <> type
+
+  defp span_name(_msg), do: "ws.unknown"
+
+  # The branches device_message/2 dispatches on. Anything else is handled as a
+  # status push, so it is labelled as one rather than becoming a time series of
+  # its own for whatever a client made up.
+  defp data_type(%{"data" => %{"type" => "track"}}), do: "track"
+  defp data_type(%{"data" => %{"type" => "queue"}}), do: "queue"
+  defp data_type(_msg), do: "status"
+
+  defp span_attributes(%{"type" => "command", "action" => action}, state) when is_binary(action),
+    do: Map.put(identity(state), :"rocksky.ws.action", action)
+
+  defp span_attributes(_msg, state), do: identity(state)
+
+  defp identity(state) do
+    %{}
+    |> put_present(:"rocksky.did", state[:did])
+    |> put_present(:"rocksky.device_id", state[:device_id])
+  end
+
+  defp put_present(attributes, _key, nil), do: attributes
+  defp put_present(attributes, key, value), do: Map.put(attributes, key, value)
 
   @doc """
   Called when a connection closes (from RemoteWs.Ws.Connection.terminate/2):
   announce the departure to the user's other devices and, if this was the primary
   device, end the profile now-playing.
   """
-  def on_disconnect(%{did: did, device_id: device_id})
+  def on_disconnect(%{did: did, device_id: device_id} = state)
       when is_binary(did) and is_binary(device_id) do
-    Devices.broadcast_except(
-      did,
-      device_id,
-      Jason.encode!(%{type: "device_unregistered", device_id: device_id})
-    )
+    Telemetry.work("ws.disconnect", identity(state), fn ->
+      Devices.broadcast_except(
+        did,
+        device_id,
+        Jason.encode!(%{type: "device_unregistered", device_id: device_id})
+      )
 
-    NowPlaying.on_disconnect(did, device_id)
-    :ok
+      NowPlaying.on_disconnect(did, device_id)
+      :ok
+    end)
   end
 
   def on_disconnect(_state), do: :ok

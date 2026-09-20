@@ -35,7 +35,21 @@ defmodule RemoteWs.MixProject do
       {:redix, "~> 1.5"},
       {:gnat, "~> 1.9"},
       {:joken, "~> 2.6"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+
+      # OpenTelemetry. Traces are a stable signal in the Erlang SDK; metrics and
+      # logs still live in `opentelemetry_experimental`, which is where
+      # `otel_metric_reader` and the `otel_log_handler` logger handler come from
+      # — so all three signals need it. See lib/remote_ws/telemetry.ex.
+      {:opentelemetry, "~> 1.7"},
+      {:opentelemetry_api, "~> 1.5"},
+      {:opentelemetry_exporter, "~> 1.11"},
+      {:opentelemetry_api_experimental, "~> 0.6"},
+      {:opentelemetry_experimental, "~> 0.6"},
+      {:opentelemetry_phoenix, "~> 2.0"},
+      {:opentelemetry_bandit, "~> 0.3"},
+      {:opentelemetry_ecto, "~> 1.2"},
+      {:opentelemetry_redix, "~> 0.1"}
     ]
   end
 

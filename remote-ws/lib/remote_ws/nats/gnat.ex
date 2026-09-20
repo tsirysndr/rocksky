@@ -7,14 +7,28 @@ defmodule RemoteWs.Nats.Gnat do
 
   @impl true
   def publish(subject, payload) do
-    try do
-      Gnat.pub(@conn, subject, IO.iodata_to_binary(payload))
-    catch
-      kind, reason ->
-        Logger.error("NATS publish failed for #{subject}: #{inspect({kind, reason})}")
-    end
+    # A child span of the frame (or the debounce timer) that caused it: this is
+    # where the relay's effects leave the process, and the apps/api consumer on
+    # the other side is the next thing anyone looks at when a scrobble is
+    # missing.
+    RemoteWs.Telemetry.span(
+      "nats.publish",
+      %{
+        "messaging.system": "nats",
+        "messaging.operation.name": "publish",
+        "messaging.destination.name": subject
+      },
+      fn ->
+        try do
+          Gnat.pub(@conn, subject, IO.iodata_to_binary(payload))
+        catch
+          kind, reason ->
+            Logger.error("NATS publish failed for #{subject}: #{inspect({kind, reason})}")
+        end
 
-    :ok
+        :ok
+      end
+    )
   end
 
   @doc """

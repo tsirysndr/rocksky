@@ -26,6 +26,38 @@ if database_url = System.get_env("XATA_POSTGRES_URL") do
     ssl: true
 end
 
+# ── OpenTelemetry ─────────────────────────────────────────────────────────────
+# The standard environment, the same one the Go and Node services read:
+# OTEL_EXPORTER_OTLP_ENDPOINT (the local collector by default) and
+# OTEL_EXPORTER_OTLP_HEADERS for its ingest token. Headers are left entirely to
+# the environment — the SDK parses OTEL_EXPORTER_OTLP_HEADERS itself — so a
+# process run under doppler needs nothing extra here.
+#
+# The endpoint is set twice on purpose: traces read it from
+# :opentelemetry_exporter, while the metric and log exporters (still the
+# "experimental" SDK in Erlang) read it from :opentelemetry_experimental.
+if config_env() != :test do
+  otlp_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT") || "http://127.0.0.1:4318"
+
+  config :opentelemetry_exporter,
+    otlp_protocol: :http_protobuf,
+    otlp_endpoint: otlp_endpoint
+
+  config :opentelemetry_experimental,
+    otlp_protocol: :http_protobuf,
+    otlp_endpoint: otlp_endpoint,
+    readers: [
+      %{
+        module: :otel_metric_reader,
+        config: %{
+          exporter: {:otel_exporter_metrics_otlp, %{}},
+          # Matches the 10s period the Rust, Go and Node services export on.
+          export_interval_ms: 10_000
+        }
+      }
+    ]
+end
+
 if config_env() == :prod do
   # This service is a raw-WebSocket relay — no cookies, sessions, CSRF, or
   # LiveView — so it never actually uses secret_key_base. Phoenix only requires

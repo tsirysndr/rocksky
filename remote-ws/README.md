@@ -58,17 +58,17 @@ and the relayed `message` / `command` frames.
 
 ## Architecture (map from the original Node handler, now removed)
 
-| Node (`handler.ts`) | Elixir |
-| --- | --- |
-| `@hono/node-ws` upgrade at `/ws` | `WebSockAdapter.upgrade` → `RemoteWs.Ws.Connection` (`WebSock`) |
+| Node (`handler.ts`)                            | Elixir                                                                                  |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `@hono/node-ws` upgrade at `/ws`               | `WebSockAdapter.upgrade` → `RemoteWs.Ws.Connection` (`WebSock`)                         |
 | `devices` / `deviceNames` / `userDevices` maps | `RemoteWs.Devices` over a duplicate `Registry` keyed by DID (auto-cleans on disconnect) |
-| `pendingStop` + `setTimeout` | `RemoteWs.StopDebouncer` GenServer |
-| `verifyToken` (jsonwebtoken) | `RemoteWs.Auth` (Joken HS256, ignore-expiration + jti revoke check) |
-| `ctx.redis` | `RemoteWs.Redis` behaviour → `RemoteWs.Redis.Redix` |
-| `ctx.db` (drizzle) | `RemoteWs.Store` behaviour → `RemoteWs.Store.Ecto` + `RemoteWs.Repo` |
-| `ctx.nc` (NATS) | `RemoteWs.Nats` behaviour → `RemoteWs.Nats.Gnat` |
-| enrichment + gating (lines 64-273) | `RemoteWs.NowPlaying` (per-device cache + primary selection) |
-| `onMessage` dispatch | `RemoteWs.Ws.Handler` |
+| `pendingStop` + `setTimeout`                   | `RemoteWs.StopDebouncer` GenServer                                                      |
+| `verifyToken` (jsonwebtoken)                   | `RemoteWs.Auth` (Joken HS256, ignore-expiration + jti revoke check)                     |
+| `ctx.redis`                                    | `RemoteWs.Redis` behaviour → `RemoteWs.Redis.Redix`                                     |
+| `ctx.db` (drizzle)                             | `RemoteWs.Store` behaviour → `RemoteWs.Store.Ecto` + `RemoteWs.Repo`                    |
+| `ctx.nc` (NATS)                                | `RemoteWs.Nats` behaviour → `RemoteWs.Nats.Gnat`                                        |
+| enrichment + gating (lines 64-273)             | `RemoteWs.NowPlaying` (per-device cache + primary selection)                            |
+| `onMessage` dispatch                           | `RemoteWs.Ws.Handler`                                                                   |
 
 Redis, NATS, and the read store sit behind behaviours so the intricate gating and
 debounce logic is unit-tested against in-memory doubles — no live Redis / NATS /
@@ -147,12 +147,15 @@ performs broadcasts as side effects via `RemoteWs.Devices`. Dispatch is pattern
 matching on `"type"`:
 
 ```elixir
-def handle(%{"type" => "register"} = msg, state), do: register(msg, state)
-def handle(%{"type" => "command"} = msg, state), do: command(msg, state)
-def handle(%{"type" => "set_primary"} = msg, state), do: set_primary(msg, state)
-def handle(%{"type" => "message"} = msg, state), do: device_message(msg, state)
-def handle(_msg, state), do: {[], state}   # unknown → drop, like the Node try/catch
+defp dispatch(%{"type" => "register"} = msg, state), do: register(msg, state)
+defp dispatch(%{"type" => "command"} = msg, state), do: command(msg, state)
+defp dispatch(%{"type" => "set_primary"} = msg, state), do: set_primary(msg, state)
+defp dispatch(%{"type" => "message"} = msg, state), do: device_message(msg, state)
+defp dispatch(_msg, state), do: {[], state}   # unknown → drop, like the Node try/catch
 ```
+
+`handle/2` wraps `dispatch/2` in one OpenTelemetry span and one work-metric
+sample — see [Observability](#observability).
 
 Each branch first calls `RemoteWs.Auth.verify_token/1`; on failure it returns
 `{[], state}` (silently drops), mirroring the Node behavior.
@@ -208,25 +211,78 @@ Mental model: **one BEAM process per socket; the `Registry` is the routing table
 
 Reuses the **same variable names** as `apps/api` (share one environment):
 
-| Var | Purpose |
-| --- | --- |
-| `JWT_SECRET` | HS256 secret for verifying bearer tokens |
-| `XATA_POSTGRES_URL` | Postgres connection URL (Ecto) |
-| `REDIS_URL` | Redis URL (default `redis://localhost:6379`) |
-| `NATS_URL` | NATS URL (default `nats://localhost:4222`) |
-| `REMOTE_WS_PORT` | HTTP listen port (service-specific; default `4000`) |
+| Var                 | Purpose                                             |
+| ------------------- | --------------------------------------------------- |
+| `JWT_SECRET`        | HS256 secret for verifying bearer tokens            |
+| `XATA_POSTGRES_URL` | Postgres connection URL (Ecto)                      |
+| `REDIS_URL`         | Redis URL (default `redis://localhost:6379`)        |
+| `NATS_URL`          | NATS URL (default `nats://localhost:4222`)          |
+| `REMOTE_WS_PORT`    | HTTP listen port (service-specific; default `4000`) |
+
+OpenTelemetry reads the standard variables, the same ones every other Rocksky
+service does — nothing here is service-specific:
+
+| Var                            | Purpose                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`  | Collector base URL (default `http://127.0.0.1:4318`, OTLP `http/protobuf`) |
+| `OTEL_EXPORTER_OTLP_HEADERS`   | Ingest token for the collector, `key=value,…`                              |
+| `OTEL_SERVICE_NAME`            | Overrides the reported `service.name` (default `remote-ws`)                |
+| `OTEL_TRACES_SAMPLER` / `_ARG` | e.g. `parentbased_traceidratio` + `0.1` to keep a tenth of the frames      |
+| `OTEL_SDK_DISABLED`            | `true` turns the whole SDK off                                             |
 
 No `SECRET_KEY_BASE` is needed: this is a raw-WebSocket relay with no cookies /
 sessions / CSRF / LiveView, so the endpoint's `secret_key_base` (which Phoenix
 requires only to boot) is generated at runtime and never used.
 
+## Observability
+
+Traces, metrics and logs all go to the collector over OTLP `http/protobuf`,
+wired up in `lib/remote_ws/telemetry.ex` and named to match the Rust
+(`crates/telemetry`), Go (`otel/`) and Node (`apps/api/src/otel.ts`) services, so
+one dashboard covers the whole fleet.
+
+**Traces.** One span per inbound frame — `ws.register`, `ws.command`,
+`ws.set_primary`, `ws.message.track|queue|status`, `ws.unknown` — plus
+`ws.disconnect` and `ws.song_stopped` (the debounced NATS publish, 15s after the
+frame that scheduled it). Each is a **root** span: a frame arrives on a socket
+established long ago, so there is no `traceparent` to continue, and chaining them
+would put a whole connection's traffic on one never-ending trace. Hanging off
+each: the Ecto queries, the Redix commands, and the `nats.publish`. The HTTP
+surface (`/health`, the `/ws` upgrade) is instrumented by Bandit + Phoenix; the
+upgrade's span ends at the `101`, it does not live as long as the socket.
+
+**Metrics.**
+
+| Instrument                                                           | What                                                                     |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `http.server.requests`, `http.server.request.duration`               | The HTTP surface, by `http.route`                                        |
+| `rocksky.work.items`, `rocksky.work.duration`                        | One unit of relay work, by `work` (matching the span name) and `outcome` |
+| `rocksky.ws.connections`                                             | Devices connected right now, read off the registry at collection time    |
+| `erlang.vm.memory`, `erlang.vm.process.count`, `erlang.vm.run_queue` | BEAM health — one long-lived process per connected player                |
+
+**Logs.** Everything written through `Logger` keeps going to the console
+(`journalctl` is unaffected) and a copy is shipped to the collector, stamped with
+the trace and span id of whatever span was open — so a log line links back to the
+frame that produced it. The SDK's own export failures are filtered out of that
+copy: shipping them is how a collector that is refusing everything turns into a
+loop generating more of exactly what it cannot deliver.
+
+Traces configure under `:opentelemetry` / `:opentelemetry_exporter`; metrics and
+logs are still "experimental" signals in the Erlang SDK and read their exporter
+config from `:opentelemetry_experimental`, which is why `config/runtime.exs` sets
+the endpoint under two keys.
+
 ## Develop
 
 ```bash
 mix deps.get
-mix test          # 29 tests, no external services needed
+mix test          # 42 tests, no external services needed
 REMOTE_WS_PORT=4000 mix phx.server
 ```
+
+In test nothing leaves the node — no trace exporter, no metric reader, no log
+handler — but spans and samples are still produced, so the instrumentation is
+covered by `test/remote_ws/telemetry_test.exs`.
 
 Deployed via `systemd/rocksky-remote-ws.service`. Tests run in CI through the
 `remote-ws` job in `.github/workflows/tests.yml`.
