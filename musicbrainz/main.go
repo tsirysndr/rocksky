@@ -276,8 +276,10 @@ func (s *Server) hydrateHandler(c echo.Context) error {
 
 	resp, _ := musicbrainz.HydrateTrack(s.mb, req)
 
+	// resp is nil when the real API had nothing either — dereferencing it
+	// for the attribute is what briefly panicked every failed hydrate.
 	attrs := []attribute.KeyValue{attribute.String("mb.source", "musicbrainz-api")}
-	if resp.RecordingMBID != nil {
+	if resp != nil && resp.RecordingMBID != nil {
 		attrs = append(attrs, attribute.String("mb.result.mbid", *resp.RecordingMBID))
 	}
 	spanAttrs(ctx, attrs...)
