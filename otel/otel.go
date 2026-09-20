@@ -30,7 +30,6 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 // Setup installs tracer, meter and logger providers for this process and
@@ -44,14 +43,15 @@ func Setup(ctx context.Context, serviceName string) func(context.Context) error 
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
 		os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4318")
 	}
-
-	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceName(serviceName),
-	))
-	if err != nil {
-		res = resource.Default()
+	// The name goes through the environment the default resource reads, not
+	// through resource.Merge: merging a resource carrying a semconv schema
+	// URL against Default()'s own conflicts whenever the two SDK versions
+	// disagree, and the silent fallback shipped every service as
+	// "unknown_service:main".
+	if os.Getenv("OTEL_SERVICE_NAME") == "" {
+		os.Setenv("OTEL_SERVICE_NAME", serviceName)
 	}
+	res := resource.Default()
 
 	var shutdowns []func(context.Context) error
 
