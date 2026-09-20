@@ -1,4 +1,4 @@
-import { cleanEnv, str, port, host, testOnly } from "envalid";
+import { bool, cleanEnv, str, port, host, testOnly } from "envalid";
 import process from "node:process";
 
 export const env = cleanEnv(process.env, {
@@ -16,4 +16,8 @@ export const env = cleanEnv(process.env, {
   // This service only ever reads, and a feed generator is eventually
   // consistent by design, so it prefers the replica when one exists.
   XATA_READ_POSTGRES_URL: str({ default: "" }),
+
+  // The Deno runtime reads this itself to switch its built-in OpenTelemetry on;
+  // we read it only to keep exported log bodies free of ANSI colour codes.
+  OTEL_DENO: bool({ default: false }),
 });

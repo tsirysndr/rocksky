@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { env } from "./utils/env.ts";
+import { instrumentPool } from "./telemetry.ts";
 import pg from "pg";
 
 // Read-only service: the replica if there is one, otherwise the read+write
@@ -22,6 +23,6 @@ pool.on("error", (err) => {
   );
 });
 
-const db = drizzle(pool);
+const db = drizzle(instrumentPool(pool));
 
 export default { db };

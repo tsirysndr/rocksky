@@ -5,9 +5,12 @@ import describeFeedGenerator from "./src/api/describeFeedGenerator.ts";
 import getFeedSkeleton from "./src/api/getFeedSkeleton.ts";
 import health from "./src/api/health.ts";
 import wellKnown from "./src/api/well-known.ts";
+import { telemetry } from "./src/telemetry.ts";
 import { env } from "./src/utils/env.ts";
 
 const app = new Hono<AppEnv>();
+
+app.use("*", telemetry());
 
 const server = createServer();
 describeFeedGenerator(server, ctx);

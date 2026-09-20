@@ -32,8 +32,10 @@
     "npm:@ipld/dag-cbor@^9.2.5": "9.2.5",
     "npm:@logtape/logtape@^1.3.5": "1.3.5",
     "npm:@logtape/pretty@^1.3.5": "1.3.5_@logtape+logtape@1.3.5",
+    "npm:@opentelemetry/api@^1.9.0": "1.9.1",
     "npm:drizzle-kit@~0.31.8": "0.31.8_esbuild@0.25.12",
-    "npm:drizzle-orm@~0.45.1": "0.45.1_pg@8.16.3",
+    "npm:drizzle-orm@0.45.1": "0.45.1_@opentelemetry+api@1.9.1_pg@8.16.3",
+    "npm:drizzle-orm@~0.45.1": "0.45.1_@opentelemetry+api@1.9.1_pg@8.16.3",
     "npm:effect@^3.19.13": "3.19.13",
     "npm:envalid@^8.1.1": "8.1.1",
     "npm:lodash@^4.17.21": "4.17.21",
@@ -440,6 +442,9 @@
         "@logtape/logtape"
       ]
     },
+    "@opentelemetry/api@1.9.1": {
+      "integrity": "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="
+    },
     "@standard-schema/spec@1.1.0": {
       "integrity": "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="
     },
@@ -466,12 +471,14 @@
       ],
       "bin": true
     },
-    "drizzle-orm@0.45.1_pg@8.16.3": {
+    "drizzle-orm@0.45.1_@opentelemetry+api@1.9.1_pg@8.16.3": {
       "integrity": "sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA==",
       "dependencies": [
+        "@opentelemetry/api",
         "pg"
       ],
       "optionalPeers": [
+        "@opentelemetry/api",
         "pg"
       ]
     },
@@ -683,6 +690,7 @@
       "jsr:@std/assert@1",
       "npm:@logtape/logtape@^1.3.5",
       "npm:@logtape/pretty@^1.3.5",
+      "npm:@opentelemetry/api@^1.9.0",
       "npm:drizzle-kit@~0.31.8",
       "npm:drizzle-orm@~0.45.1",
       "npm:effect@^3.19.13",
