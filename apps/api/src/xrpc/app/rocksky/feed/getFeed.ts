@@ -91,7 +91,7 @@ const retrieve = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
-      const [feed] = await ctx.readDb
+      const [feed] = await ctx.db
         .select()
         .from(tables.feeds)
         .where(eq(tables.feeds.uri, params.feed))
@@ -136,7 +136,7 @@ const hydrate = ({
 }): Effect.Effect<ScrobblesWithCursor | undefined, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      const scrobbles = await ctx.readDb
+      const scrobbles = await ctx.db
         .select({
           scrobbles: tables.scrobbles,
           // `lyrics` can be several KB of text per track; presentation()
@@ -168,14 +168,14 @@ const hydrate = ({
 
       const [likeCounts, likedRows] = trackIds.length
         ? await Promise.all([
-            ctx.readDb
+            ctx.db
               .select({ trackId: tables.lovedTracks.trackId, count: count() })
               .from(tables.lovedTracks)
               .where(inArray(tables.lovedTracks.trackId, trackIds))
               .groupBy(tables.lovedTracks.trackId)
               .execute(),
             did
-              ? ctx.readDb
+              ? ctx.db
                   .select({ trackId: tables.lovedTracks.trackId })
                   .from(tables.lovedTracks)
                   .innerJoin(

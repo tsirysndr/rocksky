@@ -131,7 +131,7 @@ const getFilterUserIds = async (
     return null;
   }
 
-  const rows = await ctx.readDb
+  const rows = await ctx.db
     .select({ userId: tables.users.id })
     .from(tables.follows)
     .innerJoin(tables.users, eq(tables.users.did, tables.follows.subject_did))
@@ -146,7 +146,7 @@ const fetchScrobbles = async (
   params: QueryParams,
   filterUserIds: string[] | null,
 ) => {
-  const baseQuery = ctx.readDb
+  const baseQuery = ctx.db
     .select({
       scrobbles: tables.scrobbles,
       // `lyrics` can be several KB of text per track; presentation() never
@@ -198,14 +198,14 @@ const enrichWithLikes = async (
   }
 
   const [likeCounts, likedRows] = await Promise.all([
-    ctx.readDb
+    ctx.db
       .select({ trackId: tables.lovedTracks.trackId, count: count() })
       .from(tables.lovedTracks)
       .where(inArray(tables.lovedTracks.trackId, trackIds))
       .groupBy(tables.lovedTracks.trackId)
       .execute(),
     currentUserDid
-      ? ctx.readDb
+      ? ctx.db
           .select({ trackId: tables.lovedTracks.trackId })
           .from(tables.lovedTracks)
           .innerJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
