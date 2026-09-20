@@ -205,7 +205,7 @@
             ];
           };
 
-          vendorHash = "sha256-m+R76TxbPFsBytkakRZM0++edMCDm557PM84nZT/DV4=";
+          vendorHash = "sha256-kXvtrj31GqekXjfG0ySbC/GP2E0lJJ+IOMrecEw/mD0=";
 
           doCheck = false;
 
@@ -226,7 +226,7 @@
             ];
           };
 
-          vendorHash = "sha256-eQqGkUPWXsp9ewpX6DTx8GaYM8kh6FFXJxOHESsmvKo=";
+          vendorHash = "sha256-waGx/C2yn7xKGOEHFRCMZd4IdoZd3CahuX0EApbdjyE=";
 
           doCheck = false;
 
@@ -248,7 +248,7 @@
             ];
           };
 
-          vendorHash = "sha256-QXD/l5YVQUi5eC7J2k4ooUspO7EfNFFZVmtspcevKN4=";
+          vendorHash = "sha256-pkW0F384+tVmb3AyFXu37+odU+ylr6NxrOrdSvYVVWQ=";
 
           doCheck = false;
 
