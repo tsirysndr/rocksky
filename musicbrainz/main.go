@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	rotel "github.com/tsirysndr/rocksky/otel"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"github.com/teal-fm/piper/db"
 	"github.com/teal-fm/piper/models"
 	"github.com/teal-fm/piper/service/musicbrainz"
@@ -157,6 +159,15 @@ func main() {
 	}
 
 	e := echo.New()
+
+	// Telemetry first, so every request below is traced and counted. The
+	// shutdown flush runs on the way out — without it a short-lived process
+	// exports nothing at all.
+	otelShutdown := rotel.Setup(context.Background(), "musicbrainz")
+	defer otelShutdown(context.Background())
+	e.Use(otelecho.Middleware("musicbrainz"))
+	e.Use(rotel.Metrics())
+
 
 	e.POST("/search", srv.searchHandler)
 	e.POST("/hydrate", srv.hydrateHandler)

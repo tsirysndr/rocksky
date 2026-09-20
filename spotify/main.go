@@ -13,6 +13,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tsirysndr/rocksky/spotify/service/spotify"
+	rotel "github.com/tsirysndr/rocksky/otel"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
 // statusClientClosedRequest is nginx's non-standard 499: the client
@@ -32,6 +34,15 @@ func main() {
 	e.HideBanner = true
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	// Telemetry first, so every request below is traced and counted. The
+	// shutdown flush runs on the way out — without it a short-lived process
+	// exports nothing at all.
+	otelShutdown := rotel.Setup(context.Background(), "spotify-proxy")
+	defer otelShutdown(context.Background())
+	e.Use(otelecho.Middleware("spotify-proxy"))
+	e.Use(rotel.Metrics())
+
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
