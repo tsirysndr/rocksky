@@ -12,9 +12,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/tsirysndr/rocksky/spotify/service/spotify"
 	rotel "github.com/tsirysndr/rocksky/otel"
+	"github.com/tsirysndr/rocksky/spotify/service/spotify"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // statusClientClosedRequest is nginx's non-standard 499: the client
@@ -42,7 +44,6 @@ func main() {
 	e.Use(otelecho.Middleware("spotify-proxy"))
 	e.Use(rotel.Metrics())
 	e.Use(rotel.RequestLogger())
-
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
@@ -78,6 +79,13 @@ func main() {
 	_ = e.Shutdown(shutdownCtx)
 }
 
+// spanAttrs records proxy details on the request's active span (opened by
+// the otelecho middleware), so a trace shows what was asked upstream and
+// where the answer came from.
+func spanAttrs(ctx context.Context, attrs ...attribute.KeyValue) {
+	trace.SpanFromContext(ctx).SetAttributes(attrs...)
+}
+
 // proxyHandler forwards the request to the Spotify Web API, serving cached
 // responses when fresh and stale ones while Spotify is rate limiting us.
 func (s *Server) proxyHandler(c echo.Context) error {
@@ -85,6 +93,13 @@ func (s *Server) proxyHandler(c echo.Context) error {
 	if qs := c.QueryString(); qs != "" {
 		path += "?" + qs
 	}
+	// The otelecho span is named for the catch-all route ("/v1/*"), which
+	// says nothing; the proxied path and query are the actual request. The
+	// Authorization header is deliberately not recorded.
+	spanAttrs(c.Request().Context(),
+		attribute.String("spotify.proxy.path", "/"+c.Param("*")),
+		attribute.String("spotify.proxy.query", c.QueryString()),
+	)
 
 	var body []byte
 	if c.Request().Body != nil && c.Request().Method != http.MethodGet {
@@ -129,14 +144,21 @@ func (s *Server) proxyHandler(c echo.Context) error {
 		source = spotify.SourceSpotify
 	}
 	c.Response().Header().Set("X-Source", source)
+	cache := "MISS"
 	switch {
 	case result.Stale:
-		c.Response().Header().Set("X-Cache", "STALE")
+		cache = "STALE"
 	case result.Cached:
-		c.Response().Header().Set("X-Cache", "HIT")
-	default:
-		c.Response().Header().Set("X-Cache", "MISS")
+		cache = "HIT"
 	}
+	c.Response().Header().Set("X-Cache", cache)
+	// Where the answer came from and what it cost: riff or cache answers
+	// spend no Spotify quota, upstream ones do.
+	spanAttrs(c.Request().Context(),
+		attribute.String("spotify.proxy.source", source),
+		attribute.String("spotify.proxy.cache", cache),
+		attribute.Int("spotify.proxy.upstream_status", result.Status),
+	)
 
 	if result.Status == http.StatusNoContent {
 		return c.NoContent(http.StatusNoContent)

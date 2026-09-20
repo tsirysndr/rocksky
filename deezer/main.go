@@ -15,6 +15,8 @@ import (
 	"github.com/tsirysndr/rocksky/deezer/service/deezer"
 	rotel "github.com/tsirysndr/rocksky/otel"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // statusClientClosedRequest is nginx's non-standard 499: the caller
@@ -42,7 +44,6 @@ func main() {
 	e.Use(otelecho.Middleware("deezer"))
 	e.Use(rotel.Metrics())
 	e.Use(rotel.RequestLogger())
-
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
@@ -80,6 +81,13 @@ func (s *Server) searchHandler(c echo.Context) error {
 	return s.enrichHandler(c)
 }
 
+// spanAttrs records lookup details on the request's active span (opened by
+// the otelecho middleware), so a trace shows what was asked and what
+// answered. Identifiers and counts, not payloads.
+func spanAttrs(ctx context.Context, attrs ...attribute.KeyValue) {
+	trace.SpanFromContext(ctx).SetAttributes(attrs...)
+}
+
 // enrichHandler takes { title, artist, album? } and returns the enriched track
 // with all metadata Deezer can provide, plus a list of best matches.
 func (s *Server) enrichHandler(c echo.Context) error {
@@ -90,11 +98,29 @@ func (s *Server) enrichHandler(c echo.Context) error {
 	if req.Title == "" && req.Artist == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "title or artist is required"})
 	}
+	ctx := c.Request().Context()
+	spanAttrs(ctx,
+		attribute.String("deezer.query.title", req.Title),
+		attribute.String("deezer.query.artist", req.Artist),
+		attribute.String("deezer.query.album", req.Album),
+	)
 
-	resp, err := s.deezer.Enrich(c.Request().Context(), req)
+	resp, err := s.deezer.Enrich(ctx, req)
 	if err != nil {
 		return respondError(c, err)
 	}
+	attrs := []attribute.KeyValue{
+		attribute.Int("deezer.results.count", len(resp.Matches)),
+		attribute.Bool("deezer.result.enriched", resp.Track != nil),
+	}
+	if resp.Track != nil {
+		attrs = append(attrs,
+			attribute.String("deezer.result.title", resp.Track.Title),
+			attribute.String("deezer.result.artist", resp.Track.Artist),
+			attribute.String("deezer.result.isrc", resp.Track.ISRC),
+		)
+	}
+	spanAttrs(ctx, attrs...)
 	return c.JSON(http.StatusOK, resp)
 }
 
@@ -141,9 +167,19 @@ func (s *Server) trackHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid track id"})
 	}
 
-	track, err := s.deezer.GetTrack(c.Request().Context(), id)
+	ctx := c.Request().Context()
+	spanAttrs(ctx, attribute.Int64("deezer.query.track_id", id))
+
+	track, err := s.deezer.GetTrack(ctx, id)
 	if err != nil {
 		return respondError(c, err)
+	}
+	if track != nil {
+		spanAttrs(ctx,
+			attribute.String("deezer.result.title", track.Title),
+			attribute.String("deezer.result.artist", track.Artist.Name),
+			attribute.String("deezer.result.isrc", track.ISRC),
+		)
 	}
 	return c.JSON(http.StatusOK, track)
 }

@@ -13,11 +13,13 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	rotel "github.com/tsirysndr/rocksky/otel"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"github.com/teal-fm/piper/db"
 	"github.com/teal-fm/piper/models"
 	"github.com/teal-fm/piper/service/musicbrainz"
+	rotel "github.com/tsirysndr/rocksky/otel"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/time/rate"
 )
 
@@ -169,7 +171,6 @@ func main() {
 	e.Use(rotel.Metrics())
 	e.Use(rotel.RequestLogger())
 
-
 	e.POST("/search", srv.searchHandler)
 	e.POST("/hydrate", srv.hydrateHandler)
 	e.GET("/recording/:mbid", srv.recordingByMbidHandler)
@@ -195,6 +196,14 @@ func main() {
 	_ = e.Shutdown(shutdownCtx)
 }
 
+// spanAttrs records lookup details on the request's active span (opened by
+// the otelecho middleware), so a trace shows what was asked and what
+// answered. Identifiers and counts, not payloads: whole responses would
+// bloat every span for data the store already has.
+func spanAttrs(ctx context.Context, attrs ...attribute.KeyValue) {
+	trace.SpanFromContext(ctx).SetAttributes(attrs...)
+}
+
 func (s *Server) searchHandler(c echo.Context) error {
 	var req musicbrainz.SearchParams
 
@@ -203,12 +212,36 @@ func (s *Server) searchHandler(c echo.Context) error {
 	}
 
 	req.Track = cleanTitle(req.Track)
+	ctx := c.Request().Context()
+	spanAttrs(ctx,
+		attribute.String("mb.query.track", req.Track),
+		attribute.String("mb.query.artist", req.Artist),
+		attribute.String("mb.query.release", req.Release),
+	)
 
-	if local, err := s.mbriffSearchRecordings(c.Request().Context(), req); err == nil && len(local) > 0 {
+	if local, err := s.mbriffSearchRecordings(ctx, req); err == nil && len(local) > 0 {
+		spanAttrs(ctx,
+			attribute.String("mb.source", "riff-mb"),
+			attribute.Int("mb.results.count", len(local)),
+			attribute.String("mb.result.mbid", local[0].ID),
+			attribute.String("mb.result.title", local[0].Title),
+		)
 		return c.JSON(http.StatusOK, local)
 	}
 
-	resp, _ := s.mb.SearchMusicBrainz(c.Request().Context(), req)
+	resp, _ := s.mb.SearchMusicBrainz(ctx, req)
+
+	attrs := []attribute.KeyValue{
+		attribute.String("mb.source", "musicbrainz-api"),
+		attribute.Int("mb.results.count", len(resp)),
+	}
+	if len(resp) > 0 {
+		attrs = append(attrs,
+			attribute.String("mb.result.mbid", resp[0].ID),
+			attribute.String("mb.result.title", resp[0].Title),
+		)
+	}
+	spanAttrs(ctx, attrs...)
 
 	return c.JSON(http.StatusOK, resp)
 }
@@ -221,12 +254,33 @@ func (s *Server) hydrateHandler(c echo.Context) error {
 	}
 
 	req.Name = cleanTitle(req.Name)
+	ctx := c.Request().Context()
+	artistNames := make([]string, len(req.Artist))
+	for i, a := range req.Artist {
+		artistNames[i] = a.Name
+	}
+	spanAttrs(ctx,
+		attribute.String("mb.query.track", req.Name),
+		attribute.String("mb.query.artist", strings.Join(artistNames, ", ")),
+		attribute.String("mb.query.release", req.Album),
+	)
 
-	if resp := s.hydrateFromMbriff(c.Request().Context(), req); resp != nil {
+	if resp := s.hydrateFromMbriff(ctx, req); resp != nil {
+		attrs := []attribute.KeyValue{attribute.String("mb.source", "riff-mb")}
+		if resp.RecordingMBID != nil {
+			attrs = append(attrs, attribute.String("mb.result.mbid", *resp.RecordingMBID))
+		}
+		spanAttrs(ctx, attrs...)
 		return c.JSON(http.StatusOK, resp)
 	}
 
 	resp, _ := musicbrainz.HydrateTrack(s.mb, req)
+
+	attrs := []attribute.KeyValue{attribute.String("mb.source", "musicbrainz-api")}
+	if resp.RecordingMBID != nil {
+		attrs = append(attrs, attribute.String("mb.result.mbid", *resp.RecordingMBID))
+	}
+	spanAttrs(ctx, attrs...)
 
 	return c.JSON(http.StatusOK, resp)
 }
@@ -266,10 +320,16 @@ func (s *Server) recordingByMbidHandler(c echo.Context) error {
 	if id == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "mbid is required"})
 	}
+	spanAttrs(c.Request().Context(), attribute.String("mb.query.mbid", id))
 
 	if recording, err := s.mbriffRecording(c.Request().Context(), id); err == nil {
+		spanAttrs(c.Request().Context(),
+			attribute.String("mb.source", "riff-mb"),
+			attribute.String("mb.result.title", recording.Title),
+		)
 		return c.JSON(http.StatusOK, s.recordingToTrack(recording))
 	}
+	spanAttrs(c.Request().Context(), attribute.String("mb.source", "musicbrainz-api"))
 
 	if err := s.limiter.Wait(c.Request().Context()); err != nil {
 		if c.Request().Context().Err() != nil {
