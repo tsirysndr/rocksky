@@ -21,6 +21,7 @@ import {
   useFeedInfiniteQuery,
   useScrobbleInfiniteQuery,
 } from "../../../hooks/useFeed";
+import { useInfiniteScrollSentinel } from "../../../hooks/useInfiniteScrollSentinel";
 import FeedGenerators from "./FeedGenerators";
 import { consola } from "consola";
 import { Link } from "@tanstack/react-router";
@@ -65,7 +66,7 @@ function Feed() {
   const queryClient = useQueryClient();
   const socketRef = useRef<WebSocket | null>(null);
   const heartbeatInterval = useRef<number | null>(null);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const did = localStorage.getItem("did");
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const followingFeed = useAtomValue(followingFeedAtom);
   const paneHidden = useAtomValue(rightPaneHiddenAtom);
@@ -80,7 +81,15 @@ function Feed() {
     fetchNextPage: scrobbleFetchNextPage,
     hasNextPage: scrobbleHasNextPage,
     isFetchingNextPage: scrobbleIsFetchingNextPage,
-  } = useScrobbleInfiniteQuery(localStorage.getItem("did")!, true, 30);
+    // Logged out there is nobody to follow: without this the query still ran
+    // as `did=null`, came back empty, and its hasNextPage never flipped.
+  } = useScrobbleInfiniteQuery(did ?? "", true, 30, !!did);
+
+  const sentinelRef = useInfiniteScrollSentinel(
+    followingFeed ? scrobbleHasNextPage : hasNextPage,
+    followingFeed ? scrobbleIsFetchingNextPage : isFetchingNextPage,
+    followingFeed ? scrobbleFetchNextPage : fetchNextPage,
+  );
 
   const allSongs = followingFeed
     ? scrobbleData?.pages.flatMap((page) => page.scrobbles) || []
@@ -121,52 +130,6 @@ function Feed() {
       consola.info(">> WebSocket connection closed");
     };
   }, [queryClient, feedUri]);
-
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    const currentHasNextPage = followingFeed
-      ? scrobbleHasNextPage
-      : hasNextPage;
-    const currentIsFetchingNextPage = followingFeed
-      ? scrobbleIsFetchingNextPage
-      : isFetchingNextPage;
-
-    if (
-      !loadMoreRef.current ||
-      !currentHasNextPage ||
-      currentIsFetchingNextPage
-    )
-      return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          currentHasNextPage &&
-          !currentIsFetchingNextPage
-        ) {
-          if (followingFeed) {
-            scrobbleFetchNextPage();
-          } else {
-            fetchNextPage();
-          }
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(loadMoreRef.current);
-
-    return () => observer.disconnect();
-  }, [
-    followingFeed,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    scrobbleFetchNextPage,
-    scrobbleHasNextPage,
-    scrobbleIsFetchingNextPage,
-  ]);
 
   return (
     <Container>
@@ -291,7 +254,7 @@ function Feed() {
 
               {/* Load more trigger */}
               <div
-                ref={loadMoreRef}
+                ref={sentinelRef}
                 style={{ height: "20px", marginTop: "20px" }}
               >
                 {(followingFeed

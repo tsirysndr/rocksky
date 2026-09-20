@@ -50,6 +50,7 @@ import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
 import { useWritable } from "../../hooks/useWritable";
+import { useInfiniteScrollSentinel } from "../../hooks/useInfiniteScrollSentinel";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -79,16 +80,6 @@ function formatTotalSecs(seconds: number) {
   return `${m} min`;
 }
 
-function getScrollParent(el: HTMLElement | null): HTMLElement | null {
-  let cur: HTMLElement | null = el?.parentElement ?? null;
-  while (cur) {
-    const overflowY = getComputedStyle(cur).overflowY;
-    if (overflowY === "auto" || overflowY === "scroll") return cur;
-    cur = cur.parentElement;
-  }
-  return null;
-}
-
 function dedupeById<T extends { id: string }>(items: T[]): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -98,33 +89,6 @@ function dedupeById<T extends { id: string }>(items: T[]): T[] {
   });
 }
 
-// The node is held in state, not a ref, so that it is a dependency of the
-// effect. baseui only renders the active tab panel, so a sentinel mounts and
-// unmounts on every tab switch — with a ref the effect wouldn't re-run for it,
-// and the observer would end up attached to nothing (a panel opened after its
-// query settled) or to a detached node (a panel returned to). Either way
-// scrolling stopped loading more.
-function useInfiniteScrollSentinel(
-  hasNextPage: boolean,
-  isFetchingNextPage: boolean,
-  fetchNextPage: () => unknown,
-) {
-  const [el, setEl] = useState<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { root: getScrollParent(el), rootMargin: "400px 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [el, hasNextPage, isFetchingNextPage, fetchNextPage]);
-  return setEl;
-}
 
 // ---------------------------------------------------------------------------
 // Tab overrides (baseui requires plain objects)

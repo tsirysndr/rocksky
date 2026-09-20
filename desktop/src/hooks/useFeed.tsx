@@ -59,8 +59,10 @@ export const useScrobbleInfiniteQuery = (
   did: string,
   following = false,
   limit = 50,
+  enabled = true,
 ) =>
   useInfiniteQuery({
+    enabled,
     queryKey: ["infiniteScrobbles", did, following],
     queryFn: async ({ pageParam }) => {
       const data = await getScrobbles(did, following, pageParam, limit);
