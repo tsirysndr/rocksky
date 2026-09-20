@@ -75,14 +75,14 @@ export const env = cleanEnv(process.env, {
   // algo in apps/feeds) is registered under — see getFeed.ts. Used to
   // recognize feeds we host ourselves, as opposed to a third party's.
   ROCKSKY_FEEDGEN_DID: str({ default: "did:web:discover.rocksky.app" }),
-  // Base URL of apps/feeds when it runs on this same host, bypassing DNS/TLS
-  // for feeds matching ROCKSKY_FEEDGEN_DID. Left empty, those feeds fall back
-  // to the normal public HTTPS resolution (safe default: no behavior change
-  // until this is deliberately set to wherever apps/feeds actually listens).
-  ROCKSKY_FEEDGEN_INTERNAL_URL: str({
-    devDefault: "http://localhost:8002",
-    default: "",
-  }),
+  // Port apps/feeds listens on, on this same host. getFeed calls it directly
+  // there instead of resolving our own feeds over public DNS/TLS.
+  //
+  // No devDefault on purpose: prod runs with NODE_ENV=development, so a
+  // devDefault silently becomes the production value. Getting this wrong
+  // points every native feed at whatever else is listening — 8002 is
+  // apps/ws, which answers every plain HTTP request with 426.
+  ROCKSKY_FEEDGEN_PORT: port({ default: 8003 }),
   // PDS hosts that are unreachable from this server, mapped to a reverse proxy
   // that is (see lib/pdsProxy.ts). Comma separated "unreachable=proxy" pairs;
   // set to "" to disable.

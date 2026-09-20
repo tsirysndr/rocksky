@@ -100,14 +100,15 @@ const retrieve = ({
         throw new Error(`Feed not found`);
       }
       // Every Rocksky-native feed (all + genre algos) is served by apps/feeds
-      // on this same host in prod. When it's configured, skip the public
-      // DNS+TLS round-trip for those; a third party's feed still goes out
-      // over public HTTPS since we don't control where it's hosted.
-      const feedUrl = env.PUBLIC_URL.includes("localhost")
-        ? "http://localhost:8002"
-        : env.ROCKSKY_FEEDGEN_INTERNAL_URL && feed.did === env.ROCKSKY_FEEDGEN_DID
-          ? env.ROCKSKY_FEEDGEN_INTERNAL_URL
-          : `https://${feed.did.split("did:web:")[1]}`;
+      // on this same host, so call it directly and skip the public DNS+TLS
+      // round-trip. A third party's feed still goes out over public HTTPS,
+      // since we don't control where it's hosted.
+      const isOwnFeedgen =
+        env.PUBLIC_URL.includes("localhost") ||
+        feed.did === env.ROCKSKY_FEEDGEN_DID;
+      const feedUrl = isOwnFeedgen
+        ? `http://localhost:${env.ROCKSKY_FEEDGEN_PORT}`
+        : `https://${feed.did.split("did:web:")[1]}`;
       const response = await axios.get<{
         cursor?: string;
         feed: { scrobble: string }[];
