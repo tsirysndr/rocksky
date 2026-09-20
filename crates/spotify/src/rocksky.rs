@@ -14,6 +14,22 @@ use crate::{
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
+/// Submitting one play is this service's unit of work, so it is the span —
+/// rather than the 1s poll loop around it, which would emit a span per tick
+/// per user and bury the handful that actually did something.
+///
+/// `skip_all` because the arguments carry OAuth credentials; the fields below
+/// are what is worth having in a trace.
+#[tracing::instrument(
+    name = "spotify.scrobble",
+    skip_all,
+    fields(
+        otel.kind = "client",
+        spotify.email = %spotify_email,
+        user.did = %did,
+    ),
+    err,
+)]
 pub async fn scrobble(
     cache: Cache,
     spotify_email: &str,

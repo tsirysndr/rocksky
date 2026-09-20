@@ -7,6 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+rocksky-telemetry = { path = "../telemetry" }
 rocksky-pgurl = { path = "../pgurl" }
 rocksky-db = { path = "../db" }
 serde = { version = "1.0.217", features = ["derive"] }

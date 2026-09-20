@@ -15,6 +15,7 @@ use owo_colors::OwoColorize;
 use std::panic::AssertUnwindSafe;
 use tokio::sync::{mpsc, Mutex, Semaphore};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tracing::Instrument;
 
 use crate::{
     repo::save_scrobble,
@@ -261,6 +262,19 @@ fn spawn_handler(
     did: String,
     commit: Commit,
 ) {
+    // One span per commit handled, which is this service's unit of work.
+    // Built here rather than inside the task so it records the event even if
+    // the task panics, and attached with `.instrument` because a spawned task
+    // does not inherit the caller's span.
+    let span = tracing::info_span!(
+        "jetstream.commit",
+        otel.kind = "consumer",
+        jetstream.did = %did,
+        jetstream.collection = %commit.collection,
+        jetstream.rkey = %commit.rkey,
+        otel.status_code = tracing::field::Empty,
+    );
+
     tokio::spawn(async move {
         let _permit = permit;
         let collection = commit.collection.clone();
@@ -274,12 +288,15 @@ fn spawn_handler(
             .await;
         match outcome {
             Ok(Ok(_)) => {
+                tracing::Span::current().record("otel.status_code", "OK");
                 tracing::info!(user_id = %did.bright_green(), %collection, %rkey, "Scrobble saved successfully");
             }
             Ok(Err(e)) => {
+                tracing::Span::current().record("otel.status_code", "ERROR");
                 tracing::error!(error = %e, %collection, %rkey, %did, "Error saving scrobble");
             }
             Err(panic) => {
+                tracing::Span::current().record("otel.status_code", "ERROR");
                 let msg = panic
                     .downcast_ref::<String>()
                     .cloned()
@@ -294,5 +311,5 @@ fn spawn_handler(
                 );
             }
         }
-    });
+    }.instrument(span));
 }

@@ -110,6 +110,10 @@ pub async fn run() -> Result<(), Error> {
         let cors = Cors::permissive();
         App::new()
             .wrap(cors)
+            // Registered last so it wraps everything else: one span and one
+            // metric sample per request, for every Subsonic route this app
+            // serves.
+            .wrap(rocksky_telemetry::middleware::Tracing)
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(ts.clone()))
             .app_data(Data::new(nc.clone()))

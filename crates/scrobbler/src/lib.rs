@@ -95,6 +95,10 @@ pub async fn run() -> Result<(), Error> {
         App::new()
             .wrap(RateLimiter::default())
             .wrap(cors)
+            // Registered last so it wraps everything else: one span and one
+            // metric sample per request, covering every route including the
+            // ones the rate limiter rejects.
+            .wrap(rocksky_telemetry::middleware::Tracing)
             .app_data(limiter.clone())
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))

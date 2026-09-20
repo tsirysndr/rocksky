@@ -119,9 +119,13 @@ pub async fn run() -> Result<(), Error> {
         App::new()
             .app_data(state.clone())
             .wrap(Cors::permissive())
-            // Registered last so it runs first: the router only ever sees a
-            // canonical path, which is what makes matching case-insensitive.
+            // Registered before the tracing layer so it still runs ahead of
+            // the router: the router only ever sees a canonical path, which is
+            // what makes matching case-insensitive.
             .wrap(from_fn(compat::normalize_path))
+            // Outermost, so one span and one metric sample cover every
+            // request, including the ones that fall through to `log_unrouted`.
+            .wrap(rocksky_telemetry::middleware::Tracing)
             .configure(handlers::configure)
             .default_service(web::to(handlers::log_unrouted))
     })

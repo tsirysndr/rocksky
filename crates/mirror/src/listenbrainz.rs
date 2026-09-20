@@ -108,6 +108,20 @@ pub async fn run_user(
     }
 }
 
+/// One poll of ListenBrainz for one user — this service's unit of work, so it
+/// is also the span. `skip_all` because the arguments are connection pools and
+/// credentials; the fields below are what is worth having in a trace.
+#[tracing::instrument(
+    name = "mirror.poll",
+    skip_all,
+    fields(
+        otel.kind = "client",
+        mirror.provider = "listenbrainz",
+        mirror.user_id = %row.user_id,
+        mirror.username = %username,
+    ),
+    err,
+)]
 async fn poll_once(
     pool: &Backend,
     http: &Client,
