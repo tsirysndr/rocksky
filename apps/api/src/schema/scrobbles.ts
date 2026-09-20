@@ -32,6 +32,10 @@ const scrobbles = pgTable(
     index("scrobbles_album_id_idx").on(t.albumId),
     index("scrobbles_track_id_idx").on(t.trackId),
     index("scrobbles_timestamp_idx").on(t.timestamp),
+    // Lets a genre feed (see apps/feeds/src/algos) walk one artist's
+    // scrobbles pre-sorted by time instead of resorting the whole filtered
+    // set. Paired with the GIN index on artists.genres (0029).
+    index("scrobbles_artist_id_timestamp_idx").on(t.artistId, t.timestamp.desc()),
     unique("scrobbles_user_track_timestamp_unique").on(
       t.userId,
       t.trackId,
