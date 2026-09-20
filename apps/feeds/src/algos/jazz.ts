@@ -1,53 +1,7 @@
-import { Context } from "../context.ts";
-import { Algorithm, feedParams } from "./types.ts";
-import schema from "../schema/mod.ts";
-import { and, arrayContains, desc, eq, lt } from "drizzle-orm";
+import { genreAlgorithm, publisherDid } from "./genre.ts";
 
-const handler = async (
-  ctx: Context,
-  params: feedParams,
-  _did?: string | null,
-) => {
-  const { limit = 50, cursor } = params;
-
-  const whereConditions = [arrayContains(schema.artists.genres, ["jazz"])];
-
-  if (cursor) {
-    const cursorDate = new Date(parseInt(cursor, 10));
-    whereConditions.push(lt(schema.scrobbles.timestamp, cursorDate));
-  }
-
-  const scrobbles = await ctx.db
-    .select({
-      uri: schema.scrobbles.uri,
-      timestamp: schema.scrobbles.timestamp,
-    })
-    .from(schema.scrobbles)
-    .innerJoin(schema.artists, eq(schema.scrobbles.artistId, schema.artists.id))
-    .where(and(...whereConditions))
-    .orderBy(desc(schema.scrobbles.timestamp))
-    .limit(limit)
-    .execute();
-
-  const feed = scrobbles.map(({ uri }) => ({ scrobble: uri }));
-
-  const lastScrobble = scrobbles.length > 0 ? scrobbles.at(-1)! : null;
-  const nextCursor = lastScrobble
-    ? lastScrobble.timestamp.getTime().toString(10)
-    : undefined;
-
-  return {
-    cursor: nextCursor,
-    feed,
-  };
-};
-
-export const publisherDid = "did:plc:vegqomyce4ssoqs7zwqvgqty";
 export const rkey = "jazz";
 
-export const info = {
-  handler,
-  needsAuth: false,
-  publisherDid,
-  rkey,
-} as Algorithm;
+export const info = genreAlgorithm("jazz", rkey);
+
+export { publisherDid };
