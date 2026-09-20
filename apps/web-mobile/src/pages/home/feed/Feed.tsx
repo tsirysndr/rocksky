@@ -12,6 +12,7 @@ import {
   useFeedInfiniteQuery,
   useScrobbleInfiniteQuery,
 } from "../../../hooks/useFeed";
+import { useInfiniteScrollSentinel } from "../../../hooks/useInfiniteScrollSentinel";
 import { WS_URL } from "../../../consts";
 import FeedGenerators from "../../../components/FeedGenerators";
 import Stories from "../../../components/Stories";
@@ -177,7 +178,6 @@ export default function Feed() {
   const queryClient = useQueryClient();
   const socketRef = useRef<WebSocket | null>(null);
   const heartbeatRef = useRef<number | null>(null);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const followingFeed = useAtomValue(followingFeedAtom);
   const did = localStorage.getItem("did") || "";
@@ -192,6 +192,12 @@ export default function Feed() {
     hasNextPage: scrobbleHasNextPage,
     isFetchingNextPage: scrobbleIsFetchingNextPage,
   } = useScrobbleInfiniteQuery(did, true, 20);
+
+  const sentinelRef = useInfiniteScrollSentinel(
+    followingFeed ? scrobbleHasNextPage : hasNextPage,
+    followingFeed ? scrobbleIsFetchingNextPage : isFetchingNextPage,
+    followingFeed ? scrobbleFetchNextPage : fetchNextPage,
+  );
 
   const allSongs = followingFeed
     ? scrobbleData?.pages.flatMap((p) => p.scrobbles) || []
@@ -214,22 +220,6 @@ export default function Feed() {
     };
   }, [queryClient, feedUri]);
 
-  // Infinite scroll
-  useEffect(() => {
-    const currentHasNext = followingFeed ? scrobbleHasNextPage : hasNextPage;
-    const currentFetching = followingFeed ? scrobbleIsFetchingNextPage : isFetchingNextPage;
-    if (!loadMoreRef.current || !currentHasNext || currentFetching) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && currentHasNext && !currentFetching) {
-          followingFeed ? scrobbleFetchNextPage() : fetchNextPage();
-        }
-      },
-      { threshold: 0.1 },
-    );
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [followingFeed, fetchNextPage, hasNextPage, isFetchingNextPage, scrobbleFetchNextPage, scrobbleHasNextPage, scrobbleIsFetchingNextPage]);
 
   const loading = isLoading || scrobbleLoading;
 
@@ -260,7 +250,7 @@ export default function Feed() {
         </div>
       )}
 
-      <div ref={loadMoreRef} className="h-10 flex items-center justify-center mt-2">
+      <div ref={sentinelRef} className="h-10 flex items-center justify-center mt-2">
         {(followingFeed ? scrobbleIsFetchingNextPage : isFetchingNextPage) && (
           <div
             className="w-5 h-5 rounded-full border-2 animate-spin"

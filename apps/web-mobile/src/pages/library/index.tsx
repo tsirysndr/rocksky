@@ -50,6 +50,7 @@ import {
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import AddToPlaylistSheet from "../../components/AddToPlaylistSheet";
 import Main from "../../layouts/Main";
+import { useInfiniteScrollSentinel } from "../../hooks/useInfiniteScrollSentinel";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,29 +62,6 @@ function formatDuration(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-// Callback-ref sentinel: the observer (re)attaches whenever the sentinel node
-// mounts, so infinite scroll works even for tabs mounted lazily after a switch.
-function useInfiniteScrollSentinel(
-  hasNextPage: boolean,
-  isFetchingNextPage: boolean,
-  fetchNextPage: () => unknown,
-) {
-  const [el, setEl] = useState<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { rootMargin: "400px 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [el, hasNextPage, isFetchingNextPage, fetchNextPage]);
-  return setEl;
-}
 
 // ---------------------------------------------------------------------------
 // Track row skeleton
