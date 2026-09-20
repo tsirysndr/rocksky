@@ -32,7 +32,6 @@ func main() {
 
 	e := echo.New()
 	e.HideBanner = true
-	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	// Telemetry first, so every request below is traced and counted. The
@@ -42,6 +41,7 @@ func main() {
 	defer otelShutdown(context.Background())
 	e.Use(otelecho.Middleware("spotify-proxy"))
 	e.Use(rotel.Metrics())
+	e.Use(rotel.RequestLogger())
 
 
 	e.GET("/health", func(c echo.Context) error {

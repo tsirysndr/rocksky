@@ -167,6 +167,7 @@ func main() {
 	defer otelShutdown(context.Background())
 	e.Use(otelecho.Middleware("musicbrainz"))
 	e.Use(rotel.Metrics())
+	e.Use(rotel.RequestLogger())
 
 
 	e.POST("/search", srv.searchHandler)
