@@ -1,11 +1,22 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { count, desc, eq, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  inArray,
+  notExists,
+  sql,
+} from "drizzle-orm";
 import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtistTracks";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { deepCamelCaseKeys } from "lib";
+import { creditsArtist } from "lib/credits";
 import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
 
@@ -44,6 +55,63 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
+/** How many of the artist's tracks have been played at least once. */
+const playedTrackCount = async (ctx: Context, artistId: string) =>
+  ctx.readDb
+    .select({ trackId: tables.scrobbles.trackId })
+    .from(tables.scrobbles)
+    .where(eq(tables.scrobbles.artistId, artistId))
+    .groupBy(tables.scrobbles.trackId)
+    .execute()
+    .then((rows) => rows.length);
+
+/**
+ * The artist's tracks nobody has played, oldest junction row first.
+ *
+ * This is the one place `artist_tracks` is read, so it is the one place that
+ * needs `creditsArtist`: a stray row would otherwise hand a stranger's track
+ * to the tail of the page. The credit check cannot be pushed into the
+ * statement — the database folds case for ASCII only (see lib/credits) — so
+ * the rows are filtered here and paged afterwards.
+ */
+const unplayedTracks = async (
+  ctx: Context,
+  artist: { id: string; name: string },
+  limit: number,
+  offset: number,
+) => {
+  const rows = await ctx.readDb
+    .select({
+      trackId: tables.artistTracks.trackId,
+      artist: tables.tracks.artist,
+      albumArtist: tables.tracks.albumArtist,
+    })
+    .from(tables.artistTracks)
+    .innerJoin(tables.tracks, eq(tables.tracks.id, tables.artistTracks.trackId))
+    .where(
+      and(
+        eq(tables.artistTracks.artistId, artist.id),
+        notExists(
+          ctx.readDb
+            .select({ one: sql`1` })
+            .from(tables.scrobbles)
+            .where(
+              and(
+                eq(tables.scrobbles.artistId, artist.id),
+                eq(tables.scrobbles.trackId, tables.artistTracks.trackId),
+              ),
+            ),
+        ),
+      ),
+    )
+    .orderBy(asc(tables.artistTracks.trackId))
+    .execute();
+
+  return rows
+    .filter((row) => creditsArtist(artist.name, row))
+    .slice(offset, offset + limit);
+};
+
 const retrieve = ({
   params,
   ctx,
@@ -57,7 +125,7 @@ const retrieve = ({
       const offset = params.offset ?? 0;
 
       const artist = await ctx.readDb
-        .select({ id: tables.artists.id })
+        .select({ id: tables.artists.id, name: tables.artists.name })
         .from(tables.artists)
         .where(eq(tables.artists.uri, params.uri))
         .execute()
@@ -65,68 +133,93 @@ const retrieve = ({
 
       if (!artist) return { data: [] };
 
-      const artistTrackRows = await ctx.readDb
-        .select({ trackId: tables.artistTracks.trackId })
-        .from(tables.artistTracks)
-        .where(eq(tables.artistTracks.artistId, artist.id))
+      // The ranking runs over `scrobbles`, not over the junction: the rows
+      // have to be ordered by plays *before* the page is cut (slicing the
+      // junction and sorting the slice only looks sorted), and a scrobble's
+      // artist_id and track_id are written together in one transaction, so
+      // unlike `artist_tracks` they never disagree. `artist_tracks` has stray
+      // rows pointing at other artists' recordings — that is what put "Baby"
+      // by Cannons in Slipknot's popular tracks — and ranking here never
+      // reads them.
+      const ranked = await ctx.readDb
+        .select({
+          trackId: tables.scrobbles.trackId,
+          play_count: count(tables.scrobbles.id),
+          unique_listeners: countDistinct(tables.scrobbles.userId),
+        })
+        .from(tables.scrobbles)
+        .where(eq(tables.scrobbles.artistId, artist.id))
+        .groupBy(tables.scrobbles.trackId)
+        // Ties break by id so paging is stable — without it two tracks with
+        // the same count can swap between pages, one shown twice and one
+        // never.
+        .orderBy(
+          desc(count(tables.scrobbles.id)),
+          asc(tables.scrobbles.trackId),
+        )
         .limit(limit)
         .offset(offset)
+        .execute()
+        .then((rows) =>
+          rows.filter((r): r is typeof r & { trackId: string } => !!r.trackId),
+        );
+
+      // A page the plays could not fill is topped up from the junction, so an
+      // artist whose library was uploaded but never played still lists their
+      // tracks. Only these rows need the credit guard (see lib/credits), and
+      // only a page this short ever pays for it.
+      const unplayed =
+        ranked.length < limit
+          ? await unplayedTracks(
+              ctx,
+              artist,
+              limit - ranked.length,
+              // Page one starts at the first unplayed track; later pages skip
+              // the played ones the earlier pages already showed.
+              offset === 0
+                ? 0
+                : Math.max(
+                    0,
+                    offset - (await playedTrackCount(ctx, artist.id)),
+                  ),
+            )
+          : [];
+
+      if (ranked.length === 0 && unplayed.length === 0) return { data: [] };
+
+      const trackIds = [
+        ...ranked.map((r) => r.trackId),
+        ...unplayed.map((r) => r.trackId),
+      ];
+
+      const tracks = await ctx.readDb
+        .select({
+          id: tables.tracks.id,
+          title: tables.tracks.title,
+          artist: tables.tracks.artist,
+          albumArtist: tables.tracks.albumArtist,
+          albumArt: tables.tracks.albumArt,
+          album: tables.tracks.album,
+          uri: tables.tracks.uri,
+          albumUri: tables.tracks.albumUri,
+          artistUri: tables.tracks.artistUri,
+          sha256: tables.tracks.sha256,
+          trackNumber: tables.tracks.trackNumber,
+          discNumber: tables.tracks.discNumber,
+          duration: tables.tracks.duration,
+          copyrightMessage: tables.tracks.copyrightMessage,
+          createdAt: tables.tracks.createdAt,
+        })
+        .from(tables.tracks)
+        .where(inArray(tables.tracks.id, trackIds))
         .execute();
-
-      if (artistTrackRows.length === 0) return { data: [] };
-
-      const trackIds = artistTrackRows
-        .map((r) => r.trackId)
-        .filter((id): id is string => id !== null);
-
-      const [tracks, scrobbleCounts, uniqueListenersRows] = await Promise.all([
-        ctx.readDb
-          .select({
-            id: tables.tracks.id,
-            title: tables.tracks.title,
-            artist: tables.tracks.artist,
-            albumArtist: tables.tracks.albumArtist,
-            albumArt: tables.tracks.albumArt,
-            album: tables.tracks.album,
-            uri: tables.tracks.uri,
-            albumUri: tables.tracks.albumUri,
-            artistUri: tables.tracks.artistUri,
-            sha256: tables.tracks.sha256,
-            trackNumber: tables.tracks.trackNumber,
-            discNumber: tables.tracks.discNumber,
-            duration: tables.tracks.duration,
-            copyrightMessage: tables.tracks.copyrightMessage,
-            createdAt: tables.tracks.createdAt,
-          })
-          .from(tables.tracks)
-          .where(inArray(tables.tracks.id, trackIds))
-          .execute(),
-        ctx.readDb
-          .select({
-            trackId: tables.scrobbles.trackId,
-            play_count: count(tables.scrobbles.id).as("play_count"),
-          })
-          .from(tables.scrobbles)
-          .where(inArray(tables.scrobbles.trackId, trackIds))
-          .groupBy(tables.scrobbles.trackId)
-          .execute(),
-        ctx.readDb
-          .select({
-            trackId: tables.scrobbles.trackId,
-            unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
-          })
-          .from(tables.scrobbles)
-          .where(inArray(tables.scrobbles.trackId, trackIds))
-          .groupBy(tables.scrobbles.trackId)
-          .execute(),
-      ]);
 
       const trackMap = new Map(tracks.map((t) => [t.id, t]));
       const playCountMap = new Map(
-        scrobbleCounts.map((r) => [r.trackId, Number(r.play_count)]),
+        ranked.map((r) => [r.trackId, Number(r.play_count)]),
       );
       const listenersMap = new Map(
-        uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]),
+        ranked.map((r) => [r.trackId, Number(r.unique_listeners)]),
       );
 
       const data: Track[] = trackIds
@@ -153,8 +246,7 @@ const retrieve = ({
             created_at: track.createdAt.toISOString(),
           };
         })
-        .filter((t): t is Track => t !== null)
-        .sort((a, b) => b.play_count - a.play_count);
+        .filter((t): t is Track => t !== null);
 
       return { data };
     },

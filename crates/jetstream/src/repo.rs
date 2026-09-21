@@ -729,7 +729,13 @@ pub async fn save_artist(
         ])
         .values_panic([
             rocksky_db::new_id().into(),
-            scrobble_record.artist.into(),
+            // The album artist, the same string the hash is taken from. Named
+            // from `artist` — the credited string, "Mason, Princess
+            // Superstar" — the row ends up keyed by one artist and named
+            // after another: every later scrobble of that album artist finds
+            // the row by hash and lands on a page titled with a stranger's
+            // name. 745 rows in production have that shape.
+            scrobble_record.album_artist.into(),
             hash.clone().into(),
             uri.into(),
             picture.into(),

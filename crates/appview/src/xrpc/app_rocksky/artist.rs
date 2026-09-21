@@ -11,12 +11,15 @@ use crate::db::models::{Artist, ARTIST_COLS};
 use crate::db::schema::{Artists, Scrobbles, Tracks, Users};
 use crate::db::Backend;
 use crate::error::XrpcResult;
-use crate::sea_query::{Alias, Asterisk, Expr, Func, JoinType, Order, Query, SimpleExpr};
+use crate::sea_query::{
+    Alias, Asterisk, Expr, Func, JoinType, Order, Query, SelectStatement, SimpleExpr,
+};
 use crate::state::AppState;
 use crate::xrpc::{clamp_limit_or, clamp_offset, json};
 use crate::xrpc_query;
 use actix_web::web::{self, ServiceConfig};
 use actix_web::HttpResponse;
+use rocksky_core::credits::credits;
 use serde::{Deserialize, Serialize};
 
 pub fn configure(cfg: &mut ServiceConfig) {
@@ -309,6 +312,45 @@ pub struct ArtistTracksOutput {
     pub tracks: Vec<super::actor::SongViewBasic>,
 }
 
+/// The track ids this artist is actually credited on.
+///
+/// `artist_tracks` cannot be trusted on its own. The write paths resolve the
+/// track and the artist from two separate lookups, and a track resolved
+/// through the MBID/ISRC fallback can belong to someone else entirely — which
+/// is how "Baby" by Cannons ended up among Slipknot's popular tracks. The
+/// scrobbles stay correct, so only the junction is wrong.
+///
+/// The rule itself is [`rocksky_core::credits`], shared with the TypeScript
+/// API so an artist's page does not depend on which service answered it. It
+/// cannot be pushed into SQL: the production database folds case for ASCII
+/// only, so `lower('SÄLEN')` comes back as `'sÄlen'`.
+async fn credited_track_ids(db: &Backend, artist: &Artist) -> Result<Vec<String>, sqlx::Error> {
+    let rows: Vec<(String, String, String)> =
+        db.fetch_all(&artist_track_credits(&artist.id)).await?;
+
+    Ok(rows
+        .into_iter()
+        .filter(|(_, credited, album_artist)| credits(&artist.name, credited, album_artist))
+        .map(|(track_id, _, _)| track_id)
+        .collect())
+}
+
+/// `(track_id, artist, album_artist)` for every junction row of this artist.
+fn artist_track_credits(artist_id: &str) -> SelectStatement {
+    Query::select()
+        .column((Alias::new("artist_tracks"), Alias::new("track_id")))
+        .column((Tracks::Table, Tracks::Artist))
+        .column((Tracks::Table, Tracks::AlbumArtist))
+        .from(Alias::new("artist_tracks"))
+        .inner_join(
+            Tracks::Table,
+            Expr::col((Tracks::Table, Tracks::XataId))
+                .equals((Alias::new("artist_tracks"), Alias::new("track_id"))),
+        )
+        .and_where(Expr::col(Alias::new("artist_id")).eq(artist_id))
+        .to_owned()
+}
+
 /// `app.rocksky.artist.getArtistTracks`
 async fn get_artist_tracks(
     state: web::Data<AppState>,
@@ -324,8 +366,7 @@ async fn get_artist_tracks(
         let Some(artist) = find_artist(db, &uri).await? else {
             return Ok(Vec::new());
         };
-        let track_ids =
-            ranking::junction_ids(db, "artist_tracks", "artist_id", "track_id", &artist.id).await?;
+        let track_ids = credited_track_ids(db, &artist).await?;
 
         super::song::top_songs(
             db,

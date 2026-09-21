@@ -1,13 +1,16 @@
+import { createHash } from "node:crypto";
 import type { Agent } from "@atproto/api";
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { deepSnakeCaseKeys } from "lib";
-import { createHash } from "node:crypto";
+import { creditsArtist } from "lib/credits";
 import {
   putAlbumRecord,
   putArtistRecord,
   putSongRecord,
+  trackLookupOrder,
+  trackLookupWhere,
 } from "nowplaying/nowplaying.service";
 import tables from "schema";
 import type { Track } from "types/track";
@@ -16,21 +19,17 @@ const { tracks, albums, artists, albumTracks, artistTracks, artistAlbums } =
   tables;
 
 export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
-  const trackHash = createHash("sha256")
-    .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
-    .digest("hex");
-
-  // Fall back to MBID or ISRC when the source supplied one — covers cosmetic
-  // title variations between scrobble sources that the sha256 hash would miss.
-  const mbId = track.mbId?.trim();
-  const isrc = track.isrc?.trim();
-  const clauses = [eq(tracks.sha256, trackHash)];
-  if (mbId) clauses.push(eq(tracks.mbId, mbId));
-  if (isrc) clauses.push(eq(tracks.isrc, isrc));
+  // Falls back to MBID then ISRC when the source supplied one — that covers
+  // cosmetic title variations between scrobble sources that the sha256 would
+  // miss. Ranked, never a bare `OR ... LIMIT 1`: the same ISRC/MBID can point
+  // at several rows (and a provider lookup can hand back the wrong id
+  // entirely), so an unranked pick silently crosses artists and leaves the
+  // junction rows below pointing at a stranger's recording.
   const existingTrack = await ctx.db
     .select()
     .from(tracks)
-    .where(clauses.length > 1 ? or(...clauses) : clauses[0])
+    .where(trackLookupWhere(track))
+    .orderBy(trackLookupOrder(track))
     .limit(1)
     .then((results) => results[0]);
 
@@ -152,6 +151,19 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       tries += 1;
       continue;
+    }
+
+    // Last line of defence before the junctions: the track and the artist come
+    // from two independent lookups, so a track resolved through the MBID/ISRC
+    // fallback can belong to someone else entirely. Linking it anyway is what
+    // put "Baby" by Cannons in Slipknot's popular tracks — the row survives
+    // long after the bad match is forgotten. Retrying cannot fix a wrong
+    // match, so bail out of the loop instead.
+    if (!creditsArtist(artist_id.name, track_id)) {
+      consola.warn(
+        `[tracks] ${track_id.title} — ${track_id.artist} does not credit ${artist_id.name}, skipping junctions`,
+      );
+      return;
     }
 
     const album_track = await ctx.db

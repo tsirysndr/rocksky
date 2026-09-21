@@ -36,6 +36,14 @@ const scrobbles = pgTable(
     // scrobbles pre-sorted by time instead of resorting the whole filtered
     // set. Paired with the GIN index on artists.genres (0029).
     index("scrobbles_artist_id_timestamp_idx").on(t.artistId, t.timestamp.desc()),
+    // Covers the artist's popular-tracks ranking — count(*) and
+    // count(distinct user_id) grouped by track, for one artist — as an
+    // index-only scan (0031).
+    index("scrobbles_artist_track_user_idx").on(
+      t.artistId,
+      t.trackId,
+      t.userId,
+    ),
     unique("scrobbles_user_track_timestamp_unique").on(
       t.userId,
       t.trackId,

@@ -40,7 +40,7 @@ import tracks from "../schema/tracks";
  * the source supplied an MBID or ISRC we OR-in `mb_id = $mbid` / `isrc = $isrc`
  * so the recording-level identity wins.
  */
-function trackLookupWhere(t: {
+export function trackLookupWhere(t: {
   title?: string;
   artist?: string;
   album?: string;
@@ -67,7 +67,7 @@ function trackLookupWhere(t: {
  * soundtrack). We rank: exact title+artist+album SHA > MBID > ISRC so the
  * most specific identity always wins.
  */
-function trackLookupOrder(t: {
+export function trackLookupOrder(t: {
   title?: string;
   artist?: string;
   album?: string;

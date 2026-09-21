@@ -9,6 +9,7 @@ import { and, desc, eq, isNotNull, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createAgent, pdsSessionExpired } from "lib/agent";
+import { creditsArtist } from "lib/credits";
 import {
   ScrobbleBlockedError,
   ScrobbleBotFlaggedError,
@@ -661,13 +662,20 @@ app.get("/artists/:sha256/tracks", async (c) => {
   const artistTracksData = await ctx.db
     .select({
       track: tracks,
+      artistName: artists.name,
     })
     .from(artistTracks)
     .innerJoin(tracks, eq(artistTracks.trackId, tracks.id))
     .innerJoin(artists, eq(artistTracks.artistId, artists.id))
     .where(eq(artists.sha256, sha256));
 
-  return c.json(artistTracksData.map((item) => item.track));
+  return c.json(
+    artistTracksData
+      // artist_tracks has rows linking tracks to artists that don't credit
+      // them; without the guard one of them hands back a stranger's track.
+      .filter((item) => creditsArtist(item.artistName, item.track))
+      .map((item) => item.track),
+  );
 });
 
 app.get("/albums/:sha256/tracks", async (c) => {

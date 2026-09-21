@@ -16,6 +16,9 @@ sha2 = "0.10"
 # byte-identical to the ones already in storage.
 md5 = "0.7.0"
 hex = "0.4"
+# Credit matching folds diacritics away, which needs the decomposed form:
+# "Jóhann Jóhannsson" and "Johann Johannsson" are one artist.
+unicode-normalization = "0.1"
 
 [dev-dependencies]
 # The timestamp tests assert on the JSON a value serializes to, which is the

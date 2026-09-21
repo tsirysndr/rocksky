@@ -10,12 +10,17 @@
 //! - **[`timestamp`]** — how a timestamp goes on the wire. The TypeScript API
 //!   emits JavaScript's `toISOString()`, and a client comparing strings needs
 //!   the Rust side to match it to the digit.
+//! - **[`credits`]** — whether a track credits an artist. Every reader of the
+//!   `artist_tracks` junction has to decide this, and the answer must not
+//!   depend on which service was asked.
 //!
 //! Nothing else belongs here. It has no database, no HTTP and no async
 //! runtime, so every other crate can depend on it.
 
+pub mod credits;
 pub mod identity;
 pub mod timestamp;
 
+pub use credits::{credits, fold};
 pub use identity::{album_hash, artist_hash, cover_id, track_hash, PLACEHOLDER_ALBUM_ART};
 pub use timestamp::to_iso8601;
