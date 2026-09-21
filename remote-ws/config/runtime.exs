@@ -39,6 +39,30 @@ end
 if config_env() != :test do
   otlp_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT") || "http://127.0.0.1:4318"
 
+  # The half of the resource that is only knowable at boot. It goes through
+  # OTEL_RESOURCE_ATTRIBUTES rather than the `resource` map in config.exs
+  # because that map is a value, not a keyword list, so setting it again here
+  # would replace the service name and version rather than add to them. The
+  # env-var detector runs alongside the app-env one and the two are merged.
+  #
+  # Appended to whatever is already set, so anything configured in the
+  # environment survives.
+  instance = "#{System.pid()}-#{System.system_time(:nanosecond)}"
+
+  attributes =
+    [
+      System.get_env("OTEL_RESOURCE_ATTRIBUTES"),
+      "service.instance.id=#{instance}",
+      case System.get_env("DEPLOYMENT_ENVIRONMENT") do
+        environment when environment in [nil, ""] -> nil
+        environment -> "deployment.environment.name=#{environment}"
+      end
+    ]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(",")
+
+  System.put_env("OTEL_RESOURCE_ATTRIBUTES", attributes)
+
   config :opentelemetry_exporter,
     otlp_protocol: :http_protobuf,
     otlp_endpoint: otlp_endpoint
@@ -46,6 +70,19 @@ if config_env() != :test do
   config :opentelemetry_experimental,
     otlp_protocol: :http_protobuf,
     otlp_endpoint: otlp_endpoint,
+    # The trace id of a sampled span, attached to the histogram bucket the
+    # measurement landed in — so a spike on a latency chart clicks through to
+    # one of the frames that caused it instead of leaving a search by
+    # timestamp. Off by default in the Erlang SDK, which is the only reason it
+    # has to be named here; `:trace_based` keeps an exemplar only when a span
+    # was actually recording, so an unsampled measurement costs nothing.
+    #
+    # This works because `RemoteWs.Telemetry.Metrics` records through
+    # `:otel_ctx.get_current()`: the filter reads the span out of the context
+    # it is handed, and a measurement taken with an empty one is never an
+    # exemplar no matter what is set here.
+    exemplars_enabled: true,
+    exemplar_filter: :trace_based,
     readers: [
       %{
         module: :otel_metric_reader,

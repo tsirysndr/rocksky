@@ -31,6 +31,33 @@ defmodule RemoteWs.Telemetry do
   the collector stamped with the trace and span id of whatever span was open
   when the line was written, so a log line links back to the frame that produced
   it.
+
+  ## What ties the three signals together
+
+    * One resource on all three. `otel_resource_detector:get_resource/0` is what
+      the tracer, the metric reader and `otel_log_handler` each read, so the
+      `service.name`, `service.version`, `service.namespace` and
+      `service.instance.id` set in config/config.exs and config/runtime.exs are
+      on every span, metric point and log record alike.
+    * Trace and span ids on the logs, as above.
+    * The trace crosses the process boundary: the SDK's default
+      `otel_propagator_trace_context` reads the W3C `traceparent` off the HTTP
+      upgrade and writes it onto outgoing requests, which is the same format
+      the Rust, Go, Node and Deno services use.
+    * The same instrument names and attribute keys as the rest of the fleet —
+      see `RemoteWs.Telemetry.Metrics` — so one chart covers every service and
+      its filter narrows the traces behind a spike.
+    * Exemplars: the trace id of a sampled span attached to the histogram
+      bucket its measurement landed in, so a spike on a chart clicks straight
+      through to one of the frames behind it. Switched on in
+      config/runtime.exs, and it works because `RemoteWs.Telemetry.Metrics`
+      records through `:otel_ctx.get_current()` — a measurement taken with an
+      empty context is never an exemplar.
+
+  Exemplars are the one link that is not available fleet-wide: the Go services
+  export them and this one does, the Rust, Node and Deno SDKs cannot produce
+  them at all. On those, the route from a metric to a trace is the shared
+  attribute names above.
   """
 
   require Logger

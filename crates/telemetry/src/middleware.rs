@@ -18,6 +18,10 @@
 //! `traceparent` is read off the request, so a scrobble that arrives from the
 //! Last.fm mirror shows as one trace spanning both processes rather than two
 //! unrelated ones.
+//!
+//! This reads through the *global* propagator, which has no default —
+//! [`crate::init`] installs one, and until it does every `traceparent` here
+//! reads as absent. See the test at the bottom of this file.
 
 use actix_web::body::MessageBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
@@ -195,5 +199,42 @@ mod tests {
         )
         .await;
         assert_eq!(response.status(), 200);
+    }
+
+    /// The incoming `traceparent` has to actually produce a parent context.
+    ///
+    /// It is read through the global propagator, and that global starts out as
+    /// a *no-op* — so before `init` installed one, the extract below returned
+    /// an invalid span context for every request and each service quietly
+    /// began a trace of its own. Nothing looked broken; the traces were simply
+    /// never joined up. This asserts the propagator `init` installs is the one
+    /// that can read them.
+    #[actix_web::test]
+    async fn an_incoming_traceparent_produces_a_parent() {
+        use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
+        use opentelemetry::trace::TraceContextExt;
+
+        // Through `init` rather than by setting the propagator directly: what
+        // regressed before was `init` not installing one, and a test that
+        // installs its own would have passed throughout.
+        let telemetry = crate::init("test", &crate::Settings::default())
+            .expect("nothing else installs a subscriber in this test binary");
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            HeaderName::from_static("traceparent"),
+            HeaderValue::from_static("00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"),
+        );
+
+        let parent = opentelemetry::global::get_text_map_propagator(|propagator| {
+            propagator.extract(&super::Headers(&headers))
+        });
+
+        assert!(parent.span().span_context().is_valid());
+        assert_eq!(
+            parent.span().span_context().trace_id().to_string(),
+            "0123456789abcdef0123456789abcdef"
+        );
+        drop(telemetry);
     }
 }

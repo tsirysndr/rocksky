@@ -28,10 +28,47 @@
 //!
 //! Prometheus is the exception and cannot be pushed to, so it gets a registry
 //! this crate hands back for the service to serve at `/metrics`.
+//!
+//! # What ties the three signals together
+//!
+//! Three signals are only worth having if you can get from one to the others,
+//! so everything below exists to make that jump possible:
+//!
+//! * **One resource on all three.** The same `service.name`,
+//!   `service.version`, `service.namespace` and `service.instance.id` are
+//!   stamped on every span, metric and log, so a backend groups them as one
+//!   process rather than three unrelated streams.
+//! * **Logs carry `trace_id` and `span_id`.** `tracing-opentelemetry` attaches
+//!   the OpenTelemetry context when a `tracing` span is entered, and the log
+//!   bridge reads it back off the current context — so a `tracing::info!`
+//!   inside a request handler links to that request's trace with no extra
+//!   plumbing at the call site.
+//! * **The trace crosses the process boundary in both directions.** [`init`]
+//!   installs the W3C `traceparent`/`baggage` propagator globally, which is
+//!   what [`middleware`] reads incoming requests with and what
+//!   [`propagation::outgoing_headers`] writes outgoing ones with.
+//! * **Metrics share the traces' attribute names.** `http.route`,
+//!   `http.request.method` and `http.response.status_code` mean the same thing
+//!   in [`metrics`] as they do on the span, so a spike in a chart narrows to
+//!   the traces behind it by pasting the same filter.
+//!
+//! ## Exemplars
+//!
+//! Exemplars — the trace id hanging off a single histogram bucket sample, so a
+//! chart clicks straight through to one slow request — are the fourth link,
+//! and `opentelemetry_sdk` 0.32 cannot produce them: the data model is there
+//! but the aggregators emit `exemplars: vec![]` unconditionally, with no
+//! reservoir behind it. Nothing here can switch that on. Until the SDK grows
+//! one, the route from a metric to a trace is the shared attribute names
+//! above: filter the traces by the `http.route` and status the chart is
+//! showing. The Go services and the Elixir relay *do* export exemplars
+//! (`otel/otel.go`, `remote-ws/config/runtime.exs`), so a dashboard mixing
+//! them will have the link on some panels and not others.
 
 pub mod metrics;
 #[cfg(feature = "actix")]
 pub mod middleware;
+pub mod propagation;
 
 use opentelemetry::trace::TracerProvider as _;
 // `with_endpoint` and `with_headers` are trait methods on the OTLP builders,
@@ -149,17 +186,32 @@ pub fn init(service: &str, settings: &Settings) -> anyhow::Result<Telemetry> {
         .clone()
         .unwrap_or_else(|| service.to_string());
 
-    let mut attributes = vec![KeyValue::new("service.name", service_name.clone())];
+    // One resource, built once and given to all three providers: a span, a
+    // metric point and a log record that disagree about who emitted them
+    // cannot be correlated in any backend.
+    //
+    // `Resource::builder` already folds in `OTEL_SERVICE_NAME` and
+    // `OTEL_RESOURCE_ATTRIBUTES`; the attributes set here are applied on top,
+    // so the config file wins over the environment for the ones it names and
+    // anything extra in the environment still comes through.
+    let mut attributes = vec![
+        KeyValue::new("service.name", service_name.clone()),
+        KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),
+        // Every Rocksky process shares a namespace, which is what lets a
+        // backend show "all of Rocksky" without listing the services by hand.
+        KeyValue::new("service.namespace", "rocksky"),
+        // Distinguishes two processes of the same service — the Hono API and
+        // the XRPC server, an appview restarted mid-investigation. See
+        // `instance_id` for what goes in it.
+        KeyValue::new("service.instance.id", instance_id()),
+        KeyValue::new("process.pid", std::process::id() as i64),
+    ];
     if let Some(environment) = &settings.environment {
         attributes.push(KeyValue::new(
             "deployment.environment.name",
             environment.clone(),
         ));
     }
-    attributes.push(KeyValue::new(
-        "service.version",
-        env!("CARGO_PKG_VERSION").to_string(),
-    ));
     let resource = Resource::builder().with_attributes(attributes).build();
 
     let traces = settings
@@ -187,6 +239,24 @@ pub fn init(service: &str, settings: &Settings) -> anyhow::Result<Telemetry> {
     if let Some(provider) = metrics.clone() {
         opentelemetry::global::set_meter_provider(provider);
     }
+    if let Some(provider) = traces.clone() {
+        // The `tracing` layer below holds its own tracer, so this is not what
+        // makes spans work — it is what makes `global::tracer()` return a real
+        // one for code reaching for OpenTelemetry directly rather than through
+        // `tracing`, instead of silently recording into a no-op.
+        opentelemetry::global::set_tracer_provider(provider);
+    }
+
+    // The global propagator, which has no default: `global::get_text_map_propagator`
+    // hands back a *no-op* until something installs one. Without this line the
+    // extract in `middleware` reads every incoming `traceparent` as absent and
+    // starts a fresh trace per service — the exact failure this is here to
+    // prevent, and an invisible one, because each service's traces look
+    // perfectly fine on their own.
+    //
+    // Baggage alongside trace context so a key set upstream (which user, which
+    // scrobble) travels with the request and can be read anywhere downstream.
+    opentelemetry::global::set_text_map_propagator(propagation::propagator());
 
     // sqlx logs every statement at INFO, which drowns everything else out on a
     // busy instance — the same default the appview's own binary used.
@@ -243,6 +313,20 @@ pub fn init(service: &str, settings: &Settings) -> anyhow::Result<Telemetry> {
         logs,
         prometheus,
     })
+}
+
+/// A value unique to this process, for `service.instance.id`.
+///
+/// The pid and the moment it started, rather than a UUID: both are unique
+/// together — a recycled pid cannot have started at the same nanosecond — and
+/// unlike a UUID the value is legible, so the instance a trace names can be
+/// matched to a line in `ps` or a `journalctl` window without a lookup.
+fn instance_id() -> String {
+    let started = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|since| since.as_nanos())
+        .unwrap_or_default();
+    format!("{}-{}", std::process::id(), started)
 }
 
 /// The OTLP path for a signal. The endpoint is the collector's base URL, and

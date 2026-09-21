@@ -1,7 +1,7 @@
 {
   "tasks": {
-    "dev": "deno run -A --env-file=.env --watch main.ts",
-    "start": "deno run -A --env-file=.env main.ts",
+    "dev": "OTEL_SERVICE_NAME=rocksky-feeds OTEL_RESOURCE_ATTRIBUTES=service.namespace=rocksky deno run -A --env-file=.env --watch main.ts",
+    "start": "OTEL_SERVICE_NAME=rocksky-feeds OTEL_RESOURCE_ATTRIBUTES=service.namespace=rocksky deno run -A --env-file=.env main.ts",
     "lexgen": "deno run -A jsr:@atp/lex-gen@0.1.0-alpha.5 server -o src/lex -i lexicons"
   },
   "imports": {

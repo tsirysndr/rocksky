@@ -12,6 +12,26 @@ import type { Pool } from "pg";
 // traces for Deno.serve/fetch, the runtime metrics, and every console.* call as
 // a log record, all over OTLP. There is no SDK to start here — this module only
 // adds the spans and metrics Deno cannot know about.
+//
+// What ties the three signals together:
+//
+//   * the resource, which Deno builds from the environment before any of this
+//     module runs and so cannot be set here — OTEL_SERVICE_NAME and
+//     OTEL_RESOURCE_ATTRIBUTES are in the deno.json tasks for that reason.
+//     Without them every signal exports as "unknown_service" and none of them
+//     can be tied to the others or to the rest of the fleet.
+//   * trace and span ids on every log line, which the runtime attaches to each
+//     console.* record from the span that is open at the time — so the logtape
+//     sink in context.ts is also the log exporter, and its output stays plain
+//     when telemetry is on.
+//   * W3C traceparent in and out: Deno.serve continues an incoming trace and
+//     fetch injects into an outgoing one, so a feed request that starts in the
+//     appview shows as one trace across both.
+//
+// Exemplars — a trace id on one histogram sample, so a chart clicks through to
+// the slow request behind a spike — the runtime does not implement, and there
+// is no SDK here to configure one on. Getting from a metric to a trace means
+// filtering the traces by the attributes the metric carries.
 
 export const SERVICE_NAME = "rocksky-feeds";
 

@@ -4,6 +4,10 @@ import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentation
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import {
+  defaultResource,
+  resourceFromAttributes,
+} from "@opentelemetry/resources";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
@@ -12,10 +16,30 @@ import {
   type ReadableSpan,
 } from "@opentelemetry/sdk-trace-base";
 import { consola } from "consola";
+import { version } from "../package.json" with { type: "json" };
 
 // MUST be imported before any other module (express, pg, ioredis, …) so
 // auto-instrumentation can patch them, and before "./metrics" so instruments
 // bind to a real MeterProvider instead of the no-op one.
+//
+// What ties the three signals together:
+//
+//   * one resource on all of them (below), so a backend groups the spans, the
+//     metrics and the logs as one process rather than three streams;
+//   * trace and span ids on every log record — the consola bridge at the
+//     bottom emits into the active context, so a line written inside a request
+//     handler links back to that request's trace;
+//   * W3C traceparent in and out, which the auto-instrumentations do by
+//     default, so a trace that starts here continues into the appview and the
+//     Go proxies and vice versa.
+//
+// The fourth link, exemplars — a trace id on one histogram sample, so a chart
+// clicks through to the slow request behind a spike — is not available here.
+// @opentelemetry/sdk-metrics ships the exemplar types and filters but nothing
+// wires them into the aggregators, and otlp-transformer does not serialize
+// them, so there is no option to turn on. Getting from a metric to a trace
+// means filtering the traces by the same attribute names the metric carries;
+// that is why those names are kept identical across the services.
 
 const otlpBase = (
   process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? "http://127.0.0.1:4318"
@@ -62,8 +86,30 @@ class ScrubbingSpanProcessor extends BatchSpanProcessor {
   }
 }
 
+// The same identity the Rust services get from crates/telemetry and the Go
+// ones from otel/, on all three signals. `defaultResource()` first so the
+// telemetry.sdk.* attributes survive; the detectors NodeSDK runs afterwards
+// (env, process, host) are merged on top, so OTEL_RESOURCE_ATTRIBUTES still
+// overrides anything set here.
+const resource = defaultResource().merge(
+  resourceFromAttributes({
+    "service.version": version,
+    // Every Rocksky process shares a namespace, which is what lets a backend
+    // show "all of Rocksky" without naming the services by hand.
+    "service.namespace": "rocksky",
+    // Tells the two processes built from this codebase apart across a
+    // restart — pid and start time, legible enough to match against ps and
+    // journalctl without a lookup.
+    "service.instance.id": `${process.pid}-${Date.now()}`,
+    ...(process.env.DEPLOYMENT_ENVIRONMENT
+      ? { "deployment.environment.name": process.env.DEPLOYMENT_ENVIRONMENT }
+      : {}),
+  }),
+);
+
 const sdk = new NodeSDK({
   serviceName,
+  resource,
   spanProcessors: [
     new ScrubbingSpanProcessor(new OTLPTraceExporter({ url: tracesUrl })),
   ],

@@ -35,9 +35,23 @@ config :logger, :console,
 # over it when set, which is how the SDK's resource detector is meant to be
 # overridden. The endpoint and the per-signal exporters are environment, so they
 # live in config/runtime.exs.
+#
+# This one map is the identity on *all three* signals, not just the traces:
+# `otel_resource_detector:get_resource/0` is what the tracer, the metric reader
+# and `otel_log_handler` each read on the way up, which is what lets a backend
+# show a span, the metric point it contributed to and the line it logged as one
+# process. The namespace is shared with every other Rocksky service, so a query
+# can say "all of Rocksky" without naming them. `service.instance.id` is per
+# boot and so lives in config/runtime.exs.
 config :opentelemetry,
   span_processor: :batch,
   traces_exporter: :otlp,
-  resource: %{service: %{name: "remote-ws", version: Mix.Project.config()[:version]}}
+  resource: %{
+    service: %{
+      name: "remote-ws",
+      version: Mix.Project.config()[:version],
+      namespace: "rocksky"
+    }
+  }
 
 import_config "#{config_env()}.exs"
