@@ -1,13 +1,12 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { Cache, Data, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobblerViewBasic } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getTopScrobblers";
 import { deepCamelCaseKeys } from "lib";
 import { transientDbRetry } from "lib/dbRetry";
-import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const cache = Cache.make({
@@ -102,53 +101,128 @@ const allTime = async (ctx: Context, limit: number, offset: number) => {
   return result.rows as TopScrobbler[];
 };
 
-const inRange = (
+const HOUR = 60 * 60 * 1000;
+
+const ceilHour = (d: Date) => new Date(Math.ceil(d.getTime() / HOUR) * HOUR);
+const floorHour = (d: Date) => new Date(Math.floor(d.getTime() / HOUR) * HOUR);
+
+// user_hour_scrobbles_mv.hour is a UTC wall clock (timestamp without time zone).
+const utcHour = (d: Date) => d.toISOString().slice(0, 19).replace("T", " ");
+
+/**
+ * Ranged leaderboard, served from user_hour_scrobbles_mv
+ * (0030_user_hour_scrobbles_mv.sql).
+ *
+ * The view holds whole, completed hours, so three legs make up the window: the
+ * view for the hours it covers, and live queries for the partial hour at the
+ * start, and for everything from the view's coverage to the end of the range —
+ * normally the current partial hour, more if a refresh was missed. Reading
+ * max(hour) rather than assuming the current hour is what keeps the legs from
+ * overlapping (double-counting) or leaving a gap (dropping scrobbles) when the
+ * refresh is late.
+ *
+ * Ranking runs over the counts alone, and only the page that survives LIMIT
+ * pays for its distinct artists and tracks.
+ */
+const inRange = async (
   ctx: Context,
   params: QueryParams,
   limit: number,
   offset: number,
-) => {
-  const conditions = [eq(tables.users.isBot, false)];
-  if (params.startDate) {
-    conditions.push(
-      gte(tables.scrobbles.timestamp, new Date(params.startDate)),
-    );
-  }
-  if (params.endDate) {
-    conditions.push(lte(tables.scrobbles.timestamp, new Date(params.endDate)));
-  }
+): Promise<TopScrobbler[]> => {
+  const start = params.startDate ? new Date(params.startDate) : new Date(0);
+  const end = params.endDate ? new Date(params.endDate) : new Date();
 
-  return ctx.readDb
-    .select({
-      id: tables.users.id,
-      did: tables.users.did,
-      handle: tables.users.handle,
-      display_name: tables.users.displayName,
-      avatar: tables.users.avatar,
-      scrobbles: count(tables.scrobbles.id).as("scrobbles"),
-      unique_artists:
-        sql<number>`count(DISTINCT ${tables.scrobbles.artistId})`.as(
-          "unique_artists",
-        ),
-      unique_tracks:
-        sql<number>`count(DISTINCT ${tables.scrobbles.trackId})`.as(
-          "unique_tracks",
-        ),
-    })
-    .from(tables.scrobbles)
-    .innerJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
-    .where(and(...conditions))
-    .groupBy(
-      tables.users.id,
-      tables.users.did,
-      tables.users.handle,
-      tables.users.displayName,
-      tables.users.avatar,
+  const covered = await ctx.readDb.execute<{ through: string | null }>(sql`
+    SELECT to_char(max(hour) + interval '1 hour', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS through
+    FROM user_hour_scrobbles_mv
+  `);
+  const mvEnd = covered.rows[0]?.through
+    ? new Date(covered.rows[0].through).getTime()
+    : Number.NEGATIVE_INFINITY;
+
+  // [covStart, covEnd) comes from the view; collapses to empty when the range
+  // spans less than an hour or sits entirely past the view's coverage.
+  const covStart = ceilHour(start);
+  const covEnd = new Date(
+    Math.max(covStart.getTime(), Math.min(floorHour(end).getTime(), mvEnd)),
+  );
+  const covers = covEnd.getTime() > covStart.getTime();
+
+  const head =
+    covStart > start
+      ? sql`s.timestamp >= ${start.toISOString()}::timestamptz
+            AND s.timestamp < ${covStart.toISOString()}::timestamptz
+            AND s.timestamp <= ${end.toISOString()}::timestamptz`
+      : null;
+  const tail =
+    covEnd <= end
+      ? sql`s.timestamp >= ${covEnd.toISOString()}::timestamptz
+            AND s.timestamp <= ${end.toISOString()}::timestamptz`
+      : null;
+  const inView = sql`m.hour >= ${utcHour(covStart)}::timestamp
+                     AND m.hour < ${utcHour(covEnd)}::timestamp`;
+
+  const union = (legs: (SQL | null)[]) =>
+    sql.join(
+      legs.filter((leg): leg is SQL => leg !== null),
+      sql` UNION ALL `,
+    );
+
+  const counts = union([
+    covers
+      ? sql`SELECT m.user_id, m.scrobbles FROM user_hour_scrobbles_mv m WHERE ${inView}`
+      : null,
+    head ? sql`SELECT s.user_id, 1 FROM scrobbles s WHERE ${head}` : null,
+    tail ? sql`SELECT s.user_id, 1 FROM scrobbles s WHERE ${tail}` : null,
+  ]);
+
+  // The same three legs per ranked user, as the keys to count distinct.
+  const keys = union([
+    covers
+      ? sql`SELECT z.artist_key, z.track_key
+            FROM user_hour_scrobbles_mv m
+            CROSS JOIN LATERAL unnest(m.artist_keys, m.track_keys) AS z(artist_key, track_key)
+            WHERE m.user_id = t.id AND ${inView}`
+      : null,
+    head
+      ? sql`SELECT hashtext(s.artist_id), hashtext(s.track_id)
+            FROM scrobbles s WHERE s.user_id = t.id AND ${head}`
+      : null,
+    tail
+      ? sql`SELECT hashtext(s.artist_id), hashtext(s.track_id)
+            FROM scrobbles s WHERE s.user_id = t.id AND ${tail}`
+      : null,
+  ]);
+
+  const result = await ctx.readDb.execute(sql`
+    WITH counts AS (
+      SELECT user_id, sum(scrobbles)::bigint AS scrobbles
+      FROM (${counts}) legs(user_id, scrobbles)
+      WHERE user_id IS NOT NULL
+      GROUP BY user_id
+    ),
+    top AS (
+      SELECT u.xata_id AS id, u.did, u.handle, u.display_name, u.avatar, c.scrobbles
+      FROM counts c
+      JOIN users u ON u.xata_id = c.user_id
+      WHERE u.is_bot = false
+      ORDER BY c.scrobbles DESC, u.xata_id
+      LIMIT ${limit}
+      OFFSET ${offset}
     )
-    .orderBy(desc(sql`count(${tables.scrobbles.id})`), tables.users.id)
-    .limit(limit)
-    .offset(offset)
-    .execute();
+    SELECT t.id, t.did, t.handle, t.display_name, t.avatar, t.scrobbles,
+           uq.unique_artists, uq.unique_tracks
+    FROM top t
+    LEFT JOIN LATERAL (
+      SELECT count(DISTINCT k.artist_key)::int AS unique_artists,
+             count(DISTINCT k.track_key)::int AS unique_tracks
+      FROM (${keys}) k(artist_key, track_key)
+    ) uq ON true
+    ORDER BY t.scrobbles DESC, t.id
+  `);
+
+  return result.rows as TopScrobbler[];
 };
 
 const presentation = ({
