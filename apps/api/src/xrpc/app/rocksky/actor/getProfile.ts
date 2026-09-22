@@ -59,30 +59,39 @@ const resolveHandleToDid = ({
   ctx: Context;
   did?: string;
 }): Effect.Effect<
-  { did?: string; ctx: Context; params: QueryParams },
+  { did: string; ctx: Context; params: QueryParams },
   Error
 > => {
   return Effect.tryPromise({
     try: async () => {
-      if (
-        !params.did?.startsWith("did:plc:") &&
-        !params.did?.startsWith("did:web:") &&
-        !!params.did
-      ) {
-        return {
-          did: await ctx.baseIdResolver.handle.resolve(params.did),
-          ctx,
-          params: {
-            did: await ctx.baseIdResolver.handle.resolve(params.did),
-          },
-        };
+      const isDid =
+        !!params.did?.startsWith("did:plc:") ||
+        !!params.did?.startsWith("did:web:");
+
+      if (params.did && !isDid) {
+        // Resolved once. This used to await the same lookup twice — one for
+        // `did`, one for `params.did` — doubling the identity traffic behind
+        // every profile view that arrives by handle, which is most of them.
+        const resolved = await ctx.baseIdResolver.handle.resolve(params.did);
+        if (!resolved) {
+          throw new Error(`handle ${params.did} does not resolve to a DID`);
+        }
+        return { did: resolved, ctx, params: { did: resolved } };
       }
-      return {
-        did: params.did || did,
-        ctx,
-        params,
-      };
+
+      const actor = params.did || did;
+      if (!actor) {
+        throw new Error(
+          "request carried neither an actor nor an authenticated session",
+        );
+      }
+      return { did: actor, ctx, params };
     },
+    // Everything downstream assumes a DID. Letting `undefined` through got as
+    // far as the identity resolver, which died on `did.split(...)` — reported
+    // as "Cannot read properties of undefined (reading 'split')", which says
+    // nothing about the actual cause: a handle that no longer resolves, or an
+    // anonymous request for no particular actor.
     catch: (error) => new Error(`Failed to resolve handle to DID: ${error}`),
   });
 };

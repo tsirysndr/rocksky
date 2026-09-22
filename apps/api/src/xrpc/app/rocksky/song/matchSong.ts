@@ -277,10 +277,16 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           genres = spotifyTrack.artists[0]?.genres || null;
         }
       } else {
-        artistPicture = record.artists.picture;
-        genres = record.artists.genres;
-        releaseDate = record.albums.releaseDate;
-        year = record.albums.year;
+        // `artists` and `albums` reach this row through left joins over the
+        // album_tracks and artist_albums junctions, so either can be null when
+        // a junction row is missing — common enough to be the single largest
+        // source of errors on this endpoint. The enrichment below fills these
+        // from Spotify or Deezer anyway; the null is a missing value, not a
+        // failed match, and must not cost us the match we already have.
+        artistPicture = record.artists?.picture ?? null;
+        genres = record.artists?.genres ?? null;
+        releaseDate = record.albums?.releaseDate ?? null;
+        year = record.albums?.year ?? null;
 
         if (!track?.albumArt && spotifyTrack) {
           track.albumArt = spotifyTrack.album.images[0]?.url || null;
