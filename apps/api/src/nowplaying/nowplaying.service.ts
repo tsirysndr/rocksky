@@ -20,6 +20,7 @@ import {
   assertNotScrobbleBlocked,
   recordScrobbleAndGuard,
 } from "lib/scrobbleGuard";
+import { invalidateStats } from "lib/statsCache";
 import type { MusicbrainzTrack, Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
 import albums from "../schema/albums";
@@ -536,6 +537,7 @@ export async function publishScrobble(ctx: Context, id: string) {
 
   void bumpAllFeedVersions(ctx);
   void bumpScrobblesVersion(ctx);
+  void invalidateStats(ctx, scrobble.user.did, scrobble.user.handle);
 
   const trackMessage = JSON.stringify(
     deepSnakeCaseKeys({

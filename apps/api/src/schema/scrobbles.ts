@@ -44,6 +44,14 @@ const scrobbles = pgTable(
       t.trackId,
       t.userId,
     ),
+    // Covers a profile's whole stat row — count(*) plus distinct artists,
+    // albums and tracks for one user — as a single index-only scan (0032).
+    index("scrobbles_user_stats_idx").on(
+      t.userId,
+      t.artistId,
+      t.albumId,
+      t.trackId,
+    ),
     unique("scrobbles_user_track_timestamp_unique").on(
       t.userId,
       t.trackId,

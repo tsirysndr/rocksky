@@ -6,6 +6,7 @@ import type { Server } from "lexicon";
 import type { StatsView } from "lexicon/types/app/rocksky/stats/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/stats/getStats";
 import { transientDbRetry } from "lib/dbRetry";
+import { readStats, writeStats } from "lib/statsCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -56,6 +57,9 @@ const retrieve = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
+      const cached = await readStats(ctx, params.did);
+      if (cached) return { data: cached };
+
       // Identity, not an aggregate: read it from the primary. On the replica a
       // just-created account has not replicated yet, and "user not found" here
       // returns zeros — which the clients render as the onboarding flow.
@@ -83,50 +87,41 @@ const retrieve = ({
         };
       }
 
-      const [scrobblesRow, artistsRow, lovedRow, albumsRow, tracksRow] =
-        await Promise.all([
-          ctx.readDb
-            .select({ n: count() })
-            .from(tables.scrobbles)
-            .where(eq(tables.scrobbles.userId, user.id))
-            .execute(),
-          ctx.readDb
-            .select({
-              n: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
-            })
-            .from(tables.scrobbles)
-            .where(eq(tables.scrobbles.userId, user.id))
-            .execute(),
-          ctx.db
-            .select({ n: count() })
-            .from(tables.lovedTracks)
-            .where(eq(tables.lovedTracks.userId, user.id))
-            .execute(),
-          ctx.readDb
-            .select({
-              n: sql<number>`count(distinct ${tables.scrobbles.albumId})`,
-            })
-            .from(tables.scrobbles)
-            .where(eq(tables.scrobbles.userId, user.id))
-            .execute(),
-          ctx.readDb
-            .select({
-              n: sql<number>`count(distinct ${tables.scrobbles.trackId})`,
-            })
-            .from(tables.scrobbles)
-            .where(eq(tables.scrobbles.userId, user.id))
-            .execute(),
-        ]);
+      // One pass, not four. Every count here scans the same slice of
+      // `scrobbles`, and issuing them as separate queries meant four pool slots
+      // and four multi-second index scans per profile card — which is what
+      // exhausted the pool and left these queries to be cancelled by the
+      // replica's recovery conflicts.
+      const [countsRow, lovedRow] = await Promise.all([
+        ctx.readDb
+          .select({
+            scrobbles: count(),
+            artists: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
+            albums: sql<number>`count(distinct ${tables.scrobbles.albumId})`,
+            tracks: sql<number>`count(distinct ${tables.scrobbles.trackId})`,
+          })
+          .from(tables.scrobbles)
+          .where(eq(tables.scrobbles.userId, user.id))
+          .execute(),
+        ctx.db
+          .select({ n: count() })
+          .from(tables.lovedTracks)
+          .where(eq(tables.lovedTracks.userId, user.id))
+          .execute(),
+      ]);
 
-      return {
-        data: {
-          scrobbles: Number(scrobblesRow[0]?.n ?? 0),
-          artists: Number(artistsRow[0]?.n ?? 0),
-          loved_tracks: Number(lovedRow[0]?.n ?? 0),
-          albums: Number(albumsRow[0]?.n ?? 0),
-          tracks: Number(tracksRow[0]?.n ?? 0),
-        },
+      const counts = countsRow[0];
+      const data = {
+        scrobbles: Number(counts?.scrobbles ?? 0),
+        artists: Number(counts?.artists ?? 0),
+        loved_tracks: Number(lovedRow[0]?.n ?? 0),
+        albums: Number(counts?.albums ?? 0),
+        tracks: Number(counts?.tracks ?? 0),
       };
+
+      await writeStats(ctx, params.did, data);
+
+      return { data };
     },
     catch: (error) => new Error(`Failed to retrieve stats ${error}`),
   });
