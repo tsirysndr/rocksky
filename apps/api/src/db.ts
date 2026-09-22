@@ -98,10 +98,25 @@ migrations["002"] = {
 // APIs
 
 export const createDb = (location: string): Database => {
+  const database = new SqliteDb(location);
+
+  // Two processes share this file — the XRPC service and the REST API — and
+  // under the default rollback journal a writer takes an exclusive lock that
+  // blocks every reader. The OAuth client reads `auth_session` on virtually
+  // every authenticated request, and it cannot tell a locked file from a
+  // deleted session: a failed read becomes "the session was deleted by another
+  // process" and a 401, a failed write gets the refresh token revoked at the
+  // PDS. WAL lets readers run straight through a concurrent write, which is
+  // what keeps those two from ever being reached.
+  database.pragma("journal_mode = WAL");
+  database.pragma("busy_timeout = 5000");
+  // WAL's default (FULL) fsyncs on every commit. NORMAL keeps the guarantee
+  // that matters here — a crash cannot corrupt the file, only lose the last
+  // commit or two, and a lost session refresh is re-fetched on next use.
+  database.pragma("synchronous = NORMAL");
+
   return new Kysely<DatabaseSchema>({
-    dialect: new SqliteDialect({
-      database: new SqliteDb(location),
-    }),
+    dialect: new SqliteDialect({ database }),
   });
 };
 

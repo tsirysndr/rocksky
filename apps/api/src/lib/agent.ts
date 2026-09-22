@@ -38,8 +38,42 @@ function isSessionRejected(e: unknown): boolean {
   return (
     e instanceof TokenRefreshError ||
     e instanceof TokenRevokedError ||
-    e instanceof TokenInvalidError
+    e instanceof TokenInvalidError ||
+    // `restore()` deletes the stored session before throwing this one, so
+    // treating it as transient meant retrying four more times against a row the
+    // SDK had just removed — each retry logging "the session was deleted by
+    // another process", which is how a real deletion came to look like a race.
+    // Not exported by @atproto/oauth-client, hence the name check.
+    isNamed(e, "AuthMethodUnsatisfiableError")
   );
+}
+
+function isNamed(e: unknown, name: string): boolean {
+  return e instanceof Error && e.name === name;
+}
+
+/**
+ * Renders an error with everything `consola` drops on its own: an
+ * `AggregateError`'s members and the `cause` chain under each.
+ *
+ * Both are load-bearing here. The SDK reports a failed session delete as
+ * `AggregateError: Error while deleting stored value`, whose two members — the
+ * error that triggered the delete and the one the delete itself threw — are the
+ * only record of why a session went away. Logging the wrapper alone, which is
+ * what `consola.warn(e)` does, throws all of it away.
+ */
+function describeError(e: unknown, depth = 0): string {
+  if (!(e instanceof Error)) return String(e);
+  const indent = "  ".repeat(depth);
+  const lines = [`${indent}${e.name}: ${e.message}`];
+  if (e instanceof AggregateError) {
+    for (const inner of e.errors) lines.push(describeError(inner, depth + 1));
+  }
+  if (e.cause !== undefined) {
+    lines.push(`${indent}  caused by:`);
+    lines.push(describeError(e.cause, depth + 1));
+  }
+  return lines.join("\n");
 }
 
 /**
@@ -90,7 +124,7 @@ export async function createAgent(
             consola.info(
               `Stored app-password session for ${did} was rejected by the PDS, removing it`,
             );
-            consola.info(e);
+            consola.info(describeError(e));
             await ctx.sqliteDb
               .deleteFrom("auth_session")
               .where("key", "=", `atp:${did}`)
@@ -101,7 +135,7 @@ export async function createAgent(
           // agent here would hand back one with no session at all, which is
           // what surfaced downstream as "agent has no session/DID".
           consola.warn(`Could not resume the session for ${did}, retrying`);
-          consola.warn(e);
+          consola.warn(describeError(e));
           await new Promise((r) => setTimeout(r, 1000));
           retry += 1;
           continue;
@@ -118,7 +152,7 @@ export async function createAgent(
           // dropped the stored session, so there is nothing to retry and
           // nothing for us to delete: the user has to sign in again.
           consola.info(`Session for ${did} is no longer valid`);
-          consola.info(e);
+          consola.info(describeError(e));
           return null;
         }
         // Anything else is transient (lock contention, PDS unreachable, …).
@@ -126,7 +160,7 @@ export async function createAgent(
         // what silently logged users out mid-session, since only a fresh
         // browser sign-in can ever put the row back.
         consola.warn(`Could not restore the session for ${did}, retrying`);
-        consola.warn(e);
+        consola.warn(describeError(e));
         await new Promise((r) => setTimeout(r, 1000));
         retry += 1;
         continue;
@@ -139,7 +173,7 @@ export async function createAgent(
     } catch (e) {
       consola.info("Error creating agent");
       consola.info(did);
-      consola.info(e);
+      consola.info(describeError(e));
       await new Promise((r) => setTimeout(r, 1000));
       retry += 1;
     }
