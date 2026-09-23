@@ -38,7 +38,8 @@
     "riff:backfill": "tsx ./src/scripts/backfill-riff.ts",
     "backfill:track-uri": "tsx ./src/scripts/backfill-track-uri.ts",
     "backfill:replaygain": "tsx ./src/scripts/backfill-replaygain.ts",
-    "backfill:analysis": "tsx ./src/scripts/backfill-analysis.ts"
+    "backfill:analysis": "tsx ./src/scripts/backfill-analysis.ts",
+    "backfill:fingerprint": "BACKFILL_ONLY=fingerprint tsx ./src/scripts/backfill-analysis.ts"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",

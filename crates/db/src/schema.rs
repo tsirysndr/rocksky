@@ -176,6 +176,8 @@ pub enum Tracks {
     Key,
     #[iden = "bpm"]
     Bpm,
+    #[iden = "acoustid_fingerprint"]
+    AcoustidFingerprint,
     #[iden = "uri"]
     Uri,
     #[iden = "album_uri"]
@@ -1069,6 +1071,7 @@ mod tests {
                 "copyright_message",
                 "key",
                 "bpm",
+                "acoustid_fingerprint",
                 "uri",
                 "album_uri",
                 "artist_uri",

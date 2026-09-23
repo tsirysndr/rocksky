@@ -486,7 +486,8 @@ pub fn ensure_replay_gain(path: &Path, extension: &str, already_tagged: bool) ->
     }
 }
 
-/// Key and BPM, via the crate behind the Neon binding `apps/api` loads.
+/// Key, BPM and AcoustID fingerprint, via the crate behind the Neon binding
+/// `apps/api` loads.
 ///
 /// Calling it directly means there is no native module to build and nothing to
 /// be unavailable at runtime — the analysis either works or reports why.
@@ -494,7 +495,7 @@ pub fn analyze(bytes: &[u8], extension: &str) -> Option<rocksky_analysis::Analys
     match rocksky_analysis::analyze(bytes, Some(extension)) {
         Ok(analysis) => Some(analysis),
         Err(err) => {
-            tracing::warn!(error = %err, "key/bpm analysis failed");
+            tracing::warn!(error = %err, "key/bpm/fingerprint analysis failed");
             None
         }
     }

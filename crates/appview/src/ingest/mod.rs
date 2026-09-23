@@ -1516,7 +1516,8 @@ pub async fn repair_denormalised_uris(db: &Backend) -> anyhow::Result<(u64, u64,
     Ok((albums, artists, album_artists))
 }
 
-/// Records a track's key and BPM, filling only what is still missing.
+/// Records a track's key, BPM and AcoustID fingerprint, filling only what is
+/// still missing.
 ///
 /// A track is shared across users and sources, so an answer someone else's
 /// upload already produced is not overwritten by a second one.
@@ -1525,8 +1526,9 @@ pub async fn set_track_analysis(
     track_id: &str,
     key: Option<&str>,
     bpm: Option<f64>,
+    fingerprint: Option<&str>,
 ) -> anyhow::Result<()> {
-    if key.is_none() && bpm.is_none() {
+    if key.is_none() && bpm.is_none() && fingerprint.is_none() {
         return Ok(());
     }
 
@@ -1545,6 +1547,13 @@ pub async fn set_track_analysis(
         .value(
             Tracks::Bpm,
             Func::coalesce([Expr::col(Tracks::Bpm).into(), Expr::val(bpm).into()]),
+        )
+        .value(
+            Tracks::AcoustidFingerprint,
+            Func::coalesce([
+                Expr::col(Tracks::AcoustidFingerprint).into(),
+                Expr::val(fingerprint.map(str::to_string)).into(),
+            ]),
         )
         .and_where(Expr::col(Tracks::XataId).eq(track_id))
         .to_owned();

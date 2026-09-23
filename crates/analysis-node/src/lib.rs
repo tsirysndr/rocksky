@@ -1,4 +1,5 @@
-//! Node.js bindings for `rocksky-analysis`.
+//! Node.js bindings for `rocksky-analysis` — key, tempo and AcoustID
+//! fingerprint.
 //!
 //! Two entry points, both non-blocking:
 //!
@@ -63,6 +64,7 @@ fn analysis_to_object<'a, C: Context<'a>>(
     set_opt_f32(cx, &obj, "bpmConfidence", analysis.bpm_confidence)?;
     set_opt_str(cx, &obj, "key", analysis.key.as_deref())?;
     set_opt_f32(cx, &obj, "keyConfidence", analysis.key_confidence)?;
+    set_opt_str(cx, &obj, "fingerprint", analysis.fingerprint.as_deref())?;
     let duration = cx.number(analysis.duration as f64);
     obj.set(cx, "duration", duration)?;
     Ok(obj)
@@ -108,6 +110,9 @@ struct ProgressEvent {
     ok: bool,
     bpm: Option<f32>,
     key: Option<String>,
+    /// Whether a fingerprint came out. The fingerprint itself is a kilobyte of
+    /// base64 that no progress line wants to print.
+    fingerprint: bool,
     error: Option<String>,
 }
 
@@ -178,6 +183,10 @@ fn analyze_batch(mut cx: FunctionContext) -> JsResult<JsPromise> {
                 ok: result.is_ok(),
                 bpm: result.as_ref().ok().and_then(|a| a.bpm),
                 key: result.as_ref().ok().and_then(|a| a.key.clone()),
+                fingerprint: result
+                    .as_ref()
+                    .ok()
+                    .is_some_and(|a| a.fingerprint.is_some()),
                 error: result.as_ref().err().map(|e| format!("{e:#}")),
             };
             let callback = Arc::clone(callback);
@@ -194,6 +203,8 @@ fn analyze_batch(mut cx: FunctionContext) -> JsResult<JsPromise> {
                 obj.set(&mut cx, "ok", ok)?;
                 set_opt_f32(&mut cx, &obj, "bpm", event.bpm)?;
                 set_opt_str(&mut cx, &obj, "key", event.key.as_deref())?;
+                let fingerprint = cx.boolean(event.fingerprint);
+                obj.set(&mut cx, "fingerprint", fingerprint)?;
                 set_opt_str(&mut cx, &obj, "error", event.error.as_deref())?;
 
                 let this = cx.undefined();

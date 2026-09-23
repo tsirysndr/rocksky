@@ -1,9 +1,11 @@
-//! Key and tempo analysis for uploaded tracks.
+//! Key, tempo and fingerprint analysis for uploaded tracks.
 //!
 //! Ported from music-player's analysis crate, trimmed to what Rocksky stores
-//! on a track: the musical **key** and the **tempo**. Tags win over detection
-//! when the file carries them — a tag was written deliberately, and detection
-//! only fills the gap.
+//! on a track: the musical **key**, the **tempo**, and the track's **AcoustID
+//! fingerprint**. Tags win over detection for key and tempo when the file
+//! carries them — a tag was written deliberately, and detection only fills the
+//! gap. The fingerprint has no tag to defer to: it is derived from the audio
+//! itself, which is the point of it.
 //!
 //! Analysis is expensive and its inputs never change — the same bytes always
 //! give the same answer — so results are stored and a track is analysed once.
@@ -11,6 +13,7 @@
 
 mod decode;
 mod features;
+pub mod fingerprint;
 pub mod key;
 pub mod tags;
 
@@ -34,6 +37,12 @@ pub struct Analysis {
     pub key: Option<String>,
     /// How much to believe the key, 0–1.
     pub key_confidence: Option<f32>,
+    /// The AcoustID (Chromaprint) fingerprint of the opening two minutes, in
+    /// the base64url form `fpcalc` prints and AcoustID's API accepts.
+    ///
+    /// Unlike the key and the tempo this identifies the *recording*: two
+    /// uploads of the same track fingerprint alike however their tags differ.
+    pub fingerprint: Option<String>,
     /// Seconds, as decoded rather than as the tags claim.
     pub duration: f32,
 }
@@ -51,6 +60,9 @@ pub fn analyze(bytes: &[u8], extension_hint: Option<&str>) -> Result<Analysis> {
 
     let mut analysis = Analysis {
         duration: decoded.duration,
+        // Computed during the decode itself, so it costs nothing beyond the
+        // pass the key and tempo already need.
+        fingerprint: decoded.fingerprint.clone(),
         ..Default::default()
     };
 

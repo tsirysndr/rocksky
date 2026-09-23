@@ -34,20 +34,27 @@ const files = (process.env.ANALYSIS_TEST_FILES ?? "")
   .split(":")
   .filter(Boolean);
 
-test("real audio has a key and a bpm", { skip: files.length === 0 }, async () => {
-  const results = await analyzeBatch(
-    files.map((file) => ({
-      id: file,
-      buffer: readFileSync(file),
-      extensionHint: extname(file).slice(1),
-    })),
-    (p) =>
-      console.log(
-        `  [${p.completed}/${p.total}] ${p.ok ? `${p.key ?? "?"} ${p.bpm?.toFixed(1) ?? "?"} bpm` : p.error} — ${p.id}`,
-      ),
-  );
-  for (const r of results) {
-    assert.ok(r.ok, `${r.id}: ${r.error}`);
-    assert.ok(r.analysis.duration > 0);
-  }
-});
+test(
+  "real audio has a key, a bpm and a fingerprint",
+  { skip: files.length === 0 },
+  async () => {
+    const results = await analyzeBatch(
+      files.map((file) => ({
+        id: file,
+        buffer: readFileSync(file),
+        extensionHint: extname(file).slice(1),
+      })),
+      (p) =>
+        console.log(
+          `  [${p.completed}/${p.total}] ${p.ok ? `${p.key ?? "?"} ${p.bpm?.toFixed(1) ?? "?"} bpm ${p.fingerprint ? "fp" : "--"}` : p.error} — ${p.id}`,
+        ),
+    );
+    for (const r of results) {
+      assert.ok(r.ok, `${r.id}: ${r.error}`);
+      assert.ok(r.analysis.duration > 0);
+      // base64url, and long enough to be a real fingerprint rather than a
+      // couple of sub-fingerprints from a file that barely decoded.
+      assert.match(r.analysis.fingerprint ?? "", /^[A-Za-z0-9_-]{100,}$/);
+    }
+  },
+);

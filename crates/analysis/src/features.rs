@@ -72,6 +72,7 @@ mod tests {
             sample_rate,
             duration: 0.0,
             tags: Default::default(),
+            fingerprint: None,
         }
     }
 

@@ -5,15 +5,19 @@ authors.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Musical key and tempo analysis for uploaded tracks"
+description = "Musical key, tempo and AcoustID fingerprint analysis for uploaded tracks"
 
 [dependencies]
 anyhow = "1.0"
+base64 = "0.22"
 oximedia-mir = { version = "0.2", default-features = false, features = [
   "tempo",
   "key",
 ] }
 rayon = "1.10"
+# Pure-Rust port of Chromaprint: the same fingerprints as the C library, with
+# nothing to link.
+rusty-chromaprint = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 symphonia = { version = "0.5", default-features = false, features = [
   "flac",

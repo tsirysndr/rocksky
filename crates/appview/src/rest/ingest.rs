@@ -505,12 +505,14 @@ async fn publish_records(
     }
 }
 
-/// Runs key/BPM analysis on a blocking thread and stores what it finds.
+/// Runs key/BPM/fingerprint analysis on a blocking thread and stores what it
+/// finds.
 fn spawn_analysis(state: &AppState, bytes: Vec<u8>, extension: String, track_id: String) {
     let state = state.clone();
     tokio::spawn(async move {
-        // Analysis decodes the file and runs tempo and key detection, which is
-        // CPU-bound and would otherwise stall the async runtime.
+        // Analysis decodes the file and runs tempo, key and fingerprint
+        // extraction, which is CPU-bound and would otherwise stall the async
+        // runtime.
         let analysis =
             tokio::task::spawn_blocking(move || audio::analyze(&bytes, &extension)).await;
 
@@ -523,6 +525,7 @@ fn spawn_analysis(state: &AppState, bytes: Vec<u8>, extension: String, track_id:
             &track_id,
             analysis.key.as_deref(),
             analysis.bpm.map(|bpm| bpm as f64),
+            analysis.fingerprint.as_deref(),
         )
         .await
         {
@@ -537,6 +540,7 @@ fn spawn_analysis(state: &AppState, bytes: Vec<u8>, extension: String, track_id:
                 .bpm
                 .map(|bpm| format!("{bpm:.1}"))
                 .unwrap_or_else(|| "?".into()),
+            fingerprint = analysis.fingerprint.is_some(),
             "analysed an upload"
         );
     });

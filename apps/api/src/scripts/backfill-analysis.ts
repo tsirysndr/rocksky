@@ -1,17 +1,21 @@
 /**
- * Fill tracks.key / tracks.bpm for already-uploaded tracks.
+ * Fill tracks.key / tracks.bpm / tracks.acoustid_fingerprint for
+ * already-uploaded tracks.
  *
- * Walks every track that has an upload and is missing a key or a bpm,
- * downloads the audio, and analyzes it with the @rocksky/analysis native
- * binding. Batches fan out across all cores on the Rust side (rayon), so a
- * batch of N costs roughly one track's decode time per core. Results are
- * coalesce-written: a value that is already set is never overwritten.
+ * Walks every track that has an upload and is missing one of them, downloads
+ * the audio, and analyzes it with the @rocksky/analysis native binding.
+ * Batches fan out across all cores on the Rust side (rayon), so a batch of N
+ * costs roughly one track's decode time per core. Results are coalesce-written:
+ * a value that is already set is never overwritten.
+ *
+ * All three come out of one decode, so a run scoped to fingerprints fills a
+ * missing key and bpm on the way past at no extra cost.
  *
  * Progress is logged per track as it completes —
- *   ✔ [  12/480   2.5%]  Fm    124.0 bpm  Title — Artist
+ *   ✔ [  12/480   2.5%]  Fm    124.0 bpm  fp  Title — Artist
  * with a rate + ETA line after each batch and a final summary.
  *
- * Usage (also wired as `bun backfill:analysis`):
+ * Usage (also wired as `bun backfill:analysis` and `bun backfill:fingerprint`):
  *   tsx ./src/scripts/backfill-analysis.ts
  *
  * Env:
@@ -19,6 +23,8 @@
  *   BACKFILL_LIMIT         stop after this many analyzed tracks (default: all)
  *   BACKFILL_USER_ID       only tracks uploaded by this user
  *   BACKFILL_DRY_RUN       "1" — analyze and report, write nothing
+ *   BACKFILL_ONLY          "fingerprint" — select only tracks missing a
+ *                          fingerprint, rather than any missing field
  */
 
 import { GetObjectCommand } from "@aws-sdk/client-s3";
@@ -51,7 +57,17 @@ const MIME_TO_EXT: Record<string, string> = {
   "audio/x-aiff": "aiff",
 };
 
-const needsAnalysis = or(isNull(tables.tracks.key), isNull(tables.tracks.bpm));
+const ONLY_FINGERPRINT = process.env.BACKFILL_ONLY === "fingerprint";
+
+const needsAnalysis = ONLY_FINGERPRINT
+  ? isNull(tables.tracks.acoustidFingerprint)
+  : or(
+      isNull(tables.tracks.key),
+      isNull(tables.tracks.bpm),
+      isNull(tables.tracks.acoustidFingerprint),
+    );
+
+const MISSING = ONLY_FINGERPRINT ? "a fingerprint" : "key/bpm/fingerprint";
 
 // One S3 client per storage target for the whole run. A fresh client per
 // download is a leak: its keep-alive sockets are live handles that root the
@@ -104,7 +120,7 @@ async function main() {
 
   const target = Math.min(total, LIMIT);
   consola.info(
-    `${total} uploaded track(s) missing key/bpm${
+    `${total} uploaded track(s) missing ${MISSING}${
       Number.isFinite(LIMIT) ? `, limited to ${target}` : ""
     }${DRY_RUN ? " — DRY RUN, nothing will be written" : ""}`,
   );
@@ -119,7 +135,7 @@ async function main() {
   let downloadFailed = 0;
 
   while (processed < target) {
-    // One page of uploads whose track still lacks a key or bpm. The page is
+    // One page of uploads whose track is still missing something. The page is
     // larger than the batch because several uploads can share one track.
     const rows = await ctx.db
       .select({
@@ -209,7 +225,7 @@ async function main() {
           consola.info(
             `✔ ${tag} ${(p.key ?? "?").padEnd(4)} ${
               p.bpm != null ? `${p.bpm.toFixed(1).padStart(5)} bpm` : "    ? bpm"
-            }  ${label}`,
+            }  ${p.fingerprint ? "fp" : "  "}  ${label}`,
           );
         } else {
           consola.warn(`✖ ${tag} ${label}: ${p.error}`);
@@ -221,7 +237,9 @@ async function main() {
       processed++;
       const ok =
         result.ok &&
-        (result.analysis?.key != null || result.analysis?.bpm != null);
+        (result.analysis?.key != null ||
+          result.analysis?.bpm != null ||
+          result.analysis?.fingerprint != null);
       if (!ok) {
         failed++;
         continue;
@@ -231,6 +249,7 @@ async function main() {
           result.id!,
           result.analysis!.key,
           result.analysis!.bpm,
+          result.analysis!.fingerprint,
         );
       }
       filled++;

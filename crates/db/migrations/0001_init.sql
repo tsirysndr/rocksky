@@ -123,6 +123,9 @@ CREATE TABLE IF NOT EXISTS tracks (
   copyright_message  TEXT,
   key                TEXT,
   bpm                REAL,
+  -- Chromaprint fingerprint of the first two minutes, base64url. Identifies
+  -- the recording rather than the tags; filled after an upload is analysed.
+  acoustid_fingerprint TEXT,
   uri                TEXT UNIQUE,
   album_uri          TEXT,
   artist_uri         TEXT,

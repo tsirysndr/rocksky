@@ -1,9 +1,11 @@
 //! Decoding audio to mono samples.
 //!
-//! One pass over the file produces everything the analysis needs: the tags,
-//! and a mono window from the middle of the track for the detectors. Only the
-//! window is kept — key and tempo don't need the whole file in memory, and an
-//! upload can be a ten-minute FLAC.
+//! One pass over the file produces everything the analysis needs: the tags, a
+//! mono window from the middle of the track for the detectors, and the
+//! Chromaprint fingerprint of the opening two minutes. Only the window is
+//! kept — key and tempo don't need the whole file in memory, and an upload can
+//! be a ten-minute FLAC; the fingerprint is folded in as the samples go past,
+//! so it costs no memory at all.
 
 use anyhow::{Error, Result};
 use std::io::Cursor;
@@ -26,6 +28,8 @@ pub struct Decoded {
     pub duration: f32,
     /// Key and tempo as the file states them, when it does.
     pub tags: crate::tags::Tags,
+    /// The AcoustID fingerprint, when enough audio decoded to make one.
+    pub fingerprint: Option<String>,
 }
 
 /// How much audio the detectors get.
@@ -100,11 +104,15 @@ pub fn decode(bytes: &[u8], extension_hint: Option<&str>) -> Result<Decoded> {
         sample_rate,
         duration: 0.0,
         tags,
+        fingerprint: None,
     };
 
+    let mut fingerprint = crate::fingerprint::Builder::new();
     let mut buffer: Option<SampleBuffer<f32>> = None;
     let mut frames_seen: u64 = 0;
     let mut stopped_early = false;
+    let mut fingerprint_started = false;
+    let mut fingerprint_failed = false;
 
     loop {
         let packet = match format.next_packet() {
@@ -139,6 +147,23 @@ pub fn decode(bytes: &[u8], extension_hint: Option<&str>) -> Result<Decoded> {
         let samples = buffer.samples();
         let channel_count = spec.channels.count().max(1);
 
+        // The real format is only certain once a packet has decoded, so the
+        // fingerprint starts here rather than from the container's claims. A
+        // rate the resampler can't work with leaves the track without a
+        // fingerprint; it still gets a key and a tempo.
+        if !fingerprint_started && !fingerprint_failed {
+            match fingerprint.start(spec.rate, channel_count as u32) {
+                Ok(()) => fingerprint_started = true,
+                Err(cause) => {
+                    tracing::debug!(%cause, "no fingerprint");
+                    fingerprint_failed = true;
+                }
+            }
+        }
+        if fingerprint_started {
+            fingerprint.consume(samples, channel_count);
+        }
+
         let window_start = window_start_frame(&claimed_duration, sample_rate);
         let window_end = window_start + (WINDOW_SECONDS * sample_rate) as u64;
 
@@ -150,10 +175,10 @@ pub fn decode(bytes: &[u8], extension_hint: Option<&str>) -> Result<Decoded> {
             frames_seen += 1;
         }
 
-        // Everything the detectors need has been decoded; the rest of a
-        // ten-minute FLAC would only refine a duration the container already
-        // claimed.
-        if frames_seen >= window_end {
+        // Everything the detectors and the fingerprint need has been decoded;
+        // the rest of a ten-minute FLAC would only refine a duration the
+        // container already claimed.
+        if frames_seen >= window_end && (fingerprint_failed || fingerprint.is_full()) {
             stopped_early = true;
             break;
         }
@@ -162,6 +187,11 @@ pub fn decode(bytes: &[u8], extension_hint: Option<&str>) -> Result<Decoded> {
     if frames_seen == 0 || sample_rate == 0.0 {
         return Err(Error::msg("nothing decoded"));
     }
+
+    // A file shorter than two minutes never fills the fingerprinter; what it
+    // did hear still fingerprints, and short recordings are exactly the ones
+    // worth identifying by audio.
+    decoded.fingerprint = fingerprint.finish();
 
     decoded.sample_rate = sample_rate;
     decoded.duration = if stopped_early {

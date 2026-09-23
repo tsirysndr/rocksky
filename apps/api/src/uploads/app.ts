@@ -455,10 +455,15 @@ app.post("/track", async (c) => {
     })
     .returning();
 
-  // Fire-and-forget key/BPM analysis — decodes on the Rust worker pool and
-  // coalesce-fills tracks.key / tracks.bpm. The response never waits on it
-  // and an analysis failure can never fail the upload.
-  if (track.key == null || track.bpm == null) {
+  // Fire-and-forget key/BPM/fingerprint analysis — decodes on the Rust worker
+  // pool and coalesce-fills tracks.key / tracks.bpm /
+  // tracks.acoustid_fingerprint. The response never waits on it and an
+  // analysis failure can never fail the upload.
+  if (
+    track.key == null ||
+    track.bpm == null ||
+    track.acoustidFingerprint == null
+  ) {
     analyzeUploadAudio(storedBuf, ext, track.id).catch((e) =>
       consola.warn("[analysis] unexpected failure:", e),
     );

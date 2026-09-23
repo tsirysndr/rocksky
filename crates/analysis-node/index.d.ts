@@ -8,6 +8,11 @@ export interface AudioAnalysis {
   key: string | null;
   /** How much to believe the key, 0–1. */
   keyConfidence: number | null;
+  /**
+   * AcoustID (Chromaprint) fingerprint of the opening two minutes, base64url
+   * as `fpcalc` prints it. Null when the file was too short to fingerprint.
+   */
+  fingerprint: string | null;
   /** Seconds, as decoded rather than as the tags claim. */
   duration: number;
 }
@@ -31,6 +36,8 @@ export interface AnalyzeBatchProgress {
   ok: boolean;
   bpm: number | null;
   key: string | null;
+  /** Whether a fingerprint came out; the fingerprint itself is in the result. */
+  fingerprint: boolean;
   error: string | null;
 }
 

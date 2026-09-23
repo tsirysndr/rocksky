@@ -34,6 +34,7 @@ const tracks = pgTable(
     copyrightMessage: text("copyright_message"),
     key: text("key"),
     bpm: real("bpm"),
+    acoustidFingerprint: text("acoustid_fingerprint"),
     uri: text("uri").unique(),
     albumUri: text("album_uri"),
     artistUri: text("artist_uri"),

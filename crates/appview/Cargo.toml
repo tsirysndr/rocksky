@@ -102,9 +102,9 @@ md5 = "0.7.0"
 #   lofty             tag *writing*, for the ReplayGain tags rockbox reads
 #                     from the stream (rockbox-metadata is read-only)
 #   ebur128           loudness measurement, as playerd/src/analysis does
-#   rocksky-analysis  key and BPM, the crate behind the Neon binding that
-#                     apps/api loads — called directly, so there is no native
-#                     module to build
+#   rocksky-analysis  key, BPM and AcoustID fingerprint, the crate behind the
+#                     Neon binding that apps/api loads — called directly, so
+#                     there is no native module to build
 actix-multipart = "0.7"
 # Object storage. The same client crate and conventions as
 # crates/navidrome/src/s3.rs, so presigned URLs and path-style addressing
