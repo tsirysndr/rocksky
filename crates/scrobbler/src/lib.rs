@@ -107,15 +107,27 @@ pub async fn run() -> Result<(), Error> {
             .service(handlers::handle_methods)
             .service(handlers::handle_nowplaying)
             .service(handlers::handle_submission)
+            // The ListenBrainz API. The reads are not decoration: a client
+            // draws every one of its screens from them, so a server with
+            // only the two write routes scrobbles correctly and then shows
+            // the user nothing. See `crate::listenbrainz`.
             .service(listenbrainz::handlers::handle_submit_listens)
+            .service(listenbrainz::handlers::handle_delete_listen)
             .service(listenbrainz::handlers::handle_validate_token)
             .service(listenbrainz::handlers::handle_search_users)
+            .service(listenbrainz::handlers::handle_metadata_lookup)
             .service(listenbrainz::handlers::handle_get_playing_now)
             .service(listenbrainz::handlers::handle_get_listens)
             .service(listenbrainz::handlers::handle_get_listen_count)
+            .service(listenbrainz::handlers::handle_get_following)
+            .service(listenbrainz::handlers::handle_get_followers)
+            .service(listenbrainz::handlers::handle_get_feedback)
+            .service(listenbrainz::handlers::handle_recording_feedback)
             .service(listenbrainz::handlers::handle_get_artists)
+            .service(listenbrainz::handlers::handle_get_releases)
             .service(listenbrainz::handlers::handle_get_recordings)
             .service(listenbrainz::handlers::handle_get_release_groups)
+            .service(listenbrainz::handlers::handle_get_listening_activity)
             .service(handlers::index)
             .service(handlers::handle_get)
     })

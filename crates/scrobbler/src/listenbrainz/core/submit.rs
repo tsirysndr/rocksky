@@ -2,14 +2,27 @@ use crate::auth::decode_token;
 use crate::musicbrainz::client::MusicbrainzClient;
 use crate::repo;
 use crate::{cache::Cache, scrobbler::scrobble_listenbrainz};
-use actix_web::HttpResponse;
 use anyhow::Error;
 use owo_colors::OwoColorize;
 use rocksky_db::Backend;
-use serde_json::json;
 use std::sync::Arc;
 
-use crate::listenbrainz::types::SubmitListensRequest;
+use crate::listenbrainz::msid;
+use crate::listenbrainz::types::{SubmitListensRequest, SubmitResponse};
+
+/// The MSID this listen will be known by once it is in the catalogue.
+///
+/// Computed from the submitted metadata rather than looked up, because the
+/// row does not exist yet: the hash is the same one ingest will derive, so
+/// the two agree without a round trip.
+pub fn submitted_msid(payload: &SubmitListensRequest) -> Option<String> {
+    let meta = &payload.payload.first()?.track_metadata;
+    msid::from_sha256(&msid::track_sha256(
+        &meta.track_name,
+        &meta.artist_name,
+        meta.release_name.as_deref().unwrap_or_default(),
+    ))
+}
 
 pub async fn submit_listens(
     payload: SubmitListensRequest,
@@ -17,19 +30,13 @@ pub async fn submit_listens(
     pool: &Arc<Backend>,
     mb_client: &Arc<MusicbrainzClient>,
     token: &str,
-) -> Result<HttpResponse, Error> {
+) -> Result<SubmitResponse, Error> {
     if payload.listen_type != "single" {
         let artist = payload.payload[0].track_metadata.artist_name.clone();
         let track = payload.payload[0].track_metadata.track_name.clone();
         tracing::info!(listen_type = %payload.listen_type.cyan(), artist = %artist, track = %track, "Skipping listen type");
 
-        return Ok(HttpResponse::Ok().json(json!({
-          "status": "ok",
-          "payload": {
-            "submitted_listens": 0,
-            "ignored_listens": 1
-          },
-        })));
+        return Ok(SubmitResponse::ignored());
     }
 
     let pool = Arc::clone(pool);
@@ -83,11 +90,5 @@ pub async fn submit_listens(
         }
     });
 
-    return Ok(HttpResponse::Ok().json(json!({
-      "status": "ok",
-      "payload": {
-        "submitted_listens": 1,
-        "ignored_listens": 0
-      },
-    })));
+    Ok(SubmitResponse::accepted(None))
 }
