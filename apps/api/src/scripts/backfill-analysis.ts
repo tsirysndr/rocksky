@@ -133,6 +133,7 @@ async function main() {
   let filled = 0;
   let failed = 0;
   let downloadFailed = 0;
+  let bindingChecked = false;
 
   while (processed < target) {
     // One page of uploads whose track is still missing something. The page is
@@ -232,6 +233,23 @@ async function main() {
         }
       },
     );
+
+    // A binding built before fingerprinting has no `fingerprint` field at all,
+    // which is not the same as a file too short to make one — that is null.
+    // Left alone it fills nothing for an hour and still reports success, so
+    // the first batch that produced anything settles it.
+    if (!bindingChecked) {
+      const sample = results.find((r) => r.analysis);
+      if (sample) {
+        bindingChecked = true;
+        if (!("fingerprint" in sample.analysis!)) {
+          consola.error(
+            "@rocksky/analysis is built without fingerprint support — rebuild it with `bun run build` in crates/analysis-node, then run this again",
+          );
+          process.exit(1);
+        }
+      }
+    }
 
     for (const result of results) {
       processed++;
