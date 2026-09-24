@@ -26,6 +26,7 @@ import {
   AudioLines,
   ChartNoAxesCombined,
   Check,
+  Copy,
   Disc3,
   Code2,
   Upload,
@@ -159,6 +160,66 @@ function Scrobble({
       <time dateTime={track.createdAt}>{relativeTime(track.createdAt)}</time>
       <ArrowUpRight size={17} className="row-arrow" aria-hidden="true" />
     </Row>
+  );
+}
+
+function InstallCommand({
+  command,
+  label,
+}: {
+  command: string;
+  label: string;
+}) {
+  const [status, setStatus] = useState<"idle" | "copying" | "copied" | "error">(
+    "idle",
+  );
+
+  useEffect(() => {
+    if (status !== "copied") return;
+    const timer = window.setTimeout(() => setStatus("idle"), 2500);
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
+  async function copyCommand() {
+    setStatus("copying");
+    try {
+      await navigator.clipboard.writeText(command);
+      setStatus("copied");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="player-install">
+      <span>{label}</span>
+      <div className="player-install-command">
+        <code>{command}</code>
+        <Button
+          isIconOnly
+          variant="ghost"
+          size="sm"
+          className="player-install-copy"
+          aria-label={
+            status === "copied" ? "Command copied" : `Copy command: ${command}`
+          }
+          isDisabled={status === "copying"}
+          onPress={() => void copyCommand()}
+        >
+          {status === "copied" ? <Check size={17} /> : <Copy size={17} />}
+        </Button>
+      </div>
+      <p
+        role="status"
+        className={status === "error" ? "player-install-error" : "sr-only"}
+      >
+        {status === "copied"
+          ? "Command copied to clipboard."
+          : status === "error"
+            ? "Couldn’t copy. Select the command and copy it manually."
+            : ""}
+      </p>
+    </div>
   );
 }
 
@@ -998,10 +1059,10 @@ function LandingPage() {
                   Set up scrobbling <ArrowRight size={17} />
                 </a>
               </div>
-              <div className="player-install">
-                <span>Install with Homebrew</span>
-                <code>brew install --cask tsirysndr/tap/musicplayer</code>
-              </div>
+              <InstallCommand
+                label="Install with Homebrew"
+                command="brew install --cask tsirysndr/tap/musicplayer"
+              />
             </div>
           </Reveal>
           <Reveal className="player-showcase">
@@ -1019,6 +1080,85 @@ function LandingPage() {
                 <span>
                   <Check size={14} aria-hidden="true" /> Built-in Rocksky
                   scrobbling
+                </span>
+              </figcaption>
+            </figure>
+          </Reveal>
+        </section>
+
+        <section
+          id="playerd"
+          className="container playerd-section section-space"
+          aria-labelledby="playerd-title"
+        >
+          <Reveal className="section-heading player-heading">
+            <div>
+              <div className="eyebrow">07 / @ROCKSKY/PLAYERD</div>
+              <h2 id="playerd-title">
+                Music on your Raspberry Pi.
+                <br />
+                <span className="muted-heading">Control it from Rocksky.</span>
+              </h2>
+            </div>
+            <div className="player-intro">
+              <p>
+                @rocksky/playerd is Rocksky’s official headless music player.
+                Run it on a Raspberry Pi or another single-board computer
+                connected to your speakers. It needs no GUI: choose the device
+                in Rocksky Web to play music, manage the queue, and adjust the
+                volume.
+              </p>
+              <InstallCommand
+                label="Install with Bun"
+                command="bun install -g @rocksky/playerd"
+              />
+              <a
+                className="text-link playerd-source"
+                href="https://tangled.org/rocksky.app/rocksky/tree/main/playerd"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View the source on Tangled <ArrowUpRight size={17} />
+              </a>
+            </div>
+          </Reveal>
+          <Reveal className="playerd-steps">
+            <div>
+              <span className="step-number">01</span>
+              <h3>Sign in on the device</h3>
+              <p>Use the Rocksky CLI to connect your account.</p>
+              <code>rocksky login</code>
+            </div>
+            <div>
+              <span className="step-number">02</span>
+              <h3>Start your player</h3>
+              <p>Give it a name you’ll recognize in the device list.</p>
+              <code>playerd --name "Living Room"</code>
+            </div>
+            <div>
+              <span className="step-number">03</span>
+              <h3>Open Rocksky Web</h3>
+              <p>
+                Select your player in the device picker and send it some music.
+                Playback happens on the device, with built-in scrobbling.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal className="playerd-preview">
+            <figure className="player-figure">
+              <img
+                src={`${import.meta.env.BASE_URL}playerd.png`}
+                width={2346}
+                height={518}
+                loading="lazy"
+                decoding="async"
+                alt="Rocksky Web playback controls with an Orange Pi Zero 3W selected in the device picker"
+              />
+              <figcaption>
+                <span>Rocksky Web / remote playback</span>
+                <span>
+                  <Server size={14} aria-hidden="true" /> No screen needed on
+                  your player
                 </span>
               </figcaption>
             </figure>

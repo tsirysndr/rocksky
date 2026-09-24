@@ -1182,10 +1182,27 @@ h3 {
   font-size: 12px;
 }
 .player-install code {
+  min-width: 0;
   color: #d3eda6;
   font-size: 12px;
   line-height: 1.7;
   overflow-wrap: anywhere;
+}
+.player-install-command {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.player-install-copy {
+  flex-shrink: 0;
+  color: #d3eda6;
+}
+.player-install .player-install-error {
+  margin: 10px 0 0;
+  color: #ff9abf;
+  font-size: 12px;
+  line-height: 1.5;
 }
 .player-showcase {
   background: radial-gradient(ellipse at center, #54214d66, transparent 70%);
@@ -1223,6 +1240,46 @@ h3 {
   }
   .player-intro {
     max-width: none;
+  }
+}
+
+.playerd-source {
+  margin-top: 18px;
+  font-size: 13px;
+}
+.playerd-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin-bottom: 40px;
+}
+.playerd-steps > div {
+  padding: 24px;
+  background: #221538;
+  border-radius: 16px;
+}
+.playerd-steps h3 {
+  margin: 18px 0 10px;
+  font-size: 18px;
+}
+.playerd-steps p {
+  color: var(--soft);
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 16px;
+}
+.playerd-steps code {
+  color: #d3eda6;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.playerd-preview img {
+  border-radius: 14px;
+}
+@media (max-width: 800px) {
+  .playerd-steps {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 
