@@ -1,3 +1,4 @@
+import { syncHomepageSession } from "../../shared/browser-session";
 import {
   MutationCache,
   QueryCache,
@@ -43,16 +44,17 @@ const queryClient = new QueryClient({
   mutationCache: new MutationCache({ onError }),
 });
 
-createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <StyletronProvider value={engine}>
-      <BaseProvider theme={theme}>
-        <ToasterContainer placement={PLACEMENT.bottom}>
-          <SnackbarProvider placement={PLACEMENT.bottom}>
-            <App />
-          </SnackbarProvider>
-        </ToasterContainer>
-      </BaseProvider>
-    </StyletronProvider>
-  </QueryClientProvider>,
-);
+if (!syncHomepageSession("app"))
+  createRoot(document.getElementById("root")!).render(
+    <QueryClientProvider client={queryClient}>
+      <StyletronProvider value={engine}>
+        <BaseProvider theme={theme}>
+          <ToasterContainer placement={PLACEMENT.bottom}>
+            <SnackbarProvider placement={PLACEMENT.bottom}>
+              <App />
+            </SnackbarProvider>
+          </ToasterContainer>
+        </BaseProvider>
+      </StyletronProvider>
+    </QueryClientProvider>,
+  );

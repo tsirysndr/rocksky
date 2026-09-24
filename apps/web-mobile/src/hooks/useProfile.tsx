@@ -1,3 +1,4 @@
+import { clearSessionToken } from "../../../shared/browser-session";
 import { RockskyError } from "@rocksky/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
@@ -25,11 +26,7 @@ export const useProfileStatsByDidQuery = (did: string | undefined) =>
     enabled: !!did,
   });
 
-export const useRecentTracksByDidQuery = (
-  did: string,
-  offset = 0,
-  size = 10,
-) =>
+export const useRecentTracksByDidQuery = (did: string, offset = 0, size = 10) =>
   useQuery({
     queryKey: ["profile", "recent-tracks", did, offset, size],
     queryFn: () => getRecentTracksByDid(did, offset, size),
@@ -70,7 +67,7 @@ function useProfile(token?: string | null) {
             e.kind === "AuthMissing" ||
             e.kind === "Unauthorized")
         ) {
-          localStorage.removeItem("token");
+          clearSessionToken();
           window.location.href = "/";
           return;
         }
@@ -84,7 +81,7 @@ function useProfile(token?: string | null) {
   useEffect(() => {
     if (data) {
       if (Object.keys(data).length === 0) {
-        localStorage.removeItem("token");
+        clearSessionToken();
         window.location.href = "/";
         return;
       }

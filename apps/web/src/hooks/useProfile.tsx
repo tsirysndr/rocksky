@@ -1,3 +1,4 @@
+import { clearSessionToken } from "../../../shared/browser-session";
 import { RockskyError } from "@rocksky/sdk";
 import { useQuery } from "@tanstack/react-query";
 import consola from "consola";
@@ -100,7 +101,7 @@ function useProfile(token?: string | null) {
     if (data !== "Unauthorized" && data !== "Internal Server Error" && data) {
       const profile = JSON.parse(data);
       if (Object.keys(profile).length === 0) {
-        localStorage.removeItem("token");
+        clearSessionToken();
         window.location.href = "/";
         return;
       }
@@ -136,7 +137,8 @@ function useProfile(token?: string | null) {
     ) {
       if (data === "Unauthorized") {
         consola.log(">> Unauthorized");
-        localStorage.removeItem("token");
+        clearSessionToken();
+        window.location.href = "/";
       }
     }
 

@@ -1,3 +1,4 @@
+import { clearSessionToken } from "../../../shared/browser-session";
 import axios, { type AxiosInstance } from "axios";
 
 /** The AppView's error code for "your Rocksky JWT is still valid, but the OAuth
@@ -35,7 +36,7 @@ let signingOut = false;
 export function handleSessionExpired(): void {
   if (signingOut) return;
   signingOut = true;
-  localStorage.removeItem("token");
+  clearSessionToken();
   localStorage.removeItem("did");
   // A full navigation rather than a router push, matching the sign-out menu
   // item: it also drops every jotai atom still holding profile state.

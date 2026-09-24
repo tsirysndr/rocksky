@@ -1,3 +1,4 @@
+import { storeSessionToken } from "../../../shared/browser-session";
 import styled from "@emotion/styled";
 import { IconDisc, IconSparkles } from "@tabler/icons-react";
 import { Link, useSearch } from "@tanstack/react-router";
@@ -108,7 +109,7 @@ function Main(props: MainProps) {
             },
           });
           const data = await response.json();
-          localStorage.setItem("token", data.token);
+          storeSessionToken(data.token);
           setToken(data.token);
 
           if (cli) {
@@ -161,7 +162,7 @@ function Main(props: MainProps) {
 
       const data = await response.text();
       const newToken = data.split("jwt:")[1];
-      localStorage.setItem("token", newToken);
+      storeSessionToken(newToken);
       setToken(data);
 
       if (cli) {

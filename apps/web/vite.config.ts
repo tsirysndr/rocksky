@@ -70,11 +70,16 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,otf}"],
         navigateFallback: "/index.html",
+        // Root HTML is chosen by the proxy, never by the precache index alias.
+        directoryIndex: null,
         // These paths are handled by the app-proxy (OAuth / auth endpoints) —
         // never answer them with the SPA shell.
         // Dropbox and Google Drive are scoped to their /oauth/ subpath because
         // /dropbox and /googledrive are also SPA pages.
         navigateFallbackDenylist: [
+          /^\/(?:\?|$)/,
+          // Landing assets belong to the app-proxy, including direct URL visits.
+          /^\/_landing\//,
           /^\/oauth/,
           /^\/login/,
           /^\/token/,

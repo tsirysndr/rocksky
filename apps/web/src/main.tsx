@@ -1,3 +1,4 @@
+import { syncHomepageSession } from "../../shared/browser-session";
 import {
   MutationCache,
   QueryCache,
@@ -56,26 +57,27 @@ declare module "@tanstack/react-router" {
   }
 }
 
-createRoot(document.getElementById("root")!).render(
-  //<StrictMode>
-  <QueryClientProvider client={queryClient}>
-    <StyletronProvider value={engine}>
-      <BaseProvider theme={theme}>
-        <ToasterContainer placement={PLACEMENT.bottom}>
-          <SnackbarProvider placement={PLACEMENT.bottom}>
-            <PostHogProvider
-              apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-              options={{
-                api_host: "https://us.i.posthog.com",
-                disable_surveys: true,
-              }}
-            >
-              <RouterProvider router={router} />
-            </PostHogProvider>
-          </SnackbarProvider>
-        </ToasterContainer>
-      </BaseProvider>
-    </StyletronProvider>
-  </QueryClientProvider>,
-  //</StrictMode>
-);
+if (!syncHomepageSession("app"))
+  createRoot(document.getElementById("root")!).render(
+    //<StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <StyletronProvider value={engine}>
+        <BaseProvider theme={theme}>
+          <ToasterContainer placement={PLACEMENT.bottom}>
+            <SnackbarProvider placement={PLACEMENT.bottom}>
+              <PostHogProvider
+                apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+                options={{
+                  api_host: "https://us.i.posthog.com",
+                  disable_surveys: true,
+                }}
+              >
+                <RouterProvider router={router} />
+              </PostHogProvider>
+            </SnackbarProvider>
+          </ToasterContainer>
+        </BaseProvider>
+      </StyletronProvider>
+    </QueryClientProvider>,
+    //</StrictMode>
+  );

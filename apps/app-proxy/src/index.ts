@@ -12,6 +12,8 @@
  */
 
 import { fetchOgData, HeadMeta, isHtmlResponse, StripMeta } from './html-rewriter';
+import { proxyHomepage } from './homepage';
+import { proxyLandingAsset } from './landing-assets';
 
 const metadata = {
 	redirect_uris: ['https://rocksky.app/oauth/callback'],
@@ -93,6 +95,9 @@ export default {
 			return new Response(null, { status: 204, headers: corsHeaders(origin) });
 		}
 
+		const landingAsset = await proxyLandingAsset(request);
+		if (landingAsset) return landingAsset;
+
 		// Serve rockbox-wasm runtime assets (audio worklet + decoder worker + the
 		// wasm-embedded core) from the web deployment, where the Vite build ships
 		// them at /rockbox/*. The current package is single-threaded with the wasm
@@ -165,6 +170,9 @@ export default {
 			res.headers.delete('ETag');
 			return res;
 		}
+
+		const homepage = await proxyHomepage(request);
+		if (homepage) return homepage;
 
 		// check header if from mobile device, android or ios
 		const userAgent = request.headers.get('user-agent');

@@ -1,3 +1,4 @@
+import { clearSessionToken } from "../../../../shared/browser-session";
 import styled from "@emotion/styled";
 import { Copy } from "@styled-icons/ionicons-outline";
 import { useQuery } from "@tanstack/react-query";
@@ -434,7 +435,7 @@ function Navbar() {
                         break;
                       case "signout":
                         setProfile(null);
-                        localStorage.removeItem("token");
+                        clearSessionToken();
                         localStorage.removeItem("did");
                         window.location.href = "/";
                         break;

@@ -64,11 +64,16 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "/index.html",
+        // Root HTML is chosen by the proxy, never by the precache index alias.
+        directoryIndex: null,
         // Deny service worker fallback for routes handled by the app-proxy:
         // /oauth/callback is the AT Protocol OAuth redirect URI — must reach the API, not index.html
         // /login proxies to the API login endpoint
         // /spotify, /dropbox/oauth and /googledrive/oauth are the music-service OAuth redirect URIs
         navigateFallbackDenylist: [
+          /^\/(?:\?|$)/,
+          // Landing assets belong to the app-proxy, including direct URL visits.
+          /^\/_landing\//,
           /^\/api\//,
           /^\/oauth\//,
           /^\/login/,

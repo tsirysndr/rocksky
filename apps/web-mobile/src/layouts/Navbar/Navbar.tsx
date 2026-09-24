@@ -1,3 +1,4 @@
+import { clearSessionToken } from "../../../../shared/browser-session";
 import { IconTelescope, IconUser } from "@tabler/icons-react";
 import { Avatar } from "baseui/avatar";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -15,7 +16,7 @@ function Navbar() {
 
   const onLogout = () => {
     setProfile(null);
-    localStorage.removeItem("token");
+    clearSessionToken();
     localStorage.removeItem("did");
     window.location.href = "/";
   };
@@ -30,7 +31,12 @@ function Navbar() {
         }}
       >
         <Link to="/" className="flex items-center gap-1.5 no-underline">
-          <span className="text-xl font-bold" style={{ color: "var(--color-text)" }}>Rocksky</span>
+          <span
+            className="text-xl font-bold"
+            style={{ color: "var(--color-text)" }}
+          >
+            Rocksky
+          </span>
         </Link>
 
         <div className="flex-1" />
@@ -50,7 +56,11 @@ function Navbar() {
             className="border-none bg-transparent cursor-pointer p-1"
           >
             {!profile.avatar?.endsWith("/@jpeg") ? (
-              <Avatar src={profile.avatar} name={profile.displayName} size="32px" />
+              <Avatar
+                src={profile.avatar}
+                name={profile.displayName}
+                size="32px"
+              />
             ) : (
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center"
@@ -82,24 +92,42 @@ function Navbar() {
             style={{ backgroundColor: "var(--color-surface)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: "var(--color-border)" }} />
+            <div
+              className="w-10 h-1 rounded-full mx-auto mb-6"
+              style={{ backgroundColor: "var(--color-border)" }}
+            />
 
             <div className="flex items-center gap-3 mb-6">
               {!profile?.avatar?.endsWith("/@jpeg") ? (
-                <Avatar src={profile?.avatar} name={profile?.displayName} size="56px" />
+                <Avatar
+                  src={profile?.avatar}
+                  name={profile?.displayName}
+                  size="56px"
+                />
               ) : (
-                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--color-avatar-background)" }}>
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "var(--color-avatar-background)" }}
+                >
                   <IconUser size={28} color="#fff" />
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-bold text-base m-0 truncate" style={{ color: "var(--color-text)" }}>{profile?.displayName}</p>
+                <p
+                  className="font-bold text-base m-0 truncate"
+                  style={{ color: "var(--color-text)" }}
+                >
+                  {profile?.displayName}
+                </p>
                 <a
                   href={`https://bsky.app/profile/${profile?.handle}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm no-underline"
-                  style={{ color: "var(--color-primary)", fontFamily: "var(--font-mono)" }}
+                  style={{
+                    color: "var(--color-primary)",
+                    fontFamily: "var(--font-mono)",
+                  }}
                 >
                   @{profile?.handle}
                 </a>
@@ -182,7 +210,10 @@ function Navbar() {
         </div>
       )}
 
-      <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+      />
     </>
   );
 }

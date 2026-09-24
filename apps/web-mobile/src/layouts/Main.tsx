@@ -1,3 +1,4 @@
+import { storeSessionToken } from "../../../shared/browser-session";
 import { DURATION, useSnackbar } from "baseui/snackbar";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
@@ -40,7 +41,7 @@ function Main({ children }: { children: React.ReactNode }) {
           headers: { "session-did": did },
         });
         const data = await response.json();
-        localStorage.setItem("token", data.token);
+        storeSessionToken(data.token);
         setToken(data.token);
         if (!jwt && data.token) window.location.href = "/";
       } catch (e) {
@@ -58,7 +59,10 @@ function Main({ children }: { children: React.ReactNode }) {
     : "calc(56px + env(safe-area-inset-bottom))";
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: "var(--color-background)" }}
+    >
       <Navbar />
       <main style={{ paddingTop: "56px", paddingBottom: bottomPad }}>
         {children}
