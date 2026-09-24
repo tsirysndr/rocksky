@@ -960,6 +960,71 @@ function LandingPage() {
           </div>
         </section>
 
+        <section
+          id="music-player"
+          className="container player-section section-space"
+          aria-labelledby="player-title"
+        >
+          <Reveal className="section-heading player-heading">
+            <div>
+              <div className="eyebrow">06 / MUSIC-PLAYER</div>
+              <h2 id="player-title">
+                A desktop player.
+                <br />
+                <span className="muted-heading">Rocksky built in.</span>
+              </h2>
+            </div>
+            <div className="player-intro">
+              <p>
+                Play your local files or stream from Navidrome, Subsonic, and
+                Jellyfin with music-player. Connect your Rocksky account and
+                enable scrobbling to save your listens as you play.
+              </p>
+              <div className="player-actions">
+                <a
+                  href="https://github.com/tsirysndr/music-player#installation"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ size: "lg" }) + " cta-link"}
+                >
+                  Get music-player <ArrowUpRight size={18} />
+                </a>
+                <a
+                  className="text-link"
+                  href="https://github.com/tsirysndr/music-player#rocksky-scrobbling"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Set up scrobbling <ArrowRight size={17} />
+                </a>
+              </div>
+              <div className="player-install">
+                <span>Install with Homebrew</span>
+                <code>brew install --cask tsirysndr/tap/musicplayer</code>
+              </div>
+            </div>
+          </Reveal>
+          <Reveal className="player-showcase">
+            <figure className="player-figure">
+              <img
+                src={`${import.meta.env.BASE_URL}music-player.png`}
+                width={2840}
+                height={1720}
+                loading="lazy"
+                decoding="async"
+                alt="The music-player desktop app showing an album library, sidebar, and playback controls in its dark Synthwave theme"
+              />
+              <figcaption>
+                <span>music-player / desktop</span>
+                <span>
+                  <Check size={14} aria-hidden="true" /> Built-in Rocksky
+                  scrobbling
+                </span>
+              </figcaption>
+            </figure>
+          </Reveal>
+        </section>
+
         <section className="container">
           <Reveal className="closing-section">
             <span className="closing-star" aria-hidden="true">
