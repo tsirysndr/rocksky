@@ -38,6 +38,7 @@ import {
   Music2,
   Radio,
   Users,
+  UserRound,
   X,
 } from "lucide-react";
 import type { ScrobbleViewBasic } from "@rocksky/sdk";
@@ -145,6 +146,7 @@ function Scrobble({
   track: ScrobbleViewBasic;
   index: number;
 }) {
+  const [failedAvatar, setFailedAvatar] = useState<string>();
   const href = trackUrl(track.trackUri);
   const Row = href ? "a" : "div";
   return (
@@ -159,7 +161,23 @@ function Scrobble({
         <span>{track.artist || "Unknown artist"}</span>
       </div>
       <span className="listener">
-        {track.handle ? `@${track.handle}` : "A Rocksky listener"}
+        <span className="listener-avatar" aria-hidden="true">
+          {track.avatar && track.avatar !== failedAvatar ? (
+            <img
+              src={track.avatar}
+              alt=""
+              width={24}
+              height={24}
+              loading="lazy"
+              onError={() => setFailedAvatar(track.avatar)}
+            />
+          ) : (
+            <UserRound size={14} />
+          )}
+        </span>
+        <span className="listener-handle">
+          {track.handle ? `@${track.handle}` : "A Rocksky listener"}
+        </span>
       </span>
       <time dateTime={track.createdAt}>{relativeTime(track.createdAt)}</time>
       <ArrowUpRight size={17} className="row-arrow" aria-hidden="true" />
