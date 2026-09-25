@@ -71,6 +71,7 @@ export default defineConfig({
         // /login proxies to the API login endpoint
         // /spotify, /dropbox/oauth and /googledrive/oauth are the music-service OAuth redirect URIs
         navigateFallbackDenylist: [
+          /^\/atpassport\/callback(?:\?|$)/,
           /^\/(?:\?|$)/,
           // Landing assets belong to the app-proxy, including direct URL visits.
           /^\/_landing\//,

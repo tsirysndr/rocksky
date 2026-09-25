@@ -2443,6 +2443,26 @@ h3 {
   font-size: 14px;
   margin-bottom: 10px;
 }
+.login-atpassport {
+  width: 100%;
+  border-radius: 11px;
+  border-color: #593c69;
+  background: #28183b;
+  color: var(--foreground);
+  font-size: 14px;
+}
+.atpassport-mark {
+  flex-shrink: 0;
+  margin-right: 8px;
+  color: #e8b2ce;
+}
+.login-atpassport-hint {
+  margin: 10px 0 24px;
+  text-align: center;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 1.6;
+}
 .login-handle-field {
   display: flex;
   align-items: center;

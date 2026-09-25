@@ -1,9 +1,10 @@
-import { hasSessionHint, isAppHandoff } from '../../shared/homepage-routing';
+import { ATPASSPORT_CALLBACK_PATH, hasSessionHint, isAppHandoff } from '../../shared/homepage-routing';
 
 export async function proxyHomepage(request: Request): Promise<Response | null> {
 	const url = new URL(request.url);
-	if (url.pathname !== '/' || !['GET', 'HEAD'].includes(request.method)) return null;
-	const app = hasSessionHint(request.headers.get('Cookie') ?? '') || isAppHandoff(url);
+	const atpassport = url.pathname === ATPASSPORT_CALLBACK_PATH;
+	if ((!atpassport && url.pathname !== '/') || !['GET', 'HEAD'].includes(request.method)) return null;
+	const app = !atpassport && (hasSessionHint(request.headers.get('Cookie') ?? '') || isAppHandoff(url));
 	const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(request.headers.get('User-Agent') ?? '');
 	const upstream = new URL(app ? (mobile ? 'https://m.rocksky.app' : 'https://rocksky.pages.dev') : 'https://rocksky-landing.pages.dev');
 	// The browser retains the original URL for OAuth query parsing. Static HTML

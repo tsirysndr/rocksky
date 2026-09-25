@@ -77,6 +77,7 @@ export default defineConfig({
         // Dropbox and Google Drive are scoped to their /oauth/ subpath because
         // /dropbox and /googledrive are also SPA pages.
         navigateFallbackDenylist: [
+          /^\/atpassport\/callback(?:\?|$)/,
           /^\/(?:\?|$)/,
           // Landing assets belong to the app-proxy, including direct URL visits.
           /^\/_landing\//,

@@ -99,3 +99,27 @@ bun test tests ../app-proxy/test/landing-assets.bun.ts ../app-proxy/test/homepag
 
 To roll back homepage selection, remove the `proxyHomepage` call in the proxy
 and redeploy it. The asset namespace and browser session hints can remain.
+
+## AtPassport sign-in
+
+The login screen offers **Login with @atpassport** using the official
+[redirect integration](https://atpassport.net/en/developers/guide). AtPassport
+selects a saved handle, then Rocksky starts its existing OAuth flow. The returned
+DID, PDS URL, and any token are never used to establish a session.
+
+A random state is stored in sessionStorage, expires after ten minutes, and is
+consumed once at `/atpassport/callback`. Invalid or cancelled callbacks leave the
+normal login form available. Callback query parameters are removed from browser
+history before OAuth starts. The callback stays on the initiating origin, so
+standalone Pages previews use their own sessionStorage too.
+
+Deploy the updated desktop and mobile service workers, the landing, and the
+app proxy. The proxy must serve landing HTML at `/atpassport/callback` even when
+a session cookie or `did` parameter is present. Both service workers exclude
+this route from SPA fallback. No API auth changes or AtPassport client secret
+are needed.
+
+Verify `rocksky.app` through the [AtPassport developer portal](https://atpassport.net/en/developers/verify)
+to avoid its unverified-domain warning. Preview domains have separate verification.
+The provider supplies the domain verification instructions and proof; none has
+been registered by this implementation.

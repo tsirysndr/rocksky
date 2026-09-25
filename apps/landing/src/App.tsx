@@ -52,6 +52,7 @@ import {
 import SearchModal, { searchOpenAtom } from "./SearchModal";
 import LoginScreen from "./LoginScreen";
 import { authUrl } from "./auth";
+import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
 
 const createAccountUrl = authUrl(
   import.meta.env.VITE_ROCKSKY_AUTH_URL || "https://rocksky.pages.dev/loading",
@@ -1261,7 +1262,9 @@ function subscribeToLocation(onChange: () => void) {
 export default function App() {
   const isLogin = useSyncExternalStore(
     subscribeToLocation,
-    () => window.location.hash === "#sign-in",
+    () =>
+      window.location.hash === "#sign-in" ||
+      window.location.pathname === ATPASSPORT_CALLBACK_PATH,
     () => false,
   );
   return (

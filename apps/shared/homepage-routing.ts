@@ -1,5 +1,6 @@
 // This cookie selects a public HTML shell. It is never an authentication credential.
 export const SESSION_HINT = "rocksky_session_hint";
+export const ATPASSPORT_CALLBACK_PATH = "/atpassport/callback";
 
 export function hasSessionHint(cookie: string): boolean {
   return cookie.split(";").some((part) => part.trim() === `${SESSION_HINT}=1`);

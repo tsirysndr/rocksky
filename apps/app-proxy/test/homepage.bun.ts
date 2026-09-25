@@ -8,6 +8,12 @@ afterEach(() => {
 
 test('selects the public shell for guests, sessions, mobile and auth handoffs', async () => {
 	const cases = [
+		[
+			'/atpassport/callback?did=did:plc:untrusted&username=alice.example&atpstate=test',
+			'rocksky_session_hint=1',
+			'iPhone',
+			'rocksky-landing.pages.dev',
+		],
 		['/', '', '', 'rocksky-landing.pages.dev'],
 		['/', '', 'iPhone', 'rocksky-landing.pages.dev'],
 		['/', 'rocksky_session_hint=1', '', 'rocksky.pages.dev'],
