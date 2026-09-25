@@ -62,31 +62,20 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        navigateFallback: "/index.html",
-        // Root HTML is chosen by the proxy, never by the precache index alias.
+        // HTML must reach the server: Cloudflare can redirect /index.html, and
+        // the app-proxy selects pages using the session and device. Serving a
+        // cached navigation response can trigger Safari's service-worker
+        // redirection error. Exclude HTML from both precaching and fallback.
+        globPatterns: ["**/*.{js,css,ico,png,svg,woff2}"],
+        navigateFallback: null,
         directoryIndex: null,
-        // Deny service worker fallback for routes handled by the app-proxy:
-        // /oauth/callback is the AT Protocol OAuth redirect URI — must reach the API, not index.html
-        // /login proxies to the API login endpoint
-        // /spotify, /dropbox/oauth and /googledrive/oauth are the music-service OAuth redirect URIs
-        navigateFallbackDenylist: [
-          /^\/atpassport\/callback(?:\?|$)/,
-          /^\/(?:\?|$)/,
-          // Landing assets belong to the app-proxy, including direct URL visits.
-          /^\/_landing\//,
-          /^\/api\//,
-          /^\/oauth\//,
-          /^\/login/,
-          /^\/spotify\//,
-          /^\/dropbox\/oauth\//,
-          /^\/googledrive\/oauth\//,
-        ],
         runtimeCaching: [
           {
             // Exclude auth-sensitive endpoints (/token, /login, /oauth) from caching.
             // Cache key is URL-only so caching /token would ignore the session-did header.
-            urlPattern: /^https:\/\/api\.rocksky\.app\/(?!token|login|oauth).*/i,
+            urlPattern: ({ url, request }) =>
+              request.mode !== "navigate" &&
+              /^https:\/\/api\.rocksky\.app\/(?!token|login|oauth).*/i.test(url.href),
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
