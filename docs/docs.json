@@ -16,6 +16,14 @@
       "dark": "#130825"
     }
   },
+  "styling": {
+    "codeblocks": {
+      "theme": {
+        "light": "github-light",
+        "dark": "dracula"
+      }
+    }
+  },
   "favicon": "/favicon.png",
   "navigation": {
     "tabs": [

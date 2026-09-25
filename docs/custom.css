@@ -1,0 +1,25 @@
+/* Match the landing page's muted text without changing light mode. */
+html.dark {
+  --rocksky-text-muted: #b8a7c8;
+}
+
+html.dark .prose {
+  --tw-prose-body: var(--rocksky-text-muted);
+  --tw-prose-lead: var(--rocksky-text-muted);
+  --tw-prose-captions: var(--rocksky-text-muted);
+  --tw-prose-counters: var(--rocksky-text-muted);
+  --tw-prose-invert-body: var(--rocksky-text-muted);
+  --tw-prose-invert-lead: var(--rocksky-text-muted);
+  --tw-prose-invert-captions: var(--rocksky-text-muted);
+  --tw-prose-invert-counters: var(--rocksky-text-muted);
+}
+
+/* Mintlify's prose-dark theme sets its body color directly. */
+html.dark .dark\:prose-dark,
+html.dark .dark\:text-gray-300,
+html.dark .dark\:text-gray-400,
+html.dark .dark\:text-gray-500,
+html.dark .dark\:text-gray-600,
+html.dark .dark\:text-white\/50 {
+  color: var(--rocksky-text-muted);
+}
