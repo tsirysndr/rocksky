@@ -23,3 +23,35 @@ html.dark .dark\:text-gray-600,
 html.dark .dark\:text-white\/50 {
   color: var(--rocksky-text-muted);
 }
+
+/* Override Shiki's inline backgrounds while keeping Synthwave token colors. */
+html.dark [data-component-part="code-block-root"],
+html.dark pre.shiki {
+  --shiki-dark-bg: #130825 !important;
+  background-color: #130825 !important;
+}
+
+html.dark .code-block-fade-overlay {
+  --fade-color-dark: #130825 !important;
+}
+
+/* Font Awesome icons use masked backgrounds; SVG controls use currentColor. */
+@media (forced-colors: none) {
+  html.dark
+    svg[style*="mask-image"]:is(
+      .dark\:bg-gray-300,
+      .dark\:bg-gray-400,
+      .dark\:bg-gray-500,
+      .dark\:bg-gray-600
+    ) {
+    background-color: var(--rocksky-text-muted);
+  }
+
+  html.dark svg:is(.dark\:text-white\/40, .dark\:text-white\/60),
+  html.dark
+    svg:is(.text-gray-300, .text-gray-400, .text-gray-500, .text-gray-600):not(
+      :where([class*="dark:text-"])
+    ) {
+    color: var(--rocksky-text-muted);
+  }
+}
