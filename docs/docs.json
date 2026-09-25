@@ -3,9 +3,18 @@
   "theme": "mint",
   "name": "Rocksky",
   "colors": {
-    "primary": "#FB26BD",
-    "light": "#FB26BD",
-    "dark": "#C71F95"
+    "primary": "#ff2876",
+    "light": "#ff2876",
+    "dark": "#ff2876"
+  },
+  "appearance": {
+    "default": "dark"
+  },
+  "background": {
+    "color": {
+      "light": "#FFFFFF",
+      "dark": "#130825"
+    }
   },
   "favicon": "/favicon.png",
   "navigation": {
