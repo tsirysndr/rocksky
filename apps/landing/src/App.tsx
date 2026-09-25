@@ -805,6 +805,13 @@ function LandingPage() {
                 <Music2 size={17} /> Pano Scrobbler
               </span>
               <span>
+                <img
+                  src={`${import.meta.env.BASE_URL}multi-scrobbler.svg`}
+                  alt=""
+                />{" "}
+                multi-scrobbler
+              </span>
+              <span>
                 <Headphones size={17} /> Navidrome
               </span>
               <span>
