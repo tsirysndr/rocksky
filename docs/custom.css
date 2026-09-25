@@ -55,3 +55,48 @@ html.dark .code-block-fade-overlay {
     color: var(--rocksky-text-muted);
   }
 }
+
+/* Keep FAQ and other accordions in the Rocksky dark palette. */
+html.dark .accordion-group,
+html.dark details.accordion {
+  background-color: #130825;
+  border-color: #39234f;
+}
+
+html.dark details.accordion > summary {
+  background-color: #130825;
+  color: #f8edf6;
+}
+
+html.dark details.accordion > summary:hover,
+html.dark details.accordion[open] > summary {
+  background-color: #221538;
+}
+
+html.dark details.accordion > summary:focus-visible {
+  outline: 2px solid #ff2876;
+  outline-offset: -2px;
+}
+
+html.dark .accordion [data-component-part="accordion-title"] {
+  color: #f8edf6;
+}
+
+html.dark .accordion [data-component-part="accordion-content"] {
+  color: var(--rocksky-text-muted);
+  --tw-prose-bold: #f8edf6;
+  --tw-prose-invert-bold: #f8edf6;
+}
+
+html.dark .accordion [data-component-part="accordion-caret-right"] svg {
+  color: var(--rocksky-text-muted);
+}
+
+html.dark .accordion[open] [data-component-part="accordion-caret-right"] svg,
+html.dark
+  .accordion
+  > summary:hover
+  [data-component-part="accordion-caret-right"]
+  svg {
+  color: #ff2876;
+}
