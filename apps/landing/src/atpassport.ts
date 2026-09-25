@@ -1,5 +1,25 @@
 import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
 import { handleError, normalizeHandle } from "./auth";
+import { requestHandleAssist } from "@atpassport/client/core";
+
+export async function requestAtPassportHandle(
+  fallback: () => void,
+): Promise<string | null> {
+  // Call synchronously from the button press to preserve browser user activation.
+  const result = await requestHandleAssist({
+    fallback: () => {
+      fallback();
+      return null;
+    },
+  });
+  if (!result) return null;
+  if (handleError(result.username)) {
+    throw new Error(
+      "AtPassport didn’t return a valid handle. Please try again.",
+    );
+  }
+  return normalizeHandle(result.username);
+}
 
 const STATE_KEY = "rocksky.atpassport.state";
 const MAX_AGE = 10 * 60 * 1000;

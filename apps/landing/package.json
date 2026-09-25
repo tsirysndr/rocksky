@@ -12,15 +12,16 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@atpassport/client": "^0.2.3",
     "@heroui/react": "^3.2.6",
+    "@heroui/styles": "^3.2.6",
     "@rocksky/sdk": "file:../../sdk/typescript",
     "@tanstack/react-query": "^5.76.0",
     "framer-motion": "^12.0.0",
     "jotai": "^2.11.3",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "@heroui/styles": "^3.2.6"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

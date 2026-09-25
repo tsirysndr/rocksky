@@ -16,7 +16,11 @@ import {
 import { authUrl, handleError, normalizeHandle, passwordSignIn } from "./auth";
 import { storeSessionToken } from "../../shared/browser-session";
 import { appUrl } from "./data";
-import { consumeAtPassportCallback, startAtPassport } from "./atpassport";
+import {
+  consumeAtPassportCallback,
+  requestAtPassportHandle,
+  startAtPassport,
+} from "./atpassport";
 import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
 
 const gateway =
@@ -66,16 +70,27 @@ export default function LoginScreen() {
     }
   }, []);
 
-  function loginWithAtPassport() {
+  async function loginWithAtPassport() {
     if (pending) return;
     setError(undefined);
+    setPending("atpassport");
     try {
-      const destination = startAtPassport(
-        window.location.origin,
-        sessionStorage,
-      );
-      setPending("atpassport");
-      window.location.assign(destination);
+      let redirecting = false;
+      const selectedHandle = await requestAtPassportHandle(() => {
+        const destination = startAtPassport(
+          window.location.origin,
+          sessionStorage,
+        );
+        window.location.assign(destination);
+        redirecting = true;
+      });
+      if (selectedHandle) {
+        setHandle(selectedHandle);
+        window.location.assign(authUrl(gateway, selectedHandle));
+      } else if (!redirecting) {
+        // Dismissing Chrome's chooser should leave the form available.
+        setPending(null);
+      }
     } catch {
       setPending(null);
       setError(
@@ -239,7 +254,7 @@ export default function LoginScreen() {
               size="lg"
               className="login-atpassport"
               isDisabled={pending !== null}
-              onPress={loginWithAtPassport}
+              onPress={() => void loginWithAtPassport()}
             >
               {pending === "atpassport" ? (
                 <>

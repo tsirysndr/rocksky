@@ -103,6 +103,10 @@ and redeploy it. The asset namespace and browser session hints can remain.
 ## AtPassport sign-in
 
 The login screen offers **Login with @atpassport** using the official
+`@atpassport/client/core` native handle chooser (FedCM) in supported Chrome/Chromium
+browsers. The request starts directly from the button press to preserve user
+activation. Dismissing the chooser returns to the form without redirecting.
+Unsupported browsers and provider network failures use the existing
 [redirect integration](https://atpassport.net/en/developers/guide). AtPassport
 selects a saved handle, then Rocksky starts its existing OAuth flow. The returned
 DID, PDS URL, and any token are never used to establish a session.
@@ -120,6 +124,11 @@ this route from SPA fallback. No API auth changes or AtPassport client secret
 are needed.
 
 Verify `rocksky.app` through the [AtPassport developer portal](https://atpassport.net/en/developers/verify)
-to avoid its unverified-domain warning. Preview domains have separate verification.
+to enable production FedCM and avoid the redirect flow’s unverified-domain warning.
+The native chooser uses `https://rocksky.app` as its client ID. Preview domains
+have separate verification. HTTPS and browser permission for
+`identity-credentials-get` are required. Native chooser support depends on the
+browser and its settings. After the earlier callback rollout, this native-chooser
+upgrade only requires redeploying the landing app.
 The provider supplies the domain verification instructions and proof; none has
 been registered by this implementation.
