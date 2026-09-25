@@ -990,6 +990,10 @@ h3 {
   font-size: 12px;
   color: var(--soft);
 }
+.feed-list {
+  position: relative;
+  overflow: hidden;
+}
 .scrobble-row {
   display: flex;
   align-items: center;

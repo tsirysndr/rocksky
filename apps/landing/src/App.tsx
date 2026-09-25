@@ -14,6 +14,7 @@ import {
 } from "@heroui/react";
 import { useAtom } from "jotai";
 import {
+  AnimatePresence,
   motion,
   useReducedMotion,
   useScroll,
@@ -756,17 +757,49 @@ function LandingPage() {
                 </div>
               ) : tracks.length > 0 ? (
                 <div className="feed-list">
-                  {tracks.slice(0, 6).map((track, index) => (
-                    <Scrobble
-                      key={
-                        track.id ||
-                        track.uri ||
-                        `${track.did}-${track.createdAt}-${index}`
-                      }
-                      track={track}
-                      index={index}
-                    />
-                  ))}
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {tracks.slice(0, 6).map((track, index) => (
+                      <motion.div
+                        key={
+                          track.id ||
+                          track.uri ||
+                          `${track.did}-${track.createdAt}-${track.trackUri}-${track.title}`
+                        }
+                        layout={reduce ? false : "position"}
+                        initial={
+                          reduce
+                            ? false
+                            : {
+                                opacity: 0,
+                                y: -18,
+                                backgroundColor: "rgba(251, 38, 189, 0.12)",
+                              }
+                        }
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          backgroundColor: "rgba(251, 38, 189, 0)",
+                        }}
+                        exit={{ opacity: 0 }}
+                        transition={
+                          reduce
+                            ? { duration: 0 }
+                            : {
+                                duration: 0.35,
+                                ease: [0.22, 1, 0.36, 1],
+                                layout: {
+                                  type: "spring",
+                                  stiffness: 360,
+                                  damping: 34,
+                                },
+                                backgroundColor: { duration: 1.2 },
+                              }
+                        }
+                      >
+                        <Scrobble track={track} index={index} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <div className="feed-empty">
