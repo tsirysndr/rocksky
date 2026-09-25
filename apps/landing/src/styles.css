@@ -206,6 +206,14 @@ button {
 .login-link:hover {
   color: #ff81af;
 }
+.discord-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.discord-link svg {
+  flex-shrink: 0;
+}
 .nav-actions {
   gap: 25px;
 }
@@ -1364,6 +1372,7 @@ h3 {
 }
 .site-footer nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 28px;
 }

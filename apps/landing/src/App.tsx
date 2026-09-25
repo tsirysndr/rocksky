@@ -51,8 +51,11 @@ import {
 } from "./data";
 import SearchModal, { searchOpenAtom } from "./SearchModal";
 import LoginScreen from "./LoginScreen";
+import DiscordIcon from "./DiscordIcon";
 import { authUrl } from "./auth";
 import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
+
+const discordUrl = "https://discord.gg/EVcBy2fVa3";
 
 const createAccountUrl = authUrl(
   import.meta.env.VITE_ROCKSKY_AUTH_URL || "https://rocksky.pages.dev/loading",
@@ -283,6 +286,14 @@ function LandingPage() {
             >
               Docs
             </a>
+            <a
+              className="discord-link"
+              href={discordUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <DiscordIcon /> Discord
+            </a>
           </nav>
           <div className="nav-actions">
             <Button
@@ -336,16 +347,24 @@ function LandingPage() {
               ["Community", "#community"],
               ["How it works", "#how-it-works"],
               ["Docs", "https://docs.rocksky.app"],
+              ["Discord", discordUrl],
               ["Sign in", "#sign-in"],
             ].map(([label, href]) => (
               <a
                 key={href}
                 href={href}
-                target={label === "Docs" ? "_blank" : undefined}
-                rel={label === "Docs" ? "noopener noreferrer" : undefined}
+                target={href.startsWith("https://") ? "_blank" : undefined}
+                rel={
+                  href.startsWith("https://")
+                    ? "noopener noreferrer"
+                    : undefined
+                }
                 onClick={() => setMenu(false)}
               >
-                {label}
+                <span className="discord-link">
+                  {label === "Discord" && <DiscordIcon />}
+                  {label}
+                </span>
                 <ArrowUpRight size={18} />
               </a>
             ))}
@@ -1242,6 +1261,9 @@ function LandingPage() {
               alt=""
             />{" "}
             Tangled
+          </a>
+          <a href={discordUrl} target="_blank" rel="noopener noreferrer">
+            <DiscordIcon /> Discord
           </a>
           <a href={`${appUrl}/tos`}>Terms</a>
           <a
