@@ -1,0 +1,459 @@
+---
+title: "Remote player protocol"
+description: "Connect a music player or build a controller with Rocksky's WebSocket protocol."
+icon: "satellite-dish"
+---
+
+Rocksky uses a JSON WebSocket protocol to connect players and controllers. A **player** publishes playback state and executes commands. A **controller** lists players, shows their queues, and sends commands. [Playerd](/players/playerd) implements the player role; the Rocksky Web player implements the controller role.
+
+The WebSocket carries commands and state, not audio. Your player needs its own playback engine and must fetch audio separately.
+
+## Endpoint and authentication
+
+Connect to `wss://api.rocksky.app/ws`. Include a Rocksky access token in every client JSON message. You can obtain one through [`rocksky login`](/cli/login) or Rocksky's access-token settings. Devices and commands are scoped to the authenticated account's DID.
+
+Both roles register a connection. Only connections that publish track state appear as players in device snapshots. Device IDs belong to a connection; capture a new ID after reconnecting.
+
+The **primary device** supplies the profile's now-playing status. Select it with `set_primary`. When no primary is available, the server can adopt a lone player. Other players remain controllable.
+
+<Info>
+  Publishing playback state does not replace submitting scrobbles. Playerd
+  submits its own scrobbles through the Rocksky API. If you build a player,
+  implement scrobbling separately when you want to record listens.
+</Info>
+
+## Connection lifecycle
+
+```
+client                          server
+  │  (open WebSocket) ───────────▶│
+  │  {"type":"register",...} ─────▶│
+  │◀───── {"status":"registered","deviceId":"…"}
+  │◀───── {"type":"devices", …}          (snapshot of current players)
+  │                                │
+  │  … push state / send commands / receive broadcasts …
+  │                                │
+  │  "ping"  ────────────────────▶│   (heartbeat, raw text)
+  │◀───────────────────  "pong"    │
+```
+
+1. **Open** the WebSocket to `wss://api.rocksky.app/ws`.
+2. **Register**. The server replies with your `deviceId`, then a
+   `devices` snapshot.
+3. **Heartbeat.** Send the literal string `"ping"` every ~10s; the server replies
+   `"pong"`. This keeps the socket alive — the server times out an idle socket
+   after ~60s.
+4. **Reconnect.** If the socket closes (network blip, background throttling,
+   idle timeout), reconnect and re-`register`. The server re-sends the `devices`
+   snapshot so you resync immediately.
+
+> **Heartbeat note:** some existing clients also send
+> `{"type":"heartbeat","token":"…"}`; the server ignores it (only the raw
+> `"ping"` yields `"pong"`). Prefer `"ping"`.
+
+---
+
+## Message envelope
+
+All non-heartbeat frames are JSON objects with a `type` field. Client→server
+frames carry `token`. There are four client→server types (`register`, `command`,
+`set_primary`, `message`) and several server→client types (below).
+
+---
+
+## Client → server messages
+
+### `register`
+
+Announce this connection as a device.
+
+```json
+{ "type": "register", "clientName": "My Player", "token": "<jwt>" }
+```
+
+- `clientName` — the human label shown in the miniplayer's device picker
+  (e.g. "Rocksky CLI", "Living Room").
+
+**Reply:** `{ "status": "registered", "deviceId": "<uuid>" }`, immediately
+followed by a `devices` snapshot below.
+
+> **Capture your `deviceId` only from this reply** (the frame with
+> `status: "registered"`). Do **not** read `deviceId` from other frames — the
+> `device_registered` broadcast below carries _another_ device's id, and
+> capturing it will make your pushes look like they came from that device.
+
+### `message` — push now-playing / status / queue (player devices)
+
+Wrap a state payload. `data.type` is one of `track`, `status`, `queue`.
+
+```json
+{
+  "type": "message",
+  "device_id": "<your deviceId>",
+  "token": "<jwt>",
+  "data": {
+    "type": "track",
+    "title": "Song title",
+    "artist": "Artist",
+    "length": 214000,
+    "elapsed": 0,
+    "is_playing": true
+  }
+}
+```
+
+The server enriches `data` (album art, URIs, like status…), then broadcasts it to
+all of the user's devices as a `message` below.
+
+> The server routes/tags broadcasts by the **connection's** registered
+> `deviceId`, not the `device_id` in your payload — so a wrong value can't
+> misroute commands. Still, send your own `deviceId` for clarity.
+
+**`track`** — the current track. Push on track change, and re-push every few
+seconds so controllers can reconcile elapsed time.
+
+```json
+{
+  "type": "track",
+  "title": "Song title",
+  "artist": "Artist",
+  "album": "Album",
+  "album_artist": "Album artist",
+  "length": 214000,
+  "elapsed": 42000,
+  "duration_ms": 214000,
+  "album_art": "https://…",
+  "is_playing": true,
+  "codec": "flac",
+  "sample_rate": 44100,
+  "shuffle": false,
+  "repeat": "off",
+  "volume": 0.8,
+  "device_name": "My Player"
+}
+```
+
+`codec` and `sample_rate` are passed through verbatim on the broadcast;
+controller UIs (the web/mobile miniplayers) render them as audio-format badges.
+
+`shuffle`, `repeat` and `volume` report the player's own transport state so a
+controller can render the toggles in the right position. **Omit a field you have
+no control for** — that is how a controller tells "this player has no shuffle"
+from "shuffle is off", and it hides the control rather than showing it wrong.
+
+Fields the server fills in on the broadcast (you don't send them): `album_art`
+(canonical, from the library), `song_uri`, `album_uri`, `artist_uri`, `liked`,
+`sha256`, `duration_ms`.
+
+**`status`** — transport state.
+
+```json
+{ "type": "status", "status": 1 }
+```
+
+`status`: `0` = stopped, `1` = playing, `2` = paused (`3` is also treated as
+paused). Send `1`/`2` on play/pause, `0` on stop.
+
+**`queue`** — the playback queue + current index. Push on queue change / track
+advance.
+
+```json
+{
+  "type": "queue",
+  "index": 0,
+  "queue": [
+    {
+      "uploadId": "",
+      "trackId": "abc",
+      "title": "…",
+      "artist": "…",
+      "album": "…",
+      "album_artist": "…",
+      "album_art": "https://…",
+      "duration": 214000,
+      "song_uri": "at://…",
+      "album_uri": "at://…",
+      "track_number": 3
+    }
+  ]
+}
+```
+
+The server enriches each item's `album_art` from the library where possible.
+
+### `command` — control a device (controllers)
+
+```json
+{
+  "type": "command",
+  "action": "pause",
+  "target": "<deviceId>",
+  "token": "<jwt>"
+}
+```
+
+- `target` (optional) — send only to that device. Omit to broadcast to **all**
+  the user's devices.
+- `args` (optional) — action-specific (see **Commands**).
+
+The server relays `{ "type": "command", "action": …, "args": … }` to the
+target(s). `args` is omitted when absent.
+
+### `set_primary` — choose the profile now-playing source (controllers)
+
+```json
+{ "type": "set_primary", "device_id": "<deviceId>", "token": "<jwt>" }
+```
+
+The server records the primary, broadcasts `primary_changed`, and re-points the
+profile now-playing at that device's current track.
+
+---
+
+## Server → client messages
+
+### `devices` — snapshot (sent to you right after you register)
+
+```json
+{
+  "type": "devices",
+  "primary_device": null,
+  "devices": [
+    {
+      "device_id": "<deviceId>",
+      "name": "Rocksky CLI",
+      "now_playing": {
+        "type": "track",
+        "title": "Song title",
+        "artist": "Artist",
+        "elapsed": 42000,
+        "length": 214000,
+        "is_playing": true
+      },
+      "queue": {
+        "index": 0,
+        "queue": []
+      }
+    }
+  ]
+}
+```
+
+Only players that have published track state appear (controllers are excluded). `primary_device` is a device ID or JSON `null` when none is selected.
+
+### `device_registered` — a new device joined (to the user's other devices)
+
+```json
+{
+  "type": "device_registered",
+  "deviceId": "<deviceId>",
+  "clientName": "…"
+}
+```
+
+> Informational. **Never** capture this `deviceId` as your own (see **Register**).
+
+### `device_unregistered` — a device left
+
+```json
+{ "type": "device_unregistered", "device_id": "<deviceId>" }
+```
+
+### `message` — a device's enriched state (broadcast to all the user's devices)
+
+```json
+{
+  "type": "message",
+  "device_id": "<source deviceId>",
+  "device_name": "Rocksky CLI",
+  "data": {
+    "type": "status",
+    "status": 2
+  }
+}
+```
+
+This is the enriched, broadcast form of a player state push — controllers render it; a pure
+player can ignore it (including the echo of its own pushes).
+
+### `primary_changed`
+
+```json
+{ "type": "primary_changed", "device_id": "<deviceId>" }
+```
+
+The primary device changed (via `set_primary`, or auto-adopt). Controllers
+should converge their "active device" on it.
+
+### `command` — a relayed control command (delivered to player devices)
+
+```json
+{ "type": "command", "action": "seek", "args": { "position": 42000 } }
+```
+
+Player devices execute these (see **Commands**).
+
+---
+
+## Commands (what a player device must handle)
+
+| `action`         | `args`                                                                                             | Meaning                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `play`           | —                                                                                                  | Resume                                                                   |
+| `pause`          | —                                                                                                  | Pause                                                                    |
+| `next`           | —                                                                                                  | Next track                                                               |
+| `previous`       | —                                                                                                  | Previous track                                                           |
+| `seek`           | `{ "position": <ms> }`                                                                             | Seek to position                                                         |
+| `queue_jump`     | `{ "index": <n> }`                                                                                 | Jump to queue index                                                      |
+| `queue_remove`   | `{ "index": <n> }`                                                                                 | Remove queue item                                                        |
+| `queue_move`     | `{ "from": <n>, "to": <n> }`                                                                       | Move queue item `from` so it ends up at index `to` (arrayMove semantics) |
+| `enqueue`        | `{ "tracks": [descriptor…], "mode": "now"\|"next"\|"last", "shuffle"?: bool, "startIndex"?: <n> }` | Play / play-next / append tracks (an album or a single track)            |
+| `shuffle`        | `{ "enabled": bool }`                                                                              | Turn queue shuffle on/off                                                |
+| `repeat`         | `{ "mode": "off"\|"all"\|"one" }`                                                                  | Set queue repeat mode                                                    |
+| `volume`         | `{ "volume": 0.0–1.0 }`                                                                            | Set output volume                                                        |
+| `audio_settings` | a partial settings document — see **Audio settings**                                               | Apply DSP settings                                                       |
+
+An `enqueue` **descriptor** is a track the controller resolved for you:
+
+```json
+{
+  "trackId": "abc",
+  "uploadId": "",
+  "title": "…",
+  "artist": "…",
+  "album": "…",
+  "album_artist": "…",
+  "album_art": "https://…",
+  "duration": 214000,
+  "song_uri": "at://…",
+  "album_uri": "at://…"
+}
+```
+
+Stream it via `uploadId` (Rocksky uploads) or `trackId` (Navidrome/Subsonic id),
+whichever is present.
+
+After executing any command, push fresh `track` / `status` / `queue` state so all
+clients update promptly.
+
+### `audio_settings` — DSP
+
+One command carries the whole DSP surface as a **partial document**: every
+section, and every field inside it, is optional.
+
+```json
+{
+  "type": "command",
+  "action": "audio_settings",
+  "args": {
+    "equalizer": {
+      "enabled": true,
+      "precut": -60,
+      "bands": [{ "frequency": 32, "gain": 30, "q": 7 }]
+    },
+    "tone": {
+      "bass": 0,
+      "treble": 0,
+      "bassCutoff": 200,
+      "trebleCutoff": 3500,
+      "balance": 0,
+      "channels": "stereo",
+      "stereoWidth": 100
+    },
+    "crossfade": {
+      "mode": "off",
+      "fadeInDelay": 0,
+      "fadeInDuration": 0,
+      "fadeOutDelay": 0,
+      "fadeOutDuration": 0,
+      "fadeOutMixMode": "crossfade"
+    },
+    "replayGain": { "mode": "off", "preamp": 0, "preventClipping": true },
+    "crossfeed": {
+      "mode": "off",
+      "directGain": -15,
+      "crossGain": -60,
+      "highFrequencyGain": -30,
+      "cutoff": 700
+    },
+    "compressor": {
+      "threshold": 0,
+      "makeup": 0,
+      "ratio": 4,
+      "knee": 1,
+      "attack": 5,
+      "release": 500
+    },
+    "surround": { "delay": 0, "balance": 0, "fx1": 0, "fx2": 0 },
+    "pbe": { "strength": 0, "precut": 0 }
+  }
+}
+```
+
+**A player applies the sections its engine implements and ignores the rest.** It
+must not error on a section it doesn't know — that is what lets a newer
+controller talk to an older player, and a settings UI send one document to every
+device without asking what each supports. An absent section means "leave alone",
+so a controller changing only the EQ sends only `equalizer`.
+
+Enumerated values: `channels` is `stereo` | `mono` | `custom` | `monoLeft` |
+`monoRight` | `karaoke` | `swap`; `crossfade.mode` is `off` | `enabled` |
+`shuffle` | `albumChange` | `trackChange` | `auto`; `fadeOutMixMode` is
+`crossfade` | `mix`; `replayGain.mode` is `off` | `track` | `album` |
+`trackIfShuffling`; `crossfeed.mode` is `off` | `meier` | `custom`. Treat an
+unknown value as the `off`/default member rather than rejecting the document.
+
+#### `crossfade.mode: "auto"` — Auto DJ
+
+`auto` asks the player to derive each transition from the audio itself rather
+than from fixed times: analyse the outgoing and incoming tracks, and place the
+fade so it ends where the music ends instead of running through the silence
+after it. `fadeOutDuration` (or `fadeInDuration`) carries the desired
+music-over-music overlap in ms; the delay fields are ignored, since the player
+computes them per transition.
+
+This is deliberately a _mode_ and not a new action: a player that has never
+heard of Auto DJ reads an unknown enum value, falls back to `off` per the rule
+above, and keeps playing. `playerd` implements it; other players may not.
+
+Units are the same as the `app.rocksky.rockbox.audio.settings` record, so a
+settings UI can put its saved document straight on the wire:
+
+| field                          | unit                          |
+| ------------------------------ | ----------------------------- |
+| EQ `gain`, `precut`            | tenths of a dB (`precut` ≤ 0) |
+| EQ `q`                         | Q × 10                        |
+| EQ `frequency`                 | Hz                            |
+| `bass`, `treble`               | whole dB                      |
+| `bassCutoff`, `trebleCutoff`   | Hz                            |
+| crossfade fade times           | milliseconds                  |
+| `balance`, `stereoWidth`       | percent                       |
+| ReplayGain `preamp`            | tenths of a dB                |
+| crossfeed gains                | tenths of a dB                |
+| `cutoff`                       | Hz                            |
+| compressor `attack`, `release` | milliseconds                  |
+| surround `delay`               | milliseconds                  |
+
+EQ `bands` is positional — index 0 is the lowest band. Band centre frequencies
+are the fixed rockbox band table keyed by index, so a player should trust the
+index over a `frequency` that may have been persisted from an older table.
+
+---
+
+## Implementation notes
+
+After a disconnect, reconnect with backoff, register again, and replace your device list with the new snapshot. Send the raw text `ping` every ten seconds and handle `pong` before attempting to parse a frame as JSON. Clear your heartbeat timer when the connection closes.
+
+For players, publish fresh state after commands and periodically while playing. Ignore commands and audio-setting sections your engine does not support. Only advertise optional controls that work in your player.
+
+For controllers, start from `devices` and update your view with `message`, `device_unregistered`, and `primary_changed`. A `device_registered` notification alone does not establish that the new connection is a player. Wait for track state. Always use an explicit `target` when you intend to control one device: omitting it broadcasts to all of your devices.
+
+Queue indexes and `startIndex` are zero-based. An enqueue descriptor needs a resolvable `uploadId` or Navidrome/Subsonic `trackId`; a title or a catalog URI alone is not an audio source. Fetch the stream through the appropriate upload or library API.
+
+Commands are relayed to players; use their subsequent state updates to reflect what actually happened in your UI.
+
+## Use the SDK
+
+The [Rocksky SDKs](/sdks/overview) provide `RemotePlayer` and `RemoteController` wrappers. Use them when you do not need to implement the wire protocol yourself. The Rust SDK's remote support uses the `remote-player` feature.
+
+See the [TypeScript SDK](/sdks/typescript) or the [remote service source](https://tangled.org/rocksky.app/rocksky/tree/main/remote-ws) for reference implementations. The official headless player is [playerd](https://tangled.org/rocksky.app/rocksky/tree/main/playerd).

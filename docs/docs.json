@@ -36,6 +36,13 @@
             ]
           },
           {
+            "group": "Remote players",
+            "pages": [
+              "players/playerd",
+              "players/remote-protocol"
+            ]
+          },
+          {
             "group": "Mirroring",
             "pages": [
               "mirroring/overview",
