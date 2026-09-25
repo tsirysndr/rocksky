@@ -174,7 +174,8 @@ button {
   letter-spacing: -1.8px;
   font-weight: 700;
 }
-.site-header .brand {
+.site-header .brand,
+.site-footer .brand {
   font-family: RockfordSansLight, sans-serif;
   font-size: 26px;
   font-weight: 700;
@@ -1387,9 +1388,6 @@ h3 {
   justify-content: space-between;
   align-items: center;
   gap: 30px;
-}
-.site-footer .brand {
-  font-size: 28px;
 }
 .site-footer p {
   font-size: 13px;
