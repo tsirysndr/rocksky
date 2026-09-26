@@ -3,8 +3,12 @@ import { ATPASSPORT_CALLBACK_PATH, hasSessionHint, isAppHandoff } from '../../sh
 export async function proxyHomepage(request: Request): Promise<Response | null> {
 	const url = new URL(request.url);
 	const atpassport = url.pathname === ATPASSPORT_CALLBACK_PATH;
-	if ((!atpassport && url.pathname !== '/') || !['GET', 'HEAD'].includes(request.method)) return null;
-	const app = !atpassport && (hasSessionHint(request.headers.get('Cookie') ?? '') || isAppHandoff(url));
+	// Older desktop service workers precache /index.html as their navigation
+	// fallback. Pages redirects that path to /, which serves the landing page
+	// for guests. Serve the app shell directly so it cannot poison that cache.
+	const appIndex = url.pathname === '/index.html';
+	if ((!atpassport && !appIndex && url.pathname !== '/') || !['GET', 'HEAD'].includes(request.method)) return null;
+	const app = appIndex || (!atpassport && (hasSessionHint(request.headers.get('Cookie') ?? '') || isAppHandoff(url)));
 	const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(request.headers.get('User-Agent') ?? '');
 	const upstream = new URL(app ? (mobile ? 'https://m.rocksky.app' : 'https://rocksky.pages.dev') : 'https://rocksky-landing.pages.dev');
 	// The browser retains the original URL for OAuth query parsing. Static HTML

@@ -71,14 +71,17 @@ OAuth `?did=…`, CLI handoffs, and `?session=expired` continue to load the exis
 app so token exchange and expiry notifications work. Deep links, API endpoints,
 and app assets keep their existing routes. Root HTML is fetched and returned
 with caching disabled so one visitor's shell is never reused for another.
+`/index.html` always returns the app shell directly, including for guests. This
+protects older desktop service workers from caching the landing page after
+Cloudflare Pages redirects `/index.html` to `/`.
 
 Deploy in this order:
 
 1. Deploy `apps/web` and `apps/web-mobile` to their existing origins. Both include
    session-hint synchronization and updated service workers. The workers exclude
-   `/` (including queries) and `/_landing/` from navigation fallback, and disable
-   the precache directory-index shortcut. Root navigation now needs the network;
-   deep app routes retain their existing offline fallback.
+   HTML from precaching and disable navigation fallback and the precache
+   directory-index shortcut. All page navigation now reaches the proxy and
+   needs the network; static app assets remain cached.
 2. Redeploy `apps/landing` to `rocksky-landing.pages.dev` with the session migration
    helper. Keep the repository's `apps/shared` directory available during all
    builds; all three apps and the proxy import it.
@@ -86,6 +89,8 @@ Deploy in this order:
 
 After deployment, verify a private window gets the landing, an existing session
 gets the app, sign-in returns to the app, and sign-out returns to the landing.
+Also open several public profile and song links in the same private window
+after the service worker activates: each must retain its URL and show the app.
 Check desktop and mobile. Existing tabs may need a reload after their service
 worker updates; clearing local storage would sign users out and is unnecessary.
 If Cloudflare has a custom Cache Everything rule for the hostname, exclude `/`

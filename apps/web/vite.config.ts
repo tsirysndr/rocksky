@@ -68,28 +68,12 @@ export default defineConfig({
       workbox: {
         // rockbox-core.js is ~1.5 MB — raise the precache size ceiling.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,otf}"],
-        navigateFallback: "/index.html",
-        // Root HTML is chosen by the proxy, never by the precache index alias.
+        // Let the proxy choose HTML for every navigation. Pages redirects
+        // /index.html to /, so precaching it can store the guest landing page
+        // as the app shell and serve it for every public deep link.
+        globPatterns: ["**/*.{js,css,ico,png,svg,woff,woff2,otf}"],
+        navigateFallback: null,
         directoryIndex: null,
-        // These paths are handled by the app-proxy (OAuth / auth endpoints) —
-        // never answer them with the SPA shell.
-        // Dropbox and Google Drive are scoped to their /oauth/ subpath because
-        // /dropbox and /googledrive are also SPA pages.
-        navigateFallbackDenylist: [
-          /^\/atpassport\/callback(?:\?|$)/,
-          /^\/(?:\?|$)/,
-          // Landing assets belong to the app-proxy, including direct URL visits.
-          /^\/_landing\//,
-          /^\/oauth/,
-          /^\/login/,
-          /^\/token/,
-          /^\/jwks\.json/,
-          /^\/oauth-client-metadata\.json/,
-          /^\/spotify\//,
-          /^\/dropbox\/oauth\//,
-          /^\/googledrive\/oauth\//,
-        ],
       },
     }),
   ],

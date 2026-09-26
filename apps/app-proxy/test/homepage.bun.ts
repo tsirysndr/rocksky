@@ -24,6 +24,12 @@ test('selects the public shell for guests, sessions, mobile and auth handoffs', 
 		['/?session=expired', '', 'iPhone', 'm.rocksky.app'],
 		['/?__rocksky_app=1', '', '', 'rocksky.pages.dev'],
 		['/?utm_source=test', '', '', 'rocksky-landing.pages.dev'],
+		// Older service workers precache this URL. It must never redirect to
+		// the guest homepage and cache the landing page as their app shell.
+		['/index.html', '', '', 'rocksky.pages.dev'],
+		['/index.html?__WB_REVISION__=old-build', '', '', 'rocksky.pages.dev'],
+		['/index.html', '', 'iPhone', 'm.rocksky.app'],
+		['/index.html', 'rocksky_session_hint=1', '', 'rocksky.pages.dev'],
 	];
 	for (const [path, cookie, agent, host] of cases) {
 		globalThis.fetch = mock(async (input: unknown, options?: RequestInit) => {
