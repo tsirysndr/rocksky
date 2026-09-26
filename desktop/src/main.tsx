@@ -11,6 +11,7 @@ import { createRoot } from "react-dom/client";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
 import "./index.css";
+import { installAlbumArtFallback } from "./lib/albumArt.ts";
 import { disableTextMeddling } from "./lib/no-autocorrect.ts";
 import { isTauri } from "./lib/tauri.ts";
 import { routeTree } from "./routeTree.gen.ts";
@@ -39,6 +40,8 @@ if (isTauri()) {
 // The desktop shell is a webview — keep the OS from autocorrecting /
 // autocapitalizing / spellchecking handles, searches, and shouts.
 disableTextMeddling();
+
+installAlbumArtFallback();
 
 declare module "@tanstack/react-router" {
   interface Register {

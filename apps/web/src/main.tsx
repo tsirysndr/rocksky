@@ -17,6 +17,7 @@ import { createRoot } from "react-dom/client";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
 import { client } from "./api";
+import { installAlbumArtFallback } from "./lib/albumArt";
 import {
   handleSessionExpired,
   installSessionGuard,
@@ -36,6 +37,8 @@ const theme = createLightTheme(primitives);
 const engine = new Styletron();
 
 installSessionGuard(client);
+
+installAlbumArtFallback();
 
 // The SDK throws instead of going through axios, so react-query's caches are
 // what catch that half: every `rocksky()` call site runs under a query or a

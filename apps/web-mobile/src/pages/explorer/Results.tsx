@@ -9,6 +9,7 @@ import type {
 import dayjs from "dayjs";
 import numeral from "numeral";
 import { Link } from "react-router-dom";
+import { PLACEHOLDER_ALBUM_ART } from "../../lib/albumArt";
 
 const Grid = styled.div`
   display: grid;
@@ -120,9 +121,6 @@ const Tag = styled.span`
   color: var(--color-text-muted);
 `;
 
-const PLACEHOLDER =
-  "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png";
-
 const rkeyOf = (uri?: string) => uri?.split("/").pop() ?? "";
 const didOf = (uri?: string) => uri?.replace("at://", "").split("/")[0] ?? "";
 
@@ -137,7 +135,7 @@ function SongRows({ items }: { items: SongViewBasic[] }) {
     <Rows>
       {items.map((song, i) => (
         <Row key={song.id ?? i}>
-          <Art src={song.albumArt || PLACEHOLDER} alt="" />
+          <Art src={song.albumArt || PLACEHOLDER_ALBUM_ART} alt="" />
           <Body>
             {song.uri ? (
               <Link to={`/${didOf(song.uri)}/song/${rkeyOf(song.uri)}`}>
@@ -165,10 +163,10 @@ function AlbumCards({ items }: { items: AlbumViewBasic[] }) {
         <div key={album.id ?? i}>
           {album.uri ? (
             <CardLink to={`/${didOf(album.uri)}/album/${rkeyOf(album.uri)}`}>
-              <CardArt src={album.albumArt || PLACEHOLDER} alt="" />
+              <CardArt src={album.albumArt || PLACEHOLDER_ALBUM_ART} alt="" />
             </CardLink>
           ) : (
-            <CardArt src={album.albumArt || PLACEHOLDER} alt="" />
+            <CardArt src={album.albumArt || PLACEHOLDER_ALBUM_ART} alt="" />
           )}
           <CardTitle>{album.title}</CardTitle>
           <SecondaryText>{album.artist}</SecondaryText>
@@ -186,10 +184,18 @@ function ArtistCards({ items }: { items: ArtistViewBasic[] }) {
         <div key={artist.id ?? i}>
           {artist.uri ? (
             <CardLink to={`/${didOf(artist.uri)}/artist/${rkeyOf(artist.uri)}`}>
-              <CardArt round src={artist.picture || PLACEHOLDER} alt="" />
+              <CardArt
+                round
+                src={artist.picture || PLACEHOLDER_ALBUM_ART}
+                alt=""
+              />
             </CardLink>
           ) : (
-            <CardArt round src={artist.picture || PLACEHOLDER} alt="" />
+            <CardArt
+              round
+              src={artist.picture || PLACEHOLDER_ALBUM_ART}
+              alt=""
+            />
           )}
           <CardTitle>{artist.name}</CardTitle>
           {artist.playCount ? (
@@ -220,7 +226,7 @@ function PlaylistCards({ items }: { items: PlaylistViewBasic[] }) {
         return (
           <div key={playlist.id ?? i}>
             {cover || arts.length < 4 ? (
-              <CardArt src={cover || arts[0] || PLACEHOLDER} alt="" />
+              <CardArt src={cover || arts[0] || PLACEHOLDER_ALBUM_ART} alt="" />
             ) : (
               <Mosaic>
                 {arts.map((art) => (
@@ -253,7 +259,8 @@ type ScrobbleRow = ScrobbleViewBasic & {
   date?: string;
 };
 
-const scrobbleArt = (s: ScrobbleRow) => s.cover || s.albumArt || PLACEHOLDER;
+const scrobbleArt = (s: ScrobbleRow) =>
+  s.cover || s.albumArt || PLACEHOLDER_ALBUM_ART;
 const scrobbleHandle = (s: ScrobbleRow) => s.user || s.handle;
 const scrobbleDate = (s: ScrobbleRow) => s.date || s.createdAt;
 

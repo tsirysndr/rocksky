@@ -1,10 +1,6 @@
 import { useState, type ImgHTMLAttributes } from "react";
 
-// The Last.fm "no album art" placeholder. The backend already coerces
-// null/undefined art to this before persisting; this component covers the other
-// case — a URL that is present but broken (404 / dead host).
-export const PLACEHOLDER_ALBUM_ART =
-  "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png";
+import { PLACEHOLDER_ALBUM_ART } from "../lib/albumArt";
 
 type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src"> & {
   src?: string | null;
