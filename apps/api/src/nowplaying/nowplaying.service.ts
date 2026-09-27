@@ -21,6 +21,7 @@ import {
   recordScrobbleAndGuard,
 } from "lib/scrobbleGuard";
 import { invalidateStats } from "lib/statsCache";
+import { reserveScrobble } from "lib/scrobbleDedup";
 import type { MusicbrainzTrack, Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
 import albums from "../schema/albums";
@@ -685,39 +686,30 @@ export async function scrobbleTrack(
   skipDupCheck?: boolean,
   importCache?: ImportCache,
 ): Promise<void> {
-  // check if scrobble already exists (user did + timestamp)
-  // skipDupCheck=true when called from runImport — the bulk pre-filter already handled dedup
+  // Capture once: enrichment/polling can take seconds, but the dedup identity
+  // and the published record must refer to the same listening time.
+  track = { ...track, timestamp: track.timestamp || dayjs().unix() };
+  const scrobbleTime = dayjs.unix(track.timestamp);
+  const duplicateWindow = skipDupCheck ? 0 : 60;
+  const findExistingScrobble = () => ctx.db
+    .select({ id: scrobbles.id })
+    .from(scrobbles)
+    .innerJoin(users, eq(scrobbles.userId, users.id))
+    .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+    .where(and(
+      eq(users.did, userDid),
+      sql`lower(${tracks.title}) = ${track.title.toLowerCase()}`,
+      sql`lower(${tracks.artist}) = ${track.artist.toLowerCase()}`,
+      gte(scrobbles.timestamp, scrobbleTime.subtract(duplicateWindow, "seconds").toDate()),
+      lte(scrobbles.timestamp, scrobbleTime.add(duplicateWindow, "seconds").toDate()),
+    ))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!skipDupCheck) {
-    // Reject up front if this user carries the persistent bot flag (set by the
-    // scrobble-abuse-sweep service) or is currently under a temporary rate
-    // block. Both throw a ScrobbleBlockedError, handled by the callers.
     await assertNotBotFlagged(ctx, userDid);
     await assertNotScrobbleBlocked(ctx, userDid);
-
-    const scrobbleTime = dayjs.unix(track.timestamp || dayjs().unix());
-    const existingScrobble = await ctx.db
-      .select({
-        scrobble: scrobbles,
-        user: users,
-        track: tracks,
-      })
-      .from(scrobbles)
-      .innerJoin(users, eq(scrobbles.userId, users.id))
-      .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
-      .where(
-        and(
-          eq(users.did, userDid),
-          eq(tracks.title, track.title),
-          eq(tracks.artist, track.artist),
-          gte(
-            scrobbles.timestamp,
-            scrobbleTime.subtract(60, "seconds").toDate(),
-          ),
-          lte(scrobbles.timestamp, scrobbleTime.add(60, "seconds").toDate()),
-        ),
-      )
-      .limit(1)
-      .then((rows) => rows[0]);
+    const existingScrobble = await findExistingScrobble();
 
     if (existingScrobble) {
       consola.info(
@@ -1136,30 +1128,24 @@ export async function scrobbleTrack(
     if (!track.albumArt) track.albumArt = existingAlbum.albumArt;
   }
 
-  // Cross-process lock: when multiple sources (Spotify webhook, Last.fm mirror,
-  // Navidrome, etc.) fire for the same listen within the same second, they all
-  // arrive here with the same userDid + track + timestamp and would each call
-  // putRecord, leaving duplicate at://app.rocksky.scrobble records on the user's
-  // PDS. The DB unique on (user, track, timestamp) catches dupes at storage, but
-  // by then the redundant at-records already exist. SETNX on Redis ensures only
-  // the first caller writes the at-record; the rest exit before the put. Lock
-  // identity uses lowercased title+artist (the values the 60s window already
-  // dedupes against) plus the exact integer-second timestamp.
-  const lockTs = track.timestamp || dayjs().unix();
-  const lockHash = createHash("sha256")
-    .update(`${track.title.toLowerCase()}|${track.artist.toLowerCase()}`)
-    .digest("hex");
-  const lockKey = `scrobble-put:${userDid}:${lockHash}:${lockTs}`;
-  const lockAcquired = await ctx.redis.set(lockKey, "1", { NX: true, EX: 120 });
-  if (lockAcquired !== "OK") {
-    consola.info(
-      `Scrobble put lock held by concurrent source for ${chalk.cyan(track.title)} @ ${chalk.cyan(
-        dayjs.unix(lockTs).format("YYYY-MM-DD HH:mm:ss"),
-      )} — skipping putRecord`,
-    );
+  // Enrichment may have taken long enough for another request to finish.
+  // Recheck persistent history, then atomically reserve the whole time window
+  // across API processes. Exact-second keys allow 1–5s concurrent retries.
+  if (await findExistingScrobble()) return;
+  const reservation = await reserveScrobble(
+    ctx.redis,
+    userDid,
+    { title: track.title!, artist: track.artist!, timestamp: scrobbleTime.unix() },
+    duplicateWindow,
+  );
+  if (!reservation) {
+    consola.info(`Concurrent duplicate scrobble skipped for ${track.title}`);
     return;
   }
+  // Keep the reservation even on an ambiguous PDS error: the remote write
+  // may have succeeded. It expires automatically, allowing a later retry.
   const scrobbleUri = await putScrobbleRecord(track, agent);
+  if (!scrobbleUri) throw new Error("Failed to publish scrobble record");
 
   // loop while scrobble is null, try 30 times, sleep 1 second between tries
   tries = 0;
