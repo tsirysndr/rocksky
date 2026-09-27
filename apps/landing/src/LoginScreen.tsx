@@ -433,7 +433,7 @@ export default function LoginScreen() {
                 onClick={() => continueToAccount(true)}
                 disabled={pending !== null}
               >
-                selfhosted.social
+                rocksky.social
               </button>
               ,{" "}
               <a

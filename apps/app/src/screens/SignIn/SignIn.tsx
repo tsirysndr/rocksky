@@ -173,7 +173,7 @@ export default function SignIn({ onSuccess }: Props) {
         <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: "center" }}>
           Don't have an atproto handle yet?{"\n"}You can create one at{" "}
           <Text style={{ color: colors.primary, fontWeight: "600" }} onPress={onCreateAccount}>
-            selfhosted.social
+            rocksky.social
           </Text>
           ,{" "}
           <Text style={{ color: colors.primary, fontWeight: "600" }} onPress={() => Linking.openURL("https://bsky.app")}>

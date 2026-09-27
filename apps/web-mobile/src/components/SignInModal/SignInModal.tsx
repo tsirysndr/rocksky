@@ -99,7 +99,7 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
             className="no-underline font-semibold cursor-pointer"
             style={{ color: "var(--color-primary)" }}
           >
-            selfhosted.social
+            rocksky.social
           </span>
           ,{" "}
           <a

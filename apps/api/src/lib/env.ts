@@ -89,6 +89,10 @@ export const env = cleanEnv(process.env, {
   PDS_HOST_OVERRIDES: str({
     default: "caramelo.social.br=caramelo.tsiry.workers.dev",
   }),
+  // PDS that GET /login?prompt=create sends new users to. Passed to the OAuth
+  // resolver as a service URL, so no login_hint is attached and the PDS shows
+  // its own sign-up screen.
+  ROCKSKY_SIGNUP_PDS: str({ default: "https://rocksky.social" }),
   // Bot-scrobble guard (see lib/scrobbleGuard.ts). Set SCROBBLE_ABUSE_MAX=0 to disable.
   SCROBBLE_ABUSE_WINDOW: num({ default: 1800 }), // rolling window, seconds (30m)
   SCROBBLE_ABUSE_MAX: num({ default: 25 }), // max accepted scrobbles per window

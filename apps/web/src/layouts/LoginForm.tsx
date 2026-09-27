@@ -158,7 +158,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           onClick={onCreateAccount}
           className="no-underline cursor-pointer !text-[var(--color-primary)]"
         >
-          selfhosted.social
+          rocksky.social
         </span>
         ,{" "}
         <a

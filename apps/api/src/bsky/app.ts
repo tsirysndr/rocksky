@@ -30,7 +30,7 @@ app.get("/login", async (c) => {
   }
   try {
     const url = await ctx.oauthClient.authorize(
-      prompt ? "tsiry.selfhosted.social" : handle,
+      prompt ? env.ROCKSKY_SIGNUP_PDS : handle,
       {
         scope: SCOPES.join(" "),
         // @ts-expect-error: allow custom prompt param
