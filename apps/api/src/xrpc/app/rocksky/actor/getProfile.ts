@@ -291,16 +291,16 @@ const refreshProfile = ([
       const fetched = profile.resolved;
 
       if (!profile.user) {
-        // Brand new user: nothing to preserve. `avatar` is NOT NULL, so fall
-        // back to "" when the fetch yielded no avatar — a later successful
-        // getProfile will fill it in via the update path below.
+        // New accounts may have neither a display name nor an avatar. Both
+        // columns are NOT NULL in production; later profile fetches can fill
+        // these empty values through the update path below.
         await profile.ctx.db
           .insert(tables.users)
           .values({
             did: profile.did,
             handle,
             avatar: fetched.avatar ?? "",
-            displayName: fetched.displayName ?? null,
+            displayName: fetched.displayName ?? "",
           })
           .execute();
         const users = await profile.ctx.db

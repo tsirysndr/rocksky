@@ -10,7 +10,7 @@ import {
 const users = pgTable("users", {
   id: text("xata_id").primaryKey().default(sql`xata_id()`),
   did: text("did").unique().notNull(),
-  displayName: text("display_name"),
+  displayName: text("display_name").notNull(),
   handle: text("handle").unique().notNull(),
   avatar: text("avatar").notNull(),
   // Persistent bot flag, written by the scrobble-abuse-sweep service and

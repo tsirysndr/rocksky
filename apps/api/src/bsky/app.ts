@@ -196,7 +196,7 @@ app.get("/profile", async (c) => {
         .values({
           did,
           handle,
-          displayName: resolved.displayName ?? null,
+          displayName: resolved.displayName ?? "",
           avatar: resolved.avatar ?? "",
         })
         .execute();
