@@ -8,6 +8,10 @@ Rocksky exposes a Subsonic / Navidrome-compatible API. Upload your music to
 your private Rocksky library and stream it from any Subsonic client — phone,
 desktop, car head unit — without running your own server.
 
+Bring your own S3-compatible storage for your uploaded music, or use Rocksky
+storage. You can also stream the same library with any
+[Jellyfin client](/integrations/jellyfin-server).
+
 ## Step 1: Upload music
 
 Open **My Library** in Rocksky's sidebar:
@@ -15,6 +19,16 @@ Open **My Library** in Rocksky's sidebar:
 <Frame>
   <img src="/images/integrations/navidrome-server-library.png" alt="Rocksky sidebar with 'My Library (experimental)' link and the Scrobble Stats chart" />
 </Frame>
+
+To store uploads in your own S3-compatible bucket:
+
+1. Open [Storage](https://rocksky.app/storage) and click **Connect storage**.
+2. Enter a name, bucket, S3 endpoint, access key ID, secret access key, and region.
+3. Click **Connect & verify**.
+4. On the upload page, select **Your storage** and choose your bucket.
+
+You can use AWS S3, Cloudflare R2, Backblaze B2, MinIO, or another S3-compatible
+provider. Select **Rocksky storage** to use managed storage instead.
 
 Drag and drop your audio files (MP3, FLAC, M4A, OGG, WAV, AIFF) into the
 upload page. Required tags: title, artist, album, album artist, duration,
@@ -64,8 +78,3 @@ details:
 
 Plays from any of these clients are scrobbled automatically — there's nothing
 extra to wire up.
-
-<Note>
-  Rocksky currently stores uploads on Cloudflare R2. Support for user-connected
-  S3-compatible providers (bring-your-own bucket) is on the roadmap.
-</Note>

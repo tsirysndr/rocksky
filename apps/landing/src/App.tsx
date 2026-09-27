@@ -1043,7 +1043,8 @@ function LandingPage() {
               <h3>Keep your collection on Rocksky</h3>
               <p>
                 Upload the albums and tracks you own, including music you won’t
-                find on streaming services. Listen from your Rocksky library.
+                find on streaming services. Bring your own S3-compatible storage
+                for your uploads, or use Rocksky storage.
               </p>
               <a
                 className="text-link"
@@ -1056,14 +1057,12 @@ function LandingPage() {
             </Reveal>
             <Reveal className="platform-card">
               <Server size={28} />
-              <span className="integration-kicker">
-                NAVIDROME-COMPATIBLE API
-              </span>
+              <span className="integration-kicker">NAVIDROME & JELLYFIN</span>
               <h3>Connect your music player</h3>
               <p>
-                Rocksky provides a Navidrome-compatible API for your uploaded
-                library. Use it with a compatible Subsonic or Navidrome client
-                to browse and play your music.
+                Stream your uploaded music with any Navidrome, Subsonic, or
+                Jellyfin-compatible client. Your library stays available in the
+                music player you prefer.
               </p>
               <a
                 className="text-link"
@@ -1071,7 +1070,15 @@ function LandingPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Connect your player <ArrowUpRight size={18} />
+                Connect a Navidrome client <ArrowUpRight size={18} />
+              </a>
+              <a
+                className="text-link"
+                href="https://docs.rocksky.app/integrations/jellyfin-server"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Connect a Jellyfin client <ArrowUpRight size={18} />
               </a>
             </Reveal>
             <Reveal className="platform-card sdk-card">

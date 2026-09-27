@@ -9,6 +9,9 @@ Rocksky exposes a Jellyfin-compatible API alongside the
 private Rocksky library and stream it from any Jellyfin client — phone,
 desktop, car head unit — without running your own server.
 
+Bring your own S3-compatible storage for your uploaded music, or use Rocksky
+storage. Both options work with any Jellyfin or Navidrome-compatible client.
+
 <Note>
   This is the same library, the same credentials and the same uploads as the
   Subsonic endpoint. Use whichever protocol your favourite app speaks; you can
@@ -16,6 +19,11 @@ desktop, car head unit — without running your own server.
 </Note>
 
 ## Step 1: Upload music
+
+To use your own S3-compatible bucket, follow the
+[storage setup instructions](/integrations/navidrome-server#step-1-upload-music),
+then select **Your storage** on the upload page. You can also select
+**Rocksky storage** to use managed storage.
 
 Open **My Library** in Rocksky's sidebar and drag your audio files (MP3, FLAC,
 M4A, OGG, WAV, AIFF) into the upload page. Required tags: title, artist, album,
@@ -38,11 +46,11 @@ Add a new server. Most clients ask for the address first, then the credentials
 on a separate screen — the login screen will not list any users, because this
 server fronts every Rocksky account. Type your handle in manually.
 
-| Field      | Value                                          |
-| ---------- | ---------------------------------------------- |
+| Field      | Value                                        |
+| ---------- | -------------------------------------------- |
 | Server URL | `https://jellyfin.rocksky.app`                 |
 | Username   | Your ATProto handle (e.g. `alice.bsky.social`) |
-| Password   | Your Rocksky API key                           |
+| Password   | Your Rocksky API key                         |
 
 ## Compatible apps
 
