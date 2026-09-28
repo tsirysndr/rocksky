@@ -7,7 +7,7 @@ import {
   useFollowsQuery,
   useUnfollowAccountMutation,
 } from "../../../hooks/useGraph";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../../components/UserAvatar";
 import { useAtom } from "jotai";
 import { useProfileActiveTab } from "../../../atoms/tab";
 import { followsAtom } from "../../../atoms/follows";

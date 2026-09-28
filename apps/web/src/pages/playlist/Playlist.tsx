@@ -3,7 +3,7 @@ import { uriToPath } from "../../lib/uri";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../components/UserAvatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

@@ -1,3 +1,4 @@
+import UserAvatar from "../../../../UserAvatar";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import styled from "@emotion/styled";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -264,10 +265,7 @@ function ReplyModal(props: ReplyModalProps) {
           }}
         >
           <Link to={`/profile/${shout.user.handle}`} onClick={close}>
-            <img
-              src={shout.user.avatar}
-              className="w-[50px] h-[50px] rounded-full"
-            />
+            <UserAvatar src={shout.user.avatar} size={50} />
           </Link>
 
           <div className="ml-[20px] w-full">
@@ -298,10 +296,7 @@ function ReplyModal(props: ReplyModalProps) {
         </div>
 
         <div className="flex flex-row mt-[20px]">
-          <img
-            src={profile?.avatar}
-            className="w-[50px] h-[50px] rounded-full"
-          />
+          <UserAvatar src={profile?.avatar} size={50} />
           <Controller
             name="message"
             control={control}

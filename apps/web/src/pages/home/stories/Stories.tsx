@@ -1,3 +1,4 @@
+import UserAvatar from "../../../components/UserAvatar";
 import styled from "@emotion/styled";
 import { uriToPath } from "../../../lib/uri";
 import { ChevronLeft, ChevronRight } from "@styled-icons/evaicons-solid";
@@ -12,7 +13,6 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconUser,
   IconMusic,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
@@ -26,22 +26,12 @@ import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
 import ContentLoader from "react-content-loader";
-import { LazyLoadImage } from "react-lazy-load-image-component";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
 
 const Container = styled.div`
   margin-bottom: 50px;
-`;
-
-const Story = styled(LazyLoadImage)`
-  height: 64px;
-  width: 64px;
-  border-radius: 36px;
-  border: 2px solid rgb(255, 40, 118);
-  padding: 2px;
-  cursor: pointer;
 `;
 
 const StoryContainer = styled.div`
@@ -95,13 +85,6 @@ const TrackArtist = styled.div`
   &:hover {
     text-decoration: underline;
   }
-`;
-
-const Avatar = styled.img`
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
-  margin-right: 15px;
 `;
 
 const Link = styled(DefaultLink)`
@@ -418,16 +401,9 @@ function Stories() {
                       setIsOpen(true);
                     }}
                   >
-                    {item.avatar && !item.avatar.endsWith("/@jpeg") && (
-                      <Story src={item.avatar} effect="blur" />
-                    )}
-                    {item.avatar && item.avatar.endsWith("/@jpeg") && (
-                      <div className="w-[64px] h-[64px] rounded-full border-2 border-[rgb(255,40,118)] p-[2px]">
-                        <div className="w-[64px] h-[64px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
-                          <IconUser size={32} color="#fff" />
-                        </div>
-                      </div>
-                    )}
+                    <div className="rounded-full border-2 border-[rgb(255,40,118)] p-[2px]">
+                      <UserAvatar src={item.avatar} name={item.handle} size={56} />
+                    </div>
                     <StatefulTooltip
                       content={item.handle}
                       returnFocus
@@ -471,16 +447,7 @@ function Stories() {
               </div>
               <div className="flex flex-row items-center">
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
-                  {currentlyPlaying?.avatar &&
-                    !currentlyPlaying?.avatar?.endsWith("/@jpeg") && (
-                      <Avatar src={currentlyPlaying?.avatar} />
-                    )}
-                  {currentlyPlaying?.avatar &&
-                    currentlyPlaying.avatar.endsWith("/@jpeg") && (
-                      <div className="w-[48px] h-[48px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
-                        <IconUser size={24} color="#fff" />
-                      </div>
-                    )}
+                  <UserAvatar src={currentlyPlaying?.avatar} name={currentlyPlaying?.handle} size={48} style={{ marginRight: 15 }} />
                 </Link>
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
                   <div

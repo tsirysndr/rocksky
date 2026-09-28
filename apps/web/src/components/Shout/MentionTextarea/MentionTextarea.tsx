@@ -1,3 +1,4 @@
+import UserAvatar from "../../UserAvatar";
 import styled from "@emotion/styled";
 import { useQuery } from "@tanstack/react-query";
 import { Textarea, type TextareaProps } from "baseui/textarea";
@@ -50,22 +51,6 @@ const Item = styled.button<{ active: boolean }>`
 
   &:hover {
     background-color: var(--color-input-background);
-  }
-`;
-
-const Avatar = styled.span`
-  display: flex;
-  height: 28px;
-  width: 28px;
-  flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 999px;
-  background-color: var(--color-input-background);
-
-  & > img {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
   }
 `;
 
@@ -227,7 +212,7 @@ function MentionTextarea({
                   insertMention(s.handle);
                 }}
               >
-                <Avatar>{s.avatar && <img src={s.avatar} alt="" />}</Avatar>
+                <UserAvatar src={s.avatar} size={28} />
                 <Names>
                   <DisplayName>{s.displayName || s.handle}</DisplayName>
                   <Handle>@{s.handle}</Handle>

@@ -1,3 +1,4 @@
+import UserAvatar from "../../components/UserAvatar";
 import { Link } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
@@ -271,9 +272,7 @@ function ShareCard({
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {avatar && !avatar.endsWith("/@jpeg") && (
-              <img src={r(avatar)} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
-            )}
+            <UserAvatar src={avatar ? r(avatar) : undefined} size={40} />
             <div>
               <p style={{ color: "var(--color-text)", fontSize: 14, fontWeight: 700, margin: 0 }}>{displayName}</p>
               <p style={{ color: "var(--color-text-muted)", fontSize: 12, margin: 0 }}>@{handle}</p>

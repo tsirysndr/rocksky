@@ -6,7 +6,7 @@ import {
 } from "../../../hooks/useProfile";
 import { Link, useParams } from "@tanstack/react-router";
 import { Neighbour } from "../../../types/neighbour";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../../components/UserAvatar";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
 import { Button } from "baseui/button";
 import { useAtom } from "jotai";

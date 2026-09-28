@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../UserAvatar";
 import { HeadingSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import ContentLoader from "react-content-loader";

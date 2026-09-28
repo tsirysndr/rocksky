@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { useQueryClient } from "@tanstack/react-query";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../../components/UserAvatar";
 import type { BlockProps } from "baseui/block";
 import { FlexGridItem } from "baseui/flex-grid";
 import ResponsiveFlexGrid from "../../../components/ResponsiveFlexGrid";
@@ -25,7 +25,6 @@ import { useInfiniteScrollSentinel } from "../../../hooks/useInfiniteScrollSenti
 import FeedGenerators from "./FeedGenerators";
 import { consola } from "consola";
 import { Link } from "@tanstack/react-router";
-import { IconUser } from "@tabler/icons-react";
 
 dayjs.extend(relativeTime);
 
@@ -212,18 +211,11 @@ function Feed() {
 
                       <div className="flex">
                         <div className="mr-[8px]">
-                          {!song.userAvatar?.endsWith("/@jpeg") && (
-                            <Avatar
-                              src={song.userAvatar}
-                              name={song.userDisplayName}
-                              size={"20px"}
-                            />
-                          )}
-                          {song.userAvatar?.endsWith("/@jpeg") && (
-                            <div className="w-[20px] h-[20px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
-                              <IconUser size={10} color="#fff" />
-                            </div>
-                          )}
+                          <Avatar
+                            src={song.userAvatar}
+                            name={song.userDisplayName}
+                            size={"20px"}
+                          />
                         </div>
                         <Handle
                           link={`/profile/${song.user}`}

@@ -1,3 +1,4 @@
+import UserAvatar from "../../components/UserAvatar";
 import styled from "@emotion/styled";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -228,14 +229,6 @@ const Rank = styled.span`
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   color: var(--color-text-muted);
-`;
-
-const Avatar = styled.img`
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
 `;
 
 const Who = styled.div`
@@ -884,11 +877,7 @@ function Analytics() {
               {board.map((s, i) => (
                 <BoardRow key={s.did ?? i}>
                   <Rank>{i + 1}</Rank>
-                  {s.avatar ? (
-                    <Avatar src={s.avatar} alt="" />
-                  ) : (
-                    <Avatar as="div" />
-                  )}
+                  <UserAvatar src={s.avatar} name={s.displayName || s.handle} size={34} />
                   <Who>
                     <Link
                       to="/profile/$did"

@@ -1,3 +1,4 @@
+import UserAvatar from "../../../UserAvatar";
 import styled from "@emotion/styled";
 import { Ellipsis } from "@styled-icons/fa-solid";
 import { ArrowReplyDown } from "@styled-icons/fluentui-system-filled";
@@ -185,10 +186,7 @@ function Shout(props: ShoutProps) {
             ? () => (
                 <div>
                   <Link to={`/profile/${shout.user.handle}`}>
-                    <img
-                      src={shout.user.avatar}
-                      className="w-[65px] h-[65px] rounded-full"
-                    />
+                    <UserAvatar src={shout.user.avatar} size={65} />
                   </Link>
                 </div>
               )

@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { useParams, useSearch } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../components/UserAvatar";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
@@ -23,7 +23,7 @@ import LovedTracks from "./lovedtracks";
 import Overview from "./overview";
 import Playlists from "./playlists";
 import { Button } from "baseui/button";
-import { IconPlus, IconCheck, IconUser } from "@tabler/icons-react";
+import { IconPlus, IconCheck } from "@tabler/icons-react";
 import { followsAtom } from "../../atoms/follows";
 import SignInModal from "../../components/SignInModal";
 import {
@@ -270,18 +270,11 @@ function Profile(props: ProfileProps) {
             <Group>
               <ProfileInfo>
                 <div className="mr-[20px]">
-                  {!profiles[did]?.avatar?.endsWith("/@jpeg") && (
-                    <Avatar
-                      name={profiles[did]?.displayName}
-                      src={profiles[did]?.avatar}
-                      size="150px"
-                    />
-                  )}
-                  {profiles[did]?.avatar?.endsWith("/@jpeg") && (
-                    <div className="w-[150px] h-[150px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
-                      <IconUser size={80} color="#fff" />
-                    </div>
-                  )}
+                  <Avatar
+                    name={profiles[did]?.displayName}
+                    src={profiles[did]?.avatar}
+                    size="150px"
+                  />
                 </div>
                 <div
                   style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}

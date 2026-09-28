@@ -7,7 +7,7 @@ import {
 } from "../../../hooks/useGraph";
 import { useProfileByDidQuery } from "../../../hooks/useProfile";
 import { Link, useParams } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../../components/UserAvatar";
 import { useAtom } from "jotai";
 import { useProfileActiveTab } from "../../../atoms/tab";
 import { followsAtom } from "../../../atoms/follows";

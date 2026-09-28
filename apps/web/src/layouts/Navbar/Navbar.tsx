@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import { Copy } from "@styled-icons/ionicons-outline";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../components/UserAvatar";
 import { Checkbox, LABEL_PLACEMENT, STYLE_TYPE } from "baseui/checkbox";
 import { NestedMenus, StatefulMenu } from "baseui/menu";
 import { Modal, ModalBody, ModalHeader } from "baseui/modal";
@@ -21,7 +21,7 @@ import { themeAtom } from "../../atoms/theme";
 import { API_URL } from "../../consts";
 import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 import WebScrobblerScreenshot from "../../assets/webscrobbler.png";
-import { IconUser, IconMenu2, IconX } from "@tabler/icons-react";
+import { IconMenu2, IconX } from "@tabler/icons-react";
 import { displayDrawerAtom } from "../../atoms/drawer";
 import NotificationBell from "./NotificationBell";
 
@@ -254,18 +254,11 @@ function Navbar() {
                   <div className="flex flex-col items-center">
                     <div className="mb-[5px]">
                       <Link to="/profile/$did" params={{ did: profile.handle }}>
-                        {!profile?.avatar?.endsWith("/@jpeg") && (
-                          <Avatar
-                            src={profile.avatar}
-                            name={profile.displayName}
-                            size="80px"
-                          />
-                        )}
-                        {profile?.avatar?.endsWith("/@jpeg") && (
-                          <div className="w-[80px] h-[80px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
-                            <IconUser size={40} color="#fff" />
-                          </div>
-                        )}
+                        <Avatar
+                          src={profile.avatar}
+                          name={profile.displayName}
+                          size="80px"
+                        />
                       </Link>
                     </div>
 
@@ -476,18 +469,11 @@ function Navbar() {
           )}
         >
           <button className="ml-[15px] border-none bg-transparent cursor-pointer">
-            {!profile?.avatar?.endsWith("/@jpeg") && (
-              <Avatar
-                src={profile.avatar}
-                name={profile.displayName}
-                size="scale1200"
-              />
-            )}
-            {profile?.avatar?.endsWith("/@jpeg") && (
-              <div className="w-[48px] h-[48px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
-                <IconUser size={24} color="#fff" />
-              </div>
-            )}
+            <Avatar
+              src={profile.avatar}
+              name={profile.displayName}
+              size="48px"
+            />
           </button>
         </StatefulPopover>
       )}
