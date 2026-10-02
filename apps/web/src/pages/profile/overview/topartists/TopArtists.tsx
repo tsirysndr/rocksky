@@ -19,6 +19,7 @@ import styles from "./styles";
 import { IconChevronDown } from "@tabler/icons-react";
 import { getRangeDates } from "../../../../lib/date";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
+import ExportTopButton from "../../../../components/ExportTopButton";
 import ContentLoader from "react-content-loader";
 import { ALL_TIME, LAST_7_DAYS, LAST_DAYS_LABELS } from "../../../../consts";
 
@@ -136,8 +137,21 @@ function TopArtists(props: TopArtistsProps) {
           >
             Top Artists
           </HeadingSmall>
+          <div className="flex items-center gap-[4px] mt-[40px]">
+          <ExportTopButton
+            kind="artists"
+            rangeLabel={LAST_DAYS_LABELS[withDateRange ? topArtistsRange : ALL_TIME]}
+            user={user}
+            darkMode={darkMode}
+            items={topArtists.map((a) => ({
+              id: a.id,
+              title: a.name,
+              image: a.picture,
+              plays: a.scrobbles,
+            }))}
+          />
           <LastDaysMenu onSelect={onSelectLastDays}>
-            <button className="mt-[40px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+            <button className="bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
               {topArtistsRange && (
                 <span>{LAST_DAYS_LABELS[topArtistsRange]}</span>
               )}
@@ -147,6 +161,7 @@ function TopArtists(props: TopArtistsProps) {
               />
             </button>
           </LastDaysMenu>
+          </div>
         </div>
       )}
 

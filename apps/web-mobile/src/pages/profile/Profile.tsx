@@ -42,6 +42,7 @@ import {
 } from "../../hooks/useLibrary";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import FloatingShoutBar from "../../components/FloatingShoutBar";
+import ExportTopButton from "../../components/ExportTopButton";
 import { NewUserGuide, OnboardingSheet } from "../../components/Onboarding";
 import { ALL_TIME, LAST_7_DAYS, RANGE_LABELS, RANGE_OPTIONS } from "../../consts";
 import { getLastDays } from "../../lib/date";
@@ -272,6 +273,7 @@ function rangeToDateParams(rangeKey: string): [Date, Date] | [] {
 function OverviewTab({ did }: { did: string }) {
   const [rangeKey, setRangeKey] = useProfileOverviewRange(did);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const { data: profile } = useProfileByDidQuery(did);
 
   const dateParams = rangeToDateParams(rangeKey);
   const [startDate, endDate] = dateParams as [Date | undefined, Date | undefined];
@@ -374,7 +376,21 @@ function OverviewTab({ did }: { did: string }) {
       {/* Top Artists */}
       {artistList.length > 0 && (
         <section className="mb-6">
-          <h3 className="font-semibold text-sm mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Artists</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm m-0 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Artists</h3>
+            <ExportTopButton
+              kind="artists"
+              rangeLabel={RANGE_LABELS[rangeKey]}
+              user={profile}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              items={artistList.map((a: any) => ({
+                id: a.id || a.uri,
+                title: a.name,
+                image: a.picture || a.photo,
+                plays: a.playCount ?? a.scrobbles ?? null,
+              }))}
+            />
+          </div>
           <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {artistList.map((a: any) => {
@@ -409,7 +425,22 @@ function OverviewTab({ did }: { did: string }) {
       {/* Top Albums */}
       {albumList.length > 0 && (
         <section className="mb-6">
-          <h3 className="font-semibold text-sm mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Albums</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm m-0 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Albums</h3>
+            <ExportTopButton
+              kind="albums"
+              rangeLabel={RANGE_LABELS[rangeKey]}
+              user={profile}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              items={albumList.map((a: any) => ({
+                id: a.id || a.uri,
+                title: a.title,
+                subtitle: a.artist,
+                image: a.albumArt || a.album_art,
+                plays: a.playCount ?? a.scrobbles ?? null,
+              }))}
+            />
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {albumList.map((a: any) => {
@@ -444,7 +475,22 @@ function OverviewTab({ did }: { did: string }) {
       {/* Top Tracks */}
       {trackList.length > 0 && (
         <section className="mb-6">
-          <h3 className="font-semibold text-sm mb-3 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Tracks</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm m-0 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Tracks</h3>
+            <ExportTopButton
+              kind="tracks"
+              rangeLabel={RANGE_LABELS[rangeKey]}
+              user={profile}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              items={trackList.map((t: any) => ({
+                id: t.id || t.uri,
+                title: t.title,
+                subtitle: t.artist || t.albumArtist || t.album_artist,
+                image: t.albumArt || t.album_art,
+                plays: t.playCount ?? t.scrobbles ?? null,
+              }))}
+            />
+          </div>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {trackList.map((t: any, i: number) => {
             const href = toPath(t.uri);
