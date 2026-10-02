@@ -65,7 +65,7 @@ export const wrappedSummaryQuery = (
     COALESCE((SELECT jsonb_agg(r) FROM (
       SELECT album_id AS "albumId", count(*) AS "playCount"
       FROM year_scrobbles WHERE album_id IS NOT NULL GROUP BY album_id
-      ORDER BY count(*) DESC, album_id LIMIT 5
+      ORDER BY count(*) DESC, album_id LIMIT 6
     ) r), '[]'::jsonb) AS "topAlbumIds",
     COALESCE((SELECT jsonb_agg(r) FROM (
       SELECT genre, sum(a.plays) AS genre_count

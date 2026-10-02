@@ -103,6 +103,16 @@ describe.skipIf(!databaseUrl)("wrapped and profile SQL (PostgreSQL)", () => {
       { month: 3, count: 1 },
       { month: 12, count: 1 },
     ]);
+    expect(body.period).toBe("year");
+    expect(body.startDate).toBe("2024-01-01T00:00:00.000Z");
+    expect(body.endDate).toBe("2025-01-01T00:00:00.000Z");
+    expect(body.scrobblesPerDay).toEqual([
+      { date: "2024-01-01", count: 1 },
+      { date: "2024-02-28", count: 1 },
+      { date: "2024-02-29", count: 2 },
+      { date: "2024-03-01", count: 1 },
+      { date: "2024-12-31", count: 1 },
+    ]);
     expect(body.firstScrobble.timestamp).toBe("2024-01-01T00:00:00.000Z");
     expect(body.lastScrobble.timestamp).toBe("2024-03-01T11:00:00.000Z");
     const before = queryCount;
@@ -125,6 +135,17 @@ describe.skipIf(!databaseUrl)("wrapped and profile SQL (PostgreSQL)", () => {
       expect(body.newArtistsCount).toBe(0);
       expect(body.longestStreak).toBe(0);
     }
+  });
+
+  it("computes rolling periods as a window ending now", async () => {
+    const { body } = await handlers.wrapped({
+      params: { did: "did:test:u", year: 2024, period: "week" },
+    });
+    expect(body.period).toBe("week");
+    expect(
+      new Date(body.endDate).getTime() - new Date(body.startDate).getTime(),
+    ).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(body.totalScrobbles).toBe(0);
   });
 
   it("keeps profile rankings, inclusive date filters and global listener counts", async () => {

@@ -5,7 +5,7 @@ id = "app.rocksky.stats.getWrapped"
 defs = new Mapping<String, Query> {
   ["main"] {
     type = "query"
-    description = "Get a user's year-in-review Wrapped stats"
+    description = "Get a user's Wrapped stats for a year or a recent rolling window"
     parameters = new Params {
       required = List("did")
       properties {
@@ -17,6 +17,11 @@ defs = new Mapping<String, Query> {
           type = "integer"
           description = "The year to get wrapped stats for (defaults to current year)"
           minimum = 2000
+        }
+        ["period"] = new StringType {
+          type = "string"
+          description = "The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year."
+          knownValues = List("year", "3months", "month", "2weeks", "week")
         }
       }
     }

@@ -58,6 +58,7 @@ import type {
   StatsGlobalStatsView,
   StatsView,
   StatsWrappedView,
+  GetWrappedParams,
   PlaylistCreatePlaylistOutput,
   PlaylistUpdatePlaylistOutput,
   AddSongsOutput,
@@ -544,9 +545,13 @@ export class RockskyClient {
   stats(actor: string): Promise<StatsView> {
     return this.query("app.rocksky.stats.getStats", { did: actor });
   }
-  /** An actor's year-in-review. */
-  wrapped(actor: string, year?: number): Promise<StatsWrappedView> {
-    return this.query("app.rocksky.stats.getWrapped", { did: actor, year });
+  /** An actor's Wrapped for a calendar year, or a rolling window ending now. */
+  wrapped(
+    actor: string,
+    year?: number,
+    period?: GetWrappedParams["period"],
+  ): Promise<StatsWrappedView> {
+    return this.query("app.rocksky.stats.getWrapped", { did: actor, year, period });
   }
   /** The viewer's configured scrobble mirror sources (auth). */
   mirrorSources(): Promise<GetMirrorSourcesOutput> {

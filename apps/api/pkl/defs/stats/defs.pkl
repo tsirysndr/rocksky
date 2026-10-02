@@ -130,6 +130,9 @@ defs = new Mapping<String, ObjectType> {
     type = "object"
     properties {
       ["year"] = new IntegerType { description = "The year of the wrapped stats." }
+      ["period"] = new StringType { description = "The window the stats cover." knownValues = List("year", "3months", "month", "2weeks", "week") }
+      ["startDate"] = new StringType { description = "Inclusive start of the window." format = "datetime" }
+      ["endDate"] = new StringType { description = "Exclusive end of the window." format = "datetime" }
       ["totalScrobbles"] = new IntegerType { description = "Total scrobbles in the year." minimum = 0 }
       ["totalListeningTimeMinutes"] = new IntegerType { description = "Total listening time in minutes." minimum = 0 }
       ["topArtists"] = new Array {
@@ -144,7 +147,7 @@ defs = new Mapping<String, ObjectType> {
       }
       ["topAlbums"] = new Array {
         type = "array"
-        description = "Top 5 albums by play count."
+        description = "Top 6 albums by play count."
         items = new Ref { ref = "app.rocksky.stats.defs#wrappedAlbum" }
       }
       ["topGenres"] = new Array {
@@ -156,6 +159,11 @@ defs = new Mapping<String, ObjectType> {
         type = "array"
         description = "Scrobble counts per month."
         items = new Ref { ref = "app.rocksky.stats.defs#wrappedMonthCount" }
+      }
+      ["scrobblesPerDay"] = new Array {
+        type = "array"
+        description = "Scrobble counts per day (UTC), only days with plays."
+        items = new Ref { ref = "app.rocksky.stats.defs#wrappedDayCount" }
       }
       ["mostActiveDay"] = new Ref {
         ref = "app.rocksky.stats.defs#wrappedDayCount"

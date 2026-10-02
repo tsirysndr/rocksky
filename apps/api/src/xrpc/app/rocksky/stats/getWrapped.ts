@@ -22,19 +22,24 @@ export default function (server: Server, ctx: Context) {
     "30 minutes",
   );
 
-  const getWrapped = (params: QueryParams) =>
-    pipe(
+  const getWrapped = (params: QueryParams) => {
+    const year = params.year ?? new Date().getFullYear();
+    const period = normalizePeriod(params.period);
+    return pipe(
       cached({
         did: params.did,
-        year: params.year ?? new Date().getFullYear(),
+        year: period === "year" ? year : undefined,
+        period,
       }),
       Effect.catchAll((err) => {
         consola.error(err);
+        const { startDate, endDate } = periodWindow(period, year);
         return Effect.succeed(
-          defaultWrapped(params.year ?? new Date().getFullYear()),
+          defaultWrapped(year, period, startDate, endDate),
         );
       }),
     );
+  };
 
   server.app.rocksky.stats.getWrapped({
     handler: async ({ params }) => {
@@ -56,9 +61,8 @@ const retrieve = ({
 }): Effect.Effect<WrappedView, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      const year = params.year ?? new Date().getFullYear();
-      const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-      const endDate = new Date(`${year + 1}-01-01T00:00:00.000Z`);
+      const period = normalizePeriod(params.period);
+      const { year, startDate, endDate } = periodWindow(period, params.year);
 
       const user = await ctx.readDb
         .select({ id: tables.users.id })
@@ -72,7 +76,7 @@ const retrieve = ({
         .execute()
         .then((rows) => rows[0]);
 
-      if (!user) return defaultWrapped(year);
+      if (!user) return defaultWrapped(year, period, startDate, endDate);
 
       const dateConditions = [
         gte(tables.scrobbles.timestamp, startDate),
@@ -197,6 +201,9 @@ const retrieve = ({
 
       return {
         year,
+        period,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         totalScrobbles: Number(summary.totalScrobbles),
         totalListeningTimeMinutes: Math.floor(
           Number(summary.totalTime) / 60_000,
@@ -261,6 +268,10 @@ const retrieve = ({
           month: Number(r.month),
           count: Number(r.monthCount),
         })),
+        scrobblesPerDay: allDailyRows.map((r) => ({
+          date: r.date,
+          count: Number(r.dayCount),
+        })),
         firstScrobble: firstScrobbleRow[0]
           ? {
               trackTitle: firstScrobbleRow[0].trackTitle,
@@ -284,6 +295,44 @@ const retrieve = ({
   });
 };
 
+const PERIODS = ["year", "3months", "month", "2weeks", "week"] as const;
+type Period = (typeof PERIODS)[number];
+
+function normalizePeriod(period?: string): Period {
+  return PERIODS.find((p) => p === period) ?? "year";
+}
+
+/** A calendar year, or a rolling window ending now for the shorter periods. */
+function periodWindow(
+  period: Period,
+  year = new Date().getFullYear(),
+): { year: number; startDate: Date; endDate: Date } {
+  if (period === "year") {
+    return {
+      year,
+      startDate: new Date(`${year}-01-01T00:00:00.000Z`),
+      endDate: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+    };
+  }
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  switch (period) {
+    case "3months":
+      startDate.setUTCMonth(startDate.getUTCMonth() - 3);
+      break;
+    case "month":
+      startDate.setUTCMonth(startDate.getUTCMonth() - 1);
+      break;
+    case "2weeks":
+      startDate.setUTCDate(startDate.getUTCDate() - 14);
+      break;
+    case "week":
+      startDate.setUTCDate(startDate.getUTCDate() - 7);
+      break;
+  }
+  return { year: endDate.getUTCFullYear(), startDate, endDate };
+}
+
 function computeLongestStreak(sortedDates: string[]): number {
   if (sortedDates.length === 0) return 0;
   let longest = 1;
@@ -304,9 +353,17 @@ function computeLongestStreak(sortedDates: string[]): number {
   return longest;
 }
 
-function defaultWrapped(year: number): WrappedView {
+function defaultWrapped(
+  year: number,
+  period: Period = "year",
+  startDate?: Date,
+  endDate?: Date,
+): WrappedView {
   return {
     year,
+    period,
+    startDate: startDate?.toISOString(),
+    endDate: endDate?.toISOString(),
     totalScrobbles: 0,
     totalListeningTimeMinutes: 0,
     topArtists: [],
@@ -317,6 +374,7 @@ function defaultWrapped(year: number): WrappedView {
     mostActiveHour: undefined,
     newArtistsCount: 0,
     scrobblesPerMonth: [],
+    scrobblesPerDay: [],
     firstScrobble: undefined,
     lastScrobble: undefined,
     longestStreak: 0,

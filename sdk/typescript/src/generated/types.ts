@@ -1540,6 +1540,8 @@ export interface GetWrappedParams {
   did: AtIdentifier;
   /** The year to get wrapped stats for (defaults to current year) */
   year?: number;
+  /** The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year. */
+  period?: string;
 }
 
 export interface GoogledriveDownloadFileParams {
@@ -2837,6 +2839,12 @@ export interface StatsWrappedTrack {
 export interface StatsWrappedView {
   /** The year of the wrapped stats. */
   year?: number;
+  /** The window the stats cover. */
+  period?: string;
+  /** Inclusive start of the window. */
+  startDate?: DateTime;
+  /** Exclusive end of the window. */
+  endDate?: DateTime;
   /** Total scrobbles in the year. */
   totalScrobbles?: number;
   /** Total listening time in minutes. */
@@ -2845,12 +2853,14 @@ export interface StatsWrappedView {
   topArtists?: StatsWrappedArtist[];
   /** Top 5 tracks by play count. */
   topTracks?: StatsWrappedTrack[];
-  /** Top 5 albums by play count. */
+  /** Top 6 albums by play count. */
   topAlbums?: StatsWrappedAlbum[];
   /** Top genres by play count. */
   topGenres?: StatsWrappedGenreCount[];
   /** Scrobble counts per month. */
   scrobblesPerMonth?: StatsWrappedMonthCount[];
+  /** Scrobble counts per day (UTC), only days with plays. */
+  scrobblesPerDay?: StatsWrappedDayCount[];
   /** The most active day of the year. */
   mostActiveDay?: StatsWrappedDayCount;
   /** The most active hour of the day (0-23). */

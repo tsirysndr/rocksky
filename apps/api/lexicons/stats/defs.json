@@ -225,6 +225,27 @@
           "type": "integer",
           "description": "The year of the wrapped stats."
         },
+        "period": {
+          "type": "string",
+          "description": "The window the stats cover.",
+          "knownValues": [
+            "year",
+            "3months",
+            "month",
+            "2weeks",
+            "week"
+          ]
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Inclusive start of the window.",
+          "format": "datetime"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "Exclusive end of the window.",
+          "format": "datetime"
+        },
         "totalScrobbles": {
           "type": "integer",
           "description": "Total scrobbles in the year.",
@@ -253,7 +274,7 @@
         },
         "topAlbums": {
           "type": "array",
-          "description": "Top 5 albums by play count.",
+          "description": "Top 6 albums by play count.",
           "items": {
             "type": "ref",
             "ref": "app.rocksky.stats.defs#wrappedAlbum"
@@ -273,6 +294,14 @@
           "items": {
             "type": "ref",
             "ref": "app.rocksky.stats.defs#wrappedMonthCount"
+          }
+        },
+        "scrobblesPerDay": {
+          "type": "array",
+          "description": "Scrobble counts per day (UTC), only days with plays.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.stats.defs#wrappedDayCount"
           }
         },
         "mostActiveDay": {

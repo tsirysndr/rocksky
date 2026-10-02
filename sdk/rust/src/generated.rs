@@ -2151,6 +2151,9 @@ pub struct GetWrappedParams {
     /// The year to get wrapped stats for (defaults to current year)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,
+    /// The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3961,6 +3964,15 @@ pub struct StatsWrappedView {
     /// The year of the wrapped stats.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,
+    /// The window the stats cover.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period: Option<String>,
+    /// Inclusive start of the window.
+    #[serde(rename = "startDate", default, skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<DateTime<Utc>>,
+    /// Exclusive end of the window.
+    #[serde(rename = "endDate", default, skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<DateTime<Utc>>,
     /// Total scrobbles in the year.
     #[serde(rename = "totalScrobbles", default, skip_serializing_if = "Option::is_none")]
     pub total_scrobbles: Option<i64>,
@@ -3973,7 +3985,7 @@ pub struct StatsWrappedView {
     /// Top 5 tracks by play count.
     #[serde(rename = "topTracks", default, skip_serializing_if = "Vec::is_empty")]
     pub top_tracks: Vec<StatsWrappedTrack>,
-    /// Top 5 albums by play count.
+    /// Top 6 albums by play count.
     #[serde(rename = "topAlbums", default, skip_serializing_if = "Vec::is_empty")]
     pub top_albums: Vec<StatsWrappedAlbum>,
     /// Top genres by play count.
@@ -3982,6 +3994,9 @@ pub struct StatsWrappedView {
     /// Scrobble counts per month.
     #[serde(rename = "scrobblesPerMonth", default, skip_serializing_if = "Vec::is_empty")]
     pub scrobbles_per_month: Vec<StatsWrappedMonthCount>,
+    /// Scrobble counts per day (UTC), only days with plays.
+    #[serde(rename = "scrobblesPerDay", default, skip_serializing_if = "Vec::is_empty")]
+    pub scrobbles_per_day: Vec<StatsWrappedDayCount>,
     /// The most active day of the year.
     #[serde(rename = "mostActiveDay", default, skip_serializing_if = "Option::is_none")]
     pub most_active_day: Option<StatsWrappedDayCount>,

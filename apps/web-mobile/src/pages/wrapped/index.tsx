@@ -9,9 +9,8 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { toPng } from "html-to-image";
 import {
   Bar,
   BarChart,
@@ -24,16 +23,22 @@ import {
 import { profileAtom } from "../../atoms/profile";
 import { useWrappedQuery } from "../../hooks/useWrapped";
 import Main from "../../layouts/Main";
-import { API_URL } from "../../consts";
-import type { WrappedArtist, WrappedTrack } from "../../api/wrapped";
+import {
+  WRAPPED_PERIODS,
+  type WrappedAlbum,
+  type WrappedArtist,
+  type WrappedPeriod,
+  type WrappedTrack,
+} from "../../api/wrapped";
+import { downloadNodeAsPng, resolveImages } from "../../lib/shareImage";
+import { activityData, activityTitle, scopeLabel, titleLabel } from "./period";
+import WrappedSelect from "./WrappedSelect";
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
-
-const MONTH_LABELS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+const YEARS = Array.from({ length: 5 }, (_, i) => ({
+  id: CURRENT_YEAR - i,
+  label: String(CURRENT_YEAR - i),
+}));
 
 const GENRE_COLORS = [
   "#ff2876", "#a855f7", "#06b6d4", "#f59e0b", "#10b981",
@@ -103,26 +108,40 @@ function n(num: number): string {
 
 // ─── Share Card (PNG capture target) ─────────────────────────────────────────
 
+const SHARE_CARD_WIDTH = 600;
+const SHARE_CARD_HEIGHT = 900;
+const RANK_COLORS = ["#ff2876", "#a855f7", "#06b6d4"];
+
+function CardLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 10px", fontFamily: "'Syne', sans-serif" }}>
+      {children}
+    </p>
+  );
+}
+
 function ShareCard({
   cardRef,
-  year,
+  title,
   handle,
   displayName,
   avatar,
   totalScrobbles,
   totalListeningTimeMinutes,
   topArtists,
+  topAlbums,
   topTracks,
   resolvedImages,
 }: {
   cardRef?: React.RefObject<HTMLDivElement>;
-  year: number;
+  title: string;
   handle: string;
   displayName: string;
   avatar?: string;
   totalScrobbles: number;
   totalListeningTimeMinutes: number;
   topArtists: WrappedArtist[];
+  topAlbums: WrappedAlbum[];
   topTracks: WrappedTrack[];
   resolvedImages?: Record<string, string>;
 }) {
@@ -133,8 +152,8 @@ function ShareCard({
     <div
       ref={cardRef}
       style={{
-        width: 600,
-        height: 600,
+        width: SHARE_CARD_WIDTH,
+        height: SHARE_CARD_HEIGHT,
         background:
           "linear-gradient(135deg, #0d0020 0%, #1a0035 40%, #0a001a 100%)",
         fontFamily: "'Space Grotesk', sans-serif",
@@ -146,13 +165,13 @@ function ShareCard({
       <div style={{ position: "absolute", top: -60, right: -60, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(168,85,247,0.35) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: -40, left: -40, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,40,118,0.3) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-      <div style={{ padding: 40, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+      <div style={{ position: "relative", padding: 40, height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap" }}>
               Rocksky Wrapped
             </p>
-            <p style={{ color: "#fff", fontSize: 40, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>{year}</p>
+            <p style={{ color: "#fff", fontSize: 34, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>{title}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {avatar && !avatar.endsWith("/@jpeg") && (
@@ -169,7 +188,7 @@ function ShareCard({
           <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "'Syne', sans-serif" }}>
             Total Scrobbles
           </p>
-          <p style={{ fontSize: 72, fontWeight: 900, margin: 0, lineHeight: 1, background: "linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <p style={{ fontSize: 64, fontWeight: 900, margin: 0, lineHeight: 1, background: "linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             {n(totalScrobbles)}
           </p>
           <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, margin: "6px 0 0", fontFamily: "'Syne', sans-serif" }}>
@@ -177,47 +196,76 @@ function ShareCard({
           </p>
         </div>
 
-        <div>
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 12px", fontFamily: "'Syne', sans-serif" }}>
-            Top Artists
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {topArtists.slice(0, 3).map((a, i) => (
-              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ color: i === 0 ? "#ff2876" : i === 1 ? "#a855f7" : "#06b6d4", fontSize: 13, fontWeight: 700, width: 16, textAlign: "right", flexShrink: 0 }}>
-                  {i + 1}
-                </span>
-                {a.picture ? (
-                  <img src={r(a.picture)} style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
-                )}
-                <span style={{ color: "#fff", fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {a.name}
-                </span>
-                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, flexShrink: 0 }}>
-                  {n(a.playCount)} plays
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {topTracks[0] && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(255,255,255,0.06)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)" }}>
-            {topTracks[0].albumArt ? (
-              <img src={r(topTracks[0].albumArt)} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-            ) : (
-              <div style={{ width: 40, height: 40, borderRadius: 8, background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
-            )}
-            <div style={{ flex: 1, overflow: "hidden" }}>
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", margin: "0 0 2px", fontFamily: "'Syne', sans-serif" }}>Top Track</p>
-              <p style={{ color: "#fff", fontSize: 13, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{topTracks[0].title}</p>
-              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: 0 }}>{topTracks[0].artist}</p>
+        {topArtists.length > 0 && (
+          <div>
+            <CardLabel>Top Artists</CardLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {topArtists.slice(0, 3).map((a, i) => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ color: RANK_COLORS[i], fontSize: 13, fontWeight: 700, width: 16, textAlign: "right", flexShrink: 0 }}>
+                    {i + 1}
+                  </span>
+                  {a.picture ? (
+                    <img src={r(a.picture)} style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
+                  )}
+                  <span style={{ color: "#fff", fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {a.name}
+                  </span>
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, flexShrink: 0 }}>
+                    {n(a.playCount)} plays
+                  </span>
+                </div>
+              ))}
             </div>
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, flexShrink: 0 }}>
-              {n(topTracks[0].playCount)} plays
-            </span>
+          </div>
+        )}
+
+        {topAlbums.length > 0 && (
+          <div>
+            <CardLabel>Top Albums</CardLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
+              {topAlbums.slice(0, 6).map((a) => (
+                <div key={a.id} style={{ minWidth: 0 }}>
+                  {a.albumArt ? (
+                    <img src={r(a.albumArt)} style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 8, objectFit: "cover", display: "block" }} />
+                  ) : (
+                    <div style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 8, background: "rgba(255,255,255,0.1)" }} />
+                  )}
+                  <p style={{ color: "#fff", fontSize: 10, fontWeight: 600, margin: "4px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {a.title}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {topTracks.length > 0 && (
+          <div>
+            <CardLabel>Top Tracks</CardLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {topTracks.slice(0, 3).map((t, i) => (
+                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(255,255,255,0.06)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <span style={{ color: RANK_COLORS[i], fontSize: 13, fontWeight: 700, width: 16, textAlign: "right", flexShrink: 0 }}>
+                    {i + 1}
+                  </span>
+                  {t.albumArt ? (
+                    <img src={r(t.albumArt)} style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 36, height: 36, borderRadius: 6, background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
+                  )}
+                  <div style={{ flex: 1, overflow: "hidden" }}>
+                    <p style={{ color: "#fff", fontSize: 13, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</p>
+                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.artist}</p>
+                  </div>
+                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, flexShrink: 0 }}>
+                    {n(t.playCount)} plays
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -272,28 +320,19 @@ function StatPill({ icon, label, value, accent }: { icon: React.ReactNode; label
   );
 }
 
-async function fetchAsBase64(url: string, apiUrl: string): Promise<string> {
-  const res = await fetch(`${apiUrl}/proxy-image?url=${encodeURIComponent(url)}`);
-  if (!res.ok) throw new Error(`proxy failed: ${res.status}`);
-  const blob = await res.blob();
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function WrappedPage() {
   const profile = useAtomValue(profileAtom);
   const [year, setYear] = useState(CURRENT_YEAR);
+  const [period, setPeriod] = useState<WrappedPeriod>("year");
   const [downloading, setDownloading] = useState(false);
   const [resolvedImages, setResolvedImages] = useState<Record<string, string>>({});
   const shareCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
-  const { data, isLoading } = useWrappedQuery(profile?.did, year);
+  const { data, isLoading } = useWrappedQuery(profile?.did, year, period);
+  const scope = scopeLabel(period, year);
+  const title = titleLabel(period, year);
 
   useEffect(() => {
     const id = "wrapped-fonts";
@@ -308,38 +347,28 @@ export default function WrappedPage() {
 
   useEffect(() => {
     if (!data && !profile?.avatar) return;
-    const urls = [
+    let cancelled = false;
+    resolveImages([
       profile?.avatar,
       ...(data?.topArtists.slice(0, 3).map((a) => a.picture) ?? []),
-      data?.topTracks[0]?.albumArt,
-    ].filter((u): u is string => !!u && !u.endsWith("/@jpeg"));
-
-    const map: Record<string, string> = {};
-    Promise.all(
-      urls.map((url) =>
-        fetchAsBase64(url, API_URL)
-          .then((b64) => { map[url] = b64; })
-          .catch(() => {}),
-      ),
-    ).then(() => setResolvedImages(map));
+      ...(data?.topAlbums.slice(0, 6).map((a) => a.albumArt) ?? []),
+      ...(data?.topTracks.slice(0, 3).map((t) => t.albumArt) ?? []),
+    ]).then((map) => {
+      if (!cancelled) setResolvedImages(map);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [data, profile?.avatar]);
 
   const handleDownload = async () => {
     if (!shareCardRef.current) return;
     setDownloading(true);
     try {
-      await document.fonts.ready;
-      const dataUrl = await toPng(shareCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        skipFonts: true,
-        imagePlaceholder:
-          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=",
-      });
-      const link = document.createElement("a");
-      link.download = `rocksky-wrapped-${year}.png`;
-      link.href = dataUrl;
-      link.click();
+      await downloadNodeAsPng(
+        shareCardRef.current,
+        `rocksky-wrapped-${period === "year" ? year : period}.png`,
+      );
     } catch (e) {
       console.error(e);
     } finally {
@@ -347,14 +376,9 @@ export default function WrappedPage() {
     }
   };
 
-  const maxMonthCount = data
-    ? Math.max(...data.scrobblesPerMonth.map((m) => m.count), 1)
-    : 1;
-
-  const monthData = MONTH_LABELS.map((label, i) => {
-    const found = data?.scrobblesPerMonth.find((m) => m.month === i + 1);
-    return { label, count: found?.count ?? 0 };
-  });
+  const chartData = useMemo(() => activityData(data, period), [data, period]);
+  const maxCount = Math.max(...chartData.map((d) => d.count), 1);
+  const hasActivity = chartData.some((d) => d.count > 0);
 
   return (
     <Main>
@@ -363,13 +387,14 @@ export default function WrappedPage() {
         <div style={{ position: "fixed", left: "-9999px", top: 0, pointerEvents: "none", zIndex: -1 }}>
           <ShareCard
             cardRef={shareCardRef}
-            year={year}
+            title={title}
             handle={profile.handle}
             displayName={profile.displayName || profile.handle}
             avatar={profile.avatar}
             totalScrobbles={data.totalScrobbles}
             totalListeningTimeMinutes={data.totalListeningTimeMinutes}
             topArtists={data.topArtists}
+            topAlbums={data.topAlbums}
             topTracks={data.topTracks}
             resolvedImages={resolvedImages}
           />
@@ -391,26 +416,25 @@ export default function WrappedPage() {
               fontFamily: "'Space Grotesk', sans-serif",
             }}
           >
-            Wrapped {year}
+            Wrapped {title}
           </h1>
         </div>
 
-        {/* Year selector */}
         <div className="flex gap-2 flex-wrap mb-6">
-          {YEARS.map((y) => (
-            <button
-              key={y}
-              onClick={() => setYear(y)}
-              className="px-4 py-1.5 rounded-full text-sm font-bold border-none cursor-pointer transition-all"
-              style={{
-                background: year === y ? "linear-gradient(135deg, #ff2876, #a855f7)" : "rgba(255,255,255,0.07)",
-                color: year === y ? "#fff" : "rgba(255,255,255,0.5)",
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}
-            >
-              {y}
-            </button>
-          ))}
+          <WrappedSelect
+            ariaLabel="Wrapped period"
+            value={period}
+            options={WRAPPED_PERIODS}
+            onChange={setPeriod}
+          />
+          {period === "year" && (
+            <WrappedSelect
+              ariaLabel="Wrapped year"
+              value={year}
+              options={YEARS}
+              onChange={setYear}
+            />
+          )}
         </div>
 
         {!profile && (
@@ -511,7 +535,7 @@ export default function WrappedPage() {
                   {n(data.totalScrobbles)}
                 </p>
                 <p className="m-0 text-sm" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif" }}>
-                  {formatMinutes(data.totalListeningTimeMinutes)} of music in {year}
+                  {formatMinutes(data.totalListeningTimeMinutes)} of music in {scope}
                 </p>
               </div>
 
@@ -721,16 +745,18 @@ export default function WrappedPage() {
             )}
 
             {/* Monthly Activity */}
-            {data.scrobblesPerMonth.length > 0 && (
+            {hasActivity && (
               <Card>
-                <SectionLabel>Your {year} in Months</SectionLabel>
+                <SectionLabel>{activityTitle(period, year)}</SectionLabel>
                 <ResponsiveContainer width="100%" height={150}>
-                  <BarChart data={monthData} barSize={14}>
+                  <BarChart data={chartData} barSize={chartData.length > 14 ? undefined : 14}>
                     <XAxis
                       dataKey="label"
                       tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9, fontFamily: "'Syne', sans-serif" }}
                       axisLine={false}
                       tickLine={false}
+                      interval="preserveStartEnd"
+                      minTickGap={8}
                     />
                     <YAxis hide />
                     <Tooltip
@@ -748,10 +774,10 @@ export default function WrappedPage() {
                       formatter={(v: number) => [`${n(v)} plays`, ""]}
                     />
                     <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {monthData.map((entry, index) => (
+                      {chartData.map((entry, index) => (
                         <Cell
                           key={index}
-                          fill={entry.count === maxMonthCount ? "url(#barGradientMobile)" : "rgba(168,85,247,0.35)"}
+                          fill={entry.count === maxCount ? "url(#barGradientMobile)" : "rgba(168,85,247,0.35)"}
                         />
                       ))}
                     </Bar>
@@ -800,7 +826,7 @@ export default function WrappedPage() {
                     <Card>
                       <div className="flex items-center gap-2 mb-2">
                         <IconSparkles size={13} color="#f59e0b" />
-                        <SectionLabel>First scrobble of {year}</SectionLabel>
+                        <SectionLabel>First scrobble of {scope}</SectionLabel>
                       </div>
                       <p className="text-white font-bold truncate m-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {data.firstScrobble.trackTitle}
@@ -819,7 +845,7 @@ export default function WrappedPage() {
                     <Card>
                       <div className="flex items-center gap-2 mb-2">
                         <IconSparkles size={13} color="#a855f7" />
-                        <SectionLabel>Last scrobble of {year}</SectionLabel>
+                        <SectionLabel>Last scrobble of {scope}</SectionLabel>
                       </div>
                       <p className="text-white font-bold truncate m-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {data.lastScrobble.trackTitle}
@@ -844,16 +870,17 @@ export default function WrappedPage() {
               </p>
 
               {/* Preview */}
-              <div className="overflow-hidden rounded-xl mb-4" style={{ height: 216 }}>
-                <div style={{ transform: "scale(0.36)", transformOrigin: "top left", width: 600, height: 600 }}>
+              <div className="overflow-hidden rounded-xl mb-4 mx-auto" style={{ width: SHARE_CARD_WIDTH * 0.5, maxWidth: "100%", height: SHARE_CARD_HEIGHT * 0.5 }}>
+                <div style={{ transform: "scale(0.5)", transformOrigin: "top left", width: SHARE_CARD_WIDTH, height: SHARE_CARD_HEIGHT }}>
                   <ShareCard
-                    year={year}
+                    title={title}
                     handle={profile.handle}
                     displayName={profile.displayName || profile.handle}
                     avatar={profile.avatar}
                     totalScrobbles={data.totalScrobbles}
                     totalListeningTimeMinutes={data.totalListeningTimeMinutes}
                     topArtists={data.topArtists}
+                    topAlbums={data.topAlbums}
                     topTracks={data.topTracks}
                   />
                 </div>

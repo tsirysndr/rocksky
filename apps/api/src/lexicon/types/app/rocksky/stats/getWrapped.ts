@@ -14,6 +14,8 @@ export interface QueryParams {
   did: string;
   /** The year to get wrapped stats for (defaults to current year) */
   year?: number;
+  /** The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year. */
+  period?: "year" | "3months" | "month" | "2weeks" | "week" | (string & {});
 }
 
 export type InputSchema = undefined;

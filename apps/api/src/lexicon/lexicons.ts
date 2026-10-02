@@ -9081,6 +9081,21 @@ export const schemaDict = {
             type: "integer",
             description: "The year of the wrapped stats.",
           },
+          period: {
+            type: "string",
+            description: "The window the stats cover.",
+            knownValues: ["year", "3months", "month", "2weeks", "week"],
+          },
+          startDate: {
+            type: "string",
+            description: "Inclusive start of the window.",
+            format: "datetime",
+          },
+          endDate: {
+            type: "string",
+            description: "Exclusive end of the window.",
+            format: "datetime",
+          },
           totalScrobbles: {
             type: "integer",
             description: "Total scrobbles in the year.",
@@ -9109,7 +9124,7 @@ export const schemaDict = {
           },
           topAlbums: {
             type: "array",
-            description: "Top 5 albums by play count.",
+            description: "Top 6 albums by play count.",
             items: {
               type: "ref",
               ref: "lex:app.rocksky.stats.defs#wrappedAlbum",
@@ -9129,6 +9144,14 @@ export const schemaDict = {
             items: {
               type: "ref",
               ref: "lex:app.rocksky.stats.defs#wrappedMonthCount",
+            },
+          },
+          scrobblesPerDay: {
+            type: "array",
+            description: "Scrobble counts per day (UTC), only days with plays.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.stats.defs#wrappedDayCount",
             },
           },
           mostActiveDay: {
@@ -9221,7 +9244,8 @@ export const schemaDict = {
     defs: {
       main: {
         type: "query",
-        description: "Get a user's year-in-review Wrapped stats",
+        description:
+          "Get a user's Wrapped stats for a year or a recent rolling window",
         parameters: {
           type: "params",
           required: ["did"],
@@ -9236,6 +9260,12 @@ export const schemaDict = {
               description:
                 "The year to get wrapped stats for (defaults to current year)",
               minimum: 2000,
+            },
+            period: {
+              type: "string",
+              description:
+                "The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year.",
+              knownValues: ["year", "3months", "month", "2weeks", "week"],
             },
           },
         },

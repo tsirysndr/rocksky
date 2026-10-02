@@ -231,6 +231,12 @@ export function validateWrappedMilestone(v: unknown): ValidationResult {
 export interface WrappedView {
   /** The year of the wrapped stats. */
   year?: number;
+  /** The window the stats cover. */
+  period?: "year" | "3months" | "month" | "2weeks" | "week" | (string & {});
+  /** Inclusive start of the window. */
+  startDate?: string;
+  /** Exclusive end of the window. */
+  endDate?: string;
   /** Total scrobbles in the year. */
   totalScrobbles?: number;
   /** Total listening time in minutes. */
@@ -239,12 +245,14 @@ export interface WrappedView {
   topArtists?: WrappedArtist[];
   /** Top 5 tracks by play count. */
   topTracks?: WrappedTrack[];
-  /** Top 5 albums by play count. */
+  /** Top 6 albums by play count. */
   topAlbums?: WrappedAlbum[];
   /** Top genres by play count. */
   topGenres?: WrappedGenreCount[];
   /** Scrobble counts per month. */
   scrobblesPerMonth?: WrappedMonthCount[];
+  /** Scrobble counts per day (UTC), only days with plays. */
+  scrobblesPerDay?: WrappedDayCount[];
   mostActiveDay?: WrappedDayCount;
   /** The most active hour of the day (0-23). */
   mostActiveHour?: number;

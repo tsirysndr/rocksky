@@ -1508,6 +1508,8 @@ type GetWrappedParams struct {
 	DID string `json:"did,omitempty"`
 	// The year to get wrapped stats for (defaults to current year)
 	Year int `json:"year,omitempty"`
+	// The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year.
+	Period string `json:"period,omitempty"`
 }
 
 type GoogledriveDownloadFileParams struct {
@@ -2787,6 +2789,12 @@ type StatsWrappedTrack struct {
 type StatsWrappedView struct {
 	// The year of the wrapped stats.
 	Year int `json:"year,omitempty"`
+	// The window the stats cover.
+	Period string `json:"period,omitempty"`
+	// Inclusive start of the window.
+	StartDate string `json:"startDate,omitempty"`
+	// Exclusive end of the window.
+	EndDate string `json:"endDate,omitempty"`
 	// Total scrobbles in the year.
 	TotalScrobbles int `json:"totalScrobbles,omitempty"`
 	// Total listening time in minutes.
@@ -2795,12 +2803,14 @@ type StatsWrappedView struct {
 	TopArtists []StatsWrappedArtist `json:"topArtists,omitempty"`
 	// Top 5 tracks by play count.
 	TopTracks []StatsWrappedTrack `json:"topTracks,omitempty"`
-	// Top 5 albums by play count.
+	// Top 6 albums by play count.
 	TopAlbums []StatsWrappedAlbum `json:"topAlbums,omitempty"`
 	// Top genres by play count.
 	TopGenres []StatsWrappedGenreCount `json:"topGenres,omitempty"`
 	// Scrobble counts per month.
 	ScrobblesPerMonth []StatsWrappedMonthCount `json:"scrobblesPerMonth,omitempty"`
+	// Scrobble counts per day (UTC), only days with plays.
+	ScrobblesPerDay []StatsWrappedDayCount `json:"scrobblesPerDay,omitempty"`
 	// The most active day of the year.
 	MostActiveDay *StatsWrappedDayCount `json:"mostActiveDay,omitempty"`
 	// The most active hour of the day (0-23).

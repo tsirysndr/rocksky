@@ -4,7 +4,7 @@
   "defs": {
     "main": {
       "type": "query",
-      "description": "Get a user's year-in-review Wrapped stats",
+      "description": "Get a user's Wrapped stats for a year or a recent rolling window",
       "parameters": {
         "type": "params",
         "required": [
@@ -20,6 +20,17 @@
             "type": "integer",
             "description": "The year to get wrapped stats for (defaults to current year)",
             "minimum": 2000
+          },
+          "period": {
+            "type": "string",
+            "description": "The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year.",
+            "knownValues": [
+              "year",
+              "3months",
+              "month",
+              "2weeks",
+              "week"
+            ]
           }
         }
       },
