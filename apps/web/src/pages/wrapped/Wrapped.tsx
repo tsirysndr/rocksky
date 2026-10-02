@@ -312,9 +312,7 @@ function ShareCard({
             fontWeight: 900,
             margin: 0,
             lineHeight: 1,
-            background: "linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
+            color: "var(--color-text)",
           }}>
             {numberWithCommas(totalScrobbles)}
           </p>

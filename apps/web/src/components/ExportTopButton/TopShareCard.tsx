@@ -78,9 +78,7 @@ const Title = styled.p`
   font-size: 36px;
   font-weight: 900;
   line-height: 1.1;
-  background: linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--share-fg);
 `;
 
 const Range = styled.p`

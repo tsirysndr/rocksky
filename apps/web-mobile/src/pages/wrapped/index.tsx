@@ -188,7 +188,7 @@ function ShareCard({
           <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "'Syne', sans-serif" }}>
             Total Scrobbles
           </p>
-          <p style={{ fontSize: 64, fontWeight: 900, margin: 0, lineHeight: 1, background: "linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <p style={{ fontSize: 64, fontWeight: 900, margin: 0, lineHeight: 1, color: "#fff" }}>
             {n(totalScrobbles)}
           </p>
           <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, margin: "6px 0 0", fontFamily: "'Syne', sans-serif" }}>
