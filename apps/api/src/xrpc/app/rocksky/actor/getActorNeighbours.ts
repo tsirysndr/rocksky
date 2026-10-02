@@ -1,19 +1,19 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { eq, or, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { eq, or } from "drizzle-orm";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { NeighbourViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorNeighbours";
 import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import tables from "schema";
+import { queryCache } from "lib/queryCache";
+import { neighboursQuery } from "./neighboursQuery";
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 100,
-    timeToLive: Duration.minutes(10),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -21,12 +21,13 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "10 minutes",
+    100,
+  );
 
   const getActorNeighbours = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ neighbours: [] });
@@ -86,60 +87,7 @@ const retrieve = ({
 
     // user_artists_mv holds distinct (user, artist) pairs with play counts
     // (0024_user_artists_mv.sql), refreshed periodically by server.ts.
-    const result = await db.execute(sql`
-        WITH target AS (
-          SELECT artist_id
-          FROM user_artists_mv
-          WHERE user_id = ${user.id}
-        ),
-        neighbours AS (
-          SELECT ua.user_id, count(*)::int AS shared_count
-          FROM user_artists_mv ua
-          JOIN target t ON t.artist_id = ua.artist_id
-          WHERE ua.user_id <> ${user.id}
-          GROUP BY ua.user_id
-          ORDER BY shared_count DESC
-          LIMIT 50
-        ),
-        top_shared AS (
-          SELECT
-            ua.user_id,
-            ua.artist_id,
-            row_number() OVER (
-              PARTITION BY ua.user_id
-              ORDER BY ua.play_count DESC
-            ) AS rn
-          FROM user_artists_mv ua
-          JOIN neighbours n ON n.user_id = ua.user_id
-          JOIN target t ON t.artist_id = ua.artist_id
-        )
-        SELECT
-          n.user_id,
-          n.shared_count,
-          u.did,
-          u.handle,
-          u.display_name,
-          u.avatar,
-          (SELECT count(*)::int FROM target) AS target_artist_count,
-          coalesce(
-            json_agg(
-              json_build_object(
-                'id', a.xata_id,
-                'name', a.name,
-                'picture', a.picture,
-                'uri', a.uri
-              )
-              ORDER BY ts.rn
-            ) FILTER (WHERE a.xata_id IS NOT NULL),
-            '[]'
-          ) AS top_artists
-        FROM neighbours n
-        JOIN users u ON u.xata_id = n.user_id
-        LEFT JOIN top_shared ts ON ts.user_id = n.user_id AND ts.rn <= 5
-        LEFT JOIN artists a ON a.xata_id = ts.artist_id
-        GROUP BY n.user_id, n.shared_count, u.did, u.handle, u.display_name, u.avatar
-        ORDER BY n.shared_count DESC
-      `);
+    const result = await db.execute(neighboursQuery(user.id));
 
     const rows = result.rows as NeighbourRow[];
 

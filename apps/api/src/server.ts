@@ -37,6 +37,14 @@ cron.schedule("*/30 * * * *", async () => {
     ]) {
       try {
         await client.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`);
+        if (view === "user_artists_mv") {
+          // A concurrent refresh clears visibility bits on changed pages.
+          // Restore index-only neighbour lookups instead of fetching thousands
+          // of heap tuples until autovacuum eventually catches up.
+          await client.query(
+            "VACUUM (ANALYZE, TRUNCATE FALSE) user_artists_mv",
+          );
+        }
       } catch (err) {
         consola.error(`Failed to refresh ${view}:`, err);
       }
