@@ -19,16 +19,25 @@ import type { QueryParams } from "lexicon/types/app/rocksky/charts/getTopArtists
 import { deepCamelCaseKeys } from "lib";
 import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
+  const cached = queryCache(
+    (params: QueryParams) =>
+      pipe(
+        { params, ctx },
+        retrieve,
+        Effect.flatMap(presentation),
+        Effect.retry(transientDbRetry),
+        Effect.timeout("120 seconds"),
+      ),
+    "2 minutes",
+  );
+
   const getTopArtists = (params: QueryParams) =>
     pipe(
-      { params, ctx },
-      retrieve,
-      Effect.flatMap(presentation),
-      Effect.retry(transientDbRetry),
-      Effect.timeout("120 seconds"),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ artists: [] });
@@ -85,36 +94,56 @@ const retrieve = ({
       dateConditions.push(eq(tables.scrobbles.userId, user.id));
     }
 
-    // A one-listener chart can't rank by unique listeners.
-    const ranking = params.did
-      ? desc(sql`count(${tables.scrobbles.id})`)
-      : desc(sql`count(DISTINCT ${tables.scrobbles.userId})`);
-
-    const topArtistsQuery = db
+    // Group before the metadata join so counts can use index-only scans.
+    const artistCounts = db
       .select({
         artistId: tables.scrobbles.artistId,
-        scrobbles: count(tables.scrobbles.id).as("scrobbles"),
+        scrobbles: count().as("scrobbles"),
         uniqueListeners:
           sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
             "unique_listeners",
           ),
       })
       .from(tables.scrobbles)
-      .leftJoin(
-        tables.artists,
-        sql`${tables.scrobbles.artistId} = ${tables.artists.id}`,
-      )
-      .where(
-        dateConditions.length > 0
-          ? and(...dateConditions, ne(tables.artists.name, "Various Artists"))
-          : ne(tables.artists.name, "Various Artists"),
-      )
+      .where(and(...dateConditions))
       .groupBy(tables.scrobbles.artistId)
-      .orderBy(ranking)
+      .as("artist_counts");
+    const topArtistsQuery = db
+      .select({
+        artistId: artistCounts.artistId,
+        scrobbles: artistCounts.scrobbles,
+        uniqueListeners: artistCounts.uniqueListeners,
+      })
+      .from(artistCounts)
+      .innerJoin(tables.artists, eq(artistCounts.artistId, tables.artists.id))
+      .where(ne(tables.artists.name, "Various Artists"))
+      .orderBy(
+        desc(
+          params.did ? artistCounts.scrobbles : artistCounts.uniqueListeners,
+        ),
+        artistCounts.artistId,
+      )
       .limit(limit)
       .offset(offset);
 
-    const topArtistsData = await topArtistsQuery.execute();
+    const topArtistsData =
+      !params.did && !params.startDate && !params.endDate
+        ? ((
+            await db.execute(sql`
+          SELECT c.artist_id AS "artistId", c.scrobbles,
+            c.unique_listeners AS "uniqueListeners"
+          FROM chart_artists_mv c
+          JOIN ${tables.artists} a ON a.xata_id = c.artist_id
+          WHERE a.name != 'Various Artists'
+          ORDER BY c.unique_listeners DESC, c.artist_id
+          LIMIT ${limit} OFFSET ${offset}
+        `)
+          ).rows as Array<{
+            artistId: string;
+            scrobbles: number;
+            uniqueListeners: number;
+          }>)
+        : await topArtistsQuery.execute();
     consola.info(`Found ${topArtistsData.length} top artists`);
 
     if (topArtistsData.length === 0) {

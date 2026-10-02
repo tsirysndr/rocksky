@@ -1,41 +1,33 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import {
-  and,
-  count,
-  desc,
-  eq,
-  gte,
-  inArray,
-  lt,
-  ne,
-  or,
-  sql,
-} from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { and, desc, eq, gte, inArray, lt, or } from "drizzle-orm";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { WrappedView } from "lexicon/types/app/rocksky/stats/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/stats/getWrapped";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
+import { wrappedSummaryQuery, type WrappedSummary } from "./wrappedQuery";
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 100,
-    timeToLive: Duration.minutes(30),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "30 minutes",
+  );
 
   const getWrapped = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached({
+        did: params.did,
+        year: params.year ?? new Date().getFullYear(),
+      }),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed(
@@ -91,216 +83,53 @@ const retrieve = ({
         ...dateConditions,
       );
 
-      const [
-        totalScrobblesRow,
-        totalTimeRow,
-        topTrackIds,
-        topArtistIds,
-        topAlbumIds,
-        topGenresRows,
-        mostActiveDayRow,
-        mostActiveHourRow,
-        scrobblesPerMonthRows,
-        firstScrobbleRow,
-        lastScrobbleRow,
-        allDailyRows,
-        newArtistRows,
-      ] = await Promise.all([
-        // Total scrobbles
-        ctx.readDb
-          .select({ n: count() })
-          .from(tables.scrobbles)
-          .where(userAndDate)
-          .execute(),
+      const [summaryResult, firstScrobbleRow, lastScrobbleRow] =
+        await Promise.all([
+          ctx.readDb.execute(wrappedSummaryQuery(user.id, startDate, endDate)),
+          // First scrobble of year
+          ctx.readDb
+            .select({
+              trackTitle: tables.tracks.title,
+              artistName: tables.tracks.artist,
+              timestamp: tables.scrobbles.timestamp,
+              trackUri: tables.tracks.uri,
+            })
+            .from(tables.scrobbles)
+            .innerJoin(
+              tables.tracks,
+              eq(tables.scrobbles.trackId, tables.tracks.id),
+            )
+            .where(userAndDate)
+            .orderBy(tables.scrobbles.timestamp)
+            .limit(1)
+            .execute(),
 
-        // Total listening time (sum of track durations)
-        ctx.readDb
-          .select({
-            total: sql<number>`COALESCE(SUM(${tables.tracks.duration}), 0)`,
-          })
-          .from(tables.scrobbles)
-          .innerJoin(
-            tables.tracks,
-            eq(tables.scrobbles.trackId, tables.tracks.id),
-          )
-          .where(userAndDate)
-          .execute(),
-
-        // Top 5 track IDs by play count
-        ctx.readDb
-          .select({
-            trackId: tables.scrobbles.trackId,
-            playCount: count(tables.scrobbles.id).as("play_count"),
-          })
-          .from(tables.scrobbles)
-          .where(userAndDate)
-          .groupBy(tables.scrobbles.trackId)
-          .orderBy(desc(sql`count(${tables.scrobbles.id})`))
-          .limit(5)
-          .execute(),
-
-        // Top 5 artist IDs by play count (excluding Various Artists)
-        ctx.readDb
-          .select({
-            artistId: tables.scrobbles.artistId,
-            playCount: count(tables.scrobbles.id).as("play_count"),
-          })
-          .from(tables.scrobbles)
-          .innerJoin(
-            tables.artists,
-            eq(tables.scrobbles.artistId, tables.artists.id),
-          )
-          .where(and(userAndDate, ne(tables.artists.name, "Various Artists")))
-          .groupBy(tables.scrobbles.artistId)
-          .orderBy(desc(sql`count(${tables.scrobbles.id})`))
-          .limit(5)
-          .execute(),
-
-        // Top 5 album IDs by play count
-        ctx.readDb
-          .select({
-            albumId: tables.scrobbles.albumId,
-            playCount: count(tables.scrobbles.id).as("play_count"),
-          })
-          .from(tables.scrobbles)
-          .where(and(userAndDate, sql`${tables.scrobbles.albumId} IS NOT NULL`))
-          .groupBy(tables.scrobbles.albumId)
-          .orderBy(desc(sql`count(${tables.scrobbles.id})`))
-          .limit(5)
-          .execute(),
-
-        // Top genres from artist genres array (unnested)
-        ctx.readDb.execute(
-          sql`
-            SELECT genre, COUNT(*) AS genre_count
-            FROM (
-              SELECT unnest(${tables.artists.genres}) AS genre
-              FROM ${tables.scrobbles}
-              INNER JOIN ${tables.artists} ON ${tables.artists.id} = ${tables.scrobbles.artistId}
-              WHERE ${tables.scrobbles.userId} = ${user.id}
-                AND ${tables.scrobbles.timestamp} >= ${startDate.toISOString()}
-                AND ${tables.scrobbles.timestamp} < ${endDate.toISOString()}
-                AND ${tables.artists.name} != 'Various Artists'
-            ) expanded
-            WHERE genre IS NOT NULL AND genre != ''
-            GROUP BY genre
-            ORDER BY genre_count DESC
-            LIMIT 5
-          `,
-        ),
-
-        // Most active day
-        ctx.readDb
-          .select({
-            date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
-            dayCount: count(tables.scrobbles.id).as("day_count"),
-          })
-          .from(tables.scrobbles)
-          .where(userAndDate)
-          .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)
-          .orderBy(desc(sql`count(${tables.scrobbles.id})`))
-          .limit(1)
-          .execute(),
-
-        // Most active hour
-        ctx.readDb
-          .select({
-            hour: sql<number>`EXTRACT(HOUR FROM ${tables.scrobbles.timestamp})`,
-            hourCount: count(tables.scrobbles.id).as("hour_count"),
-          })
-          .from(tables.scrobbles)
-          .where(userAndDate)
-          .groupBy(sql`EXTRACT(HOUR FROM ${tables.scrobbles.timestamp})`)
-          .orderBy(desc(sql`count(${tables.scrobbles.id})`))
-          .limit(1)
-          .execute(),
-
-        // Scrobbles per month
-        ctx.readDb
-          .select({
-            month: sql<number>`EXTRACT(MONTH FROM ${tables.scrobbles.timestamp})`,
-            monthCount: count(tables.scrobbles.id).as("month_count"),
-          })
-          .from(tables.scrobbles)
-          .where(userAndDate)
-          .groupBy(sql`EXTRACT(MONTH FROM ${tables.scrobbles.timestamp})`)
-          .orderBy(sql`EXTRACT(MONTH FROM ${tables.scrobbles.timestamp})`)
-          .execute(),
-
-        // First scrobble of year
-        ctx.readDb
-          .select({
-            trackTitle: tables.tracks.title,
-            artistName: tables.tracks.artist,
-            timestamp: tables.scrobbles.timestamp,
-            trackUri: tables.tracks.uri,
-          })
-          .from(tables.scrobbles)
-          .innerJoin(
-            tables.tracks,
-            eq(tables.scrobbles.trackId, tables.tracks.id),
-          )
-          .where(userAndDate)
-          .orderBy(tables.scrobbles.timestamp)
-          .limit(1)
-          .execute(),
-
-        // Last scrobble of year
-        ctx.readDb
-          .select({
-            trackTitle: tables.tracks.title,
-            artistName: tables.tracks.artist,
-            timestamp: tables.scrobbles.timestamp,
-            trackUri: tables.tracks.uri,
-          })
-          .from(tables.scrobbles)
-          .innerJoin(
-            tables.tracks,
-            eq(tables.scrobbles.trackId, tables.tracks.id),
-          )
-          .where(userAndDate)
-          .orderBy(desc(tables.scrobbles.timestamp))
-          .limit(1)
-          .execute(),
-
-        // All scrobbled days (for streak calculation)
-        ctx.readDb
-          .select({
-            date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
-          })
-          .from(tables.scrobbles)
-          .where(userAndDate)
-          .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)
-          .orderBy(sql`DATE(${tables.scrobbles.timestamp})`)
-          .execute(),
-
-        // New artists: artists whose earliest scrobble by this user is within this year
-        ctx.readDb
-          .select({
-            n: sql<number>`count(distinct artist_id)`,
-          })
-          .from(
-            ctx.readDb
-              .select({
-                artistId: tables.scrobbles.artistId,
-                firstScrobble:
-                  sql<string>`MIN(${tables.scrobbles.timestamp})`.as(
-                    "first_scrobble",
-                  ),
-              })
-              .from(tables.scrobbles)
-              .where(eq(tables.scrobbles.userId, user.id))
-              .groupBy(tables.scrobbles.artistId)
-              .as("artist_first"),
-          )
-          .where(
-            and(
-              sql`first_scrobble >= ${startDate.toISOString()}`,
-              sql`first_scrobble < ${endDate.toISOString()}`,
-            ),
-          )
-          .execute(),
-      ]);
+          // Last scrobble of year
+          ctx.readDb
+            .select({
+              trackTitle: tables.tracks.title,
+              artistName: tables.tracks.artist,
+              timestamp: tables.scrobbles.timestamp,
+              trackUri: tables.tracks.uri,
+            })
+            .from(tables.scrobbles)
+            .innerJoin(
+              tables.tracks,
+              eq(tables.scrobbles.trackId, tables.tracks.id),
+            )
+            .where(userAndDate)
+            .orderBy(desc(tables.scrobbles.timestamp))
+            .limit(1)
+            .execute(),
+        ]);
+      const summary = summaryResult.rows[0] as unknown as WrappedSummary;
+      const { topTrackIds, topArtistIds, topAlbumIds } = summary;
+      const allDailyRows = summary.daily;
+      const mostActiveDayRow = [...allDailyRows]
+        .sort((a, b) => b.dayCount - a.dayCount)
+        .slice(0, 1);
+      const mostActiveHourRow = summary.hours;
+      const scrobblesPerMonthRows = summary.months;
 
       // Fetch track, artist, album details
       const trackIds = topTrackIds
@@ -368,9 +197,9 @@ const retrieve = ({
 
       return {
         year,
-        totalScrobbles: Number(totalScrobblesRow[0]?.n ?? 0),
+        totalScrobbles: Number(summary.totalScrobbles),
         totalListeningTimeMinutes: Math.floor(
-          Number(totalTimeRow[0]?.total ?? 0) / 60_000,
+          Number(summary.totalTime) / 60_000,
         ),
         topTracks: topTrackIds
           .map((item) => {
@@ -415,11 +244,7 @@ const retrieve = ({
             };
           })
           .filter(Boolean) as WrappedView["topAlbums"],
-        topGenres: (
-          topGenresRows as {
-            rows: Array<{ genre: string; genre_count: string }>;
-          }
-        ).rows
+        topGenres: summary.topGenres
           .filter((r) => r.genre)
           .map((r) => ({ genre: r.genre, count: Number(r.genre_count) })),
         mostActiveDay: mostActiveDayRow[0]
@@ -431,7 +256,7 @@ const retrieve = ({
         mostActiveHour: mostActiveHourRow[0]
           ? Number(mostActiveHourRow[0].hour)
           : undefined,
-        newArtistsCount: Number(newArtistRows[0]?.n ?? 0),
+        newArtistsCount: Number(summary.newArtistsCount),
         scrobblesPerMonth: scrobblesPerMonthRows.map((r) => ({
           month: Number(r.month),
           count: Number(r.monthCount),

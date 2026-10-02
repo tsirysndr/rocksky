@@ -8,16 +8,25 @@ import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { deepCamelCaseKeys } from "lib";
 import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
+  const cached = queryCache(
+    (params: QueryParams) =>
+      pipe(
+        { params, ctx },
+        retrieve,
+        Effect.flatMap(presentation),
+        Effect.retry(transientDbRetry),
+        Effect.timeout("120 seconds"),
+      ),
+    "2 minutes",
+  );
+
   const getTopTracks = (params: QueryParams) =>
     pipe(
-      { params, ctx },
-      retrieve,
-      Effect.flatMap(presentation),
-      Effect.retry(transientDbRetry),
-      Effect.timeout("120 seconds"),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ tracks: [] });
@@ -76,13 +85,13 @@ const retrieve = ({
 
     // A one-listener chart can't rank by unique listeners.
     const ranking = params.did
-      ? desc(sql`count(${tables.scrobbles.id})`)
+      ? desc(sql`count(*)`)
       : desc(sql`count(DISTINCT ${tables.scrobbles.userId})`);
 
     const topTracksQuery = db
       .select({
         trackId: tables.scrobbles.trackId,
-        scrobbles: count(tables.scrobbles.id).as("scrobbles"),
+        scrobbles: count().as("scrobbles"),
         uniqueListeners:
           sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
             "unique_listeners",
@@ -91,11 +100,25 @@ const retrieve = ({
       .from(tables.scrobbles)
       .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
       .groupBy(tables.scrobbles.trackId)
-      .orderBy(ranking)
+      .orderBy(ranking, tables.scrobbles.trackId)
       .limit(limit)
       .offset(offset);
 
-    const topTracksData = await topTracksQuery.execute();
+    const topTracksData =
+      !params.did && !params.startDate && !params.endDate
+        ? ((
+            await db.execute(sql`
+          SELECT track_id AS "trackId", scrobbles, unique_listeners AS "uniqueListeners"
+          FROM chart_tracks_mv
+          ORDER BY unique_listeners DESC, track_id
+          LIMIT ${limit} OFFSET ${offset}
+        `)
+          ).rows as Array<{
+            trackId: string | null;
+            scrobbles: number;
+            uniqueListeners: number;
+          }>)
+        : await topTracksQuery.execute();
     consola.info(`Found ${topTracksData.length} top tracks`);
 
     if (topTracksData.length === 0) {

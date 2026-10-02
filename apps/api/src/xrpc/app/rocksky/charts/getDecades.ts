@@ -7,6 +7,7 @@ import type { DecadeViewBasic } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getDecades";
 import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 // Anything outside this is a bad tag rather than a real release date, and one
@@ -14,13 +15,21 @@ import tables from "schema";
 const FIRST_YEAR = 1900;
 
 export default function (server: Server, ctx: Context) {
+  const cached = queryCache(
+    (params: QueryParams) =>
+      pipe(
+        { params, ctx },
+        retrieve,
+        Effect.flatMap(presentation),
+        Effect.retry(transientDbRetry),
+        Effect.timeout("120 seconds"),
+      ),
+    "2 minutes",
+  );
+
   const getDecades = (params: QueryParams) =>
     pipe(
-      { params, ctx },
-      retrieve,
-      Effect.flatMap(presentation),
-      Effect.retry(transientDbRetry),
-      Effect.timeout("120 seconds"),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ decades: [] });
@@ -87,7 +96,7 @@ const retrieve = ({
     const rows = await db
       .select({
         decade: decade.as("decade"),
-        scrobbles: count(tables.scrobbles.id).as("scrobbles"),
+        scrobbles: count().as("scrobbles"),
         uniqueAlbums:
           sql<number>`count(DISTINCT ${tables.scrobbles.albumId})`.as(
             "unique_albums",

@@ -1,19 +1,18 @@
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorAlbums";
 import type { AlbumViewBasic } from "lexicon/types/app/rocksky/album/defs";
 import { deepCamelCaseKeys } from "lib";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 200,
-    timeToLive: Duration.minutes(2),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -21,12 +20,12 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "2 minutes",
+  );
 
   const getActorAlbums = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ albums: [] });
@@ -86,7 +85,7 @@ const retrieve = ({
       const topAlbumsQuery = await ctx.readDb
         .select({
           albumId: tables.scrobbles.albumId,
-          play_count: count(tables.scrobbles.id).as("play_count"),
+          play_count: count().as("play_count"),
         })
         .from(tables.scrobbles)
         .where(
@@ -96,7 +95,7 @@ const retrieve = ({
           ),
         )
         .groupBy(tables.scrobbles.albumId)
-        .orderBy(desc(sql`count(${tables.scrobbles.id})`))
+        .orderBy(desc(sql`count(*)`), tables.scrobbles.albumId)
         .limit(limit)
         .offset(offset)
         .execute();

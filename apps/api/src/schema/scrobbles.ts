@@ -28,14 +28,32 @@ const scrobbles = pgTable(
   },
   (t) => [
     index("scrobbles_user_id_timestamp_idx").on(t.userId, t.timestamp),
+    // Covers yearly wrapped aggregates without fetching each scrobble's heap row.
+    index("scrobbles_wrapped_idx").on(
+      t.userId,
+      t.timestamp,
+      t.artistId,
+      t.albumId,
+      t.trackId,
+    ),
     index("scrobbles_artist_id_idx").on(t.artistId),
     index("scrobbles_album_id_idx").on(t.albumId),
     index("scrobbles_track_id_idx").on(t.trackId),
     index("scrobbles_timestamp_idx").on(t.timestamp),
+    index("scrobbles_chart_range_idx").on(
+      t.timestamp,
+      t.artistId,
+      t.trackId,
+      t.userId,
+    ),
+    index("scrobbles_album_listeners_idx").on(t.albumId, t.timestamp, t.userId),
     // Lets a genre feed (see apps/feeds/src/algos) walk one artist's
     // scrobbles pre-sorted by time instead of resorting the whole filtered
     // set. Paired with the GIN index on artists.genres (0029).
-    index("scrobbles_artist_id_timestamp_idx").on(t.artistId, t.timestamp.desc()),
+    index("scrobbles_artist_id_timestamp_idx").on(
+      t.artistId,
+      t.timestamp.desc(),
+    ),
     // Covers the artist's popular-tracks ranking — count(*) and
     // count(distinct user_id) grouped by track, for one artist — as an
     // index-only scan (0031).

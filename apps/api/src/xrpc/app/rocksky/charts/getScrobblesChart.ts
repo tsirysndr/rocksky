@@ -1,20 +1,19 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, between, count, eq, or, sql } from "drizzle-orm";
+import { and, count, eq, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getScrobblesChart";
 import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const getScrobblesCache = Cache.make({
-    capacity: 100,
-    timeToLive: Duration.seconds(30),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -22,12 +21,12 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "30 seconds",
+  );
 
   const getScrobblesChart = (params: QueryParams) =>
     pipe(
-      getScrobblesCache,
-      Effect.flatMap((cache) => cache.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ scrobbles: [] });
@@ -58,21 +57,21 @@ const defaultDateRange = (params: QueryParams) => {
 };
 
 const scrobblesPerDay = (
-  ctx: Context,
+  db: NodePgDatabase,
   condition: any,
   from: string,
   to: string,
 ) =>
-  ctx.readDb
+  db
     .select({
       date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
-      count: count(tables.scrobbles.id),
+      count: count(),
     })
     .from(tables.scrobbles)
     .where(
       and(
         condition,
-        between(sql`DATE(${tables.scrobbles.timestamp})`, from, to),
+        sql`${tables.scrobbles.timestamp} >= ${from}::date AND ${tables.scrobbles.timestamp} < ${to}::date + INTERVAL '1 day'`,
       ),
     )
     .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)
@@ -103,7 +102,7 @@ const retrieve = ({
         .then((rows) => rows[0]);
       if (!user) return { data: [] };
       const data = await scrobblesPerDay(
-        ctx,
+        db,
         eq(tables.scrobbles.userId, user.id),
         from,
         to,
@@ -120,7 +119,7 @@ const retrieve = ({
         .then((rows) => rows[0]);
       if (!artist) return { data: [] };
       const data = await scrobblesPerDay(
-        ctx,
+        db,
         eq(tables.scrobbles.artistId, artist.id),
         from,
         to,
@@ -137,7 +136,7 @@ const retrieve = ({
         .then((rows) => rows[0]);
       if (!album) return { data: [] };
       const data = await scrobblesPerDay(
-        ctx,
+        db,
         eq(tables.scrobbles.albumId, album.id),
         from,
         to,
@@ -166,7 +165,7 @@ const retrieve = ({
 
       if (!trackId) return { data: [] };
       const data = await scrobblesPerDay(
-        ctx,
+        db,
         eq(tables.scrobbles.trackId, trackId),
         from,
         to,
@@ -178,7 +177,7 @@ const retrieve = ({
       const data = await db
         .select({
           date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
-          count: count(tables.scrobbles.id),
+          count: count(),
         })
         .from(tables.scrobbles)
         .innerJoin(
@@ -188,7 +187,7 @@ const retrieve = ({
         .where(
           and(
             eq(tables.tracks.genre, params.genre),
-            between(sql`DATE(${tables.scrobbles.timestamp})`, from, to),
+            sql`${tables.scrobbles.timestamp} >= ${from}::date AND ${tables.scrobbles.timestamp} < ${to}::date + INTERVAL '1 day'`,
           ),
         )
         .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)

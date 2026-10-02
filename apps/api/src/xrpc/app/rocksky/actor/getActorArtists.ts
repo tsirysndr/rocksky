@@ -12,19 +12,18 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorArtists";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import { deepCamelCaseKeys } from "lib";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 200,
-    timeToLive: Duration.minutes(2),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -32,12 +31,12 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "2 minutes",
+  );
 
   const getActorArtists = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ artists: [] });
@@ -93,25 +92,25 @@ const retrieve = ({
         );
       }
 
-      const topArtistsQuery = await ctx.readDb
+      // Count from the covering index before joining artist metadata.
+      const artistCounts = ctx.readDb
         .select({
           artistId: tables.scrobbles.artistId,
-          play_count: count(tables.scrobbles.id).as("play_count"),
+          play_count: count().as("play_count"),
         })
         .from(tables.scrobbles)
-        .innerJoin(
-          tables.artists,
-          eq(tables.scrobbles.artistId, tables.artists.id),
-        )
-        .where(
-          and(
-            eq(tables.scrobbles.userId, user.id),
-            ne(tables.artists.name, "Various Artists"),
-            ...(dateConditions.length > 0 ? dateConditions : []),
-          ),
-        )
+        .where(and(eq(tables.scrobbles.userId, user.id), ...dateConditions))
         .groupBy(tables.scrobbles.artistId)
-        .orderBy(desc(sql`count(${tables.scrobbles.id})`))
+        .as("artist_counts");
+      const topArtistsQuery = await ctx.readDb
+        .select({
+          artistId: artistCounts.artistId,
+          play_count: artistCounts.play_count,
+        })
+        .from(artistCounts)
+        .innerJoin(tables.artists, eq(artistCounts.artistId, tables.artists.id))
+        .where(ne(tables.artists.name, "Various Artists"))
+        .orderBy(desc(artistCounts.play_count), artistCounts.artistId)
         .limit(limit)
         .offset(offset)
         .execute();

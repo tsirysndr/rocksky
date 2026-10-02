@@ -4,6 +4,11 @@
 // declares what the test files import.
 declare module "bun:test" {
   export function describe(label: string, fn: () => void): void;
+  export namespace describe {
+    function skipIf(condition: boolean): typeof describe;
+  }
+  export function beforeAll(fn: () => void | Promise<void>): void;
+  export function afterAll(fn: () => void | Promise<void>): void;
   export function it(label: string, fn: () => void | Promise<void>): void;
   export function test(label: string, fn: () => void | Promise<void>): void;
   export interface Matchers {
@@ -11,6 +16,7 @@ declare module "bun:test" {
     toEqual(expected: unknown): void;
     toContain(expected: unknown): void;
     toHaveLength(expected: number): void;
+    toMatchObject(expected: unknown): void;
     toThrow(expected?: unknown): void;
   }
   export function expect(actual: unknown): Matchers;

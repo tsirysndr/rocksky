@@ -32,6 +32,8 @@ cron.schedule("*/30 * * * *", async () => {
       "top_scrobblers_mv",
       "scrobbles_per_day_mv",
       "user_hour_scrobbles_mv",
+      "chart_artists_mv",
+      "chart_tracks_mv",
     ]) {
       try {
         await client.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`);
