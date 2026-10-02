@@ -1414,6 +1414,24 @@ h3 {
 .site-footer nav a:hover {
   color: #fff;
 }
+.footer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--soft);
+}
+.footer-status:hover {
+  color: #fff;
+}
+.footer-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px #22c55e33;
+}
 .footer-note {
   display: block;
   width: 100%;

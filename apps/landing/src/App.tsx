@@ -1298,6 +1298,15 @@ function LandingPage() {
         <div>
           <Brand />
           <p>Music scrobbling on AT Protocol.</p>
+          <a
+            className="footer-status"
+            href="https://status.rocksky.app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="footer-status-dot" aria-hidden="true" />
+            All systems operational
+          </a>
         </div>
         <nav aria-label="Footer navigation">
           <a
