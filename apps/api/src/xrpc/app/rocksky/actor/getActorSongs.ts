@@ -1,19 +1,18 @@
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorSongs";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { deepCamelCaseKeys } from "lib";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 200,
-    timeToLive: Duration.minutes(2),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -21,12 +20,12 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "2 minutes",
+  );
 
   const getActorSongs = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ tracks: [] });
@@ -85,7 +84,7 @@ const retrieve = ({
       const topTracksQuery = await ctx.readDb
         .select({
           trackId: tables.scrobbles.trackId,
-          play_count: count(tables.scrobbles.id).as("play_count"),
+          play_count: count().as("play_count"),
         })
         .from(tables.scrobbles)
         .where(
@@ -95,7 +94,7 @@ const retrieve = ({
           ),
         )
         .groupBy(tables.scrobbles.trackId)
-        .orderBy(desc(sql`count(${tables.scrobbles.id})`))
+        .orderBy(desc(sql`count(*)`), tables.scrobbles.trackId)
         .limit(limit)
         .offset(offset)
         .execute();
