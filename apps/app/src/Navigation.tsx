@@ -1,128 +1,62 @@
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { BottomTabBar, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import {
+  BottomTabBar,
+  type BottomTabBarProps,
+  createBottomTabNavigator,
+} from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useAtomValue } from "jotai";
+import type { ComponentType } from "react";
 import { View } from "react-native";
-import { profileAtom } from "./atoms/profile";
-import { colors } from "./theme";
 import MiniPlayer from "./components/MiniPlayer";
+import { useUnreadCountQuery } from "./hooks/useNotifications";
 import AlbumDetails from "./screens/AlbumDetails";
 import ArtistDetails from "./screens/ArtistDetails";
 import Charts from "./screens/Charts";
 import Home from "./screens/Home";
+import Notifications from "./screens/Notifications";
 import Profile from "./screens/Profile";
-import Recommendations from "./screens/Recommendations";
 import Search from "./screens/Search";
 import ShoutEditor from "./screens/ShoutEditor";
 import SongDetails from "./screens/SongDetails";
 import Story from "./screens/Story";
+import { colors } from "./theme";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-const HomeStack = createNativeStackNavigator();
-const ChartsStack = createNativeStackNavigator();
-const RecommendationsStack = createNativeStackNavigator();
-const ProfileStack = createNativeStackNavigator();
-const SearchStack = createNativeStackNavigator();
 
-function HomeStackScreen() {
-  return (
-    <HomeStack.Navigator
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerShown: false,
-        animation: "default",
-      }}
-    >
-      <HomeStack.Screen name="Home" component={Home} />
-      <HomeStack.Screen name="AlbumDetails" component={AlbumDetails} />
-      <HomeStack.Screen name="ArtistDetails" component={ArtistDetails} />
-      <HomeStack.Screen name="SongDetails" component={SongDetails} />
-      <HomeStack.Screen name="UserProfile" component={Profile} />
-      <HomeStack.Screen name="Story" component={Story} />
-      <HomeStack.Screen name="ShoutEditor" component={ShoutEditor} />
-    </HomeStack.Navigator>
-  );
+const screenOptions = {
+  contentStyle: { backgroundColor: colors.background },
+  headerShown: false,
+  animation: "default",
+} as const;
+
+// Each tab hosts its own stack so detail pages keep the tab bar + mini player.
+// biome-ignore lint/suspicious/noExplicitAny: react-navigation screens have heterogeneous prop types
+function makeTabStack(name: string, RootScreen: ComponentType<any>) {
+  const TabStack = createNativeStackNavigator();
+  return function TabStackScreen() {
+    return (
+      <TabStack.Navigator screenOptions={screenOptions}>
+        <TabStack.Screen name={name} component={RootScreen} />
+        <TabStack.Screen name="AlbumDetails" component={AlbumDetails} />
+        <TabStack.Screen name="ArtistDetails" component={ArtistDetails} />
+        <TabStack.Screen name="SongDetails" component={SongDetails} />
+        <TabStack.Screen name="UserProfile" component={Profile} />
+        <TabStack.Screen name="Story" component={Story} />
+        <TabStack.Screen name="ShoutEditor" component={ShoutEditor} />
+      </TabStack.Navigator>
+    );
+  };
 }
 
-function ChartsStackScreen() {
-  return (
-    <ChartsStack.Navigator
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerShown: false,
-        animation: "default",
-      }}
-    >
-      <ChartsStack.Screen name="Charts" component={Charts} />
-      <ChartsStack.Screen name="AlbumDetails" component={AlbumDetails} />
-      <ChartsStack.Screen name="ArtistDetails" component={ArtistDetails} />
-      <ChartsStack.Screen name="SongDetails" component={SongDetails} />
-      <ChartsStack.Screen name="UserProfile" component={Profile} />
-      <ChartsStack.Screen name="ShoutEditor" component={ShoutEditor} />
-    </ChartsStack.Navigator>
-  );
-}
+const HomeStackScreen = makeTabStack("Home", Home);
+const AlertsStackScreen = makeTabStack("Notifications", Notifications);
+const ChartsStackScreen = makeTabStack("Charts", Charts);
+const SearchStackScreen = makeTabStack("Search", Search);
+const ProfileStackScreen = makeTabStack("Profile", Profile);
 
-function ProfileStackScreen() {
-  return (
-    <ProfileStack.Navigator
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerShown: false,
-        animation: "default",
-      }}
-    >
-      <ProfileStack.Screen name="Profile" component={Profile} />
-      <ProfileStack.Screen name="AlbumDetails" component={AlbumDetails} />
-      <ProfileStack.Screen name="ArtistDetails" component={ArtistDetails} />
-      <ProfileStack.Screen name="SongDetails" component={SongDetails} />
-      <ProfileStack.Screen name="UserProfile" component={Profile} />
-      <ProfileStack.Screen name="ShoutEditor" component={ShoutEditor} />
-    </ProfileStack.Navigator>
-  );
-}
-
-function RecommendationsStackScreen() {
-  return (
-    <RecommendationsStack.Navigator
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerShown: false,
-        animation: "default",
-      }}
-    >
-      <RecommendationsStack.Screen name="Recommendations" component={Recommendations} />
-      <RecommendationsStack.Screen name="AlbumDetails" component={AlbumDetails} />
-      <RecommendationsStack.Screen name="ArtistDetails" component={ArtistDetails} />
-      <RecommendationsStack.Screen name="SongDetails" component={SongDetails} />
-      <RecommendationsStack.Screen name="UserProfile" component={Profile} />
-      <RecommendationsStack.Screen name="ShoutEditor" component={ShoutEditor} />
-    </RecommendationsStack.Navigator>
-  );
-}
-
-function SearchStackScreen() {
-  return (
-    <SearchStack.Navigator
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerShown: false,
-        animation: "default",
-      }}
-    >
-      <SearchStack.Screen name="Search" component={Search} />
-      <SearchStack.Screen name="AlbumDetails" component={AlbumDetails} />
-      <SearchStack.Screen name="ArtistDetails" component={ArtistDetails} />
-      <SearchStack.Screen name="SongDetails" component={SongDetails} />
-      <SearchStack.Screen name="UserProfile" component={Profile} />
-      <SearchStack.Screen name="ShoutEditor" component={ShoutEditor} />
-    </SearchStack.Navigator>
-  );
-}
-
-function CustomTabBar(props: any) {
+function CustomTabBar(props: BottomTabBarProps) {
   return (
     <View style={{ backgroundColor: colors.surface }}>
       <MiniPlayer
@@ -139,7 +73,8 @@ function CustomTabBar(props: any) {
 }
 
 function HomeTabs() {
-  const profile = useAtomValue(profileAtom);
+  const { data: unread } = useUnreadCountQuery();
+  const unreadCount = unread?.count ?? 0;
 
   return (
     <Tab.Navigator
@@ -161,32 +96,71 @@ function HomeTabs() {
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarIcon: ({ focused, color }) => {
+        tabBarBadgeStyle: {
+          backgroundColor: "#e0245e",
+          color: "#fff",
+          fontSize: 10,
+          fontWeight: "700",
+        },
+        tabBarIcon: ({ color }) => {
           switch (route.name) {
             case "HomeTab":
-              return <MaterialIcons name="home-variant-outline" size={24} color={color} />;
-            case "RecommendationsTab":
-              return <MaterialIcons name="star-shooting-outline" size={24} color={color} />;
+              return (
+                <MaterialIcons
+                  name="home-variant-outline"
+                  size={24}
+                  color={color}
+                />
+              );
+            case "AlertsTab":
+              return (
+                <MaterialIcons name="bell-outline" size={24} color={color} />
+              );
             case "ChartsTab":
               return <MaterialIcons name="chart-bar" size={24} color={color} />;
             case "SearchTab":
               return <Feather name="search" size={22} color={color} />;
             case "ProfileTab":
-              return <MaterialIcons name="account-outline" size={24} color={color} />;
+              return (
+                <MaterialIcons name="account-outline" size={24} color={color} />
+              );
           }
-        },
-        tabBarLabel: ({ color }) => {
-          return null; // Use default label from tabBarLabel below
         },
       })}
     >
-      <Tab.Screen name="HomeTab" component={HomeStackScreen} options={{ tabBarLabel: "Home" }} />
-      {!!profile && (
-        <Tab.Screen name="RecommendationsTab" component={RecommendationsStackScreen} options={{ tabBarLabel: "For You" }} />
-      )}
-      <Tab.Screen name="ChartsTab" component={ChartsStackScreen} options={{ tabBarLabel: "Charts" }} />
-      <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ tabBarLabel: "Search" }} />
-      <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ tabBarLabel: "Profile" }} />
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeStackScreen}
+        options={{ tabBarLabel: "Home" }}
+      />
+      <Tab.Screen
+        name="AlertsTab"
+        component={AlertsStackScreen}
+        options={{
+          tabBarLabel: "Alerts",
+          tabBarBadge:
+            unreadCount > 0
+              ? unreadCount > 99
+                ? "99+"
+                : unreadCount
+              : undefined,
+        }}
+      />
+      <Tab.Screen
+        name="ChartsTab"
+        component={ChartsStackScreen}
+        options={{ tabBarLabel: "Charts" }}
+      />
+      <Tab.Screen
+        name="SearchTab"
+        component={SearchStackScreen}
+        options={{ tabBarLabel: "Search" }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileStackScreen}
+        options={{ tabBarLabel: "Profile" }}
+      />
     </Tab.Navigator>
   );
 }
@@ -208,13 +182,17 @@ export type RootStackParamList = {
   Home: undefined;
   HomeTabs: undefined;
   Charts: undefined;
-  Recommendations: undefined;
+  Notifications: undefined;
   AlbumDetails: { uri: string };
   ArtistDetails: { uri: string };
   SongDetails: { uri: string };
   Profile: { did?: string };
-  UserProfile: { did: string };
+  UserProfile: { did?: string; handle?: string };
   Story: { index: number };
   Search: undefined;
-  ShoutEditor: { uri: string; type: "song" | "album" | "artist" | "profile" | "scrobble"; title?: string };
+  ShoutEditor: {
+    uri: string;
+    type: "song" | "album" | "artist" | "profile" | "scrobble";
+    title?: string;
+  };
 };

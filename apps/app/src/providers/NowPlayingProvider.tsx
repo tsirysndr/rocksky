@@ -1,6 +1,6 @@
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { useNowPlaying } from "@/src/hooks/useNowPlaying";
 import { storage } from "@/src/storage";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 const NowPlayingContext = createContext<
   ReturnType<typeof useNowPlaying>["nowPlaying"] | null
@@ -12,6 +12,7 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const did = storage.getDid() || "";
   const { nowPlaying, progress } = useNowPlaying(did);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: consumers only re-render on track/playing/liked changes, not on every poll tick
   const memoizedNowPlaying = useMemo(
     () => nowPlaying,
     [nowPlaying?.uri, nowPlaying?.isPlaying, nowPlaying?.liked],

@@ -1,15 +1,37 @@
-import { storage } from "../storage";
 import { client } from ".";
+import { storage } from "../storage";
+
+export type GraphUser = {
+  did: string;
+  handle: string;
+  displayName?: string;
+  avatar?: string;
+};
+
+export type FollowsResponse = {
+  follows: GraphUser[];
+  cursor?: string;
+  count?: number;
+};
+
+export type FollowersResponse = {
+  followers: GraphUser[];
+  cursor?: string;
+  count?: number;
+};
 
 export const getFollows = async (
   actor: string,
   limit: number,
   dids?: string[],
   cursor?: string,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.graph.getFollows", {
-    params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
-  });
+): Promise<FollowsResponse> => {
+  const response = await client.get<FollowsResponse>(
+    "/xrpc/app.rocksky.graph.getFollows",
+    {
+      params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
+    },
+  );
   return response.data;
 };
 
@@ -17,8 +39,8 @@ export const getKnownFollowers = async (
   actor: string,
   limit: number,
   cursor?: string,
-) => {
-  const response = await client.get(
+): Promise<FollowersResponse> => {
+  const response = await client.get<FollowersResponse>(
     "/xrpc/app.rocksky.graph.getKnownFollowers",
     { params: { actor, limit: limit > 0 ? limit : 1, cursor } },
   );
@@ -30,10 +52,13 @@ export const getFollowers = async (
   limit: number,
   dids?: string[],
   cursor?: string,
-) => {
-  const response = await client.get("/xrpc/app.rocksky.graph.getFollowers", {
-    params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
-  });
+): Promise<FollowersResponse> => {
+  const response = await client.get<FollowersResponse>(
+    "/xrpc/app.rocksky.graph.getFollowers",
+    {
+      params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
+    },
+  );
   return response.data;
 };
 

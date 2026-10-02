@@ -2,34 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useRef } from "react";
-import { nowPlayingAtom, playbackLockedUntilAtom, playerAtom, progressAtom } from "../atoms/nowplaying";
+import {
+  nowPlayingAtom,
+  playbackLockedUntilAtom,
+  playerAtom,
+  progressAtom,
+} from "../atoms/nowplaying";
 import { API_URL } from "../consts";
-
-export type NowPlayings = {
-  id: string;
-  title: string;
-  artist: string;
-  album_art: string;
-  artist_uri?: string;
-  album_uri?: string;
-  uri: string;
-  avatar: string;
-  handle: string;
-  did: string;
-  created_at: string;
-  track_id: string;
-  track_uri: string;
-}[];
-
-export const useNowPlayingsQuery = (size = 7) =>
-  useQuery<NowPlayings>({
-    queryKey: ["now-playings", size],
-    queryFn: () =>
-      fetch(`${API_URL}/now-playings?size=${size}`, {
-        method: "GET",
-      }).then((res) => res.json()),
-    refetchInterval: 5000,
-  });
 
 export const useNowPlaying = (did: string) => {
   const progressInterval = useRef<number | null>(null);
@@ -40,7 +19,9 @@ export const useNowPlaying = (did: string) => {
   const lockedUntilRef = useRef(lockedUntil);
   const nowPlayingRef = useRef(nowPlaying);
 
-  useEffect(() => { lockedUntilRef.current = lockedUntil; }, [lockedUntil]);
+  useEffect(() => {
+    lockedUntilRef.current = lockedUntil;
+  }, [lockedUntil]);
   const progressRef = useRef(progress);
 
   const nowPlayingResult = useQuery({
@@ -76,7 +57,8 @@ export const useNowPlaying = (did: string) => {
         cover: nowPlayingResult.data.album_art,
         duration: nowPlayingResult.data.length,
         progress: nowPlayingResult.data.elapsed,
-        isPlaying: locked && prev ? prev.isPlaying : nowPlayingResult.data.is_playing,
+        isPlaying:
+          locked && prev ? prev.isPlaying : nowPlayingResult.data.is_playing,
         liked: nowPlayingResult.data.liked,
         uri: nowPlayingResult.data.songUri,
       }));
@@ -109,7 +91,10 @@ export const useNowPlaying = (did: string) => {
       cover: _.get(nowPlayingSpotifyResult.data, "item.album.images.0.url"),
       duration: nowPlayingSpotifyResult.data.item.duration_ms,
       progress: nowPlayingSpotifyResult.data.progress_ms,
-      isPlaying: locked && prev ? prev.isPlaying : nowPlayingSpotifyResult.data.is_playing,
+      isPlaying:
+        locked && prev
+          ? prev.isPlaying
+          : nowPlayingSpotifyResult.data.is_playing,
       liked: nowPlayingSpotifyResult.data.liked,
       uri: nowPlayingSpotifyResult.data.songUri,
     }));
@@ -121,8 +106,12 @@ export const useNowPlaying = (did: string) => {
     nowPlayingSpotifyResult.data,
     nowPlayingResult.isLoading,
     nowPlayingSpotifyResult.isLoading,
+    setNowPlaying,
+    setPlayer,
+    setProgress,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ticker must only reset when the track changes, not on every progress update
   useEffect(() => {
     if (progressInterval.current) {
       clearInterval(progressInterval.current);

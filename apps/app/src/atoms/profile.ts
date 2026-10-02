@@ -1,10 +1,11 @@
-import { atom } from 'jotai';
+import { atom } from "jotai";
 
 export type Profile = {
   avatar: string;
   displayName: string;
   handle: string;
   did: string;
+  createdAt?: string;
   spotifyUser?: { isBeta: boolean };
   spotifyConnected?: boolean;
 };

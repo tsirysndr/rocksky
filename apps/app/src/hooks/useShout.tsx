@@ -1,12 +1,12 @@
 import { useCallback } from "react";
 import {
-  shout as apiShout,
+  cancelReport as apiCancelReport,
+  deleteShout as apiDelete,
+  getReplies as apiGetReplies,
   getShouts as apiGetShouts,
   reply as apiReply,
-  getReplies as apiGetReplies,
   reportShout as apiReport,
-  deleteShout as apiDelete,
-  cancelReport as apiCancelReport,
+  shout as apiShout,
 } from "../api/shouts";
 
 function useShout() {
@@ -30,7 +30,15 @@ function useShout() {
 
   const cancelReport = useCallback((uri: string) => apiCancelReport(uri), []);
 
-  return { shout, getShouts, reply, getReplies, reportShout, deleteShout, cancelReport };
+  return {
+    shout,
+    getShouts,
+    reply,
+    getReplies,
+    reportShout,
+    deleteShout,
+    cancelReport,
+  };
 }
 
 export default useShout;

@@ -1,5 +1,12 @@
 import { storage } from "../storage";
+import type { FeedGenerator, FeedScrobble, Story } from "../types/feed";
 import { client } from ".";
+
+const authHeaders = () => ({
+  Authorization: storage.getToken()
+    ? `Bearer ${storage.getToken()}`
+    : undefined,
+});
 
 export const getScrobbleByUri = async (uri: string) => {
   if (uri.includes("app.rocksky.song")) {
@@ -34,23 +41,9 @@ export const getScrobbleByUri = async (uri: string) => {
 };
 
 export const getFeedGenerators = async () => {
-  const response = await client.get<{
-    feeds: {
-      id: string;
-      name: string;
-      uri: string;
-      description: string;
-      did: string;
-      avatar?: string;
-      creator: {
-        avatar?: string;
-        displayName: string;
-        handle: string;
-        did: string;
-        id: string;
-      };
-    }[];
-  }>("/xrpc/app.rocksky.feed.getFeedGenerators");
+  const response = await client.get<{ feeds: FeedGenerator[] }>(
+    "/xrpc/app.rocksky.feed.getFeedGenerators",
+  );
   if (response.status !== 200) {
     return null;
   }
@@ -59,41 +52,7 @@ export const getFeedGenerators = async () => {
 
 export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
   const response = await client.get<{
-    feed: {
-      scrobble: {
-        title: string;
-        artist: string;
-        albumArtist: string;
-        album: string;
-        trackNumber: number;
-        duration: number;
-        mbId: string | null;
-        youtubeLink: string | null;
-        spotifyLink: string | null;
-        appleMusicLink: string | null;
-        tidalLink: string | null;
-        sha256: string;
-        discNumber: number;
-        composer: string | null;
-        genre: string | null;
-        label: string | null;
-        copyrightMessage: string | null;
-        uri: string;
-        albumUri: string;
-        artistUri: string;
-        trackUri: string;
-        xataVersion: number;
-        cover: string;
-        date: string;
-        user: string;
-        userDisplayName: string;
-        userAvatar: string;
-        tags: string[];
-        likesCount: number;
-        liked: boolean;
-        id: string;
-      };
-    }[];
+    feed?: { scrobble: FeedScrobble }[];
     cursor?: string;
   }>("/xrpc/app.rocksky.feed.getFeed", {
     params: {
@@ -101,78 +60,65 @@ export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
       limit,
       cursor,
     },
-    headers: {
-      Authorization: storage.getToken() ? `Bearer ${storage.getToken()}` : undefined,
-    },
+    headers: authHeaders(),
   });
 
   if (response.status !== 200) {
     return { songs: [], cursor: undefined };
   }
 
+  // An unknown feed uri answers `{scrobbles: []}` instead of `{feed, cursor}`.
+  const feed = Array.isArray(response.data?.feed) ? response.data.feed : [];
   return {
-    songs: response.data.feed.map(({ scrobble }) => scrobble),
-    cursor: response.data.cursor,
+    songs: feed.map(({ scrobble }) => scrobble),
+    cursor: response.data?.cursor,
   };
 };
 
 export const getScrobbles = async (
   did: string,
-  following: boolean = false,
-  offset: number = 0,
-  limit: number = 50,
+  following = false,
+  offset = 0,
+  limit = 50,
 ) => {
-  const response = await client.get<{
-    scrobbles: {
-      title: string;
-      artist: string;
-      albumArtist: string;
-      album: string;
-      trackNumber: number;
-      duration: number;
-      mbId: string | null;
-      youtubeLink: string | null;
-      spotifyLink: string | null;
-      appleMusicLink: string | null;
-      tidalLink: string | null;
-      sha256: string;
-      discNumber: number;
-      composer: string | null;
-      genre: string | null;
-      label: string | null;
-      copyrightMessage: string | null;
-      uri: string;
-      albumUri: string;
-      artistUri: string;
-      trackUri: string;
-      xataVersion: number;
-      cover: string;
-      date: string;
-      user: string;
-      userDisplayName: string;
-      userAvatar: string;
-      tags: string[];
-      likesCount: number;
-      liked: boolean;
-      id: string;
-    }[];
-  }>("/xrpc/app.rocksky.scrobble.getScrobbles", {
-    params: {
-      did,
-      following,
-      offset,
-      limit,
+  const response = await client.get<{ scrobbles?: FeedScrobble[] }>(
+    "/xrpc/app.rocksky.scrobble.getScrobbles",
+    {
+      params: {
+        did,
+        following,
+        offset,
+        limit,
+      },
+      headers: authHeaders(),
     },
-    headers: {
-      Authorization: storage.getToken() ? `Bearer ${storage.getToken()}` : undefined,
-    },
-  });
+  );
 
   if (response.status !== 200) {
     return { scrobbles: [] };
   }
 
   return {
-    scrobbles: response.data.scrobbles,
+    scrobbles: response.data?.scrobbles ?? [],
   };
+};
+
+export const getStories = async (params: {
+  size: number;
+  feed?: string;
+  following?: boolean;
+}) => {
+  const response = await client.get<{ stories?: Story[] }>(
+    "/xrpc/app.rocksky.feed.getStories",
+    {
+      params,
+      headers: authHeaders(),
+    },
+  );
+
+  if (response.status !== 200) {
+    return [];
+  }
+
+  return response.data?.stories ?? [];
 };

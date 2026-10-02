@@ -1,50 +1,44 @@
-# Welcome to your Expo app 👋
+# Rocksky Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Native [Expo](https://expo.dev) app for [Rocksky](https://rocksky.app), aligned with the [`web-mobile`](../web-mobile) app's features and design (same dark theme, same API surface).
+
+## Screens
+
+- **Home** — stories row, feed-generator genre chips, scrobble feed (infinite scroll, likes)
+- **Alerts** — notifications with client-side grouping and an unread badge
+- **Charts** — top tracks / top artists over a selectable time window
+- **Search** — federated search across tracks, albums, artists, and users
+- **Profile** — overview, library, followers/following, circles, loved tracks
+- Album / artist / song detail pages, story viewer, shout editor
+- **MiniPlayer** — live now-playing via the remote-control WebSocket plus Rockbox/Spotify polling
 
 ## Get started
 
 1. Install dependencies
 
    ```bash
-   npm install
+   bun install
    ```
 
-2. Start the app
+2. Run on a device or simulator
 
    ```bash
-   npx expo start
+   bun run ios
+   bun run android
    ```
 
-In the output, you'll find options to open the app in a
+The `android/` and `ios/` directories are generated on demand (`expo prebuild`) and are not checked in — native config lives in `app.config.js`.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Release builds
 
 ```bash
-npm run reset-project
+eas build --platform android --profile production
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Notes
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Sign-in uses the ATProto OAuth flow in an in-app WebView (`rocksky.pages.dev/loading?handle=…`); the resulting `did` is exchanged for a JWT via `GET /token` with the `session-did` header, stored in AsyncStorage. JWTs last 7 days.
+- All data comes from `https://api.rocksky.app` (XRPC under `/xrpc/app.rocksky.*` plus a few REST endpoints). Notifications poll the unread count instead of using the web's SSE stream.
+- Charts always send a `startDate`/`endDate` window: the server's all-time aggregate times out and returns empty lists.
+- Uploaded-music playback (web-mobile's "My Library", rockbox-wasm) is not ported; it needs a native audio engine.
+- App icons are copied from `../web-mobile/public` so native and PWA branding stay in sync.

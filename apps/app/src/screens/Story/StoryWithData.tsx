@@ -1,15 +1,11 @@
-import { useNowPlayingsQuery } from "@/src/hooks/useNowPlaying";
-import { RootStackParamList } from "@/src/Navigation";
-import { RouteProp } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import utc from "dayjs/plugin/utc";
-import { FC } from "react";
+import { type RouteProp, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAtomValue } from "jotai";
+import type { FC } from "react";
+import { storiesAtom } from "@/src/atoms/stories";
+import { useStoriesQuery } from "@/src/hooks/useStories";
+import type { RootStackParamList } from "@/src/Navigation";
 import Story from "./Story";
-
-dayjs.extend(relativeTime);
-dayjs.extend(utc);
 
 type StoryScreenRouteProp = RouteProp<RootStackParamList, "Story">;
 type StoryScreenNavigationProp = NativeStackNavigationProp<
@@ -19,30 +15,22 @@ type StoryScreenNavigationProp = NativeStackNavigationProp<
 
 export type StoryWithDataProps = Partial<{
   route: StoryScreenRouteProp;
-  navigation: StoryScreenNavigationProp;
 }>;
 
-const StoryWithData: FC<StoryWithDataProps> = (props) => {
-  const { route, navigation } = props;
-  const { data } = useNowPlayingsQuery(20);
+const StoryWithData: FC<StoryWithDataProps> = ({ route }) => {
+  const navigation = useNavigation<StoryScreenNavigationProp>();
+  const handedOff = useAtomValue(storiesAtom);
+  const { data: fetched } = useStoriesQuery();
+  const stories = handedOff.length ? handedOff : (fetched ?? []);
+
   return (
     <Story
-      stories={(data || []).map((story) => ({
-        ...story,
-        created_at: dayjs.utc(story.created_at).local().fromNow(),
-      }))}
-      onOpenProfile={(handle: string) =>
-        navigation!.navigate("UserProfile", { handle })
-      }
-      onPressAlbum={(uri: string) =>
-        navigation!.navigate("AlbumDetails", { uri })
-      }
-      onPressArtist={(uri: string) =>
-        navigation!.navigate("ArtistDetails", { uri })
-      }
-      onPressTrack={(uri) => navigation!.navigate("SongDetails", { uri })}
+      stories={stories}
       index={route?.params?.index}
-      onAllStoriesEnd={() => navigation!.goBack()}
+      onOpenProfile={(did) => navigation.navigate("UserProfile", { did })}
+      onPressArtist={(uri) => navigation.navigate("ArtistDetails", { uri })}
+      onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
+      onClose={() => navigation.goBack()}
     />
   );
 };

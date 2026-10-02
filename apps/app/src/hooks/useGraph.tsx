@@ -16,12 +16,16 @@ export const useFollowsInfiniteQuery = (actor: string, limit: number) =>
     queryKey: ["follows-infinite", actor, limit],
     queryFn: ({ pageParam }) =>
       getFollows(actor, limit, undefined, pageParam as string | undefined),
-    getNextPageParam: (lastPage: any) => lastPage.cursor,
+    getNextPageParam: (lastPage) => lastPage.cursor,
     initialPageParam: undefined as string | undefined,
     enabled: !!actor,
   });
 
-export const useFollowsQuery = (actor: string, limit: number, dids?: string[]) =>
+export const useFollowsQuery = (
+  actor: string,
+  limit: number,
+  dids?: string[],
+) =>
   useQuery({
     queryKey: ["follows", actor, limit, dids],
     queryFn: () => getFollows(actor, limit, dids),
@@ -35,7 +39,7 @@ export const useFollowersQuery = (
 ) =>
   useQuery({
     queryKey: ["followers", actor, limit, dids],
-    queryFn: () => getFollowers(actor!, limit, dids),
+    queryFn: () => getFollowers(actor ?? "", limit, dids),
     enabled: !!actor,
   });
 
@@ -44,7 +48,7 @@ export const useFollowersInfiniteQuery = (actor: string, limit: number) =>
     queryKey: ["followers-infinite", actor, limit],
     queryFn: ({ pageParam }) =>
       getFollowers(actor, limit, undefined, pageParam as string | undefined),
-    getNextPageParam: (lastPage: any) => lastPage.cursor,
+    getNextPageParam: (lastPage) => lastPage.cursor,
     initialPageParam: undefined as string | undefined,
     enabled: !!actor,
   });

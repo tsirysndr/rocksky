@@ -1,7 +1,3 @@
-import { API_URL } from "@/src/consts";
-import { storage } from "@/src/storage";
-import { colors } from "@/src/theme";
-import { useSetAtom } from "jotai";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -12,10 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/src/components/Text";
 import { WebView } from "react-native-webview";
-import { profileAtom } from "@/src/atoms/profile";
-import { useCurrentUserProfile } from "@/src/hooks/useProfile";
+import { Text } from "@/src/components/Text";
+import { API_URL } from "@/src/consts";
+import { storage } from "@/src/storage";
+import { colors } from "@/src/theme";
 
 type Props = {
   onSuccess: () => void;
@@ -74,9 +71,18 @@ export default function SignIn({ onSuccess }: Props) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.textMuted, marginTop: 12, fontSize: 14 }}>Signing in...</Text>
+        <Text style={{ color: colors.textMuted, marginTop: 12, fontSize: 14 }}>
+          Signing in...
+        </Text>
       </View>
     );
   }
@@ -84,11 +90,28 @@ export default function SignIn({ onSuccess }: Props) {
   if (showWebView) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12, backgroundColor: colors.surface }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingTop: 60,
+            paddingBottom: 12,
+            backgroundColor: colors.surface,
+          }}
+        >
           <TouchableOpacity onPress={() => setShowWebView(false)}>
             <Text style={{ color: colors.primary, fontSize: 16 }}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={{ flex: 1, textAlign: "center", color: colors.text, fontSize: 14, fontWeight: "600" }}>
+          <Text
+            style={{
+              flex: 1,
+              textAlign: "center",
+              color: colors.text,
+              fontSize: 14,
+              fontWeight: "600",
+            }}
+          >
             Rocksky Login
           </Text>
           <View style={{ width: 60 }} />
@@ -107,29 +130,55 @@ export default function SignIn({ onSuccess }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: colors.background }}
     >
-      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 32 }}>
+      <View
+        style={{ flex: 1, justifyContent: "center", paddingHorizontal: 32 }}
+      >
         {/* Logo / Title */}
-        <Text style={{ fontSize: 36, fontWeight: "800", color: colors.primary, textAlign: "center", marginBottom: 8 }}>
+        <Text
+          style={{
+            fontSize: 36,
+            fontWeight: "800",
+            color: colors.primary,
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
           Rocksky
         </Text>
-        <Text style={{ fontSize: 15, color: colors.textMuted, textAlign: "center", marginBottom: 48 }}>
+        <Text
+          style={{
+            fontSize: 15,
+            color: colors.textMuted,
+            textAlign: "center",
+            marginBottom: 48,
+          }}
+        >
           Your music, your community
         </Text>
 
         {/* Handle input */}
-        <Text style={{ fontSize: 12, fontWeight: "600", color: colors.textMuted, marginBottom: 6 }}>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: colors.textMuted,
+            marginBottom: 6,
+          }}
+        >
           Handle
         </Text>
-        <View style={{
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: colors.surface2,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 12,
-          marginBottom: 16,
-          paddingHorizontal: 12,
-        }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.surface2,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 12,
+            marginBottom: 16,
+            paddingHorizontal: 12,
+          }}
+        >
           <Text style={{ color: colors.textMuted, fontSize: 14 }}>@</Text>
           <TextInput
             value={handle}
@@ -152,7 +201,14 @@ export default function SignIn({ onSuccess }: Props) {
         </View>
 
         {error ? (
-          <Text style={{ color: colors.primary, fontSize: 12, textAlign: "center", marginBottom: 12 }}>
+          <Text
+            style={{
+              color: colors.primary,
+              fontSize: 12,
+              textAlign: "center",
+              marginBottom: 12,
+            }}
+          >
             {error}
           </Text>
         ) : null}
@@ -167,19 +223,29 @@ export default function SignIn({ onSuccess }: Props) {
             marginBottom: 20,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>Sign In</Text>
+          <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+            Sign In
+          </Text>
         </TouchableOpacity>
 
-        <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: "center" }}>
+        <Text
+          style={{ fontSize: 12, color: colors.textMuted, textAlign: "center" }}
+        >
           Don't have an atproto handle yet?{"\n"}You can create one at{" "}
-          <Text style={{ color: colors.primary, fontWeight: "600" }} onPress={onCreateAccount}>
+          <Text
+            style={{ color: colors.primary, fontWeight: "600" }}
+            onPress={onCreateAccount}
+          >
             rocksky.social
           </Text>
           ,{" "}
-          <Text style={{ color: colors.primary, fontWeight: "600" }} onPress={() => Linking.openURL("https://bsky.app")}>
+          <Text
+            style={{ color: colors.primary, fontWeight: "600" }}
+            onPress={() => Linking.openURL("https://bsky.app")}
+          >
             Bluesky
-          </Text>
-          {" "}or any other AT Protocol service.
+          </Text>{" "}
+          or any other AT Protocol service.
         </Text>
       </View>
     </KeyboardAvoidingView>

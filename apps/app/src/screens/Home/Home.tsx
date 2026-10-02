@@ -1,15 +1,8 @@
-import { feedAtom, feedGeneratorUriAtom, feedUrisAtom, followingFeedAtom } from "@/src/atoms/feed";
-import { colors } from "@/src/theme";
-import { useFeedGeneratorsQuery, useFeedInfiniteQuery, useScrobbleInfiniteQuery } from "@/src/hooks/useFeed";
-import useLike from "@/src/hooks/useLike";
-import Heart from "@/src/components/Icons/Heart";
-import HeartOutline from "@/src/components/Icons/HeartOutline";
-import { RootStackParamList } from "@/src/Navigation";
-import { storage } from "@/src/storage";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import Feather from "@expo/vector-icons/Feather";
+import { type NavigationProp, useNavigation } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import Feather from "@expo/vector-icons/Feather";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -18,12 +11,31 @@ import {
   Dimensions,
   FlatList,
   Image,
+  RefreshControl,
   ScrollView,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "@/src/components/Text";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  feedAtom,
+  feedGeneratorUriAtom,
+  feedUrisAtom,
+  followingFeedAtom,
+} from "@/src/atoms/feed";
+import Heart from "@/src/components/Icons/Heart";
+import HeartOutline from "@/src/components/Icons/HeartOutline";
+import { Text } from "@/src/components/Text";
+import {
+  useFeedGeneratorsQuery,
+  useFeedInfiniteQuery,
+  useScrobbleInfiniteQuery,
+} from "@/src/hooks/useFeed";
+import useLike from "@/src/hooks/useLike";
+import type { RootStackParamList } from "@/src/Navigation";
+import { storage } from "@/src/storage";
+import { colors } from "@/src/theme";
+import type { FeedScrobble } from "@/src/types/feed";
 import Stories from "./Stories";
 
 dayjs.extend(relativeTime);
@@ -31,104 +43,182 @@ dayjs.extend(relativeTime);
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CARD_SIZE = (SCREEN_WIDTH - 48) / 2;
 
-const ALL_CATEGORIES = [
-  "all", "following", "afrobeat", "afrobeats", "alternative metal", "anime",
-  "art pop", "breakcore", "chicago drill", "chillwave", "country hip hop",
-  "dance pop", "deep house", "drill", "dubstep", "emo", "grunge", "hard rock",
-  "heavy metal", "hip hop", "house", "hyperpop", "indie", "indie rock",
-  "j-pop", "j-rock", "jazz", "k-pop", "lo-fi", "metal", "metalcore",
-  "midwest emo", "nu metal", "pop punk", "post-grunge", "rap", "r&b", "rock",
-  "southern hip hop", "synthwave", "trap", "trap soul", "tropical house",
-  "vaporwave", "west coast hip hop",
+// Genre chips shown only when a matching feed generator exists (§3.1).
+const GENRES = [
+  "afrobeat",
+  "afrobeats",
+  "alternative metal",
+  "anime",
+  "art pop",
+  "breakcore",
+  "chicago drill",
+  "chillwave",
+  "country hip hop",
+  "crunk",
+  "dance pop",
+  "deep house",
+  "drill",
+  "dubstep",
+  "emo",
+  "grunge",
+  "hard rock",
+  "heavy metal",
+  "hip hop",
+  "house",
+  "hyperpop",
+  "indie",
+  "indie rock",
+  "j-pop",
+  "j-rock",
+  "jazz",
+  "k-pop",
+  "lo-fi",
+  "metal",
+  "metalcore",
+  "midwest emo",
+  "nu metal",
+  "pop punk",
+  "post-grunge",
+  "rap",
+  "rap metal",
+  "r&b",
+  "rock",
+  "southern hip hop",
+  "speedcore",
+  "swedish pop",
+  "synthwave",
+  "thrash metal",
+  "trap",
+  "trap soul",
+  "tropical house",
+  "vaporwave",
+  "visual kei",
+  "vocaloid",
+  "west coast hip hop",
 ];
 
 function FeedGenerators() {
   const isLoggedIn = !!storage.getDid();
-  const categories = ALL_CATEGORIES.filter((c) => isLoggedIn || c !== "following");
   const { data: feedGenerators } = useFeedGeneratorsQuery();
   const [feedUris, setFeedUris] = useAtom(feedUrisAtom);
-  const [, setFeedUri] = useAtom(feedGeneratorUriAtom);
-  const [, setFollowingFeed] = useAtom(followingFeedAtom);
+  const setFeedUri = useSetAtom(feedGeneratorUriAtom);
+  const setFollowingFeed = useSetAtom(followingFeedAtom);
   const [activeCategory, setActiveCategory] = useAtom(feedAtom);
 
   useEffect(() => {
     if (!feedGenerators?.feeds) return;
     const uriMap: Record<string, string> = {};
-    feedGenerators.feeds.forEach((x: { name: string; uri: string }) => {
-      const name = x.name.toLowerCase();
-      if (categories.includes(name)) uriMap[name] = x.uri;
-    });
-    setFeedUris(uriMap);
-    if (activeCategory !== "following" && uriMap[activeCategory]) {
-      setFeedUri(uriMap[activeCategory]);
-    } else if (uriMap["all"]) {
-      setFeedUri(uriMap["all"]);
+    for (const feed of feedGenerators.feeds) {
+      uriMap[feed.name.toLowerCase()] = feed.uri;
     }
-  }, [feedGenerators]);
+    setFeedUris(uriMap);
+    if (activeCategory !== "following") {
+      setFeedUri(uriMap[activeCategory] ?? uriMap.all ?? "");
+    }
+  }, [feedGenerators, activeCategory, setFeedUri, setFeedUris]);
+
+  const categories = [
+    "all",
+    ...(isLoggedIn ? ["following"] : []),
+    ...GENRES.filter((genre) => !!feedUris[genre]),
+  ];
 
   const handlePress = (category: string) => {
     setActiveCategory(category);
     if (category === "following") {
       setFollowingFeed(true);
-    } else {
-      setFeedUri(feedUris[category] || feedUris["all"]);
-      setFollowingFeed(false);
+      return;
     }
+    setFeedUri(feedUris[category] ?? feedUris.all ?? "");
+    setFollowingFeed(false);
   };
 
   return (
-    <View style={{ }}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: "row" }}
-      >
-        {categories.map((category) => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        gap: 8,
+        flexDirection: "row",
+      }}
+    >
+      {categories.map((category) => {
+        const active = activeCategory === category;
+        return (
           <TouchableOpacity
             key={category}
             onPress={() => handlePress(category)}
             style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
+              paddingHorizontal: 14,
+              paddingTop: 8,
+              paddingBottom: 4,
               borderRadius: 20,
-              backgroundColor: activeCategory === category ? colors.surface2 : "transparent",
+              backgroundColor: active ? colors.surface2 : "transparent",
+              alignItems: "center",
             }}
           >
-            <Text style={{
-              fontSize: 13,
-              color: activeCategory === category ? colors.text : colors.textMuted,
-              fontWeight: activeCategory === category ? "600" : "400",
-              textTransform: "capitalize",
-            }}>
+            <Text
+              style={{
+                fontSize: 13,
+                color: active ? colors.text : colors.textMuted,
+                fontWeight: active ? "600" : "400",
+                textTransform: "capitalize",
+              }}
+            >
               {category}
             </Text>
+            <View
+              style={{
+                width: 32,
+                height: 2,
+                borderRadius: 1,
+                marginTop: 4,
+                backgroundColor: active ? colors.primary : "transparent",
+              }}
+            />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
+        );
+      })}
+    </ScrollView>
   );
 }
 
-function SongCard({ item, onPress, onPressProfile }: {
-  item: any;
+function SongCard({
+  item,
+  onPress,
+  onPressProfile,
+}: {
+  item: FeedScrobble;
   onPress: (uri: string) => void;
-  onPressProfile: (did: string) => void;
+  onPressProfile: (didOrHandle: string) => void;
 }) {
   const [liked, setLiked] = useState(!!item.liked);
-  const [likesCount, setLikesCount] = useState((item.likesCount as number) || 0);
+  const [likesCount, setLikesCount] = useState(item.likesCount || 0);
   const { like, unlike } = useLike();
 
-  const handleLike = (e: any) => {
-    e.stopPropagation?.();
+  useEffect(() => {
+    setLiked(!!item.liked);
+    setLikesCount(item.likesCount || 0);
+  }, [item.liked, item.likesCount]);
+
+  const handleLike = () => {
     if (!storage.getToken()) return;
     if (liked) {
       setLiked(false);
       setLikesCount((c) => Math.max(0, c - 1));
-      unlike(item.uri);
+      unlike(item.uri).catch(() => {
+        setLiked(true);
+        setLikesCount((c) => c + 1);
+      });
     } else {
       setLiked(true);
       setLikesCount((c) => c + 1);
-      like(item.uri);
+      like(item.uri).catch(() => {
+        setLiked(false);
+        setLikesCount((c) => Math.max(0, c - 1));
+      });
     }
   };
 
@@ -138,62 +228,101 @@ function SongCard({ item, onPress, onPressProfile }: {
       onPress={() => item.uri && onPress(item.uri)}
       activeOpacity={0.8}
     >
-      <View style={{
-        width: CARD_SIZE,
-        height: CARD_SIZE,
-        borderRadius: 12,
-        overflow: "hidden",
-        backgroundColor: colors.surface2,
-        marginBottom: 6,
-      }}>
+      <View
+        style={{
+          width: CARD_SIZE,
+          height: CARD_SIZE,
+          borderRadius: 12,
+          overflow: "hidden",
+          backgroundColor: colors.surface2,
+          marginBottom: 6,
+        }}
+      >
         {item.cover ? (
-          <Image source={{ uri: item.cover }} style={{ width: CARD_SIZE, height: CARD_SIZE }} />
+          <Image
+            source={{ uri: item.cover }}
+            style={{ width: CARD_SIZE, height: CARD_SIZE }}
+          />
         ) : (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 32, opacity: 0.2 }}>♪</Text>
+          <View
+            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ fontSize: 32, opacity: 0.2, color: colors.text }}>
+              ♪
+            </Text>
           </View>
         )}
-        {/* Heart overlay */}
         <View
           style={{
             position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
-            height: 56,
-            paddingHorizontal: 8,
-            paddingBottom: 8,
-            justifyContent: "flex-end",
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            backgroundColor: "rgba(0,0,0,0.45)",
           }}
           pointerEvents="box-none"
         >
           <TouchableOpacity
             onPress={handleLike}
-            style={{ flexDirection: "row", alignItems: "center", gap: 3 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            {liked
-              ? <Heart size={18} color={colors.primary} />
-              : <HeartOutline size={18} color="rgba(255,255,255,0.85)" />
-            }
+            {liked ? (
+              <Heart size={18} color={colors.primary} />
+            ) : (
+              <HeartOutline size={18} color="rgba(255,255,255,0.9)" />
+            )}
             {likesCount > 0 && (
-              <Text style={{ fontSize: 11, color: liked ? colors.primary : "rgba(255,255,255,0.85)" }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: liked ? colors.primary : "rgba(255,255,255,0.9)",
+                }}
+              >
                 {likesCount}
               </Text>
             )}
           </TouchableOpacity>
         </View>
       </View>
-      <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: colors.text, marginBottom: 2 }}>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 14,
+          fontWeight: "600",
+          color: colors.text,
+          marginBottom: 2,
+        }}
+      >
         {item.title}
       </Text>
-      <Text numberOfLines={1} style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>
+      <Text
+        numberOfLines={1}
+        style={{ fontSize: 12, color: colors.textMuted, marginBottom: 4 }}
+      >
         {item.artist}
       </Text>
-      {item.tags && item.tags.length > 0 && (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
-          {(item.tags as string[]).slice(0, 2).map((genre) => (
-            <Text key={genre} style={{ fontSize: 10, color: colors.genre }}>#{genre}</Text>
+      {!!item.tags?.length && (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 4,
+            marginBottom: 4,
+          }}
+        >
+          {item.tags.slice(0, 2).map((genre) => (
+            <Text
+              key={genre}
+              numberOfLines={1}
+              style={{ fontSize: 10, color: colors.genre }}
+            >
+              #{genre}
+            </Text>
           ))}
         </View>
       )}
@@ -207,9 +336,19 @@ function SongCard({ item, onPress, onPressProfile }: {
             style={{ width: 14, height: 14, borderRadius: 7 }}
           />
         ) : (
-          <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: colors.avatarBackground }} />
+          <View
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: 7,
+              backgroundColor: colors.avatarBackground,
+            }}
+          />
         )}
-        <Text numberOfLines={1} style={{ fontSize: 10, color: colors.primary, flex: 1 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 10, color: colors.primary, flexShrink: 1 }}
+        >
           {item.userDisplayName || item.user}
         </Text>
         <Text style={{ fontSize: 10, color: colors.textMuted }}>
@@ -220,54 +359,112 @@ function SongCard({ item, onPress, onPressProfile }: {
   );
 }
 
+function FeedSkeleton() {
+  return (
+    <View style={{ paddingHorizontal: 16 }}>
+      {[0, 1, 2].map((row) => (
+        <View
+          key={row}
+          style={{ flexDirection: "row", gap: 16, marginBottom: 16 }}
+        >
+          {[0, 1].map((col) => (
+            <View key={col} style={{ width: CARD_SIZE }}>
+              <View
+                style={{
+                  width: CARD_SIZE,
+                  height: CARD_SIZE,
+                  borderRadius: 12,
+                  backgroundColor: colors.surface2,
+                  marginBottom: 8,
+                }}
+              />
+              <View
+                style={{
+                  width: "80%",
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: colors.surface2,
+                  marginBottom: 6,
+                }}
+              />
+              <View
+                style={{
+                  width: "55%",
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: colors.surface2,
+                }}
+              />
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function Home() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const queryClient = useQueryClient();
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const followingFeed = useAtomValue(followingFeedAtom);
   const did = storage.getDid() || "";
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<FeedScrobble>>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const isButtonVisible = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onScroll = useCallback((e: any) => {
-    const y = e.nativeEvent.contentOffset.y;
-    const wasVisible = isButtonVisible.current;
-    const isVisible = y > 300;
-    if (isVisible !== wasVisible) {
-      isButtonVisible.current = isVisible;
-      Animated.timing(fadeAnim, {
-        toValue: isVisible ? 1 : 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [fadeAnim]);
+  const onScroll = useCallback(
+    (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+      const y = e.nativeEvent.contentOffset.y;
+      const isVisible = y > 300;
+      if (isVisible !== isButtonVisible.current) {
+        isButtonVisible.current = isVisible;
+        Animated.timing(fadeAnim, {
+          toValue: isVisible ? 1 : 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+    [fadeAnim],
+  );
 
-  const { data: feedData, isLoading: feedLoading, fetchNextPage: fetchFeed, hasNextPage: hasFeed, isFetchingNextPage: fetchingFeed, refetch: refetchFeed } =
-    useFeedInfiniteQuery(feedUri, 20);
+  const {
+    data: feedData,
+    isLoading: feedLoading,
+    fetchNextPage: fetchFeed,
+    hasNextPage: hasFeed,
+    isFetchingNextPage: fetchingFeed,
+    refetch: refetchFeed,
+  } = useFeedInfiniteQuery(feedUri, 20);
 
-  const { data: scrobbleData, isLoading: scrobbleLoading, fetchNextPage: fetchScrobble, hasNextPage: hasScrobble, isFetchingNextPage: fetchingScrobble, refetch: refetchScrobble } =
-    useScrobbleInfiniteQuery(did, true, 20);
+  const {
+    data: scrobbleData,
+    isLoading: scrobbleLoading,
+    fetchNextPage: fetchScrobble,
+    hasNextPage: hasScrobble,
+    isFetchingNextPage: fetchingScrobble,
+    refetch: refetchScrobble,
+  } = useScrobbleInfiniteQuery(did, true, 20);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      if (followingFeed) {
-        await refetchScrobble();
-      } else {
-        await refetchFeed();
-      }
+      await Promise.all([
+        followingFeed ? refetchScrobble() : refetchFeed(),
+        queryClient.refetchQueries({ queryKey: ["stories"] }),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [followingFeed, refetchFeed, refetchScrobble]);
+  }, [followingFeed, refetchFeed, refetchScrobble, queryClient]);
 
-  const songs = followingFeed
-    ? scrobbleData?.pages.flatMap((p) => p.scrobbles) || []
-    : feedData?.pages.flatMap((p) => p.feed) || [];
+  const songs: FeedScrobble[] = followingFeed
+    ? (scrobbleData?.pages.flatMap((p) => p.scrobbles) ?? [])
+    : (feedData?.pages.flatMap((p) => p.feed) ?? []);
 
-  const loading = feedLoading || scrobbleLoading;
+  const loading = followingFeed ? scrobbleLoading : !feedUri || feedLoading;
 
   const onEndReached = useCallback(() => {
     if (followingFeed) {
@@ -275,75 +472,118 @@ export default function Home() {
     } else {
       if (!fetchingFeed && hasFeed) fetchFeed();
     }
-  }, [followingFeed, fetchingFeed, hasFeed, fetchingScrobble, hasScrobble]);
+  }, [
+    followingFeed,
+    fetchingFeed,
+    hasFeed,
+    fetchFeed,
+    fetchingScrobble,
+    hasScrobble,
+    fetchScrobble,
+  ]);
 
-  const onPressSong = useCallback((uri: string) => {
-    navigation.navigate("SongDetails", { uri });
-  }, [navigation]);
+  const onPressSong = useCallback(
+    (uri: string) => {
+      navigation.navigate("SongDetails", { uri });
+    },
+    [navigation],
+  );
 
-  const onPressProfile = useCallback((did: string) => {
-    navigation.navigate("UserProfile", { did });
-  }, [navigation]);
+  const onPressProfile = useCallback(
+    (didOrHandle: string) => {
+      if (didOrHandle.startsWith("did:")) {
+        navigation.navigate("UserProfile", { did: didOrHandle });
+      } else {
+        navigation.navigate("UserProfile", { handle: didOrHandle });
+      }
+    },
+    [navigation],
+  );
 
-  const ListHeader = useCallback(() => (
-    <Stories navigation={navigation} />
-  ), [navigation]);
-
-  const renderItem = useCallback(({ item, index }: { item: any; index: number }) => {
-    if (index % 2 === 0) {
-      const next = songs[index + 1];
-      return (
-        <View style={{ flexDirection: "row", paddingHorizontal: 16, gap: 16 }}>
-          <SongCard item={item} onPress={onPressSong} onPressProfile={onPressProfile} />
-          {next ? (
-            <SongCard item={next} onPress={onPressSong} onPressProfile={onPressProfile} />
-          ) : (
-            <View style={{ width: CARD_SIZE }} />
-          )}
-        </View>
-      );
-    }
-    return null;
-  }, [songs, onPressSong, onPressProfile]);
-
-  const pairData = songs.filter((_, i) => i % 2 === 0);
+  const renderItem = useCallback(
+    ({ item }: { item: FeedScrobble }) => (
+      <SongCard
+        item={item}
+        onPress={onPressSong}
+        onPressProfile={onPressProfile}
+      />
+    ),
+    [onPressSong, onPressProfile],
+  );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "left", "right"]}>
-      <FeedGenerators />
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      edges={["top", "left", "right"]}
+    >
       <FlatList
         ref={flatListRef}
-        data={pairData}
-        keyExtractor={(_, index) => String(index)}
+        data={songs}
+        numColumns={2}
+        keyExtractor={(item, index) => `${item.id ?? item.uri}-${index}`}
         renderItem={renderItem}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={() =>
-          (fetchingFeed || fetchingScrobble) ? (
+        columnWrapperStyle={{ paddingHorizontal: 16, gap: 16 }}
+        ListHeaderComponent={
+          <>
+            <Stories />
+            <FeedGenerators />
+          </>
+        }
+        ListFooterComponent={
+          fetchingFeed || fetchingScrobble ? (
             <View style={{ paddingVertical: 16, alignItems: "center" }}>
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : null
         }
-        ListEmptyComponent={() =>
-          !loading ? (
-            <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32 }}>
-              <Text style={{ fontSize: 40, opacity: 0.2, marginBottom: 12 }}>♪</Text>
-              <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center" }}>
+        ListEmptyComponent={
+          loading ? (
+            <FeedSkeleton />
+          ) : (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 80,
+                paddingHorizontal: 32,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 40,
+                  opacity: 0.2,
+                  marginBottom: 12,
+                  color: colors.text,
+                }}
+              >
+                ♪
+              </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  textAlign: "center",
+                }}
+              >
                 {followingFeed
-                  ? "No scrobbles from people you follow yet."
+                  ? "No scrobbles from people you follow yet. Start following users!"
                   : "No songs in feed yet."}
               </Text>
             </View>
-          ) : null
+          )
         }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         onScroll={onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 0 }}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       />
 
       <Animated.View
@@ -356,7 +596,9 @@ export default function Home() {
         }}
       >
         <TouchableOpacity
-          onPress={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
+          onPress={() =>
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true })
+          }
           style={{
             width: 54,
             height: 54,

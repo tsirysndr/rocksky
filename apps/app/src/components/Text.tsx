@@ -1,4 +1,4 @@
-import { Text as RNText, TextProps, TextStyle } from "react-native";
+import { Text as RNText, type TextProps, type TextStyle } from "react-native";
 
 function getFontFamily(fontWeight?: TextStyle["fontWeight"]): string {
   if (
@@ -20,5 +20,7 @@ export function Text({ style, ...props }: TextProps) {
     ? Object.assign({}, ...(style as object[]))
     : (style as TextStyle) || {};
   const fontFamily = flat.fontFamily || getFontFamily(flat.fontWeight);
-  return <RNText style={[style, { fontFamily, fontWeight: "normal" }]} {...props} />;
+  return (
+    <RNText style={[style, { fontFamily, fontWeight: "normal" }]} {...props} />
+  );
 }

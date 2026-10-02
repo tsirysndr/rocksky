@@ -1,5 +1,10 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { getFeed, getFeedGenerators, getScrobbles, getScrobbleByUri } from "../api/feed";
+import {
+  getFeed,
+  getFeedGenerators,
+  getScrobbleByUri,
+  getScrobbles,
+} from "../api/feed";
 
 export const useFeedGeneratorsQuery = () =>
   useQuery({

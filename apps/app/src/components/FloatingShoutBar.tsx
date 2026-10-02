@@ -1,9 +1,9 @@
-import { colors } from "@/src/theme";
-import { RootStackParamList } from "@/src/Navigation";
 import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TouchableOpacity, View } from "react-native";
 import { Text } from "@/src/components/Text";
+import type { RootStackParamList } from "@/src/Navigation";
+import { colors } from "@/src/theme";
 
 interface FloatingShoutBarProps {
   uri: string;
@@ -11,8 +11,13 @@ interface FloatingShoutBarProps {
   title?: string;
 }
 
-export default function FloatingShoutBar({ uri, type, title }: FloatingShoutBarProps) {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+export default function FloatingShoutBar({
+  uri,
+  type,
+  title,
+}: FloatingShoutBarProps) {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <View

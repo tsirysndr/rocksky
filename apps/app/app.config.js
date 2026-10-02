@@ -1,17 +1,17 @@
 module.exports = {
   name: "Rocksky",
   slug: "rocksky",
-  version: "1.1.0",
+  version: "2.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "rocksky",
   userInterfaceStyle: "dark",
+  backgroundColor: "#130825",
   newArchEnabled: true,
   extra: {
-    storybookEnabled: process.env.STORYBOOK_ENABLED,
     eas: {
-      projectId: "b11aecfd-7217-4707-b0a8-6ad121c51bd4"
-    }
+      projectId: "b11aecfd-7217-4707-b0a8-6ad121c51bd4",
+    },
   },
   ios: {
     supportsTablet: true,
@@ -22,7 +22,7 @@ module.exports = {
       backgroundColor: "#130825",
     },
     package: "app.rocksky",
-    versionCode: 2,
+    versionCode: 3,
   },
   web: {
     bundler: "metro",
@@ -30,29 +30,15 @@ module.exports = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
-    ["expo-build-properties", {
-      android: {
-        packagingOptions: {
-          jniLibs: { useLegacyPackaging: false },
-        },
-      },
-    }],
-    "expo-router",
     [
       "expo-splash-screen",
       {
         image: "./assets/images/splash-icon.png",
-        imageWidth: 200,
+        imageWidth: 160,
         resizeMode: "contain",
         backgroundColor: "#130825",
       },
     ],
-    ["@sentry/react-native", { uploadSourceMaps: false }],
-    "expo-font",
-    "expo-web-browser",
-    "react-native-edge-to-edge"
+    "react-native-edge-to-edge",
   ],
-  experiments: {
-    typedRoutes: true,
-  },
 };

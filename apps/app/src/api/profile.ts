@@ -1,9 +1,9 @@
 import { storage } from "../storage";
+import type { Compatibility } from "../types/compatibility";
+import type { Neighbour } from "../types/neighbour";
+import type { Profile } from "../types/profile";
+import type { Scrobble } from "../types/scrobble";
 import { client } from ".";
-import { Compatibility } from "../types/compatibility";
-import { Neighbour } from "../types/neighbour";
-import { Profile } from "../types/profile";
-import { Scrobble } from "../types/scrobble";
 
 export const getProfileByDid = async (did: string) => {
   const response = await client.get<Profile>(

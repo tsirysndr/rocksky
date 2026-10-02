@@ -1,11 +1,16 @@
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import axios from "axios";
 import { Image } from "expo-image";
 import { useAtom } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
 import { TouchableOpacity, View } from "react-native";
-import axios from "axios";
-import { nowPlayingAtom, playbackLockedUntilAtom, playerAtom, progressAtom } from "../atoms/nowplaying";
+import {
+  nowPlayingAtom,
+  playbackLockedUntilAtom,
+  playerAtom,
+  progressAtom,
+} from "../atoms/nowplaying";
 import { API_URL } from "../consts";
 import { useLikeMutation, useUnlikeMutation } from "../hooks/useLike";
 import { storage } from "../storage";
@@ -41,7 +46,9 @@ export default function MiniPlayer({ onPressTrack }: Props) {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({ type: "register", clientName: "rocksky", token }));
+      ws.send(
+        JSON.stringify({ type: "register", clientName: "rocksky", token }),
+      );
       heartbeatRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: "heartbeat", token }));
@@ -56,9 +63,15 @@ export default function MiniPlayer({ onPressTrack }: Props) {
         if (msg.data?.status === 0) {
           setNowPlaying(null);
         } else if (msg.data?.status === 1 && nowPlayingRef.current && !locked) {
-          setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : null);
-        } else if ((msg.data?.status === 2 || msg.data?.status === 3) && nowPlayingRef.current && !locked) {
-          setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : null);
+          setNowPlaying((prev) => (prev ? { ...prev, isPlaying: true } : null));
+        } else if (
+          (msg.data?.status === 2 || msg.data?.status === 3) &&
+          nowPlayingRef.current &&
+          !locked
+        ) {
+          setNowPlaying((prev) =>
+            prev ? { ...prev, isPlaying: false } : null,
+          );
         }
       } catch {}
     };
@@ -83,7 +96,9 @@ export default function MiniPlayer({ onPressTrack }: Props) {
     const lockUntil = Date.now() + 1500;
     lockedUntilRef.current = lockUntil;
     setLockedUntil(lockUntil);
-    setNowPlaying((prev) => prev ? { ...prev, isPlaying: !prev.isPlaying } : null);
+    setNowPlaying((prev) =>
+      prev ? { ...prev, isPlaying: !prev.isPlaying } : null,
+    );
     if (player === "rockbox") {
       sendRockboxCommand(nowPlaying.isPlaying ? "pause" : "play");
       return;
@@ -91,15 +106,25 @@ export default function MiniPlayer({ onPressTrack }: Props) {
     const token = storage.getToken();
     try {
       if (nowPlaying.isPlaying) {
-        await axios.put(`${API_URL}/spotify/pause`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.put(
+          `${API_URL}/spotify/pause`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
       } else {
-        await axios.put(`${API_URL}/spotify/play`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.put(
+          `${API_URL}/spotify/play`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
       }
     } catch {
       // revert on failure
-      setNowPlaying((prev) => prev ? { ...prev, isPlaying: nowPlaying.isPlaying } : null);
+      setNowPlaying((prev) =>
+        prev ? { ...prev, isPlaying: nowPlaying.isPlaying } : null,
+      );
     }
-  }, [nowPlaying, player, sendRockboxCommand, setNowPlaying]);
+  }, [nowPlaying, player, sendRockboxCommand, setNowPlaying, setLockedUntil]);
 
   const onNext = useCallback(async () => {
     if (player === "rockbox") {
@@ -108,43 +133,87 @@ export default function MiniPlayer({ onPressTrack }: Props) {
     }
     const token = storage.getToken();
     try {
-      await axios.post(`${API_URL}/spotify/next`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.post(
+        `${API_URL}/spotify/next`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
     } catch {}
   }, [player, sendRockboxCommand]);
 
   const onLike = useCallback(() => {
     if (!nowPlaying?.uri) return;
-    setNowPlaying((prev) => prev ? { ...prev, liked: true } : null);
+    setNowPlaying((prev) => (prev ? { ...prev, liked: true } : null));
     likeTrack(nowPlaying.uri);
   }, [nowPlaying, setNowPlaying, likeTrack]);
 
   const onUnlike = useCallback(() => {
     if (!nowPlaying?.uri) return;
-    setNowPlaying((prev) => prev ? { ...prev, liked: false } : null);
+    setNowPlaying((prev) => (prev ? { ...prev, liked: false } : null));
     unlikeTrack(nowPlaying.uri);
   }, [nowPlaying, setNowPlaying, unlikeTrack]);
 
   if (!nowPlaying) return null;
 
-  const progressPct = nowPlaying.duration > 0
-    ? Math.min(100, (progress / nowPlaying.duration) * 100)
-    : 0;
+  const progressPct =
+    nowPlaying.duration > 0
+      ? Math.min(100, (progress / nowPlaying.duration) * 100)
+      : 0;
 
   return (
-    <View style={{ backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border }}>
+    <View
+      style={{
+        backgroundColor: colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+      }}
+    >
       {/* Progress bar */}
       <View style={{ height: 2, backgroundColor: colors.surface2 }}>
-        <View style={{ height: 2, width: `${progressPct}%` as any, backgroundColor: colors.primary }} />
+        <View
+          style={{
+            height: 2,
+            width: `${progressPct}%` as `${number}%`,
+            backgroundColor: colors.primary,
+          }}
+        />
       </View>
 
       {/* Row */}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 12,
+        }}
+      >
         {/* Album art */}
-        <View style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", backgroundColor: colors.surface2, flexShrink: 0 }}>
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 8,
+            overflow: "hidden",
+            backgroundColor: colors.surface2,
+            flexShrink: 0,
+          }}
+        >
           {nowPlaying.cover ? (
-            <Image source={nowPlaying.cover} style={{ width: 44, height: 44 }} contentFit="cover" />
+            <Image
+              source={nowPlaying.cover}
+              style={{ width: 44, height: 44 }}
+              contentFit="cover"
+            />
           ) : (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Text style={{ fontSize: 20, opacity: 0.2 }}>♪</Text>
             </View>
           )}
@@ -156,10 +225,16 @@ export default function MiniPlayer({ onPressTrack }: Props) {
           onPress={() => nowPlaying.uri && onPressTrack?.(nowPlaying.uri)}
           activeOpacity={0.7}
         >
-          <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: colors.text }}>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 13, fontWeight: "600", color: colors.text }}
+          >
             {nowPlaying.title}
           </Text>
-          <Text numberOfLines={1} style={{ fontSize: 11, color: colors.textMuted }}>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 11, color: colors.textMuted }}
+          >
             {nowPlaying.artist}
           </Text>
         </TouchableOpacity>
@@ -180,9 +255,12 @@ export default function MiniPlayer({ onPressTrack }: Props) {
           <TouchableOpacity
             onPress={onPlayPause}
             style={{
-              width: 38, height: 38, borderRadius: 19,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
               backgroundColor: colors.primary,
-              alignItems: "center", justifyContent: "center",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <Feather

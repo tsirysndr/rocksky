@@ -143,14 +143,36 @@ export const useArtistQuery = (did: string, rkey: string) =>
     enabled: !!did && !!rkey,
   });
 
-export const useTopTracksQuery = (offset = 0, limit = 50) =>
+export const useTopTracksQuery = (
+  offset = 0,
+  limit = 50,
+  startDate?: Date,
+  endDate?: Date,
+) =>
   useQuery({
-    queryKey: ["topTracks", offset, limit],
-    queryFn: () => getTopTracks(offset, limit),
+    queryKey: [
+      "topTracks",
+      offset,
+      limit,
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: () => getTopTracks(offset, limit, startDate, endDate),
   });
 
-export const useTopArtistsQuery = (offset = 0, limit = 50) =>
+export const useTopArtistsQuery = (
+  offset = 0,
+  limit = 50,
+  startDate?: Date,
+  endDate?: Date,
+) =>
   useQuery({
-    queryKey: ["topArtists", offset, limit],
-    queryFn: () => getTopArtists(offset, limit),
+    queryKey: [
+      "topArtists",
+      offset,
+      limit,
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: () => getTopArtists(offset, limit, startDate, endDate),
   });
