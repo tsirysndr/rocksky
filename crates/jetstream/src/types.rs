@@ -93,6 +93,49 @@ pub struct ArtistMbid {
     pub name: String,
 }
 
+impl ScrobbleRecord {
+    /// A scrobble-shaped record for a song record's track.
+    ///
+    /// The like fallback indexes a song whose track is missing, and the
+    /// catalogue writers (`save_artist`, `save_album`) are written against
+    /// the scrobble record. This carries the song's fields across; the only
+    /// field a song record has no counterpart for is `wiki`, which nothing
+    /// downstream reads.
+    pub fn from_song(song: &SongRecord) -> Self {
+        Self {
+            track_number: song.track_number,
+            disc_number: song.disc_number,
+            title: song.title.clone(),
+            artist: song.artist.clone(),
+            album_artist: song.album_artist.clone(),
+            album: song.album.clone(),
+            duration: song.duration,
+            release_date: song.release_date.clone(),
+            year: song.year,
+            genre: song.genre.clone(),
+            // `tags` becomes `artists.genres` in `save_artist`, and an
+            // artist row is never backfilled once it exists — dropping it
+            // here would leave genres empty forever.
+            tags: song.tags.clone(),
+            composer: song.composer.clone(),
+            lyrics: song.lyrics.clone(),
+            copyright_message: song.copyright_message.clone(),
+            wiki: None,
+            album_art: song.album_art.clone(),
+            album_art_url: song.album_art_url.clone(),
+            youtube_link: song.youtube_link.clone(),
+            spotify_link: song.spotify_link.clone(),
+            tidal_link: song.tidal_link.clone(),
+            apple_music_link: song.apple_music_link.clone(),
+            created_at: song.created_at.clone(),
+            label: song.label.clone(),
+            mbid: song.mbid.clone(),
+            isrc: song.isrc.clone(),
+            artists: None,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ProfileResponse {
     pub uri: String,
@@ -262,6 +305,51 @@ pub struct FollowRecord {
 pub struct StrongRef {
     pub uri: String,
     pub cid: String,
+}
+
+/// What a like points at.
+///
+/// The lexicon says `com.atproto.repo.strongRef`, but records in the wild
+/// carry a bare URI string — the same tolerance `apps/api` applies when it
+/// reads them (`materialise::like_subject` in the appview has the comment).
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum LikeSubject {
+    Ref(LikeSubjectRef),
+    Uri(String),
+}
+
+impl LikeSubject {
+    pub fn uri(&self) -> &str {
+        match self {
+            Self::Ref(reference) => &reference.uri,
+            Self::Uri(uri) => uri,
+        }
+    }
+}
+
+/// A strongRef whose CID is tolerated as absent: dropping a whole like
+/// because its ref omitted the CID would lose a real like over a field this
+/// projection never reads.
+#[derive(Debug, Deserialize, Clone)]
+pub struct LikeSubjectRef {
+    pub uri: String,
+    #[serde(default)]
+    pub cid: Option<String>,
+}
+
+/// An `app.rocksky.like` record.
+///
+/// `subject` is optional at the edge only so a malformed record is logged and
+/// skipped rather than failing the whole commit; a like without one projects
+/// nothing.
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LikeRecord {
+    #[serde(default)]
+    pub subject: Option<LikeSubject>,
+    #[serde(default)]
+    pub created_at: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

@@ -27,15 +27,15 @@ fn user_id_cache() -> &'static RwLock<HashMap<String, String>> {
 }
 
 use crate::{
-    playlist,
+    like, playlist,
     profile::did_to_profile,
     subscriber::{
-        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, PLAYLIST_NSID,
+        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, LIKE_NSID, PLAYLIST_NSID,
         PLAYLIST_SONG_NSID, SCROBBLE_NSID, SONG_NSID,
     },
     types::{
-        AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, PlaylistRecord,
-        PlaylistSongRecord, ScrobbleRecord, SongRecord,
+        AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, LikeRecord,
+        PlaylistRecord, PlaylistSongRecord, ScrobbleRecord, SongRecord,
     },
     webhook::discord::{
         self,
@@ -64,6 +64,7 @@ pub async fn save_scrobble(
         SONG_NSID,
         FEED_GENERATOR_NSID,
         FOLLOW_NSID,
+        LIKE_NSID,
         PLAYLIST_NSID,
         PLAYLIST_SONG_NSID,
     ]
@@ -258,6 +259,24 @@ pub async fn save_scrobble(
                 publish_user(&nc, &pool, &user_id).await?;
             }
 
+            if commit.collection == LIKE_NSID {
+                // Malformed records happen; one bad like must not fail the
+                // commit (and its logging) the way an Err would.
+                match serde_json::from_value::<LikeRecord>(record.clone()) {
+                    Ok(like_record) => {
+                        like::save_like(&pool, &nc, did, &commit.rkey, &like_record).await?;
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            error = %e,
+                            did = %did,
+                            rkey = %commit.rkey,
+                            "Malformed like record"
+                        );
+                    }
+                }
+            }
+
             if commit.collection == FOLLOW_NSID {
                 let follow_record: FollowRecord = serde_json::from_value(record.clone())?;
                 let user_id = save_user(&*pool, did).await?;
@@ -319,6 +338,26 @@ pub async fn save_scrobble(
                     }
                     Err(e) => {
                         tracing::error!(error = %e, operation = %commit.operation, collection = %commit.collection, "Failed to delete scrobble");
+                    }
+                }
+            } else if commit.collection == LIKE_NSID {
+                match like::delete_like(&pool, &nc, did, &commit.rkey).await {
+                    Ok(true) => {
+                        tracing::info!(
+                            operation = %commit.operation,
+                            collection = %commit.collection,
+                            "Like deleted"
+                        );
+                    }
+                    Ok(false) => {
+                        tracing::debug!(
+                            operation = %commit.operation,
+                            collection = %commit.collection,
+                            "Like was not indexed; nothing to delete"
+                        );
+                    }
+                    Err(e) => {
+                        tracing::error!(error = %e, operation = %commit.operation, collection = %commit.collection, "Failed to delete like");
                     }
                 }
             } else if commit.collection == PLAYLIST_NSID {
@@ -475,8 +514,6 @@ fn keep_existing(
         .to_owned()
 }
 
-/// `SELECT * FROM <table> WHERE sha256 = <hash>` — how every catalogue row is
-/// looked up before it is inserted.
 /// The id of the row with this content hash.
 ///
 /// One column, not `SELECT *`: every caller of this is a find-or-create that
@@ -484,7 +521,7 @@ fn keep_existing(
 /// result — a `text[]` on Postgres and a JSON array in TEXT on SQLite, which
 /// decodes into `Vec<String>` from neither, so selecting it at all would tie
 /// this lookup to one backend.
-fn id_by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatement {
+pub(crate) fn id_by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatement {
     Query::select()
         .column(Alias::new("xata_id"))
         .from(table)
@@ -503,7 +540,11 @@ fn id_by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatem
 ///
 /// The `$n::text IS NOT NULL` guards the hand-written form needed are gone — a
 /// branch with no value is simply not added.
-fn track_by_hash_or_id(hash: &str, mb_id: Option<&str>, isrc: Option<&str>) -> SelectStatement {
+pub(crate) fn track_by_hash_or_id(
+    hash: &str,
+    mb_id: Option<&str>,
+    isrc: Option<&str>,
+) -> SelectStatement {
     let by_sha = || Expr::col(Tracks::Sha256).eq(hash);
     let by_mb = |v: &str| Expr::col(Tracks::MbId).eq(v);
     let by_isrc = |v: &str| Expr::col(Tracks::Isrc).eq(v);

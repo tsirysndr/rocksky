@@ -35,6 +35,10 @@ fn cli() -> Command {
             Command::new("pull")
                 .about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance")
                 .long_about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance. Ensure that the SOURCE_POSTGRES_URL environment variable is set to your remote PostgreSQL connection string."))
+        .subcommand(
+            Command::new("backfill-likes")
+                .about("Re-project existing app.rocksky.like records from users' repositories")
+                .long_about("Walks every DID in the database and re-projects the app.rocksky.like records in its repository. Idempotent: likes already indexed are skipped, so it is safe to re-run."))
 }
 
 #[tokio::main]
@@ -120,6 +124,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some(("pull", _)) => {
             cmd::pull::pull_data().await?;
+        }
+        Some(("backfill-likes", _)) => {
+            cmd::backfill_likes::backfill_likes().await?;
         }
         // No subcommand: the appview. Every other service here is a companion
         // to one, so a bare `rockskyd` meaning "serve Rocksky" is the useful

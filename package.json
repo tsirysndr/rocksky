@@ -21,6 +21,7 @@
     "dev:dropbox": "cargo run -p rockskyd --release -- dropbox serve",
     "dev:googledrive": "cargo run -p rockskyd --release -- googledrive serve",
     "dev:jetstream": "cargo run -p rockskyd --release -- jetstream",
+    "dev:likes-backfill": "cargo run -p rockskyd --release -- backfill-likes",
     "dev:playlists": "cargo run -p rockskyd --release -- playlist",
     "dev:scrobbler": "cargo run -p rockskyd --release -- scrobbler",
     "dev:spotify": "cargo run -p rockskyd --release -- spotify",

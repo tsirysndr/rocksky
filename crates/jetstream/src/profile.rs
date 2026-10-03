@@ -5,8 +5,15 @@ use crate::types::{Profile, ProfileResponse};
 /// Resolves a DID to its DID document, via the PLC directory (overridable
 /// with `PLC_DIRECTORY_URL`, e.g. to point at the plc-proxy Worker) or the
 /// domain's well-known for `did:web`.
+///
+/// Bounded: this lookup sits on the firehose consumer's hot path (every new
+/// user, every like whose song needs fetching), so a hung PLC directory must
+/// cost the caller a skip, not stall ingestion.
 async fn did_document(did: &str) -> Result<serde_json::Value, Error> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(5))
+        .timeout(std::time::Duration::from_secs(15))
+        .build()?;
     let plc_url =
         std::env::var("PLC_DIRECTORY_URL").unwrap_or_else(|_| "https://plc.directory".to_string());
     let mut url = format!("{}/{}", plc_url.trim_end_matches('/'), did);
