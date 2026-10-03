@@ -344,6 +344,23 @@ pub enum UserPlaylists {
     Uri,
 }
 
+/// `loved_tracks` (table).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Iden)]
+#[iden = "loved_tracks"]
+pub enum LovedTracks {
+    Table,
+    #[iden = "xata_id"]
+    XataId,
+    #[iden = "user_id"]
+    UserId,
+    #[iden = "track_id"]
+    TrackId,
+    #[iden = "uri"]
+    Uri,
+    #[iden = "xata_createdat"]
+    XataCreatedat,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

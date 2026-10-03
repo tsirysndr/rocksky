@@ -2,7 +2,7 @@ import { AtpAgent, type Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, desc, eq, type SQLWrapper } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { withFallbackAlbumArt } from "lib";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
@@ -222,36 +222,6 @@ export async function likeTrack(
       .onConflictDoNothing();
   }
 
-  // Create or update loved track
-  const existingLovedTrack = await ctx.db
-    .select()
-    .from(lovedTracks)
-    .where(
-      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, trackId)),
-    )
-    .limit(1)
-    .then((rows) => rows[0]);
-
-  let created: { id: string | SQLWrapper };
-  if (existingLovedTrack) {
-    [created] = await ctx.db
-      .update(lovedTracks)
-      .set({
-        userId: user.id,
-        trackId,
-      })
-      .where(eq(lovedTracks.id, existingLovedTrack.id))
-      .returning();
-  } else {
-    [created] = await ctx.db
-      .insert(lovedTracks)
-      .values({
-        userId: user.id,
-        trackId,
-      })
-      .returning();
-  }
-
   // Get the track with uri for ATProto operations
   const trackWithUri = await ctx.db
     .select()
@@ -260,103 +230,75 @@ export async function likeTrack(
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (trackWithUri?.uri) {
-    const rkey = TID.nextStr();
-    const repo = trackWithUri.uri
-      .split("/")
-      .slice(0, 3)
-      .join("/")
-      .split("at://")[1];
-    const pds = await extractPdsFromDid(repo);
-    const subjectAgent = new AtpAgent({
-      service: new URL(pds),
-    });
-    const subjectRecord = await subjectAgent.com.atproto.repo.getRecord({
-      repo,
-      collection: "app.rocksky.song",
-      rkey: trackWithUri.uri.split("/").pop(),
-    });
-
-    const subjectRef = validateMain({
-      uri: trackWithUri.uri,
-      cid: subjectRecord.data.cid,
-    });
-    if (!subjectRef.success) {
-      throw new Error("[like] invalid ref");
-    }
-
-    const record = {
-      $type: "app.rocksky.like",
-      subject: subjectRef.value,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (!LikeLexicon.validateRecord(record).success) {
-      consola.info(LikeLexicon.validateRecord(record));
-      throw new Error("Invalid record");
-    }
-
-    try {
-      const res = await agent.com.atproto.repo.createRecord({
-        repo: agent.assertDid,
-        collection: "app.rocksky.like",
-        rkey,
-        record,
-        validate: false,
-      });
-      const uri = res.data.uri;
-      consola.info(`Like record created at: ${uri}`);
-
-      [created] = await ctx.db
-        .update(lovedTracks)
-        .set({ uri })
-        .where(eq(lovedTracks.id, created.id))
-        .returning();
-    } catch (e) {
-      consola.error(`Error creating like record: ${e.message}`);
-    }
+  // loved_tracks is written by jetstream once this record reaches the firehose.
+  if (!trackWithUri?.uri) {
+    consola.warn(`[like] ${trackId} has no song record, nothing to like`);
+    return null;
   }
 
-  const lovedTrack = await ctx.db
-    .select()
-    .from(lovedTracks)
-    .where(
-      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, trackId)),
-    )
-    .limit(1)
-    .then((rows) => rows[0]);
-
-  const message = JSON.stringify({
-    uri: lovedTrack.uri,
-    user_id: { xata_id: user.id },
-    track_id: { xata_id: trackId },
-    xata_createdat: lovedTrack.createdAt.toISOString(),
-    xata_id: lovedTrack.id,
-    xata_updatedat: lovedTrack.createdAt.toISOString(),
-    xata_version: 0,
+  const rkey = TID.nextStr();
+  const repo = trackWithUri.uri
+    .split("/")
+    .slice(0, 3)
+    .join("/")
+    .split("at://")[1];
+  const pds = await extractPdsFromDid(repo);
+  const subjectAgent = new AtpAgent({
+    service: new URL(pds),
   });
-  ctx.nc.publish("rocksky.like", Buffer.from(message));
+  const subjectRecord = await subjectAgent.com.atproto.repo.getRecord({
+    repo,
+    collection: "app.rocksky.song",
+    rkey: trackWithUri.uri.split("/").pop(),
+  });
+
+  const subjectRef = validateMain({
+    uri: trackWithUri.uri,
+    cid: subjectRecord.data.cid,
+  });
+  if (!subjectRef.success) {
+    throw new Error("[like] invalid ref");
+  }
+
+  const record = {
+    $type: "app.rocksky.like",
+    subject: subjectRef.value,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!LikeLexicon.validateRecord(record).success) {
+    consola.info(LikeLexicon.validateRecord(record));
+    throw new Error("Invalid record");
+  }
+
+  const res = await agent.com.atproto.repo.createRecord({
+    repo: agent.assertDid,
+    collection: "app.rocksky.like",
+    rkey,
+    record,
+    validate: false,
+  });
+  const uri = res.data.uri;
+  consola.info(`Like record created at: ${uri}`);
 
   // Notify the owner of the liked song record (the repo the at-uri belongs to).
-  if (trackWithUri?.uri) {
-    const ownerDid = trackWithUri.uri.replace("at://", "").split("/")[0];
-    const owner = await ctx.db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.did, ownerDid))
-      .limit(1)
-      .then((rows) => rows[0]);
-    if (owner) {
-      await createNotification(ctx, {
-        userId: owner.id,
-        actorId: user.id,
-        type: "like_scrobble",
-        subjectUri: trackWithUri.uri,
-      });
-    }
+  const ownerDid = trackWithUri.uri.replace("at://", "").split("/")[0];
+  const owner = await ctx.db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.did, ownerDid))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (owner) {
+    await createNotification(ctx, {
+      userId: owner.id,
+      actorId: user.id,
+      type: "like_scrobble",
+      subjectUri: trackWithUri.uri,
+    });
   }
 
-  return created;
+  return uri;
 }
 
 export async function unLikeTrack(
@@ -391,16 +333,18 @@ export async function unLikeTrack(
 
   const rkey = lovedTrack.uri?.split("/").pop();
 
-  await Promise.all([
-    rkey
-      ? agent.com.atproto.repo.deleteRecord({
-          repo: agent.assertDid,
-          collection: "app.rocksky.like",
-          rkey,
-        })
-      : Promise.resolve(),
-    ctx.db.delete(lovedTracks).where(eq(lovedTracks.id, lovedTrack.id)),
-  ]);
+  // jetstream deletes the row when the record deletion reaches the firehose.
+  if (rkey) {
+    await agent.com.atproto.repo.deleteRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.like",
+      rkey,
+    });
+    return;
+  }
+
+  // A like with no record never reaches jetstream, so it is removed here.
+  await ctx.db.delete(lovedTracks).where(eq(lovedTracks.id, lovedTrack.id));
 
   const message = JSON.stringify({
     uri: lovedTrack.uri,

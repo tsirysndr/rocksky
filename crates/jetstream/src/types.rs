@@ -256,6 +256,13 @@ pub struct FollowRecord {
     pub created_at: String,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LikeRecord {
+    pub subject: StrongRef,
+    pub created_at: String,
+}
+
 /// `com.atproto.repo.strongRef` — an AT-URI plus the CID of the exact record
 /// revision it pointed at.
 #[derive(Debug, Deserialize, Clone)]

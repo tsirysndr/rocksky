@@ -27,15 +27,15 @@ fn user_id_cache() -> &'static RwLock<HashMap<String, String>> {
 }
 
 use crate::{
-    playlist,
+    like, playlist,
     profile::did_to_profile,
     subscriber::{
-        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, PLAYLIST_NSID,
+        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, LIKE_NSID, PLAYLIST_NSID,
         PLAYLIST_SONG_NSID, SCROBBLE_NSID, SONG_NSID,
     },
     types::{
-        AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, PlaylistRecord,
-        PlaylistSongRecord, ScrobbleRecord, SongRecord,
+        AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, LikeRecord,
+        PlaylistRecord, PlaylistSongRecord, ScrobbleRecord, SongRecord,
     },
     webhook::discord::{
         self,
@@ -66,6 +66,7 @@ pub async fn save_scrobble(
         FOLLOW_NSID,
         PLAYLIST_NSID,
         PLAYLIST_SONG_NSID,
+        LIKE_NSID,
     ]
     .contains(&commit.collection.as_str())
     {
@@ -272,6 +273,11 @@ pub async fn save_scrobble(
                 publish_user(&nc, &pool, &subject_user_id).await?;
             }
 
+            if commit.collection == LIKE_NSID {
+                let like_record: LikeRecord = serde_json::from_value(record.clone())?;
+                like::save_like(&pool, &nc, did, &commit.rkey, like_record).await?;
+            }
+
             if commit.collection == PLAYLIST_NSID || commit.collection == PLAYLIST_SONG_NSID {
                 save_playlist_commit(
                     &pool,
@@ -329,6 +335,8 @@ pub async fn save_scrobble(
             } else if commit.collection == PLAYLIST_SONG_NSID {
                 let uri = playlist::playlist_song_uri(did, &commit.rkey);
                 playlist::delete_playlist_song(&pool, &uri).await?;
+            } else if commit.collection == LIKE_NSID {
+                like::delete_like(&pool, &nc, did, &commit.rkey).await?;
             } else {
                 tracing::warn!(operation = %commit.operation, collection = %commit.collection, "Delete operation not implemented for this collection");
             }

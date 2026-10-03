@@ -34,6 +34,7 @@
     "dedup": "bun ./src/scripts/dedup.ts",
     "seed:feed": "tsx ./src/scripts/seed-feed.ts",
     "likes": "tsx ./src/scripts/likes.ts",
+    "backfill:likes": "tsx ./src/scripts/backfill-likes.ts",
     "backfill:isrc-mbid": "tsx ./src/scripts/backfill-isrc-mbid.ts",
     "riff:backfill": "tsx ./src/scripts/backfill-riff.ts",
     "backfill:track-uri": "tsx ./src/scripts/backfill-track-uri.ts",
