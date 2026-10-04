@@ -18,6 +18,12 @@ the `withReleaseOptimization` prebuild plugin. The engine's consumer rules prese
 its JNI entry point names. Keep the release `mapping.txt` for crash deobfuscation;
 Android App Bundles include it in their ProGuard metadata.
 
+`native/android-release.pro` also preserves Expo's runtime record annotations.
+Without this rule, optimized builds can fail to set expo-image `source` and
+`contentPosition` props even though development builds work. When changing R8
+rules, test the optimized app on a device: check the opening logo, story avatars
+and signed-in library artwork, and check logcat for Expo record conversion errors.
+
 EAS installs Rust 1.98.0 and cargo-ndk 4.1.2 through the pre-install hook. Gradle
 then builds the Rust engine from source with `cargo build --release --locked`
 through cargo-ndk, using NDK 27.1.12297006. ARM64 and x86_64 libraries are checked

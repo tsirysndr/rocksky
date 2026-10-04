@@ -16,12 +16,20 @@ module.exports = config => {
   return withAppBuildGradle(config, config => {
     // Expo's default proguard-android.txt disables optimization. Use the
     // optimizing rules as well as enabling R8 shrinking and obfuscation.
-    const contents = config.modResults.contents.replace(
+    let contents = config.modResults.contents.replace(
       /getDefaultProguardFile\((["'])proguard-android\.txt\1\)/g,
       'getDefaultProguardFile("proguard-android-optimize.txt")',
     );
     if (!contents.includes('proguard-android-optimize.txt')) {
       throw new Error('Cannot configure release optimization: Android ProGuard declaration changed.');
+    }
+    const releaseRules = 'rootProject.file("../native/android-release.pro")';
+    if (!contents.includes(releaseRules)) {
+      const rulesDeclaration = /("proguard-rules\.pro"|'proguard-rules\.pro')/;
+      if (!rulesDeclaration.test(contents)) {
+        throw new Error('Cannot configure release keep rules: Android ProGuard declaration changed.');
+      }
+      contents = contents.replace(rulesDeclaration, `$1, ${releaseRules}`);
     }
     config.modResults.contents = contents;
     return config;
