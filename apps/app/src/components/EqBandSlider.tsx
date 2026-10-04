@@ -20,6 +20,11 @@ type Props = {
 
 const MAX_GAIN = 240;
 const THUMB = 14;
+const DOUBLE_TAP_MS = 300;
+/** Floor for the track, so a band is never zero-height. */
+const MIN_TRACK = 90;
+// Movement under this is a tap, not a drag.
+const TAP_SLOP = 4;
 
 const clampGain = (value: number) =>
   Math.min(MAX_GAIN, Math.max(-MAX_GAIN, Math.round(value)));
@@ -44,32 +49,48 @@ export default function EqBandSlider({
   const heightRef = useRef(0);
   const origin = useRef(0);
   const lastTap = useRef(0);
+  const dragged = useRef(false);
 
   const responder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => !disabled,
-        onMoveShouldSetPanResponder: () => !disabled,
+        // Draggable even while the EQ is bypassed: `disabled` dims the band to
+        // show it is not in circuit, but a slider you cannot move reads as
+        // broken — and moving one is how you say you want the EQ on.
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        // Hold the touch against the enclosing ScrollView, which would
+        // otherwise take over a vertical drag.
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
           origin.current = gainRef.current;
-          const now = Date.now();
-          if (now - lastTap.current < 280) {
-            onChange(0);
-            lastTap.current = 0;
-            return;
-          }
-          lastTap.current = now;
+          dragged.current = false;
         },
         onPanResponderMove: (_event, gesture) => {
+          if (Math.abs(gesture.dy) > TAP_SLOP) dragged.current = true;
           const usable = Math.max(1, heightRef.current - THUMB);
           // Up is a boost, so the sign flips; a full track is the full range.
           const delta = (-gesture.dy / usable) * (MAX_GAIN * 2);
           onChange(clampGain(origin.current + delta));
         },
-        onPanResponderRelease: () => onRelease?.(),
+        onPanResponderRelease: () => {
+          // Two taps in a row flatten the band; a tap that became a drag doesn't.
+          if (!dragged.current) {
+            const now = Date.now();
+            if (now - lastTap.current < DOUBLE_TAP_MS) {
+              lastTap.current = 0;
+              onChange(0);
+              onRelease?.();
+              return;
+            }
+            lastTap.current = now;
+          }
+          onRelease?.();
+        },
         onPanResponderTerminate: () => onRelease?.(),
       }),
-    [disabled, onChange, onRelease],
+    [onChange, onRelease],
   );
 
   const onLayout = (event: LayoutChangeEvent) => {
@@ -78,7 +99,11 @@ export default function EqBandSlider({
     setTrackHeight(height);
   };
 
-  const usable = Math.max(0, trackHeight - THUMB);
+  // Before onLayout reports, assume the minimum: the thumb then already sits at
+  // the stored gain on the first paint instead of waiting a frame — or, when a
+  // parent gave the track no height, never appearing at all.
+  const height = trackHeight > 0 ? trackHeight : MIN_TRACK;
+  const usable = Math.max(0, height - THUMB);
   const ratio = clampGain(gain) / MAX_GAIN; // -1..1
   const centre = usable / 2;
   const thumbBottom = centre + (ratio * usable) / 2;
@@ -89,28 +114,24 @@ export default function EqBandSlider({
       <View {...responder.panHandlers} style={styles.track} onLayout={onLayout}>
         <View style={styles.rail} />
         <View style={[styles.centreLine, { bottom: centre + THUMB / 2 }]} />
-        {trackHeight > 0 && (
-          <View
-            pointerEvents="none"
-            style={[
-              styles.fill,
-              {
-                height: fillHeight,
-                bottom: Math.min(thumbBottom, centre) + THUMB / 2,
-                opacity: disabled ? 0.4 : 1,
-              },
-            ]}
-          />
-        )}
-        {trackHeight > 0 && (
-          <View
-            pointerEvents="none"
-            style={[
-              styles.thumb,
-              { bottom: thumbBottom, opacity: disabled ? 0.5 : 1 },
-            ]}
-          />
-        )}
+        <View
+          pointerEvents="none"
+          style={[
+            styles.fill,
+            {
+              height: fillHeight,
+              bottom: Math.min(thumbBottom, centre) + THUMB / 2,
+              opacity: disabled ? 0.4 : 1,
+            },
+          ]}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.thumb,
+            { bottom: thumbBottom, opacity: disabled ? 0.5 : 1 },
+          ]}
+        />
       </View>
       <Text numberOfLines={1} style={styles.freq}>
         {freqLabel}
@@ -127,7 +148,12 @@ const styles = StyleSheet.create({
   },
   track: {
     flex: 1,
-    width: 22,
+    // A floor, so a parent that sizes to content can never leave the band with
+    // no height — which would make it invisible and impossible to drag.
+    minHeight: MIN_TRACK,
+    // The rail is 3px; the touch column is the whole band's width so a finger
+    // doesn't have to be precise.
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },

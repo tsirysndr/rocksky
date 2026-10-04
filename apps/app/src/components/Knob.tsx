@@ -21,7 +21,9 @@ type Props = {
 // Pixels of vertical travel for a full sweep, as on the desktop client.
 const TRAVEL = 140;
 const SWEEP = 270;
-const DOUBLE_TAP_MS = 280;
+const DOUBLE_TAP_MS = 300;
+// Movement under this is a tap, not a turn — a finger never lands perfectly still.
+const TAP_SLOP = 4;
 
 const clamp01 = (value: number) =>
   Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
@@ -51,28 +53,43 @@ export default function Knob({
   normRef.current = clamped;
   const origin = useRef(0);
   const lastTap = useRef(0);
+  const turned = useRef(false);
 
   const responder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => !disabled,
         onMoveShouldSetPanResponder: () => !disabled,
+        // The sheet is a ScrollView, which would otherwise claim a vertical
+        // drag: once the knob has the touch it keeps it, so turning works and
+        // a tap is never swallowed mid-gesture.
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
           origin.current = normRef.current;
-          const now = Date.now();
-          if (now - lastTap.current < DOUBLE_TAP_MS) {
-            onChange(defaultNorm);
-            lastTap.current = 0;
-            return;
-          }
-          lastTap.current = now;
+          turned.current = false;
         },
         onPanResponderMove: (_event, gesture) => {
+          if (Math.abs(gesture.dy) > TAP_SLOP) turned.current = true;
           // Total travel from where the finger went down, not a sum of deltas,
           // which drifts.
           onChange(clamp01(origin.current - gesture.dy / TRAVEL));
         },
-        onPanResponderRelease: () => onRelease?.(),
+        onPanResponderRelease: () => {
+          // Decided on release, not on the next touch: a tap followed by a drag
+          // is a drag, and only two taps in a row reset.
+          if (!turned.current) {
+            const now = Date.now();
+            if (now - lastTap.current < DOUBLE_TAP_MS) {
+              lastTap.current = 0;
+              onChange(defaultNorm);
+              onRelease?.();
+              return;
+            }
+            lastTap.current = now;
+          }
+          onRelease?.();
+        },
         onPanResponderTerminate: () => onRelease?.(),
       }),
     [disabled, defaultNorm, onChange, onRelease],

@@ -138,11 +138,19 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
   const eqEnabled = eq.enabled ?? false;
   const precut = eq.precut ?? 0;
 
+  /**
+   * Touching any EQ control switches the equalizer on.
+   *
+   * Moving a band while it is bypassed otherwise does nothing audible, which
+   * reads as a broken slider; wanting the curve is the same as wanting the EQ.
+   */
+  const setEqualizer = (change: { bands?: typeof bands; precut?: number }) => {
+    patch({ equalizer: { ...change, enabled: true } });
+  };
+
   const setBandGain = (index: number, gain: number) => {
-    patch({
-      equalizer: {
-        bands: bands.map((band, i) => (i === index ? { ...band, gain } : band)),
-      },
+    setEqualizer({
+      bands: bands.map((band, i) => (i === index ? { ...band, gain } : band)),
     });
   };
 
@@ -173,6 +181,10 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             contentContainerStyle={styles.body}
           >
             <SectionHeader title="EQUALIZER" />
+            {/* The gesture is worth a word: nothing on screen suggests it. */}
+            <Text style={styles.hint}>
+              Drag a band or a knob to adjust, double-tap to reset it.
+            </Text>
             <Row label="Enable EQ">
               <Switch
                 value={eqEnabled}
@@ -201,22 +213,23 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 ))}
               </View>
               <View style={styles.eqDivider} />
-              <Knob
-                label="Precut"
-                // Precut is headroom, so it only goes one way: 0 to -24 dB.
-                valueText={db(precut)}
-                norm={1 + precut / 240}
-                defaultNorm={1}
-                disabled={!eqEnabled}
-                onChange={(value) =>
-                  patch({
-                    equalizer: {
+              {/* Centred rather than stretched: the row stretches its children
+                  so the band tracks get their height, which a knob must not. */}
+              <View style={styles.precutHolder}>
+                <Knob
+                  label="Precut"
+                  // Precut is headroom, so it only goes one way: 0 to -24 dB.
+                  valueText={db(precut)}
+                  norm={1 + precut / 240}
+                  defaultNorm={1}
+                  onChange={(value) =>
+                    setEqualizer({
                       precut: -Math.round((1 - value) * 48) * 5,
-                    },
-                  })
-                }
-                onRelease={flush}
-              />
+                    })
+                  }
+                  onRelease={flush}
+                />
+              </View>
             </View>
 
             <SectionHeader title="TONE" />
@@ -439,7 +452,10 @@ const styles = StyleSheet.create({
   },
   eqRow: {
     flexDirection: "row",
-    alignItems: "center",
+    // Stretch, not centre: centring sized the bands row to its own content, so
+    // each band's track — which fills the remaining height — collapsed to
+    // nothing. The sliders then had no thumb to show and no area to drag.
+    alignItems: "stretch",
     height: 170,
     gap: 8,
   },
@@ -452,9 +468,11 @@ const styles = StyleSheet.create({
   },
   eqDivider: {
     width: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
     marginVertical: 18,
     backgroundColor: colors.border,
+  },
+  precutHolder: {
+    justifyContent: "center",
   },
   knobRow: {
     flexDirection: "row",
@@ -484,6 +502,11 @@ const styles = StyleSheet.create({
   },
   segmentTextActive: {
     color: "#fff",
+  },
+  hint: {
+    fontSize: 10,
+    color: colors.textMuted,
+    opacity: 0.7,
   },
   footnote: {
     fontSize: 10,
