@@ -31,7 +31,7 @@ import {
 import { usePlaybackSource } from "../hooks/usePlaybackSource";
 import { colors } from "../theme";
 import EqBandSlider from "./EqBandSlider";
-import Knob from "./Knob";
+import ValueStepper from "./ValueStepper";
 import { Text } from "./Text";
 
 type Props = { visible: boolean; onClose: () => void };
@@ -242,8 +242,8 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             <SectionHeader title="EQUALIZER" />
             {/* Worth a word: none of it is suggested by the controls. */}
             <Text style={styles.hint}>
-              Drag a band or knob, tap − and + for single steps, double-tap to
-              reset.
+              Drag a band to shape the curve; tap − and + to step a value, hold
+              to run, long-press a reading to reset it.
             </Text>
             <Row label="Enable EQ">
               <Switch
@@ -327,30 +327,23 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                   />
                 ))}
               </View>
-              <View style={styles.eqDivider} />
-              {/* Centred rather than stretched: the row stretches its children
-                  so the band tracks get their height, which a knob must not. */}
-              <View style={styles.precutHolder}>
-                <Knob
-                  label="Precut"
-                  steps={48}
-                  // Precut is headroom, so it only goes one way: 0 to -24 dB.
-                  valueText={db(precut)}
-                  norm={1 + precut / 240}
-                  defaultNorm={1}
-                  onChange={(value) =>
-                    setEqualizer({
-                      precut: -Math.round((1 - value) * 48) * 5,
-                    })
-                  }
-                  onRelease={flush}
-                />
-              </View>
             </View>
+            <ValueStepper
+              label="Precut"
+              steps={48}
+              // Precut is headroom, so it only goes one way: 0 to -24 dB.
+              valueText={db(precut)}
+              norm={1 + precut / 240}
+              defaultNorm={1}
+              onChange={(value) =>
+                setEqualizer({ precut: -Math.round((1 - value) * 48) * 5 })
+              }
+              onRelease={flush}
+            />
 
             <SectionHeader title="TONE" />
-            <View style={styles.knobRow}>
-              <Knob
+            <View style={styles.stepperGroup}>
+              <ValueStepper
                 label="Bass"
                 steps={48}
                 valueText={`${tone.bass ?? 0} dB`}
@@ -361,7 +354,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 }
                 onRelease={flush}
               />
-              <Knob
+              <ValueStepper
                 label="Treble"
                 steps={48}
                 valueText={`${tone.treble ?? 0} dB`}
@@ -372,7 +365,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 }
                 onRelease={flush}
               />
-              <Knob
+              <ValueStepper
                 label="Balance"
                 steps={40}
                 valueText={balanceLabel(tone.balance ?? 0)}
@@ -405,8 +398,8 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 thumbColor="#fff"
               />
             </Row>
-            <View style={styles.knobRow}>
-              <Knob
+            <View style={styles.stepperGroup}>
+              <ValueStepper
                 label="Pre-amp"
                 steps={48}
                 valueText={db(rg.preamp ?? 0)}
@@ -430,8 +423,8 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 flush();
               }}
             />
-            <View style={styles.knobRow}>
-              <Knob
+            <View style={styles.stepperGroup}>
+              <ValueStepper
                 label="In delay"
                 steps={28}
                 valueText={seconds(cf.fadeInDelay ?? 0)}
@@ -444,7 +437,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 }
                 onRelease={flush}
               />
-              <Knob
+              <ValueStepper
                 label="In fade"
                 steps={30}
                 valueText={seconds(cf.fadeInDuration ?? 0)}
@@ -457,7 +450,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 }
                 onRelease={flush}
               />
-              <Knob
+              <ValueStepper
                 label="Out delay"
                 steps={28}
                 valueText={seconds(cf.fadeOutDelay ?? 0)}
@@ -470,7 +463,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 }
                 onRelease={flush}
               />
-              <Knob
+              <ValueStepper
                 label="Out fade"
                 steps={30}
                 valueText={seconds(cf.fadeOutDuration ?? 0)}
@@ -590,20 +583,9 @@ const styles = StyleSheet.create({
     gap: 2,
     paddingVertical: 4,
   },
-  eqDivider: {
-    width: StyleSheet.hairlineWidth,
-    marginVertical: 18,
-    backgroundColor: colors.border,
-  },
-  precutHolder: {
-    justifyContent: "center",
-  },
-  knobRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    flexWrap: "wrap",
-    rowGap: 12,
-    paddingTop: 2,
+  stepperGroup: {
+    // The steppers are full-width rows, so they simply stack.
+    gap: 2,
   },
   segmented: {
     flexDirection: "row",
