@@ -1414,11 +1414,20 @@ h3 {
 .site-footer nav a:hover {
   color: #fff;
 }
+.footer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border-top: 1px solid #ffffff0f;
+  padding-top: 25px;
+}
 .footer-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
   font-size: 13px;
   color: var(--soft);
 }
@@ -1434,9 +1443,6 @@ h3 {
 }
 .footer-note {
   display: block;
-  width: 100%;
-  border-top: 1px solid #ffffff0f;
-  padding-top: 25px;
   font-size: 9px;
   letter-spacing: 2px;
   color: #9b84ae;
