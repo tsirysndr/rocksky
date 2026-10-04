@@ -270,6 +270,9 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                // Pinned, or a horizontal ScrollView grows to fill the height
+                // its parent has to give.
+                style={styles.presetScroll}
                 contentContainerStyle={styles.presetList}
               >
                 {(presets ?? []).map((preset) => (
@@ -623,6 +626,10 @@ const styles = StyleSheet.create({
   },
   presetRow: {
     flexDirection: "row",
+  },
+  presetScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   presetList: {
     gap: 6,

@@ -1117,6 +1117,9 @@ export default function Library() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        // Without flexGrow 0 a horizontal ScrollView in a column takes all the
+        // remaining height, which pushed the lists off the screen.
+        style={styles.pillBar}
         contentContainerStyle={styles.pillRow}
       >
         {SUB_TABS.map((label, i) => (
@@ -1372,10 +1375,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingVertical: 9,
   },
+  pillBar: {
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: 12,
+  },
   pillRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    marginBottom: 12,
   },
   pill: {
     paddingHorizontal: 14,
