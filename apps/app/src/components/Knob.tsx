@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PanResponder, StyleSheet, View } from "react-native";
 import { colors } from "../theme";
 import { Text } from "./Text";
@@ -18,19 +18,27 @@ type Props = {
   onRelease?: () => void;
 };
 
-// Pixels of vertical travel for a full sweep, as on the desktop client.
-const TRAVEL = 140;
+// Pixels of travel for a full sweep. The desktop uses 140 with a mouse; a thumb
+// on a phone has less room and less patience, so the sweep is shorter here.
+const TRAVEL = 90;
 const SWEEP = 270;
 const DOUBLE_TAP_MS = 300;
 // Movement under this is a tap, not a turn — a finger never lands perfectly still.
 const TAP_SLOP = 4;
+// A turn is reported at most this often. The face follows the finger from local
+// state; every report re-renders the whole settings sheet, and doing that on
+// every move event is what made the knobs feel stiff.
+const REPORT_MS = 50;
 
 const clamp01 = (value: number) =>
   Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 
 /**
- * The rotary from the desktop and web clients: drag up or down to turn,
- * double-tap to reset. The indicator sweeps -135°…+135°.
+ * The rotary from the desktop and web clients: drag to turn, double-tap to
+ * reset. The indicator sweeps -135°…+135°.
+ *
+ * Vertical movement turns it, and horizontal adds to that, so a diagonal drag
+ * works too — a finger rarely travels straight.
  *
  * The pointer is a bar inside a square that is rotated as a whole, so it pivots
  * about the knob's centre without any transform-origin arithmetic — React
@@ -51,9 +59,14 @@ export default function Knob({
   // `clamped` directly would freeze the gesture's origin at the first render.
   const normRef = useRef(clamped);
   normRef.current = clamped;
+  // While a drag is in flight the face follows this, not the prop, so it tracks
+  // the finger even though the value is reported less often.
+  const [live, setLive] = useState<number | null>(null);
   const origin = useRef(0);
   const lastTap = useRef(0);
   const turned = useRef(false);
+  const lastReport = useRef(0);
+  const unreported = useRef<number | null>(null);
 
   const responder = useMemo(
     () =>
@@ -68,14 +81,33 @@ export default function Knob({
         onPanResponderGrant: () => {
           origin.current = normRef.current;
           turned.current = false;
+          unreported.current = null;
+          lastReport.current = 0;
+          setLive(normRef.current);
         },
         onPanResponderMove: (_event, gesture) => {
-          if (Math.abs(gesture.dy) > TAP_SLOP) turned.current = true;
           // Total travel from where the finger went down, not a sum of deltas,
-          // which drifts.
-          onChange(clamp01(origin.current - gesture.dy / TRAVEL));
+          // which drifts. Up and right both turn it up.
+          const travel = -gesture.dy + gesture.dx;
+          if (Math.abs(travel) > TAP_SLOP) turned.current = true;
+          const next = clamp01(origin.current + travel / TRAVEL);
+          setLive(next);
+          const now = Date.now();
+          if (now - lastReport.current >= REPORT_MS) {
+            lastReport.current = now;
+            unreported.current = null;
+            onChange(next);
+            return;
+          }
+          unreported.current = next;
         },
         onPanResponderRelease: () => {
+          // Whatever the throttle held back is the value the finger ended on.
+          if (unreported.current !== null) {
+            onChange(unreported.current);
+            unreported.current = null;
+          }
+          setLive(null);
           // Decided on release, not on the next touch: a tap followed by a drag
           // is a drag, and only two taps in a row reset.
           if (!turned.current) {
@@ -90,12 +122,16 @@ export default function Knob({
           }
           onRelease?.();
         },
-        onPanResponderTerminate: () => onRelease?.(),
+        onPanResponderTerminate: () => {
+          setLive(null);
+          onRelease?.();
+        },
       }),
     [disabled, defaultNorm, onChange, onRelease],
   );
 
-  const angle = -SWEEP / 2 + clamped * SWEEP;
+  const shown = live ?? clamped;
+  const angle = -SWEEP / 2 + shown * SWEEP;
   const dot = Math.round(size * 0.28);
 
   return (
@@ -103,6 +139,8 @@ export default function Knob({
       <Text style={styles.value}>{valueText}</Text>
       <View
         {...responder.panHandlers}
+        // A thumb is wider than the face.
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         style={[
           styles.face,
           {

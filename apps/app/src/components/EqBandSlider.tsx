@@ -25,6 +25,9 @@ const DOUBLE_TAP_MS = 300;
 const MIN_TRACK = 90;
 // Movement under this is a tap, not a drag.
 const TAP_SLOP = 4;
+// A drag is reported at most this often: the thumb follows the finger from local
+// state, while every report re-renders the whole settings sheet.
+const REPORT_MS = 50;
 
 const clampGain = (value: number) =>
   Math.min(MAX_GAIN, Math.max(-MAX_GAIN, Math.round(value)));
@@ -50,6 +53,10 @@ export default function EqBandSlider({
   const origin = useRef(0);
   const lastTap = useRef(0);
   const dragged = useRef(false);
+  // While a drag is in flight the thumb follows this, not the prop.
+  const [live, setLive] = useState<number | null>(null);
+  const lastReport = useRef(0);
+  const unreported = useRef<number | null>(null);
 
   const responder = useMemo(
     () =>
@@ -66,15 +73,33 @@ export default function EqBandSlider({
         onPanResponderGrant: () => {
           origin.current = gainRef.current;
           dragged.current = false;
+          unreported.current = null;
+          lastReport.current = 0;
+          setLive(gainRef.current);
         },
         onPanResponderMove: (_event, gesture) => {
           if (Math.abs(gesture.dy) > TAP_SLOP) dragged.current = true;
           const usable = Math.max(1, heightRef.current - THUMB);
           // Up is a boost, so the sign flips; a full track is the full range.
           const delta = (-gesture.dy / usable) * (MAX_GAIN * 2);
-          onChange(clampGain(origin.current + delta));
+          const next = clampGain(origin.current + delta);
+          setLive(next);
+          const now = Date.now();
+          if (now - lastReport.current >= REPORT_MS) {
+            lastReport.current = now;
+            unreported.current = null;
+            onChange(next);
+            return;
+          }
+          unreported.current = next;
         },
         onPanResponderRelease: () => {
+          // Whatever the throttle held back is where the finger ended.
+          if (unreported.current !== null) {
+            onChange(unreported.current);
+            unreported.current = null;
+          }
+          setLive(null);
           // Two taps in a row flatten the band; a tap that became a drag doesn't.
           if (!dragged.current) {
             const now = Date.now();
@@ -88,7 +113,10 @@ export default function EqBandSlider({
           }
           onRelease?.();
         },
-        onPanResponderTerminate: () => onRelease?.(),
+        onPanResponderTerminate: () => {
+          setLive(null);
+          onRelease?.();
+        },
       }),
     [onChange, onRelease],
   );
@@ -104,7 +132,7 @@ export default function EqBandSlider({
   // parent gave the track no height, never appearing at all.
   const height = trackHeight > 0 ? trackHeight : MIN_TRACK;
   const usable = Math.max(0, height - THUMB);
-  const ratio = clampGain(gain) / MAX_GAIN; // -1..1
+  const ratio = clampGain(live ?? gain) / MAX_GAIN; // -1..1
   const centre = usable / 2;
   const thumbBottom = centre + (ratio * usable) / 2;
   const fillHeight = Math.abs(thumbBottom - centre);
