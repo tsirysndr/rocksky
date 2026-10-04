@@ -207,7 +207,7 @@ export default function Player() {
                 maximumValue={Math.max(duration, 1)}
                 value={position}
                 minimumTrackTintColor={colors.primary}
-                maximumTrackTintColor={colors.surface3}
+                maximumTrackTintColor="rgba(255,255,255,0.35)"
                 thumbTintColor="#fff"
                 onSlidingStart={() => {
                   setScrubValue(Math.min(progress, duration));
