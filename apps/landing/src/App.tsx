@@ -33,6 +33,7 @@ import {
   Upload,
   Server,
   Search,
+  Smartphone,
   Globe2,
   Headphones,
   Menu,
@@ -56,6 +57,8 @@ import LoginScreen from "./LoginScreen";
 import DiscordIcon from "./DiscordIcon";
 import { authUrl } from "./auth";
 import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
+
+const googlePlayUrl = "https://play.google.com/store/apps/details?id=app.rocksky";
 
 const discordUrl = "https://discord.gg/EVcBy2fVa3";
 
@@ -365,6 +368,7 @@ function LandingPage() {
               ["Discover", "#discover"],
               ["Community", "#community"],
               ["How it works", "#how-it-works"],
+              ["Get the Android app", googlePlayUrl],
               ["Docs", "https://docs.rocksky.app"],
               ["Discord", discordUrl],
               ["Sign in", "#sign-in"],
@@ -431,6 +435,16 @@ function LandingPage() {
               </a>
               <a href="#community" className="text-link">
                 Recent listens <ArrowDown size={17} />
+              </a>
+              <a
+                href={googlePlayUrl}
+                className="text-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Download Rocksky for Android on Google Play"
+              >
+                <Smartphone size={18} aria-hidden="true" />
+                Get it on Google Play
               </a>
             </div>
             <p className="hero-note">
@@ -1300,6 +1314,9 @@ function LandingPage() {
           <p>Music scrobbling on AT Protocol.</p>
         </div>
         <nav aria-label="Footer navigation">
+          <a href={googlePlayUrl} target="_blank" rel="noopener noreferrer">
+            <Smartphone size={17} aria-hidden="true" /> Android app
+          </a>
           <a
             href="https://docs.rocksky.app"
             target="_blank"
