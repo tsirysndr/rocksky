@@ -29,7 +29,7 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
   const devices = useAtomValue(devicesAtom);
   const [activeDeviceId, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
   const commands = useAtomValue(remoteCommandsAtom);
-  const { playPause, next, previous, toggleLike } = usePlaybackControls();
+  const { playPause, next, toggleLike } = usePlaybackControls();
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
 
   const deviceList = useMemo(() => Object.values(devices), [devices]);
@@ -134,13 +134,6 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
               />
             </TouchableOpacity>
           )}
-
-          <TouchableOpacity
-            onPress={previous}
-            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-          >
-            <Feather name="skip-back" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
 
           <TouchableOpacity onPress={playPause} style={styles.playButton}>
             <Feather
