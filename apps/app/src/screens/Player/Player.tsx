@@ -22,8 +22,11 @@ import {
   playerAtom,
   progressAtom,
 } from "@/src/atoms/nowplaying";
+import AudioSettingsSheet from "@/src/components/AudioSettingsSheet";
+import SourceSheet from "@/src/components/SourceSheet";
 import { Text } from "@/src/components/Text";
 import { usePlaybackControls } from "@/src/hooks/usePlaybackControls";
+import { usePlaybackSource } from "@/src/hooks/usePlaybackSource";
 import {
   localQueue,
   localQueueIndex,
@@ -74,6 +77,13 @@ export default function Player() {
   const [scrubbing, setScrubbing] = useState(false);
   const [scrubValue, setScrubValue] = useState(0);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [audioSettingsOpen, setAudioSettingsOpen] = useState(false);
+  const {
+    current: currentSource,
+    sourceLabel,
+    thisDeviceActive,
+  } = usePlaybackSource();
 
   const isSpotify = player === "spotify";
   const isLocal = player === "local";
@@ -149,26 +159,51 @@ export default function Player() {
           >
             <Feather name="chevron-down" size={26} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.topLabel}>NOW PLAYING</Text>
-          {!isSpotify && queueRows.length > 0 ? (
+          <View style={styles.topCentre}>
+            <Text style={styles.topLabel}>NOW PLAYING</Text>
+            <Text numberOfLines={1} style={styles.topSource}>
+              {sourceLabel}
+            </Text>
+          </View>
+          <View style={styles.topActions}>
             <TouchableOpacity
-              onPress={() => setQueueOpen(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={() => setSourceOpen(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
             >
               <MaterialIcons
-                name="playlist-music"
-                size={24}
-                color={colors.text}
+                name={thisDeviceActive ? "cellphone" : "speaker-wireless"}
+                size={22}
+                color={currentSource ? colors.primary : colors.textMuted}
               />
             </TouchableOpacity>
-          ) : (
-            <View style={{ width: 24 }} />
-          )}
+            <TouchableOpacity
+              onPress={() => setAudioSettingsOpen(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+            >
+              <Feather name="sliders" size={20} color={colors.text} />
+            </TouchableOpacity>
+            {!isSpotify && queueRows.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => setQueueOpen(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              >
+                <MaterialIcons
+                  name="playlist-music"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
 
         {!nowPlaying ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyLabel}>Nothing playing</Text>
+            <Text style={styles.emptyLabel}>
+              {currentSource
+                ? `Nothing playing on ${sourceLabel}`
+                : "Nothing playing"}
+            </Text>
             <Text style={styles.emptyHint}>
               {queueRows.length > 0
                 ? `${queueRows.length} track${queueRows.length === 1 ? "" : "s"} queued — press play to start`
@@ -421,6 +456,12 @@ export default function Player() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <SourceSheet visible={sourceOpen} onClose={() => setSourceOpen(false)} />
+      <AudioSettingsSheet
+        visible={audioSettingsOpen}
+        onClose={() => setAudioSettingsOpen(false)}
+      />
     </View>
   );
 }
@@ -444,10 +485,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  topCentre: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
   topLabel: {
     fontSize: 11,
     letterSpacing: 2,
     color: colors.textMuted,
+  },
+  topSource: {
+    fontSize: 10,
+    color: colors.textMuted,
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  topActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
   },
   emptyState: {
     flex: 1,

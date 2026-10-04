@@ -1,85 +1,30 @@
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image } from "expo-image";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useMemo, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import {
-  activeDeviceIdAtom,
-  devicesAtom,
-  type PlaybackSource,
-  remoteCommandsAtom,
-  selectedSourceAtom,
-} from "../atoms/devices";
-import { nowPlayingAtom, playerAtom, progressAtom } from "../atoms/nowplaying";
+import { useAtomValue } from "jotai";
+import { useState } from "react";
+import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { nowPlayingAtom, progressAtom } from "../atoms/nowplaying";
 import { usePlaybackControls } from "../hooks/usePlaybackControls";
-import {
-  isLocalEngineAvailable,
-  localQueue,
-  localRemoteDeviceId,
-} from "../lib/uploadEngine";
+import { usePlaybackSource } from "../hooks/usePlaybackSource";
 import { colors } from "../theme";
+import SourceSheet from "./SourceSheet";
 import { Text } from "./Text";
 
 type Props = { onOpenPlayer?: () => void };
 
-type Source = PlaybackSource;
-
-const sameSource = (a: Source | null, b: Source): boolean =>
-  a?.kind !== b.kind
-    ? false
-    : a.kind === "device" && b.kind === "device"
-      ? a.id === b.id
-      : true;
-
 export default function MiniPlayer({ onOpenPlayer }: Props) {
   const nowPlaying = useAtomValue(nowPlayingAtom);
   const progress = useAtomValue(progressAtom);
-  const player = useAtomValue(playerAtom);
-  const devices = useAtomValue(devicesAtom);
-  const [activeDeviceId, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
-  const commands = useAtomValue(remoteCommandsAtom);
   const { playPause, next, toggleLike } = usePlaybackControls();
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
-
-  const [picked, setPicked] = useAtom(selectedSourceAtom);
-  const setNowPlaying = useSetAtom(nowPlayingAtom);
-  const setPlayer = useSetAtom(playerAtom);
-
-  // This phone registers itself on the remote socket too, so the registry holds
-  // an entry for us; "This Device" already stands for it, so it is filtered out
-  // rather than listed twice.
-  const ownDeviceId = localRemoteDeviceId();
-  const deviceList = useMemo(
-    () =>
-      Object.values(devices).filter(
-        (device) => device.deviceId !== ownDeviceId,
-      ),
-    [devices, ownDeviceId],
-  );
-  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
-
-  // "This Device": the in-app native engine playing uploaded tracks.
-  const thisDeviceAvailable = isLocalEngineAvailable();
-
-  // Whatever is actually playing wins over the last pick, so the mark always
-  // points at the source producing sound; with nothing playing it falls back to
-  // the pick, then to the server's primary device.
-  const current: Source | null =
-    player === "local"
-      ? { kind: "local" }
-      : player === "spotify"
-        ? { kind: "spotify" }
-        : player === "rockbox" && activeDeviceId
-          ? { kind: "device", id: activeDeviceId }
-          : (picked ??
-            (activeDeviceId ? { kind: "device", id: activeDeviceId } : null));
+  const {
+    current,
+    sourceLabel,
+    thisDeviceActive,
+    thisDeviceAvailable,
+    deviceList,
+  } = usePlaybackSource();
 
   if (!nowPlaying && deviceList.length === 0 && !thisDeviceAvailable) {
     return null;
@@ -89,47 +34,6 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
     nowPlaying && nowPlaying.duration > 0
       ? Math.min(100, (progress / nowPlaying.duration) * 100)
       : 0;
-
-  // playerAtom is what the transport bridge routes on, so each pick sets it:
-  // otherwise the buttons kept talking to the source that was playing before.
-  const selectDevice = (deviceId: string) => {
-    setPicked({ kind: "device", id: deviceId });
-    commands?.setPrimary(deviceId);
-    const track = devices[deviceId]?.nowPlaying;
-    setPlayer(track ? "rockbox" : null);
-    // Drop the outgoing source's track straight away: the new device fills this
-    // in from its own state, and if it is idle the placeholder is the truth.
-    if (!track) setNowPlaying(null);
-    setSourceSheetOpen(false);
-  };
-
-  const selectSpotify = () => {
-    setPicked({ kind: "spotify" });
-    setActiveDeviceId(null);
-    setSourceSheetOpen(false);
-  };
-
-  const selectThisDevice = () => {
-    setPicked({ kind: "local" });
-    setActiveDeviceId(null);
-    const queued = localQueue().length > 0;
-    setPlayer(queued ? "local" : null);
-    if (!queued) setNowPlaying(null);
-    setSourceSheetOpen(false);
-  };
-
-  const spotifyActive = sameSource(current, { kind: "spotify" });
-  const thisDeviceActive = sameSource(current, { kind: "local" });
-
-  // With nothing playing the row still has to say something useful: which
-  // source is selected, or that none is.
-  const sourceLabel = thisDeviceActive
-    ? "This Device"
-    : spotifyActive
-      ? "Spotify"
-      : current?.kind === "device" && activeDevice
-        ? activeDevice.name
-        : "Select a device";
 
   return (
     <View
@@ -226,122 +130,10 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
         </View>
       </View>
 
-      {/* Source sheet */}
-      <Modal
+      <SourceSheet
         visible={sourceSheetOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSourceSheetOpen(false)}
-      >
-        <Pressable
-          style={styles.backdrop}
-          onPress={() => setSourceSheetOpen(false)}
-        >
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <View style={styles.grabHandle} />
-            <Text style={styles.sheetTitle}>Select Source</Text>
-            {deviceList.map((device) => {
-              const isCurrent = sameSource(current, {
-                kind: "device",
-                id: device.deviceId,
-              });
-              return (
-                <TouchableOpacity
-                  key={device.deviceId}
-                  style={[styles.sheetRow, isCurrent && styles.sheetRowActive]}
-                  onPress={() => selectDevice(device.deviceId)}
-                >
-                  <MaterialIcons
-                    name="speaker-wireless"
-                    size={20}
-                    color={isCurrent ? colors.primary : colors.textMuted}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.sheetRowTitle,
-                        isCurrent && { color: colors.primary },
-                      ]}
-                    >
-                      {device.name}
-                    </Text>
-                    {device.nowPlaying?.title && (
-                      <Text numberOfLines={1} style={styles.sheetRowSubtitle}>
-                        {device.nowPlaying.title}
-                      </Text>
-                    )}
-                  </View>
-                  {isCurrent && (
-                    <Feather name="check" size={18} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-            {thisDeviceAvailable && (
-              <TouchableOpacity
-                style={[
-                  styles.sheetRow,
-                  thisDeviceActive && styles.sheetRowActive,
-                ]}
-                onPress={selectThisDevice}
-              >
-                <MaterialIcons
-                  name="cellphone"
-                  size={20}
-                  color={thisDeviceActive ? colors.primary : colors.textMuted}
-                />
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[
-                      styles.sheetRowTitle,
-                      thisDeviceActive && { color: colors.primary },
-                    ]}
-                  >
-                    This Device
-                  </Text>
-                  <Text numberOfLines={1} style={styles.sheetRowSubtitle}>
-                    {localQueue().length > 0
-                      ? `${localQueue().length} tracks queued`
-                      : "Your uploads"}
-                  </Text>
-                </View>
-                {thisDeviceActive && (
-                  <Feather name="check" size={18} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.sheetRow, spotifyActive && styles.sheetRowActive]}
-              onPress={selectSpotify}
-            >
-              <MaterialIcons
-                name="spotify"
-                size={20}
-                color={spotifyActive ? "#1DB954" : colors.textMuted}
-              />
-              <Text
-                style={[
-                  styles.sheetRowTitle,
-                  spotifyActive && { color: "#1DB954" },
-                  { flex: 1 },
-                ]}
-              >
-                Spotify
-              </Text>
-              {spotifyActive && (
-                <Feather name="check" size={18} color="#1DB954" />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setSourceSheetOpen(false)}
-            >
-              <Text style={styles.cancelLabel}>Cancel</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setSourceSheetOpen(false)}
+      />
     </View>
   );
 }
@@ -388,67 +180,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    paddingTop: 8,
-  },
-  grabHandle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.surface3,
-    marginBottom: 12,
-  },
-  sheetTitle: {
-    fontSize: 15,
-    fontFamily: "RockfordSansMedium",
-    color: colors.text,
-    marginBottom: 8,
-  },
-  sheetRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  sheetRowActive: {
-    backgroundColor: colors.surface2,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginHorizontal: -10,
-    borderBottomColor: "transparent",
-  },
-  sheetRowTitle: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  sheetRowSubtitle: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  cancelButton: {
-    marginTop: 12,
-    alignItems: "center",
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: colors.surface2,
-  },
-  cancelLabel: {
-    fontSize: 14,
-    color: colors.text,
   },
 });
