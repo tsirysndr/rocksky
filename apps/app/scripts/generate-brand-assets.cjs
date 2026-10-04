@@ -15,6 +15,7 @@ async function main() {
   const svg = (content, viewBox = '0 0 1024 1024') => `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="${viewBox}">${defs}${content}</svg>`;
   const render = (name, source, size) => sharp(Buffer.from(source)).resize(size, size).png().toFile(path.join(root, 'assets/images', name));
   await render('icon.png', svg(sky + paddedNote), 1024);
+  await render('play-store-icon.png', svg(sky + paddedNote), 512);
   await render('adaptive-icon.png', svg(paddedNote), 1024);
   await render('icon-background.png', svg(sky), 1024);
   await render('splash-icon.png', svg(note, '192 192 640 640'), 512);
