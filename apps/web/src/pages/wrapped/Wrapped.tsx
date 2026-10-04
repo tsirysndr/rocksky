@@ -22,9 +22,11 @@ import {
   type WrappedPeriod,
   type WrappedTrack,
 } from "../../api/wrapped";
-import { IconDownload, IconMusic, IconUser, IconCalendar, IconClock, IconFlame, IconSparkles, IconMicrophone2 } from "@tabler/icons-react";
+import { IconDownload, IconMusic, IconUser, IconCalendar, IconClock, IconFlame, IconSparkles, IconMicrophone2, IconCopy, IconCheck } from "@tabler/icons-react";
+import copy from "copy-to-clipboard";
 import { downloadNodeAsPng, resolveImages } from "../../lib/shareImage";
 import { activityData, activityTitle, scopeLabel, titleLabel } from "./period";
+import { wrappedAltText } from "./altText";
 import WrappedSelect from "./WrappedSelect";
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -489,6 +491,7 @@ export default function WrappedPage() {
   const [year, setYear] = useState(CURRENT_YEAR);
   const [period, setPeriod] = useState<WrappedPeriod>("year");
   const [downloading, setDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [resolvedImages, setResolvedImages] = useState<Record<string, string>>({});
   const shareCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
@@ -538,6 +541,28 @@ export default function WrappedPage() {
     } finally {
       setDownloading(false);
     }
+  };
+
+  // Drop the "Copied!" confirmation after a moment.
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  const handleCopyAltText = () => {
+    if (!data || !profile) return;
+    const alt = wrappedAltText({
+      title,
+      handle: profile.handle,
+      displayName: profile.displayName || profile.handle,
+      totalScrobbles: data.totalScrobbles,
+      totalListeningTimeMinutes: data.totalListeningTimeMinutes,
+      topArtists: data.topArtists,
+      topAlbums: data.topAlbums,
+      topTracks: data.topTracks,
+    });
+    if (copy(alt)) setCopied(true);
   };
 
   const chartData = useMemo(() => activityData(data, period), [data, period]);
@@ -1034,22 +1059,40 @@ export default function WrappedPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[var(--color-text)] transition-opacity"
-                  style={{
-                    background: "linear-gradient(135deg, #ff2876, #a855f7)",
-                    opacity: downloading ? 0.6 : 1,
-                    cursor: downloading ? "not-allowed" : "pointer",
-                    border: "none",
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontSize: 15,
-                  }}
-                >
-                  <IconDownload size={18} />
-                  {downloading ? "Generating…" : "Download Card"}
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[var(--color-text)] transition-opacity"
+                    style={{
+                      background: "linear-gradient(135deg, #ff2876, #a855f7)",
+                      opacity: downloading ? 0.6 : 1,
+                      cursor: downloading ? "not-allowed" : "pointer",
+                      border: "none",
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontSize: 15,
+                    }}
+                  >
+                    <IconDownload size={18} />
+                    {downloading ? "Generating…" : "Download Card"}
+                  </button>
+
+                  <button
+                    onClick={handleCopyAltText}
+                    title="Copy the alt text describing this card"
+                    className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[var(--color-text)] transition-opacity hover:opacity-80"
+                    style={{
+                      background: "var(--color-default-button)",
+                      border: "1px solid var(--color-border)",
+                      cursor: "pointer",
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontSize: 15,
+                    }}
+                  >
+                    {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
+                    {copied ? "Copied!" : "Copy Alt Text"}
+                  </button>
+                </div>
               </div>
             </div>
 
