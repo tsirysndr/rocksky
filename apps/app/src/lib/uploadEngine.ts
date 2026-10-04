@@ -178,16 +178,20 @@ function deactivate() {
   }
 }
 
+async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
+  // Only the upload-backed path needs the token; a navidrome queue carries its
+  // own credentialed URLs.
+  if (tracks.some((t) => !t.streamUrl)) await ensureStreamToken();
+  return tracks.map((t) => t.streamUrl ?? getStreamUrl(t.uploadId));
+}
+
 /** Replace the queue with `tracks` and start playing at `startIndex`. */
 export async function playUploads(
   tracks: UploadQueueTrack[],
   startIndex: number,
 ): Promise<boolean> {
   if (!isEngineAvailable() || tracks.length === 0) return false;
-  // Only the upload-backed path needs the token; a navidrome queue carries its
-  // own credentialed URLs.
-  if (tracks.some((t) => !t.streamUrl)) await ensureStreamToken();
-  const paths = tracks.map((t) => t.streamUrl ?? getStreamUrl(t.uploadId));
+  const paths = await resolvePaths(tracks);
   const result = engineCommand({ cmd: "open", paths, startIndex });
   if (!result.ok) return false;
   queue = tracks;
@@ -198,6 +202,44 @@ export async function playUploads(
   sawPlaying = false;
   activate();
   pollOnce();
+  return true;
+}
+
+/**
+ * Queue `tracks` right after whatever is playing, or start them if nothing is.
+ *
+ * The engine only knows URLs, so the metadata queue has to be spliced at the
+ * same place the engine inserts — immediately after the current index.
+ */
+export async function queueUploadsNext(
+  tracks: UploadQueueTrack[],
+): Promise<boolean> {
+  if (!isEngineAvailable() || tracks.length === 0) return false;
+  const status = engineCommand({ cmd: "status" });
+  if (!status.ok || status.index === null || queue.length === 0) {
+    return playUploads(tracks, 0);
+  }
+  const paths = await resolvePaths(tracks);
+  const result = engineCommand({ cmd: "insertNext", paths });
+  if (!result.ok) return false;
+  const at = status.index + 1;
+  queue = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
+  return true;
+}
+
+/** Queue `tracks` at the end, or start them if nothing is playing. */
+export async function queueUploadsLast(
+  tracks: UploadQueueTrack[],
+): Promise<boolean> {
+  if (!isEngineAvailable() || tracks.length === 0) return false;
+  const status = engineCommand({ cmd: "status" });
+  if (!status.ok || status.index === null || queue.length === 0) {
+    return playUploads(tracks, 0);
+  }
+  const paths = await resolvePaths(tracks);
+  const result = engineCommand({ cmd: "append", paths });
+  if (!result.ok) return false;
+  queue = [...queue, ...tracks];
   return true;
 }
 

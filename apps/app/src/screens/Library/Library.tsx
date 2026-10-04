@@ -9,6 +9,8 @@ import {
   Alert,
   BackHandler,
   FlatList,
+  Modal,
+  Pressable,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -42,6 +44,8 @@ import {
 import {
   isLocalEngineAvailable,
   playUploads,
+  queueUploadsLast,
+  queueUploadsNext,
   type UploadQueueTrack,
 } from "@/src/lib/uploadEngine";
 import type { RootStackParamList } from "@/src/Navigation";
@@ -118,6 +122,23 @@ async function playQueue(tracks: UploadQueueTrack[], index: number) {
 const playUploadedTracks = (tracks: UploadedTrack[], index: number) =>
   playQueue(tracks.map(uploadToQueueTrack), index);
 
+async function queueTracks(tracks: UploadQueueTrack[], where: "next" | "last") {
+  if (!isLocalEngineAvailable()) {
+    Alert.alert(
+      "Playback unavailable",
+      "The native playback engine is not in this build. Rebuild the app with the Rust toolchain installed.",
+    );
+    return;
+  }
+  const ok =
+    where === "next"
+      ? await queueUploadsNext(tracks)
+      : await queueUploadsLast(tracks);
+  if (!ok) {
+    Alert.alert("Queue failed", "Could not add that to the playback queue.");
+  }
+}
+
 function shuffled<T>(list: T[]): T[] {
   const out = [...list];
   for (let i = out.length - 1; i > 0; i--) {
@@ -181,12 +202,18 @@ function CoverArt({
 function TrackRow({
   item,
   onPress,
+  onMore,
 }: {
   item: UploadedTrack;
   onPress: () => void;
+  onMore: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.trackRow} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.trackRow}
+      onPress={onPress}
+      onLongPress={onMore}
+    >
       <CoverArt uri={item.track.albumArt} size={44} />
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={styles.rowTitle}>
@@ -197,6 +224,7 @@ function TrackRow({
         </Text>
       </View>
       <Text style={styles.rowMeta}>{formatDuration(item.track.duration)}</Text>
+      <MoreButton onPress={onMore} />
     </TouchableOpacity>
   );
 }
@@ -209,13 +237,19 @@ function SongRow({
   song,
   position,
   onPress,
+  onMore,
 }: {
   song: NavidromeSong;
   position: number;
   onPress: () => void;
+  onMore: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.trackRow} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.trackRow}
+      onPress={onPress}
+      onLongPress={onMore}
+    >
       <View style={styles.trackNumberCell}>
         <Text style={styles.trackNumber}>{song.track ?? position}</Text>
       </View>
@@ -228,6 +262,7 @@ function SongRow({
         </Text>
       </View>
       <Text style={styles.rowMeta}>{formatDuration(song.duration * 1000)}</Text>
+      <MoreButton onPress={onMore} />
     </TouchableOpacity>
   );
 }
@@ -308,6 +343,75 @@ function ListFooter({ loading }: { loading: boolean }) {
   );
 }
 
+// ─── Track context menu ──────────────────────────────────────────────────────
+
+type FeatherName = React.ComponentProps<typeof Feather>["name"];
+
+type SheetAction = {
+  label: string;
+  icon: FeatherName;
+  onPress: () => void;
+};
+
+function MoreButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.moreButton}
+      hitSlop={8}
+      accessibilityLabel="More actions"
+    >
+      <Feather name="more-horizontal" size={18} color={colors.textMuted} />
+    </TouchableOpacity>
+  );
+}
+
+function TrackActionSheet({
+  title,
+  subtitle,
+  art,
+  actions,
+  onClose,
+}: {
+  title: string;
+  subtitle: string;
+  art: string | null;
+  actions: SheetAction[];
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+      <View style={styles.sheet}>
+        <View style={styles.sheetHeader}>
+          <CoverArt uri={art} size={44} />
+          <View style={{ flex: 1 }}>
+            <Text numberOfLines={1} style={styles.rowTitle}>
+              {title}
+            </Text>
+            <Text numberOfLines={1} style={styles.rowSubtitle}>
+              {subtitle}
+            </Text>
+          </View>
+        </View>
+        {actions.map((action) => (
+          <TouchableOpacity
+            key={action.label}
+            style={styles.sheetItem}
+            onPress={() => {
+              onClose();
+              action.onPress();
+            }}
+          >
+            <Feather name={action.icon} size={16} color={colors.text} />
+            <Text style={styles.sheetItemText}>{action.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Album / artist detail ───────────────────────────────────────────────────
 
 function DetailHeader({
@@ -366,12 +470,15 @@ function DetailHeader({
 function AlbumDetailScreen({
   view,
   onBack,
+  onOpenArtist,
 }: {
   view: Extract<DetailView, { kind: "album" }>;
   onBack: () => void;
+  onOpenArtist: (artistId: string, name: string) => void;
 }) {
   const { data: creds } = useNavidromeCredentials();
   const { data: album, isLoading } = useNavidromeAlbumQuery(view.id);
+  const [sheetSong, setSheetSong] = useState<NavidromeSong | null>(null);
   const songs: NavidromeSong[] = useMemo(
     () => dedupeById(album?.song ?? []),
     [album],
@@ -383,37 +490,76 @@ function AlbumDetailScreen({
     [songs, creds, art],
   );
 
+  const sheetActions = (song: NavidromeSong): SheetAction[] => {
+    const track = creds ? songToQueueTrack(song, creds, art) : null;
+    const actions: SheetAction[] = [];
+    if (track) {
+      actions.push(
+        {
+          label: "Play next",
+          icon: "corner-down-right",
+          onPress: () => queueTracks([track], "next"),
+        },
+        {
+          label: "Add to queue",
+          icon: "list",
+          onPress: () => queueTracks([track], "last"),
+        },
+      );
+    }
+    if (song.artistId) {
+      actions.push({
+        label: "Go to artist",
+        icon: "user",
+        onPress: () => onOpenArtist(song.artistId as string, song.artist),
+      });
+    }
+    return actions;
+  };
+
   return (
-    <FlatList
-      data={songs}
-      keyExtractor={(song) => song.id}
-      renderItem={({ item, index }) => (
-        <SongRow
-          song={item}
-          position={index + 1}
-          onPress={() => playQueue(queue, index)}
+    <>
+      <FlatList
+        data={songs}
+        keyExtractor={(song) => song.id}
+        renderItem={({ item, index }) => (
+          <SongRow
+            song={item}
+            position={index + 1}
+            onPress={() => playQueue(queue, index)}
+            onMore={() => setSheetSong(item)}
+          />
+        )}
+        ListHeaderComponent={
+          <DetailHeader
+            title={view.title}
+            subtitle={view.subtitle}
+            art={art}
+            onBack={onBack}
+            onPlay={() => playQueue(queue, 0)}
+            onShuffle={() => playQueue(shuffled(queue), 0)}
+          />
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <ListFooter loading />
+          ) : (
+            <EmptyState message="No tracks here yet" />
+          )
+        }
+        ListFooterComponent={<View style={{ height: 24 }} />}
+        showsVerticalScrollIndicator={false}
+      />
+      {sheetSong && (
+        <TrackActionSheet
+          title={sheetSong.title}
+          subtitle={sheetSong.artist}
+          art={coverArtUrlOf(sheetSong) ?? art}
+          actions={sheetActions(sheetSong)}
+          onClose={() => setSheetSong(null)}
         />
       )}
-      ListHeaderComponent={
-        <DetailHeader
-          title={view.title}
-          subtitle={view.subtitle}
-          art={art}
-          onBack={onBack}
-          onPlay={() => playQueue(queue, 0)}
-          onShuffle={() => playQueue(shuffled(queue), 0)}
-        />
-      }
-      ListEmptyComponent={
-        isLoading ? (
-          <ListFooter loading />
-        ) : (
-          <EmptyState message="No tracks here yet" />
-        )
-      }
-      ListFooterComponent={<View style={{ height: 24 }} />}
-      showsVerticalScrollIndicator={false}
-    />
+    </>
   );
 }
 
@@ -511,6 +657,7 @@ export default function Library() {
   // A stack, because an album can be opened from inside an artist: back has to
   // return to the artist, not to the tabs.
   const [stack, setStack] = useState<DetailView[]>([]);
+  const [sheetTrack, setSheetTrack] = useState<UploadedTrack | null>(null);
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const { mutateAsync: upload } = useUploadTrackMutation();
 
@@ -552,6 +699,12 @@ export default function Library() {
       },
     ]);
 
+  const openArtistById = (artistId: string, name: string) =>
+    setStack((prev) => [
+      ...prev,
+      { kind: "artist", id: artistId, name, art: null },
+    ]);
+
   const openArtist = (artist: NavidromeArtist) =>
     setStack((prev) => [
       ...prev,
@@ -562,6 +715,47 @@ export default function Library() {
         art: artistArtUrlOf(artist),
       },
     ]);
+
+  // An uploaded track carries the AT-URIs of its song, album and artist, so its
+  // menu can reach the catalogue detail screens the rest of the app uses.
+  const uploadSheetActions = (item: UploadedTrack): SheetAction[] => {
+    const track = uploadToQueueTrack(item);
+    const actions: SheetAction[] = [
+      {
+        label: "Play next",
+        icon: "corner-down-right",
+        onPress: () => queueTracks([track], "next"),
+      },
+      {
+        label: "Add to queue",
+        icon: "list",
+        onPress: () => queueTracks([track], "last"),
+      },
+    ];
+    const { uri, albumUri, artistUri } = item.track;
+    if (uri) {
+      actions.push({
+        label: "Track details",
+        icon: "music",
+        onPress: () => navigation.navigate("SongDetails", { uri }),
+      });
+    }
+    if (albumUri) {
+      actions.push({
+        label: "Go to album",
+        icon: "disc",
+        onPress: () => navigation.navigate("AlbumDetails", { uri: albumUri }),
+      });
+    }
+    if (artistUri) {
+      actions.push({
+        label: "Go to artist",
+        icon: "user",
+        onPress: () => navigation.navigate("ArtistDetails", { uri: artistUri }),
+      });
+    }
+    return actions;
+  };
 
   const popView = () => setStack((prev) => prev.slice(0, -1));
 
@@ -641,7 +835,11 @@ export default function Library() {
     return (
       <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
         {view.kind === "album" ? (
-          <AlbumDetailScreen view={view} onBack={popView} />
+          <AlbumDetailScreen
+            view={view}
+            onBack={popView}
+            onOpenArtist={openArtistById}
+          />
         ) : (
           <ArtistDetailScreen
             view={view}
@@ -707,6 +905,7 @@ export default function Library() {
             <TrackRow
               item={item}
               onPress={() => playUploadedTracks(tracks, index)}
+              onMore={() => setSheetTrack(item)}
             />
           )}
           onEndReached={() =>
@@ -793,6 +992,16 @@ export default function Library() {
           }
           ListFooterComponent={<View style={{ height: 24 }} />}
           showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {sheetTrack && (
+        <TrackActionSheet
+          title={sheetTrack.track.title}
+          subtitle={sheetTrack.track.artist}
+          art={sheetTrack.track.albumArt}
+          actions={uploadSheetActions(sheetTrack)}
+          onClose={() => setSheetTrack(null)}
         />
       )}
 
@@ -907,6 +1116,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     fontVariant: ["tabular-nums"],
+  },
+  moreButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 28,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingBottom: 12,
+    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 13,
+  },
+  sheetItemText: {
+    fontSize: 14,
+    color: colors.text,
   },
   albumCard: {
     flex: 1 / 3,

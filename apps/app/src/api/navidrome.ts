@@ -49,6 +49,11 @@ export type NavidromeAlbum = {
   coverArt?: string;
   /** Public CDN URL for the art — render this, never a getCoverArt link. */
   coverArtUrl?: string;
+  /**
+   * The same URL under the name getArtist uses for its nested albums. Reading
+   * only `coverArtUrl` is why an artist's albums rendered with no art at all.
+   */
+  _coverArtUrl?: string;
   song?: NavidromeSong[];
 };
 
@@ -127,10 +132,14 @@ const nonEmpty = (value?: string | null): string | null =>
  * Always the CDN URL the server publishes: building a /rest/getCoverArt link
  * instead would put the user's API key into every image request for a picture
  * that is public anyway.
+ *
+ * The server spells that URL `coverArtUrl` everywhere except the albums nested
+ * in a getArtist response, where it is `_coverArtUrl`, so both are read.
  */
 export const coverArtUrlOf = (
-  entity?: { coverArtUrl?: string | null } | null,
-): string | null => nonEmpty(entity?.coverArtUrl);
+  entity?: { coverArtUrl?: string | null; _coverArtUrl?: string | null } | null,
+): string | null =>
+  nonEmpty(entity?.coverArtUrl) ?? nonEmpty(entity?._coverArtUrl);
 
 /** An artist's picture, falling back to its cover art. */
 export const artistArtUrlOf = (
