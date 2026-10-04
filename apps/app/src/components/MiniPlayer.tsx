@@ -1,7 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image } from "expo-image";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useMemo, useState } from "react";
 import {
   Modal,
@@ -13,21 +13,23 @@ import {
 import {
   activeDeviceIdAtom,
   devicesAtom,
+  type PlaybackSource,
   remoteCommandsAtom,
+  selectedSourceAtom,
 } from "../atoms/devices";
 import { nowPlayingAtom, playerAtom, progressAtom } from "../atoms/nowplaying";
 import { usePlaybackControls } from "../hooks/usePlaybackControls";
-import { isLocalEngineAvailable, localQueue } from "../lib/uploadEngine";
+import {
+  isLocalEngineAvailable,
+  localQueue,
+  localRemoteDeviceId,
+} from "../lib/uploadEngine";
 import { colors } from "../theme";
 import { Text } from "./Text";
 
 type Props = { onOpenPlayer?: () => void };
 
-/** Which source the switcher should mark as current. */
-type Source =
-  | { kind: "device"; id: string }
-  | { kind: "local" }
-  | { kind: "spotify" };
+type Source = PlaybackSource;
 
 const sameSource = (a: Source | null, b: Source): boolean =>
   a?.kind !== b.kind
@@ -46,13 +48,21 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
   const { playPause, next, toggleLike } = usePlaybackControls();
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
 
-  // The source the user last picked. activeDeviceId can't carry it: the ws
-  // `devices` event re-seeds it with the server's primary (or the first device
-  // it knows), which would pull the highlight back onto a remote row right
-  // after picking This Device or Spotify.
-  const [picked, setPicked] = useState<Source | null>(null);
+  const [picked, setPicked] = useAtom(selectedSourceAtom);
+  const setNowPlaying = useSetAtom(nowPlayingAtom);
+  const setPlayer = useSetAtom(playerAtom);
 
-  const deviceList = useMemo(() => Object.values(devices), [devices]);
+  // This phone registers itself on the remote socket too, so the registry holds
+  // an entry for us; "This Device" already stands for it, so it is filtered out
+  // rather than listed twice.
+  const ownDeviceId = localRemoteDeviceId();
+  const deviceList = useMemo(
+    () =>
+      Object.values(devices).filter(
+        (device) => device.deviceId !== ownDeviceId,
+      ),
+    [devices, ownDeviceId],
+  );
   const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
 
   // "This Device": the in-app native engine playing uploaded tracks.
@@ -80,9 +90,16 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
       ? Math.min(100, (progress / nowPlaying.duration) * 100)
       : 0;
 
+  // playerAtom is what the transport bridge routes on, so each pick sets it:
+  // otherwise the buttons kept talking to the source that was playing before.
   const selectDevice = (deviceId: string) => {
     setPicked({ kind: "device", id: deviceId });
     commands?.setPrimary(deviceId);
+    const track = devices[deviceId]?.nowPlaying;
+    setPlayer(track ? "rockbox" : null);
+    // Drop the outgoing source's track straight away: the new device fills this
+    // in from its own state, and if it is idle the placeholder is the truth.
+    if (!track) setNowPlaying(null);
     setSourceSheetOpen(false);
   };
 
@@ -95,11 +112,24 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
   const selectThisDevice = () => {
     setPicked({ kind: "local" });
     setActiveDeviceId(null);
+    const queued = localQueue().length > 0;
+    setPlayer(queued ? "local" : null);
+    if (!queued) setNowPlaying(null);
     setSourceSheetOpen(false);
   };
 
   const spotifyActive = sameSource(current, { kind: "spotify" });
   const thisDeviceActive = sameSource(current, { kind: "local" });
+
+  // With nothing playing the row still has to say something useful: which
+  // source is selected, or that none is.
+  const sourceLabel = thisDeviceActive
+    ? "This Device"
+    : spotifyActive
+      ? "Spotify"
+      : current?.kind === "device" && activeDevice
+        ? activeDevice.name
+        : "Select a device";
 
   return (
     <View
@@ -147,12 +177,7 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
             {nowPlaying?.title ?? "Nothing playing"}
           </Text>
           <Text numberOfLines={1} style={styles.subtitle}>
-            {nowPlaying?.artist ??
-              (thisDeviceActive
-                ? "This Device"
-                : current?.kind === "device" && activeDevice
-                  ? activeDevice.name
-                  : "Select a device")}
+            {nowPlaying ? nowPlaying.artist : sourceLabel}
           </Text>
         </TouchableOpacity>
 

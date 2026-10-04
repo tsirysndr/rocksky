@@ -20,7 +20,10 @@ import {
   searchNavidrome,
 } from "../api/navidrome";
 import { profileAtom } from "../atoms/profile";
-import type { UploadQueueTrack } from "../lib/uploadEngine";
+import {
+  setEngineNavidromeCredentials,
+  type UploadQueueTrack,
+} from "../lib/uploadEngine";
 
 const ALBUMS_PAGE = 50;
 
@@ -37,10 +40,16 @@ export const useNavidromeCredentials = () => {
     enabled: !!handle,
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: Number.POSITIVE_INFINITY,
-    queryFn: async () => ({
-      handle: handle as string,
-      apiKey: await resolveNavidromeApiKey(),
-    }),
+    queryFn: async () => {
+      const creds: NavidromeCredentials = {
+        handle: handle as string,
+        apiKey: await resolveNavidromeApiKey(),
+      };
+      // The playback engine lives outside React but needs these to build
+      // stream URLs for a restored queue and to star/unstar what it plays.
+      setEngineNavidromeCredentials(creds);
+      return creds;
+    },
   });
 };
 
@@ -62,6 +71,8 @@ export const songToQueueTrack = (
   albumUri: null,
   artistUri: null,
   sha256: "",
+  mbId: song.musicBrainzId,
+  navidromeId: song.id,
   streamUrl: navidromeStreamUrl(song.id, creds),
 });
 

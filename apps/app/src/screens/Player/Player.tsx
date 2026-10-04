@@ -169,6 +169,11 @@ export default function Player() {
         {!nowPlaying ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyLabel}>Nothing playing</Text>
+            <Text style={styles.emptyHint}>
+              {queueRows.length > 0
+                ? `${queueRows.length} track${queueRows.length === 1 ? "" : "s"} queued — press play to start`
+                : "Pick something from your library, or choose another device"}
+            </Text>
           </View>
         ) : (
           <View style={styles.body}>
@@ -448,10 +453,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 40,
   },
   emptyLabel: {
     fontSize: 14,
     color: colors.textMuted,
+  },
+  emptyHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    opacity: 0.7,
+    textAlign: "center",
   },
   body: {
     flex: 1,

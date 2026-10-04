@@ -30,3 +30,35 @@ export const getLikes = async (uri: string) => {
   );
   return response.data;
 };
+
+export type SongLikeState = {
+  /** The song's AT-URI, which the like/unlike calls address it by. */
+  uri: string | null;
+  liked: boolean;
+};
+
+/**
+ * Whether the caller already loves a song, looked up by record URI or
+ * MusicBrainz id.
+ *
+ * getSong fills `liked` in only for an authenticated caller, and answers `{}`
+ * rather than failing when the song is unknown — hence the loose read.
+ */
+export const getSongLikeState = async (
+  params: { uri: string } | { mbid: string },
+): Promise<SongLikeState | null> => {
+  try {
+    const response = await axios.get<{ uri?: string | null; liked?: boolean }>(
+      `${API_URL}/xrpc/app.rocksky.song.getSong`,
+      {
+        params,
+        headers: { Authorization: `Bearer ${storage.getToken()}` },
+      },
+    );
+    const song = response.data;
+    if (!song || typeof song !== "object") return null;
+    return { uri: song.uri ?? null, liked: song.liked === true };
+  } catch {
+    return null;
+  }
+};

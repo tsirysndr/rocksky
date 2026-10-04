@@ -35,6 +35,9 @@ export type NavidromeSong = {
   track?: number;
   discNumber?: number;
   genre?: string;
+  /** Present when the track was tagged with one; the only id that ties a
+   * navidrome song back to its Rocksky record, which has no Subsonic field. */
+  musicBrainzId?: string;
 };
 
 export type NavidromeAlbum = {
@@ -216,6 +219,36 @@ export const fetchNavidromeArtist = async (
     id: artistId,
   });
   return body.artist ?? null;
+};
+
+// Subsonic's star/unstar is a real love: the server marks the track and
+// publishes the app.rocksky.like record, the same as the REST like endpoint.
+// It is the only like path for a navidrome song, which carries no AT-URI.
+
+export const starNavidromeSong = async (
+  creds: NavidromeCredentials,
+  songId: string,
+): Promise<void> => {
+  await subsonicGet<Record<string, never>>("star", creds, { id: songId });
+};
+
+export const unstarNavidromeSong = async (
+  creds: NavidromeCredentials,
+  songId: string,
+): Promise<void> => {
+  await subsonicGet<Record<string, never>>("unstar", creds, { id: songId });
+};
+
+type Starred2Body = { starred2?: { song?: NavidromeSong[] } };
+
+/** Ids of the songs the user has loved, for the heart's initial state. */
+export const fetchStarredSongIds = async (
+  creds: NavidromeCredentials,
+): Promise<Set<string>> => {
+  const body = await subsonicGet<Starred2Body>("getStarred2", creds);
+  const songs = body.starred2?.song;
+  const list = Array.isArray(songs) ? songs : songs ? [songs] : [];
+  return new Set(list.map((song) => song.id));
 };
 
 export type NavidromeSearchOptions = {

@@ -66,3 +66,20 @@ export type RemoteCommands = {
 export const devicesAtom = atom<Record<string, RemoteDevice>>({});
 export const activeDeviceIdAtom = atom<string | null>(null);
 export const remoteCommandsAtom = atom<RemoteCommands | null>(null);
+
+/**
+ * The source the user picked in the switcher, and so the one that owns the
+ * now-playing display.
+ *
+ * activeDeviceId can't say this: the ws re-seeds it with the server's primary,
+ * and it has no way to mean "this phone" or "Spotify". Without it the in-app
+ * engine and a remote device both wrote the same atoms, which flickered the
+ * mini player, and switching to an idle device left the previous one's track on
+ * screen. Null until the user chooses: whatever is playing is shown then.
+ */
+export type PlaybackSource =
+  | { kind: "device"; id: string }
+  | { kind: "local" }
+  | { kind: "spotify" };
+
+export const selectedSourceAtom = atom<PlaybackSource | null>(null);

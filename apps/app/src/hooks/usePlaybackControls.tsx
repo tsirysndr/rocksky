@@ -8,6 +8,7 @@ import {
   progressAtom,
 } from "../atoms/nowplaying";
 import { remoteBridge } from "../lib/remoteBridge";
+import { toggleLocalLike } from "../lib/uploadEngine";
 import { useLikeMutation, useUnlikeMutation } from "./useLike";
 
 // One place for transport controls: every action goes through the module
@@ -83,12 +84,18 @@ export function usePlaybackControls() {
   );
 
   const toggleLike = useCallback(() => {
+    // The in-app engine owns this: a navidrome track has no AT-URI to like by,
+    // so it stars the Subsonic id instead and the heart did nothing here.
+    if (player === "local") {
+      void toggleLocalLike();
+      return;
+    }
     if (!nowPlaying?.uri) return;
     const liked = nowPlaying.liked;
     setNowPlaying((prev) => (prev ? { ...prev, liked: !liked } : null));
     if (liked) unlikeTrack(nowPlaying.uri);
     else likeTrack(nowPlaying.uri);
-  }, [nowPlaying, setNowPlaying, likeTrack, unlikeTrack]);
+  }, [nowPlaying, player, setNowPlaying, likeTrack, unlikeTrack]);
 
   return {
     playPause,

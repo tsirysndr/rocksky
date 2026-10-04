@@ -6,7 +6,11 @@ import {
   useEffect,
   useMemo,
 } from "react";
-import { activeDeviceIdAtom, devicesAtom } from "@/src/atoms/devices";
+import {
+  activeDeviceIdAtom,
+  devicesAtom,
+  selectedSourceAtom,
+} from "@/src/atoms/devices";
 import {
   localEngineActiveAtom,
   nowPlayingAtom,
@@ -14,6 +18,7 @@ import {
   playerAtom,
   progressAtom,
 } from "@/src/atoms/nowplaying";
+import { authTokenAtom } from "@/src/atoms/auth";
 import { useNowPlaying } from "@/src/hooks/useNowPlaying";
 import { useRemoteDevicesConnection } from "@/src/hooks/useRemoteDevices";
 import {
@@ -22,6 +27,11 @@ import {
   syncMediaSession,
 } from "@/src/lib/mediaSession";
 import { remoteBridge } from "@/src/lib/remoteBridge";
+import {
+  restoreLocalQueue,
+  startLocalRemotePlayer,
+  stopLocalRemotePlayer,
+} from "@/src/lib/uploadEngine";
 import { storage } from "@/src/storage";
 
 const NowPlayingContext = createContext<
@@ -36,6 +46,7 @@ const ProgressContext =
 function useActiveDeviceTrack() {
   const devices = useAtomValue(devicesAtom);
   const activeDeviceId = useAtomValue(activeDeviceIdAtom);
+  const selected = useAtomValue(selectedSourceAtom);
   const localEngineActive = useAtomValue(localEngineActiveAtom);
   const lockedUntil = useAtomValue(playbackLockedUntilAtom);
   const setNowPlaying = useSetAtom(nowPlayingAtom);
@@ -46,11 +57,25 @@ function useActiveDeviceTrack() {
     ? (devices[activeDeviceId]?.nowPlaying ?? null)
     : null;
 
+  // A remote device keeps reporting its own track while the phone plays
+  // locally; writing it here too made the two alternate every poll, which
+  // flickered the mini player. The user's pick settles it — and an explicit
+  // pick of a device outranks local playback, so switching still works.
+  const deviceOwnsDisplay =
+    selected?.kind === "device" || (!selected && !localEngineActive);
+
   useEffect(() => {
-    // A remote device keeps reporting its own track while the phone plays
-    // locally. Writing it here too made the two sources alternate every poll,
-    // which is what flickered the mini player's title, artist and art.
-    if (!track || localEngineActive) return;
+    if (!deviceOwnsDisplay) return;
+    if (!track) {
+      // The chosen device is idle: clear, or the previous device's track would
+      // sit there looking current.
+      if (selected?.kind === "device") {
+        setNowPlaying(null);
+        setPlayer(null);
+        setProgress(0);
+      }
+      return;
+    }
     const locked = Date.now() < lockedUntil;
     setNowPlaying((prev) => ({
       title: track.title,
@@ -77,14 +102,18 @@ function useActiveDeviceTrack() {
     });
   }, [
     track,
-    localEngineActive,
+    deviceOwnsDisplay,
+    selected,
     lockedUntil,
     setNowPlaying,
     setPlayer,
     setProgress,
   ]);
 
-  return !!track;
+  // Whether the device feed owns the display, so the REST/Spotify poll stands
+  // down: an idle but explicitly chosen device counts, otherwise the fallback
+  // would fill the placeholder with the user's last scrobble.
+  return deviceOwnsDisplay && (!!track || selected?.kind === "device");
 }
 
 // Keeps the module-level transport bridge and the Android media notification
@@ -134,9 +163,27 @@ function useMediaSessionSync(
   }, []);
 }
 
+// Registers this phone on the remote-control socket so other clients can see
+// and drive it, and brings back the queue it was playing when it was last
+// closed (paused — the engine only reopens on a play).
+function useLocalPlayerBroadcast() {
+  const token = useAtomValue(authTokenAtom);
+
+  useEffect(() => {
+    if (!token) {
+      stopLocalRemotePlayer();
+      return;
+    }
+    startLocalRemotePlayer();
+    void restoreLocalQueue();
+    return () => stopLocalRemotePlayer();
+  }, [token]);
+}
+
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const did = storage.getDid() || "";
   useRemoteDevicesConnection();
+  useLocalPlayerBroadcast();
   const deviceTrackActive = useActiveDeviceTrack();
   // The in-app engine feeds the atoms itself; polling must not clobber it.
   const localEngineActive = useAtomValue(localEngineActiveAtom);

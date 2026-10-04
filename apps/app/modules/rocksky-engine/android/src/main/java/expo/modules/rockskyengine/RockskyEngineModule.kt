@@ -11,6 +11,9 @@ object NativeEngine {
   @Volatile
   private var loaded = false
 
+  val isLoaded: Boolean
+    get() = loaded
+
   @Synchronized
   fun load(context: Context): Boolean {
     if (loaded) return true
@@ -46,6 +49,18 @@ class RockskyEngineModule : Module() {
     return NativeEngine.load(context)
   }
 
+  // The engine's audio thread lives in the process, not in the Activity, so
+  // swiping the app away tore down the UI and left it playing with nothing to
+  // control it. Silence it when the Activity or the module goes.
+  private fun stopPlayback() {
+    if (!NativeEngine.isLoaded) return
+    try {
+      NativeEngine.command("{\"cmd\":\"stop\"}")
+    } catch (t: Throwable) {
+      android.util.Log.e("RockskyEngine", "failed to stop playback on teardown", t)
+    }
+  }
+
   override fun definition() = ModuleDefinition {
     Name("RockskyEngine")
 
@@ -58,6 +73,14 @@ class RockskyEngineModule : Module() {
         throw CodedException("Rocksky engine native library is not available")
       }
       NativeEngine.command(json)
+    }
+
+    OnActivityDestroys {
+      stopPlayback()
+    }
+
+    OnDestroy {
+      stopPlayback()
     }
   }
 }
