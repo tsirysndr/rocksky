@@ -33,6 +33,12 @@ export type UploadQueueTrack = {
   albumUri: string | null;
   artistUri: string | null;
   sha256: string;
+  /**
+   * A ready-to-play URL, for sources that don't go through /uploads/:id/stream
+   * — navidrome's ids are not upload ids. Left unset, the URL is built from
+   * `uploadId` and a short-lived stream token.
+   */
+  streamUrl?: string;
 };
 
 const MIN_TRACK_MS = 30_000;
@@ -178,8 +184,10 @@ export async function playUploads(
   startIndex: number,
 ): Promise<boolean> {
   if (!isEngineAvailable() || tracks.length === 0) return false;
-  await ensureStreamToken();
-  const paths = tracks.map((t) => getStreamUrl(t.uploadId));
+  // Only the upload-backed path needs the token; a navidrome queue carries its
+  // own credentialed URLs.
+  if (tracks.some((t) => !t.streamUrl)) await ensureStreamToken();
+  const paths = tracks.map((t) => t.streamUrl ?? getStreamUrl(t.uploadId));
   const result = engineCommand({ cmd: "open", paths, startIndex });
   if (!result.ok) return false;
   queue = tracks;

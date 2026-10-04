@@ -37,22 +37,6 @@ export type UploadedTrack = {
   albumYear: number | null;
 };
 
-export type UploadAlbum = {
-  albumArtist: string;
-  album: string;
-  albumArt: string | null;
-  albumUri: string | null;
-  artistUri: string | null;
-  trackCount: number;
-};
-
-export type UploadArtist = {
-  name: string;
-  artistUri: string | null;
-  trackCount: number;
-  albumCount: number;
-};
-
 export type UploadResult = {
   uploadId: string;
   trackId: string;
@@ -91,47 +75,9 @@ export const getUploads = async (
   return response.data;
 };
 
-export const getUploadAlbums = async (
-  offset = 0,
-  size = 50,
-  q?: string,
-): Promise<UploadAlbum[]> => {
-  const response = await axios.get<UploadAlbum[]>(`${API_URL}/uploads/albums`, {
-    headers: authHeaders(),
-    params: { offset, size, ...(q ? { q } : {}) },
-  });
-  return response.data;
-};
-
-export const getUploadArtists = async (
-  offset = 0,
-  size = 50,
-  q?: string,
-): Promise<UploadArtist[]> => {
-  const response = await axios.get<UploadArtist[]>(
-    `${API_URL}/uploads/artists`,
-    {
-      headers: authHeaders(),
-      params: { offset, size, ...(q ? { q } : {}) },
-    },
-  );
-  return response.data;
-};
-
-export const getAlbumTracks = async (
-  filters: UploadFilters,
-): Promise<UploadedTrack[]> => {
-  const all: UploadedTrack[] = [];
-  let offset = 0;
-  const size = 200;
-  while (true) {
-    const page = await getUploads(offset, size, filters);
-    all.push(...page);
-    if (page.length < size) break;
-    offset += size;
-  }
-  return all;
-};
+// /uploads/albums and /uploads/artists are gone from the client: they group-by
+// the user's whole upload set on every page. Albums and artists are browsed
+// through navidrome's Subsonic API instead — see api/navidrome.ts.
 
 export type PickedAudioFile = {
   uri: string;

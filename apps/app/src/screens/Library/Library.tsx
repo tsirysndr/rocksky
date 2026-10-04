@@ -3,10 +3,11 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as DocumentPicker from "expo-document-picker";
 import { Image } from "expo-image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   StyleSheet,
   TextInput,
@@ -14,17 +15,27 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type {
-  UploadAlbum,
-  UploadArtist,
-  UploadedTrack,
-} from "@/src/api/uploads";
+import {
+  artistArtUrlOf,
+  coverArtUrlOf,
+  dedupeById,
+  type NavidromeAlbum,
+  type NavidromeArtist,
+  type NavidromeSong,
+} from "@/src/api/navidrome";
+import type { UploadedTrack } from "@/src/api/uploads";
 import LibraryGlyph from "@/src/components/Icons/Library";
 import { Text } from "@/src/components/Text";
 import {
-  useUploadAlbumsInfiniteQuery,
-  useUploadArtistsInfiniteQuery,
-  useUploadCollectionTracksQuery,
+  fetchArtistQueue,
+  songToQueueTrack,
+  useNavidromeAlbumQuery,
+  useNavidromeAlbumsInfiniteQuery,
+  useNavidromeArtistQuery,
+  useNavidromeArtistsQuery,
+  useNavidromeCredentials,
+} from "@/src/hooks/useNavidrome";
+import {
   useUploadsInfiniteQuery,
   useUploadTrackMutation,
 } from "@/src/hooks/useUploads";
@@ -48,10 +59,16 @@ const rowLayout = (
   index: number,
 ) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index });
 
-type CollectionView =
-  | { kind: "album"; album: UploadAlbum }
-  | { kind: "artist"; artist: UploadArtist }
-  | null;
+/** An album or artist opened from a list — enough to draw its header at once. */
+type DetailView =
+  | {
+      kind: "album";
+      id: string;
+      title: string;
+      subtitle: string;
+      art: string | null;
+    }
+  | { kind: "artist"; id: string; name: string; art: string | null };
 
 type UploadItem = {
   name: string;
@@ -59,7 +76,7 @@ type UploadItem = {
   status: "uploading" | "done" | "error";
 };
 
-function toQueueTrack(item: UploadedTrack): UploadQueueTrack {
+function uploadToQueueTrack(item: UploadedTrack): UploadQueueTrack {
   return {
     uploadId: item.upload.id,
     title: item.track.title,
@@ -83,7 +100,7 @@ function formatDuration(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-async function startPlayback(tracks: UploadedTrack[], index: number) {
+async function playQueue(tracks: UploadQueueTrack[], index: number) {
   if (!isLocalEngineAvailable()) {
     Alert.alert(
       "Playback unavailable",
@@ -91,11 +108,15 @@ async function startPlayback(tracks: UploadedTrack[], index: number) {
     );
     return;
   }
-  const ok = await playUploads(tracks.map(toQueueTrack), index);
+  if (tracks.length === 0) return;
+  const ok = await playUploads(tracks, index);
   if (!ok) {
     Alert.alert("Playback failed", "Could not start the playback engine.");
   }
 }
+
+const playUploadedTracks = (tracks: UploadedTrack[], index: number) =>
+  playQueue(tracks.map(uploadToQueueTrack), index);
 
 function shuffled<T>(list: T[]): T[] {
   const out = [...list];
@@ -106,14 +127,31 @@ function shuffled<T>(list: T[]): T[] {
   return out;
 }
 
+const initialOf = (name: string): string =>
+  name.trim().charAt(0).toUpperCase() || "♬";
+
 // ─── Rows ────────────────────────────────────────────────────────────────────
 
-function CoverArt({ uri, size }: { uri: string | null; size: number }) {
+function CoverArt({
+  uri,
+  size,
+  round,
+  fallbackLabel,
+}: {
+  uri: string | null;
+  size: number;
+  round?: boolean;
+  fallbackLabel?: string;
+}) {
   return (
     <View
       style={[
         styles.coverArt,
-        { width: size, height: size, borderRadius: size > 48 ? 10 : 6 },
+        {
+          width: size,
+          height: size,
+          borderRadius: round ? size / 2 : size > 48 ? 10 : 6,
+        },
       ]}
     >
       {uri ? (
@@ -125,7 +163,16 @@ function CoverArt({ uri, size }: { uri: string | null; size: number }) {
           contentFit="cover"
         />
       ) : (
-        <Text style={{ opacity: 0.2 }}>♪</Text>
+        <Text
+          style={{
+            opacity: 0.4,
+            fontSize: Math.max(14, Math.round(size / 2.6)),
+            fontWeight: "700",
+            color: colors.textMuted,
+          }}
+        >
+          {fallbackLabel ?? "♪"}
+        </Text>
       )}
     </View>
   );
@@ -154,22 +201,54 @@ function TrackRow({
   );
 }
 
+/**
+ * A track inside an album. The art is the album's own, shown once in the
+ * header, so the row leads with the track number instead.
+ */
+function SongRow({
+  song,
+  position,
+  onPress,
+}: {
+  song: NavidromeSong;
+  position: number;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.trackRow} onPress={onPress}>
+      <View style={styles.trackNumberCell}>
+        <Text style={styles.trackNumber}>{song.track ?? position}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text numberOfLines={1} style={styles.rowTitle}>
+          {song.title}
+        </Text>
+        <Text numberOfLines={1} style={styles.rowSubtitle}>
+          {song.artist}
+        </Text>
+      </View>
+      <Text style={styles.rowMeta}>{formatDuration(song.duration * 1000)}</Text>
+    </TouchableOpacity>
+  );
+}
+
 function AlbumCard({
   album,
   onPress,
 }: {
-  album: UploadAlbum;
+  album: NavidromeAlbum;
   onPress: () => void;
 }) {
+  const art = coverArtUrlOf(album);
   return (
     <TouchableOpacity style={styles.albumCard} onPress={onPress}>
       <View style={styles.albumArtBox}>
-        {album.albumArt ? (
+        {art ? (
           <Image
-            source={{ uri: album.albumArt }}
+            source={{ uri: art }}
             style={styles.albumArt}
             cachePolicy="memory-disk"
-            recyclingKey={album.albumArt}
+            recyclingKey={art}
             contentFit="cover"
           />
         ) : (
@@ -179,10 +258,10 @@ function AlbumCard({
         )}
       </View>
       <Text numberOfLines={1} style={styles.albumTitle}>
-        {album.album}
+        {album.name}
       </Text>
       <Text numberOfLines={1} style={styles.rowSubtitle}>
-        {album.albumArtist}
+        {album.artist}
       </Text>
     </TouchableOpacity>
   );
@@ -192,20 +271,22 @@ function ArtistRow({
   artist,
   onPress,
 }: {
-  artist: UploadArtist;
+  artist: NavidromeArtist;
   onPress: () => void;
 }) {
   return (
     <TouchableOpacity style={styles.trackRow} onPress={onPress}>
-      <View style={styles.artistBadge}>
-        <Text style={{ fontSize: 18, opacity: 0.4 }}>♬</Text>
-      </View>
+      <CoverArt
+        uri={artistArtUrlOf(artist)}
+        size={44}
+        round
+        fallbackLabel={initialOf(artist.name)}
+      />
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={styles.rowTitle}>
           {artist.name}
         </Text>
         <Text numberOfLines={1} style={styles.rowSubtitle}>
-          {artist.trackCount} track{artist.trackCount === 1 ? "" : "s"} ·{" "}
           {artist.albumCount} album{artist.albumCount === 1 ? "" : "s"}
         </Text>
       </View>
@@ -227,12 +308,14 @@ function ListFooter({ loading }: { loading: boolean }) {
   );
 }
 
-// ─── Collection (album / artist) view ────────────────────────────────────────
+// ─── Album / artist detail ───────────────────────────────────────────────────
 
-function CollectionHeader({
+function DetailHeader({
   title,
   subtitle,
   art,
+  round,
+  fallbackLabel,
   onBack,
   onPlay,
   onShuffle,
@@ -240,6 +323,8 @@ function CollectionHeader({
   title: string;
   subtitle: string;
   art: string | null;
+  round?: boolean;
+  fallbackLabel?: string;
   onBack: () => void;
   onPlay: () => void;
   onShuffle: () => void;
@@ -248,10 +333,15 @@ function CollectionHeader({
     <View>
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
         <Feather name="arrow-left" size={18} color={colors.text} />
-        <Text style={{ color: colors.text, fontSize: 13 }}>Library</Text>
+        <Text style={{ color: colors.text, fontSize: 13 }}>Back</Text>
       </TouchableOpacity>
       <View style={styles.collectionHeader}>
-        <CoverArt uri={art} size={84} />
+        <CoverArt
+          uri={art}
+          size={84}
+          round={round}
+          fallbackLabel={fallbackLabel}
+        />
         <View style={{ flex: 1 }}>
           <Text numberOfLines={2} style={styles.collectionTitle}>
             {title}
@@ -273,47 +363,45 @@ function CollectionHeader({
   );
 }
 
-function CollectionScreen({
+function AlbumDetailScreen({
   view,
   onBack,
 }: {
-  view: NonNullable<CollectionView>;
+  view: Extract<DetailView, { kind: "album" }>;
   onBack: () => void;
 }) {
-  const filters =
-    view.kind === "album"
-      ? view.album.albumUri
-        ? { albumUri: view.album.albumUri }
-        : { albumArtist: view.album.albumArtist, albumName: view.album.album }
-      : { albumArtist: view.artist.name };
-  const { data: tracks, isLoading } = useUploadCollectionTracksQuery(filters);
-  const list = tracks ?? [];
-
-  const title = view.kind === "album" ? view.album.album : view.artist.name;
-  const subtitle =
-    view.kind === "album"
-      ? view.album.albumArtist
-      : `${view.artist.trackCount} track${view.artist.trackCount === 1 ? "" : "s"}`;
-  const art =
-    view.kind === "album"
-      ? view.album.albumArt
-      : (list[0]?.track.albumArt ?? null);
+  const { data: creds } = useNavidromeCredentials();
+  const { data: album, isLoading } = useNavidromeAlbumQuery(view.id);
+  const songs: NavidromeSong[] = useMemo(
+    () => dedupeById(album?.song ?? []),
+    [album],
+  );
+  const art = coverArtUrlOf(album) ?? view.art;
+  const queue = useMemo(
+    () =>
+      creds ? songs.map((song) => songToQueueTrack(song, creds, art)) : [],
+    [songs, creds, art],
+  );
 
   return (
     <FlatList
-      data={list}
-      keyExtractor={(item) => item.upload.id}
+      data={songs}
+      keyExtractor={(song) => song.id}
       renderItem={({ item, index }) => (
-        <TrackRow item={item} onPress={() => startPlayback(list, index)} />
+        <SongRow
+          song={item}
+          position={index + 1}
+          onPress={() => playQueue(queue, index)}
+        />
       )}
       ListHeaderComponent={
-        <CollectionHeader
-          title={title}
-          subtitle={subtitle}
+        <DetailHeader
+          title={view.title}
+          subtitle={view.subtitle}
           art={art}
           onBack={onBack}
-          onPlay={() => startPlayback(list, 0)}
-          onShuffle={() => startPlayback(shuffled(list), 0)}
+          onPlay={() => playQueue(queue, 0)}
+          onShuffle={() => playQueue(shuffled(queue), 0)}
         />
       }
       ListEmptyComponent={
@@ -321,6 +409,63 @@ function CollectionScreen({
           <ListFooter loading />
         ) : (
           <EmptyState message="No tracks here yet" />
+        )
+      }
+      ListFooterComponent={<View style={{ height: 24 }} />}
+      showsVerticalScrollIndicator={false}
+    />
+  );
+}
+
+function ArtistDetailScreen({
+  view,
+  onBack,
+  onOpenAlbum,
+}: {
+  view: Extract<DetailView, { kind: "artist" }>;
+  onBack: () => void;
+  onOpenAlbum: (album: NavidromeAlbum) => void;
+}) {
+  const { data: creds } = useNavidromeCredentials();
+  const { data: artist, isLoading } = useNavidromeArtistQuery(view.id);
+  const albums: NavidromeAlbum[] = useMemo(
+    () => dedupeById(artist?.album ?? []),
+    [artist],
+  );
+  const art = artist ? artistArtUrlOf(artist) : view.art;
+
+  const play = async (shuffle: boolean) => {
+    if (!creds || albums.length === 0) return;
+    const tracks = await fetchArtistQueue(albums, creds);
+    await playQueue(shuffle ? shuffled(tracks) : tracks, 0);
+  };
+
+  return (
+    <FlatList
+      data={albums}
+      keyExtractor={(album) => album.id}
+      numColumns={3}
+      columnWrapperStyle={{ gap: 10 }}
+      renderItem={({ item }) => (
+        <AlbumCard album={item} onPress={() => onOpenAlbum(item)} />
+      )}
+      ListHeaderComponent={
+        <DetailHeader
+          title={view.name}
+          subtitle={`${albums.length} album${albums.length === 1 ? "" : "s"}`}
+          art={art}
+          round
+          fallbackLabel={initialOf(view.name)}
+          onBack={onBack}
+          onPlay={() => play(false)}
+          onShuffle={() => play(true)}
+        />
+      }
+      ListEmptyComponent={
+        isLoading ? (
+          <ListFooter loading />
+        ) : (
+          <EmptyState message="No albums here yet" />
         )
       }
       ListFooterComponent={<View style={{ height: 24 }} />}
@@ -363,7 +508,9 @@ export default function Library() {
   const [tab, setTab] = useState(0);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<CollectionView>(null);
+  // A stack, because an album can be opened from inside an artist: back has to
+  // return to the artist, not to the tabs.
+  const [stack, setStack] = useState<DetailView[]>([]);
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const { mutateAsync: upload } = useUploadTrackMutation();
 
@@ -375,13 +522,59 @@ export default function Library() {
   // All three lists load together rather than on first tab press, like the web
   // client does: the first page of each is in cache by the time a tab is
   // tapped, so switching renders instantly instead of waiting on a request.
+  //
+  // Albums and artists come from navidrome's Subsonic API — the same calls the
+  // web clients make. The /uploads/albums and /uploads/artists endpoints
+  // group-by the user's whole upload set per page and took seconds.
   const tracksQuery = useUploadsInfiniteQuery(query, signedIn);
-  const albumsQuery = useUploadAlbumsInfiniteQuery(query, signedIn);
-  const artistsQuery = useUploadArtistsInfiniteQuery(query, signedIn);
+  const albumsQuery = useNavidromeAlbumsInfiniteQuery(query, signedIn);
+  const artistsQuery = useNavidromeArtistsQuery(query, signedIn);
 
   const tracks: UploadedTrack[] = tracksQuery.data?.pages.flat() ?? [];
-  const albums: UploadAlbum[] = albumsQuery.data?.pages.flat() ?? [];
-  const artists: UploadArtist[] = artistsQuery.data?.pages.flat() ?? [];
+  // Pages are offset-based, so a library that changes between requests can
+  // repeat a row across pages — deduped here rather than in the query, whose
+  // page lengths drive the offsets.
+  const albums: NavidromeAlbum[] = useMemo(
+    () => dedupeById(albumsQuery.data?.pages.flat() ?? []),
+    [albumsQuery.data],
+  );
+  const artists: NavidromeArtist[] = artistsQuery.data ?? [];
+
+  const openAlbum = (album: NavidromeAlbum) =>
+    setStack((prev) => [
+      ...prev,
+      {
+        kind: "album",
+        id: album.id,
+        title: album.name,
+        subtitle: album.artist,
+        art: coverArtUrlOf(album),
+      },
+    ]);
+
+  const openArtist = (artist: NavidromeArtist) =>
+    setStack((prev) => [
+      ...prev,
+      {
+        kind: "artist",
+        id: artist.id,
+        name: artist.name,
+        art: artistArtUrlOf(artist),
+      },
+    ]);
+
+  const popView = () => setStack((prev) => prev.slice(0, -1));
+
+  // The drill-downs are screen state, not navigator routes, so Android's back
+  // button has to be told about them or it would leave the tab instead.
+  useEffect(() => {
+    if (stack.length === 0) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setStack((prev) => prev.slice(0, -1));
+      return true;
+    });
+    return () => sub.remove();
+  }, [stack.length]);
 
   const pickAndUpload = async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -443,10 +636,19 @@ export default function Library() {
     );
   }
 
+  const view = stack[stack.length - 1];
   if (view) {
     return (
       <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
-        <CollectionScreen view={view} onBack={() => setView(null)} />
+        {view.kind === "album" ? (
+          <AlbumDetailScreen view={view} onBack={popView} />
+        ) : (
+          <ArtistDetailScreen
+            view={view}
+            onBack={popView}
+            onOpenAlbum={openAlbum}
+          />
+        )}
         <UploadPanel items={uploadItems} />
       </SafeAreaView>
     );
@@ -454,8 +656,7 @@ export default function Library() {
 
   const loadingMore =
     (tab === 0 && tracksQuery.isFetchingNextPage) ||
-    (tab === 1 && albumsQuery.isFetchingNextPage) ||
-    (tab === 2 && artistsQuery.isFetchingNextPage);
+    (tab === 1 && albumsQuery.isFetchingNextPage);
 
   return (
     <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
@@ -474,7 +675,7 @@ export default function Library() {
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder="Search your uploads"
+          placeholder="Search your library"
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCapitalize="none"
@@ -505,7 +706,7 @@ export default function Library() {
           renderItem={({ item, index }) => (
             <TrackRow
               item={item}
-              onPress={() => startPlayback(tracks, index)}
+              onPress={() => playUploadedTracks(tracks, index)}
             />
           )}
           onEndReached={() =>
@@ -538,16 +739,11 @@ export default function Library() {
       {tab === 1 && (
         <FlatList
           data={albums}
-          keyExtractor={(item) =>
-            item.albumUri ?? `${item.albumArtist}-${item.album}`
-          }
+          keyExtractor={(item) => item.id}
           numColumns={3}
           columnWrapperStyle={{ gap: 10 }}
           renderItem={({ item }) => (
-            <AlbumCard
-              album={item}
-              onPress={() => setView({ kind: "album", album: item })}
-            />
+            <AlbumCard album={item} onPress={() => openAlbum(item)} />
           )}
           onEndReached={() =>
             albumsQuery.hasNextPage &&
@@ -562,7 +758,11 @@ export default function Library() {
             albumsQuery.isLoading ? (
               <ListFooter loading />
             ) : (
-              <EmptyState message="No albums yet" />
+              <EmptyState
+                message={
+                  query ? "No albums match your search" : "No albums yet"
+                }
+              />
             )
           }
           ListFooterComponent={<ListFooter loading={loadingMore} />}
@@ -572,19 +772,10 @@ export default function Library() {
       {tab === 2 && (
         <FlatList
           data={artists}
-          keyExtractor={(item) => item.artistUri ?? item.name}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <ArtistRow
-              artist={item}
-              onPress={() => setView({ kind: "artist", artist: item })}
-            />
+            <ArtistRow artist={item} onPress={() => openArtist(item)} />
           )}
-          onEndReached={() =>
-            artistsQuery.hasNextPage &&
-            !artistsQuery.isFetchingNextPage &&
-            artistsQuery.fetchNextPage()
-          }
-          onEndReachedThreshold={0.4}
           getItemLayout={rowLayout}
           initialNumToRender={12}
           maxToRenderPerBatch={12}
@@ -593,10 +784,14 @@ export default function Library() {
             artistsQuery.isLoading ? (
               <ListFooter loading />
             ) : (
-              <EmptyState message="No artists yet" />
+              <EmptyState
+                message={
+                  query ? "No artists match your search" : "No artists yet"
+                }
+              />
             )
           }
-          ListFooterComponent={<ListFooter loading={loadingMore} />}
+          ListFooterComponent={<View style={{ height: 24 }} />}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -700,13 +895,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
   },
-  artistBadge: {
-    width: 44,
+  // 44 tall so an album's rows keep the same height as a cover-art row and
+  // getItemLayout stays accurate.
+  trackNumberCell: {
+    width: 28,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface2,
-    alignItems: "center",
+    alignItems: "flex-end",
     justifyContent: "center",
+  },
+  trackNumber: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontVariant: ["tabular-nums"],
   },
   albumCard: {
     flex: 1 / 3,
