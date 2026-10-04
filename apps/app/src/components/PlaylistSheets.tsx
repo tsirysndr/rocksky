@@ -45,7 +45,7 @@ export function PickerSheet({
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={{ flex: 1, justifyContent: "flex-end" }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
           <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)" }} />
@@ -188,7 +188,8 @@ export function NewPlaylistSheet({
               data={tracks.data?.pages.flat() ?? []}
               keyExtractor={(item) => item.upload.id}
               keyboardShouldPersistTaps="handled"
-              style={{ minHeight: 120 }}
+              style={{ flexShrink: 1 }}
+              keyboardDismissMode="on-drag"
               onEndReached={() => {
                 if (tracks.hasNextPage && !tracks.isFetchingNextPage)
                   void tracks.fetchNextPage();
@@ -309,6 +310,8 @@ export function AddToPlaylistSheet({
         data={results}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        style={{ flexShrink: 1 }}
         renderItem={({ item }) => (
           <TouchableOpacity
             disabled={add.isPending}

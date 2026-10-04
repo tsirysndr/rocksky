@@ -35,6 +35,7 @@ import PlaylistCover from "@/src/components/PlaylistCover";
 import {
   AddToPlaylistSheet,
   NewPlaylistSheet,
+  PickerSheet,
 } from "@/src/components/PlaylistSheets";
 import { Text } from "@/src/components/Text";
 import {
@@ -573,35 +574,31 @@ function NameSheet({
     onConfirm(trimmed);
   };
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onCancel}>
-      <Pressable style={styles.sheetBackdrop} onPress={onCancel} />
-      <View style={styles.sheet}>
-        <Text style={styles.sheetTitle}>{title}</Text>
-        <TextInput
-          value={value}
-          onChangeText={setValue}
-          placeholder="Name"
-          placeholderTextColor={colors.textMuted}
-          style={styles.nameInput}
-          autoFocus
-          maxLength={120}
-          returnKeyType="done"
-          onSubmitEditing={submit}
-        />
-        <View style={styles.sheetActions}>
-          <TouchableOpacity style={styles.sheetGhost} onPress={onCancel}>
-            <Text style={styles.sheetGhostText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.sheetPrimary}
-            onPress={submit}
-            disabled={!value.trim()}
-          >
-            <Text style={styles.sheetPrimaryText}>{confirmLabel}</Text>
-          </TouchableOpacity>
-        </View>
+    <PickerSheet title={title} onClose={onCancel}>
+      <TextInput
+        value={value}
+        onChangeText={setValue}
+        placeholder="Name"
+        placeholderTextColor={colors.textMuted}
+        style={styles.nameInput}
+        autoFocus
+        maxLength={120}
+        returnKeyType="done"
+        onSubmitEditing={submit}
+      />
+      <View style={styles.sheetActions}>
+        <TouchableOpacity style={styles.sheetGhost} onPress={onCancel}>
+          <Text style={styles.sheetGhostText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.sheetPrimary}
+          onPress={submit}
+          disabled={!value.trim()}
+        >
+          <Text style={styles.sheetPrimaryText}>{confirmLabel}</Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </PickerSheet>
   );
 }
 

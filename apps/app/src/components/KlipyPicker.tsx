@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   TextInput,
   TouchableOpacity,
@@ -68,7 +70,10 @@ export default function KlipyPicker({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, justifyContent: "flex-end" }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <Pressable
           onPress={onClose}
           style={{
@@ -263,7 +268,7 @@ export default function KlipyPicker({
             Powered by KLIPY
           </Text>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
