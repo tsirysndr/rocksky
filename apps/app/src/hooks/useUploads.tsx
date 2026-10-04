@@ -4,7 +4,10 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useAtomValue } from "jotai";
 import { getUploads, type PickedAudioFile, uploadTrack } from "../api/uploads";
+import { authTokenAtom } from "../atoms/auth";
+import { storage } from "../storage";
 
 const TRACKS_PAGE = 50;
 
@@ -13,20 +16,22 @@ const TRACKS_PAGE = 50;
 const STALE_TIME = 5 * 60 * 1000;
 const GC_TIME = 30 * 60 * 1000;
 
-export const useUploadsInfiniteQuery = (q: string, enabled = true) =>
-  useInfiniteQuery({
-    queryKey: ["uploads", "tracks", q],
+export const useUploadsInfiniteQuery = (q: string, enabled = true) => {
+  const token = useAtomValue(authTokenAtom);
+  return useInfiniteQuery({
+    queryKey: ["uploads", "tracks", storage.getDid(), q],
     queryFn: ({ pageParam }) =>
       getUploads(pageParam, TRACKS_PAGE, q ? { q } : {}),
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) =>
       lastPage.length < TRACKS_PAGE ? undefined : pages.length * TRACKS_PAGE,
-    enabled,
+    enabled: enabled && !!token,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     refetchOnMount: false,
     placeholderData: keepPreviousData,
   });
+};
 
 // Albums and artists are browsed through navidrome instead — see
 // hooks/useNavidrome.tsx. The /uploads/albums and /uploads/artists endpoints

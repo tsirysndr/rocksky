@@ -8,6 +8,7 @@ import {
   getArtistTracks,
   getLovedTracks,
   getSongByUri,
+  getSongRecentListeners,
   getTopArtists,
   getTopTracks,
   getTracks,
@@ -214,4 +215,11 @@ export const useTopArtistsQuery = (
       endDate?.toISOString(),
     ],
     queryFn: () => getTopArtists(offset, limit, startDate, endDate),
+  });
+
+export const useSongRecentListenersQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["songRecentListeners", uri],
+    queryFn: () => getSongRecentListeners(uri),
+    enabled: !!uri,
   });

@@ -1,3 +1,4 @@
+import Feather from "@expo/vector-icons/Feather";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import dayjs from "dayjs";
@@ -8,7 +9,6 @@ import numeral from "numeral";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Linking,
   type NativeScrollEvent,
@@ -23,9 +23,11 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import type { GraphUser } from "@/src/api/graph";
+import { authTokenAtom } from "@/src/atoms/auth";
 import { followsAtom } from "@/src/atoms/follows";
 import { profileAtom } from "@/src/atoms/profile";
 import FloatingShoutBar from "@/src/components/FloatingShoutBar";
+import ProfileDrawer from "@/src/components/ProfileDrawer";
 import { Text } from "@/src/components/Text";
 import UserAvatar from "@/src/components/UserAvatar";
 import {
@@ -1587,10 +1589,16 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentDid = storage.getDid();
   const profile = useAtomValue(profileAtom);
+  const token = useAtomValue(authTokenAtom);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const params = route?.params as { did?: string; handle?: string } | undefined;
   const did = params?.did || params?.handle || profile?.did || currentDid || "";
-  const isOwnProfile = !did || did === currentDid || did === profile?.did;
+  const isOwnProfile =
+    !did ||
+    did === currentDid ||
+    did === profile?.did ||
+    did === profile?.handle;
 
   const {
     data: profileData,
@@ -1850,6 +1858,24 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
           />
         }
       >
+        <TouchableOpacity
+          accessibilityLabel={isOwnProfile ? "Open account menu" : "Back"}
+          onPress={() => {
+            if (isOwnProfile && token) setDrawerOpen(true);
+            else navigation.goBack();
+          }}
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            alignSelf: "flex-start",
+          }}
+        >
+          <Feather
+            name={isOwnProfile ? "menu" : "arrow-left"}
+            size={26}
+            color={colors.text}
+          />
+        </TouchableOpacity>
         {/* Header */}
         <View
           style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}
@@ -2068,30 +2094,6 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                     PDSls ↗
                   </Text>
                 </TouchableOpacity>
-                {isOwnProfile && (
-                  <TouchableOpacity
-                    onPress={async () => {
-                      await storage.clear();
-                      Alert.alert("Signed out", "", [{ text: "OK" }]);
-                    }}
-                    style={{
-                      paddingHorizontal: 20,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor: colors.surface2,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: colors.primary,
-                        fontSize: 13,
-                        fontWeight: "500",
-                      }}
-                    >
-                      Sign out
-                    </Text>
-                  </TouchableOpacity>
-                )}
               </View>
 
               {/* Top track */}
@@ -2178,6 +2180,21 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
             borderBottomColor: colors.border,
           }}
         >
+          <TouchableOpacity
+            accessibilityLabel={isOwnProfile ? "Open account menu" : "Back"}
+            hitSlop={8}
+            onPress={(event) => {
+              event.stopPropagation();
+              if (isOwnProfile && token) setDrawerOpen(true);
+              else navigation.goBack();
+            }}
+          >
+            <Feather
+              name={isOwnProfile ? "menu" : "arrow-left"}
+              size={24}
+              color={colors.text}
+            />
+          </TouchableOpacity>
           <Avatar uri={displayProfile?.avatar} size={32} />
           <View style={{ flex: 1 }}>
             <Text
@@ -2196,6 +2213,9 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
         </TouchableOpacity>
       </Animated.View>
 
+      {drawerOpen && isOwnProfile && !!token && (
+        <ProfileDrawer onClose={() => setDrawerOpen(false)} />
+      )}
       <FloatingShoutBar
         uri={`at://${did}`}
         type="profile"

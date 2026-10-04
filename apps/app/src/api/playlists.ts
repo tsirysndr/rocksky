@@ -7,7 +7,7 @@ import { storage } from "../storage";
 // onto the user's PDS as an app.rocksky.playlist record. Going direct would
 // skip the mirror and silently drift the repo from the library.
 //
-// These are XRPC procedures that take their arguments as query params.
+// XRPC procedures accept their arguments in the JSON request body.
 
 type PlaylistMutation = {
   status?: string;
@@ -20,7 +20,10 @@ type PlaylistMutation = {
 
 /** A mirror failure: the library change landed, the PDS record didn't. */
 export class PlaylistMirrorWarning extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    public playlistId?: string,
+  ) {
     super(message);
     this.name = "PlaylistMirrorWarning";
   }
@@ -36,8 +39,8 @@ const procedure = async (
 ): Promise<PlaylistMutation> => {
   const response = await axios.post<PlaylistMutation>(
     `${API_URL}/xrpc/${method}`,
-    {},
-    { headers: authHeaders(), params },
+    params,
+    { headers: authHeaders() },
   );
   return response.data ?? {};
 };
@@ -52,7 +55,9 @@ export const createPlaylist = async (name: string): Promise<string | null> => {
     name,
   });
   const id = result.playlist?.id ?? null;
-  throwIfMirrorFailed(result);
+  if (result.atprotoError)
+    throw new PlaylistMirrorWarning(result.atprotoError, id ?? undefined);
+  if (!id) throw new Error("The server did not return a playlist.");
   return id;
 };
 

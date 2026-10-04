@@ -1,4 +1,10 @@
-import { Text as RNText, type TextProps, type TextStyle } from "react-native";
+import {
+  Text as RNText,
+  StyleSheet,
+  type TextProps,
+  type TextStyle,
+} from "react-native";
+import { colors } from "../theme";
 
 function getFontFamily(fontWeight?: TextStyle["fontWeight"]): string {
   if (
@@ -16,11 +22,16 @@ function getFontFamily(fontWeight?: TextStyle["fontWeight"]): string {
 }
 
 export function Text({ style, ...props }: TextProps) {
-  const flat: TextStyle = Array.isArray(style)
-    ? Object.assign({}, ...(style as object[]))
-    : (style as TextStyle) || {};
+  const flat = StyleSheet.flatten(style) ?? {};
   const fontFamily = flat.fontFamily || getFontFamily(flat.fontWeight);
   return (
-    <RNText style={[style, { fontFamily, fontWeight: "normal" }]} {...props} />
+    <RNText
+      style={[
+        { color: colors.text },
+        style,
+        { fontFamily, fontWeight: "normal" },
+      ]}
+      {...props}
+    />
   );
 }

@@ -1,8 +1,8 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import * as DocumentPicker from "expo-document-picker";
 import { Image } from "expo-image";
+import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,8 +29,13 @@ import {
   type NavidromeSong,
 } from "@/src/api/navidrome";
 import type { UploadedTrack } from "@/src/api/uploads";
+import { authTokenAtom } from "@/src/atoms/auth";
 import LibraryGlyph from "@/src/components/Icons/Library";
 import PlaylistCover from "@/src/components/PlaylistCover";
+import {
+  AddToPlaylistSheet,
+  NewPlaylistSheet,
+} from "@/src/components/PlaylistSheets";
 import { Text } from "@/src/components/Text";
 import {
   fetchArtistQueue,
@@ -47,25 +52,18 @@ import {
 } from "@/src/hooks/useNavidrome";
 import {
   PlaylistMirrorWarning,
-  useAddTrackToPlaylistMutation,
-  useCreatePlaylistMutation,
   useDeletePlaylistMutation,
   useRemoveTrackFromPlaylistMutation,
   useRenamePlaylistMutation,
 } from "@/src/hooks/usePlaylists";
+import { useUploadsInfiniteQuery } from "@/src/hooks/useUploads";
 import {
-  useUploadsInfiniteQuery,
-  useUploadTrackMutation,
-} from "@/src/hooks/useUploads";
-import {
-  isLocalEngineAvailable,
-  playUploads,
-  queueUploadsLast,
-  queueUploadsNext,
-  type UploadQueueTrack,
-} from "@/src/lib/uploadEngine";
+  playQueue,
+  playUploadedTracks,
+  queueTracks,
+  uploadToQueueTrack,
+} from "@/src/lib/libraryPlayback";
 import type { RootStackParamList } from "@/src/Navigation";
-import { storage } from "@/src/storage";
 import { colors } from "@/src/theme";
 
 const SUB_TABS = [
@@ -105,69 +103,12 @@ type DetailView =
       trackArts?: string[] | null;
     };
 
-type UploadItem = {
-  name: string;
-  progress: number;
-  status: "uploading" | "done" | "error";
-};
-
-function uploadToQueueTrack(item: UploadedTrack): UploadQueueTrack {
-  return {
-    uploadId: item.upload.id,
-    title: item.track.title,
-    artist: item.track.artist,
-    albumArtist: item.track.albumArtist,
-    album: item.track.album,
-    albumArt: item.track.albumArt,
-    durationMs: item.track.duration,
-    songUri: item.track.uri,
-    albumUri: item.track.albumUri,
-    artistUri: item.track.artistUri,
-    sha256: item.track.sha256,
-  };
-}
-
 function formatDuration(ms: number): string {
   if (!ms || ms <= 0) return "--:--";
   const total = Math.round(ms / 1000);
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-async function playQueue(tracks: UploadQueueTrack[], index: number) {
-  if (!isLocalEngineAvailable()) {
-    Alert.alert(
-      "Playback unavailable",
-      "The native playback engine is not in this build. Rebuild the app with the Rust toolchain installed.",
-    );
-    return;
-  }
-  if (tracks.length === 0) return;
-  const ok = await playUploads(tracks, index);
-  if (!ok) {
-    Alert.alert("Playback failed", "Could not start the playback engine.");
-  }
-}
-
-const playUploadedTracks = (tracks: UploadedTrack[], index: number) =>
-  playQueue(tracks.map(uploadToQueueTrack), index);
-
-async function queueTracks(tracks: UploadQueueTrack[], where: "next" | "last") {
-  if (!isLocalEngineAvailable()) {
-    Alert.alert(
-      "Playback unavailable",
-      "The native playback engine is not in this build. Rebuild the app with the Rust toolchain installed.",
-    );
-    return;
-  }
-  const ok =
-    where === "next"
-      ? await queueUploadsNext(tracks)
-      : await queueUploadsLast(tracks);
-  if (!ok) {
-    Alert.alert("Queue failed", "Could not add that to the playback queue.");
-  }
 }
 
 function shuffled<T>(list: T[]): T[] {
@@ -664,50 +605,6 @@ function NameSheet({
   );
 }
 
-/** Pick a playlist to add a track to, or start a new one with it. */
-function PlaylistPickerSheet({
-  playlists,
-  onCancel,
-  onPick,
-  onCreate,
-}: {
-  playlists: NavidromePlaylist[];
-  onCancel: () => void;
-  onPick: (playlist: NavidromePlaylist) => void;
-  onCreate: () => void;
-}) {
-  return (
-    <Modal visible transparent animationType="slide" onRequestClose={onCancel}>
-      <Pressable style={styles.sheetBackdrop} onPress={onCancel} />
-      <View style={styles.sheet}>
-        <Text style={styles.sheetTitle}>Add to playlist</Text>
-        <ScrollView style={styles.pickerList}>
-          <TouchableOpacity style={styles.sheetItem} onPress={onCreate}>
-            <Feather name="plus" size={16} color={colors.text} />
-            <Text style={styles.sheetItemText}>New playlist…</Text>
-          </TouchableOpacity>
-          {playlists.map((playlist) => (
-            <TouchableOpacity
-              key={playlist.id}
-              style={styles.sheetItem}
-              onPress={() => onPick(playlist)}
-            >
-              <PlaylistCover
-                picture={coverArtUrlOf(playlist)}
-                trackArts={playlist.trackArts}
-                size={30}
-              />
-              <Text numberOfLines={1} style={styles.sheetItemText}>
-                {playlist.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-}
-
 /** The context menu for a navidrome song, wherever it is listed. */
 function songSheetActions(
   song: NavidromeSong,
@@ -725,14 +622,14 @@ function songSheetActions(
       onPress: () => queueTracks([track], "next"),
     },
     {
-      label: "Add to queue",
+      label: "Add to queue (last)",
       icon: "list",
       onPress: () => queueTracks([track], "last"),
     },
   ];
   if (onAddToPlaylist) {
     actions.push({
-      label: "Add to playlist",
+      label: "Add to playlist…",
       icon: "plus",
       onPress: () => onAddToPlaylist(song.id),
     });
@@ -943,36 +840,12 @@ function ArtistDetailScreen({
   );
 }
 
-// ─── Upload progress panel ───────────────────────────────────────────────────
-
-function UploadPanel({ items }: { items: UploadItem[] }) {
-  if (items.length === 0) return null;
-  return (
-    <View style={styles.uploadPanel}>
-      {items.map((item) => (
-        <View key={item.name} style={styles.uploadRow}>
-          <Text numberOfLines={1} style={[styles.rowSubtitle, { flex: 1 }]}>
-            {item.name}
-          </Text>
-          <Text style={styles.rowMeta}>
-            {item.status === "done"
-              ? "✓"
-              : item.status === "error"
-                ? "failed"
-                : `${item.progress}%`}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function Library() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const signedIn = !!storage.getToken();
+  const signedIn = !!useAtomValue(authTokenAtom);
 
   const [tab, setTab] = useState(0);
   const [search, setSearch] = useState("");
@@ -992,12 +865,8 @@ export default function Library() {
     | null
   >(null);
   const [addingSongId, setAddingSongId] = useState<string | null>(null);
-  const createPlaylist = useCreatePlaylistMutation();
   const renamePlaylistMutation = useRenamePlaylistMutation();
   const deletePlaylistMutation = useDeletePlaylistMutation();
-  const addToPlaylist = useAddTrackToPlaylistMutation();
-  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
-  const { mutateAsync: upload } = useUploadTrackMutation();
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(search.trim()), 350);
@@ -1100,11 +969,16 @@ export default function Library() {
         onPress: () => queueTracks([track], "next"),
       },
       {
-        label: "Add to queue",
+        label: "Add to queue (last)",
         icon: "list",
         onPress: () => queueTracks([track], "last"),
       },
     ];
+    actions.push({
+      label: "Add to playlist…",
+      icon: "plus",
+      onPress: () => setAddingSongId(item.track.id),
+    });
     const { uri, album, albumArtist, albumArt, albumUri, artist } = item.track;
     if (albumUri) {
       // Album and artist stay inside the library, on the navidrome-backed
@@ -1147,6 +1021,8 @@ export default function Library() {
   const reportMirror = (error: Error) => {
     if (error instanceof PlaylistMirrorWarning) {
       Alert.alert("Saved, but not published", error.message);
+    } else {
+      Alert.alert("Could not update playlist", error.message);
     }
   };
 
@@ -1189,45 +1065,6 @@ export default function Library() {
     });
     return () => sub.remove();
   }, [stack.length]);
-
-  const pickAndUpload = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: "audio/*",
-      multiple: true,
-      copyToCacheDirectory: true,
-    });
-    if (result.canceled || result.assets.length === 0) return;
-
-    setUploadItems(
-      result.assets.map((asset) => ({
-        name: asset.name,
-        progress: 0,
-        status: "uploading" as const,
-      })),
-    );
-    for (const asset of result.assets) {
-      const setItem = (patch: Partial<UploadItem>) =>
-        setUploadItems((prev) =>
-          prev.map((item) =>
-            item.name === asset.name ? { ...item, ...patch } : item,
-          ),
-        );
-      try {
-        await upload({
-          file: {
-            uri: asset.uri,
-            name: asset.name,
-            mimeType: asset.mimeType ?? "audio/mpeg",
-          },
-          onProgress: (percent) => setItem({ progress: percent }),
-        });
-        setItem({ status: "done", progress: 100 });
-      } catch {
-        setItem({ status: "error" });
-      }
-    }
-    setTimeout(() => setUploadItems([]), 4000);
-  };
 
   if (!signedIn) {
     return (
@@ -1274,7 +1111,12 @@ export default function Library() {
             onOpenAlbum={openAlbum}
           />
         )}
-        <UploadPanel items={uploadItems} />
+        {addingSongId && (
+          <AddToPlaylistSheet
+            songId={addingSongId}
+            onClose={() => setAddingSongId(null)}
+          />
+        )}
       </SafeAreaView>
     );
   }
@@ -1288,7 +1130,10 @@ export default function Library() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Library</Text>
-        <TouchableOpacity style={styles.uploadButton} onPress={pickAndUpload}>
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={() => navigation.navigate("Upload")}
+        >
           <Feather name="upload" size={14} color="#fff" />
           <Text style={styles.uploadButtonText}>Upload</Text>
         </TouchableOpacity>
@@ -1529,50 +1374,30 @@ export default function Library() {
         />
       )}
 
-      {naming && (
+      {naming?.kind === "new" && (
+        <NewPlaylistSheet
+          seedSongId={naming.songId}
+          onClose={() => setNaming(null)}
+        />
+      )}
+      {naming?.kind === "rename" && (
         <NameSheet
-          title={naming.kind === "new" ? "New playlist" : "Rename playlist"}
-          initialValue={naming.kind === "rename" ? naming.playlist.name : ""}
-          confirmLabel={naming.kind === "new" ? "Create" : "Rename"}
+          title="Rename playlist"
+          initialValue={naming.playlist.name}
+          confirmLabel="Rename"
           onCancel={() => setNaming(null)}
           onConfirm={(name) => {
-            const request = naming;
-            setNaming(null);
-            if (request.kind === "new") {
-              createPlaylist.mutate(
-                {
-                  name,
-                  songIds: request.songId ? [request.songId] : undefined,
-                },
-                { onError: reportMirror },
-              );
-              return;
-            }
             renamePlaylistMutation.mutate(
-              { playlistId: request.playlist.id, name },
-              { onError: reportMirror },
+              { playlistId: naming.playlist.id, name },
+              { onSuccess: () => setNaming(null), onError: reportMirror },
             );
           }}
         />
       )}
-
       {addingSongId && (
-        <PlaylistPickerSheet
-          playlists={playlists}
-          onCancel={() => setAddingSongId(null)}
-          onPick={(playlist) => {
-            const songId = addingSongId;
-            setAddingSongId(null);
-            addToPlaylist.mutate(
-              { playlistId: playlist.id, songId },
-              { onError: reportMirror },
-            );
-          }}
-          onCreate={() => {
-            const songId = addingSongId;
-            setAddingSongId(null);
-            setNaming({ kind: "new", songId });
-          }}
+        <AddToPlaylistSheet
+          songId={addingSongId}
+          onClose={() => setAddingSongId(null)}
         />
       )}
 
@@ -1585,8 +1410,6 @@ export default function Library() {
           onClose={() => setSheetTrack(null)}
         />
       )}
-
-      <UploadPanel items={uploadItems} />
     </SafeAreaView>
   );
 }

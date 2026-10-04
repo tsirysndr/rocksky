@@ -24,25 +24,56 @@ const invalidate = (
   }
 };
 
+export class PlaylistCreationError extends Error {
+  constructor(
+    public playlistId: string,
+    public remainingSongIds: string[],
+    cause: unknown,
+  ) {
+    super(
+      cause instanceof Error
+        ? cause.message
+        : "Could not add tracks to the playlist",
+    );
+  }
+}
+
 export const useCreatePlaylistMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       name,
-      songIds,
+      songIds = [],
+      playlistId,
     }: {
       name: string;
-      description?: string;
       songIds?: string[];
-    }) => createPlaylist(name).then((id) => ({ id, songIds })),
-    onSuccess: async ({ id, songIds }) => {
-      // createPlaylist takes a name and nothing else, so tracks are appended
-      // one at a time — in order, since navidrome appends in call order.
-      if (id && songIds?.length) {
-        for (const songId of songIds) {
-          await addTrackToPlaylist(id, songId);
+      playlistId?: string;
+    }) => {
+      let id = playlistId;
+      const warnings: string[] = [];
+      if (!id) {
+        try {
+          id = (await createPlaylist(name)) ?? undefined;
+        } catch (error) {
+          if (!(error instanceof PlaylistMirrorWarning) || !error.playlistId)
+            throw error;
+          id = error.playlistId;
+          warnings.push(error.message);
         }
       }
+      if (!id) throw new Error("The server did not return a playlist.");
+      const unique = [...new Set(songIds)];
+      for (let index = 0; index < unique.length; index++) {
+        try {
+          await addTrackToPlaylist(id, unique[index]);
+        } catch (error) {
+          if (error instanceof PlaylistMirrorWarning)
+            warnings.push(error.message);
+          else throw new PlaylistCreationError(id, unique.slice(index), error);
+        }
+      }
+      return { id, warnings };
     },
     onSettled: () => invalidate(queryClient),
   });

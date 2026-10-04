@@ -88,6 +88,7 @@ export type PickedAudioFile = {
 export const uploadTrack = async (
   file: PickedAudioFile,
   onProgress?: (percent: number) => void,
+  signal?: AbortSignal,
 ): Promise<UploadResult> => {
   const formData = new FormData();
   formData.append("file", {
@@ -104,6 +105,7 @@ export const uploadTrack = async (
         ...authHeaders(),
         "Content-Type": "multipart/form-data",
       },
+      signal,
       onUploadProgress: (e) => {
         if (onProgress && e.total) {
           onProgress(Math.round((e.loaded * 100) / e.total));

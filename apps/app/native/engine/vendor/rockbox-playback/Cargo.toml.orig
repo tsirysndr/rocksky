@@ -1,0 +1,37 @@
+[package]
+name = "rockbox-playback"
+version = "0.7.0"
+description = "Audio playback engine over rockbox-codecs + rockbox-dsp — native ReplayGain and Rockbox crossfade, with configurable output (cpal device, stdout, FIFO, Unix/TCP socket)"
+authors = { workspace = true }
+edition = { workspace = true }
+license = "GPL-2.0-or-later"
+repository = { workspace = true }
+readme = "README.md"
+keywords = ["audio", "player", "playback", "crossfade", "rockbox"]
+categories = ["multimedia::audio"]
+
+[features]
+default = ["http", "cpal"]
+# HTTP(S) remote media support: stream/decode `http(s)://` URLs via ranged
+# requests, backed by `reqwest`. Also enables adaptive streaming (HLS `.m3u8`
+# and MPEG-DASH `.mpd` manifests, with MPEG-TS and fragmented-MP4 segment
+# demuxing). Disable for a leaner, local-file-only build.
+http = ["dep:reqwest", "dep:tempfile", "dep:quick-xml"]
+# System-audio output via `cpal` (the default `OutputConfig::Cpal` backend).
+# Disable to drop the `cpal` dependency and use only the byte-stream backends
+# (stdout / FIFO / Unix / TCP), e.g. on a headless host with no audio device.
+cpal = ["dep:cpal"]
+
+[dependencies]
+rockbox-metadata = { version = "0.1.1", path = "../rockbox-metadata" }
+rockbox-codecs = { version = "0.2.2", path = "../rockbox-codecs" }
+rockbox-dsp = { version = "0.3.0", path = "../rockbox-dsp" }
+cpal = { version = "0.15", optional = true }
+reqwest = { version = "0.12", default-features = false, features = [
+  "blocking",
+  "rustls-tls-native-roots",
+], optional = true }
+tempfile = { version = "3", optional = true }
+quick-xml = { version = "0.37", optional = true }
+
+[dev-dependencies]

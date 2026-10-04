@@ -9,12 +9,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
 import type { ComponentType } from "react";
 import { View } from "react-native";
+import { authTokenAtom } from "./atoms/auth";
 import { profileAtom } from "./atoms/profile";
 import Bell from "./components/Icons/Bell";
 import LibraryIcon from "./components/Icons/Library";
 import MiniPlayer from "./components/MiniPlayer";
 import UserAvatar from "./components/UserAvatar";
 import { useUnreadCountQuery } from "./hooks/useNotifications";
+import Account, { type AccountSection } from "./screens/Account/Account";
 import AlbumDetails from "./screens/AlbumDetails";
 import ArtistDetails from "./screens/ArtistDetails";
 import Charts from "./screens/Charts";
@@ -28,11 +30,12 @@ import ShoutEditor from "./screens/ShoutEditor";
 import SignInScreen from "./screens/SignIn";
 import SongDetails from "./screens/SongDetails";
 import Story from "./screens/Story";
+import Upload from "./screens/Upload/Upload";
 import { storage } from "./storage";
 import { colors } from "./theme";
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const screenOptions = {
   contentStyle: { backgroundColor: colors.background },
@@ -79,6 +82,7 @@ function CustomTabBar(props: BottomTabBarProps) {
 }
 
 function HomeTabs() {
+  const token = useAtomValue(authTokenAtom);
   const { data: unread } = useUnreadCountQuery();
   const unreadCount = unread?.count ?? 0;
   const profile = useAtomValue(profileAtom);
@@ -160,7 +164,9 @@ function HomeTabs() {
               : undefined,
         }}
       />
-      <Tab.Screen name="LibraryTab" component={LibraryStackScreen} />
+      {!!token && (
+        <Tab.Screen name="LibraryTab" component={LibraryStackScreen} />
+      )}
       <Tab.Screen name="SearchTab" component={SearchStackScreen} />
       <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
     </Tab.Navigator>
@@ -168,6 +174,7 @@ function HomeTabs() {
 }
 
 export function RootStack() {
+  const token = useAtomValue(authTokenAtom);
   return (
     <Stack.Navigator
       screenOptions={{
@@ -176,6 +183,8 @@ export function RootStack() {
       }}
     >
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
+      {!!token && <Stack.Screen name="Account" component={Account} />}
+      {!!token && <Stack.Screen name="Upload" component={Upload} />}
       <Stack.Screen
         name="Player"
         component={Player}
@@ -196,6 +205,8 @@ export function RootStack() {
 }
 
 export type RootStackParamList = {
+  Account: { section: AccountSection };
+  Upload: undefined;
   Home: undefined;
   HomeTabs: undefined;
   Player: undefined;

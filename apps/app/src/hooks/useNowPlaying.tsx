@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useEffect, useRef } from "react";
 import {
+  localEngineActiveAtom,
   nowPlayingAtom,
   playbackLockedUntilAtom,
   playerAtom,
@@ -13,6 +14,7 @@ import { API_URL } from "../consts";
 // `paused`: an active remote device is feeding the now-playing atoms over the
 // WebSocket, so the polling fallback must not write (or clear) them.
 export const useNowPlaying = (did: string, paused = false) => {
+  const localActive = useAtomValue(localEngineActiveAtom);
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const [progress, setProgress] = useAtom(progressAtom);
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
@@ -116,47 +118,26 @@ export const useNowPlaying = (did: string, paused = false) => {
     setProgress,
   ]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the ticker must only reset when the track changes, not on every progress update
+  // The native engine is the sole position authority for local playback.
+  // Remote sources interpolate forward between reports; paused playback never
+  // writes an old ref back over a seek or an authoritative player update.
   useEffect(() => {
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
-    }
-
-    // Reset progress when song changes
-    progressRef.current = nowPlaying?.progress ?? 0;
-    setProgress(nowPlaying?.progress ?? 0);
-
+    if (localActive) return;
+    let lastTick = Date.now();
     progressInterval.current = setInterval(() => {
-      if (!nowPlayingRef.current) {
-        setProgress(0);
-        progressRef.current = 0;
-        return;
-      }
-
-      if (progressRef.current >= nowPlayingRef.current.duration) {
-        setProgress(nowPlayingRef.current.duration);
-        progressRef.current = nowPlayingRef.current.duration;
-        return;
-      }
-
-      if (nowPlayingRef.current.isPlaying) {
-        setProgress((prev) => {
-          const next = prev + 100;
-          progressRef.current = next;
-          return next;
-        });
-        return;
-      }
-
-      setProgress(progressRef.current);
+      const now = Date.now();
+      const delta = now - lastTick;
+      lastTick = now;
+      const track = nowPlayingRef.current;
+      if (!track?.isPlaying) return;
+      setProgress((value) =>
+        Math.min(track.duration || Infinity, value + delta),
+      );
     }, 100);
-
     return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-      }
+      if (progressInterval.current) clearInterval(progressInterval.current);
     };
-  }, [nowPlaying?.uri]);
+  }, [localActive, setProgress]);
 
   useEffect(() => {
     if (nowPlaying) {

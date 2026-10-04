@@ -1,22 +1,36 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Image,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { UploadedTrack } from "@/src/api/uploads";
+import { authTokenAtom } from "@/src/atoms/auth";
+import {
+  AddToPlaylistSheet,
+  PickerSheet,
+  styles as sheetStyles,
+} from "@/src/components/PlaylistSheets";
 import { Text } from "@/src/components/Text";
+import ThemedSwitch from "@/src/components/ThemedSwitch";
 import { useSearchQuery } from "@/src/hooks/useSearch";
+import { useUploadsInfiniteQuery } from "@/src/hooks/useUploads";
+import {
+  playUploadedTracks,
+  queueTracks,
+  uploadToQueueTrack,
+} from "@/src/lib/libraryPlayback";
 import type { RootStackParamList } from "@/src/Navigation";
 import { colors } from "@/src/theme";
 
@@ -38,9 +52,11 @@ type ResultItem = {
 function SearchResultRow({
   item,
   onPress,
+  onMore,
 }: {
   item: ResultItem;
   onPress: () => void;
+  onMore?: () => void;
 }) {
   const table = item._federation?.indexUid ?? "tracks";
   const isRound = table === "artists" || table === "users";
@@ -66,6 +82,7 @@ function SearchResultRow({
   return (
     <TouchableOpacity
       onPress={onPress}
+      onLongPress={onMore}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -110,6 +127,7 @@ function SearchResultRow({
           </Text>
         ) : null}
       </View>
+
       <View
         style={{
           paddingHorizontal: 8,
@@ -122,6 +140,18 @@ function SearchResultRow({
           {typeLabel}
         </Text>
       </View>
+      {onMore && (
+        <TouchableOpacity
+          accessibilityLabel="Track actions"
+          hitSlop={8}
+          onPress={(event) => {
+            event.stopPropagation();
+            onMore();
+          }}
+        >
+          <Feather name="more-horizontal" size={22} color={colors.text} />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 }
@@ -129,6 +159,20 @@ function SearchResultRow({
 export default function Search() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const token = useAtomValue(authTokenAtom);
+  const [libraryOnly, setLibraryOnly] = useState(false);
+  const library = libraryOnly && !!token;
+  const [menuTrack, setMenuTrack] = useState<UploadedTrack | null>(null);
+  const [playlistTrack, setPlaylistTrack] = useState<UploadedTrack | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!token) {
+      setLibraryOnly(false);
+      setMenuTrack(null);
+      setPlaylistTrack(null);
+    }
+  }, [token]);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,7 +185,12 @@ export default function Search() {
     };
   }, [query]);
 
-  const { data, isLoading } = useSearchQuery(debouncedQuery);
+  const { data, isLoading } = useSearchQuery(debouncedQuery, !library);
+  const libraryQuery = useUploadsInfiniteQuery(
+    debouncedQuery,
+    library && !!debouncedQuery.trim(),
+  );
+  const libraryTracks = libraryQuery.data?.pages.flat() ?? [];
   const results: ResultItem[] = data?.hits || [];
 
   const handlePressItem = (item: ResultItem) => {
@@ -162,148 +211,273 @@ export default function Search() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={{ flex: 1 }}>
-            {/* Header */}
+        <View style={{ flex: 1 }}>
+          {/* Header */}
+          <View
+            style={{
+              paddingHorizontal: 16,
+              paddingTop: 8,
+              paddingBottom: 12,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "800",
+                color: colors.text,
+                marginBottom: 12,
+              }}
+            >
+              Search
+            </Text>
+
+            {/* Search bar */}
             <View
               style={{
-                paddingHorizontal: 16,
-                paddingTop: 8,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                borderRadius: 16,
+                backgroundColor: colors.surface2,
+              }}
+            >
+              <Feather name="search" size={16} color={colors.textMuted} />
+              <TextInput
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: colors.text,
+                  fontFamily: "RockfordSansRegular",
+                }}
+                placeholder={
+                  library
+                    ? "Search tracks in your library"
+                    : "Songs, artists, albums..."
+                }
+                placeholderTextColor={colors.textMuted}
+                value={query}
+                onChangeText={setQuery}
+                returnKeyType="search"
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+              {query.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setQuery("");
+                    setDebouncedQuery("");
+                  }}
+                >
+                  <Feather name="x" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {!!token && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: 20,
                 paddingBottom: 12,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 22,
-                  fontWeight: "800",
-                  color: colors.text,
-                  marginBottom: 12,
-                }}
-              >
-                Search
-              </Text>
-
-              {/* Search bar */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 10,
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
-                  borderRadius: 16,
-                  backgroundColor: colors.surface2,
-                }}
-              >
-                <Feather name="search" size={16} color={colors.textMuted} />
-                <TextInput
-                  style={{
-                    flex: 1,
-                    fontSize: 15,
-                    color: colors.text,
-                    fontFamily: "RockfordSansRegular",
+              <Text>Library</Text>
+              <ThemedSwitch
+                accessibilityLabel="Search only my library"
+                value={library}
+                onValueChange={setLibraryOnly}
+              />
+            </View>
+          )}
+          {library && (
+            <FlatList
+              data={libraryTracks}
+              keyExtractor={(item) => item.upload.id}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingBottom: 20,
+              }}
+              onEndReached={() => {
+                if (
+                  libraryQuery.hasNextPage &&
+                  !libraryQuery.isFetchingNextPage
+                )
+                  void libraryQuery.fetchNextPage();
+              }}
+              renderItem={({ item, index }) => (
+                <SearchResultRow
+                  item={{
+                    ...item.track,
+                    uri: item.track.uri ?? undefined,
+                    albumArt: item.track.albumArt ?? undefined,
                   }}
-                  placeholder="Songs, artists, albums..."
-                  placeholderTextColor={colors.textMuted}
-                  value={query}
-                  onChangeText={setQuery}
-                  returnKeyType="search"
-                  autoCorrect={false}
-                  autoCapitalize="none"
+                  onPress={() => {
+                    void playUploadedTracks(libraryTracks, index);
+                  }}
+                  onMore={() => setMenuTrack(item)}
                 />
-                {query.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setQuery("");
-                      setDebouncedQuery("");
+              )}
+              ListEmptyComponent={
+                libraryQuery.isLoading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text
+                    style={{
+                      color: colors.textMuted,
+                      textAlign: "center",
+                      paddingVertical: 48,
                     }}
                   >
-                    <Feather name="x" size={16} color={colors.textMuted} />
+                    {!debouncedQuery.trim()
+                      ? "Search tracks in your library"
+                      : libraryQuery.isError
+                        ? "Could not search your library"
+                        : "No tracks found in your library"}
+                  </Text>
+                )
+              }
+              ListFooterComponent={
+                libraryQuery.isError ? (
+                  <TouchableOpacity onPress={() => void libraryQuery.refetch()}>
+                    <Text>Retry</Text>
                   </TouchableOpacity>
-                )}
-              </View>
-            </View>
+                ) : libraryQuery.isFetchingNextPage ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : null
+              }
+            />
+          )}
+          {!library && (
+            <>
+              {/* Loading */}
+              {isLoading && (
+                <View style={{ alignItems: "center", paddingVertical: 48 }}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+              )}
 
-            {/* Loading */}
-            {isLoading && (
-              <View style={{ alignItems: "center", paddingVertical: 48 }}>
-                <ActivityIndicator size="large" color={colors.primary} />
-              </View>
-            )}
-
-            {/* Empty state */}
-            {!isLoading && !debouncedQuery && (
-              <View
-                style={{
-                  alignItems: "center",
-                  paddingVertical: 64,
-                  paddingHorizontal: 32,
-                }}
-              >
-                <Text style={{ fontSize: 48, opacity: 0.2, marginBottom: 12 }}>
-                  🎵
-                </Text>
-                <Text
+              {/* Empty state */}
+              {!isLoading && !debouncedQuery && (
+                <View
                   style={{
-                    fontSize: 13,
-                    color: colors.textMuted,
-                    textAlign: "center",
+                    alignItems: "center",
+                    paddingVertical: 64,
+                    paddingHorizontal: 32,
                   }}
                 >
-                  Search for songs, artists, and albums
-                </Text>
-              </View>
-            )}
+                  <Text
+                    style={{ fontSize: 48, opacity: 0.2, marginBottom: 12 }}
+                  >
+                    🎵
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: colors.textMuted,
+                      textAlign: "center",
+                    }}
+                  >
+                    Search for songs, artists, and albums
+                  </Text>
+                </View>
+              )}
 
-            {/* No results */}
-            {!isLoading && debouncedQuery && results.length === 0 && (
-              <View
-                style={{
-                  alignItems: "center",
-                  paddingVertical: 64,
-                  paddingHorizontal: 32,
-                }}
-              >
-                <Feather
-                  name="search"
-                  size={48}
-                  color={colors.textMuted}
-                  style={{ opacity: 0.2, marginBottom: 12 }}
-                />
-                <Text
+              {/* No results */}
+              {!isLoading && debouncedQuery && results.length === 0 && (
+                <View
                   style={{
-                    fontSize: 13,
-                    color: colors.textMuted,
-                    textAlign: "center",
+                    alignItems: "center",
+                    paddingVertical: 64,
+                    paddingHorizontal: 32,
                   }}
                 >
-                  No results for "{debouncedQuery}"
-                </Text>
-              </View>
-            )}
-
-            {/* Results */}
-            {!isLoading && results.length > 0 && (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{
-                  paddingHorizontal: 16,
-                  paddingBottom: 20,
-                }}
-              >
-                {results.map((item, i) => (
-                  <SearchResultRow
-                    key={item.uri || item.id || i}
-                    item={item}
-                    onPress={() => handlePressItem(item)}
+                  <Feather
+                    name="search"
+                    size={48}
+                    color={colors.textMuted}
+                    style={{ opacity: 0.2, marginBottom: 12 }}
                   />
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </TouchableWithoutFeedback>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: colors.textMuted,
+                      textAlign: "center",
+                    }}
+                  >
+                    No results for "{debouncedQuery}"
+                  </Text>
+                </View>
+              )}
+
+              {/* Results */}
+              {!isLoading && results.length > 0 && (
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    paddingBottom: 20,
+                  }}
+                >
+                  {results.map((item, i) => (
+                    <SearchResultRow
+                      key={item.uri || item.id || i}
+                      item={item}
+                      onPress={() => handlePressItem(item)}
+                    />
+                  ))}
+                </ScrollView>
+              )}
+            </>
+          )}
+        </View>
       </KeyboardAvoidingView>
+      {menuTrack && token && (
+        <PickerSheet
+          title={menuTrack.track.title}
+          onClose={() => setMenuTrack(null)}
+        >
+          {[
+            {
+              label: "Play next",
+              action: () =>
+                queueTracks([uploadToQueueTrack(menuTrack)], "next"),
+            },
+            {
+              label: "Add to queue (last)",
+              action: () =>
+                queueTracks([uploadToQueueTrack(menuTrack)], "last"),
+            },
+            {
+              label: "Add to playlist…",
+              action: () => setPlaylistTrack(menuTrack),
+            },
+          ].map(({ label, action }) => (
+            <TouchableOpacity
+              key={label}
+              style={sheetStyles.row}
+              onPress={() => {
+                setMenuTrack(null);
+                void action();
+              }}
+            >
+              <Text>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </PickerSheet>
+      )}
+      {playlistTrack && token && (
+        <AddToPlaylistSheet
+          songId={playlistTrack.track.id}
+          onClose={() => setPlaylistTrack(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

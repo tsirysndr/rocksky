@@ -11,7 +11,7 @@ name = "rocksky_engine"
 crate-type = ["cdylib"]
 
 [dependencies]
-rockbox-playback = "0.7"
+rockbox-playback = { version = "0.7", path = "vendor/rockbox-playback" }
 # Feature union: make reqwest (pulled by rockbox-playback's http feature)
 # carry the webpki root store too — rustls-native-certs has nothing to read
 # on Android, which would otherwise break https stream URLs.

@@ -1,5 +1,6 @@
 export const colors = {
   background: "#130825",
+  toggleTrack: "#341b5c",
   primary: "#ff2876",
   text: "#f0e8f5",
   textMuted: "rgba(191, 174, 195, 0.65)",

@@ -28,6 +28,7 @@ export const getSongByUri = async (uri: string) => {
     composer: response.data?.composer,
     uri: response.data?.uri,
     artists: response.data?.artists,
+    firstScrobble: response.data?.firstScrobble,
   };
 };
 
@@ -264,4 +265,23 @@ export const getTopTracks = async (
     },
   );
   return response.data;
+};
+
+export type RecentListener = {
+  id: string;
+  handle: string;
+  avatar?: string;
+  timestamp?: string;
+  scrobbleUri?: string;
+};
+
+export const getSongRecentListeners = async (
+  uri: string,
+  limit = 10,
+): Promise<RecentListener[]> => {
+  const response = await client.get(
+    "/xrpc/app.rocksky.song.getSongRecentListeners",
+    { params: { uri, limit } },
+  );
+  return response.data?.listeners ?? [];
 };

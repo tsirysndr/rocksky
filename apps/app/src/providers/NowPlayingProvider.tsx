@@ -101,6 +101,7 @@ function useActiveDeviceTrack() {
     // Smooth toward the device's position: snap on seeks (>2s error), nudge
     // forward by 25% of the error otherwise — never move backwards.
     setProgress((prev) => {
+      if (locked) return prev;
       const err = track.elapsed - prev;
       if (Math.abs(err) > 2000) return track.elapsed;
       return err > 0 ? prev + err * 0.25 : prev;

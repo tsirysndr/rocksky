@@ -30,6 +30,7 @@ import { usePlaybackSource } from "@/src/hooks/usePlaybackSource";
 import {
   localQueue,
   localQueueIndex,
+  localQueueRevisionAtom,
   removeLocalAt,
   skipToLocal,
 } from "@/src/lib/uploadEngine";
@@ -57,6 +58,7 @@ export default function Player() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const nowPlaying = useAtomValue(nowPlayingAtom);
   const progress = useAtomValue(progressAtom);
+  useAtomValue(localQueueRevisionAtom);
   const player = useAtomValue(playerAtom);
   const devices = useAtomValue(devicesAtom);
   const activeDeviceId = useAtomValue(activeDeviceIdAtom);
@@ -155,7 +157,7 @@ export default function Player() {
             {item.artist}
           </Text>
         </View>
-        {!isCurrent && (
+        {
           <TouchableOpacity
             accessibilityLabel={`Remove ${item.title} from queue`}
             onPress={(event) => {
@@ -166,7 +168,7 @@ export default function Player() {
           >
             <Feather name="x" size={18} color={colors.textMuted} />
           </TouchableOpacity>
-        )}
+        }
       </TouchableOpacity>
     );
   };

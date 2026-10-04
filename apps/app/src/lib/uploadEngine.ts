@@ -5,7 +5,7 @@ import {
   type RemoteQueueItem,
 } from "@rocksky/sdk/remote";
 import Constants from "expo-constants";
-import { getDefaultStore } from "jotai";
+import { atom, getDefaultStore } from "jotai";
 import { Platform } from "react-native";
 import {
   type EngineStatus,
@@ -29,6 +29,7 @@ import { selectedSourceAtom } from "../atoms/devices";
 import {
   localEngineActiveAtom,
   nowPlayingAtom,
+  playbackLockedUntilAtom,
   playerAtom,
   progressAtom,
 } from "../atoms/nowplaying";
@@ -75,6 +76,11 @@ const MAX_SCROBBLE_THRESHOLD_MS = 4 * 60_000;
 
 const store = getDefaultStore();
 
+export const localQueueRevisionAtom = atom(0);
+const notifyQueue = () =>
+  store.set(localQueueRevisionAtom, (value) => value + 1);
+let lastTrack: UploadQueueTrack | null = null;
+let pendingSeek: { position: number; until: number } | null = null;
 let queue: UploadQueueTrack[] = [];
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let lastIndex: number | null = null;
@@ -186,6 +192,8 @@ export async function restoreLocalQueue(): Promise<boolean> {
   resumePositionMs = Math.max(0, snapshot.positionMs || 0);
   resumePending = true;
   lastIndex = index;
+  lastTrack = track;
+  notifyQueue();
   likedResolved = null;
   resolvedUri = null;
 
@@ -263,10 +271,47 @@ export function localQueueIndex(): number | null {
 /** Drop one track from the local queue, keeping the metadata in step. */
 export function removeLocalAt(index: number) {
   if (index < 0 || index >= queue.length) return;
-  const result = engineCommand({ cmd: "remove", index });
-  if (!result.ok) return;
+  if (!resumePending) {
+    const result = engineCommand({ cmd: "remove", index });
+    if (!result.ok) return;
+  }
+  const removingCurrent = index === lastIndex;
   queue = queue.filter((_, i) => i !== index);
+  if (queue.length === 0) {
+    stopLocalPlayback();
+    notifyQueue();
+    return;
+  }
   if (lastIndex !== null && index < lastIndex) lastIndex -= 1;
+  if (removingCurrent) {
+    lastIndex = Math.min(index, queue.length - 1);
+    likedResolved = null;
+    resolvedUri = null;
+    lastTrack = null;
+  }
+  if (resumePending) {
+    resumeIndex = lastIndex ?? 0;
+    if (removingCurrent) {
+      resumePositionMs = 0;
+      const track = queue[resumeIndex];
+      store.set(nowPlayingAtom, {
+        title: track.title,
+        artist: track.artist,
+        cover: track.albumArt ?? "",
+        duration: track.durationMs,
+        progress: 0,
+        isPlaying: false,
+        liked: track.liked ?? false,
+        uri: track.songUri ?? "",
+        album: track.album,
+      });
+      store.set(progressAtom, 0);
+      void resolveLikeState(track, resumeIndex);
+    }
+  }
+  notifyQueue();
+  advertiseQueue();
+  void saveQueueSnapshot();
   setTimeout(pollOnce, 150);
 }
 
@@ -294,6 +339,10 @@ function handleTransport(action: TransportAction, positionMs?: number) {
       engineCommand({ cmd: "previous" });
       break;
     case "seek":
+      pendingSeek = {
+        position: Math.max(0, Math.round(positionMs ?? 0)),
+        until: Date.now() + 2000,
+      };
       engineCommand({
         cmd: "seek",
         positionMs: Math.max(0, Math.round(positionMs ?? 0)),
@@ -463,6 +512,8 @@ function pollOnce() {
   if (resumePending) return;
   const status = engineCommand({ cmd: "status" });
   if (!status.ok) return;
+  // Metadata is already updated optimistically; wait for the native queue to catch up.
+  if (status.queueLen !== queue.length) return;
 
   if (status.state === "playing") sawPlaying = true;
   // Don't mistake the engine's startup lag for the queue having ended.
@@ -481,9 +532,12 @@ function pollOnce() {
   const track = queue[index];
   if (!track) return;
 
-  const trackChanged = index !== lastIndex;
+  const trackChanged = track !== lastTrack;
+  if (trackChanged) pendingSeek = null;
+  if (index !== lastIndex || trackChanged) notifyQueue();
+  lastTrack = track;
+  lastIndex = index;
   if (trackChanged) {
-    lastIndex = index;
     startedAt = Date.now();
     scrobbled = false;
     likedResolved = track.liked ?? null;
@@ -494,6 +548,15 @@ function pollOnce() {
   }
 
   const durationMs = track.durationMs || status.durationMs;
+  let positionMs = status.positionMs;
+  if (pendingSeek) {
+    if (
+      Date.now() < pendingSeek.until &&
+      Math.abs(positionMs - pendingSeek.position) > 1500
+    )
+      positionMs = pendingSeek.position;
+    else pendingSeek = null;
+  }
   // The engine keeps playing when the user looks at another device, but it
   // must not write the display then — that is the other source's to own.
   if (engineOwnsDisplay()) {
@@ -502,8 +565,11 @@ function pollOnce() {
       artist: track.artist,
       cover: track.albumArt ?? "",
       duration: durationMs,
-      progress: status.positionMs,
-      isPlaying: status.state === "playing",
+      progress: positionMs,
+      isPlaying:
+        Date.now() < store.get(playbackLockedUntilAtom)
+          ? (store.get(nowPlayingAtom)?.isPlaying ?? status.state === "playing")
+          : status.state === "playing",
       // Love state belongs to this queue track, never the previously displayed source.
       liked: likedResolved ?? track.liked ?? false,
       uri: track.songUri ?? resolvedUri ?? "",
@@ -514,7 +580,7 @@ function pollOnce() {
       repeat: status.repeat,
     });
     store.set(playerAtom, "local");
-    store.set(progressAtom, status.positionMs);
+    store.set(progressAtom, positionMs);
   }
 
   advertiseNowPlaying(trackChanged);
@@ -581,7 +647,11 @@ export async function playUploads(
   const result = engineCommand({ cmd: "open", paths, startIndex });
   if (!result.ok) return false;
   queue = tracks;
+  store.set(selectedSourceAtom, { kind: "local" });
   lastIndex = null;
+  lastTrack = null;
+  pendingSeek = null;
+  notifyQueue();
   startedAt = Date.now();
   scrobbled = false;
   openedAt = Date.now();
@@ -610,6 +680,7 @@ export async function queueUploadsNext(
   if (!result.ok) return false;
   const at = status.index + 1;
   queue = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
+  notifyQueue();
   return true;
 }
 
@@ -626,10 +697,18 @@ export async function queueUploadsLast(
   const result = engineCommand({ cmd: "append", paths });
   if (!result.ok) return false;
   queue = [...queue, ...tracks];
+  notifyQueue();
   return true;
 }
 
 export function skipToLocal(index: number) {
+  if (index < 0 || index >= queue.length) return;
+  if (resumePending) {
+    resumeIndex = index;
+    resumePositionMs = 0;
+    void resumeRestoredQueue();
+    return;
+  }
   engineCommand({ cmd: "skipTo", index });
   setTimeout(pollOnce, 150);
 }
@@ -637,6 +716,9 @@ export function skipToLocal(index: number) {
 export function stopLocalPlayback() {
   engineCommand({ cmd: "stop" });
   queue = [];
+  lastTrack = null;
+  pendingSeek = null;
+  notifyQueue();
   resumePending = false;
   void saveQueueSnapshot();
   deactivate();
