@@ -29,10 +29,14 @@ import { Text } from "./Text";
 
 export function PickerSheet({
   title,
+  artwork,
+  subtitle,
   onClose,
   children,
 }: {
   title: string;
+  artwork?: string | null;
+  subtitle?: string;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -50,7 +54,29 @@ export function PickerSheet({
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
         >
           <View style={styles.row}>
-            <Text style={styles.title}>{title}</Text>
+            {artwork !== undefined ? (
+              <>
+                <PlaylistCover picture={artwork} size={44} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontSize: 15, fontWeight: "700" }}
+                  >
+                    {title}
+                  </Text>
+                  {!!subtitle && (
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontSize: 13, color: colors.textMuted }}
+                    >
+                      {subtitle}
+                    </Text>
+                  )}
+                </View>
+              </>
+            ) : (
+              <Text style={styles.title}>{title}</Text>
+            )}
             <TouchableOpacity
               onPress={onClose}
               accessibilityLabel="Close"

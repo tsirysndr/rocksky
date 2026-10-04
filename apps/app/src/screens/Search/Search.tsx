@@ -441,6 +441,8 @@ export default function Search() {
       {menuTrack && token && (
         <PickerSheet
           title={menuTrack.track.title}
+          artwork={menuTrack.track.albumArt || null}
+          subtitle={menuTrack.track.artist}
           onClose={() => setMenuTrack(null)}
         >
           {[
