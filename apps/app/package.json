@@ -60,5 +60,8 @@
     "@types/react": "~19.0.10",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "patchedDependencies": {
+    "react-native-track-player@4.1.2": "patches/react-native-track-player@4.1.2.patch"
+  }
 }
