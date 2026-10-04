@@ -150,13 +150,11 @@ export function useRemoteDevicesConnection() {
       })
       .on("status", ({ deviceId, status }) => {
         if (!deviceId) return;
+        // "stopped" flashes between rockbox tracks — never drop the track on
+        // it (that flickers the device rows), just mark it not playing.
         setDevices((prev) => {
           const existing = prev[deviceId];
-          if (!existing) return prev;
-          if (status === "stopped") {
-            return { ...prev, [deviceId]: { ...existing, nowPlaying: null } };
-          }
-          if (!existing.nowPlaying) return prev;
+          if (!existing?.nowPlaying) return prev;
           return {
             ...prev,
             [deviceId]: {
