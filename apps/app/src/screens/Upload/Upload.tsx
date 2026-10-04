@@ -122,7 +122,9 @@ export default function Upload() {
                 <Text style={styles.heading}>
                   Uploads{ongoing ? ` · ${ongoing} ongoing` : ""}
                 </Text>
-                {jobs.some((job) => job.status === "done") && (
+                {jobs.some(
+                  (job) => job.status === "done" || job.status === "skipped",
+                ) && (
                   <TouchableOpacity onPress={clearCompletedUploads}>
                     <Text style={styles.link}>Clear completed</Text>
                   </TouchableOpacity>
@@ -148,9 +150,11 @@ export default function Upload() {
                   name={
                     item.status === "done"
                       ? "check-circle"
-                      : item.status === "error"
-                        ? "alert-circle"
-                        : "music"
+                      : item.status === "skipped"
+                        ? "skip-forward"
+                        : item.status === "error"
+                          ? "alert-circle"
+                          : "music"
                   }
                   size={22}
                   color={item.status === "error" ? colors.primary : colors.text}
@@ -166,10 +170,20 @@ export default function Upload() {
                           ? "Processing metadata…"
                           : item.status === "done"
                             ? (item.title ?? "Uploaded")
-                            : (item.error ?? "Upload failed")}
+                            : item.status === "skipped"
+                              ? `Skipped · ${item.error}`
+                              : `Upload failed · ${item.error ?? "Unknown error"}`}
                   </Text>
+                  {!!item.missingFields?.length && (
+                    <Text style={styles.description}>
+                      Missing or invalid fields: {item.missingFields.join(", ")}
+                    </Text>
+                  )}
+                  {!!item.hint && (
+                    <Text style={styles.description}>{item.hint}</Text>
+                  )}
                 </View>
-                {item.status === "error" && (
+                {item.status === "error" && item.retryable && (
                   <TouchableOpacity onPress={() => retryUpload(item.id)}>
                     <Text style={styles.link}>Retry</Text>
                   </TouchableOpacity>

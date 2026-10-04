@@ -2,13 +2,17 @@ import { atom, getDefaultStore } from "jotai";
 import { type PickedAudioFile, uploadTrack } from "../api/uploads";
 import { storage } from "../storage";
 import { queryClient } from "./queryClient";
+import { describeUploadError } from "./uploadError";
 export type UploadJob = {
   id: number;
   owner: string;
   file: PickedAudioFile;
-  status: "queued" | "uploading" | "processing" | "done" | "error";
+  status: "queued" | "uploading" | "processing" | "done" | "skipped" | "error";
   progress: number;
   error?: string;
+  missingFields?: string[];
+  hint?: string;
+  retryable?: boolean;
   title?: string;
 };
 export const uploadJobsAtom = atom<UploadJob[]>([]);
@@ -53,9 +57,13 @@ async function drain() {
           void queryClient.invalidateQueries({ queryKey: ["navidrome"] });
         }
       } catch (error) {
+        const failure = describeUploadError(error);
         update(job.id, {
-          status: "error",
-          error: error instanceof Error ? error.message : "Upload failed",
+          status: failure.skipped ? "skipped" : "error",
+          error: failure.message,
+          missingFields: failure.missingFields,
+          hint: failure.hint,
+          retryable: failure.retryable,
         });
       } finally {
         controller = null;
@@ -84,13 +92,25 @@ export function enqueueUploads(files: PickedAudioFile[]) {
 }
 export function retryUpload(id: number) {
   const job = store.get(uploadJobsAtom).find((item) => item.id === id);
-  if (!job || job.owner !== storage.getDid() || job.status !== "error") return;
-  update(id, { status: "queued", error: undefined });
+  if (
+    !job ||
+    job.owner !== storage.getDid() ||
+    job.status !== "error" ||
+    !job.retryable
+  )
+    return;
+  update(id, {
+    status: "queued",
+    error: undefined,
+    missingFields: undefined,
+    hint: undefined,
+    retryable: undefined,
+  });
   void drain();
 }
 export function clearCompletedUploads() {
   store.set(uploadJobsAtom, (jobs) =>
-    jobs.filter((job) => job.status !== "done"),
+    jobs.filter((job) => job.status !== "done" && job.status !== "skipped"),
   );
 }
 export function cancelUploadSession() {
