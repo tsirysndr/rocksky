@@ -28,7 +28,7 @@ async function main() {
     rgba: true, dpi: 72,
   }}).png().toBuffer();
   const title = await label('Rocksky', 'ExtraBold', 84, '#FFFFFF');
-  const subtitle = await label('La musique se partage.', 'Regular', 28, '#D4C7EA');
+  const subtitle = await label('Music is better together.', 'Regular', 28, '#D4C7EA');
   await sharp(Buffer.from(svg)).composite([
     { input: title, left: 420, top: 178 },
     { input: subtitle, left: 424, top: 285 },
