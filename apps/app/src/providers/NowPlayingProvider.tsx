@@ -15,6 +15,8 @@ import {
 } from "@/src/atoms/nowplaying";
 import { useNowPlaying } from "@/src/hooks/useNowPlaying";
 import { useRemoteDevicesConnection } from "@/src/hooks/useRemoteDevices";
+import { setupMediaSession, syncMediaSession } from "@/src/lib/mediaSession";
+import { remoteBridge } from "@/src/lib/remoteBridge";
 import { storage } from "@/src/storage";
 
 const NowPlayingContext = createContext<
@@ -68,11 +70,40 @@ function useActiveDeviceTrack() {
   return !!track;
 }
 
+// Keeps the module-level transport bridge and the Android media notification
+// in step with the shared now-playing state.
+function useMediaSessionSync(
+  nowPlaying: ReturnType<typeof useNowPlaying>["nowPlaying"],
+) {
+  const player = useAtomValue(playerAtom);
+  const activeDeviceId = useAtomValue(activeDeviceIdAtom);
+
+  useEffect(() => {
+    setupMediaSession();
+  }, []);
+
+  useEffect(() => {
+    remoteBridge.setRoute(player, activeDeviceId);
+  }, [player, activeDeviceId]);
+
+  const title = nowPlaying?.title;
+  const artist = nowPlaying?.artist;
+  const cover = nowPlaying?.cover;
+  const isPlaying = nowPlaying?.isPlaying ?? false;
+
+  useEffect(() => {
+    syncMediaSession(
+      title ? { title, artist: artist ?? "", cover, isPlaying } : null,
+    );
+  }, [title, artist, cover, isPlaying]);
+}
+
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const did = storage.getDid() || "";
   useRemoteDevicesConnection();
   const deviceTrackActive = useActiveDeviceTrack();
   const { nowPlaying, progress } = useNowPlaying(did, deviceTrackActive);
+  useMediaSessionSync(nowPlaying);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: consumers only re-render on track/playing/liked changes, not on every poll tick
   const memoizedNowPlaying = useMemo(

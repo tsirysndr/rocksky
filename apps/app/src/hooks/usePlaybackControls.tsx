@@ -1,4 +1,3 @@
-import axios from "axios";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback } from "react";
 import { activeDeviceIdAtom, remoteCommandsAtom } from "../atoms/devices";
@@ -8,16 +7,11 @@ import {
   playerAtom,
   progressAtom,
 } from "../atoms/nowplaying";
-import { API_URL } from "../consts";
-import { storage } from "../storage";
+import { remoteBridge } from "../lib/remoteBridge";
 import { useLikeMutation, useUnlikeMutation } from "./useLike";
 
-const authHeaders = () => ({
-  headers: { Authorization: `Bearer ${storage.getToken()}` },
-});
-
-// One place for transport controls: routes each action to the active remote
-// device (WebSocket command) or to the Spotify REST endpoints.
+// One place for transport controls: every action goes through the module
+// bridge, which routes to the active remote device or the Spotify REST API.
 export function usePlaybackControls() {
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const player = useAtomValue(playerAtom);
@@ -30,78 +24,32 @@ export function usePlaybackControls() {
 
   const target = activeDeviceId ?? undefined;
 
-  const lockPlayback = useCallback(() => {
-    const lockUntil = Date.now() + 1500;
-    setLockedUntil(lockUntil);
-  }, [setLockedUntil]);
-
-  const playPause = useCallback(async () => {
+  const playPause = useCallback(() => {
     if (!nowPlaying) {
       // Nothing shown yet but a device is selected: just ask it to play.
-      if (player !== "spotify" && commands)
-        commands.send("play", undefined, target);
+      if (player !== "spotify") remoteBridge.send("play");
       return;
     }
-    const wasPlaying = nowPlaying.isPlaying;
-    lockPlayback();
-    setNowPlaying((prev) =>
-      prev ? { ...prev, isPlaying: !prev.isPlaying } : null,
-    );
-    if (player === "spotify") {
-      try {
-        await axios.put(
-          `${API_URL}/spotify/${wasPlaying ? "pause" : "play"}`,
-          {},
-          authHeaders(),
-        );
-      } catch {
-        setNowPlaying((prev) =>
-          prev ? { ...prev, isPlaying: wasPlaying } : null,
-        );
-      }
-      return;
-    }
-    commands?.send(wasPlaying ? "pause" : "play", undefined, target);
-  }, [nowPlaying, player, commands, target, lockPlayback, setNowPlaying]);
+    remoteBridge.togglePlayPause();
+  }, [nowPlaying, player]);
 
-  const next = useCallback(async () => {
-    if (player === "spotify") {
-      try {
-        await axios.post(`${API_URL}/spotify/next`, {}, authHeaders());
-      } catch {}
-      return;
-    }
-    commands?.send("next", undefined, target);
-  }, [player, commands, target]);
+  const next = useCallback(() => {
+    remoteBridge.send("next");
+  }, []);
 
-  const previous = useCallback(async () => {
-    if (player === "spotify") {
-      try {
-        await axios.post(`${API_URL}/spotify/previous`, {}, authHeaders());
-      } catch {}
-      return;
-    }
-    commands?.send("previous", undefined, target);
-  }, [player, commands, target]);
+  const previous = useCallback(() => {
+    remoteBridge.send("previous");
+  }, []);
 
   const seek = useCallback(
     (positionMs: number) => {
       const position = Math.max(0, Math.round(positionMs));
+      setLockedUntil(Date.now() + 1500);
       setProgress(position);
       setNowPlaying((prev) => (prev ? { ...prev, progress: position } : null));
-      if (player === "spotify") {
-        axios
-          .put(
-            `${API_URL}/spotify/seek?position_ms=${position}`,
-            {},
-            authHeaders(),
-          )
-          .catch(() => {});
-        return;
-      }
-      commands?.send("seek", { position }, target);
+      remoteBridge.send("seek", position);
     },
-    [player, commands, target, setProgress, setNowPlaying],
+    [setLockedUntil, setProgress, setNowPlaying],
   );
 
   const setShuffle = useCallback(

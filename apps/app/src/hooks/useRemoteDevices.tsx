@@ -15,6 +15,7 @@ import {
   remoteCommandsAtom,
 } from "../atoms/devices";
 import { API_URL } from "../consts";
+import { remoteBridge } from "../lib/remoteBridge";
 import { storage } from "../storage";
 
 const WS_URL = `${API_URL.replace("https", "wss").replace("http", "ws")}/ws`;
@@ -189,6 +190,7 @@ export function useRemoteDevicesConnection() {
       });
 
     controller.connect();
+    remoteBridge.setController(controller);
 
     setCommands({
       send: (action, args, target) => {
@@ -202,6 +204,7 @@ export function useRemoteDevicesConnection() {
 
     return () => {
       setCommands(null);
+      remoteBridge.setController(null);
       controller.disconnect();
     };
   }, [setDevices, setActiveDeviceId, setCommands]);
