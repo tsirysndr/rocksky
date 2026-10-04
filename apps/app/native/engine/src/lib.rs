@@ -2,6 +2,8 @@
 //! dedicated thread (`Player` is `!Send`), driven by one JSON-over-JNI
 //! command entrypoint.
 
+mod audio;
+
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -10,11 +12,7 @@ use rockbox_playback::{Levels, PlaybackState, Player, PlayerConfig, RepeatMode, 
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
-#[serde(
-    tag = "cmd",
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase"
-)]
+#[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
     Open {
         paths: Vec<String>,
@@ -48,6 +46,9 @@ enum Request {
     },
     SetRepeat {
         mode: String,
+    },
+    SetAudioSettings {
+        settings: serde_json::Value,
     },
     Stop,
     Status,
@@ -107,6 +108,7 @@ enum EngineCmd {
     SetVolume(f32),
     SetShuffle(bool),
     SetRepeat(RepeatMode),
+    SetAudioSettings(serde_json::Value),
     Stop,
     GetSnapshot(Sender<Snapshot>),
 }
@@ -163,12 +165,14 @@ impl Engine {
                         return;
                     }
                 };
+                let mut audio = audio::AudioSettings::default();
+                let mut shuffle = false;
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
                         Ok(EngineCmd::GetSnapshot(reply)) => {
                             let _ = reply.send(snapshot_of(&player));
                         }
-                        Ok(cmd) => apply(&player, cmd),
+                        Ok(cmd) => apply(&player, cmd, &mut audio, &mut shuffle),
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
@@ -227,7 +231,7 @@ fn snapshot_of(player: &Player) -> Snapshot {
     }
 }
 
-fn apply(player: &Player, cmd: EngineCmd) {
+fn apply(player: &Player, cmd: EngineCmd, audio: &mut audio::AudioSettings, shuffle: &mut bool) {
     match cmd {
         EngineCmd::Open { paths, start_index } => {
             player.set_queue(paths.iter().map(String::as_str));
@@ -246,7 +250,15 @@ fn apply(player: &Player, cmd: EngineCmd) {
         EngineCmd::InsertNext(paths) => player.insert_tracks_next(paths.iter().map(String::as_str)),
         EngineCmd::Remove(index) => player.remove(index),
         EngineCmd::SetVolume(volume) => player.set_volume(volume.clamp(0.0, 1.0)),
-        EngineCmd::SetShuffle(enabled) => player.set_shuffle(enabled),
+        EngineCmd::SetShuffle(enabled) => {
+            *shuffle = enabled;
+            player.set_shuffle(enabled);
+            audio.apply(player, enabled);
+        }
+        EngineCmd::SetAudioSettings(settings) => {
+            audio.merge(settings);
+            audio.apply(player, *shuffle);
+        }
         EngineCmd::SetRepeat(mode) => player.set_repeat(mode),
         EngineCmd::Stop => {
             player.pause();
@@ -365,6 +377,10 @@ pub fn handle(input: &str) -> String {
         }
         Request::SetRepeat { mode } => {
             engine.send(EngineCmd::SetRepeat(parse_repeat(&mode)));
+            ok()
+        }
+        Request::SetAudioSettings { settings } => {
+            engine.send(EngineCmd::SetAudioSettings(settings));
             ok()
         }
         Request::Stop => {

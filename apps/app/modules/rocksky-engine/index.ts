@@ -1,3 +1,4 @@
+import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { requireOptionalNativeModule } from "expo";
 
 type RockskyEngineNativeModule = {
@@ -37,6 +38,7 @@ export type EngineCommand =
   | { cmd: "setVolume"; volume: number }
   | { cmd: "setShuffle"; enabled: boolean }
   | { cmd: "setRepeat"; mode: EngineRepeat }
+  | { cmd: "setAudioSettings"; settings: RemoteAudioSettings }
   | { cmd: "stop" }
   | { cmd: "status" };
 

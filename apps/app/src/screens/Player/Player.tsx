@@ -38,6 +38,7 @@ import { colors } from "@/src/theme";
 
 /** One row of the play queue, whichever source it came from. */
 type QueueRow = {
+  index: number;
   key: string;
   title: string;
   artist: string;
@@ -76,6 +77,7 @@ export default function Player() {
 
   const [scrubbing, setScrubbing] = useState(false);
   const [scrubValue, setScrubValue] = useState(0);
+  const [queueTab, setQueueTab] = useState<"history" | "upNext">("upNext");
   const [queueOpen, setQueueOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [audioSettingsOpen, setAudioSettingsOpen] = useState(false);
@@ -87,7 +89,7 @@ export default function Player() {
   } = usePlaybackSource();
 
   const isSpotify = player === "spotify";
-  const isLocal = player === "local";
+  const isLocal = currentSource?.kind === "local";
   const activeDevice =
     !isSpotify && !isLocal && activeDeviceId
       ? devices[activeDeviceId]
@@ -99,12 +101,14 @@ export default function Player() {
   // the engine's poll writes progressAtom every tick, which re-renders this.
   const queueRows: QueueRow[] = isLocal
     ? localQueue().map((track, index) => ({
+        index,
         key: `${track.uploadId}-${index}`,
         title: track.title,
         artist: track.artist,
         albumArt: track.albumArt ?? undefined,
       }))
     : (activeDevice?.queue ?? []).map((item, index) => ({
+        index,
         key: `${item.trackId ?? item.uploadId ?? item.title}-${index}`,
         title: item.title,
         artist: item.artist,
@@ -113,10 +117,59 @@ export default function Player() {
   const queueCurrentIndex = isLocal
     ? (localQueueIndex() ?? 0)
     : (activeDevice?.queueIndex ?? 0);
+  const historyRows = queueRows.filter((row) => row.index < queueCurrentIndex);
+  const upcomingRows = queueRows.filter((row) => row.index > queueCurrentIndex);
+  const currentQueueRow = queueRows.find(
+    (row) => row.index === queueCurrentIndex,
+  );
   const jumpTo = (index: number) =>
     isLocal ? skipToLocal(index) : queueJump(index);
   const removeFrom = (index: number) =>
     isLocal ? removeLocalAt(index) : queueRemove(index);
+
+  const renderQueueRow = (item: QueueRow) => {
+    const index = item.index;
+    const isCurrent = index === queueCurrentIndex;
+    return (
+      <TouchableOpacity style={styles.queueRow} onPress={() => jumpTo(index)}>
+        <Text style={styles.queueIndex}>{index + 1}</Text>
+        {item.albumArt ? (
+          <Image
+            source={item.albumArt}
+            style={styles.queueArt}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.queueArt, styles.artPlaceholder]}>
+            <Text style={{ fontSize: 16, opacity: 0.2 }}>♪</Text>
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text
+            numberOfLines={1}
+            style={[styles.queueTitle, isCurrent && { color: colors.primary }]}
+          >
+            {item.title}
+          </Text>
+          <Text numberOfLines={1} style={styles.queueArtist}>
+            {item.artist}
+          </Text>
+        </View>
+        {!isCurrent && (
+          <TouchableOpacity
+            accessibilityLabel={`Remove ${item.title} from queue`}
+            onPress={(event) => {
+              event.stopPropagation();
+              removeFrom(index);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="x" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const duration = nowPlaying?.duration ?? 0;
   const position = scrubbing ? scrubValue : Math.min(progress, duration);
@@ -411,58 +464,65 @@ export default function Player() {
                 <Text style={styles.emptyLabel}>Queue is empty</Text>
               </View>
             ) : (
-              <FlatList
-                data={queueRows}
-                keyExtractor={(item) => item.key}
-                renderItem={({ item, index }) => {
-                  const isCurrent = index === queueCurrentIndex;
-                  return (
+              <>
+                {currentQueueRow && (
+                  <View>
+                    <Text style={styles.queueSectionTitle}>Now Playing</Text>
+                    {renderQueueRow(currentQueueRow)}
+                  </View>
+                )}
+                <View style={styles.queueTabs} accessibilityRole="tablist">
+                  {(
+                    [
+                      {
+                        key: "upNext",
+                        label: "Up Next",
+                        count: upcomingRows.length,
+                      },
+                      {
+                        key: "history",
+                        label: "History",
+                        count: historyRows.length,
+                      },
+                    ] as const
+                  ).map((tab) => (
                     <TouchableOpacity
-                      style={styles.queueRow}
-                      onPress={() => jumpTo(index)}
+                      key={tab.key}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: queueTab === tab.key }}
+                      onPress={() => setQueueTab(tab.key)}
+                      style={[
+                        styles.queueTab,
+                        queueTab === tab.key && styles.queueTabActive,
+                      ]}
                     >
-                      <Text style={styles.queueIndex}>{index + 1}</Text>
-                      {item.albumArt ? (
-                        <Image
-                          source={item.albumArt}
-                          style={styles.queueArt}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <View style={[styles.queueArt, styles.artPlaceholder]}>
-                          <Text style={{ fontSize: 16, opacity: 0.2 }}>♪</Text>
-                        </View>
-                      )}
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.queueTitle,
-                            isCurrent && { color: colors.primary },
-                          ]}
-                        >
-                          {item.title}
-                        </Text>
-                        <Text numberOfLines={1} style={styles.queueArtist}>
-                          {item.artist}
-                        </Text>
-                      </View>
-                      {!isCurrent && (
-                        <TouchableOpacity
-                          onPress={() => removeFrom(index)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Feather
-                            name="x"
-                            size={18}
-                            color={colors.textMuted}
-                          />
-                        </TouchableOpacity>
-                      )}
+                      <Text
+                        style={{
+                          color:
+                            queueTab === tab.key
+                              ? colors.primary
+                              : colors.textMuted,
+                        }}
+                      >
+                        {tab.label} ({tab.count})
+                      </Text>
                     </TouchableOpacity>
-                  );
-                }}
-              />
+                  ))}
+                </View>
+                <FlatList
+                  key={queueTab}
+                  data={queueTab === "history" ? historyRows : upcomingRows}
+                  keyExtractor={(item) => item.key}
+                  renderItem={({ item }) => renderQueueRow(item)}
+                  ListEmptyComponent={
+                    <Text style={styles.queueSectionEmpty}>
+                      {queueTab === "history"
+                        ? "No previous tracks"
+                        : "No tracks up next"}
+                    </Text>
+                  }
+                />
+              </>
             )}
           </Pressable>
         </Pressable>
@@ -659,6 +719,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     fontVariant: ["tabular-nums"],
+  },
+  queueTabs: { flexDirection: "row", marginHorizontal: 20, marginVertical: 12 },
+  queueTab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  queueTabActive: { borderBottomColor: colors.primary },
+  queueSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.text,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
+  queueSectionEmpty: {
+    color: colors.textMuted,
+    fontSize: 13,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   queueEmpty: {
     flex: 1,

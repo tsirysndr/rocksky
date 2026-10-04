@@ -58,6 +58,7 @@ export type UploadQueueTrack = {
    * the love state and the like button are keyed on.
    */
   mbId?: string;
+  liked?: boolean;
   /** Subsonic song id, when the track came from navidrome. Its like state is
    *  star/unstar on that id, since there is no AT-URI to address. */
   navidromeId?: string;
@@ -87,6 +88,7 @@ let sawPlaying = false;
 let likedResolved: boolean | null = null;
 let resolvedUri: string | null = null;
 let likeSeq = 0;
+let nextLikeRefreshAt = 0;
 // Navidrome credentials, published by useNavidromeCredentials: star/unstar is
 // the only like path for a navidrome song, and this module is outside React.
 let navidromeCreds: NavidromeCredentials | null = null;
@@ -95,7 +97,13 @@ let navidromeCreds: NavidromeCredentials | null = null;
 const STARRED_IDS_KEY = ["navidrome", "starred-ids"] as const;
 
 export function setEngineNavidromeCredentials(creds: NavidromeCredentials) {
+  const changed =
+    navidromeCreds?.handle !== creds.handle ||
+    navidromeCreds?.apiKey !== creds.apiKey;
   navidromeCreds = creds;
+  if (changed && lastIndex !== null && queue[lastIndex]) {
+    void resolveLikeState(queue[lastIndex], lastIndex);
+  }
 }
 
 // ─── Queue persistence ───────────────────────────────────────────────────────
@@ -192,7 +200,7 @@ export async function restoreLocalQueue(): Promise<boolean> {
       duration: track.durationMs,
       progress: resumePositionMs,
       isPlaying: false,
-      liked: false,
+      liked: track.liked ?? false,
       uri: track.songUri ?? "",
       album: track.album,
       artistUri: track.artistUri ?? undefined,
@@ -325,6 +333,7 @@ function maybeScrobble(track: UploadQueueTrack, status: EngineStatus) {
  */
 async function resolveLikeState(track: UploadQueueTrack, index: number) {
   const seq = ++likeSeq;
+  nextLikeRefreshAt = Date.now() + 60_000;
   let liked: boolean | null = null;
   let uri: string | null = null;
 
@@ -335,7 +344,7 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
     // does not need refetching for each one.
     try {
       const starred = await queryClient.fetchQuery({
-        queryKey: STARRED_IDS_KEY,
+        queryKey: [...STARRED_IDS_KEY, navidromeCreds.handle],
         queryFn: () =>
           fetchStarredSongIds(navidromeCreds as NavidromeCredentials),
         staleTime: 60 * 1000,
@@ -348,10 +357,10 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
     : track.mbId
       ? { mbid: track.mbId }
       : null;
-  if (liked === null && params) {
+  if (liked !== true && params) {
     const state = await queryClient
       .fetchQuery({
-        queryKey: ["song", "like-state", params],
+        queryKey: ["song", "like-state", storage.getDid(), params],
         queryFn: () => getSongLikeState(params),
         staleTime: 5 * 60 * 1000,
       })
@@ -362,15 +371,32 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
     }
   }
 
+  if (liked === null) nextLikeRefreshAt = Date.now() + 5000;
+
   // A later track (or a later lookup for this one) has taken over since.
-  if (liked === null || seq !== likeSeq || lastIndex !== index) return;
+  if (
+    liked === null ||
+    seq !== likeSeq ||
+    queue[index] !== track ||
+    lastIndex !== index
+  )
+    return;
   likedResolved = liked;
   resolvedUri = uri;
+  track.liked = liked;
   const resolved = liked;
+  if (!engineOwnsDisplay()) return;
   store.set(nowPlayingAtom, (prev) =>
     prev ? { ...prev, liked: resolved, uri: prev.uri || uri || "" } : prev,
   );
   advertiseNowPlaying(true);
+}
+
+/** Refresh after a like from another surface, such as a story. */
+export function refreshLocalLikeState() {
+  if (lastIndex !== null && queue[lastIndex]) {
+    void resolveLikeState(queue[lastIndex], lastIndex);
+  }
 }
 
 /**
@@ -383,13 +409,18 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
  */
 export async function toggleLocalLike(): Promise<boolean> {
   const index = lastIndex;
-  const track = index !== null ? queue[index] : undefined;
+  if (index === null) return false;
+  const track = queue[index];
   if (!track) return false;
 
+  ++likeSeq; // A lookup started before this tap must not undo it.
   const current = store.get(nowPlayingAtom)?.liked ?? false;
   const next = !current;
   const apply = (value: boolean) => {
+    track.liked = value;
+    if (queue[index] !== track || lastIndex !== index) return;
     likedResolved = value;
+    if (!engineOwnsDisplay()) return;
     store.set(nowPlayingAtom, (prev) =>
       prev ? { ...prev, liked: value } : prev,
     );
@@ -455,36 +486,33 @@ function pollOnce() {
     lastIndex = index;
     startedAt = Date.now();
     scrobbled = false;
-    likedResolved = null;
+    likedResolved = track.liked ?? null;
     resolvedUri = null;
     resolveLikeState(track, index);
+  } else if (Date.now() >= nextLikeRefreshAt) {
+    void resolveLikeState(track, index);
   }
 
   const durationMs = track.durationMs || status.durationMs;
   // The engine keeps playing when the user looks at another device, but it
   // must not write the display then — that is the other source's to own.
   if (engineOwnsDisplay()) {
-    store.set(nowPlayingAtom, (prev) => ({
+    store.set(nowPlayingAtom, {
       title: track.title,
       artist: track.artist,
       cover: track.albumArt ?? "",
       duration: durationMs,
       progress: status.positionMs,
       isPlaying: status.state === "playing",
-      // Within one track the atom is authoritative, so the server's answer and
-      // the user's own tap both survive the next tick. Keying this on the uri
-      // instead meant a track with no AT-URI — every navidrome one — had its
-      // love state wiped twice a second.
-      liked: trackChanged
-        ? (likedResolved ?? false)
-        : (prev?.liked ?? likedResolved ?? false),
+      // Love state belongs to this queue track, never the previously displayed source.
+      liked: likedResolved ?? track.liked ?? false,
       uri: track.songUri ?? resolvedUri ?? "",
       album: track.album,
       artistUri: track.artistUri ?? undefined,
       albumUri: track.albumUri ?? undefined,
       shuffle: status.shuffle,
       repeat: status.repeat,
-    }));
+    });
     store.set(playerAtom, "local");
     store.set(progressAtom, status.positionMs);
   }
@@ -753,9 +781,7 @@ function shuffleTracks(tracks: UploadQueueTrack[]): UploadQueueTrack[] {
  * Connected for as long as the user is signed in, not only while playing, so
  * another client can enqueue to an idle phone and have it start.
  *
- * queueMove and setAudioSettings are deliberately not registered: the engine
- * has no move command and no DSP settings, and leaving a handler out is how the
- * protocol says a player declines a capability.
+ * queueMove is not registered because the engine has no move command.
  */
 export function startLocalRemotePlayer() {
   if (remotePlayer || !isEngineAvailable() || !storage.getToken()) return;
@@ -771,6 +797,9 @@ export function startLocalRemotePlayer() {
     .on("seek", (positionMs) => handleTransport("seek", positionMs))
     .on("enqueue", (cmd) => {
       handleRemoteEnqueue(cmd);
+    })
+    .on("setAudioSettings", (settings) => {
+      engineCommand({ cmd: "setAudioSettings", settings });
     })
     .on("queueJump", (index) => skipToLocal(index))
     .on("queueRemove", (index) => removeLocalAt(index))

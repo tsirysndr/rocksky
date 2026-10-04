@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
+import { engineCommand, isEngineAvailable } from "../../modules/rocksky-engine";
 import {
   type AudioSettings,
   type AudioSettingsPatch,
@@ -91,7 +92,16 @@ export const useAudioSettingsQuery = (enabled = true) => {
  * than waiting for the settings sheet to open.
  */
 export const useAudioSettingsAutoLoad = () => {
-  useAudioSettingsQuery(true);
+  const { data } = useAudioSettingsQuery(true);
+  useEffect(() => {
+    if (!data || !isEngineAvailable()) return;
+    const result = engineCommand({
+      cmd: "setAudioSettings",
+      settings: toRemoteAudioSettings(withDefaults(data)),
+    });
+    if (!result.ok)
+      console.warn("Could not apply audio settings:", result.error);
+  }, [data]);
 };
 
 const mergePatch = (
@@ -162,8 +172,9 @@ export const useAudioSettingsMutation = () => {
       // of those answer 200 with `{ createdAt }`, and taking that literally is
       // what reset every slider the moment it was released.
       if (hasNoSettings(saved)) return;
-      queryClient.setQueryData<AudioSettings>(QUERY_KEY, saved);
-      void saveLocalAudioSettings(saved);
+      const latest = mergePatch(saved, pending.current);
+      queryClient.setQueryData<AudioSettings>(QUERY_KEY, latest);
+      void saveLocalAudioSettings(latest);
     },
     // Deliberately no invalidate on error: the optimistic value is the user's
     // intent, and a refetch would answer with the unchanged record (or nothing)

@@ -113,7 +113,7 @@ export function usePlaybackSource() {
    * sections it implements and ignores the rest (§6.1) — so a registered player
    * always counts. Spotify is not one: playback happens in Spotify's own client,
    * which exposes no DSP, so there is nothing to send and the button is off.
-   * This Device counts because its settings are stored and kept.
+   * This Device applies these settings through the native DSP bridge.
    */
   const supportsAudioSettings =
     current?.kind === "device" || current?.kind === "local";

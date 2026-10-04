@@ -1,3 +1,4 @@
+import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
@@ -11,6 +12,7 @@ import {
   useState,
 } from "react";
 import {
+  Alert,
   Animated,
   PanResponder,
   TouchableOpacity,
@@ -20,6 +22,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/src/components/Text";
 import UserAvatar from "@/src/components/UserAvatar";
+import { useStoryLike } from "@/src/hooks/useStoryLike";
+import { storage } from "@/src/storage";
 import { colors } from "@/src/theme";
 import type { Story as StoryItem } from "@/src/types/feed";
 
@@ -52,6 +56,7 @@ const Story: FC<StoryProps> = ({
   const progress = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const current = stories[index];
+  const { liked, pending, toggle } = useStoryLike(current);
   const artSize = Math.min(layout.width * 0.8, 380);
 
   const startProgress = useCallback(() => {
@@ -275,21 +280,57 @@ const Story: FC<StoryProps> = ({
             alignItems: "center",
           }}
         >
-          <TouchableOpacity
-            onPress={() => current.trackUri && onPressTrack(current.trackUri)}
-          >
-            <Text
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ width: 44 }} />
+            <TouchableOpacity
+              style={{ flexShrink: 1 }}
+              onPress={() => current.trackUri && onPressTrack(current.trackUri)}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 20,
+                  fontWeight: "700",
+                  textAlign: "center",
+                  marginBottom: 4,
+                }}
+              >
+                {current.title}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={liked ? "Unlike track" : "Like track"}
+              accessibilityState={{
+                selected: liked,
+                disabled: pending || !current.trackUri,
+              }}
+              disabled={pending || !current.trackUri}
+              onPress={() => {
+                if (!storage.getToken()) {
+                  Alert.alert(
+                    "Sign in to like tracks",
+                    "Sign in from your profile to save this track.",
+                  );
+                  return;
+                }
+                toggle();
+              }}
               style={{
-                color: "#fff",
-                fontSize: 20,
-                fontWeight: "700",
-                textAlign: "center",
-                marginBottom: 4,
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pending ? 0.6 : 1,
               }}
             >
-              {current.title}
-            </Text>
-          </TouchableOpacity>
+              <MaterialIcons
+                name={liked ? "heart" : "heart-outline"}
+                size={26}
+                color={liked ? colors.primary : "#fff"}
+              />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             onPress={() =>
               current.artistUri && onPressArtist(current.artistUri)

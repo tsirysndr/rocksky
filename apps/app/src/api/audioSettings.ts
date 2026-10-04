@@ -242,6 +242,15 @@ export const toRemoteAudioSettings = (
           ...(patch.tone.treble !== undefined
             ? { treble: patch.tone.treble }
             : {}),
+          ...(patch.tone.channels !== undefined
+            ? {
+                channels:
+                  patch.tone.channels === "wide"
+                    ? "custom"
+                    : patch.tone.channels,
+                stereoWidth: patch.tone.channels === "wide" ? 150 : 100,
+              }
+            : {}),
           ...(patch.tone.balance !== undefined
             ? { balance: patch.tone.balance }
             : {}),

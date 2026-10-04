@@ -1,5 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback } from "react";
+import { engineCommand } from "../../modules/rocksky-engine";
+import type { SongLikeState } from "../api/likes";
 import { activeDeviceIdAtom, remoteCommandsAtom } from "../atoms/devices";
 import {
   nowPlayingAtom,
@@ -9,11 +12,13 @@ import {
 } from "../atoms/nowplaying";
 import { remoteBridge } from "../lib/remoteBridge";
 import { toggleLocalLike } from "../lib/uploadEngine";
+import { storage } from "../storage";
 import { useLikeMutation, useUnlikeMutation } from "./useLike";
 
 // One place for transport controls: every action goes through the module
 // bridge, which routes to the active remote device or the Spotify REST API.
 export function usePlaybackControls() {
+  const queryClient = useQueryClient();
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const player = useAtomValue(playerAtom);
   const commands = useAtomValue(remoteCommandsAtom);
@@ -56,17 +61,19 @@ export function usePlaybackControls() {
   const setShuffle = useCallback(
     (enabled: boolean) => {
       setNowPlaying((prev) => (prev ? { ...prev, shuffle: enabled } : null));
-      commands?.send("shuffle", { enabled }, target);
+      if (player === "local") engineCommand({ cmd: "setShuffle", enabled });
+      else commands?.send("shuffle", { enabled }, target);
     },
-    [commands, target, setNowPlaying],
+    [commands, target, setNowPlaying, player],
   );
 
   const setRepeat = useCallback(
     (mode: "off" | "one" | "all") => {
       setNowPlaying((prev) => (prev ? { ...prev, repeat: mode } : null));
-      commands?.send("repeat", { mode }, target);
+      if (player === "local") engineCommand({ cmd: "setRepeat", mode });
+      else commands?.send("repeat", { mode }, target);
     },
-    [commands, target, setNowPlaying],
+    [commands, target, setNowPlaying, player],
   );
 
   const queueJump = useCallback(
@@ -93,9 +100,29 @@ export function usePlaybackControls() {
     if (!nowPlaying?.uri) return;
     const liked = nowPlaying.liked;
     setNowPlaying((prev) => (prev ? { ...prev, liked: !liked } : null));
-    if (liked) unlikeTrack(nowPlaying.uri);
-    else likeTrack(nowPlaying.uri);
-  }, [nowPlaying, player, setNowPlaying, likeTrack, unlikeTrack]);
+    const uri = nowPlaying.uri;
+    const key = ["song", "like-state", storage.getDid(), { uri }];
+    void queryClient.cancelQueries({ queryKey: key });
+    queryClient.setQueryData<SongLikeState>(key, { uri, liked: !liked });
+    const options = {
+      onError: () => {
+        queryClient.setQueryData<SongLikeState>(key, { uri, liked });
+        setNowPlaying((prev) =>
+          prev?.uri === uri ? { ...prev, liked } : prev,
+        );
+      },
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: ["navidrome", "starred-ids"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["navidrome", "favorites"],
+        });
+      },
+    };
+    if (liked) unlikeTrack(uri, options);
+    else likeTrack(uri, options);
+  }, [nowPlaying, player, setNowPlaying, likeTrack, unlikeTrack, queryClient]);
 
   return {
     playPause,

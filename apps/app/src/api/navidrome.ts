@@ -38,6 +38,7 @@ export type NavidromeSong = {
   /** Present when the track was tagged with one; the only id that ties a
    * navidrome song back to its Rocksky record, which has no Subsonic field. */
   musicBrainzId?: string;
+  starred?: string;
 };
 
 export type NavidromeAlbum = {

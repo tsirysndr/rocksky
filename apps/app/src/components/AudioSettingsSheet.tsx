@@ -20,19 +20,19 @@ import type {
 import { EQ_BANDS_HZ, EQ_Q } from "../api/audioSettings";
 import type { EqualizerPreset } from "../api/equalizerPresets";
 import {
+  useAudioSettingsMutation,
+  useAudioSettingsQuery,
+} from "../hooks/useAudioSettings";
+import {
   useDeleteEqualizerPresetMutation,
   useEqualizerPresetsQuery,
   useSaveEqualizerPresetMutation,
 } from "../hooks/useEqualizerPresets";
-import {
-  useAudioSettingsMutation,
-  useAudioSettingsQuery,
-} from "../hooks/useAudioSettings";
 import { usePlaybackSource } from "../hooks/usePlaybackSource";
 import { colors } from "../theme";
 import EqBandSlider from "./EqBandSlider";
-import ValueStepper from "./ValueStepper";
 import { Text } from "./Text";
+import ValueStepper from "./ValueStepper";
 
 type Props = { visible: boolean; onClose: () => void };
 
@@ -425,6 +425,12 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             </View>
 
             <SectionHeader title="CROSSFADE" />
+            {current?.kind === "local" && cf.mode === "albumChange" && (
+              <Text style={styles.hint}>
+                On this device, Album change fades on every automatic track
+                transition.
+              </Text>
+            )}
             <Segmented
               options={CROSSFADE_MODES}
               value={cf.mode ?? "disabled"}
@@ -500,13 +506,11 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               />
             </Row>
 
-            {/* Says plainly where a change lands: a remote player gets it over
-                the wire at once, while this phone's own engine has no DSP yet
-                and only keeps the settings. */}
+            {/* Settings are persisted and applied to the selected player. */}
             <Text style={styles.footnote}>
               {current?.kind === "device"
                 ? `Saved to your account and sent to ${sourceLabel}.`
-                : "Saved to your account. Players with DSP support apply these; this device has no DSP yet."}
+                : "Saved to your account and applied on this device."}
             </Text>
           </ScrollView>
         )}

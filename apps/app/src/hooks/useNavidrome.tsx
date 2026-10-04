@@ -4,7 +4,7 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   coverArtUrlOf,
   dedupeById,
@@ -39,7 +39,7 @@ const GC_TIME = 30 * 60 * 1000;
 export const useNavidromeCredentials = () => {
   const profile = useAtomValue(profileAtom);
   const handle = profile?.handle;
-  return useQuery<NavidromeCredentials>({
+  const query = useQuery<NavidromeCredentials>({
     queryKey: ["navidrome", "credentials", handle],
     enabled: !!handle,
     staleTime: Number.POSITIVE_INFINITY,
@@ -51,10 +51,13 @@ export const useNavidromeCredentials = () => {
       };
       // The playback engine lives outside React but needs these to build
       // stream URLs for a restored queue and to star/unstar what it plays.
-      setEngineNavidromeCredentials(creds);
       return creds;
     },
   });
+  useEffect(() => {
+    if (query.data) setEngineNavidromeCredentials(query.data);
+  }, [query.data]);
+  return query;
 };
 
 /** A navidrome song as the local playback engine wants it. */
@@ -77,6 +80,7 @@ export const songToQueueTrack = (
   sha256: "",
   mbId: song.musicBrainzId,
   navidromeId: song.id,
+  liked: song.starred ? true : undefined,
   streamUrl: navidromeStreamUrl(song.id, creds),
 });
 

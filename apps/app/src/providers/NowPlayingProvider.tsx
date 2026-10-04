@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
 } from "react";
+import { authTokenAtom } from "@/src/atoms/auth";
 import {
   activeDeviceIdAtom,
   devicesAtom,
@@ -18,9 +19,10 @@ import {
   playerAtom,
   progressAtom,
 } from "@/src/atoms/nowplaying";
-import { authTokenAtom } from "@/src/atoms/auth";
 import { useAudioSettingsAutoLoad } from "@/src/hooks/useAudioSettings";
+import { useNavidromeCredentials } from "@/src/hooks/useNavidrome";
 import { useNowPlaying } from "@/src/hooks/useNowPlaying";
+import { useNowPlayingLike } from "@/src/hooks/useNowPlayingLike";
 import { useRemoteDevicesConnection } from "@/src/hooks/useRemoteDevices";
 import {
   setupMediaSession,
@@ -85,7 +87,9 @@ function useActiveDeviceTrack() {
       duration: track.duration,
       progress: track.elapsed,
       isPlaying: locked && prev ? prev.isPlaying : track.isPlaying,
-      liked: track.liked ?? prev?.liked ?? false,
+      liked:
+        track.liked ??
+        (prev?.uri && prev.uri === track.songUri ? prev.liked : false),
       uri: track.songUri ?? "",
       album: track.album,
       artistUri: track.artistUri,
@@ -185,6 +189,8 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const did = storage.getDid() || "";
   useRemoteDevicesConnection();
   useLocalPlayerBroadcast();
+  useNavidromeCredentials();
+  useNowPlayingLike();
   // Pull the audio settings record as soon as there is a session, like web:
   // waiting for the settings sheet would show defaults for a moment first.
   useAudioSettingsAutoLoad();

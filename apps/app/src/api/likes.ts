@@ -56,7 +56,8 @@ export const getSongLikeState = async (
       },
     );
     const song = response.data;
-    if (!song || typeof song !== "object") return null;
+    if (!song || typeof song !== "object" || typeof song.liked !== "boolean")
+      return null;
     return { uri: song.uri ?? null, liked: song.liked === true };
   } catch {
     return null;

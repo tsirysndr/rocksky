@@ -49,6 +49,8 @@ export type FeedGenerator = {
 };
 
 export type Story = {
+  liked?: boolean;
+  likesCount?: number;
   id: string;
   title: string;
   artist: string;
