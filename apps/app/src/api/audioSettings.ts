@@ -162,12 +162,13 @@ export const putAudioSettings = async (
 // local copy means the sheet opens on the settings the user left — and that
 // This Device keeps them — before (or without) a round-trip.
 
-const LOCAL_KEY = "audio-settings";
+// Keyed by DID, so two accounts on one phone can't inherit each other's EQ.
+const localKey = () => `audio-settings:${storage.getDid() ?? "anon"}`;
 
 export const loadLocalAudioSettings =
   async (): Promise<AudioSettings | null> => {
     try {
-      const raw = await AsyncStorage.getItem(LOCAL_KEY);
+      const raw = await AsyncStorage.getItem(localKey());
       return raw ? (JSON.parse(raw) as AudioSettings) : null;
     } catch {
       return null;
@@ -178,7 +179,7 @@ export const saveLocalAudioSettings = async (
   settings: AudioSettings,
 ): Promise<void> => {
   try {
-    await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(settings));
+    await AsyncStorage.setItem(localKey(), JSON.stringify(settings));
   } catch {}
 };
 

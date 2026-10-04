@@ -52,8 +52,14 @@ export const useAudioSettingsQuery = (enabled = true) => {
     queryKey: QUERY_KEY,
     queryFn: getAudioSettings,
     enabled: active,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    // Hydrated once per session, as web hydrates once per did. A later refetch
+    // resolving mid-gesture would answer with the pre-edit record and snap the
+    // control the user is still holding back to its old value; after load, the
+    // cache is updated by the writes themselves and by the server's echo.
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   // Keep the local copy in step, so This Device still has these next launch.
