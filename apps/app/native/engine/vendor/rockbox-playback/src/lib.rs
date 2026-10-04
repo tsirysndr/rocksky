@@ -1798,8 +1798,22 @@ struct EngineConfig {
     resume_save_interval: Duration,
 }
 
-fn preload_due(position_ms: u64, duration_ms: u64) -> bool {
-    duration_ms > 0 && position_ms >= duration_ms.div_ceil(2)
+fn preload_due(position_ms: u64, duration_ms: u64, urgent: bool) -> bool {
+    urgent || (duration_ms > 0 && position_ms >= duration_ms.div_ceil(2))
+}
+
+#[cfg(feature = "http")]
+struct PreloadJob {
+    url: String,
+    receiver: Receiver<Option<source::HttpSource>>,
+    cancelled: Arc<AtomicBool>,
+}
+
+#[cfg(feature = "http")]
+impl Drop for PreloadJob {
+    fn drop(&mut self) {
+        self.cancelled.store(true, Ordering::Relaxed);
+    }
 }
 
 struct Engine {
@@ -1862,7 +1876,9 @@ struct Engine {
     /// track is reset. Boxed as `Any` so the field needn't be `cfg`-gated.
     current_source: Option<Box<dyn std::any::Any + Send>>,
     #[cfg(feature = "http")]
-    preload: Option<(String, Receiver<Option<source::HttpSource>>)>,
+    preload: Option<PreloadJob>,
+    #[cfg(feature = "http")]
+    urgent_preload: Option<String>,
     #[cfg(feature = "http")]
     preloaded: Option<(String, source::HttpSource)>,
     #[cfg(feature = "http")]
@@ -1918,6 +1934,8 @@ impl Engine {
             current_source: None,
             #[cfg(feature = "http")]
             preload: None,
+            #[cfg(feature = "http")]
+            urgent_preload: None,
             #[cfg(feature = "http")]
             preloaded: None,
             #[cfg(feature = "http")]
@@ -2498,13 +2516,23 @@ impl Engine {
 
     // ---- queue / decoder helpers ----------------------------------------
 
-    // Only HTTP bytes are prepared in the worker. Codec and DSP state stay
-    // on the engine thread. One worker and one disk cache bound resource use.
+    // Only HTTP bytes are prepared in workers; codec/DSP remain on this thread.
     #[cfg(feature = "http")]
     fn preload_next(&mut self) {
         self.collect_preload();
-        let target = self.next_index(true).and_then(|i| self.queue.get(i))
-            .map(|p| p.to_string_lossy().into_owned());
+        // An explicit Play next request stays urgent while that entry remains
+        // directly after the current track, even while paused or below 50%.
+        if self.queue.get(self.index + 1).map(|p| p.to_string_lossy())
+            .as_deref() != self.urgent_preload.as_deref() {
+            self.urgent_preload = None;
+        }
+        let target = self.urgent_preload.clone().or_else(||
+            self.next_index(true).and_then(|i| self.queue.get(i))
+                .map(|p| p.to_string_lossy().into_owned()));
+        if self.preload.as_ref().map(|job| &job.url) != target.as_ref() {
+            // Cancel obsolete work without waiting on its current HTTP request.
+            self.preload = None;
+        }
         if self.preloaded.as_ref().map(|(url, _)| url) != target.as_ref() {
             self.preloaded = None;
         }
@@ -2513,7 +2541,8 @@ impl Engine {
         }
         let duration = self.shared.duration_ms.load(Ordering::Relaxed);
         let position = self.shared.decode_pos_ms.load(Ordering::Relaxed);
-        if !preload_due(position, duration) || self.preload.is_some() || self.preloaded.is_some() {
+        if !preload_due(position, duration, self.urgent_preload.is_some())
+            || self.preload.is_some() || self.preloaded.is_some() {
             return;
         }
         let Some(url) = target.filter(|url| source::is_url(url)) else { return; };
@@ -2521,23 +2550,36 @@ impl Engine {
         self.preload_attempt = Some(url.clone());
         let (tx, rx) = std::sync::mpsc::channel();
         let worker_url = url.clone();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let worker_cancelled = cancelled.clone();
         if std::thread::Builder::new().name("next-track-preload".into()).spawn(move || {
-            let ready = source::HttpSource::new(&worker_url).ok().and_then(|mut src| {
-                src.ensure_complete().ok()?;
+            let ready = (|| {
+                if worker_cancelled.load(Ordering::Relaxed) { return None; }
+                let mut src = source::HttpSource::new_for_preload(&worker_url).ok()?;
+                // Fetch in bounded ranges so replacing Play next can cancel
+                // between requests rather than finishing an obsolete file.
+                let mut offset = 0;
+                while offset < src.size() {
+                    if worker_cancelled.load(Ordering::Relaxed) { return None; }
+                    let end = (offset + 512 * 1024).min(src.size());
+                    src.prefetch_range(offset, end).ok()?;
+                    offset = end;
+                }
                 Some(src)
-            });
+            })();
             let _ = tx.send(ready);
         }).is_ok() {
-            self.preload = Some((url, rx));
+            self.preload = Some(PreloadJob { url, receiver: rx, cancelled });
         }
     }
 
     #[cfg(feature = "http")]
     fn collect_preload(&mut self) {
-        let Some((_, rx)) = self.preload.as_ref() else { return; };
-        match rx.try_recv() {
+        let Some(job) = self.preload.as_ref() else { return; };
+        match job.receiver.try_recv() {
             Ok(source) => {
-                let (url, _) = self.preload.take().unwrap();
+                let url = job.url.clone();
+                self.preload = None;
                 self.preloaded = source.map(|src| (url, src));
             }
             Err(std::sync::mpsc::TryRecvError::Disconnected) => { self.preload = None; }
@@ -2773,6 +2815,10 @@ impl Engine {
     /// pure [`perform_insert`] model, then reconciles engine-side state
     /// (decoder/ring for `Replace`, the shared queue length).
     fn insert_tracks(&mut self, tracks: Vec<PathBuf>, position: InsertPosition) {
+        #[cfg(feature = "http")]
+        let urgent = if position == InsertPosition::InsertNext {
+            tracks.first().map(|p| p.to_string_lossy().into_owned())
+        } else { None };
         let is_replace = position == InsertPosition::Replace;
         perform_insert(
             &mut self.queue,
@@ -2790,6 +2836,11 @@ impl Engine {
             self.reset_current();
         }
         self.sync_queue();
+        #[cfg(feature = "http")]
+        if let Some(url) = urgent {
+            self.urgent_preload = Some(url);
+            self.preload_next();
+        }
     }
 
     /// Remove the track at `at` (Rockbox `playlist_delete`). Delegates the
@@ -3871,13 +3922,30 @@ mod queue_status_regression_tests {
 #[cfg(test)]
 mod preload_regression_tests {
     use super::preload_due;
+    #[cfg(feature = "http")]
+    #[test]
+    fn replacing_a_preload_cancels_its_worker() {
+        use super::*;
+        let (_tx, receiver) = std::sync::mpsc::channel();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let job = PreloadJob { url: "https://example.test/old.flac".into(), receiver, cancelled: cancelled.clone() };
+        assert!(!cancelled.load(Ordering::Relaxed));
+        drop(job);
+        assert!(cancelled.load(Ordering::Relaxed));
+    }
+    #[test]
+    fn play_next_preloads_before_halfway_and_without_known_duration() {
+        assert!(preload_due(0, 100_000, true));
+        assert!(preload_due(0, 0, true));
+        assert!(!preload_due(0, 100_000, false));
+    }
     #[test]
     fn starts_at_halfway_and_after_seeking_past_halfway() {
-        assert!(!preload_due(49_999, 100_000));
-        assert!(preload_due(50_000, 100_000));
-        assert!(preload_due(90_000, 100_000));
-        assert!(!preload_due(1, 3));
-        assert!(preload_due(2, 3));
-        assert!(!preload_due(100_000, 0));
+        assert!(!preload_due(49_999, 100_000, false));
+        assert!(preload_due(50_000, 100_000, false));
+        assert!(preload_due(90_000, 100_000, false));
+        assert!(!preload_due(1, 3, false));
+        assert!(preload_due(2, 3, false));
+        assert!(!preload_due(100_000, 0, false));
     }
 }

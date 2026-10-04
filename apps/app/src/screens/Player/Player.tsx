@@ -126,8 +126,11 @@ export default function Player() {
   );
   const jumpTo = (index: number) =>
     isLocal ? skipToLocal(index) : queueJump(index);
-  const removeFrom = (index: number) =>
-    isLocal ? removeLocalAt(index) : queueRemove(index);
+  const removeFrom = (index: number) => {
+    if (index === queueCurrentIndex) return;
+    if (isLocal) removeLocalAt(index);
+    else queueRemove(index);
+  };
 
   const renderQueueRow = (item: QueueRow) => {
     const index = item.index;
@@ -157,7 +160,7 @@ export default function Player() {
             {item.artist}
           </Text>
         </View>
-        {
+        {!isCurrent && (
           <TouchableOpacity
             accessibilityLabel={`Remove ${item.title} from queue`}
             onPress={(event) => {
@@ -168,7 +171,7 @@ export default function Player() {
           >
             <Feather name="x" size={18} color={colors.textMuted} />
           </TouchableOpacity>
-        }
+        )}
       </TouchableOpacity>
     );
   };

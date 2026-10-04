@@ -5,10 +5,12 @@ import {
   type BottomTabBarProps,
   createBottomTabNavigator,
 } from "@react-navigation/bottom-tabs";
+import { PlatformPressable } from "@react-navigation/elements";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
 import type { ComponentType } from "react";
 import { View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authTokenAtom } from "./atoms/auth";
 import { profileAtom } from "./atoms/profile";
 import Bell from "./components/Icons/Bell";
@@ -69,19 +71,23 @@ const SearchStackScreen = makeTabStack("Search", Search);
 const ProfileStackScreen = makeTabStack("Profile", Profile);
 
 function CustomTabBar(props: BottomTabBarProps) {
+  const token = useAtomValue(authTokenAtom);
   return (
     <View style={{ backgroundColor: colors.surface }}>
-      <MiniPlayer
-        onOpenPlayer={() =>
-          props.navigation.getParent()?.navigate("Player" as never)
-        }
-      />
+      {token && (
+        <MiniPlayer
+          onOpenPlayer={() =>
+            props.navigation.getParent()?.navigate("Player" as never)
+          }
+        />
+      )}
       <BottomTabBar {...props} />
     </View>
   );
 }
 
 function HomeTabs() {
+  const insets = useSafeAreaInsets();
   const token = useAtomValue(authTokenAtom);
   const { data: unread } = useUnreadCountQuery();
   const unreadCount = unread?.count ?? 0;
@@ -101,9 +107,20 @@ function HomeTabs() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopWidth: 0,
-          height: 80,
-          paddingTop: 0,
+          height: 64 + insets.bottom,
+          paddingTop: 10,
+          paddingBottom: insets.bottom + 10,
         },
+        tabBarButton: (props) => (
+          <PlatformPressable
+            {...props}
+            style={[
+              props.style,
+              { justifyContent: "center", paddingVertical: 0 },
+            ]}
+          />
+        ),
+        tabBarIconStyle: { flex: 0, width: 36, height: 36 },
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
@@ -164,9 +181,18 @@ function HomeTabs() {
               : undefined,
         }}
       />
-      {!!token && (
-        <Tab.Screen name="LibraryTab" component={LibraryStackScreen} />
-      )}
+      <Tab.Screen
+        name="LibraryTab"
+        component={LibraryStackScreen}
+        listeners={({ navigation }) => ({
+          tabPress: (event) => {
+            if (!token) {
+              event.preventDefault();
+              navigation.getParent()?.navigate("SignIn");
+            }
+          },
+        })}
+      />
       <Tab.Screen name="SearchTab" component={SearchStackScreen} />
       <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
     </Tab.Navigator>
@@ -198,7 +224,10 @@ export function RootStack() {
       <Stack.Screen
         name="SignIn"
         component={SignInScreen}
-        options={{ presentation: "modal", animation: "slide_from_bottom" }}
+        options={{
+          presentation: "fullScreenModal",
+          animation: "slide_from_bottom",
+        }}
       />
     </Stack.Navigator>
   );

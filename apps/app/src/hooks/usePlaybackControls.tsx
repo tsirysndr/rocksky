@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback } from "react";
-import { engineCommand } from "../../modules/rocksky-engine";
 import type { SongLikeState } from "../api/likes";
 import { activeDeviceIdAtom, remoteCommandsAtom } from "../atoms/devices";
 import {
@@ -11,7 +10,11 @@ import {
   progressAtom,
 } from "../atoms/nowplaying";
 import { remoteBridge } from "../lib/remoteBridge";
-import { toggleLocalLike } from "../lib/uploadEngine";
+import {
+  setLocalRepeat,
+  setLocalShuffle,
+  toggleLocalLike,
+} from "../lib/uploadEngine";
 import { storage } from "../storage";
 import { useLikeMutation, useUnlikeMutation } from "./useLike";
 
@@ -61,7 +64,7 @@ export function usePlaybackControls() {
   const setShuffle = useCallback(
     (enabled: boolean) => {
       setNowPlaying((prev) => (prev ? { ...prev, shuffle: enabled } : null));
-      if (player === "local") engineCommand({ cmd: "setShuffle", enabled });
+      if (player === "local") setLocalShuffle(enabled);
       else commands?.send("shuffle", { enabled }, target);
     },
     [commands, target, setNowPlaying, player],
@@ -70,7 +73,7 @@ export function usePlaybackControls() {
   const setRepeat = useCallback(
     (mode: "off" | "one" | "all") => {
       setNowPlaying((prev) => (prev ? { ...prev, repeat: mode } : null));
-      if (player === "local") engineCommand({ cmd: "setRepeat", mode });
+      if (player === "local") setLocalRepeat(mode);
       else commands?.send("repeat", { mode }, target);
     },
     [commands, target, setNowPlaying, player],

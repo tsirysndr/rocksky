@@ -19,6 +19,7 @@ module.exports = {
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
+      backgroundImage: "./assets/images/icon-background.png",
       backgroundColor: "#130825",
     },
     package: "app.rocksky",
@@ -30,11 +31,12 @@ module.exports = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    "./plugins/withRustEngine",
     [
       "expo-splash-screen",
       {
         image: "./assets/images/splash-icon.png",
-        imageWidth: 160,
+        imageWidth: 120,
         resizeMode: "contain",
         backgroundColor: "#130825",
       },

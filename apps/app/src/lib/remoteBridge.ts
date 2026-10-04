@@ -1,7 +1,12 @@
 import type { RemoteController } from "@rocksky/sdk/remote";
 import axios from "axios";
 import { getDefaultStore } from "jotai";
-import { nowPlayingAtom, playbackLockedUntilAtom } from "../atoms/nowplaying";
+import { selectedSourceAtom } from "../atoms/devices";
+import {
+  nowPlayingAtom,
+  playbackLockedUntilAtom,
+  playerAtom,
+} from "../atoms/nowplaying";
 import { API_URL } from "../consts";
 import { storage } from "../storage";
 
@@ -68,15 +73,23 @@ export const remoteBridge = {
   },
 
   send(action: TransportAction, positionMs?: number) {
-    if (state.source === "local") {
+    // Read the selected source at dispatch time; React effects may still hold
+    // the previous route immediately after restore or switching devices.
+    const selected = store.get(selectedSourceAtom);
+    const source =
+      selected?.kind === "device"
+        ? "rockbox"
+        : (selected?.kind ?? store.get(playerAtom) ?? state.source);
+    if (source === "local") {
       state.localHandler?.(action, positionMs);
       return;
     }
-    if (state.source === "spotify") {
+    if (source === "spotify") {
       void sendSpotify(action, positionMs);
       return;
     }
-    const target = state.target ?? undefined;
+    const target =
+      selected?.kind === "device" ? selected.id : (state.target ?? undefined);
     const args =
       action === "seek"
         ? { position: Math.max(0, Math.round(positionMs ?? 0)) }

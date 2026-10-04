@@ -6,7 +6,7 @@ import {
 } from "@rocksky/sdk/remote";
 import Constants from "expo-constants";
 import { atom, getDefaultStore } from "jotai";
-import { Platform } from "react-native";
+import { Alert, AppState, Platform } from "react-native";
 import {
   type EngineStatus,
   engineCommand,
@@ -17,9 +17,11 @@ import {
   fetchStarredSongIds,
   type NavidromeCredentials,
   navidromeStreamUrl,
+  resolveNavidromeApiKey,
   starNavidromeSong,
   unstarNavidromeSong,
 } from "../api/navidrome";
+import { getProfileByDid } from "../api/profile";
 import {
   ensureStreamToken,
   getStreamUrl,
@@ -33,8 +35,14 @@ import {
   playerAtom,
   progressAtom,
 } from "../atoms/nowplaying";
+import { profileAtom } from "../atoms/profile";
 import { storage } from "../storage";
+import {
+  createLocalPlaybackModes,
+  type PlaybackModes,
+} from "./localPlaybackModes";
 import { queryClient } from "./queryClient";
+import { createQueueSnapshotWriter } from "./queueSnapshotWriter";
 import { remoteBridge, type TransportAction } from "./remoteBridge";
 
 // Local playback of uploads through the native Rust engine: owns the queue
@@ -119,8 +127,39 @@ export function setEngineNavidromeCredentials(creds: NavidromeCredentials) {
 // engine is only reopened when the user presses play, exactly like the web
 // client's upload player.
 
+const localModes = createLocalPlaybackModes(
+  () => AsyncStorage.getItem("local-playback-modes"),
+  (raw) => AsyncStorage.setItem("local-playback-modes", raw),
+  (modes, patch) => {
+    if (patch.shuffle !== undefined)
+      engineCommand({ cmd: "setShuffle", enabled: modes.shuffle });
+    if (patch.repeat !== undefined)
+      engineCommand({ cmd: "setRepeat", mode: modes.repeat });
+    if (engineOwnsDisplay())
+      store.set(nowPlayingAtom, (track) =>
+        track ? { ...track, ...modes } : track,
+      );
+    advertiseNowPlaying(true);
+  },
+);
+
+export function setLocalShuffle(enabled: boolean) {
+  void localModes.set({ shuffle: enabled }).catch(reportQueueSaveError);
+}
+
+export function setLocalRepeat(mode: PlaybackModes["repeat"]) {
+  void localModes.set({ repeat: mode }).catch(reportQueueSaveError);
+}
+
+async function applyLocalPlaybackModes() {
+  await localModes.load();
+  const modes = localModes.get();
+  engineCommand({ cmd: "setShuffle", enabled: modes.shuffle });
+  engineCommand({ cmd: "setRepeat", mode: modes.repeat });
+}
+
 const QUEUE_KEY = "local-queue";
-const SAVE_DEBOUNCE_MS = 1500;
+const SAVE_INTERVAL_MS = 1500;
 
 type PersistedQueue = {
   tracks: UploadQueueTrack[];
@@ -128,38 +167,51 @@ type PersistedQueue = {
   positionMs: number;
 };
 
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
 // True once a restored queue is loaded but the engine has not been opened for
 // it yet: polling has to stay quiet, or the empty engine looks like a queue
 // that just ended and the restored track is wiped.
 let resumePending = false;
+let resumeInFlight = false;
+let resumeWantsPlay = true;
 let resumeIndex = 0;
 let resumePositionMs = 0;
 
+const reportQueueSaveError = (error: unknown) =>
+  console.warn("Could not persist the local playback queue", error);
+
+const queueWriter = createQueueSnapshotWriter<PersistedQueue | null>(
+  () =>
+    queue.length === 0
+      ? null
+      : {
+          // Never persist credentialed or short-lived stream URLs.
+          tracks: queue.map(({ streamUrl: _streamUrl, ...track }) => track),
+          index: lastIndex ?? resumeIndex,
+          positionMs: resumePositionMs,
+        },
+  async (snapshot) => {
+    if (snapshot)
+      await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(snapshot));
+    else await AsyncStorage.removeItem(QUEUE_KEY);
+  },
+  SAVE_INTERVAL_MS,
+);
+
 function scheduleQueueSave() {
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
-    void saveQueueSnapshot();
-  }, SAVE_DEBOUNCE_MS);
+  queueWriter.schedule(reportQueueSaveError);
 }
 
 async function saveQueueSnapshot() {
   try {
-    if (queue.length === 0) {
-      await AsyncStorage.removeItem(QUEUE_KEY);
-      return;
-    }
-    const snapshot: PersistedQueue = {
-      // streamUrl is dropped on purpose: the navidrome one embeds the user's
-      // API key and the upload one a short-lived token, so both are rebuilt.
-      tracks: queue.map(({ streamUrl: _streamUrl, ...track }) => track),
-      index: lastIndex ?? resumeIndex,
-      positionMs: store.get(progressAtom),
-    };
-    await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(snapshot));
-  } catch {}
+    await queueWriter.flush();
+  } catch (error) {
+    reportQueueSaveError(error);
+  }
 }
+
+AppState.addEventListener("change", (state) => {
+  if (state !== "active" && queue.length > 0) void saveQueueSnapshot();
+});
 
 /**
  * Bring back the queue the app was last playing, paused.
@@ -170,7 +222,10 @@ async function saveQueueSnapshot() {
  * a remote device or Spotify.
  */
 export async function restoreLocalQueue(): Promise<boolean> {
+  const session = storage.getToken();
+  if (!session) return false;
   if (!isEngineAvailable() || queue.length > 0) return false;
+  await localModes.load().catch(reportQueueSaveError);
   let snapshot: PersistedQueue | null = null;
   try {
     const raw = await AsyncStorage.getItem(QUEUE_KEY);
@@ -178,10 +233,23 @@ export async function restoreLocalQueue(): Promise<boolean> {
   } catch {
     return false;
   }
-  if (!snapshot?.tracks?.length) return false;
+  if (
+    storage.getToken() !== session ||
+    !snapshot?.tracks?.length ||
+    queue.length > 0
+  )
+    return false;
 
+  const nativeStatus = engineCommand({ cmd: "status" });
+  const nativeStillOpen =
+    nativeStatus.ok &&
+    nativeStatus.index !== null &&
+    nativeStatus.queueLen === snapshot.tracks.length;
   const index = Math.min(
-    Math.max(0, snapshot.index),
+    Math.max(
+      0,
+      nativeStillOpen ? (nativeStatus.index ?? snapshot.index) : snapshot.index,
+    ),
     snapshot.tracks.length - 1,
   );
   const track = snapshot.tracks[index];
@@ -189,8 +257,11 @@ export async function restoreLocalQueue(): Promise<boolean> {
 
   queue = snapshot.tracks;
   resumeIndex = index;
-  resumePositionMs = Math.max(0, snapshot.positionMs || 0);
-  resumePending = true;
+  resumePositionMs = Math.max(
+    0,
+    nativeStillOpen ? nativeStatus.positionMs : snapshot.positionMs || 0,
+  );
+  resumePending = !nativeStillOpen;
   lastIndex = index;
   lastTrack = track;
   notifyQueue();
@@ -207,12 +278,13 @@ export async function restoreLocalQueue(): Promise<boolean> {
       cover: track.albumArt ?? "",
       duration: track.durationMs,
       progress: resumePositionMs,
-      isPlaying: false,
+      isPlaying: nativeStillOpen && nativeStatus.state === "playing",
       liked: track.liked ?? false,
       uri: track.songUri ?? "",
       album: track.album,
       artistUri: track.artistUri ?? undefined,
       albumUri: track.albumUri ?? undefined,
+      ...localModes.get(),
     });
     store.set(playerAtom, "local");
     store.set(progressAtom, resumePositionMs);
@@ -224,35 +296,61 @@ export async function restoreLocalQueue(): Promise<boolean> {
     remoteBridge.setLocalHandler(handleTransport);
   }
   advertiseQueue();
-  advertiseStatus("paused");
+  advertiseStatus(nativeStillOpen ? nativeStatus.state : "paused");
   return true;
 }
 
 /** Open the engine for a restored queue and pick up where it left off. */
 async function resumeRestoredQueue(): Promise<boolean> {
-  if (!resumePending || queue.length === 0) return false;
-  resumePending = false;
-  const paths = await resolvePaths(queue);
-  const result = engineCommand({
-    cmd: "open",
-    paths,
-    startIndex: resumeIndex,
-  });
-  if (!result.ok) {
-    resumePending = true;
+  if (!resumePending || queue.length === 0 || resumeInFlight) return false;
+  resumeInFlight = true;
+  const restoringQueue = queue;
+  try {
+    const paths = await resolvePaths(restoringQueue);
+    // A stop or another queue replacement invalidates this delayed open.
+    if (!resumePending || queue !== restoringQueue) return false;
+    await applyLocalPlaybackModes();
+    if (!resumePending || queue !== restoringQueue) return false;
+    const result = engineCommand({
+      cmd: "open",
+      paths,
+      startIndex: resumeIndex,
+    });
+    if (!result.ok) throw new Error(result.error);
+    resumePending = false;
+    lastIndex = resumeIndex;
+    lastTrack = null;
+    startedAt = Date.now();
+    scrobbled = false;
+    openedAt = Date.now();
+    sawPlaying = false;
+    if (resumePositionMs > 0)
+      engineCommand({ cmd: "seek", positionMs: resumePositionMs });
+    if (!resumeWantsPlay) engineCommand({ cmd: "pause" });
+    activate();
+    pollOnce();
+    return true;
+  } catch (error) {
+    store.set(playbackLockedUntilAtom, 0);
+    store.set(nowPlayingAtom, (track) =>
+      track ? { ...track, isPlaying: false } : track,
+    );
+    Alert.alert(
+      "Could not resume playback",
+      error instanceof Error ? error.message : "Please try again.",
+    );
     return false;
+  } finally {
+    resumeInFlight = false;
+    if (
+      resumePending &&
+      queue !== restoringQueue &&
+      queue.length > 0 &&
+      resumeWantsPlay
+    ) {
+      void resumeRestoredQueue();
+    }
   }
-  lastIndex = null;
-  startedAt = Date.now();
-  scrobbled = false;
-  openedAt = Date.now();
-  sawPlaying = false;
-  if (resumePositionMs > 0) {
-    engineCommand({ cmd: "seek", positionMs: resumePositionMs });
-  }
-  activate();
-  pollOnce();
-  return true;
 }
 
 export function isLocalEngineAvailable(): boolean {
@@ -268,47 +366,25 @@ export function localQueueIndex(): number | null {
   return lastIndex;
 }
 
-/** Drop one track from the local queue, keeping the metadata in step. */
+/** Drop a non-current track without interrupting playback. */
 export function removeLocalAt(index: number) {
-  if (index < 0 || index >= queue.length) return;
+  if (!Number.isInteger(index) || index < 0 || index >= queue.length) return;
+  if (index === (lastIndex ?? resumeIndex)) return;
   if (!resumePending) {
+    // The engine may have advanced since the last UI poll.
+    const status = engineCommand({ cmd: "status" });
+    if (
+      !status.ok ||
+      status.queueLen !== queue.length ||
+      status.index === index
+    )
+      return;
     const result = engineCommand({ cmd: "remove", index });
     if (!result.ok) return;
   }
-  const removingCurrent = index === lastIndex;
   queue = queue.filter((_, i) => i !== index);
-  if (queue.length === 0) {
-    stopLocalPlayback();
-    notifyQueue();
-    return;
-  }
   if (lastIndex !== null && index < lastIndex) lastIndex -= 1;
-  if (removingCurrent) {
-    lastIndex = Math.min(index, queue.length - 1);
-    likedResolved = null;
-    resolvedUri = null;
-    lastTrack = null;
-  }
-  if (resumePending) {
-    resumeIndex = lastIndex ?? 0;
-    if (removingCurrent) {
-      resumePositionMs = 0;
-      const track = queue[resumeIndex];
-      store.set(nowPlayingAtom, {
-        title: track.title,
-        artist: track.artist,
-        cover: track.albumArt ?? "",
-        duration: track.durationMs,
-        progress: 0,
-        isPlaying: false,
-        liked: track.liked ?? false,
-        uri: track.songUri ?? "",
-        album: track.album,
-      });
-      store.set(progressAtom, 0);
-      void resolveLikeState(track, resumeIndex);
-    }
-  }
+  if (resumePending) resumeIndex = lastIndex ?? 0;
   notifyQueue();
   advertiseQueue();
   void saveQueueSnapshot();
@@ -320,7 +396,13 @@ function handleTransport(action: TransportAction, positionMs?: number) {
   // opens it at the saved track and position instead of talking to an empty
   // engine.
   if (resumePending) {
-    if (action === "pause") return;
+    if (action === "pause") {
+      resumeWantsPlay = false;
+      // The native player can survive a JS reload; pause must never be ignored.
+      engineCommand({ cmd: "pause" });
+      return;
+    }
+    resumeWantsPlay = true;
     if (action === "seek") resumePositionMs = Math.max(0, positionMs ?? 0);
     void resumeRestoredQueue();
     return;
@@ -557,6 +639,7 @@ function pollOnce() {
       positionMs = pendingSeek.position;
     else pendingSeek = null;
   }
+  resumePositionMs = positionMs;
   // The engine keeps playing when the user looks at another device, but it
   // must not write the display then — that is the other source's to own.
   if (engineOwnsDisplay()) {
@@ -576,8 +659,7 @@ function pollOnce() {
       album: track.album,
       artistUri: track.artistUri ?? undefined,
       albumUri: track.albumUri ?? undefined,
-      shuffle: status.shuffle,
-      repeat: status.repeat,
+      ...localModes.get(),
     });
     store.set(playerAtom, "local");
     store.set(progressAtom, positionMs);
@@ -586,7 +668,7 @@ function pollOnce() {
   advertiseNowPlaying(trackChanged);
   advertiseStatus(status.state);
   advertiseQueue();
-  // The position moves constantly, so the snapshot is debounced; a track change
+  // Throttle position saves without postponing them on every poll; a track change
   // flushes it so a quit right after a skip still resumes on the right track.
   if (trackChanged) void saveQueueSnapshot();
   else scheduleQueueSave();
@@ -630,6 +712,25 @@ function streamUrlFor(track: UploadQueueTrack): string {
 }
 
 async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
+  if (
+    tracks.some((track) => track.navidromeId && !track.streamUrl) &&
+    !navidromeCreds
+  ) {
+    const did = storage.getDid();
+    if (!did) throw new Error("Sign in to resume your library tracks.");
+    const profile = store.get(profileAtom) ?? (await getProfileByDid(did));
+    if (!profile?.handle)
+      throw new Error("Could not load your library account. Please try again.");
+    const credentials = await queryClient.fetchQuery<NavidromeCredentials>({
+      queryKey: ["navidrome", "credentials", profile.handle],
+      staleTime: Number.POSITIVE_INFINITY,
+      queryFn: async () => ({
+        handle: profile.handle,
+        apiKey: await resolveNavidromeApiKey(),
+      }),
+    });
+    setEngineNavidromeCredentials(credentials);
+  }
   // Only the upload-backed path needs the token; a navidrome queue carries its
   // own credentialed URLs.
   const needsToken = tracks.some((t) => !t.streamUrl && !t.navidromeId);
@@ -642,13 +743,20 @@ export async function playUploads(
   tracks: UploadQueueTrack[],
   startIndex: number,
 ): Promise<boolean> {
+  const session = storage.getToken();
+  if (!session) return false;
   if (!isEngineAvailable() || tracks.length === 0) return false;
   const paths = await resolvePaths(tracks);
+  await applyLocalPlaybackModes();
+  if (storage.getToken() !== session) return false;
   const result = engineCommand({ cmd: "open", paths, startIndex });
   if (!result.ok) return false;
   queue = tracks;
+  resumePending = false;
+  resumeIndex = startIndex;
+  resumePositionMs = 0;
   store.set(selectedSourceAtom, { kind: "local" });
-  lastIndex = null;
+  lastIndex = startIndex;
   lastTrack = null;
   pendingSeek = null;
   notifyQueue();
@@ -656,6 +764,8 @@ export async function playUploads(
   scrobbled = false;
   openedAt = Date.now();
   sawPlaying = false;
+  await saveQueueSnapshot();
+  if (storage.getToken() !== session) return false;
   activate();
   pollOnce();
   return true;
@@ -670,40 +780,50 @@ export async function playUploads(
 export async function queueUploadsNext(
   tracks: UploadQueueTrack[],
 ): Promise<boolean> {
-  if (!isEngineAvailable() || tracks.length === 0) return false;
-  const status = engineCommand({ cmd: "status" });
-  if (!status.ok || status.index === null || queue.length === 0) {
-    return playUploads(tracks, 0);
-  }
-  const paths = await resolvePaths(tracks);
-  const result = engineCommand({ cmd: "insertNext", paths });
-  if (!result.ok) return false;
-  const at = status.index + 1;
-  queue = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
-  notifyQueue();
-  return true;
+  return enqueueLocalTracks(tracks, "next");
 }
 
-/** Queue `tracks` at the end, or start them if nothing is playing. */
+/** Queue tracks at the end without replacing a paused restored queue. */
 export async function queueUploadsLast(
   tracks: UploadQueueTrack[],
 ): Promise<boolean> {
+  return enqueueLocalTracks(tracks, "last");
+}
+
+async function enqueueLocalTracks(
+  tracks: UploadQueueTrack[],
+  where: "next" | "last",
+): Promise<boolean> {
   if (!isEngineAvailable() || tracks.length === 0) return false;
-  const status = engineCommand({ cmd: "status" });
-  if (!status.ok || status.index === null || queue.length === 0) {
-    return playUploads(tracks, 0);
+  if (queue.length === 0) return playUploads(tracks, 0);
+  let index = lastIndex ?? resumeIndex;
+  if (!resumePending) {
+    const paths = await resolvePaths(tracks);
+    // URL resolution can take time: read the current track after it completes.
+    const status = engineCommand({ cmd: "status" });
+    if (!status.ok || status.queueLen !== queue.length) return false;
+    if (status.index === null) return playUploads(tracks, 0);
+    const result = engineCommand({
+      cmd: where === "next" ? "insertNext" : "append",
+      paths,
+    });
+    if (!result.ok) return false;
+    index = status.index;
+    lastIndex = index;
+    resumePositionMs = pendingSeek?.position ?? status.positionMs;
   }
-  const paths = await resolvePaths(tracks);
-  const result = engineCommand({ cmd: "append", paths });
-  if (!result.ok) return false;
-  queue = [...queue, ...tracks];
+  const at = where === "next" ? index + 1 : queue.length;
+  queue = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
   notifyQueue();
+  advertiseQueue();
+  await saveQueueSnapshot();
   return true;
 }
 
 export function skipToLocal(index: number) {
   if (index < 0 || index >= queue.length) return;
   if (resumePending) {
+    resumeWantsPlay = true;
     resumeIndex = index;
     resumePositionMs = 0;
     void resumeRestoredQueue();
@@ -885,14 +1005,8 @@ export function startLocalRemotePlayer() {
     })
     .on("queueJump", (index) => skipToLocal(index))
     .on("queueRemove", (index) => removeLocalAt(index))
-    .on("setShuffle", (enabled) => {
-      engineCommand({ cmd: "setShuffle", enabled });
-      setTimeout(pollOnce, 150);
-    })
-    .on("setRepeat", (mode) => {
-      engineCommand({ cmd: "setRepeat", mode });
-      setTimeout(pollOnce, 150);
-    })
+    .on("setShuffle", setLocalShuffle)
+    .on("setRepeat", setLocalRepeat)
     .on("setVolume", (volume) => {
       engineCommand({ cmd: "setVolume", volume });
       setTimeout(pollOnce, 150);

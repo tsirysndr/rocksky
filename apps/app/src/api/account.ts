@@ -138,9 +138,26 @@ export type Wrapped = {
   totalListeningTimeMinutes: number;
   newArtistsCount: number;
   longestStreak: number;
-  topArtists: { id: string; name: string; playCount: number }[];
-  topTracks: { id: string; title: string; artist: string; playCount: number }[];
-  topAlbums: { id: string; title: string; artist: string; playCount: number }[];
+  topArtists: {
+    id: string;
+    name: string;
+    picture?: string;
+    playCount: number;
+  }[];
+  topTracks: {
+    id: string;
+    title: string;
+    artist: string;
+    albumArt?: string;
+    playCount: number;
+  }[];
+  topAlbums: {
+    id: string;
+    title: string;
+    artist: string;
+    albumArt?: string;
+    playCount: number;
+  }[];
   topGenres: { genre: string; count: number }[];
 };
 export const getWrapped = async (

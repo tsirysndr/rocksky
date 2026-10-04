@@ -1,5 +1,6 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
+const fs = require("fs");
 
 const config = getDefaultConfig(__dirname);
 
@@ -15,10 +16,13 @@ if (!config.resolver.assetExts.includes("flac")) {
 
 // Resolve the SDK's subpath exports explicitly — Metro's package-exports
 // handling doesn't reliably follow them through bun's per-file symlinks.
+const sdkDist = fs.existsSync(path.join(__dirname, ".generated/rocksky-sdk/index.js"))
+  ? path.join(__dirname, ".generated/rocksky-sdk")
+  : path.join(sdkRoot, "dist");
 const sdkEntries = {
-  "@rocksky/sdk": path.join(sdkRoot, "dist/index.js"),
-  "@rocksky/sdk/remote": path.join(sdkRoot, "dist/remote.js"),
-  "@rocksky/sdk/dedup": path.join(sdkRoot, "dist/dedup.js"),
+  "@rocksky/sdk": path.join(sdkDist, "index.js"),
+  "@rocksky/sdk/remote": path.join(sdkDist, "remote.js"),
+  "@rocksky/sdk/dedup": path.join(sdkDist, "dedup.js"),
 };
 
 const defaultResolveRequest = config.resolver.resolveRequest;

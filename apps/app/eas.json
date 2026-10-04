@@ -4,14 +4,26 @@
       "android": {
         "buildType": "app-bundle",
         "autoIncrement": true
-      }
+      },
+      "extends": "base"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "extends": "base",
+      "android": {
+        "buildType": "apk"
+      }
     },
     "apk": {
       "android": {
         "buildType": "apk"
+      },
+      "extends": "base"
+    },
+    "base": {
+      "bun": "1.4.2",
+      "android": {
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b"
       }
     }
   },

@@ -223,6 +223,20 @@ mod http {
             HttpSource::build(client, url, size, p.ranges, &suffix)
         }
 
+        /// Finite background preloads must not leave obsolete downloads hung.
+        pub fn new_for_preload(url: &str) -> io::Result<Self> {
+            let client = reqwest::blocking::Client::builder()
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .timeout(std::time::Duration::from_secs(30))
+                .user_agent(concat!("rockbox-playback/", env!("CARGO_PKG_VERSION")))
+                .build().map_err(to_io)?;
+            let p = probe(&client, url)?;
+            let size = p.length.ok_or_else(|| io::Error::new(
+                io::ErrorKind::InvalidInput, "preload requires a finite file"))?;
+            let suffix = p.mime_ext.unwrap_or_else(|| url_suffix(url));
+            Self::build(client, url, size, p.ranges, &suffix)
+        }
+
         fn build(
             client: reqwest::blocking::Client,
             url: &str,

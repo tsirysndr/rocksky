@@ -243,8 +243,6 @@ export default function SongDetails({ route }: Props) {
                   gap: 40,
                   paddingVertical: 16,
                   marginBottom: 24,
-                  borderRadius: 16,
-                  backgroundColor: colors.surface2,
                 }}
               >
                 <View style={{ alignItems: "center" }}>
@@ -322,10 +320,13 @@ export default function SongDetails({ route }: Props) {
                     justifyContent: "center",
                     gap: 8,
                     paddingVertical: 14,
-                    borderRadius: 14,
-                    backgroundColor: colors.surface2,
                   }}
                 >
+                  <MaterialCommunityIcons
+                    name="share-variant"
+                    size={18}
+                    color={colors.text}
+                  />
                   <Text
                     style={{
                       color: colors.text,
@@ -377,12 +378,15 @@ export default function SongDetails({ route }: Props) {
                     justifyContent: "center",
                     gap: 8,
                     paddingVertical: 12,
-                    borderRadius: 14,
-                    backgroundColor: colors.surface2,
                   }}
                 >
-                  <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-                    View on PDSls ↗
+                  <MaterialCommunityIcons
+                    name="open-in-new"
+                    size={18}
+                    color={colors.text}
+                  />
+                  <Text style={{ color: colors.text, fontSize: 13 }}>
+                    View on PDSls
                   </Text>
                 </TouchableOpacity>
               </View>

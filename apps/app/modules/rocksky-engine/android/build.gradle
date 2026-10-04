@@ -14,24 +14,11 @@ android {
   }
 }
 
-// Cross-compile the Rust engine into jniLibs; skipped without cargo-ndk, in
-// which case previously built .so files are packaged as-is.
-def rustCrateDir = file("${projectDir}/../../../native/engine")
-def jniLibsDir = file("${projectDir}/src/main/jniLibs")
-def cargoBin = new File(System.getProperty("user.home"), ".cargo/bin/cargo")
-def cargoNdkBin = new File(System.getProperty("user.home"), ".cargo/bin/cargo-ndk")
-
+// Every build compiles Rust from the archived source. Missing tools fail the
+// build instead of silently shipping an APK without its playback engine.
+def rustBuildScript = file("${projectDir}/../../../scripts/build-android-engine.sh")
 tasks.register("buildRustEngine", Exec) {
-  workingDir rustCrateDir
-  environment "PATH", "${System.getenv("PATH")}${File.pathSeparator}${cargoBin.parentFile.absolutePath}"
-  if (System.getenv("ANDROID_NDK_HOME") == null) {
-    environment "ANDROID_HOME",
-      System.getenv("ANDROID_HOME") ?: "${System.getProperty('user.home')}/Library/Android/sdk"
-  }
-  commandLine cargoBin.absolutePath, "ndk",
-    "-t", "arm64-v8a", "-t", "x86_64",
-    "-o", jniLibsDir.absolutePath,
-    "build", "--release"
-  onlyIf { cargoBin.exists() && cargoNdkBin.exists() }
+  workingDir file("${projectDir}/../../..")
+  commandLine "bash", rustBuildScript.absolutePath
 }
 preBuild.dependsOn("buildRustEngine")

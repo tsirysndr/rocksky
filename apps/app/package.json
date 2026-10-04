@@ -3,6 +3,7 @@
   "main": "index.js",
   "version": "2.0.0",
   "scripts": {
+    "assets:brand": "node scripts/generate-brand-assets.cjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -10,7 +11,11 @@
     "lint": "biome lint src",
     "format": "biome format src",
     "typecheck": "tsc --noEmit",
-    "adb:reverse": "adb reverse tcp:8081 tcp:8081"
+    "adb:reverse": "adb reverse tcp:8081 tcp:8081",
+    "eas-build-pre-install": "bash scripts/eas-pre-install.sh",
+    "eas-build-post-install": "node scripts/eas-post-install.cjs",
+    "build:engine:android": "bash scripts/build-android-engine.sh",
+    "verify:engine:android": "node scripts/verify-android-engine.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

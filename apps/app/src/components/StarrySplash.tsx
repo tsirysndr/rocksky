@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Animated, {
@@ -13,7 +14,6 @@ import Svg, {
   Circle,
   Defs,
   LinearGradient,
-  Path,
   RadialGradient,
   Rect,
   Stop,
@@ -21,13 +21,6 @@ import Svg, {
 
 const FADE_OUT_MS = 400;
 const GLOW_SIZE = 240;
-
-// Beamed eighth-note pair (24x24 grid), same mark as the app icon.
-const NOTE_PATH =
-  "M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 " +
-  "17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 " +
-  "5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 " +
-  "7,14.34V6L21,3Z";
 
 type Star = {
   x: number;
@@ -252,9 +245,11 @@ export default function StarrySplash({
       <View style={styles.center} pointerEvents="none">
         <View style={styles.markWrap}>
           <Glow />
-          <Svg width={72} height={72} viewBox="0 0 24 24">
-            <Path d={NOTE_PATH} fill="#ffffff" />
-          </Svg>
+          <Image
+            source={require("../../assets/images/splash-icon.png")}
+            style={{ width: 120, height: 120 }}
+            contentFit="contain"
+          />
         </View>
         <Text style={styles.wordmark}>Rocksky</Text>
         <Text style={styles.tagline}>Music scrobbling on AT Protocol</Text>

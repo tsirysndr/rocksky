@@ -12,6 +12,7 @@ export default function SignInScreen() {
 
   return (
     <SignIn
+      onCancel={() => navigation.goBack()}
       onSuccess={() => {
         setAuthToken(storage.getToken());
         if (navigation.canGoBack()) navigation.goBack();

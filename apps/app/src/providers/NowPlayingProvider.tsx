@@ -47,6 +47,7 @@ const ProgressContext =
 // When a device is streaming, it wins over the REST/Spotify polling fallback —
 // but never over the in-app engine, which owns the atoms while it plays.
 function useActiveDeviceTrack() {
+  const token = useAtomValue(authTokenAtom);
   const devices = useAtomValue(devicesAtom);
   const activeDeviceId = useAtomValue(activeDeviceIdAtom);
   const selected = useAtomValue(selectedSourceAtom);
@@ -65,7 +66,8 @@ function useActiveDeviceTrack() {
   // flickered the mini player. The user's pick settles it — and an explicit
   // pick of a device outranks local playback, so switching still works.
   const deviceOwnsDisplay =
-    selected?.kind === "device" || (!selected && !localEngineActive);
+    !!token &&
+    (selected?.kind === "device" || (!selected && !localEngineActive));
 
   useEffect(() => {
     if (!deviceOwnsDisplay) return;
@@ -187,7 +189,8 @@ function useLocalPlayerBroadcast() {
 }
 
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
-  const did = storage.getDid() || "";
+  const token = useAtomValue(authTokenAtom);
+  const did = token ? storage.getDid() || "" : "";
   useRemoteDevicesConnection();
   useLocalPlayerBroadcast();
   useNavidromeCredentials();
@@ -200,9 +203,9 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const localEngineActive = useAtomValue(localEngineActiveAtom);
   const { nowPlaying, progress } = useNowPlaying(
     did,
-    deviceTrackActive || localEngineActive,
+    !token || deviceTrackActive || localEngineActive,
   );
-  useMediaSessionSync(nowPlaying);
+  useMediaSessionSync(token ? nowPlaying : null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: consumers only re-render on track/playing/liked changes, not on every poll tick
   const memoizedNowPlaying = useMemo(

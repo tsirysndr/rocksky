@@ -6,6 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import { useAtomValue } from "jotai";
 import { type ReactNode, useState } from "react";
 import {
@@ -477,6 +478,55 @@ function Storage() {
     </>
   );
 }
+const wrappedNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
+const formatWrappedNumber = (value?: number) =>
+  wrappedNumber.format(Number.isFinite(value) ? (value ?? 0) : 0);
+
+function WrappedArt({
+  uri,
+  artist = false,
+  grid = false,
+}: {
+  uri?: string;
+  artist?: boolean;
+  grid?: boolean;
+}) {
+  const [failedUri, setFailedUri] = useState<string>();
+  return (
+    <View
+      style={[
+        {
+          overflow: "hidden",
+          backgroundColor: colors.surface2,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: artist ? 24 : 8,
+        },
+        grid ? { width: "100%", aspectRatio: 1 } : { width: 48, height: 48 },
+      ]}
+    >
+      {uri && uri !== failedUri ? (
+        <Image
+          source={uri}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          recyclingKey={uri}
+          onError={() => setFailedUri(uri)}
+        />
+      ) : (
+        <Feather
+          name={artist ? "user" : "music"}
+          size={grid ? 32 : 22}
+          color={colors.textMuted}
+        />
+      )}
+    </View>
+  );
+}
+
 function Wrapped() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [period, setPeriod] = useState<api.WrappedPeriod>("year");
@@ -513,63 +563,80 @@ function Wrapped() {
       </ScrollView>
       {period === "year" && (
         <View style={styles.row}>
-          <Button onPress={() => setYear(year - 1)}>Previous</Button>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Previous year"
+            onPress={() => setYear(year - 1)}
+            style={styles.yearButton}
+          >
+            <Feather name="chevron-left" size={20} color={colors.text} />
+            <Text>Previous</Text>
+          </TouchableOpacity>
           <Text>{year}</Text>
-          <Button
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Next year"
+            accessibilityState={{ disabled: year >= new Date().getFullYear() }}
             disabled={year >= new Date().getFullYear()}
             onPress={() => setYear(year + 1)}
+            style={[
+              styles.yearButton,
+              year >= new Date().getFullYear() && { opacity: 0.45 },
+            ]}
           >
-            Next
-          </Button>
+            <Text>Next</Text>
+            <Feather name="chevron-right" size={20} color={colors.text} />
+          </TouchableOpacity>
         </View>
       )}
       {query.isLoading && <ActivityIndicator color={colors.primary} />}
       {query.isError && <ErrorState retry={() => void query.refetch()} />}
       {data && (
         <>
-          <View style={styles.card}>
-            <Text style={styles.title}>
-              {data.totalScrobbles ?? 0} scrobbles
-            </Text>
-            <Text style={styles.muted}>
-              {Math.round(data.totalListeningTimeMinutes ?? 0)} minutes listened
-            </Text>
-            <Text style={styles.muted}>
-              {data.newArtistsCount ?? 0} new artists ·{" "}
-              {data.longestStreak ?? 0}-day longest streak
-            </Text>
+          <View style={styles.wrappedGrid}>
+            {[
+              { label: "Scrobbles", value: data.totalScrobbles },
+              {
+                label: "Minutes listened",
+                value: data.totalListeningTimeMinutes,
+              },
+              { label: "New artists", value: data.newArtistsCount },
+              { label: "Longest streak (days)", value: data.longestStreak },
+            ].map((stat) => (
+              <View key={stat.label} style={styles.wrappedStat}>
+                <Text
+                  style={styles.wrappedNumber}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                >
+                  {formatWrappedNumber(stat.value)}
+                </Text>
+                <Text style={styles.muted}>{stat.label}</Text>
+              </View>
+            ))}
           </View>
           {[
             {
               title: "Top artists",
+              artist: true,
               rows: (data.topArtists ?? []).map((item) => ({
                 id: item.id,
                 name: item.name,
+                subtitle: "",
+                artwork: item.picture,
                 count: item.playCount,
               })),
             },
             {
               title: "Top tracks",
+              artist: false,
               rows: (data.topTracks ?? []).map((item) => ({
                 id: item.id,
-                name: `${item.title} · ${item.artist}`,
+                name: item.title,
+                subtitle: item.artist,
+                artwork: item.albumArt,
                 count: item.playCount,
-              })),
-            },
-            {
-              title: "Top albums",
-              rows: (data.topAlbums ?? []).map((item) => ({
-                id: item.id,
-                name: `${item.title} · ${item.artist}`,
-                count: item.playCount,
-              })),
-            },
-            {
-              title: "Top genres",
-              rows: (data.topGenres ?? []).map((item) => ({
-                id: item.genre,
-                name: item.genre,
-                count: item.count,
               })),
             },
           ].map((section) => (
@@ -577,10 +644,26 @@ function Wrapped() {
               <Text style={styles.title}>{section.title}</Text>
               {section.rows.slice(0, 10).map((item, index) => (
                 <View key={item.id} style={styles.row}>
-                  <Text style={{ flex: 1 }}>
-                    {index + 1}. {item.name}
+                  <Text style={{ color: colors.textMuted, minWidth: 18 }}>
+                    {index + 1}
                   </Text>
-                  <Text style={styles.muted}>{item.count}</Text>
+                  <WrappedArt uri={item.artwork} artist={section.artist} />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text numberOfLines={2} style={{ fontWeight: "600" }}>
+                      {item.name}
+                    </Text>
+                    {!!item.subtitle && (
+                      <Text
+                        numberOfLines={1}
+                        style={{ color: colors.textMuted, fontSize: 12 }}
+                      >
+                        {item.subtitle}
+                      </Text>
+                    )}
+                    <Text style={styles.wrappedCount}>
+                      {formatWrappedNumber(item.count)} plays
+                    </Text>
+                  </View>
                 </View>
               ))}
               {section.rows.length === 0 && (
@@ -588,6 +671,47 @@ function Wrapped() {
               )}
             </View>
           ))}
+          <View style={styles.card}>
+            <Text style={styles.title}>Top albums</Text>
+            <View style={styles.wrappedGrid}>
+              {(data.topAlbums ?? []).slice(0, 10).map((album, index) => (
+                <View key={album.id} style={{ width: "48%", gap: 6 }}>
+                  <WrappedArt uri={album.albumArt} grid />
+                  <Text numberOfLines={2} style={{ fontWeight: "600" }}>
+                    {index + 1}. {album.title}
+                  </Text>
+                  <Text
+                    numberOfLines={2}
+                    style={{ color: colors.textMuted, fontSize: 12 }}
+                  >
+                    {album.artist}
+                  </Text>
+                  <Text style={styles.wrappedCount}>
+                    {formatWrappedNumber(album.playCount)} plays
+                  </Text>
+                </View>
+              ))}
+            </View>
+            {!data.topAlbums?.length && (
+              <Text style={styles.muted}>No listens in this period.</Text>
+            )}
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.title}>Top genres</Text>
+            {(data.topGenres ?? []).slice(0, 10).map((genre, index) => (
+              <View key={genre.genre} style={styles.row}>
+                <Text style={{ flex: 1 }}>
+                  {index + 1}. {genre.genre}
+                </Text>
+                <Text style={styles.wrappedCount}>
+                  {formatWrappedNumber(genre.count)}
+                </Text>
+              </View>
+            ))}
+            {!data.topGenres?.length && (
+              <Text style={styles.muted}>No listens in this period.</Text>
+            )}
+          </View>
         </>
       )}
     </>
@@ -634,6 +758,38 @@ export default function Account({
   );
 }
 const styles = StyleSheet.create({
+  yearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    minHeight: 44,
+  },
+  wrappedGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 20,
+    marginTop: 16,
+  },
+  wrappedStat: {
+    width: "48%",
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+  },
+  wrappedNumber: {
+    fontSize: 26,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+  },
+  wrappedCount: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.text,
+    fontVariant: ["tabular-nums"],
+  },
   card: {
     padding: 16,
     backgroundColor: colors.surface,
