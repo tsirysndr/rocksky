@@ -30,6 +30,7 @@ import {
 } from "@/src/api/navidrome";
 import type { UploadedTrack } from "@/src/api/uploads";
 import LibraryGlyph from "@/src/components/Icons/Library";
+import PlaylistCover from "@/src/components/PlaylistCover";
 import { Text } from "@/src/components/Text";
 import {
   fetchArtistQueue,
@@ -44,6 +45,14 @@ import {
   useNavidromePlaylistQuery,
   useNavidromePlaylistsQuery,
 } from "@/src/hooks/useNavidrome";
+import {
+  PlaylistMirrorWarning,
+  useAddTrackToPlaylistMutation,
+  useCreatePlaylistMutation,
+  useDeletePlaylistMutation,
+  useRemoveTrackFromPlaylistMutation,
+  useRenamePlaylistMutation,
+} from "@/src/hooks/usePlaylists";
 import {
   useUploadsInfiniteQuery,
   useUploadTrackMutation,
@@ -92,6 +101,8 @@ type DetailView =
       title: string;
       subtitle: string;
       art: string | null;
+      /** Covers for the mosaic, from the row that opened it. */
+      trackArts?: string[] | null;
     };
 
 type UploadItem = {
@@ -469,6 +480,7 @@ function DetailHeader({
   art,
   round,
   fallbackLabel,
+  trackArts,
   onBack,
   onPlay,
   onShuffle,
@@ -478,6 +490,8 @@ function DetailHeader({
   art: string | null;
   round?: boolean;
   fallbackLabel?: string;
+  /** Given for a playlist: the header then draws the same mosaic as its row. */
+  trackArts?: string[] | null;
   onBack: () => void;
   onPlay: () => void;
   onShuffle: () => void;
@@ -489,12 +503,16 @@ function DetailHeader({
         <Text style={{ color: colors.text, fontSize: 13 }}>Back</Text>
       </TouchableOpacity>
       <View style={styles.collectionHeader}>
-        <CoverArt
-          uri={art}
-          size={84}
-          round={round}
-          fallbackLabel={fallbackLabel}
-        />
+        {trackArts !== undefined ? (
+          <PlaylistCover picture={art} trackArts={trackArts} size={84} />
+        ) : (
+          <CoverArt
+            uri={art}
+            size={84}
+            round={round}
+            fallbackLabel={fallbackLabel}
+          />
+        )}
         <View style={{ flex: 1 }}>
           <Text numberOfLines={2} style={styles.collectionTitle}>
             {title}
@@ -520,10 +538,12 @@ function AlbumDetailScreen({
   view,
   onBack,
   onOpenArtist,
+  onAddToPlaylist,
 }: {
   view: Extract<DetailView, { kind: "album" }>;
   onBack: () => void;
   onOpenArtist: (artistId: string, name: string) => void;
+  onAddToPlaylist: (songId: string) => void;
 }) {
   const { data: creds } = useNavidromeCredentials();
   const { data: album, isLoading } = useNavidromeAlbumQuery(view.id);
@@ -539,32 +559,11 @@ function AlbumDetailScreen({
     [songs, creds, art],
   );
 
-  const sheetActions = (song: NavidromeSong): SheetAction[] => {
-    const track = creds ? songToQueueTrack(song, creds, art) : null;
-    const actions: SheetAction[] = [];
-    if (track) {
-      actions.push(
-        {
-          label: "Play next",
-          icon: "corner-down-right",
-          onPress: () => queueTracks([track], "next"),
-        },
-        {
-          label: "Add to queue",
-          icon: "list",
-          onPress: () => queueTracks([track], "last"),
-        },
-      );
-    }
-    if (song.artistId) {
-      actions.push({
-        label: "Go to artist",
-        icon: "user",
-        onPress: () => onOpenArtist(song.artistId as string, song.artist),
-      });
-    }
-    return actions;
-  };
+  // One builder for every list's track menu, so the options can't drift apart.
+  const sheetActions = (song: NavidromeSong): SheetAction[] =>
+    creds
+      ? songSheetActions(song, creds, art, onOpenArtist, onAddToPlaylist)
+      : [];
 
   return (
     <>
@@ -612,12 +611,111 @@ function AlbumDetailScreen({
   );
 }
 
+/** A one-field prompt: new playlist, rename, anything with a name. */
+function NameSheet({
+  title,
+  initialValue,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  initialValue?: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: (value: string) => void;
+}) {
+  const [value, setValue] = useState(initialValue ?? "");
+  const submit = () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    onConfirm(trimmed);
+  };
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onCancel}>
+      <Pressable style={styles.sheetBackdrop} onPress={onCancel} />
+      <View style={styles.sheet}>
+        <Text style={styles.sheetTitle}>{title}</Text>
+        <TextInput
+          value={value}
+          onChangeText={setValue}
+          placeholder="Name"
+          placeholderTextColor={colors.textMuted}
+          style={styles.nameInput}
+          autoFocus
+          maxLength={120}
+          returnKeyType="done"
+          onSubmitEditing={submit}
+        />
+        <View style={styles.sheetActions}>
+          <TouchableOpacity style={styles.sheetGhost} onPress={onCancel}>
+            <Text style={styles.sheetGhostText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.sheetPrimary}
+            onPress={submit}
+            disabled={!value.trim()}
+          >
+            <Text style={styles.sheetPrimaryText}>{confirmLabel}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** Pick a playlist to add a track to, or start a new one with it. */
+function PlaylistPickerSheet({
+  playlists,
+  onCancel,
+  onPick,
+  onCreate,
+}: {
+  playlists: NavidromePlaylist[];
+  onCancel: () => void;
+  onPick: (playlist: NavidromePlaylist) => void;
+  onCreate: () => void;
+}) {
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onCancel}>
+      <Pressable style={styles.sheetBackdrop} onPress={onCancel} />
+      <View style={styles.sheet}>
+        <Text style={styles.sheetTitle}>Add to playlist</Text>
+        <ScrollView style={styles.pickerList}>
+          <TouchableOpacity style={styles.sheetItem} onPress={onCreate}>
+            <Feather name="plus" size={16} color={colors.text} />
+            <Text style={styles.sheetItemText}>New playlist…</Text>
+          </TouchableOpacity>
+          {playlists.map((playlist) => (
+            <TouchableOpacity
+              key={playlist.id}
+              style={styles.sheetItem}
+              onPress={() => onPick(playlist)}
+            >
+              <PlaylistCover
+                picture={coverArtUrlOf(playlist)}
+                trackArts={playlist.trackArts}
+                size={30}
+              />
+              <Text numberOfLines={1} style={styles.sheetItemText}>
+                {playlist.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 /** The context menu for a navidrome song, wherever it is listed. */
 function songSheetActions(
   song: NavidromeSong,
   creds: NavidromeCredentials,
   art: string | null,
   onOpenArtist?: (artistId: string, name: string) => void,
+  onAddToPlaylist?: (songId: string) => void,
+  onRemoveFromPlaylist?: () => void,
 ): SheetAction[] {
   const track = songToQueueTrack(song, creds, art);
   const actions: SheetAction[] = [
@@ -632,6 +730,20 @@ function songSheetActions(
       onPress: () => queueTracks([track], "last"),
     },
   ];
+  if (onAddToPlaylist) {
+    actions.push({
+      label: "Add to playlist",
+      icon: "plus",
+      onPress: () => onAddToPlaylist(song.id),
+    });
+  }
+  if (onRemoveFromPlaylist) {
+    actions.push({
+      label: "Remove from playlist",
+      icon: "minus-circle",
+      onPress: onRemoveFromPlaylist,
+    });
+  }
   if (song.artistId && onOpenArtist) {
     const artistId = song.artistId;
     actions.push({
@@ -652,10 +764,13 @@ function songSheetActions(
 function PlaylistDetailScreen({
   view,
   onBack,
+  onAddToPlaylist,
 }: {
   view: Extract<DetailView, { kind: "playlist" }>;
   onBack: () => void;
+  onAddToPlaylist: (songId: string) => void;
 }) {
+  const removeTrack = useRemoveTrackFromPlaylistMutation();
   const { data: creds } = useNavidromeCredentials();
   const { data: playlist, isLoading } = useNavidromePlaylistQuery(view.id);
   const [sheetSong, setSheetSong] = useState<NavidromeSong | null>(null);
@@ -695,6 +810,7 @@ function PlaylistDetailScreen({
                 : view.subtitle
             }
             art={coverArtUrlOf(playlist) ?? view.art}
+            trackArts={playlist?.trackArts ?? view.trackArts ?? null}
             onBack={onBack}
             onPlay={() => playQueue(queue, 0)}
             onShuffle={() => playQueue(shuffled(queue), 0)}
@@ -715,7 +831,21 @@ function PlaylistDetailScreen({
           title={sheetSong.title}
           subtitle={sheetSong.artist}
           art={coverArtUrlOf(sheetSong)}
-          actions={songSheetActions(sheetSong, creds, coverArtUrlOf(sheetSong))}
+          actions={songSheetActions(
+            sheetSong,
+            creds,
+            coverArtUrlOf(sheetSong),
+            undefined,
+            onAddToPlaylist,
+            () => {
+              // By position, which is what the API removes by; the id can
+              // legitimately appear twice in one playlist.
+              const index = songs.indexOf(sheetSong);
+              if (index >= 0) {
+                removeTrack.mutate({ playlistId: view.id, index });
+              }
+            },
+          )}
           onClose={() => setSheetSong(null)}
         />
       )}
@@ -726,13 +856,23 @@ function PlaylistDetailScreen({
 function PlaylistRow({
   playlist,
   onPress,
+  onMore,
 }: {
   playlist: NavidromePlaylist;
   onPress: () => void;
+  onMore: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.trackRow} onPress={onPress}>
-      <CoverArt uri={coverArtUrlOf(playlist)} size={44} fallbackLabel="≡" />
+    <TouchableOpacity
+      style={styles.trackRow}
+      onPress={onPress}
+      onLongPress={onMore}
+    >
+      <PlaylistCover
+        picture={coverArtUrlOf(playlist)}
+        trackArts={playlist.trackArts}
+        size={44}
+      />
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={styles.rowTitle}>
           {playlist.name}
@@ -741,7 +881,7 @@ function PlaylistRow({
           {playlist.songCount} track{playlist.songCount === 1 ? "" : "s"}
         </Text>
       </View>
-      <Feather name="chevron-right" size={18} color={colors.textMuted} />
+      <MoreButton onPress={onMore} />
     </TouchableOpacity>
   );
 }
@@ -842,6 +982,20 @@ export default function Library() {
   const [stack, setStack] = useState<DetailView[]>([]);
   const [sheetTrack, setSheetTrack] = useState<UploadedTrack | null>(null);
   const [sheetSong, setSheetSong] = useState<NavidromeSong | null>(null);
+  const [sheetPlaylist, setSheetPlaylist] = useState<NavidromePlaylist | null>(
+    null,
+  );
+  // Which flow is asking for a name, and the song waiting for a playlist.
+  const [naming, setNaming] = useState<
+    | { kind: "new"; songId?: string }
+    | { kind: "rename"; playlist: NavidromePlaylist }
+    | null
+  >(null);
+  const [addingSongId, setAddingSongId] = useState<string | null>(null);
+  const createPlaylist = useCreatePlaylistMutation();
+  const renamePlaylistMutation = useRenamePlaylistMutation();
+  const deletePlaylistMutation = useDeletePlaylistMutation();
+  const addToPlaylist = useAddTrackToPlaylistMutation();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const { mutateAsync: upload } = useUploadTrackMutation();
 
@@ -987,6 +1141,42 @@ export default function Library() {
     return actions;
   };
 
+  // Playlist writes go through the Rocksky API, which mirrors them to the PDS;
+  // a mirror failure means the library changed but the record did not, so it is
+  // surfaced rather than swallowed.
+  const reportMirror = (error: Error) => {
+    if (error instanceof PlaylistMirrorWarning) {
+      Alert.alert("Saved, but not published", error.message);
+    }
+  };
+
+  const confirmDeletePlaylist = (playlist: NavidromePlaylist) => {
+    Alert.alert(playlist.name, "Delete this playlist?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          deletePlaylistMutation.mutate(playlist.id, {
+            onError: reportMirror,
+          }),
+      },
+    ]);
+  };
+
+  const playlistSheetActions = (playlist: NavidromePlaylist): SheetAction[] => [
+    {
+      label: "Rename",
+      icon: "edit-2",
+      onPress: () => setNaming({ kind: "rename", playlist }),
+    },
+    {
+      label: "Delete playlist",
+      icon: "trash-2",
+      onPress: () => confirmDeletePlaylist(playlist),
+    },
+  ];
+
   const popView = () => setStack((prev) => prev.slice(0, -1));
 
   // The drill-downs are screen state, not navigator routes, so Android's back
@@ -1069,9 +1259,14 @@ export default function Library() {
             view={view}
             onBack={popView}
             onOpenArtist={openArtistById}
+            onAddToPlaylist={setAddingSongId}
           />
         ) : view.kind === "playlist" ? (
-          <PlaylistDetailScreen view={view} onBack={popView} />
+          <PlaylistDetailScreen
+            view={view}
+            onBack={popView}
+            onAddToPlaylist={setAddingSongId}
+          />
         ) : (
           <ArtistDetailScreen
             view={view}
@@ -1229,6 +1424,15 @@ export default function Library() {
       {tab === 3 && (
         <FlatList
           data={playlists}
+          ListHeaderComponent={
+            <TouchableOpacity
+              style={styles.newButton}
+              onPress={() => setNaming({ kind: "new" })}
+            >
+              <Feather name="plus" size={14} color={colors.text} />
+              <Text style={styles.newButtonText}>New playlist</Text>
+            </TouchableOpacity>
+          }
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <PlaylistRow
@@ -1242,12 +1446,13 @@ export default function Library() {
                     title: item.name,
                     subtitle: `${item.songCount} track${item.songCount === 1 ? "" : "s"}`,
                     art: coverArtUrlOf(item),
+                    trackArts: item.trackArts,
                   },
                 ])
               }
+              onMore={() => setSheetPlaylist(item)}
             />
           )}
-          getItemLayout={rowLayout}
           initialNumToRender={12}
           maxToRenderPerBatch={12}
           ListEmptyComponent={
@@ -1308,8 +1513,66 @@ export default function Library() {
             creds,
             coverArtUrlOf(sheetSong),
             openArtistById,
+            setAddingSongId,
           )}
           onClose={() => setSheetSong(null)}
+        />
+      )}
+
+      {sheetPlaylist && (
+        <TrackActionSheet
+          title={sheetPlaylist.name}
+          subtitle={`${sheetPlaylist.songCount} track${sheetPlaylist.songCount === 1 ? "" : "s"}`}
+          art={coverArtUrlOf(sheetPlaylist)}
+          actions={playlistSheetActions(sheetPlaylist)}
+          onClose={() => setSheetPlaylist(null)}
+        />
+      )}
+
+      {naming && (
+        <NameSheet
+          title={naming.kind === "new" ? "New playlist" : "Rename playlist"}
+          initialValue={naming.kind === "rename" ? naming.playlist.name : ""}
+          confirmLabel={naming.kind === "new" ? "Create" : "Rename"}
+          onCancel={() => setNaming(null)}
+          onConfirm={(name) => {
+            const request = naming;
+            setNaming(null);
+            if (request.kind === "new") {
+              createPlaylist.mutate(
+                {
+                  name,
+                  songIds: request.songId ? [request.songId] : undefined,
+                },
+                { onError: reportMirror },
+              );
+              return;
+            }
+            renamePlaylistMutation.mutate(
+              { playlistId: request.playlist.id, name },
+              { onError: reportMirror },
+            );
+          }}
+        />
+      )}
+
+      {addingSongId && (
+        <PlaylistPickerSheet
+          playlists={playlists}
+          onCancel={() => setAddingSongId(null)}
+          onPick={(playlist) => {
+            const songId = addingSongId;
+            setAddingSongId(null);
+            addToPlaylist.mutate(
+              { playlistId: playlist.id, songId },
+              { onError: reportMirror },
+            );
+          }}
+          onCreate={() => {
+            const songId = addingSongId;
+            setAddingSongId(null);
+            setNaming({ kind: "new", songId });
+          }}
         />
       )}
 
@@ -1472,7 +1735,68 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   sheetItemText: {
+    flex: 1,
     fontSize: 14,
+    color: colors.text,
+  },
+  sheetTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 12,
+  },
+  nameInput: {
+    backgroundColor: colors.inputBackground,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.text,
+  },
+  sheetActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 14,
+  },
+  sheetGhost: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: colors.surface2,
+  },
+  sheetGhostText: {
+    fontSize: 13,
+    color: colors.text,
+  },
+  sheetPrimary: {
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+  },
+  sheetPrimaryText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  pickerList: {
+    maxHeight: 320,
+  },
+  newButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    marginBottom: 6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  newButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
     color: colors.text,
   },
   albumCard: {
