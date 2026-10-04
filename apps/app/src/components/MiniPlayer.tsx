@@ -17,6 +17,7 @@ import {
 } from "../atoms/devices";
 import { nowPlayingAtom, playerAtom, progressAtom } from "../atoms/nowplaying";
 import { usePlaybackControls } from "../hooks/usePlaybackControls";
+import { isLocalEngineAvailable, localQueue } from "../lib/uploadEngine";
 import { colors } from "../theme";
 import { Text } from "./Text";
 
@@ -48,6 +49,14 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
   };
 
   const selectSpotify = () => {
+    setActiveDeviceId(null);
+    setSourceSheetOpen(false);
+  };
+
+  // "This Device": the in-app native engine playing uploaded tracks.
+  const thisDeviceAvailable = isLocalEngineAvailable();
+  const thisDeviceActive = player === "local";
+  const selectThisDevice = () => {
     setActiveDeviceId(null);
     setSourceSheetOpen(false);
   };
@@ -204,6 +213,36 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
                 )}
               </TouchableOpacity>
             ))}
+            {thisDeviceAvailable && (
+              <TouchableOpacity
+                style={styles.sheetRow}
+                onPress={selectThisDevice}
+              >
+                <MaterialIcons
+                  name="cellphone"
+                  size={20}
+                  color={thisDeviceActive ? colors.primary : colors.textMuted}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.sheetRowTitle,
+                      thisDeviceActive && { color: colors.primary },
+                    ]}
+                  >
+                    This Device
+                  </Text>
+                  <Text numberOfLines={1} style={styles.sheetRowSubtitle}>
+                    {localQueue().length > 0
+                      ? `${localQueue().length} tracks queued`
+                      : "Your uploads"}
+                  </Text>
+                </View>
+                {thisDeviceActive && (
+                  <Feather name="check" size={18} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.sheetRow} onPress={selectSpotify}>
               <MaterialIcons
                 name="spotify"

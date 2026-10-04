@@ -7,7 +7,12 @@ import { storage } from "../storage";
 
 export type TransportAction = "play" | "pause" | "next" | "previous" | "seek";
 
-type Source = "rockbox" | "spotify" | null;
+type Source = "rockbox" | "spotify" | "local" | null;
+
+type LocalTransportHandler = (
+  action: TransportAction,
+  positionMs?: number,
+) => void;
 
 // Module-level transport routing, shared by the React hooks AND the headless
 // media-notification service (which runs outside the component tree).
@@ -15,6 +20,7 @@ const state = {
   controller: null as RemoteController | null,
   target: null as string | null,
   source: null as Source,
+  localHandler: null as LocalTransportHandler | null,
 };
 
 const store = getDefaultStore();
@@ -55,7 +61,17 @@ export const remoteBridge = {
     state.target = target;
   },
 
+  // The in-app native engine (uploaded-track playback) registers here; while
+  // it is the active source every transport action goes straight to it.
+  setLocalHandler(handler: LocalTransportHandler | null) {
+    state.localHandler = handler;
+  },
+
   send(action: TransportAction, positionMs?: number) {
+    if (state.source === "local") {
+      state.localHandler?.(action, positionMs);
+      return;
+    }
     if (state.source === "spotify") {
       void sendSpotify(action, positionMs);
       return;

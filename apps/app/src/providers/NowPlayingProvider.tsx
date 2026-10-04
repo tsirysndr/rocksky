@@ -8,6 +8,7 @@ import {
 } from "react";
 import { activeDeviceIdAtom, devicesAtom } from "@/src/atoms/devices";
 import {
+  localEngineActiveAtom,
   nowPlayingAtom,
   playbackLockedUntilAtom,
   playerAtom,
@@ -125,7 +126,12 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const did = storage.getDid() || "";
   useRemoteDevicesConnection();
   const deviceTrackActive = useActiveDeviceTrack();
-  const { nowPlaying, progress } = useNowPlaying(did, deviceTrackActive);
+  // The in-app engine feeds the atoms itself; polling must not clobber it.
+  const localEngineActive = useAtomValue(localEngineActiveAtom);
+  const { nowPlaying, progress } = useNowPlaying(
+    did,
+    deviceTrackActive || localEngineActive,
+  );
   useMediaSessionSync(nowPlaying);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: consumers only re-render on track/playing/liked changes, not on every poll tick

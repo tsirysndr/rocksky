@@ -11,6 +11,7 @@ import type { ComponentType } from "react";
 import { View } from "react-native";
 import { profileAtom } from "./atoms/profile";
 import Bell from "./components/Icons/Bell";
+import LibraryIcon from "./components/Icons/Library";
 import MiniPlayer from "./components/MiniPlayer";
 import UserAvatar from "./components/UserAvatar";
 import { useUnreadCountQuery } from "./hooks/useNotifications";
@@ -18,6 +19,7 @@ import AlbumDetails from "./screens/AlbumDetails";
 import ArtistDetails from "./screens/ArtistDetails";
 import Charts from "./screens/Charts";
 import Home from "./screens/Home";
+import Library from "./screens/Library";
 import Notifications from "./screens/Notifications";
 import Player from "./screens/Player";
 import Profile from "./screens/Profile";
@@ -51,6 +53,7 @@ function makeTabStack(name: string, RootScreen: ComponentType<any>) {
         <TabStack.Screen name="SongDetails" component={SongDetails} />
         <TabStack.Screen name="UserProfile" component={Profile} />
         <TabStack.Screen name="ShoutEditor" component={ShoutEditor} />
+        <TabStack.Screen name="Charts" component={Charts} />
       </TabStack.Navigator>
     );
   };
@@ -58,7 +61,7 @@ function makeTabStack(name: string, RootScreen: ComponentType<any>) {
 
 const HomeStackScreen = makeTabStack("Home", Home);
 const AlertsStackScreen = makeTabStack("Notifications", Notifications);
-const ChartsStackScreen = makeTabStack("Charts", Charts);
+const LibraryStackScreen = makeTabStack("Library", Library);
 const SearchStackScreen = makeTabStack("Search", Search);
 const ProfileStackScreen = makeTabStack("Profile", Profile);
 
@@ -118,8 +121,8 @@ function HomeTabs() {
               );
             case "AlertsTab":
               return <Bell size={28} color={color} />;
-            case "ChartsTab":
-              return <MaterialIcons name="chart-bar" size={28} color={color} />;
+            case "LibraryTab":
+              return <LibraryIcon size={28} color={color} />;
             case "SearchTab":
               return <Feather name="search" size={26} color={color} />;
             case "ProfileTab":
@@ -157,7 +160,7 @@ function HomeTabs() {
               : undefined,
         }}
       />
-      <Tab.Screen name="ChartsTab" component={ChartsStackScreen} />
+      <Tab.Screen name="LibraryTab" component={LibraryStackScreen} />
       <Tab.Screen name="SearchTab" component={SearchStackScreen} />
       <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
     </Tab.Navigator>
@@ -198,6 +201,7 @@ export type RootStackParamList = {
   Player: undefined;
   SignIn: undefined;
   Charts: undefined;
+  Library: undefined;
   Notifications: undefined;
   AlbumDetails: { uri: string };
   ArtistDetails: { uri: string };
