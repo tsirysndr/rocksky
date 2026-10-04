@@ -1,164 +1,56 @@
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import axios from "axios";
 import { Image } from "expo-image";
-import { useAtom } from "jotai";
-import { useCallback, useEffect, useRef } from "react";
-import { TouchableOpacity, View } from "react-native";
+import { useAtom, useAtomValue } from "jotai";
+import { useMemo, useState } from "react";
 import {
-  nowPlayingAtom,
-  playbackLockedUntilAtom,
-  playerAtom,
-  progressAtom,
-} from "../atoms/nowplaying";
-import { API_URL } from "../consts";
-import { useLikeMutation, useUnlikeMutation } from "../hooks/useLike";
-import { storage } from "../storage";
+  Modal,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  activeDeviceIdAtom,
+  devicesAtom,
+  remoteCommandsAtom,
+} from "../atoms/devices";
+import { nowPlayingAtom, playerAtom, progressAtom } from "../atoms/nowplaying";
+import { usePlaybackControls } from "../hooks/usePlaybackControls";
 import { colors } from "../theme";
 import { Text } from "./Text";
 
-type Props = { onPressTrack?: (uri: string) => void };
+type Props = { onOpenPlayer?: () => void };
 
-export default function MiniPlayer({ onPressTrack }: Props) {
-  const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
-  const [progress] = useAtom(progressAtom);
-  const [player] = useAtom(playerAtom);
-  const [, setLockedUntil] = useAtom(playbackLockedUntilAtom);
-  const { mutate: likeTrack } = useLikeMutation();
-  const { mutate: unlikeTrack } = useUnlikeMutation();
+export default function MiniPlayer({ onOpenPlayer }: Props) {
+  const nowPlaying = useAtomValue(nowPlayingAtom);
+  const progress = useAtomValue(progressAtom);
+  const player = useAtomValue(playerAtom);
+  const devices = useAtomValue(devicesAtom);
+  const [activeDeviceId, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
+  const commands = useAtomValue(remoteCommandsAtom);
+  const { playPause, next, previous, toggleLike } = usePlaybackControls();
+  const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const nowPlayingRef = useRef(nowPlaying);
-  const lockedUntilRef = useRef(0);
+  const deviceList = useMemo(() => Object.values(devices), [devices]);
+  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
 
-  useEffect(() => {
-    nowPlayingRef.current = nowPlaying;
-  }, [nowPlaying]);
-
-  // WebSocket for Rockbox status updates + control commands
-  useEffect(() => {
-    const token = storage.getToken();
-    if (!token) return;
-
-    const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
-    const ws = new WebSocket(`${wsUrl}/ws`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      ws.send(
-        JSON.stringify({ type: "register", clientName: "rocksky", token }),
-      );
-      heartbeatRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "heartbeat", token }));
-        }
-      }, 3000);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        const locked = Date.now() < lockedUntilRef.current;
-        if (msg.data?.status === 0) {
-          setNowPlaying(null);
-        } else if (msg.data?.status === 1 && nowPlayingRef.current && !locked) {
-          setNowPlaying((prev) => (prev ? { ...prev, isPlaying: true } : null));
-        } else if (
-          (msg.data?.status === 2 || msg.data?.status === 3) &&
-          nowPlayingRef.current &&
-          !locked
-        ) {
-          setNowPlaying((prev) =>
-            prev ? { ...prev, isPlaying: false } : null,
-          );
-        }
-      } catch {}
-    };
-
-    ws.onerror = () => {};
-
-    return () => {
-      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-      ws.close();
-    };
-  }, [setNowPlaying]);
-
-  const sendRockboxCommand = useCallback((action: string) => {
-    const token = storage.getToken();
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "command", action, token }));
-    }
-  }, []);
-
-  const onPlayPause = useCallback(async () => {
-    if (!nowPlaying) return;
-    const lockUntil = Date.now() + 1500;
-    lockedUntilRef.current = lockUntil;
-    setLockedUntil(lockUntil);
-    setNowPlaying((prev) =>
-      prev ? { ...prev, isPlaying: !prev.isPlaying } : null,
-    );
-    if (player === "rockbox") {
-      sendRockboxCommand(nowPlaying.isPlaying ? "pause" : "play");
-      return;
-    }
-    const token = storage.getToken();
-    try {
-      if (nowPlaying.isPlaying) {
-        await axios.put(
-          `${API_URL}/spotify/pause`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-      } else {
-        await axios.put(
-          `${API_URL}/spotify/play`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-      }
-    } catch {
-      // revert on failure
-      setNowPlaying((prev) =>
-        prev ? { ...prev, isPlaying: nowPlaying.isPlaying } : null,
-      );
-    }
-  }, [nowPlaying, player, sendRockboxCommand, setNowPlaying, setLockedUntil]);
-
-  const onNext = useCallback(async () => {
-    if (player === "rockbox") {
-      sendRockboxCommand("next");
-      return;
-    }
-    const token = storage.getToken();
-    try {
-      await axios.post(
-        `${API_URL}/spotify/next`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-    } catch {}
-  }, [player, sendRockboxCommand]);
-
-  const onLike = useCallback(() => {
-    if (!nowPlaying?.uri) return;
-    setNowPlaying((prev) => (prev ? { ...prev, liked: true } : null));
-    likeTrack(nowPlaying.uri);
-  }, [nowPlaying, setNowPlaying, likeTrack]);
-
-  const onUnlike = useCallback(() => {
-    if (!nowPlaying?.uri) return;
-    setNowPlaying((prev) => (prev ? { ...prev, liked: false } : null));
-    unlikeTrack(nowPlaying.uri);
-  }, [nowPlaying, setNowPlaying, unlikeTrack]);
-
-  if (!nowPlaying) return null;
+  if (!nowPlaying && deviceList.length === 0) return null;
 
   const progressPct =
-    nowPlaying.duration > 0
+    nowPlaying && nowPlaying.duration > 0
       ? Math.min(100, (progress / nowPlaying.duration) * 100)
       : 0;
+
+  const selectDevice = (deviceId: string) => {
+    commands?.setPrimary(deviceId);
+    setSourceSheetOpen(false);
+  };
+
+  const selectSpotify = () => {
+    setActiveDeviceId(null);
+    setSourceSheetOpen(false);
+  };
 
   return (
     <View
@@ -180,104 +72,269 @@ export default function MiniPlayer({ onPressTrack }: Props) {
       </View>
 
       {/* Row */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          gap: 12,
-        }}
-      >
+      <View style={styles.row}>
         {/* Album art */}
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 8,
-            overflow: "hidden",
-            backgroundColor: colors.surface2,
-            flexShrink: 0,
-          }}
-        >
-          {nowPlaying.cover ? (
+        <Pressable onPress={onOpenPlayer} style={styles.art}>
+          {nowPlaying?.cover ? (
             <Image
               source={nowPlaying.cover}
               style={{ width: 44, height: 44 }}
               contentFit="cover"
             />
           ) : (
-            <View
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <View style={styles.artPlaceholder}>
               <Text style={{ fontSize: 20, opacity: 0.2 }}>♪</Text>
             </View>
           )}
-        </View>
+        </Pressable>
 
-        {/* Track info */}
+        {/* Track info — opens the full player */}
         <TouchableOpacity
           style={{ flex: 1 }}
-          onPress={() => nowPlaying.uri && onPressTrack?.(nowPlaying.uri)}
+          onPress={onOpenPlayer}
           activeOpacity={0.7}
         >
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: 13, fontWeight: "600", color: colors.text }}
-          >
-            {nowPlaying.title}
+          <Text numberOfLines={1} style={styles.title}>
+            {nowPlaying?.title ?? "Nothing playing"}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: 11, color: colors.textMuted }}
-          >
-            {nowPlaying.artist}
+          <Text numberOfLines={1} style={styles.subtitle}>
+            {nowPlaying?.artist ??
+              (activeDevice ? activeDevice.name : "Select a device")}
           </Text>
         </TouchableOpacity>
 
         {/* Controls */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <TouchableOpacity
-            onPress={nowPlaying.liked ? onUnlike : onLike}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <MaterialIcons
-              name={nowPlaying.liked ? "heart" : "heart-outline"}
-              size={22}
-              color={nowPlaying.liked ? colors.primary : colors.textMuted}
-            />
-          </TouchableOpacity>
+        <View style={styles.controls}>
+          {deviceList.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSourceSheetOpen(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+            >
+              <MaterialIcons
+                name="speaker-wireless"
+                size={20}
+                color={
+                  activeDeviceId && player !== "spotify"
+                    ? colors.primary
+                    : colors.textMuted
+                }
+              />
+            </TouchableOpacity>
+          )}
+
+          {nowPlaying && (
+            <TouchableOpacity
+              onPress={toggleLike}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+            >
+              <MaterialIcons
+                name={nowPlaying.liked ? "heart" : "heart-outline"}
+                size={20}
+                color={nowPlaying.liked ? colors.primary : colors.textMuted}
+              />
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
-            onPress={onPlayPause}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              backgroundColor: colors.primary,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            onPress={previous}
+            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
           >
+            <Feather name="skip-back" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={playPause} style={styles.playButton}>
             <Feather
-              name={nowPlaying.isPlaying ? "pause" : "play"}
+              name={nowPlaying?.isPlaying ? "pause" : "play"}
               size={16}
               color="#fff"
             />
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={onNext}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            onPress={next}
+            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
           >
-            <Feather name="skip-forward" size={22} color={colors.textMuted} />
+            <Feather name="skip-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Source sheet */}
+      <Modal
+        visible={sourceSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSourceSheetOpen(false)}
+      >
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setSourceSheetOpen(false)}
+        >
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.grabHandle} />
+            <Text style={styles.sheetTitle}>Select Source</Text>
+            {deviceList.map((device) => (
+              <TouchableOpacity
+                key={device.deviceId}
+                style={styles.sheetRow}
+                onPress={() => selectDevice(device.deviceId)}
+              >
+                <MaterialIcons
+                  name="speaker-wireless"
+                  size={20}
+                  color={
+                    device.deviceId === activeDeviceId
+                      ? colors.primary
+                      : colors.textMuted
+                  }
+                />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.sheetRowTitle,
+                      device.deviceId === activeDeviceId && {
+                        color: colors.primary,
+                      },
+                    ]}
+                  >
+                    {device.name}
+                  </Text>
+                  {device.nowPlaying?.title && (
+                    <Text numberOfLines={1} style={styles.sheetRowSubtitle}>
+                      {device.nowPlaying.title}
+                    </Text>
+                  )}
+                </View>
+                {device.deviceId === activeDeviceId && (
+                  <Feather name="check" size={18} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.sheetRow} onPress={selectSpotify}>
+              <MaterialIcons
+                name="spotify"
+                size={20}
+                color={player === "spotify" ? "#1DB954" : colors.textMuted}
+              />
+              <Text
+                style={[
+                  styles.sheetRowTitle,
+                  player === "spotify" && { color: "#1DB954" },
+                ]}
+              >
+                Spotify
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setSourceSheetOpen(false)}
+            >
+              <Text style={styles.cancelLabel}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  art: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: colors.surface2,
+    flexShrink: 0,
+  },
+  artPlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  subtitle: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  controls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    paddingTop: 8,
+  },
+  grabHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.surface3,
+    marginBottom: 12,
+  },
+  sheetTitle: {
+    fontSize: 15,
+    fontFamily: "RockfordSansMedium",
+    color: colors.text,
+    marginBottom: 8,
+  },
+  sheetRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  sheetRowTitle: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  sheetRowSubtitle: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  cancelButton: {
+    marginTop: 12,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.surface2,
+  },
+  cancelLabel: {
+    fontSize: 14,
+    color: colors.text,
+  },
+});

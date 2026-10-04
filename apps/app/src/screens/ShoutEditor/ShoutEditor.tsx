@@ -1,7 +1,10 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { Image as ExpoImage } from "expo-image";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -16,10 +19,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { GifEmbed, MediaResult } from "@/src/api/klipy";
+import { isVideoUrl } from "@/src/api/klipy";
+import type { Shout, ShoutRow } from "@/src/api/shouts";
 import { profileAtom } from "@/src/atoms/profile";
 import { shoutsAtom } from "@/src/atoms/shouts";
 import Heart from "@/src/components/Icons/Heart";
 import HeartOutline from "@/src/components/Icons/HeartOutline";
+import KlipyPicker from "@/src/components/KlipyPicker";
 import { Text } from "@/src/components/Text";
 import useLike from "@/src/hooks/useLike";
 import useShout from "@/src/hooks/useShout";
@@ -31,44 +38,8 @@ dayjs.extend(relativeTime);
 
 type Props = { route?: RouteProp<RootStackParamList, "ShoutEditor"> };
 
-type Shout = {
-  id: string;
-  uri: string;
-  message: string;
-  date: string;
-  liked: boolean;
-  reported: boolean;
-  likes: number;
-  user: {
-    did: string;
-    avatar: string;
-    displayName: string;
-    handle: string;
-  };
-  replies?: Shout[];
-};
-
-type ShoutRow = {
-  shouts: {
-    id: string;
-    uri: string;
-    parent: string | null;
-    content: string;
-    createdAt: string;
-    liked: boolean;
-    reported: boolean;
-    likes: number;
-  };
-  users: {
-    did: string;
-    avatar: string;
-    displayName: string;
-    handle: string;
-  };
-};
-
-function processShouts(data: ShoutRow[]): Required<Shout>[] {
-  const mapShouts = (parentId: string | null): Required<Shout>[] =>
+function processShouts(data: ShoutRow[]): Shout[] {
+  const mapShouts = (parentId: string | null): Shout[] =>
     data
       .filter((x) => x.shouts.parent === parentId)
       .map((x) => ({
@@ -79,6 +50,15 @@ function processShouts(data: ShoutRow[]): Required<Shout>[] {
         liked: x.shouts.liked,
         reported: x.shouts.reported,
         likes: x.shouts.likes,
+        gif: x.shouts.gifUrl
+          ? {
+              url: x.shouts.gifUrl,
+              previewUrl: x.shouts.gifPreviewUrl ?? undefined,
+              alt: x.shouts.gifAlt ?? undefined,
+              width: x.shouts.gifWidth ?? undefined,
+              height: x.shouts.gifHeight ?? undefined,
+            }
+          : undefined,
         user: {
           did: x.users.did,
           avatar: x.users.avatar,
@@ -88,6 +68,47 @@ function processShouts(data: ShoutRow[]): Required<Shout>[] {
         replies: mapShouts(x.shouts.id).reverse(),
       }));
   return mapShouts(null);
+}
+
+const gifMediaStyle = (aspectRatio: number) =>
+  ({
+    width: 260,
+    maxWidth: "100%",
+    aspectRatio,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: colors.surface2,
+  }) as const;
+
+function GifVideo({ url, aspectRatio }: { url: string; aspectRatio: number }) {
+  const player = useVideoPlayer(url, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
+  return (
+    <VideoView
+      player={player}
+      style={gifMediaStyle(aspectRatio)}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
+}
+
+function GifMedia({ gif }: { gif: GifEmbed }) {
+  const aspectRatio = gif.width && gif.height ? gif.width / gif.height : 1;
+  if (isVideoUrl(gif.url)) {
+    return <GifVideo url={gif.url} aspectRatio={aspectRatio} />;
+  }
+  return (
+    <ExpoImage
+      source={{ uri: gif.previewUrl ?? gif.url }}
+      accessibilityLabel={gif.alt}
+      style={gifMediaStyle(aspectRatio)}
+      contentFit="cover"
+    />
+  );
 }
 
 function ShoutItem({
@@ -157,9 +178,16 @@ function ShoutItem({
             {dayjs(shout.date).fromNow()}
           </Text>
         </View>
-        <Text style={{ fontSize: 13, color: colors.text, lineHeight: 18 }}>
-          {shout.message}
-        </Text>
+        {shout.message ? (
+          <Text style={{ fontSize: 13, color: colors.text, lineHeight: 18 }}>
+            {shout.message}
+          </Text>
+        ) : null}
+        {shout.gif && (
+          <View style={{ marginTop: 6 }}>
+            <GifMedia gif={shout.gif} />
+          </View>
+        )}
         <View
           style={{
             flexDirection: "row",
@@ -243,6 +271,8 @@ export default function ShoutEditor({ route }: Props) {
   const { shout: postShout, getShouts, deleteShout } = useShout();
   const { like: likeApi, unlike: unlikeApi } = useLike();
   const [message, setMessage] = useState("");
+  const [gif, setGif] = useState<MediaResult | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -253,14 +283,26 @@ export default function ShoutEditor({ route }: Props) {
     });
   }, [uri, getShouts, setShouts]);
 
+  const canPost = Boolean(message.trim() || gif);
+
   const handleSubmit = async () => {
-    if (!message.trim() || !uri || loading) return;
+    if (!canPost || !uri || loading) return;
     setLoading(true);
     try {
-      await postShout(uri, message);
+      const gifEmbed: GifEmbed | undefined = gif
+        ? {
+            url: gif.url,
+            previewUrl: gif.previewUrl,
+            alt: gif.alt,
+            width: gif.width,
+            height: gif.height,
+          }
+        : undefined;
+      await postShout(uri, message, gifEmbed);
       const data = await getShouts(uri);
       setShouts((prev) => ({ ...prev, [uri]: processShouts(data) }));
       setMessage("");
+      setGif(null);
       inputRef.current?.blur();
     } finally {
       setLoading(false);
@@ -325,6 +367,39 @@ export default function ShoutEditor({ route }: Props) {
               borderBottomColor: colors.border,
             }}
           >
+            {gif && (
+              <View style={{ alignSelf: "flex-start", marginBottom: 10 }}>
+                <ExpoImage
+                  source={{ uri: gif.previewUrl ?? gif.url }}
+                  accessibilityLabel={gif.alt}
+                  style={{
+                    width: 84,
+                    height: 84,
+                    borderRadius: 8,
+                    backgroundColor: colors.surface2,
+                  }}
+                  contentFit="cover"
+                />
+                <TouchableOpacity
+                  onPress={() => setGif(null)}
+                  hitSlop={8}
+                  style={{
+                    position: "absolute",
+                    top: -8,
+                    right: -8,
+                    backgroundColor: colors.surface3,
+                    borderRadius: 11,
+                    padding: 3,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={14}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
             <TextInput
               ref={inputRef}
               value={message}
@@ -353,17 +428,30 @@ export default function ShoutEditor({ route }: Props) {
                 marginTop: 8,
               }}
             >
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>
-                {message.length}/1000
-              </Text>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
+                <TouchableOpacity
+                  onPress={() => setPickerOpen(true)}
+                  hitSlop={8}
+                  accessibilityLabel="Add a GIF"
+                >
+                  <MaterialCommunityIcons
+                    name="file-gif-box"
+                    size={26}
+                    color={gif ? colors.primary : colors.textMuted}
+                  />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                  {message.length}/1000
+                </Text>
+              </View>
               <TouchableOpacity
                 onPress={handleSubmit}
-                disabled={!message.trim() || loading}
+                disabled={!canPost || loading}
                 style={{
                   backgroundColor:
-                    message.trim() && !loading
-                      ? colors.primary
-                      : colors.surface2,
+                    canPost && !loading ? colors.primary : colors.surface2,
                   borderRadius: 20,
                   paddingHorizontal: 20,
                   paddingVertical: 8,
@@ -374,7 +462,7 @@ export default function ShoutEditor({ route }: Props) {
                 ) : (
                   <Text
                     style={{
-                      color: message.trim() ? "#fff" : colors.textMuted,
+                      color: canPost ? "#fff" : colors.textMuted,
                       fontWeight: "600",
                       fontSize: 14,
                     }}
@@ -420,6 +508,12 @@ export default function ShoutEditor({ route }: Props) {
           }
         />
       </KeyboardAvoidingView>
+
+      <KlipyPicker
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(media) => setGif(media)}
+      />
     </SafeAreaView>
   );
 }

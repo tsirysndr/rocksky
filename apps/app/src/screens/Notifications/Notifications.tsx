@@ -1,3 +1,4 @@
+import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { type NavigationProp, useNavigation } from "@react-navigation/native";
 import { useEffect, useMemo, useRef } from "react";
 import {
@@ -63,7 +64,6 @@ function Avatar({
 }) {
   const avatar = actor?.avatar;
   const showImage = !!avatar && !avatar.endsWith("/@jpeg");
-  const letter = actorName(actor).charAt(0).toUpperCase();
   return (
     <View
       style={{
@@ -85,9 +85,7 @@ function Avatar({
           style={{ width: 28, height: 28, borderRadius: 14 }}
         />
       ) : (
-        <Text style={{ fontSize: 13, fontWeight: "600", color: "#fff" }}>
-          {letter}
-        </Text>
+        <MaterialIcons name="account" size={18} color="#fff" />
       )}
     </View>
   );

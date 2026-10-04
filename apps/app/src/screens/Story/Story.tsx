@@ -2,15 +2,24 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import { Image } from "expo-image";
-import { type FC, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
+  PanResponder,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/src/components/Text";
+import UserAvatar from "@/src/components/UserAvatar";
 import { colors } from "@/src/theme";
 import type { Story as StoryItem } from "@/src/types/feed";
 
@@ -66,23 +75,48 @@ const Story: FC<StoryProps> = ({
     return () => animRef.current?.stop();
   }, [startProgress]);
 
+  const goNext = useCallback(() => {
+    setIndex((i) => {
+      if (i + 1 >= stories.length) {
+        onClose();
+        return i;
+      }
+      return i + 1;
+    });
+  }, [stories.length, onClose]);
+
+  const goPrev = useCallback(() => {
+    setIndex((i) => (i === 0 ? i : i - 1));
+  }, []);
+
+  // Swipe left/up for the next story, right/down for the previous one —
+  // taps still reach the tap zones because the responder only claims moves.
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_evt, gesture) =>
+          Math.abs(gesture.dx) > 12 || Math.abs(gesture.dy) > 12,
+        onPanResponderRelease: (_evt, gesture) => {
+          const { dx, dy } = gesture;
+          if (Math.abs(dx) >= Math.abs(dy)) {
+            if (dx <= -50) goNext();
+            else if (dx >= 50) goPrev();
+            return;
+          }
+          if (dy <= -50) goNext();
+          else if (dy >= 50) goPrev();
+        },
+      }),
+    [goNext, goPrev],
+  );
+
   if (!current) return null;
 
-  const goNext = () => {
-    if (index + 1 >= stories.length) {
-      onClose();
-      return;
-    }
-    setIndex((i) => i + 1);
-  };
-
-  const goPrev = () => {
-    if (index === 0) return;
-    setIndex((i) => i - 1);
-  };
-
   return (
-    <View style={{ flex: 1, backgroundColor: "#000" }}>
+    <View
+      style={{ flex: 1, backgroundColor: "#000" }}
+      {...panResponder.panHandlers}
+    >
       {!!current.albumArt && (
         <Image
           source={current.albumArt}
@@ -157,23 +191,7 @@ const Story: FC<StoryProps> = ({
               flex: 1,
             }}
           >
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                overflow: "hidden",
-                backgroundColor: colors.avatarBackground,
-              }}
-            >
-              {current.avatar && !current.avatar.endsWith("/@jpeg") ? (
-                <Image
-                  source={current.avatar}
-                  style={{ width: 36, height: 36 }}
-                  contentFit="cover"
-                />
-              ) : null}
-            </View>
+            <UserAvatar uri={current.avatar} size={36} />
             <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>
               @{current.handle}
             </Text>

@@ -40,5 +40,6 @@ module.exports = {
       },
     ],
     "react-native-edge-to-edge",
+    "expo-video",
   ],
 };

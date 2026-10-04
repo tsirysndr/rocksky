@@ -1,9 +1,9 @@
 import { type NavigationProp, useNavigation } from "@react-navigation/native";
-import { Image } from "expo-image";
 import { useSetAtom } from "jotai";
 import { FlatList, TouchableOpacity, View } from "react-native";
 import { storiesAtom } from "@/src/atoms/stories";
 import { Text } from "@/src/components/Text";
+import UserAvatar from "@/src/components/UserAvatar";
 import { useStoriesQuery } from "@/src/hooks/useStories";
 import type { RootStackParamList } from "@/src/Navigation";
 import { colors } from "@/src/theme";
@@ -87,22 +87,7 @@ export default function Stories() {
               marginBottom: 4,
             }}
           >
-            <View
-              style={{
-                flex: 1,
-                borderRadius: 28,
-                overflow: "hidden",
-                backgroundColor: colors.avatarBackground,
-              }}
-            >
-              {item.avatar && !item.avatar.endsWith("/@jpeg") ? (
-                <Image
-                  source={item.avatar}
-                  style={{ width: "100%", height: "100%" }}
-                  contentFit="cover"
-                />
-              ) : null}
-            </View>
+            <UserAvatar uri={item.avatar} size={56} />
           </View>
           <Text
             numberOfLines={1}

@@ -22,6 +22,7 @@ import { followsAtom } from "@/src/atoms/follows";
 import { profileAtom } from "@/src/atoms/profile";
 import FloatingShoutBar from "@/src/components/FloatingShoutBar";
 import { Text } from "@/src/components/Text";
+import UserAvatar from "@/src/components/UserAvatar";
 import {
   useFollowAccountMutation,
   useFollowersInfiniteQuery,
@@ -92,48 +93,8 @@ function imgUrl(track: TrackItem): string {
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
-function Avatar({
-  uri,
-  name,
-  size = 48,
-}: {
-  uri?: string;
-  name?: string;
-  size?: number;
-}) {
-  const [error, setError] = useState(false);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberately reset the load-error state whenever the avatar uri changes
-  useEffect(() => {
-    setError(false);
-  }, [uri]);
-
-  if (uri && !error) {
-    return (
-      <Image
-        source={uri}
-        style={{ width: size, height: size, borderRadius: size / 2 }}
-        onError={() => setError(true)}
-        contentFit="cover"
-      />
-    );
-  }
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: colors.avatarBackground,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text style={{ color: "#fff", fontSize: size * 0.35 }}>
-        {(name || "?")[0]?.toUpperCase()}
-      </Text>
-    </View>
-  );
+function Avatar({ uri, size = 48 }: { uri?: string; size?: number }) {
+  return <UserAvatar uri={uri} size={size} />;
 }
 
 // ─── User card ───────────────────────────────────────────────────────────────
@@ -163,11 +124,7 @@ function UserCard({
       }}
       onPress={() => navigation.navigate("UserProfile", { did: user.did })}
     >
-      <Avatar
-        uri={user.avatar}
-        name={user.displayName || user.handle}
-        size={48}
-      />
+      <Avatar uri={user.avatar} size={48} />
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text }}>
           {user.displayName || user.handle}
@@ -1193,11 +1150,7 @@ function CirclesTab({
             <TouchableOpacity
               onPress={() => navigation.navigate("UserProfile", { did: n.did })}
             >
-              <Avatar
-                uri={n.avatar}
-                name={n.displayName || n.handle}
-                size={48}
-              />
+              <Avatar uri={n.avatar} size={48} />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
               <TouchableOpacity
@@ -1571,11 +1524,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                 marginBottom: 12,
               }}
             >
-              <Avatar
-                uri={displayProfile?.avatar}
-                name={displayProfile?.displayName}
-                size={72}
-              />
+              <Avatar uri={displayProfile?.avatar} size={72} />
               <View style={{ flex: 1 }}>
                 <Text
                   style={{

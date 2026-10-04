@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { GifEmbed } from "../api/klipy";
 import {
   cancelReport as apiCancelReport,
   deleteShout as apiDelete,
@@ -11,14 +12,16 @@ import {
 
 function useShout() {
   const shout = useCallback(
-    (uri: string, message: string) => apiShout(uri, message),
+    (uri: string, message: string, gif?: GifEmbed) =>
+      apiShout(uri, message, gif),
     [],
   );
 
   const getShouts = useCallback((uri: string) => apiGetShouts(uri), []);
 
   const reply = useCallback(
-    (uri: string, message: string) => apiReply(uri, message),
+    (uri: string, message: string, gif?: GifEmbed) =>
+      apiReply(uri, message, gif),
     [],
   );
 

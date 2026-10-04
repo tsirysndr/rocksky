@@ -1,4 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
+import { LinearGradient } from "expo-linear-gradient";
 import { type NavigationProp, useNavigation } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -252,17 +253,18 @@ function SongCard({
             </Text>
           </View>
         )}
-        <View
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.75)"]}
           style={{
             position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
             flexDirection: "row",
-            alignItems: "center",
+            alignItems: "flex-end",
             paddingHorizontal: 10,
-            paddingVertical: 8,
-            backgroundColor: "rgba(0,0,0,0.45)",
+            paddingTop: 28,
+            paddingBottom: 8,
           }}
           pointerEvents="box-none"
         >
@@ -287,7 +289,7 @@ function SongCard({
               </Text>
             )}
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </View>
       <Text
         numberOfLines={1}

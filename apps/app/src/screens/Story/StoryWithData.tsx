@@ -23,13 +23,26 @@ const StoryWithData: FC<StoryWithDataProps> = ({ route }) => {
   const { data: fetched } = useStoriesQuery();
   const stories = handedOff.length ? handedOff : (fetched ?? []);
 
+  // The viewer is a root-level full-screen modal; detail routes live inside
+  // the tab stacks, so close the modal first and navigate into the home tab.
+  const openInHomeTab = (
+    screen: "UserProfile" | "ArtistDetails" | "SongDetails",
+    params: Record<string, string>,
+  ) => {
+    navigation.goBack();
+    navigation.navigate("HomeTabs", {
+      screen: "HomeTab",
+      params: { screen, params },
+    } as never);
+  };
+
   return (
     <Story
       stories={stories}
       index={route?.params?.index}
-      onOpenProfile={(did) => navigation.navigate("UserProfile", { did })}
-      onPressArtist={(uri) => navigation.navigate("ArtistDetails", { uri })}
-      onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
+      onOpenProfile={(did) => openInHomeTab("UserProfile", { did })}
+      onPressArtist={(uri) => openInHomeTab("ArtistDetails", { uri })}
+      onPressTrack={(uri) => openInHomeTab("SongDetails", { uri })}
       onClose={() => navigation.goBack()}
     />
   );

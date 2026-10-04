@@ -1,6 +1,6 @@
 import { atom } from "jotai";
 
-export const nowPlayingAtom = atom<{
+export type NowPlaying = {
   title: string;
   artist: string;
   cover: string;
@@ -9,7 +9,14 @@ export const nowPlayingAtom = atom<{
   isPlaying: boolean;
   liked: boolean;
   uri: string;
-} | null>(null);
+  album?: string;
+  artistUri?: string;
+  albumUri?: string;
+  shuffle?: boolean;
+  repeat?: "off" | "one" | "all";
+};
+
+export const nowPlayingAtom = atom<NowPlaying | null>(null);
 
 export const progressAtom = atom(0);
 

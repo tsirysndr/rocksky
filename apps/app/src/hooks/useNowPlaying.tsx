@@ -10,8 +10,10 @@ import {
 } from "../atoms/nowplaying";
 import { API_URL } from "../consts";
 
-export const useNowPlaying = (did: string) => {
-  const progressInterval = useRef<number | null>(null);
+// `paused`: an active remote device is feeding the now-playing atoms over the
+// WebSocket, so the polling fallback must not write (or clear) them.
+export const useNowPlaying = (did: string, paused = false) => {
+  const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const [progress, setProgress] = useAtom(progressAtom);
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const [, setPlayer] = useAtom(playerAtom);
@@ -27,7 +29,9 @@ export const useNowPlaying = (did: string) => {
   const nowPlayingResult = useQuery({
     queryKey: ["now-playing", did],
     queryFn: () =>
-      fetch(`${API_URL}/now-playing?did=${did}`).then((res) => res.json()),
+      fetch(`${API_URL}/now-playing?did=${did}`)
+        .then((res) => res.json())
+        .catch(() => null),
     refetchInterval: 15000,
     enabled: !!did,
     staleTime: 0,
@@ -35,73 +39,74 @@ export const useNowPlaying = (did: string) => {
   const nowPlayingSpotifyResult = useQuery({
     queryKey: ["now-playing", "spotify", did],
     queryFn: () =>
-      fetch(`${API_URL}/spotify/currently-playing?did=${did}`).then((res) =>
-        res.json(),
-      ),
+      fetch(`${API_URL}/spotify/currently-playing?did=${did}`)
+        .then((res) => res.json())
+        .catch(() => null),
     refetchInterval: 15000,
     enabled: !!did,
     staleTime: 0,
   });
 
   useEffect(() => {
-    if (
-      !nowPlayingResult.isLoading &&
-      nowPlayingResult.data &&
-      Object.keys(nowPlayingResult.data).length
-    ) {
+    if (paused) return;
+
+    const rockbox = nowPlayingResult.data;
+    const spotify = nowPlayingSpotifyResult.data;
+    const rockboxValid =
+      !nowPlayingResult.isLoading && rockbox && rockbox.title;
+    const spotifyValid =
+      !nowPlayingSpotifyResult.isLoading && spotify && spotify.item;
+
+    if (rockboxValid) {
       const locked = Date.now() < lockedUntilRef.current;
       setNowPlaying((prev) => ({
-        title: nowPlayingResult.data.title,
-        artist:
-          nowPlayingResult.data.album_artist || nowPlayingResult.data.artist,
-        cover: nowPlayingResult.data.album_art,
-        duration: nowPlayingResult.data.length,
-        progress: nowPlayingResult.data.elapsed,
-        isPlaying:
-          locked && prev ? prev.isPlaying : nowPlayingResult.data.is_playing,
-        liked: nowPlayingResult.data.liked,
-        uri: nowPlayingResult.data.songUri,
+        title: rockbox.title,
+        artist: rockbox.album_artist || rockbox.artist,
+        cover: rockbox.album_art,
+        duration: rockbox.length,
+        progress: rockbox.elapsed,
+        isPlaying: locked && prev ? prev.isPlaying : rockbox.is_playing,
+        liked: rockbox.liked,
+        uri: rockbox.songUri,
+        album: rockbox.album,
+        artistUri: rockbox.artist_uri,
+        albumUri: rockbox.album_uri,
       }));
       setPlayer("rockbox");
-      setProgress(nowPlayingResult.data.elapsed);
-      progressRef.current = nowPlayingResult.data.elapsed;
+      setProgress(rockbox.elapsed);
+      progressRef.current = rockbox.elapsed;
       return;
     }
 
-    if (!nowPlayingResult.isLoading && !nowPlayingResult.data) {
+    if (spotifyValid) {
+      const locked = Date.now() < lockedUntilRef.current;
+      setNowPlaying((prev) => ({
+        title: spotify.item.name,
+        artist: spotify.item.artists
+          .map((artist: { name: string }) => artist.name)
+          .join(", "),
+        cover: _.get(spotify, "item.album.images.0.url"),
+        duration: spotify.item.duration_ms,
+        progress: spotify.progress_ms,
+        isPlaying: locked && prev ? prev.isPlaying : spotify.is_playing,
+        liked: spotify.liked,
+        uri: spotify.songUri,
+        artistUri: spotify.artistUri,
+        albumUri: spotify.albumUri,
+      }));
+      setPlayer("spotify");
+      setProgress(spotify.progress_ms);
+      progressRef.current = spotify.progress_ms;
+      return;
+    }
+
+    // Clear only once both sources have answered and neither is playing.
+    if (!nowPlayingResult.isLoading && !nowPlayingSpotifyResult.isLoading) {
       setNowPlaying(null);
       setPlayer(null);
-      return;
     }
-
-    if (
-      nowPlayingSpotifyResult.isLoading ||
-      !nowPlayingSpotifyResult.data ||
-      !Object.keys(nowPlayingSpotifyResult.data).length
-    ) {
-      return;
-    }
-
-    const locked = Date.now() < lockedUntilRef.current;
-    setNowPlaying((prev) => ({
-      title: nowPlayingSpotifyResult.data.item.name,
-      artist: nowPlayingSpotifyResult.data.item.artists
-        .map((artist: { name: string }) => artist.name)
-        .join(", "),
-      cover: _.get(nowPlayingSpotifyResult.data, "item.album.images.0.url"),
-      duration: nowPlayingSpotifyResult.data.item.duration_ms,
-      progress: nowPlayingSpotifyResult.data.progress_ms,
-      isPlaying:
-        locked && prev
-          ? prev.isPlaying
-          : nowPlayingSpotifyResult.data.is_playing,
-      liked: nowPlayingSpotifyResult.data.liked,
-      uri: nowPlayingSpotifyResult.data.songUri,
-    }));
-    setPlayer("spotify");
-    setProgress(nowPlayingSpotifyResult.data.progress_ms);
-    progressRef.current = nowPlayingSpotifyResult.data.progress_ms;
   }, [
+    paused,
     nowPlayingResult.data,
     nowPlayingSpotifyResult.data,
     nowPlayingResult.isLoading,
@@ -156,6 +161,8 @@ export const useNowPlaying = (did: string) => {
   useEffect(() => {
     if (nowPlaying) {
       nowPlayingRef.current = nowPlaying;
+    } else {
+      nowPlayingRef.current = null;
     }
   }, [nowPlaying]);
 

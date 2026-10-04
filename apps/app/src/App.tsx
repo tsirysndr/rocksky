@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import StarrySplash from "./components/StarrySplash";
 import { useCurrentUserProfile } from "./hooks/useProfile";
 import { RootStack } from "./Navigation";
 import { NowPlayingProvider } from "./providers/NowPlayingProvider";
@@ -36,40 +37,48 @@ const navigationTheme = {
   },
 };
 
-function AppInner() {
-  const [isReady, setIsReady] = useState(false);
+const SPLASH_MIN_MS = 1800;
+
+function AppInner({ fontsLoaded }: { fontsLoaded: boolean }) {
+  const [storageReady, setStorageReady] = useState(false);
+  const [minTimeDone, setMinTimeDone] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const token = storage.getToken();
 
   useCurrentUserProfile(token);
 
   useEffect(() => {
+    // The native splash hands off to the animated StarrySplash right away.
+    SplashScreen.hideAsync();
     storage.load().then(({ token }) => {
       setIsLoggedIn(!!token);
-      setIsReady(true);
-      SplashScreen.hideAsync();
+      setStorageReady(true);
     });
+    const timer = setTimeout(() => setMinTimeDone(true), SPLASH_MIN_MS);
+    return () => clearTimeout(timer);
   }, []);
 
-  if (!isReady) {
-    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
-  }
-
-  if (!isLoggedIn) {
-    return <SignIn onSuccess={() => setIsLoggedIn(true)} />;
-  }
+  const showSplash = !storageReady || !fontsLoaded || !minTimeDone;
 
   return (
-    <NowPlayingProvider>
-      <NavigationContainer theme={navigationTheme}>
-        <RootStack />
-      </NavigationContainer>
-    </NowPlayingProvider>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {storageReady &&
+        (isLoggedIn ? (
+          <NowPlayingProvider>
+            <NavigationContainer theme={navigationTheme}>
+              <RootStack />
+            </NavigationContainer>
+          </NowPlayingProvider>
+        ) : (
+          <SignIn onSuccess={() => setIsLoggedIn(true)} />
+        ))}
+      <StarrySplash visible={showSplash} />
+    </View>
   );
 }
 
 export default function App() {
-  useFonts({
+  const [fontsLoaded] = useFonts({
     RockfordSansLight: require("../assets/fonts/RockfordSans-Light.otf"),
     RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
     RockfordSansMedium: require("../assets/fonts/RockfordSans-Medium.otf"),
@@ -80,7 +89,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <AppInner />
+        <AppInner fontsLoaded={fontsLoaded} />
       </SafeAreaProvider>
     </QueryClientProvider>
   );

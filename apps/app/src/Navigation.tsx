@@ -15,6 +15,7 @@ import ArtistDetails from "./screens/ArtistDetails";
 import Charts from "./screens/Charts";
 import Home from "./screens/Home";
 import Notifications from "./screens/Notifications";
+import Player from "./screens/Player";
 import Profile from "./screens/Profile";
 import Search from "./screens/Search";
 import ShoutEditor from "./screens/ShoutEditor";
@@ -43,7 +44,6 @@ function makeTabStack(name: string, RootScreen: ComponentType<any>) {
         <TabStack.Screen name="ArtistDetails" component={ArtistDetails} />
         <TabStack.Screen name="SongDetails" component={SongDetails} />
         <TabStack.Screen name="UserProfile" component={Profile} />
-        <TabStack.Screen name="Story" component={Story} />
         <TabStack.Screen name="ShoutEditor" component={ShoutEditor} />
       </TabStack.Navigator>
     );
@@ -60,11 +60,8 @@ function CustomTabBar(props: BottomTabBarProps) {
   return (
     <View style={{ backgroundColor: colors.surface }}>
       <MiniPlayer
-        onPressTrack={(uri) =>
-          props.navigation.navigate("HomeTab", {
-            screen: "SongDetails",
-            params: { uri },
-          })
+        onOpenPlayer={() =>
+          props.navigation.getParent()?.navigate("Player" as never)
         }
       />
       <BottomTabBar {...props} />
@@ -174,6 +171,16 @@ export function RootStack() {
       }}
     >
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
+      <Stack.Screen
+        name="Player"
+        component={Player}
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
+      />
+      <Stack.Screen
+        name="Story"
+        component={Story}
+        options={{ presentation: "fullScreenModal", animation: "fade" }}
+      />
     </Stack.Navigator>
   );
 }
@@ -181,6 +188,7 @@ export function RootStack() {
 export type RootStackParamList = {
   Home: undefined;
   HomeTabs: undefined;
+  Player: undefined;
   Charts: undefined;
   Notifications: undefined;
   AlbumDetails: { uri: string };
