@@ -46,6 +46,7 @@ import {
 import type { RootStackParamList } from "@/src/Navigation";
 import { storage } from "@/src/storage";
 import { colors } from "@/src/theme";
+import type { Track } from "@/src/types/track";
 
 dayjs.extend(relativeTime);
 
@@ -170,6 +171,130 @@ function UserCard({
   );
 }
 
+// ─── Top track badge ─────────────────────────────────────────────────────────
+
+function TopTrackBadge({
+  track,
+  navigation,
+}: {
+  track: Track;
+  navigation: NativeStackNavigationProp<RootStackParamList>;
+}) {
+  return (
+    <TouchableOpacity
+      disabled={!track.uri}
+      onPress={() =>
+        track.uri && navigation.navigate("SongDetails", { uri: track.uri })
+      }
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        backgroundColor: colors.surface,
+        borderRadius: 10,
+        padding: 10,
+        marginTop: 10,
+      }}
+    >
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 8,
+          overflow: "hidden",
+          backgroundColor: colors.surface2,
+        }}
+      >
+        {track.albumArt ? (
+          <Image
+            source={{ uri: track.albumArt }}
+            style={{ width: 48, height: 48 }}
+          />
+        ) : (
+          <View
+            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ opacity: 0.2 }}>♪</Text>
+          </View>
+        )}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{ fontSize: 10, letterSpacing: 1, color: colors.textMuted }}
+        >
+          TOP TRACK
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 14, fontWeight: "600", color: colors.text }}
+        >
+          {track.title}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 12, color: colors.textMuted }}
+        >
+          {track.artist}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Time-range switcher ──────────────────────────────────────────────────────
+
+const RANGE_OPTIONS: { label: string; days: number | null }[] = [
+  { label: "7 days", days: 7 },
+  { label: "30 days", days: 30 },
+  { label: "90 days", days: 90 },
+  { label: "180 days", days: 180 },
+  { label: "365 days", days: 365 },
+  { label: "All time", days: null },
+];
+
+function RangePills({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (days: number | null) => void;
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginTop: 20, flexGrow: 0 }}
+      contentContainerStyle={{ gap: 8 }}
+    >
+      {RANGE_OPTIONS.map((option) => {
+        const active = option.days === value;
+        return (
+          <TouchableOpacity
+            key={option.label}
+            onPress={() => onChange(option.days)}
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical: 6,
+              borderRadius: 20,
+              backgroundColor: active ? colors.surface3 : "transparent",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: active ? colors.text : colors.textMuted,
+              }}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 // ─── Overview tab ─────────────────────────────────────────────────────────────
 
 function OverviewTab({
@@ -180,31 +305,57 @@ function OverviewTab({
   navigation: NativeStackNavigationProp<RootStackParamList>;
 }) {
   const [refreshing, setRefreshing] = useState(false);
+  const [rangeDays, setRangeDays] = useState<number | null>(7);
+  const [autoSwitched, setAutoSwitched] = useState(false);
+
+  const startDate =
+    rangeDays === null
+      ? undefined
+      : dayjs().subtract(rangeDays, "day").startOf("day").toDate();
+  const endDate =
+    rangeDays === null ? undefined : dayjs().endOf("day").toDate();
+
   const { data: recentTracks, refetch: refetchRecent } =
     useRecentTracksByDidQuery(did, 0, 20);
-  const { data: artists, refetch: refetchArtists } = useArtistsQuery(did, 0, 5);
-  const { data: albums, refetch: refetchAlbums } = useAlbumsQuery(did, 0, 6);
-  const { data: tracks, refetch: refetchTracks } = useTracksQuery(did, 0, 10);
+  const artistsQuery = useArtistsQuery(did, 0, 5, startDate, endDate);
+  const albumsQuery = useAlbumsQuery(did, 0, 6, startDate, endDate);
+  const tracksQuery = useTracksQuery(did, 0, 10, startDate, endDate);
 
   const recentList: TrackItem[] = recentTracks || [];
-  const artistList: ArtistItem[] = Array.isArray(artists)
-    ? artists
-    : (artists?.artists ?? []);
-  const albumList: AlbumItem[] = Array.isArray(albums)
-    ? albums
-    : (albums?.albums ?? []);
-  const trackList: TrackItem[] = Array.isArray(tracks)
-    ? tracks
-    : (tracks?.tracks ?? []);
+  const artistList: ArtistItem[] = artistsQuery.data?.artists ?? [];
+  const albumList: AlbumItem[] = albumsQuery.data?.albums ?? [];
+  const trackList: TrackItem[] = tracksQuery.data?.tracks ?? [];
+
+  // Auto-switch to All time once when the default 7-day window has no data.
+  const chartsSettled =
+    artistsQuery.isSuccess && albumsQuery.isSuccess && tracksQuery.isSuccess;
+  const chartsEmpty =
+    artistList.length === 0 && albumList.length === 0 && trackList.length === 0;
+  const probeEnabled =
+    !autoSwitched && rangeDays === 7 && chartsSettled && chartsEmpty;
+  const probeQuery = useTracksQuery(probeEnabled ? did : "", 0, 1);
+
+  useEffect(() => {
+    if (!probeEnabled || !probeQuery.isSuccess) return;
+    setAutoSwitched(true);
+    if ((probeQuery.data?.tracks ?? []).length > 0) {
+      setRangeDays(null);
+    }
+  }, [probeEnabled, probeQuery.isSuccess, probeQuery.data]);
+
+  const onRangeChange = (days: number | null) => {
+    setAutoSwitched(true);
+    setRangeDays(days);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       await Promise.all([
         refetchRecent(),
-        refetchArtists(),
-        refetchAlbums(),
-        refetchTracks(),
+        artistsQuery.refetch(),
+        albumsQuery.refetch(),
+        tracksQuery.refetch(),
       ]);
     } finally {
       setRefreshing(false);
@@ -298,6 +449,9 @@ function OverviewTab({
           </TouchableOpacity>
         );
       })}
+
+      {/* Time range for the top charts */}
+      <RangePills value={rangeDays} onChange={onRangeChange} />
 
       {/* Top Artists */}
       {artistList.length > 0 && (
@@ -621,15 +775,9 @@ function LibraryTab({
   const { data: tracks } = useTracksQuery(did, (trackPage - 1) * PAGE, PAGE);
 
   const scrobbleList: TrackItem[] = scrobbles || [];
-  const artistList: ArtistItem[] = Array.isArray(artists)
-    ? artists
-    : (artists?.artists ?? []);
-  const albumList: AlbumItem[] = Array.isArray(albums)
-    ? albums
-    : (albums?.albums ?? []);
-  const trackList: TrackItem[] = Array.isArray(tracks)
-    ? tracks
-    : (tracks?.tracks ?? tracks?.songs ?? []);
+  const artistList: ArtistItem[] = artists?.artists ?? [];
+  const albumList: AlbumItem[] = albums?.albums ?? [];
+  const trackList: TrackItem[] = tracks?.tracks ?? [];
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -1412,6 +1560,54 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
     });
   }, [followersCheckData, profileData?.did, currentDid, setFollows]);
 
+  // Genres + top track over the last 7 days, falling back to all time when
+  // the window is empty (inactive queries are disabled via an empty did).
+  const headerStart = dayjs().subtract(7, "day").startOf("day").toDate();
+  const headerEnd = dayjs().endOf("day").toDate();
+
+  const genreArtistsQuery = useArtistsQuery(
+    resolvedDid,
+    0,
+    100,
+    headerStart,
+    headerEnd,
+  );
+  const genreArtists7d = genreArtistsQuery.data?.artists ?? [];
+  const genreArtistsAllQuery = useArtistsQuery(
+    genreArtistsQuery.isSuccess && genreArtists7d.length === 0
+      ? resolvedDid
+      : "",
+    0,
+    100,
+  );
+  const genreArtists =
+    genreArtists7d.length > 0
+      ? genreArtists7d
+      : (genreArtistsAllQuery.data?.artists ?? []);
+  const genreTags: string[] = [];
+  for (const artist of genreArtists) {
+    for (const tag of artist.tags ?? []) {
+      if (!genreTags.includes(tag)) genreTags.push(tag);
+      if (genreTags.length >= 20) break;
+    }
+    if (genreTags.length >= 20) break;
+  }
+
+  const topTrackQuery = useTracksQuery(
+    resolvedDid,
+    0,
+    1,
+    headerStart,
+    headerEnd,
+  );
+  const topTracks7d = topTrackQuery.data?.tracks ?? [];
+  const topTrackAllQuery = useTracksQuery(
+    topTrackQuery.isSuccess && topTracks7d.length === 0 ? resolvedDid : "",
+    0,
+    1,
+  );
+  const topTrack = topTracks7d[0] ?? topTrackAllQuery.data?.tracks?.[0];
+
   const onFollow = () => {
     if (!profileData) return;
     setFollows((prev) => new Set(prev).add(profileData.did));
@@ -1621,6 +1817,24 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
               ))}
             </View>
 
+            {/* Genres */}
+            {genreTags.length > 0 && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                {genreTags.map((tag) => (
+                  <Text key={tag} style={{ fontSize: 11, color: colors.genre }}>
+                    # {tag}
+                  </Text>
+                ))}
+              </View>
+            )}
+
             {/* Actions */}
             <View style={{ flexDirection: "row", gap: 8 }}>
               {!isOwnProfile && !isFollowing && (
@@ -1731,6 +1945,11 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Top track */}
+            {topTrack && (
+              <TopTrackBadge track={topTrack} navigation={navigation} />
+            )}
           </>
         )}
       </View>

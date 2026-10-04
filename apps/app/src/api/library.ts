@@ -103,15 +103,18 @@ export const getAlbums = async (
   startDate?: Date,
   endDate?: Date,
 ) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getActorAlbums", {
-    params: {
-      did,
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
+  const response = await client.get<{ albums: Album[] }>(
+    "/xrpc/app.rocksky.actor.getActorAlbums",
+    {
+      params: {
+        did,
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
     },
-  });
+  );
   return response.data;
 };
 
@@ -122,20 +125,23 @@ export const getTracks = async (
   startDate?: Date,
   endDate?: Date,
 ) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getActorSongs", {
-    params: {
-      did,
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
+  const response = await client.get<{ tracks: Track[] }>(
+    "/xrpc/app.rocksky.actor.getActorSongs",
+    {
+      params: {
+        did,
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
     },
-  });
+  );
   return response.data;
 };
 
 export const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
-  const response = await client.get(
+  const response = await client.get<{ tracks: Track[] }>(
     "/xrpc/app.rocksky.actor.getActorLovedSongs",
     {
       params: { did, limit, offset },

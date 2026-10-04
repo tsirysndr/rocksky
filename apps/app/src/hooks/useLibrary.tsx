@@ -34,10 +34,23 @@ export const useArtistAlbumsQuery = (uri: string, limit = 10) =>
     enabled: !!uri,
   });
 
-export const useArtistsQuery = (did: string, offset = 0, limit = 30) =>
+export const useArtistsQuery = (
+  did: string,
+  offset = 0,
+  limit = 30,
+  startDate?: Date,
+  endDate?: Date,
+) =>
   useQuery({
-    queryKey: ["artists", did, offset, limit],
-    queryFn: () => getArtists(did, offset, limit),
+    queryKey: [
+      "artists",
+      did,
+      offset,
+      limit,
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: () => getArtists(did, offset, limit, startDate, endDate),
     enabled: !!did,
     placeholderData: (prev) => prev,
   });
@@ -63,10 +76,23 @@ export const useArtistsInfiniteQuery = (did: string, limit = 30) =>
     staleTime: 5 * 60 * 1000,
   });
 
-export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
+export const useAlbumsQuery = (
+  did: string,
+  offset = 0,
+  limit = 12,
+  startDate?: Date,
+  endDate?: Date,
+) =>
   useQuery({
-    queryKey: ["albums", did, offset, limit],
-    queryFn: () => getAlbums(did, offset, limit),
+    queryKey: [
+      "albums",
+      did,
+      offset,
+      limit,
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: () => getAlbums(did, offset, limit, startDate, endDate),
     enabled: !!did,
     placeholderData: (prev) => prev,
   });
@@ -92,10 +118,23 @@ export const useAlbumsInfiniteQuery = (did: string, limit = 12) =>
     staleTime: 5 * 60 * 1000,
   });
 
-export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
+export const useTracksQuery = (
+  did: string,
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) =>
   useQuery({
-    queryKey: ["tracks", did, offset, limit],
-    queryFn: () => getTracks(did, offset, limit),
+    queryKey: [
+      "tracks",
+      did,
+      offset,
+      limit,
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    ],
+    queryFn: () => getTracks(did, offset, limit, startDate, endDate),
     enabled: !!did,
     placeholderData: (prev) => prev,
   });
