@@ -438,13 +438,17 @@ function LandingPage() {
               </a>
               <a
                 href={googlePlayUrl}
-                className="text-link"
+                className="google-play-badge"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Download Rocksky for Android on Google Play"
               >
-                <Smartphone size={18} aria-hidden="true" />
-                Get it on Google Play
+                <img
+                  src={`${import.meta.env.BASE_URL}google-play-badge.png`}
+                  width={194}
+                  height={75}
+                  alt="Get it on Google Play"
+                />
               </a>
             </div>
             <p className="hero-note">

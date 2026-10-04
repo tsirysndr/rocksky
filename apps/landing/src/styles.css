@@ -329,6 +329,21 @@ h1 {
   gap: 25px;
   flex-wrap: wrap;
 }
+/* Official artwork includes the badge's required clear space. */
+.google-play-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.google-play-badge img {
+  display: block;
+  width: 194px;
+  height: auto;
+}
+.google-play-badge:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 .main-cta {
   font-size: 15px;
   height: 54px;
