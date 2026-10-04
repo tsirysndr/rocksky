@@ -10,6 +10,7 @@ import { useAtomValue } from "jotai";
 import type { ComponentType } from "react";
 import { View } from "react-native";
 import { profileAtom } from "./atoms/profile";
+import Bell from "./components/Icons/Bell";
 import MiniPlayer from "./components/MiniPlayer";
 import UserAvatar from "./components/UserAvatar";
 import { useUnreadCountQuery } from "./hooks/useNotifications";
@@ -116,9 +117,7 @@ function HomeTabs() {
                 />
               );
             case "AlertsTab":
-              return (
-                <MaterialIcons name="bell-outline" size={28} color={color} />
-              );
+              return <Bell size={28} color={color} />;
             case "ChartsTab":
               return <MaterialIcons name="chart-bar" size={28} color={color} />;
             case "SearchTab":
