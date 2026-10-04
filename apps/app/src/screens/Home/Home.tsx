@@ -1,9 +1,9 @@
 import Feather from "@expo/vector-icons/Feather";
-import { LinearGradient } from "expo-linear-gradient";
 import { type NavigationProp, useNavigation } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -198,6 +198,7 @@ function SongCard({
   const [liked, setLiked] = useState(!!item.liked);
   const [likesCount, setLikesCount] = useState(item.likesCount || 0);
   const { like, unlike } = useLike();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     setLiked(!!item.liked);
@@ -205,7 +206,10 @@ function SongCard({
   }, [item.liked, item.likesCount]);
 
   const handleLike = () => {
-    if (!storage.getToken()) return;
+    if (!storage.getToken()) {
+      navigation.navigate("SignIn");
+      return;
+    }
     if (liked) {
       setLiked(false);
       setLikesCount((c) => Math.max(0, c - 1));

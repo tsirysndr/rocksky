@@ -1,5 +1,5 @@
-import { client } from ".";
 import { storage } from "../storage";
+import { client } from ".";
 
 export type GraphUser = {
   did: string;

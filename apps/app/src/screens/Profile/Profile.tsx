@@ -1430,6 +1430,43 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
 
   const displayProfile = profileData || profile;
 
+  // Browsing is public; the own-profile tab needs a session to know whose
+  // profile to show.
+  if (!did) {
+    return (
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        edges={["top", "left", "right"]}
+      >
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+          }}
+        >
+          <Text style={{ fontSize: 14, color: colors.textMuted }}>
+            Sign in to view your profile.
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("SignIn")}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 24,
+              paddingHorizontal: 28,
+              paddingVertical: 10,
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "600", color: "#fff" }}>
+              Sign in
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const renderTabContent = () => {
     if (!resolvedDid) return null;
     switch (activeTab) {

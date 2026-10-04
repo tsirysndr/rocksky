@@ -19,6 +19,7 @@ import Player from "./screens/Player";
 import Profile from "./screens/Profile";
 import Search from "./screens/Search";
 import ShoutEditor from "./screens/ShoutEditor";
+import SignInScreen from "./screens/SignIn";
 import SongDetails from "./screens/SongDetails";
 import Story from "./screens/Story";
 import { colors } from "./theme";
@@ -181,6 +182,11 @@ export function RootStack() {
         component={Story}
         options={{ presentation: "fullScreenModal", animation: "fade" }}
       />
+      <Stack.Screen
+        name="SignIn"
+        component={SignInScreen}
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
+      />
     </Stack.Navigator>
   );
 }
@@ -189,6 +195,7 @@ export type RootStackParamList = {
   Home: undefined;
   HomeTabs: undefined;
   Player: undefined;
+  SignIn: undefined;
   Charts: undefined;
   Notifications: undefined;
   AlbumDetails: { uri: string };

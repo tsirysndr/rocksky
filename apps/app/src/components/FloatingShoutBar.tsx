@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TouchableOpacity, View } from "react-native";
 import { Text } from "@/src/components/Text";
 import type { RootStackParamList } from "@/src/Navigation";
+import { storage } from "@/src/storage";
 import { colors } from "@/src/theme";
 
 interface FloatingShoutBarProps {
@@ -31,7 +32,11 @@ export default function FloatingShoutBar({
       pointerEvents="box-none"
     >
       <TouchableOpacity
-        onPress={() => navigation.navigate("ShoutEditor", { uri, type, title })}
+        onPress={() =>
+          storage.getToken()
+            ? navigation.navigate("ShoutEditor", { uri, type, title })
+            : navigation.navigate("SignIn")
+        }
         activeOpacity={0.85}
         style={{
           backgroundColor: colors.surface2,

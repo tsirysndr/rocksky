@@ -13,9 +13,9 @@ import {
 import { Text } from "@/src/components/Text";
 import { useTopArtistsQuery, useTopTracksQuery } from "@/src/hooks/useLibrary";
 import type { RootStackParamList } from "@/src/Navigation";
+import { colors } from "@/src/theme";
 import type { Artist } from "@/src/types/artist";
 import type { Track } from "@/src/types/track";
-import { colors } from "@/src/theme";
 
 function TrackItem({
   item,

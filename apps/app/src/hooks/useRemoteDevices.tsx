@@ -4,8 +4,9 @@ import {
   type RemoteQueueItem,
   type RemoteDevice as SdkRemoteDevice,
 } from "@rocksky/sdk/remote";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
+import { authTokenAtom } from "../atoms/auth";
 import {
   activeDeviceIdAtom,
   type DeviceQueueTrack,
@@ -75,9 +76,10 @@ export function useRemoteDevicesConnection() {
   const setDevices = useSetAtom(devicesAtom);
   const [, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
   const setCommands = useSetAtom(remoteCommandsAtom);
+  const token = useAtomValue(authTokenAtom);
 
   useEffect(() => {
-    if (!storage.getToken()) return;
+    if (!token) return;
 
     const controller = new RemoteController({
       url: WS_URL,
@@ -207,5 +209,5 @@ export function useRemoteDevicesConnection() {
       remoteBridge.setController(null);
       controller.disconnect();
     };
-  }, [setDevices, setActiveDeviceId, setCommands]);
+  }, [token, setDevices, setActiveDeviceId, setCommands]);
 }

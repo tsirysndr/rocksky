@@ -1,5 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { type NavigationProp, useNavigation } from "@react-navigation/native";
+import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useRef } from "react";
 import {
   FlatList,
@@ -15,13 +16,13 @@ import {
   type NotificationGroup,
   type NotificationType,
 } from "@/src/api/notifications";
+import { authTokenAtom } from "@/src/atoms/auth";
 import { Text } from "@/src/components/Text";
 import {
   useMarkSeenMutation,
   useNotificationsQuery,
 } from "@/src/hooks/useNotifications";
 import type { RootStackParamList } from "@/src/Navigation";
-import { storage } from "@/src/storage";
 import { colors } from "@/src/theme";
 
 const VERBS: Record<string, string> = {
@@ -305,7 +306,7 @@ function CenteredMessage({ message }: { message: string }) {
 
 export default function Notifications() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const token = storage.getToken();
+  const token = useAtomValue(authTokenAtom);
 
   const { data, isLoading, refetch, isRefetching } = useNotificationsQuery();
   const markSeen = useMarkSeenMutation();
@@ -362,7 +363,31 @@ export default function Notifications() {
       </View>
 
       {!token ? (
-        <CenteredMessage message="Sign in to see your notifications." />
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+          }}
+        >
+          <Text style={{ fontSize: 14, color: colors.textMuted }}>
+            Sign in to see your notifications.
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("SignIn")}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 24,
+              paddingHorizontal: 28,
+              paddingVertical: 10,
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "600", color: "#fff" }}>
+              Sign in
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : isLoading ? (
         <SkeletonRows />
       ) : groups.length === 0 ? (

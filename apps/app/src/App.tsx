@@ -3,14 +3,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { authTokenAtom } from "./atoms/auth";
 import StarrySplash from "./components/StarrySplash";
 import { useCurrentUserProfile } from "./hooks/useProfile";
 import { RootStack } from "./Navigation";
 import { NowPlayingProvider } from "./providers/NowPlayingProvider";
-import SignIn from "./screens/SignIn";
 import { storage } from "./storage";
 import { colors } from "./theme";
 
@@ -42,8 +43,8 @@ const SPLASH_MIN_MS = 1800;
 function AppInner({ fontsLoaded }: { fontsLoaded: boolean }) {
   const [storageReady, setStorageReady] = useState(false);
   const [minTimeDone, setMinTimeDone] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const token = storage.getToken();
+  const setAuthToken = useSetAtom(authTokenAtom);
+  const token = useAtomValue(authTokenAtom);
 
   useCurrentUserProfile(token);
 
@@ -51,27 +52,24 @@ function AppInner({ fontsLoaded }: { fontsLoaded: boolean }) {
     // The native splash hands off to the animated StarrySplash right away.
     SplashScreen.hideAsync();
     storage.load().then(({ token }) => {
-      setIsLoggedIn(!!token);
+      setAuthToken(token);
       setStorageReady(true);
     });
     const timer = setTimeout(() => setMinTimeDone(true), SPLASH_MIN_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [setAuthToken]);
 
   const showSplash = !storageReady || !fontsLoaded || !minTimeDone;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {storageReady &&
-        (isLoggedIn ? (
-          <NowPlayingProvider>
-            <NavigationContainer theme={navigationTheme}>
-              <RootStack />
-            </NavigationContainer>
-          </NowPlayingProvider>
-        ) : (
-          <SignIn onSuccess={() => setIsLoggedIn(true)} />
-        ))}
+      {storageReady && (
+        <NowPlayingProvider>
+          <NavigationContainer theme={navigationTheme}>
+            <RootStack />
+          </NavigationContainer>
+        </NowPlayingProvider>
+      )}
       <StarrySplash visible={showSplash} />
     </View>
   );
