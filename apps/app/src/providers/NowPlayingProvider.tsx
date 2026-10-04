@@ -1,4 +1,4 @@
-import { useAtomValue, useSetAtom } from "jotai";
+import { getDefaultStore, useAtomValue, useSetAtom } from "jotai";
 import {
   createContext,
   type ReactNode,
@@ -15,7 +15,11 @@ import {
 } from "@/src/atoms/nowplaying";
 import { useNowPlaying } from "@/src/hooks/useNowPlaying";
 import { useRemoteDevicesConnection } from "@/src/hooks/useRemoteDevices";
-import { setupMediaSession, syncMediaSession } from "@/src/lib/mediaSession";
+import {
+  setupMediaSession,
+  syncMediaPosition,
+  syncMediaSession,
+} from "@/src/lib/mediaSession";
 import { remoteBridge } from "@/src/lib/remoteBridge";
 import { storage } from "@/src/storage";
 
@@ -90,12 +94,31 @@ function useMediaSessionSync(
   const artist = nowPlaying?.artist;
   const cover = nowPlaying?.cover;
   const isPlaying = nowPlaying?.isPlaying ?? false;
+  const durationMs = nowPlaying?.duration ?? 0;
 
   useEffect(() => {
     syncMediaSession(
-      title ? { title, artist: artist ?? "", cover, isPlaying } : null,
+      title
+        ? {
+            title,
+            artist: artist ?? "",
+            cover,
+            isPlaying,
+            durationMs,
+            progressMs: getDefaultStore().get(progressAtom),
+          }
+        : null,
     );
-  }, [title, artist, cover, isPlaying]);
+  }, [title, artist, cover, isPlaying, durationMs]);
+
+  // Keep the notification progress bar honest after remote seeks/reconnects.
+  useEffect(() => {
+    const store = getDefaultStore();
+    const interval = setInterval(() => {
+      syncMediaPosition(store.get(progressAtom));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 }
 
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {

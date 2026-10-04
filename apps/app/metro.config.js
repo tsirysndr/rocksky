@@ -8,6 +8,11 @@ const config = getDefaultConfig(__dirname);
 const sdkRoot = path.resolve(__dirname, "../../sdk/typescript");
 config.watchFolders = [sdkRoot];
 
+// The silent media-session anchor ships as FLAC (not in Metro's defaults).
+if (!config.resolver.assetExts.includes("flac")) {
+  config.resolver.assetExts.push("flac");
+}
+
 // Resolve the SDK's subpath exports explicitly — Metro's package-exports
 // handling doesn't reliably follow them through bun's per-file symlinks.
 const sdkEntries = {

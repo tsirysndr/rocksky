@@ -1,12 +1,14 @@
 // The app never plays audio itself — it remote-controls devices. A silent
-// looping anchor track keeps an Android MediaSession (and its foreground
-// service) alive so the notification mirrors the mini player and its buttons
-// keep working in the background. Same trick as web-mobile's hidden <audio>.
+// 2-hour FLAC anchor keeps an Android MediaSession (and its foreground
+// service) alive: the anchor is seeked to the remote track's real position
+// and carries its real duration, so the notification's metadata, progress
+// bar, and buttons all mirror the remote player. Same idea as web-mobile's
+// hidden <audio>, extended with real progress.
 //
 // Everything goes through a lazy, guarded require: if the installed binary
 // lacks the track-player native module (or its new-arch interop fails), the
 // app runs without the notification instead of crashing.
-const SILENCE = require("../../assets/audio/silence.wav");
+const SILENCE = require("../../assets/audio/silence.flac");
 
 type Rntp = typeof import("react-native-track-player");
 
@@ -16,8 +18,6 @@ function rntp(): Rntp | null {
   if (rntpModule === undefined) {
     try {
       rntpModule = require("react-native-track-player");
-      // Touch the module once so an interop failure surfaces here, not later.
-      rntpModule?.default.getPlaybackState?.().catch?.(() => {});
     } catch (e) {
       console.warn("media session unavailable:", e);
       rntpModule = null;
@@ -28,9 +28,13 @@ function rntp(): Rntp | null {
 
 let ready = false;
 let setupPromise: Promise<void> | null = null;
+// Sync requests that arrive while the player is still initializing are
+// replayed once setup completes (otherwise an unchanging track never syncs).
+let pendingTrack: MediaSessionTrack | null | undefined;
 let hasTrack = false;
 let lastKey = "";
 let lastPlaying: boolean | null = null;
+let lastDurationMs = 0;
 
 async function doSetup() {
   const mod = rntp();
@@ -59,9 +63,14 @@ async function doSetup() {
       mod.Capability.SkipToNext,
     ],
   });
-  await TrackPlayer.setRepeatMode(mod.RepeatMode.Track);
+  await TrackPlayer.setRepeatMode(mod.RepeatMode.Off);
   await TrackPlayer.setVolume(0);
   ready = true;
+  if (pendingTrack !== undefined) {
+    const replay = pendingTrack;
+    pendingTrack = undefined;
+    await syncMediaSession(replay);
+  }
 }
 
 export function setupMediaSession(): Promise<void> {
@@ -79,11 +88,17 @@ export type MediaSessionTrack = {
   artist: string;
   cover?: string;
   isPlaying: boolean;
+  durationMs: number;
+  progressMs: number;
 };
 
 export async function syncMediaSession(track: MediaSessionTrack | null) {
   const mod = rntp();
-  if (!ready || !mod) return;
+  if (!mod) return;
+  if (!ready) {
+    pendingTrack = track;
+    return;
+  }
   const TrackPlayer = mod.default;
   try {
     if (!track || !track.title) {
@@ -93,9 +108,13 @@ export async function syncMediaSession(track: MediaSessionTrack | null) {
         hasTrack = false;
         lastKey = "";
         lastPlaying = null;
+        lastDurationMs = 0;
       }
       return;
     }
+
+    const durationSec =
+      track.durationMs > 0 ? track.durationMs / 1000 : undefined;
 
     if (!hasTrack) {
       await TrackPlayer.add({
@@ -103,20 +122,28 @@ export async function syncMediaSession(track: MediaSessionTrack | null) {
         title: track.title,
         artist: track.artist,
         artwork: track.cover || undefined,
+        duration: durationSec,
       });
       hasTrack = true;
       lastKey = "";
       lastPlaying = null;
+      lastDurationMs = 0;
     }
 
     const key = `${track.title}\u0000${track.artist}\u0000${track.cover ?? ""}`;
-    if (key !== lastKey) {
+    if (key !== lastKey || track.durationMs !== lastDurationMs) {
       lastKey = key;
-      await TrackPlayer.updateMetadataForTrack(0, {
+      lastDurationMs = track.durationMs;
+      // overrideMetadata path: refreshes the live notification, unlike
+      // updateMetadataForTrack which only swaps the queue item.
+      await TrackPlayer.updateNowPlayingMetadata({
         title: track.title,
         artist: track.artist,
         artwork: track.cover || undefined,
+        duration: durationSec,
       });
+      // New track: snap the anchor to the remote position.
+      await TrackPlayer.seekTo(track.progressMs / 1000);
     }
 
     if (track.isPlaying !== lastPlaying) {
@@ -127,6 +154,19 @@ export async function syncMediaSession(track: MediaSessionTrack | null) {
   } catch {
     // Media session failures must never break playback state handling.
   }
+}
+
+// Periodic drift correction: the anchor free-runs at 1x, so it only needs a
+// nudge when the remote position jumps (seek, buffering, reconnect).
+export async function syncMediaPosition(progressMs: number) {
+  const mod = rntp();
+  if (!ready || !hasTrack || !mod) return;
+  try {
+    const { position } = await mod.default.getProgress();
+    if (Math.abs(position * 1000 - progressMs) > 3000) {
+      await mod.default.seekTo(progressMs / 1000);
+    }
+  } catch {}
 }
 
 // Called by the notification service for immediate visual feedback — the real

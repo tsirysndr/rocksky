@@ -1,3 +1,6 @@
+diff --git a/node_modules/react-native-track-player/.bun-tag-41f7b32b50371ff4 b/.bun-tag-41f7b32b50371ff4
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/node_modules/react-native-track-player/.bun-tag-52e2c553fe567921 b/.bun-tag-52e2c553fe567921
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
@@ -439,3 +442,37 @@ index b2409a09939164c49c0f7a16bb6d3284e8eab8fb..a354f93c7c6e0275ad49019d75f3fc73
      }
 +    }
  }
+diff --git a/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt b/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
+index afa6b0f335714de0cc8741d5bbdd51b4e04bb3bb..62a2e776383c2e162c498698ec45461284e50809 100644
+--- a/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
++++ b/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
+@@ -739,9 +739,19 @@ class MusicService : HeadlessJsTaskService() {
+         return bundle
+     }
+ 
++    // Bridgeless (new architecture) exposes the React context on ReactHost;
++    // reactInstanceManager.currentReactContext is always null there, which
++    // silently dropped every event.
++    private val emitterReactContext: com.facebook.react.bridge.ReactContext?
++        get() {
++            val app = application as? com.facebook.react.ReactApplication
++            return app?.reactHost?.currentReactContext
++                ?: reactNativeHost.reactInstanceManager.currentReactContext
++        }
++
+     @MainThread
+     private fun emit(event: String, data: Bundle? = null) {
+-        reactNativeHost.reactInstanceManager.currentReactContext
++        emitterReactContext
+             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+             ?.emit(event, data?.let { Arguments.fromBundle(it) })
+     }
+@@ -751,7 +761,7 @@ class MusicService : HeadlessJsTaskService() {
+         val payload = Arguments.createArray()
+         data.forEach { payload.pushMap(Arguments.fromBundle(it)) }
+ 
+-        reactNativeHost.reactInstanceManager.currentReactContext
++        emitterReactContext
+             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+             ?.emit(event, payload)
+     }
