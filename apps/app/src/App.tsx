@@ -1,5 +1,5 @@
 import { DarkTheme, NavigationContainer } from "@react-navigation/native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -10,21 +10,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { authTokenAtom } from "./atoms/auth";
 import StarrySplash from "./components/StarrySplash";
 import { useCurrentUserProfile } from "./hooks/useProfile";
+import { queryClient } from "./lib/queryClient";
 import { RootStack } from "./Navigation";
 import { NowPlayingProvider } from "./providers/NowPlayingProvider";
 import { storage } from "./storage";
 import { colors } from "./theme";
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      retry: 2,
-    },
-  },
-});
 
 const navigationTheme = {
   ...DarkTheme,

@@ -4,6 +4,7 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
+import { useMemo } from "react";
 import {
   coverArtUrlOf,
   dedupeById,
@@ -11,6 +12,9 @@ import {
   fetchNavidromeAlbums,
   fetchNavidromeArtist,
   fetchNavidromeArtists,
+  fetchNavidromeFavorites,
+  fetchNavidromePlaylist,
+  fetchNavidromePlaylists,
   type NavidromeAlbum,
   type NavidromeArtist,
   type NavidromeCredentials,
@@ -131,6 +135,61 @@ export const useNavidromeArtistsQuery = (q: string, enabled = true) => {
     refetchOnMount: false,
     placeholderData: keepPreviousData,
   });
+};
+
+export const useNavidromePlaylistsQuery = (enabled = true) => {
+  const { data: creds } = useNavidromeCredentials();
+  return useQuery({
+    queryKey: ["navidrome", "playlists"],
+    enabled: enabled && !!creds,
+    queryFn: () => fetchNavidromePlaylists(creds as NavidromeCredentials),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnMount: false,
+  });
+};
+
+export const useNavidromePlaylistQuery = (playlistId: string | null) => {
+  const { data: creds } = useNavidromeCredentials();
+  return useQuery({
+    queryKey: ["navidrome", "playlist", playlistId],
+    enabled: !!creds && !!playlistId,
+    queryFn: () =>
+      fetchNavidromePlaylist(
+        creds as NavidromeCredentials,
+        playlistId as string,
+      ),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnMount: false,
+  });
+};
+
+/**
+ * Loved tracks. getStarred2 takes no query, so a search filters here — leaving
+ * the tab untouched while every other one reacts would look broken.
+ */
+export const useNavidromeFavoritesQuery = (q: string, enabled = true) => {
+  const { data: creds } = useNavidromeCredentials();
+  const query = useQuery({
+    queryKey: ["navidrome", "favorites"],
+    enabled: enabled && !!creds,
+    queryFn: () => fetchNavidromeFavorites(creds as NavidromeCredentials),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    refetchOnMount: false,
+  });
+  const needle = q.trim().toLowerCase();
+  const songs = useMemo(() => {
+    const all = query.data ?? [];
+    if (!needle) return all;
+    return all.filter((song) =>
+      [song.title, song.artist, song.album].some((field) =>
+        (field ?? "").toLowerCase().includes(needle),
+      ),
+    );
+  }, [query.data, needle]);
+  return { ...query, songs };
 };
 
 export const useNavidromeAlbumQuery = (albumId: string | null) => {

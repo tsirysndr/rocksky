@@ -11,6 +11,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -23,6 +24,8 @@ import {
   dedupeById,
   type NavidromeAlbum,
   type NavidromeArtist,
+  type NavidromeCredentials,
+  type NavidromePlaylist,
   type NavidromeSong,
 } from "@/src/api/navidrome";
 import type { UploadedTrack } from "@/src/api/uploads";
@@ -37,6 +40,9 @@ import {
   useNavidromeArtistQuery,
   useNavidromeArtistsQuery,
   useNavidromeCredentials,
+  useNavidromeFavoritesQuery,
+  useNavidromePlaylistQuery,
+  useNavidromePlaylistsQuery,
 } from "@/src/hooks/useNavidrome";
 import {
   useUploadsInfiniteQuery,
@@ -53,7 +59,13 @@ import type { RootStackParamList } from "@/src/Navigation";
 import { storage } from "@/src/storage";
 import { colors } from "@/src/theme";
 
-const SUB_TABS = ["Tracks", "Albums", "Artists"] as const;
+const SUB_TABS = [
+  "Tracks",
+  "Albums",
+  "Artists",
+  "Playlists",
+  "Favorites",
+] as const;
 
 // Track and artist rows are a fixed 44px cover plus 9px of padding either side,
 // so the lists can skip measuring and mount a window straight away.
@@ -64,7 +76,7 @@ const rowLayout = (
   index: number,
 ) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index });
 
-/** An album or artist opened from a list — enough to draw its header at once. */
+/** Something opened from a list — enough to draw its header at once. */
 type DetailView =
   | {
       kind: "album";
@@ -73,7 +85,14 @@ type DetailView =
       subtitle: string;
       art: string | null;
     }
-  | { kind: "artist"; id: string; name: string; art: string | null };
+  | { kind: "artist"; id: string; name: string; art: string | null }
+  | {
+      kind: "playlist";
+      id: string;
+      title: string;
+      subtitle: string;
+      art: string | null;
+    };
 
 type UploadItem = {
   name: string;
@@ -258,11 +277,15 @@ function TrackRow({
 function SongRow({
   song,
   position,
+  art,
   onPress,
   onMore,
 }: {
   song: NavidromeSong;
-  position: number;
+  /** Shown when there is no art: an album's rows lead with the number. */
+  position?: number;
+  /** Cover for this row, for lists whose tracks come from everywhere. */
+  art?: string | null;
   onPress: () => void;
   onMore: () => void;
 }) {
@@ -272,9 +295,13 @@ function SongRow({
       onPress={onPress}
       onLongPress={onMore}
     >
-      <View style={styles.trackNumberCell}>
-        <Text style={styles.trackNumber}>{song.track ?? position}</Text>
-      </View>
+      {art === undefined ? (
+        <View style={styles.trackNumberCell}>
+          <Text style={styles.trackNumber}>{song.track ?? position ?? ""}</Text>
+        </View>
+      ) : (
+        <CoverArt uri={art} size={44} />
+      )}
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={styles.rowTitle}>
           {song.title}
@@ -585,6 +612,140 @@ function AlbumDetailScreen({
   );
 }
 
+/** The context menu for a navidrome song, wherever it is listed. */
+function songSheetActions(
+  song: NavidromeSong,
+  creds: NavidromeCredentials,
+  art: string | null,
+  onOpenArtist?: (artistId: string, name: string) => void,
+): SheetAction[] {
+  const track = songToQueueTrack(song, creds, art);
+  const actions: SheetAction[] = [
+    {
+      label: "Play next",
+      icon: "corner-down-right",
+      onPress: () => queueTracks([track], "next"),
+    },
+    {
+      label: "Add to queue",
+      icon: "list",
+      onPress: () => queueTracks([track], "last"),
+    },
+  ];
+  if (song.artistId && onOpenArtist) {
+    const artistId = song.artistId;
+    actions.push({
+      label: "Go to artist",
+      icon: "user",
+      onPress: () => onOpenArtist(artistId, song.artist),
+    });
+  }
+  return actions;
+}
+
+/**
+ * A playlist's tracks.
+ *
+ * Each row carries its own art, unlike an album's — a playlist is a set of
+ * tracks from anywhere, so there is no one cover for them all.
+ */
+function PlaylistDetailScreen({
+  view,
+  onBack,
+}: {
+  view: Extract<DetailView, { kind: "playlist" }>;
+  onBack: () => void;
+}) {
+  const { data: creds } = useNavidromeCredentials();
+  const { data: playlist, isLoading } = useNavidromePlaylistQuery(view.id);
+  const [sheetSong, setSheetSong] = useState<NavidromeSong | null>(null);
+  const songs: NavidromeSong[] = useMemo(
+    () => dedupeById(playlist?.entry ?? []),
+    [playlist],
+  );
+  const queue = useMemo(
+    () =>
+      creds
+        ? songs.map((song) =>
+            songToQueueTrack(song, creds, coverArtUrlOf(song)),
+          )
+        : [],
+    [songs, creds],
+  );
+
+  return (
+    <>
+      <FlatList
+        data={songs}
+        keyExtractor={(song) => song.id}
+        renderItem={({ item, index }) => (
+          <SongRow
+            song={item}
+            art={coverArtUrlOf(item)}
+            onPress={() => playQueue(queue, index)}
+            onMore={() => setSheetSong(item)}
+          />
+        )}
+        ListHeaderComponent={
+          <DetailHeader
+            title={view.title}
+            subtitle={
+              playlist
+                ? `${songs.length} track${songs.length === 1 ? "" : "s"}`
+                : view.subtitle
+            }
+            art={coverArtUrlOf(playlist) ?? view.art}
+            onBack={onBack}
+            onPlay={() => playQueue(queue, 0)}
+            onShuffle={() => playQueue(shuffled(queue), 0)}
+          />
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <ListFooter loading />
+          ) : (
+            <EmptyState message="This playlist is empty" />
+          )
+        }
+        ListFooterComponent={<View style={{ height: 24 }} />}
+        showsVerticalScrollIndicator={false}
+      />
+      {sheetSong && creds && (
+        <TrackActionSheet
+          title={sheetSong.title}
+          subtitle={sheetSong.artist}
+          art={coverArtUrlOf(sheetSong)}
+          actions={songSheetActions(sheetSong, creds, coverArtUrlOf(sheetSong))}
+          onClose={() => setSheetSong(null)}
+        />
+      )}
+    </>
+  );
+}
+
+function PlaylistRow({
+  playlist,
+  onPress,
+}: {
+  playlist: NavidromePlaylist;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.trackRow} onPress={onPress}>
+      <CoverArt uri={coverArtUrlOf(playlist)} size={44} fallbackLabel="≡" />
+      <View style={{ flex: 1 }}>
+        <Text numberOfLines={1} style={styles.rowTitle}>
+          {playlist.name}
+        </Text>
+        <Text numberOfLines={1} style={styles.rowSubtitle}>
+          {playlist.songCount} track{playlist.songCount === 1 ? "" : "s"}
+        </Text>
+      </View>
+      <Feather name="chevron-right" size={18} color={colors.textMuted} />
+    </TouchableOpacity>
+  );
+}
+
 function ArtistDetailScreen({
   view,
   onBack,
@@ -680,6 +841,7 @@ export default function Library() {
   // return to the artist, not to the tabs.
   const [stack, setStack] = useState<DetailView[]>([]);
   const [sheetTrack, setSheetTrack] = useState<UploadedTrack | null>(null);
+  const [sheetSong, setSheetSong] = useState<NavidromeSong | null>(null);
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const { mutateAsync: upload } = useUploadTrackMutation();
 
@@ -699,6 +861,8 @@ export default function Library() {
   const tracksQuery = useUploadsInfiniteQuery(query, signedIn);
   const albumsQuery = useNavidromeAlbumsInfiniteQuery(query, signedIn);
   const artistsQuery = useNavidromeArtistsQuery(query, signedIn);
+  const playlistsQuery = useNavidromePlaylistsQuery(signedIn);
+  const favoritesQuery = useNavidromeFavoritesQuery(query, signedIn);
 
   const tracks: UploadedTrack[] = tracksQuery.data?.pages.flat() ?? [];
   // Pages are offset-based, so a library that changes between requests can
@@ -709,6 +873,25 @@ export default function Library() {
     [albumsQuery.data],
   );
   const artists: NavidromeArtist[] = artistsQuery.data ?? [];
+  const playlists: NavidromePlaylist[] = useMemo(() => {
+    const all = dedupeById(playlistsQuery.data ?? []);
+    const needle = query.trim().toLowerCase();
+    // getPlaylists takes no query, so the search filters here rather than
+    // leaving this tab unresponsive while the others react.
+    return needle
+      ? all.filter((playlist) => playlist.name.toLowerCase().includes(needle))
+      : all;
+  }, [playlistsQuery.data, query]);
+  const favorites = favoritesQuery.songs;
+  const favoriteQueue = useMemo(
+    () =>
+      creds
+        ? favorites.map((song) =>
+            songToQueueTrack(song, creds, coverArtUrlOf(song)),
+          )
+        : [],
+    [favorites, creds],
+  );
 
   const loadMoreTracks = nextPageLoader(tracksQuery);
   const loadMoreAlbums = nextPageLoader(albumsQuery);
@@ -887,6 +1070,8 @@ export default function Library() {
             onBack={popView}
             onOpenArtist={openArtistById}
           />
+        ) : view.kind === "playlist" ? (
+          <PlaylistDetailScreen view={view} onBack={popView} />
         ) : (
           <ArtistDetailScreen
             view={view}
@@ -928,8 +1113,12 @@ export default function Library() {
         />
       </View>
 
-      {/* Sub-tabs */}
-      <View style={styles.pillRow}>
+      {/* Sub-tabs. Scrollable: five pills are wider than a phone. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.pillRow}
+      >
         {SUB_TABS.map((label, i) => (
           <TouchableOpacity
             key={label}
@@ -941,7 +1130,7 @@ export default function Library() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Lists */}
       {tab === 0 && (
@@ -1032,6 +1221,92 @@ export default function Library() {
           }
           ListFooterComponent={<View style={{ height: 24 }} />}
           showsVerticalScrollIndicator={false}
+        />
+      )}
+      {tab === 3 && (
+        <FlatList
+          data={playlists}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <PlaylistRow
+              playlist={item}
+              onPress={() =>
+                setStack((prev) => [
+                  ...prev,
+                  {
+                    kind: "playlist",
+                    id: item.id,
+                    title: item.name,
+                    subtitle: `${item.songCount} track${item.songCount === 1 ? "" : "s"}`,
+                    art: coverArtUrlOf(item),
+                  },
+                ])
+              }
+            />
+          )}
+          getItemLayout={rowLayout}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          ListEmptyComponent={
+            playlistsQuery.isLoading ? (
+              <ListFooter loading />
+            ) : (
+              <EmptyState
+                message={
+                  query ? "No playlists match your search" : "No playlists yet"
+                }
+              />
+            )
+          }
+          ListFooterComponent={<View style={{ height: 24 }} />}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+      {tab === 4 && (
+        <FlatList
+          data={favorites}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <SongRow
+              song={item}
+              art={coverArtUrlOf(item)}
+              onPress={() => playQueue(favoriteQueue, index)}
+              onMore={() => setSheetSong(item)}
+            />
+          )}
+          getItemLayout={rowLayout}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          ListEmptyComponent={
+            favoritesQuery.isLoading ? (
+              <ListFooter loading />
+            ) : (
+              <EmptyState
+                message={
+                  query
+                    ? "No favorites match your search"
+                    : "Tracks you love show up here"
+                }
+              />
+            )
+          }
+          ListFooterComponent={<View style={{ height: 24 }} />}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {sheetSong && creds && (
+        <TrackActionSheet
+          title={sheetSong.title}
+          subtitle={sheetSong.artist}
+          art={coverArtUrlOf(sheetSong)}
+          actions={songSheetActions(
+            sheetSong,
+            creds,
+            coverArtUrlOf(sheetSong),
+            openArtistById,
+          )}
+          onClose={() => setSheetSong(null)}
         />
       )}
 

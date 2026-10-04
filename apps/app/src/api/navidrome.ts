@@ -71,6 +71,24 @@ export type NavidromeArtist = {
   album?: NavidromeAlbum[];
 };
 
+export type NavidromePlaylist = {
+  id: string;
+  name: string;
+  songCount: number;
+  /** Seconds. */
+  duration: number;
+  comment?: string;
+  coverArt?: string;
+  /** Public CDN URL for the art — render this, never a getCoverArt link. */
+  coverArtUrl?: string;
+  /** The tracks, on a single-playlist read. */
+  entry?: NavidromeSong[];
+  /** AT-URI of the app.rocksky.playlist record this is mirrored to. */
+  uri?: string;
+  /** Art of up to four of its tracks, for a cover mosaic. */
+  trackArts?: string[];
+};
+
 export type NavidromeSearchResult = {
   songs: NavidromeSong[];
   albums: NavidromeAlbum[];
@@ -239,16 +257,54 @@ export const unstarNavidromeSong = async (
   await subsonicGet<Record<string, never>>("unstar", creds, { id: songId });
 };
 
-type Starred2Body = { starred2?: { song?: NavidromeSong[] } };
+type Starred2Body = { starred2?: { song?: NavidromeSong | NavidromeSong[] } };
+
+const asArray = <T>(value: T | T[] | undefined): T[] =>
+  Array.isArray(value) ? value : value ? [value] : [];
+
+/**
+ * The user's loved tracks that are in their own library.
+ *
+ * The server joins loves against uploads, so a track loved from a Spotify
+ * scrobble — with no file behind it — is left out: everything here plays.
+ * Unpaged by design; the endpoint takes no size/offset.
+ */
+export const fetchNavidromeFavorites = async (
+  creds: NavidromeCredentials,
+): Promise<NavidromeSong[]> => {
+  const body = await subsonicGet<Starred2Body>("getStarred2", creds);
+  return asArray(body.starred2?.song);
+};
 
 /** Ids of the songs the user has loved, for the heart's initial state. */
 export const fetchStarredSongIds = async (
   creds: NavidromeCredentials,
 ): Promise<Set<string>> => {
-  const body = await subsonicGet<Starred2Body>("getStarred2", creds);
-  const songs = body.starred2?.song;
-  const list = Array.isArray(songs) ? songs : songs ? [songs] : [];
-  return new Set(list.map((song) => song.id));
+  const songs = await fetchNavidromeFavorites(creds);
+  return new Set(songs.map((song) => song.id));
+};
+
+type PlaylistsBody = {
+  playlists?: { playlist?: NavidromePlaylist | NavidromePlaylist[] };
+};
+type PlaylistBody = { playlist?: NavidromePlaylist };
+
+export const fetchNavidromePlaylists = async (
+  creds: NavidromeCredentials,
+): Promise<NavidromePlaylist[]> => {
+  const body = await subsonicGet<PlaylistsBody>("getPlaylists", creds);
+  return asArray(body.playlists?.playlist);
+};
+
+export const fetchNavidromePlaylist = async (
+  creds: NavidromeCredentials,
+  playlistId: string,
+): Promise<NavidromePlaylist | null> => {
+  const body = await subsonicGet<PlaylistBody>("getPlaylist", creds, {
+    id: playlistId,
+  });
+  const playlist = body.playlist;
+  return playlist ? { ...playlist, entry: asArray(playlist.entry) } : null;
 };
 
 export type NavidromeSearchOptions = {

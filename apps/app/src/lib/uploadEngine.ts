@@ -33,6 +33,7 @@ import {
   progressAtom,
 } from "../atoms/nowplaying";
 import { storage } from "../storage";
+import { queryClient } from "./queryClient";
 import { remoteBridge, type TransportAction } from "./remoteBridge";
 
 // Local playback of uploads through the native Rust engine: owns the queue
@@ -89,6 +90,9 @@ let likeSeq = 0;
 // Navidrome credentials, published by useNavidromeCredentials: star/unstar is
 // the only like path for a navidrome song, and this module is outside React.
 let navidromeCreds: NavidromeCredentials | null = null;
+
+/** The user's starred navidrome songs, shared with anything else that asks. */
+const STARRED_IDS_KEY = ["navidrome", "starred-ids"] as const;
 
 export function setEngineNavidromeCredentials(creds: NavidromeCredentials) {
   navidromeCreds = creds;
@@ -326,9 +330,16 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
 
   if (track.navidromeId && navidromeCreds) {
     // getStarred2 is the love list for navidrome ids; getSong can't be asked,
-    // since a Subsonic song exposes no URI to look it up by.
+    // since a Subsonic song exposes no URI to look it up by. Read through the
+    // query cache: this runs on every track change, and the whole starred list
+    // does not need refetching for each one.
     try {
-      const starred = await fetchStarredSongIds(navidromeCreds);
+      const starred = await queryClient.fetchQuery({
+        queryKey: STARRED_IDS_KEY,
+        queryFn: () =>
+          fetchStarredSongIds(navidromeCreds as NavidromeCredentials),
+        staleTime: 60 * 1000,
+      });
       liked = starred.has(track.navidromeId);
     } catch {}
   }
@@ -338,7 +349,13 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
       ? { mbid: track.mbId }
       : null;
   if (liked === null && params) {
-    const state = await getSongLikeState(params);
+    const state = await queryClient
+      .fetchQuery({
+        queryKey: ["song", "like-state", params],
+        queryFn: () => getSongLikeState(params),
+        staleTime: 5 * 60 * 1000,
+      })
+      .catch(() => null);
     if (state) {
       liked = state.liked;
       uri = state.uri;
@@ -396,6 +413,11 @@ export async function toggleLocalLike(): Promise<boolean> {
     apply(current);
     return false;
   }
+  // The cached love state is now out of date — including the favourites list the
+  // library's own tab reads — so drop it rather than serve a stale heart.
+  queryClient.invalidateQueries({ queryKey: STARRED_IDS_KEY });
+  queryClient.invalidateQueries({ queryKey: ["song", "like-state"] });
+  queryClient.invalidateQueries({ queryKey: ["navidrome", "favorites"] });
   return true;
 }
 

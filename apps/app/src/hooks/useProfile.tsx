@@ -53,36 +53,60 @@ export const useActorNeighboursQuery = (did: string) =>
     enabled: !!did,
   });
 
+type MeResponse = {
+  avatar?: string;
+  displayName?: string;
+  handle?: string;
+  did?: string;
+  createdAt?: string;
+  spotifyUser?: { isBetaUser?: boolean };
+  spotifyConnected?: boolean;
+};
+
+/**
+ * The signed-in user's own profile, cached like every other read.
+ *
+ * It was a bare fetch in an effect, so it ran again on every remount and
+ * nothing else could share the result; the endpoint also answers with a plain
+ * error string rather than a status, hence the text check.
+ */
 export function useCurrentUserProfile(token?: string | null) {
   const setProfile = useSetAtom(profileAtom);
 
-  useEffect(() => {
-    if (!token) return;
-    const fetch_ = async () => {
+  const { data } = useQuery({
+    queryKey: ["profile", "me", token],
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    queryFn: async (): Promise<MeResponse | null> => {
+      const res = await fetch(`${API_URL}/xrpc/app.rocksky.actor.getProfile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const text = await res.text();
+      if (text === "Unauthorized" || text === "Internal Server Error") {
+        return null;
+      }
       try {
-        const res = await fetch(
-          `${API_URL}/xrpc/app.rocksky.actor.getProfile`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        const text = await res.text();
-        if (text === "Unauthorized" || text === "Internal Server Error") return;
-        const profile = JSON.parse(text);
-        if (!Object.keys(profile).length) return;
-        setProfile({
-          avatar: profile.avatar,
-          displayName: profile.displayName,
-          handle: profile.handle,
-          did: profile.did,
-          createdAt: profile.createdAt,
-          spotifyUser: profile.spotifyUser
-            ? { isBeta: profile.spotifyUser.isBetaUser }
-            : undefined,
-          spotifyConnected: profile.spotifyConnected,
-        });
-      } catch {}
-    };
-    fetch_();
-  }, [token, setProfile]);
+        const profile = JSON.parse(text) as MeResponse;
+        return Object.keys(profile).length ? profile : null;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!data?.handle || !data.did) return;
+    setProfile({
+      avatar: data.avatar ?? "",
+      displayName: data.displayName ?? data.handle,
+      handle: data.handle,
+      did: data.did,
+      createdAt: data.createdAt,
+      spotifyUser: data.spotifyUser
+        ? { isBeta: data.spotifyUser.isBetaUser === true }
+        : undefined,
+      spotifyConnected: data.spotifyConnected,
+    });
+  }, [data, setProfile]);
 }
