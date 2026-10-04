@@ -1,3 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+// Type-only, from the package root where it is re-exported: erased at
+// compile time, so no extra module is pulled into the bundle.
+import type { RemoteAudioSettings } from "@rocksky/sdk";
 import axios from "axios";
 import { API_URL } from "../consts";
 import { storage } from "../storage";
@@ -151,6 +155,133 @@ export const putAudioSettings = async (
   );
   return response.data;
 };
+
+// ─── This Device: survive a restart ──────────────────────────────────────────
+//
+// The record is the cross-device source of truth, but it needs the network. A
+// local copy means the sheet opens on the settings the user left — and that
+// This Device keeps them — before (or without) a round-trip.
+
+const LOCAL_KEY = "audio-settings";
+
+export const loadLocalAudioSettings =
+  async (): Promise<AudioSettings | null> => {
+    try {
+      const raw = await AsyncStorage.getItem(LOCAL_KEY);
+      return raw ? (JSON.parse(raw) as AudioSettings) : null;
+    } catch {
+      return null;
+    }
+  };
+
+export const saveLocalAudioSettings = async (
+  settings: AudioSettings,
+): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(settings));
+  } catch {}
+};
+
+// ─── Remote players ──────────────────────────────────────────────────────────
+
+// The record spells "no replay gain" / "no crossfade" as `disabled`; the remote
+// protocol spells it `off`. Everything else — field names, tenths of a dB, Q ×10,
+// milliseconds — is identical, so only the two enums are translated.
+const WIRE_MODE = { disabled: "off" } as const;
+
+/**
+ * A settings patch as the remote-control protocol wants it (§6.1).
+ *
+ * Only the sections that changed are included, since an absent section means
+ * "leave alone".
+ */
+export const toRemoteAudioSettings = (
+  patch: AudioSettingsPatch,
+): RemoteAudioSettings => ({
+  ...(patch.equalizer
+    ? {
+        equalizer: {
+          ...(patch.equalizer.enabled !== undefined
+            ? { enabled: patch.equalizer.enabled }
+            : {}),
+          ...(patch.equalizer.precut !== undefined
+            ? { precut: patch.equalizer.precut }
+            : {}),
+          ...(patch.equalizer.bands
+            ? {
+                bands: patch.equalizer.bands.map((band) => ({
+                  frequency: band.frequency,
+                  gain: band.gain,
+                  q: band.q,
+                })),
+              }
+            : {}),
+        },
+      }
+    : {}),
+  ...(patch.tone
+    ? {
+        tone: {
+          ...(patch.tone.bass !== undefined ? { bass: patch.tone.bass } : {}),
+          ...(patch.tone.treble !== undefined
+            ? { treble: patch.tone.treble }
+            : {}),
+          ...(patch.tone.balance !== undefined
+            ? { balance: patch.tone.balance }
+            : {}),
+        },
+      }
+    : {}),
+  ...(patch.crossfade
+    ? {
+        crossfade: {
+          ...(patch.crossfade.mode !== undefined
+            ? {
+                mode:
+                  patch.crossfade.mode === "disabled"
+                    ? WIRE_MODE.disabled
+                    : patch.crossfade.mode,
+              }
+            : {}),
+          ...(patch.crossfade.fadeInDelay !== undefined
+            ? { fadeInDelay: patch.crossfade.fadeInDelay }
+            : {}),
+          ...(patch.crossfade.fadeInDuration !== undefined
+            ? { fadeInDuration: patch.crossfade.fadeInDuration }
+            : {}),
+          ...(patch.crossfade.fadeOutDelay !== undefined
+            ? { fadeOutDelay: patch.crossfade.fadeOutDelay }
+            : {}),
+          ...(patch.crossfade.fadeOutDuration !== undefined
+            ? { fadeOutDuration: patch.crossfade.fadeOutDuration }
+            : {}),
+          ...(patch.crossfade.fadeOutMixMode !== undefined
+            ? { fadeOutMixMode: patch.crossfade.fadeOutMixMode }
+            : {}),
+        },
+      }
+    : {}),
+  ...(patch.replayGain
+    ? {
+        replayGain: {
+          ...(patch.replayGain.mode !== undefined
+            ? {
+                mode:
+                  patch.replayGain.mode === "disabled"
+                    ? WIRE_MODE.disabled
+                    : patch.replayGain.mode,
+              }
+            : {}),
+          ...(patch.replayGain.preamp !== undefined
+            ? { preamp: patch.replayGain.preamp }
+            : {}),
+          ...(patch.replayGain.preventClipping !== undefined
+            ? { preventClipping: patch.replayGain.preventClipping }
+            : {}),
+        },
+      }
+    : {}),
+});
 
 /** Fill in whatever the record omits, so the controls always have a value. */
 export const withDefaults = (settings: AudioSettings | null): AudioSettings => {

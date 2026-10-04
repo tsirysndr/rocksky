@@ -202,6 +202,9 @@ export function useRemoteDevicesConnection() {
         controller.setPrimary(deviceId);
         setActiveDeviceId(deviceId);
       },
+      setAudioSettings: (deviceId, settings) => {
+        controller.setAudioSettings(deviceId, settings);
+      },
     });
 
     return () => {

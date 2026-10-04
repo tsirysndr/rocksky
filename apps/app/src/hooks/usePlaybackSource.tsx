@@ -106,12 +106,25 @@ export function usePlaybackSource() {
     setActiveDeviceId(null);
   }, [setActiveDeviceId, setPicked]);
 
+  /**
+   * Whether audio settings can be applied to the current source.
+   *
+   * The remote protocol has no capability handshake — a player applies the
+   * sections it implements and ignores the rest (§6.1) — so a registered player
+   * always counts. Spotify is not one: playback happens in Spotify's own client,
+   * which exposes no DSP, so there is nothing to send and the button is off.
+   * This Device counts because its settings are stored and kept.
+   */
+  const supportsAudioSettings =
+    current?.kind === "device" || current?.kind === "local";
+
   return {
     current,
     sourceLabel,
     thisDeviceActive,
     spotifyActive,
     thisDeviceAvailable,
+    supportsAudioSettings,
     deviceList,
     activeDevice,
     selectDevice,

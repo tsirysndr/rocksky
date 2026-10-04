@@ -19,6 +19,7 @@ import {
   progressAtom,
 } from "@/src/atoms/nowplaying";
 import { authTokenAtom } from "@/src/atoms/auth";
+import { useAudioSettingsAutoLoad } from "@/src/hooks/useAudioSettings";
 import { useNowPlaying } from "@/src/hooks/useNowPlaying";
 import { useRemoteDevicesConnection } from "@/src/hooks/useRemoteDevices";
 import {
@@ -184,6 +185,9 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const did = storage.getDid() || "";
   useRemoteDevicesConnection();
   useLocalPlayerBroadcast();
+  // Pull the audio settings record as soon as there is a session, like web:
+  // waiting for the settings sheet would show defaults for a moment first.
+  useAudioSettingsAutoLoad();
   const deviceTrackActive = useActiveDeviceTrack();
   // The in-app engine feeds the atoms itself; polling must not clobber it.
   const localEngineActive = useAtomValue(localEngineActiveAtom);

@@ -1,3 +1,6 @@
+// Type-only, from the package root where it is re-exported: erased at
+// compile time, so no extra module is pulled into the bundle.
+import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { atom } from "jotai";
 
 export type DeviceTrack = {
@@ -61,6 +64,13 @@ export type RemoteCommands = {
     target?: string,
   ) => void;
   setPrimary: (deviceId: string) => void;
+  /**
+   * Push a partial DSP document to a device (protocol §6.1).
+   *
+   * Safe to send verbatim: a player applies the sections its engine implements
+   * and ignores the rest, which is why there is nothing to negotiate first.
+   */
+  setAudioSettings: (deviceId: string, settings: RemoteAudioSettings) => void;
 };
 
 export const devicesAtom = atom<Record<string, RemoteDevice>>({});

@@ -83,6 +83,7 @@ export default function Player() {
     current: currentSource,
     sourceLabel,
     thisDeviceActive,
+    supportsAudioSettings,
   } = usePlaybackSource();
 
   const isSpotify = player === "spotify";
@@ -176,11 +177,21 @@ export default function Player() {
                 color={currentSource ? colors.primary : colors.textMuted}
               />
             </TouchableOpacity>
+            {/* Off for a source that can take no DSP — Spotify plays in its
+                own client — rather than opening a sheet that goes nowhere. */}
             <TouchableOpacity
               onPress={() => setAudioSettingsOpen(true)}
+              disabled={!supportsAudioSettings}
+              accessibilityState={{ disabled: !supportsAudioSettings }}
+              accessibilityLabel="Audio settings"
               hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              style={!supportsAudioSettings && styles.disabledAction}
             >
-              <Feather name="sliders" size={20} color={colors.text} />
+              <Feather
+                name="sliders"
+                size={20}
+                color={supportsAudioSettings ? colors.text : colors.textMuted}
+              />
             </TouchableOpacity>
             {!isSpotify && queueRows.length > 0 ? (
               <TouchableOpacity
@@ -505,6 +516,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
+  },
+  disabledAction: {
+    opacity: 0.4,
   },
   emptyState: {
     flex: 1,

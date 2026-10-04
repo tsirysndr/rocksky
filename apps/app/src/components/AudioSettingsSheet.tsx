@@ -18,6 +18,7 @@ import {
   useAudioSettingsMutation,
   useAudioSettingsQuery,
 } from "../hooks/useAudioSettings";
+import { usePlaybackSource } from "../hooks/usePlaybackSource";
 import { colors } from "../theme";
 import EqBandSlider from "./EqBandSlider";
 import Knob from "./Knob";
@@ -127,6 +128,7 @@ function Row({
 export default function AudioSettingsSheet({ visible, onClose }: Props) {
   const { settings, isLoading } = useAudioSettingsQuery(visible);
   const { patch, flush } = useAudioSettingsMutation();
+  const { current, sourceLabel } = usePlaybackSource();
 
   const eq = settings.equalizer ?? {};
   const tone = settings.tone ?? {};
@@ -358,11 +360,13 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               />
             </Row>
 
-            {/* Said plainly, because this phone's own engine has no DSP yet:
-                the record is what other players read and apply. */}
+            {/* Says plainly where a change lands: a remote player gets it over
+                the wire at once, while this phone's own engine has no DSP yet
+                and only keeps the settings. */}
             <Text style={styles.footnote}>
-              Saved to your account. Players with DSP support — rockbox, the
-              desktop app, the web player — apply these.
+              {current?.kind === "device"
+                ? `Saved to your account and sent to ${sourceLabel}.`
+                : "Saved to your account. Players with DSP support apply these; this device has no DSP yet."}
             </Text>
           </ScrollView>
         )}
