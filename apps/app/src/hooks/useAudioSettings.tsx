@@ -18,6 +18,14 @@ import { usePlaybackSource } from "./usePlaybackSource";
 
 const QUERY_KEY = ["audio-settings"] as const;
 
+/**
+ * How long a change waits before it is written, matching web's lexicon
+ * debounce. A drag or a held stepper produces a stream of values; only the one
+ * the user settles on needs to reach the record, and each write is a PDS
+ * putRecord.
+ */
+const WRITE_DEBOUNCE_MS = 800;
+
 type SectionKey = "equalizer" | "tone" | "crossfade" | "replayGain";
 
 /**
@@ -139,18 +147,27 @@ export const useAudioSettingsMutation = () => {
   const targetDeviceId = current?.kind === "device" ? current.id : null;
   const pending = useRef<AudioSettingsPatch>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // One write at a time: the record is written with `swapRecord`, so two
+  // overlapping writes make the second one lose on a stale cid — and a lost
+  // write came back as an empty view, which used to flatten the sliders.
+  const inFlight = useRef(false);
+  const flushRef = useRef<() => void>(() => {});
 
   const { mutate } = useMutation({
     mutationFn: (patch: AudioSettingsPatch) => putAudioSettings(patch),
     onSuccess: (saved) => {
-      // The server echoes the stored record, which is the authority on what was
-      // actually accepted (it clamps), so take it rather than the local guess.
+      // The echo is the authority on what was accepted (the server clamps) —
+      // unless it carries nothing, which is how this endpoint reports *any*
+      // failure: unauthorized, no agent, a swapRecord conflict, a timeout. All
+      // of those answer 200 with `{ createdAt }`, and taking that literally is
+      // what reset every slider the moment it was released.
+      if (hasNoSettings(saved)) return;
       queryClient.setQueryData<AudioSettings>(QUERY_KEY, saved);
       void saveLocalAudioSettings(saved);
     },
-    onError: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-    },
+    // Deliberately no invalidate on error: the optimistic value is the user's
+    // intent, and a refetch would answer with the unchanged record (or nothing)
+    // and throw their edit away.
   });
 
   const flush = useCallback(() => {
@@ -158,21 +175,50 @@ export const useAudioSettingsMutation = () => {
       clearTimeout(timer.current);
       timer.current = null;
     }
+    if (Object.keys(pending.current).length === 0) return;
+    // Hold it back until the write in flight settles; it is sent then, with
+    // whatever else has accumulated in the meantime.
+    if (inFlight.current) return;
     const patch = pending.current;
     pending.current = {};
-    if (Object.keys(patch).length === 0) return;
+    inFlight.current = true;
     // The record first — it is what every player reads on its own schedule —
     // then the live push, so the selected device reacts now rather than on its
     // next sync. A player applies the sections it implements and ignores the
     // rest, which is why the document goes over verbatim.
-    mutate(patch);
+    mutate(patch, {
+      onSettled: () => {
+        inFlight.current = false;
+        if (Object.keys(pending.current).length > 0) flushRef.current();
+      },
+    });
     if (targetDeviceId && commands) {
       commands.setAudioSettings(targetDeviceId, toRemoteAudioSettings(patch));
     }
   }, [commands, mutate, targetDeviceId]);
 
+  flushRef.current = flush;
+
+  // A change made and then abandoned — the sheet closed within the debounce —
+  // still has to reach the record. The call goes direct rather than through the
+  // mutation, which is gone along with the component.
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+      const unsent = pending.current;
+      pending.current = {};
+      if (Object.keys(unsent).length === 0) return;
+      void putAudioSettings(unsent).catch(() => {});
+    },
+    [],
+  );
+
   const patch = useCallback(
     (next: AudioSettingsPatch) => {
+      // A fetch still in flight would resolve over the edit that is being made
+      // right now — the standard optimistic-update hazard — so it is cancelled
+      // before the local write.
+      void queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const merged = mergePatch(
         queryClient.getQueryData<AudioSettings>(QUERY_KEY),
         next,
@@ -184,7 +230,7 @@ export const useAudioSettingsMutation = () => {
         ...fullSections(merged, sections),
       };
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(flush, 400);
+      timer.current = setTimeout(flush, WRITE_DEBOUNCE_MS);
     },
     [queryClient, flush],
   );

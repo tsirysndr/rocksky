@@ -188,6 +188,13 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
     flush();
   };
 
+  // Closing is also "I'm done": send whatever the debounce is still holding
+  // rather than waiting for the timer on a sheet that is gone.
+  const close = () => {
+    flush();
+    onClose();
+  };
+
   const confirmDelete = (preset: EqualizerPreset) => {
     Alert.alert(preset.name, "Delete this preset?", [
       { text: "Cancel", style: "cancel" },
@@ -218,14 +225,14 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={close}
     >
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      <Pressable style={styles.backdrop} onPress={close} />
       <View style={styles.sheet}>
         <View style={styles.header}>
           <Feather name="sliders" size={16} color={colors.text} />
           <Text style={styles.title}>Audio Settings</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={10}>
+          <TouchableOpacity onPress={close} hitSlop={10}>
             <Feather name="x" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
