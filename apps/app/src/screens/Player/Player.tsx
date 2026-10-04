@@ -24,8 +24,22 @@ import {
 } from "@/src/atoms/nowplaying";
 import { Text } from "@/src/components/Text";
 import { usePlaybackControls } from "@/src/hooks/usePlaybackControls";
+import {
+  localQueue,
+  localQueueIndex,
+  removeLocalAt,
+  skipToLocal,
+} from "@/src/lib/uploadEngine";
 import type { RootStackParamList } from "@/src/Navigation";
 import { colors } from "@/src/theme";
+
+/** One row of the play queue, whichever source it came from. */
+type QueueRow = {
+  key: string;
+  title: string;
+  artist: string;
+  albumArt?: string;
+};
 
 function formatTime(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -62,8 +76,36 @@ export default function Player() {
   const [queueOpen, setQueueOpen] = useState(false);
 
   const isSpotify = player === "spotify";
+  const isLocal = player === "local";
   const activeDevice =
-    !isSpotify && activeDeviceId ? devices[activeDeviceId] : undefined;
+    !isSpotify && !isLocal && activeDeviceId
+      ? devices[activeDeviceId]
+      : undefined;
+
+  // The in-app engine keeps its queue in the uploadEngine module, not in the
+  // device registry, so "This Device" had no queue to show at all. Both sources
+  // are normalised to the same rows here. Reading the module on render is safe:
+  // the engine's poll writes progressAtom every tick, which re-renders this.
+  const queueRows: QueueRow[] = isLocal
+    ? localQueue().map((track, index) => ({
+        key: `${track.uploadId}-${index}`,
+        title: track.title,
+        artist: track.artist,
+        albumArt: track.albumArt ?? undefined,
+      }))
+    : (activeDevice?.queue ?? []).map((item, index) => ({
+        key: `${item.trackId ?? item.uploadId ?? item.title}-${index}`,
+        title: item.title,
+        artist: item.artist,
+        albumArt: item.albumArt,
+      }));
+  const queueCurrentIndex = isLocal
+    ? (localQueueIndex() ?? 0)
+    : (activeDevice?.queueIndex ?? 0);
+  const jumpTo = (index: number) =>
+    isLocal ? skipToLocal(index) : queueJump(index);
+  const removeFrom = (index: number) =>
+    isLocal ? removeLocalAt(index) : queueRemove(index);
 
   const duration = nowPlaying?.duration ?? 0;
   const position = scrubbing ? scrubValue : Math.min(progress, duration);
@@ -108,7 +150,7 @@ export default function Player() {
             <Feather name="chevron-down" size={26} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.topLabel}>NOW PLAYING</Text>
-          {!isSpotify && activeDevice ? (
+          {!isSpotify && queueRows.length > 0 ? (
             <TouchableOpacity
               onPress={() => setQueueOpen(true)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -307,28 +349,26 @@ export default function Player() {
             <View style={styles.grabHandle} />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Play Queue</Text>
-              {activeDevice && activeDevice.queue.length > 0 && (
+              {queueRows.length > 0 && (
                 <Text style={styles.sheetCount}>
-                  {activeDevice.queueIndex + 1}/{activeDevice.queue.length}
+                  {queueCurrentIndex + 1}/{queueRows.length}
                 </Text>
               )}
             </View>
-            {!activeDevice || activeDevice.queue.length === 0 ? (
+            {queueRows.length === 0 ? (
               <View style={styles.queueEmpty}>
                 <Text style={styles.emptyLabel}>Queue is empty</Text>
               </View>
             ) : (
               <FlatList
-                data={activeDevice.queue}
-                keyExtractor={(item, index) =>
-                  `${item.trackId ?? item.uploadId ?? item.title}-${index}`
-                }
+                data={queueRows}
+                keyExtractor={(item) => item.key}
                 renderItem={({ item, index }) => {
-                  const isCurrent = index === activeDevice.queueIndex;
+                  const isCurrent = index === queueCurrentIndex;
                   return (
                     <TouchableOpacity
                       style={styles.queueRow}
-                      onPress={() => queueJump(index)}
+                      onPress={() => jumpTo(index)}
                     >
                       <Text style={styles.queueIndex}>{index + 1}</Text>
                       {item.albumArt ? (
@@ -358,7 +398,7 @@ export default function Player() {
                       </View>
                       {!isCurrent && (
                         <TouchableOpacity
-                          onPress={() => queueRemove(index)}
+                          onPress={() => removeFrom(index)}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
                           <Feather

@@ -83,8 +83,11 @@ export const useNavidromeAlbumsInfiniteQuery = (q: string, enabled = true) => {
       }
       return fetchNavidromeAlbums(credentials, pageParam, ALBUMS_PAGE);
     },
+    // The offset is how many albums have actually been fetched, not
+    // pages × 50: a page that comes back short would otherwise make every
+    // later offset skip past albums the user owns.
     getNextPageParam: (lastPage, pages) =>
-      lastPage.length < ALBUMS_PAGE ? undefined : pages.length * ALBUMS_PAGE,
+      lastPage.length < ALBUMS_PAGE ? undefined : pages.flat().length,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     refetchOnMount: false,
@@ -143,6 +146,27 @@ export const useNavidromeArtistQuery = (artistId: string | null) => {
     gcTime: GC_TIME,
     refetchOnMount: false,
   });
+};
+
+/**
+ * The navidrome id of an artist known only by name.
+ *
+ * getAlbum resolves an AT-URI as well as a navidrome id, so an uploaded
+ * track's album opens directly; getArtist takes an id only, so the artist has
+ * to be matched through search3 first.
+ */
+export const resolveArtistIdByName = async (
+  creds: NavidromeCredentials,
+  name: string,
+): Promise<string | null> => {
+  const { artists } = await searchNavidrome(creds, name, {
+    artistCount: 20,
+    songCount: 0,
+    albumCount: 0,
+  });
+  const wanted = name.trim().toLowerCase();
+  const exact = artists.find((a) => a.name.trim().toLowerCase() === wanted);
+  return exact?.id ?? artists[0]?.id ?? null;
 };
 
 /**

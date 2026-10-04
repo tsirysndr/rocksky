@@ -30,6 +30,7 @@ import LibraryGlyph from "@/src/components/Icons/Library";
 import { Text } from "@/src/components/Text";
 import {
   fetchArtistQueue,
+  resolveArtistIdByName,
   songToQueueTrack,
   useNavidromeAlbumQuery,
   useNavidromeAlbumsInfiniteQuery,
@@ -147,6 +148,27 @@ function shuffled<T>(list: T[]): T[] {
   }
   return out;
 }
+
+/**
+ * A guarded "fetch the next page" for a FlatList.
+ *
+ * `onEndReached` fires once per content-size change, so if a page lands
+ * without growing the list — duplicates deduped away, a short page — it never
+ * re-arms and scrolling stops loading. Web has no such problem: its
+ * IntersectionObserver sentinel re-fires whenever the end is in view. Wiring
+ * this to `onEndReached` *and* `onMomentumScrollEnd` gets the same behaviour,
+ * since every further scroll gesture retries.
+ */
+const nextPageLoader = (query: {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => unknown;
+}) => {
+  return () => {
+    if (!query.hasNextPage || query.isFetchingNextPage) return;
+    query.fetchNextPage();
+  };
+};
 
 const initialOf = (name: string): string =>
   name.trim().charAt(0).toUpperCase() || "♬";
@@ -673,6 +695,7 @@ export default function Library() {
   // Albums and artists come from navidrome's Subsonic API — the same calls the
   // web clients make. The /uploads/albums and /uploads/artists endpoints
   // group-by the user's whole upload set per page and took seconds.
+  const { data: creds } = useNavidromeCredentials();
   const tracksQuery = useUploadsInfiniteQuery(query, signedIn);
   const albumsQuery = useNavidromeAlbumsInfiniteQuery(query, signedIn);
   const artistsQuery = useNavidromeArtistsQuery(query, signedIn);
@@ -686,6 +709,9 @@ export default function Library() {
     [albumsQuery.data],
   );
   const artists: NavidromeArtist[] = artistsQuery.data ?? [];
+
+  const loadMoreTracks = nextPageLoader(tracksQuery);
+  const loadMoreAlbums = nextPageLoader(albumsQuery);
 
   const openAlbum = (album: NavidromeAlbum) =>
     setStack((prev) => [
@@ -705,6 +731,18 @@ export default function Library() {
       { kind: "artist", id: artistId, name, art: null },
     ]);
 
+  // An uploaded track knows its artist's name and record URI, but getArtist
+  // takes a navidrome id, so the name is matched first.
+  const openArtistByName = async (name: string) => {
+    if (!creds || !name) return;
+    const artistId = await resolveArtistIdByName(creds, name);
+    if (!artistId) {
+      Alert.alert("Artist not found", `${name} is not in your library.`);
+      return;
+    }
+    openArtistById(artistId, name);
+  };
+
   const openArtist = (artist: NavidromeArtist) =>
     setStack((prev) => [
       ...prev,
@@ -716,8 +754,6 @@ export default function Library() {
       },
     ]);
 
-  // An uploaded track carries the AT-URIs of its song, album and artist, so its
-  // menu can reach the catalogue detail screens the rest of the app uses.
   const uploadSheetActions = (item: UploadedTrack): SheetAction[] => {
     const track = uploadToQueueTrack(item);
     const actions: SheetAction[] = [
@@ -732,26 +768,37 @@ export default function Library() {
         onPress: () => queueTracks([track], "last"),
       },
     ];
-    const { uri, albumUri, artistUri } = item.track;
+    const { uri, album, albumArtist, albumArt, albumUri, artist } = item.track;
+    if (albumUri) {
+      // Album and artist stay inside the library, on the navidrome-backed
+      // views. getAlbum resolves an AT-URI as well as its own id, so the
+      // uploaded track's album opens straight away.
+      actions.push({
+        label: "Go to album",
+        icon: "disc",
+        onPress: () =>
+          setStack((prev) => [
+            ...prev,
+            {
+              kind: "album",
+              id: albumUri,
+              title: album,
+              subtitle: albumArtist || artist,
+              art: albumArt,
+            },
+          ]),
+      });
+    }
+    actions.push({
+      label: "Go to artist",
+      icon: "user",
+      onPress: () => openArtistByName(albumArtist || artist),
+    });
     if (uri) {
       actions.push({
         label: "Track details",
         icon: "music",
         onPress: () => navigation.navigate("SongDetails", { uri }),
-      });
-    }
-    if (albumUri) {
-      actions.push({
-        label: "Go to album",
-        icon: "disc",
-        onPress: () => navigation.navigate("AlbumDetails", { uri: albumUri }),
-      });
-    }
-    if (artistUri) {
-      actions.push({
-        label: "Go to artist",
-        icon: "user",
-        onPress: () => navigation.navigate("ArtistDetails", { uri: artistUri }),
       });
     }
     return actions;
@@ -908,12 +955,9 @@ export default function Library() {
               onMore={() => setSheetTrack(item)}
             />
           )}
-          onEndReached={() =>
-            tracksQuery.hasNextPage &&
-            !tracksQuery.isFetchingNextPage &&
-            tracksQuery.fetchNextPage()
-          }
-          onEndReachedThreshold={0.4}
+          onEndReached={loadMoreTracks}
+          onMomentumScrollEnd={loadMoreTracks}
+          onEndReachedThreshold={1.2}
           getItemLayout={rowLayout}
           initialNumToRender={12}
           maxToRenderPerBatch={12}
@@ -944,15 +988,11 @@ export default function Library() {
           renderItem={({ item }) => (
             <AlbumCard album={item} onPress={() => openAlbum(item)} />
           )}
-          onEndReached={() =>
-            albumsQuery.hasNextPage &&
-            !albumsQuery.isFetchingNextPage &&
-            albumsQuery.fetchNextPage()
-          }
-          onEndReachedThreshold={0.4}
+          onEndReached={loadMoreAlbums}
+          onMomentumScrollEnd={loadMoreAlbums}
+          onEndReachedThreshold={1.2}
           initialNumToRender={9}
           maxToRenderPerBatch={9}
-          windowSize={7}
           ListEmptyComponent={
             albumsQuery.isLoading ? (
               <ListFooter loading />

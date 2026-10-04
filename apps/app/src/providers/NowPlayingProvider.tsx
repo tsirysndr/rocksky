@@ -31,10 +31,12 @@ const ProgressContext =
   createContext<ReturnType<typeof useNowPlaying>["progress"]>(0);
 
 // Pushes the active remote device's track into the shared now-playing atoms.
-// When a device is streaming, it wins over the REST/Spotify polling fallback.
+// When a device is streaming, it wins over the REST/Spotify polling fallback —
+// but never over the in-app engine, which owns the atoms while it plays.
 function useActiveDeviceTrack() {
   const devices = useAtomValue(devicesAtom);
   const activeDeviceId = useAtomValue(activeDeviceIdAtom);
+  const localEngineActive = useAtomValue(localEngineActiveAtom);
   const lockedUntil = useAtomValue(playbackLockedUntilAtom);
   const setNowPlaying = useSetAtom(nowPlayingAtom);
   const setPlayer = useSetAtom(playerAtom);
@@ -45,7 +47,10 @@ function useActiveDeviceTrack() {
     : null;
 
   useEffect(() => {
-    if (!track) return;
+    // A remote device keeps reporting its own track while the phone plays
+    // locally. Writing it here too made the two sources alternate every poll,
+    // which is what flickered the mini player's title, artist and art.
+    if (!track || localEngineActive) return;
     const locked = Date.now() < lockedUntil;
     setNowPlaying((prev) => ({
       title: track.title,
@@ -70,7 +75,14 @@ function useActiveDeviceTrack() {
       if (Math.abs(err) > 2000) return track.elapsed;
       return err > 0 ? prev + err * 0.25 : prev;
     });
-  }, [track, lockedUntil, setNowPlaying, setPlayer, setProgress]);
+  }, [
+    track,
+    localEngineActive,
+    lockedUntil,
+    setNowPlaying,
+    setPlayer,
+    setProgress,
+  ]);
 
   return !!track;
 }

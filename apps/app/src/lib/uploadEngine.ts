@@ -62,6 +62,21 @@ export function localQueue(): UploadQueueTrack[] {
   return queue;
 }
 
+/** Index of the track the engine is on, as of the last poll. */
+export function localQueueIndex(): number | null {
+  return lastIndex;
+}
+
+/** Drop one track from the local queue, keeping the metadata in step. */
+export function removeLocalAt(index: number) {
+  if (index < 0 || index >= queue.length) return;
+  const result = engineCommand({ cmd: "remove", index });
+  if (!result.ok) return;
+  queue = queue.filter((_, i) => i !== index);
+  if (lastIndex !== null && index < lastIndex) lastIndex -= 1;
+  setTimeout(pollOnce, 150);
+}
+
 function handleTransport(action: TransportAction, positionMs?: number) {
   switch (action) {
     case "play":
