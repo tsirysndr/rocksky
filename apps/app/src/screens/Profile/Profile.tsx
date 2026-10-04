@@ -18,7 +18,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import type { GraphUser } from "@/src/api/graph";
 import { followsAtom } from "@/src/atoms/follows";
 import { profileAtom } from "@/src/atoms/profile";
@@ -1675,6 +1678,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
 
   // Whole-screen scrolling: the active tab registers its pagination/refresh
   // hooks here so the single outer ScrollView can drive them.
+  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const loadMoreRef = useRef<(() => void) | null>(null);
   const refreshRef = useRef<(() => Promise<unknown>) | null>(null);
@@ -2146,7 +2150,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
         pointerEvents={pinned ? "auto" : "none"}
         style={{
           position: "absolute",
-          top: 0,
+          top: insets.top,
           left: 0,
           right: 0,
           zIndex: 10,
