@@ -126,8 +126,22 @@ const authHeaders = () => ({
 });
 
 /**
+ * True when a response carries no settings at all.
+ *
+ * getAudioSettings answers 200 with just `{ createdAt }` for every unhappy path
+ * — no record yet, a repo it could not read, a timeout — so a section-less reply
+ * means "nothing to apply", never "the user's EQ is flat". Taking it literally
+ * flattened a stored curve and then overwrote the local copy with that.
+ */
+export const hasNoSettings = (settings: AudioSettings | null): boolean =>
+  !settings?.equalizer &&
+  !settings?.tone &&
+  !settings?.crossfade &&
+  !settings?.replayGain;
+
+/**
  * The caller's own settings. Identity comes from the bearer token, so there are
- * no params; a 404 means the user has no record yet, not an error.
+ * no params; null means nothing is stored (or nothing could be read).
  */
 export const getAudioSettings = async (): Promise<AudioSettings | null> => {
   try {
@@ -135,7 +149,8 @@ export const getAudioSettings = async (): Promise<AudioSettings | null> => {
       `${API_URL}/xrpc/app.rocksky.rockbox.getAudioSettings`,
       { headers: authHeaders() },
     );
-    return response.data ?? null;
+    const settings = response.data ?? null;
+    return hasNoSettings(settings) ? null : settings;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return null;

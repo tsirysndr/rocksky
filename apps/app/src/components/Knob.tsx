@@ -1,5 +1,6 @@
+import Feather from "@expo/vector-icons/Feather";
 import { useMemo, useRef, useState } from "react";
-import { PanResponder, StyleSheet, View } from "react-native";
+import { PanResponder, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors } from "../theme";
 import { Text } from "./Text";
 
@@ -13,6 +14,12 @@ type Props = {
   defaultNorm?: number;
   size?: number;
   disabled?: boolean;
+  /**
+   * How many discrete positions the value has, so the steppers can nudge by
+   * exactly one. Turning a rotary with a thumb is imprecise at best; the
+   * buttons are how you actually land on a value.
+   */
+  steps?: number;
   onChange: (norm: number) => void;
   /** Called when the gesture ends, to flush a coalesced write. */
   onRelease?: () => void;
@@ -20,7 +27,7 @@ type Props = {
 
 // Pixels of travel for a full sweep. The desktop uses 140 with a mouse; a thumb
 // on a phone has less room and less patience, so the sweep is shorter here.
-const TRAVEL = 90;
+const TRAVEL = 70;
 const SWEEP = 270;
 const DOUBLE_TAP_MS = 300;
 // Movement under this is a tap, not a turn — a finger never lands perfectly still.
@@ -51,6 +58,7 @@ export default function Knob({
   defaultNorm = 0.5,
   size = 54,
   disabled,
+  steps = 50,
   onChange,
   onRelease,
 }: Props) {
@@ -130,6 +138,14 @@ export default function Knob({
     [disabled, defaultNorm, onChange, onRelease],
   );
 
+  // One tap, one step — and the write goes out at once, since a tap has no
+  // gesture end to coalesce against.
+  const step = (direction: 1 | -1) => {
+    const next = clamp01(clamped + (direction * 1) / Math.max(1, steps));
+    onChange(next);
+    onRelease?.();
+  };
+
   const shown = live ?? clamped;
   const angle = -SWEEP / 2 + shown * SWEEP;
   const dot = Math.round(size * 0.28);
@@ -175,6 +191,26 @@ export default function Knob({
       <Text numberOfLines={1} style={styles.label}>
         {label}
       </Text>
+      <View style={styles.stepper}>
+        <TouchableOpacity
+          onPress={() => step(-1)}
+          disabled={disabled}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+          accessibilityLabel={`${label} down`}
+          style={[styles.stepButton, disabled && styles.stepDisabled]}
+        >
+          <Feather name="minus" size={13} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => step(1)}
+          disabled={disabled}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+          accessibilityLabel={`${label} up`}
+          style={[styles.stepButton, disabled && styles.stepDisabled]}
+        >
+          <Feather name="plus" size={13} color={colors.text} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -215,5 +251,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     color: colors.textMuted,
+  },
+  stepper: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  stepButton: {
+    width: 26,
+    height: 24,
+    borderRadius: 7,
+    backgroundColor: colors.surface2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepDisabled: {
+    opacity: 0.4,
   },
 });

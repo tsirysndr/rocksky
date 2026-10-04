@@ -1,11 +1,14 @@
 import Feather from "@expo/vector-icons/Feather";
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,6 +17,13 @@ import type {
   FadeOutMixMode,
   ReplayGainMode,
 } from "../api/audioSettings";
+import { EQ_BANDS_HZ, EQ_Q } from "../api/audioSettings";
+import type { EqualizerPreset } from "../api/equalizerPresets";
+import {
+  useDeleteEqualizerPresetMutation,
+  useEqualizerPresetsQuery,
+  useSaveEqualizerPresetMutation,
+} from "../hooks/useEqualizerPresets";
 import {
   useAudioSettingsMutation,
   useAudioSettingsQuery,
@@ -129,6 +139,11 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
   const { settings, isLoading } = useAudioSettingsQuery(visible);
   const { patch, flush } = useAudioSettingsMutation();
   const { current, sourceLabel } = usePlaybackSource();
+  const { data: presets } = useEqualizerPresetsQuery(visible);
+  const savePreset = useSaveEqualizerPresetMutation();
+  const deletePreset = useDeleteEqualizerPresetMutation();
+  const [saving, setSaving] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   const eq = settings.equalizer ?? {};
   const tone = settings.tone ?? {};
@@ -152,6 +167,50 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
     setEqualizer({
       bands: bands.map((band, i) => (i === index ? { ...band, gain } : band)),
     });
+  };
+
+  // Applying a preset is an ordinary settings write — the same path the sliders
+  // take — so every player picks it up the usual way.
+  const applyPreset = (preset: EqualizerPreset) => {
+    patch({
+      equalizer: {
+        enabled: true,
+        precut: preset.precut ?? 0,
+        // Keyed by index against the fixed band table, so a preset saved
+        // against a different frequency list can't land on the wrong band.
+        bands: EQ_BANDS_HZ.map((frequency, index) => ({
+          frequency,
+          gain: preset.bands[index]?.gain ?? 0,
+          q: preset.bands[index]?.q ?? EQ_Q,
+        })),
+      },
+    });
+    flush();
+  };
+
+  const confirmDelete = (preset: EqualizerPreset) => {
+    Alert.alert(preset.name, "Delete this preset?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deletePreset.mutate(preset.rkey),
+      },
+    ]);
+  };
+
+  const saveCurrent = () => {
+    const name = presetName.trim();
+    if (!name) return;
+    savePreset.mutate(
+      { name, precut, bands },
+      {
+        onSuccess: () => {
+          setPresetName("");
+          setSaving(false);
+        },
+      },
+    );
   };
 
   return (
@@ -181,9 +240,10 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             contentContainerStyle={styles.body}
           >
             <SectionHeader title="EQUALIZER" />
-            {/* The gesture is worth a word: nothing on screen suggests it. */}
+            {/* Worth a word: none of it is suggested by the controls. */}
             <Text style={styles.hint}>
-              Drag a band or a knob to adjust, double-tap to reset it.
+              Drag a band or knob, tap − and + for single steps, double-tap to
+              reset.
             </Text>
             <Row label="Enable EQ">
               <Switch
@@ -196,6 +256,61 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                 thumbColor="#fff"
               />
             </Row>
+
+            {/* Presets: tap to apply, long-press to delete. Saved as records in
+                the user's repo, so they are the same presets as on web. */}
+            <View style={styles.presetRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.presetList}
+              >
+                {(presets ?? []).map((preset) => (
+                  <TouchableOpacity
+                    key={preset.rkey}
+                    style={styles.preset}
+                    onPress={() => applyPreset(preset)}
+                    onLongPress={() => confirmDelete(preset)}
+                  >
+                    <Text numberOfLines={1} style={styles.presetText}>
+                      {preset.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[styles.preset, styles.presetSave]}
+                  onPress={() => setSaving((open) => !open)}
+                >
+                  <Feather name="plus" size={12} color={colors.text} />
+                  <Text style={styles.presetText}>Save</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
+            {saving && (
+              <View style={styles.saveRow}>
+                <TextInput
+                  value={presetName}
+                  onChangeText={setPresetName}
+                  placeholder="Preset name"
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.saveInput}
+                  autoFocus
+                  maxLength={64}
+                  onSubmitEditing={saveCurrent}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={saveCurrent}
+                  disabled={!presetName.trim() || savePreset.isPending}
+                >
+                  <Text style={styles.saveButtonText}>
+                    {savePreset.isPending ? "Saving…" : "Save"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* The bands dim rather than vanish when the EQ is off, so the curve
                 stays readable while it is bypassed. */}
@@ -218,6 +333,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               <View style={styles.precutHolder}>
                 <Knob
                   label="Precut"
+                  steps={48}
                   // Precut is headroom, so it only goes one way: 0 to -24 dB.
                   valueText={db(precut)}
                   norm={1 + precut / 240}
@@ -236,6 +352,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             <View style={styles.knobRow}>
               <Knob
                 label="Bass"
+                steps={48}
                 valueText={`${tone.bass ?? 0} dB`}
                 norm={((tone.bass ?? 0) + 24) / 48}
                 defaultNorm={0.5}
@@ -246,6 +363,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               />
               <Knob
                 label="Treble"
+                steps={48}
                 valueText={`${tone.treble ?? 0} dB`}
                 norm={((tone.treble ?? 0) + 24) / 48}
                 defaultNorm={0.5}
@@ -256,6 +374,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               />
               <Knob
                 label="Balance"
+                steps={40}
                 valueText={balanceLabel(tone.balance ?? 0)}
                 norm={((tone.balance ?? 0) + 100) / 200}
                 defaultNorm={0.5}
@@ -289,6 +408,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             <View style={styles.knobRow}>
               <Knob
                 label="Pre-amp"
+                steps={48}
                 valueText={db(rg.preamp ?? 0)}
                 norm={((rg.preamp ?? 0) + 120) / 240}
                 defaultNorm={0.5}
@@ -313,6 +433,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             <View style={styles.knobRow}>
               <Knob
                 label="In delay"
+                steps={28}
                 valueText={seconds(cf.fadeInDelay ?? 0)}
                 norm={(cf.fadeInDelay ?? 0) / 7000}
                 defaultNorm={0}
@@ -325,6 +446,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               />
               <Knob
                 label="In fade"
+                steps={30}
                 valueText={seconds(cf.fadeInDuration ?? 0)}
                 norm={(cf.fadeInDuration ?? 0) / 15000}
                 defaultNorm={2000 / 15000}
@@ -337,6 +459,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               />
               <Knob
                 label="Out delay"
+                steps={28}
                 valueText={seconds(cf.fadeOutDelay ?? 0)}
                 norm={(cf.fadeOutDelay ?? 0) / 7000}
                 defaultNorm={0}
@@ -349,6 +472,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               />
               <Knob
                 label="Out fade"
+                steps={30}
                 valueText={seconds(cf.fadeOutDuration ?? 0)}
                 norm={(cf.fadeOutDuration ?? 0) / 15000}
                 defaultNorm={2000 / 15000}
@@ -507,6 +631,58 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textMuted,
     opacity: 0.7,
+  },
+  presetRow: {
+    flexDirection: "row",
+  },
+  presetList: {
+    gap: 6,
+    paddingRight: 8,
+  },
+  preset: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: colors.surface2,
+    maxWidth: 150,
+  },
+  presetSave: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: "transparent",
+  },
+  presetText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  saveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  saveInput: {
+    flex: 1,
+    backgroundColor: colors.inputBackground,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: colors.text,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  saveButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#fff",
   },
   footnote: {
     fontSize: 10,

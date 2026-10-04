@@ -5,6 +5,7 @@ import {
   type AudioSettings,
   type AudioSettingsPatch,
   getAudioSettings,
+  hasNoSettings,
   loadLocalAudioSettings,
   putAudioSettings,
   saveLocalAudioSettings,
@@ -36,11 +37,11 @@ export const useAudioSettingsQuery = (enabled = true) => {
     if (!active) return;
     let cancelled = false;
     void loadLocalAudioSettings().then((local) => {
-      if (cancelled || !local) return;
-      // Never clobber a record that has already arrived.
-      queryClient.setQueryData<AudioSettings>(
-        QUERY_KEY,
-        (current) => current ?? local,
+      if (cancelled || !local || hasNoSettings(local)) return;
+      // Never clobber a record that has already arrived — but an empty answer
+      // isn't one, so the stored curve still wins over it.
+      queryClient.setQueryData<AudioSettings>(QUERY_KEY, (current) =>
+        current && !hasNoSettings(current) ? current : local,
       );
     });
     return () => {
@@ -50,7 +51,11 @@ export const useAudioSettingsQuery = (enabled = true) => {
 
   const query = useQuery({
     queryKey: QUERY_KEY,
-    queryFn: getAudioSettings,
+    // The record wins when there is one; otherwise the local copy stands, so a
+    // repo the server could not read (it answers 200 with nothing) never
+    // flattens a curve the user actually has.
+    queryFn: async () =>
+      (await getAudioSettings()) ?? (await loadLocalAudioSettings()),
     enabled: active,
     // Hydrated once per session, as web hydrates once per did. A later refetch
     // resolving mid-gesture would answer with the pre-edit record and snap the
@@ -62,9 +67,12 @@ export const useAudioSettingsQuery = (enabled = true) => {
     refetchOnReconnect: false,
   });
 
-  // Keep the local copy in step, so This Device still has these next launch.
+  // Keep the local copy in step, so This Device still has these next launch —
+  // but never persist an empty answer over a good one.
   useEffect(() => {
-    if (query.data) void saveLocalAudioSettings(query.data);
+    if (query.data && !hasNoSettings(query.data)) {
+      void saveLocalAudioSettings(query.data);
+    }
   }, [query.data]);
 
   return { ...query, settings: withDefaults(query.data ?? null) };
