@@ -1,11 +1,16 @@
+import {
+  RemoteController,
+  type RemoteNowPlaying,
+  type RemoteQueueItem,
+  type RemoteDevice as SdkRemoteDevice,
+} from "@rocksky/sdk/remote";
 import { useAtom, useSetAtom } from "jotai";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
   activeDeviceIdAtom,
   type DeviceQueueTrack,
   type DeviceTrack,
   devicesAtom,
-  type RemoteCommandAction,
   type RemoteDevice,
   remoteCommandsAtom,
 } from "../atoms/devices";
@@ -13,279 +18,193 @@ import { API_URL } from "../consts";
 import { storage } from "../storage";
 
 const WS_URL = `${API_URL.replace("https", "wss").replace("http", "ws")}/ws`;
-const HEARTBEAT_MS = 10_000;
-const RECONNECT_MS = 3_000;
 
-type RawTrack = Record<string, unknown>;
-
-function num(v: unknown): number {
-  return typeof v === "number" && Number.isFinite(v) ? v : 0;
-}
-
-function str(v: unknown): string | undefined {
-  return typeof v === "string" && v.length > 0 ? v : undefined;
-}
-
-function parseRepeat(v: unknown): "off" | "one" | "all" | undefined {
-  return v === "off" || v === "one" || v === "all" ? v : undefined;
-}
-
-function parseTrack(raw: RawTrack | null | undefined): DeviceTrack | null {
-  if (!raw || !str(raw.title)) return null;
+function toDeviceTrack(track: RemoteNowPlaying): DeviceTrack | null {
+  if (!track.title && !track.artist && !track.albumArtist) return null;
   return {
-    title: str(raw.title) ?? "",
-    artist: str(raw.album_artist) ?? str(raw.artist) ?? "",
-    album: str(raw.album),
-    albumArtist: str(raw.album_artist),
-    albumArt: str(raw.album_art),
-    duration: num(raw.duration_ms) || num(raw.length) || num(raw.duration),
-    elapsed: num(raw.elapsed) || num(raw.progress_ms),
-    isPlaying: raw.is_playing === true,
-    shuffle: typeof raw.shuffle === "boolean" ? raw.shuffle : undefined,
-    repeat: parseRepeat(raw.repeat),
-    volume: typeof raw.volume === "number" ? raw.volume : undefined,
-    songUri: str(raw.song_uri) ?? str(raw.songUri),
-    albumUri: str(raw.album_uri) ?? str(raw.albumUri),
-    artistUri: str(raw.artist_uri) ?? str(raw.artistUri),
-    sha256: str(raw.sha256),
-    liked: typeof raw.liked === "boolean" ? raw.liked : undefined,
+    title: track.title,
+    artist: track.albumArtist || track.artist,
+    album: track.album,
+    albumArtist: track.albumArtist,
+    albumArt: track.albumArt,
+    duration: track.durationMs ?? 0,
+    elapsed: track.elapsedMs ?? 0,
+    isPlaying: track.isPlaying === true,
+    shuffle: track.shuffle,
+    repeat: track.repeat,
+    volume: track.volume,
+    songUri: track.songUri,
+    albumUri: track.albumUri,
+    artistUri: track.artistUri,
+    sha256: track.sha256,
+    liked: track.liked,
   };
 }
 
-function parseQueue(raw: unknown): DeviceQueueTrack[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((t): t is RawTrack => !!t && typeof t === "object")
-    .map((t) => ({
-      trackId: str(t.trackId) ?? str(t.track_id),
-      uploadId: str(t.uploadId) ?? str(t.upload_id),
-      title: str(t.title) ?? "",
-      artist: str(t.artist) ?? "",
-      album: str(t.album),
-      albumArtist: str(t.album_artist),
-      albumArt: str(t.album_art) ?? str(t.albumArt),
-      duration: num(t.duration) || undefined,
-      songUri: str(t.song_uri) ?? str(t.songUri),
-      albumUri: str(t.album_uri) ?? str(t.albumUri),
-      trackNumber:
-        typeof t.track_number === "number" ? t.track_number : undefined,
-    }));
+function toQueue(queue: RemoteQueueItem[] | undefined): DeviceQueueTrack[] {
+  if (!Array.isArray(queue)) return [];
+  return queue.map((item) => ({
+    trackId: item.trackId,
+    uploadId: item.uploadId,
+    title: item.title,
+    artist: item.artist,
+    album: item.album,
+    albumArtist: item.albumArtist,
+    albumArt: item.albumArt,
+    duration: item.durationMs,
+    songUri: item.songUri,
+    albumUri: item.albumUri,
+    trackNumber: item.trackNumber,
+  }));
 }
 
-// Owns the remote-control WebSocket (wss://api.rocksky.app/ws): keeps the
-// device registry up to date and publishes the command senders. Mount once.
+function toDevice(device: SdkRemoteDevice): RemoteDevice {
+  return {
+    deviceId: device.deviceId,
+    name: device.name || "Remote device",
+    nowPlaying: device.nowPlaying ? toDeviceTrack(device.nowPlaying) : null,
+    queue: toQueue(device.queue),
+    queueIndex: device.queueIndex ?? 0,
+  };
+}
+
+// Owns the remote-control connection (@rocksky/sdk RemoteController): keeps
+// the device registry up to date and publishes the command senders. Mount once.
 export function useRemoteDevicesConnection() {
   const setDevices = useSetAtom(devicesAtom);
   const [, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
   const setCommands = useSetAtom(remoteCommandsAtom);
-  const wsRef = useRef<WebSocket | null>(null);
-  const stoppedRef = useRef(false);
 
   useEffect(() => {
-    const token = storage.getToken();
-    if (!token) return;
-    stoppedRef.current = false;
-    let heartbeat: ReturnType<typeof setInterval> | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    if (!storage.getToken()) return;
 
-    const connect = () => {
-      if (stoppedRef.current) return;
-      const ws = new WebSocket(WS_URL);
-      wsRef.current = ws;
+    const controller = new RemoteController({
+      url: WS_URL,
+      token: () => storage.getToken() ?? undefined,
+      name: "rocksky-mobile",
+    });
 
-      ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            type: "register",
-            clientName: "rocksky-mobile",
-            token,
-          }),
+    controller
+      .on("devices", ({ primaryDevice, devices }) => {
+        const next: Record<string, RemoteDevice> = {};
+        for (const d of devices) {
+          if (!d.deviceId) continue;
+          next[d.deviceId] = toDevice(d);
+        }
+        setDevices(next);
+        setActiveDeviceId((prev) =>
+          prev && next[prev]
+            ? prev
+            : primaryDevice && next[primaryDevice]
+              ? primaryDevice
+              : (Object.keys(next)[0] ?? null),
         );
-        heartbeat = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) ws.send("ping");
-        }, HEARTBEAT_MS);
-      };
-
-      ws.onmessage = (event) => {
-        if (event.data === "pong") return;
-        let msg: Record<string, unknown>;
-        try {
-          msg = JSON.parse(event.data as string);
-        } catch {
-          return;
-        }
-
-        switch (msg.type) {
-          case "devices": {
-            const list = Array.isArray(msg.devices) ? msg.devices : [];
-            const next: Record<string, RemoteDevice> = {};
-            for (const d of list as RawTrack[]) {
-              const dev = buildDevice(d);
-              if (dev) next[dev.deviceId] = dev;
-            }
-            setDevices(next);
-            const primary = str(msg.primary_device);
-            setActiveDeviceId((prev) =>
-              prev && next[prev]
-                ? prev
-                : (primary ?? Object.keys(next)[0] ?? null),
-            );
-            break;
+      })
+      .on("deviceRegistered", ({ deviceId, name }) => {
+        if (!deviceId) return;
+        setDevices((prev) =>
+          prev[deviceId]
+            ? prev
+            : {
+                ...prev,
+                [deviceId]: {
+                  deviceId,
+                  name: name || "Remote device",
+                  nowPlaying: null,
+                  queue: [],
+                  queueIndex: 0,
+                },
+              },
+        );
+      })
+      .on("deviceUnregistered", ({ deviceId }) => {
+        if (!deviceId) return;
+        setDevices((prev) => {
+          if (!prev[deviceId]) return prev;
+          const next = { ...prev };
+          delete next[deviceId];
+          return next;
+        });
+        setActiveDeviceId((prev) => (prev === deviceId ? null : prev));
+      })
+      .on("primaryChanged", ({ deviceId }) => {
+        if (deviceId) setActiveDeviceId(deviceId);
+      })
+      .on("nowPlaying", ({ deviceId, deviceName, track }) => {
+        if (!deviceId) return;
+        const parsed = toDeviceTrack(track);
+        if (!parsed) return;
+        setDevices((prev) => {
+          const existing = prev[deviceId];
+          return {
+            ...prev,
+            [deviceId]: {
+              deviceId,
+              name: deviceName || existing?.name || "Remote device",
+              nowPlaying: parsed,
+              queue: existing?.queue ?? [],
+              queueIndex: existing?.queueIndex ?? 0,
+            },
+          };
+        });
+      })
+      .on("status", ({ deviceId, status }) => {
+        if (!deviceId) return;
+        setDevices((prev) => {
+          const existing = prev[deviceId];
+          if (!existing) return prev;
+          if (status === "stopped") {
+            return { ...prev, [deviceId]: { ...existing, nowPlaying: null } };
           }
-          case "device_registered": {
-            const id = str(msg.deviceId) ?? str(msg.device_id);
-            if (!id) break;
-            const name = str(msg.clientName) ?? str(msg.device_name) ?? id;
-            setDevices((prev) =>
-              prev[id]
-                ? prev
-                : {
-                    ...prev,
-                    [id]: {
-                      deviceId: id,
-                      name,
-                      nowPlaying: null,
-                      queue: [],
-                      queueIndex: 0,
-                    },
-                  },
-            );
-            break;
-          }
-          case "device_unregistered": {
-            const id = str(msg.device_id) ?? str(msg.deviceId);
-            if (!id) break;
-            setDevices((prev) => {
-              if (!prev[id]) return prev;
-              const next = { ...prev };
-              delete next[id];
-              return next;
-            });
-            setActiveDeviceId((prev) => (prev === id ? null : prev));
-            break;
-          }
-          case "primary_changed": {
-            const id = str(msg.device_id) ?? str(msg.deviceId);
-            if (id) setActiveDeviceId(id);
-            break;
-          }
-          case "message": {
-            const id = str(msg.device_id);
-            const data = msg.data as RawTrack | undefined;
-            if (!id || !data) break;
-            const name = str(msg.device_name) ?? id;
-            setDevices((prev) => {
-              const existing = prev[id] ?? {
-                deviceId: id,
-                name,
-                nowPlaying: null,
-                queue: [],
-                queueIndex: 0,
-              };
-              if (data.type === "track") {
-                const track = parseTrack(data);
-                return {
-                  ...prev,
-                  [id]: { ...existing, name, nowPlaying: track },
-                };
-              }
-              if (data.type === "status") {
-                const status = num(data.status);
-                if (status === 0) {
-                  return { ...prev, [id]: { ...existing, nowPlaying: null } };
-                }
-                if (!existing.nowPlaying) return prev;
-                return {
-                  ...prev,
-                  [id]: {
-                    ...existing,
-                    nowPlaying: {
-                      ...existing.nowPlaying,
-                      isPlaying: status === 1,
-                    },
-                  },
-                };
-              }
-              if (data.type === "queue") {
-                return {
-                  ...prev,
-                  [id]: {
-                    ...existing,
-                    queue: parseQueue(data.queue),
-                    queueIndex: num(data.index),
-                  },
-                };
-              }
-              return prev;
-            });
-            break;
-          }
-        }
-      };
+          if (!existing.nowPlaying) return prev;
+          return {
+            ...prev,
+            [deviceId]: {
+              ...existing,
+              nowPlaying: {
+                ...existing.nowPlaying,
+                isPlaying: status === "playing",
+              },
+            },
+          };
+        });
+      })
+      .on("queue", ({ deviceId, deviceName, index, queue }) => {
+        if (!deviceId) return;
+        setDevices((prev) => {
+          const existing = prev[deviceId] ?? {
+            deviceId,
+            name: deviceName || "Remote device",
+            nowPlaying: null,
+            queue: [],
+            queueIndex: 0,
+          };
+          return {
+            ...prev,
+            [deviceId]: {
+              ...existing,
+              queue: toQueue(queue),
+              queueIndex: index ?? 0,
+            },
+          };
+        });
+      });
 
-      ws.onerror = () => {};
-      ws.onclose = () => {
-        if (heartbeat) {
-          clearInterval(heartbeat);
-          heartbeat = null;
-        }
-        if (!stoppedRef.current) {
-          reconnectTimer = setTimeout(connect, RECONNECT_MS);
-        }
-      };
-    };
-
-    const buildDevice = (d: RawTrack) => {
-      const id = str(d.device_id) ?? str(d.deviceId);
-      if (!id) return null;
-      const queueObj = (d.queue ?? {}) as RawTrack;
-      return {
-        deviceId: id,
-        name: str(d.name) ?? id,
-        nowPlaying: parseTrack(d.now_playing as RawTrack | undefined),
-        queue: parseQueue(queueObj.queue),
-        queueIndex: num(queueObj.index),
-      };
-    };
-
-    connect();
+    controller.connect();
 
     setCommands({
-      send: (
-        action: RemoteCommandAction,
-        args?: Record<string, unknown>,
-        target?: string,
-      ) => {
-        const ws = wsRef.current;
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({
-              type: "command",
-              action,
-              token,
-              ...(target ? { target } : {}),
-              ...(args ? { args } : {}),
-            }),
-          );
-        }
+      send: (action, args, target) => {
+        controller.command(action, target, args);
       },
-      setPrimary: (deviceId: string) => {
-        const ws = wsRef.current;
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({ type: "set_primary", device_id: deviceId, token }),
-          );
-        }
+      setPrimary: (deviceId) => {
+        controller.setPrimary(deviceId);
         setActiveDeviceId(deviceId);
       },
     });
 
     return () => {
-      stoppedRef.current = true;
-      if (heartbeat) clearInterval(heartbeat);
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      wsRef.current?.close();
       setCommands(null);
+      controller.disconnect();
     };
   }, [setDevices, setActiveDeviceId, setCommands]);
 }
