@@ -5,12 +5,14 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { Image } from "expo-image";
 import { useAtom, useAtomValue } from "jotai";
 import numeral from "numeral";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
+  Animated,
   Linking,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   RefreshControl,
   ScrollView,
   TouchableOpacity,
@@ -91,6 +93,11 @@ type AlbumItem = {
 function imgUrl(track: TrackItem): string {
   return track.cover || track.album_art || track.albumArt || "";
 }
+
+// Registered by the active tab so the outer ScrollView can drive infinite
+// scroll and pull-to-refresh without owning the tabs' queries.
+type LoadMoreRef = { current: (() => void) | null };
+type RefreshRef = { current: (() => Promise<unknown>) | null };
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
@@ -300,11 +307,12 @@ function RangePills({
 function OverviewTab({
   did,
   navigation,
+  refreshRef,
 }: {
   did: string;
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  refreshRef: RefreshRef;
 }) {
-  const [refreshing, setRefreshing] = useState(false);
   const [rangeDays, setRangeDays] = useState<number | null>(7);
   const [autoSwitched, setAutoSwitched] = useState(false);
 
@@ -348,31 +356,24 @@ function OverviewTab({
     setRangeDays(days);
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([
+  const refetchArtists = artistsQuery.refetch;
+  const refetchAlbums = albumsQuery.refetch;
+  const refetchTracks = tracksQuery.refetch;
+  useEffect(() => {
+    refreshRef.current = () =>
+      Promise.all([
         refetchRecent(),
-        artistsQuery.refetch(),
-        albumsQuery.refetch(),
-        tracksQuery.refetch(),
+        refetchArtists(),
+        refetchAlbums(),
+        refetchTracks(),
       ]);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+    return () => {
+      refreshRef.current = null;
+    };
+  }, [refreshRef, refetchRecent, refetchArtists, refetchAlbums, refetchTracks]);
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-        />
-      }
-    >
+    <View>
       {/* Recent Listens */}
       <Text
         style={{
@@ -694,7 +695,7 @@ function OverviewTab({
         </>
       )}
       <View style={{ height: 40 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -755,9 +756,11 @@ function Pager({
 function LibraryTab({
   did,
   navigation,
+  refreshRef,
 }: {
   did: string;
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  refreshRef: RefreshRef;
 }) {
   const [sub, setSub] = useState(0);
   const [scrobblePage, setScrobblePage] = useState(1);
@@ -765,22 +768,50 @@ function LibraryTab({
   const [albumPage, setAlbumPage] = useState(1);
   const [trackPage, setTrackPage] = useState(1);
 
-  const { data: scrobbles } = useRecentTracksByDidQuery(
+  const { data: scrobbles, refetch: refetchScrobbles } =
+    useRecentTracksByDidQuery(did, (scrobblePage - 1) * PAGE, PAGE);
+  const { data: artists, refetch: refetchArtists } = useArtistsQuery(
     did,
-    (scrobblePage - 1) * PAGE,
+    (artistPage - 1) * PAGE,
     PAGE,
   );
-  const { data: artists } = useArtistsQuery(did, (artistPage - 1) * PAGE, PAGE);
-  const { data: albums } = useAlbumsQuery(did, (albumPage - 1) * PAGE, PAGE);
-  const { data: tracks } = useTracksQuery(did, (trackPage - 1) * PAGE, PAGE);
+  const { data: albums, refetch: refetchAlbums } = useAlbumsQuery(
+    did,
+    (albumPage - 1) * PAGE,
+    PAGE,
+  );
+  const { data: tracks, refetch: refetchTracks } = useTracksQuery(
+    did,
+    (trackPage - 1) * PAGE,
+    PAGE,
+  );
 
   const scrobbleList: TrackItem[] = scrobbles || [];
   const artistList: ArtistItem[] = artists?.artists ?? [];
   const albumList: AlbumItem[] = albums?.albums ?? [];
   const trackList: TrackItem[] = tracks?.tracks ?? [];
 
+  useEffect(() => {
+    refreshRef.current = () =>
+      Promise.all([
+        refetchScrobbles(),
+        refetchArtists(),
+        refetchAlbums(),
+        refetchTracks(),
+      ]);
+    return () => {
+      refreshRef.current = null;
+    };
+  }, [
+    refreshRef,
+    refetchScrobbles,
+    refetchArtists,
+    refetchAlbums,
+    refetchTracks,
+  ]);
+
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <View>
       {/* Sub-tabs */}
       <ScrollView
         horizontal
@@ -1144,7 +1175,7 @@ function LibraryTab({
         </>
       )}
       <View style={{ height: 40 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -1154,10 +1185,14 @@ function UserListTab({
   actor,
   type,
   navigation,
+  loadMoreRef,
+  refreshRef,
 }: {
   actor: string;
   type: "followers" | "following";
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  loadMoreRef: LoadMoreRef;
+  refreshRef: RefreshRef;
 }) {
   const isFollowers = type === "followers";
   // Both hooks run unconditionally (rules of hooks); the inactive one is
@@ -1167,9 +1202,8 @@ function UserListTab({
     20,
   );
   const followsQuery = useFollowsInfiniteQuery(isFollowers ? "" : actor, 20);
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = isFollowers
-    ? followersQuery
-    : followsQuery;
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
+    isFollowers ? followersQuery : followsQuery;
   const [, setFollows] = useAtom(followsAtom);
   const currentDid = storage.getDid() || "";
 
@@ -1195,16 +1229,27 @@ function UserListTab({
     });
   }, [followsData, setFollows]);
 
+  useEffect(() => {
+    loadMoreRef.current =
+      hasNextPage && !isFetchingNextPage ? () => fetchNextPage() : null;
+    return () => {
+      loadMoreRef.current = null;
+    };
+  }, [loadMoreRef, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  useEffect(() => {
+    refreshRef.current = () => refetch();
+    return () => {
+      refreshRef.current = null;
+    };
+  }, [refreshRef, refetch]);
+
   return (
-    <FlatList
-      data={users}
-      keyExtractor={(u) => u.did}
-      renderItem={({ item }) => (
-        <UserCard user={item} navigation={navigation} />
-      )}
-      onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
-      onEndReachedThreshold={0.3}
-      ListEmptyComponent={() => (
+    <View>
+      {users.map((user) => (
+        <UserCard key={user.did} user={user} navigation={navigation} />
+      ))}
+      {users.length === 0 && (
         <Text
           style={{
             color: colors.textMuted,
@@ -1218,14 +1263,12 @@ function UserListTab({
             : "Not following anyone yet"}
         </Text>
       )}
-      ListFooterComponent={() =>
-        isFetchingNextPage ? (
-          <View style={{ padding: 16, alignItems: "center" }}>
-            <ActivityIndicator size="small" color={colors.primary} />
-          </View>
-        ) : null
-      }
-    />
+      {isFetchingNextPage && (
+        <View style={{ padding: 16, alignItems: "center" }}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -1235,35 +1278,37 @@ function CirclesTab({
   did,
   handle,
   navigation,
+  refreshRef,
 }: {
   did: string;
   handle: string;
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  refreshRef: RefreshRef;
 }) {
-  const { data, isLoading } = useActorNeighboursQuery(did);
+  const { data, isLoading, refetch } = useActorNeighboursQuery(did);
   const [follows, setFollows] = useAtom(followsAtom);
   const { mutate: follow } = useFollowAccountMutation();
   const { mutate: unfollow } = useUnfollowAccountMutation();
   const currentDid = storage.getDid() || "";
   const neighbours = data?.neighbours ?? [];
 
+  useEffect(() => {
+    refreshRef.current = () => refetch();
+    return () => {
+      refreshRef.current = null;
+    };
+  }, [refreshRef, refetch]);
+
   if (isLoading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingTop: 40,
-        }}
-      >
+      <View style={{ alignItems: "center", paddingVertical: 40 }}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <View>
       <Text
         style={{ fontSize: 13, color: colors.textMuted, paddingVertical: 12 }}
       >
@@ -1372,7 +1417,7 @@ function CirclesTab({
         );
       })}
       <View style={{ height: 40 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -1381,16 +1426,29 @@ function CirclesTab({
 function LovedTracksTab({
   did,
   navigation,
+  refreshRef,
 }: {
   did: string;
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  refreshRef: RefreshRef;
 }) {
   const [page, setPage] = useState(1);
-  const { data: tracks } = useLovedTracksQuery(did, (page - 1) * PAGE, PAGE);
+  const { data: tracks, refetch } = useLovedTracksQuery(
+    did,
+    (page - 1) * PAGE,
+    PAGE,
+  );
   const list: TrackItem[] = tracks || [];
 
+  useEffect(() => {
+    refreshRef.current = () => refetch();
+    return () => {
+      refreshRef.current = null;
+    };
+  }, [refreshRef, refetch]);
+
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <View>
       {list.map((t, i) => {
         const art = t.albumArt || t.album_art;
         return (
@@ -1503,7 +1561,7 @@ function LovedTracksTab({
         </TouchableOpacity>
       </View>
       <View style={{ height: 40 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -1518,6 +1576,9 @@ const TABS = [
   "Loved Tracks",
 ];
 
+// Roughly where the 72px header avatar scrolls out of view.
+const PIN_THRESHOLD = 140;
+
 export default function Profile({ route }: { route?: ProfileRoute }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -1528,8 +1589,12 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
   const did = params?.did || params?.handle || profile?.did || currentDid || "";
   const isOwnProfile = !did || did === currentDid || did === profile?.did;
 
-  const { data: profileData, isLoading } = useProfileByDidQuery(did);
-  const { data: stats } = useProfileStatsByDidQuery(did);
+  const {
+    data: profileData,
+    isLoading,
+    refetch: refetchProfile,
+  } = useProfileByDidQuery(did);
+  const { data: stats, refetch: refetchStats } = useProfileStatsByDidQuery(did);
   const [follows, setFollows] = useAtom(followsAtom);
   const [activeTab, setActiveTab] = useState(0);
 
@@ -1608,6 +1673,44 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
   );
   const topTrack = topTracks7d[0] ?? topTrackAllQuery.data?.tracks?.[0];
 
+  // Whole-screen scrolling: the active tab registers its pagination/refresh
+  // hooks here so the single outer ScrollView can drive them.
+  const scrollRef = useRef<ScrollView>(null);
+  const loadMoreRef = useRef<(() => void) | null>(null);
+  const refreshRef = useRef<(() => Promise<unknown>) | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const pinAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(pinAnim, {
+      toValue: pinned ? 1 : 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [pinned, pinAnim]);
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+    setPinned(contentOffset.y > PIN_THRESHOLD);
+    if (contentOffset.y + layoutMeasurement.height > contentSize.height - 600) {
+      loadMoreRef.current?.();
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchProfile(),
+        refetchStats(),
+        refreshRef.current?.(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const onFollow = () => {
     if (!profileData) return;
     setFollows((prev) => new Set(prev).add(profileData.did));
@@ -1667,15 +1770,29 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
     if (!resolvedDid) return null;
     switch (activeTab) {
       case 0:
-        return <OverviewTab did={resolvedDid} navigation={navigation} />;
+        return (
+          <OverviewTab
+            did={resolvedDid}
+            navigation={navigation}
+            refreshRef={refreshRef}
+          />
+        );
       case 1:
-        return <LibraryTab did={resolvedDid} navigation={navigation} />;
+        return (
+          <LibraryTab
+            did={resolvedDid}
+            navigation={navigation}
+            refreshRef={refreshRef}
+          />
+        );
       case 2:
         return (
           <UserListTab
             actor={resolvedDid}
             type="followers"
             navigation={navigation}
+            loadMoreRef={loadMoreRef}
+            refreshRef={refreshRef}
           />
         );
       case 3:
@@ -1684,6 +1801,8 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
             actor={resolvedDid}
             type="following"
             navigation={navigation}
+            loadMoreRef={loadMoreRef}
+            refreshRef={refreshRef}
           />
         );
       case 4:
@@ -1692,63 +1811,46 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
             did={resolvedDid}
             handle={displayProfile?.handle || ""}
             navigation={navigation}
+            refreshRef={refreshRef}
           />
         );
       case 5:
-        return <LovedTracksTab did={resolvedDid} navigation={navigation} />;
+        return (
+          <LovedTracksTab
+            did={resolvedDid}
+            navigation={navigation}
+            refreshRef={refreshRef}
+          />
+        );
     }
     return null;
   };
 
-  const hasScrollContent = activeTab === 2 || activeTab === 3;
+  const isUserListTab = activeTab === 2 || activeTab === 3;
 
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={["top", "left", "right"]}
     >
-      {/* Header */}
-      <View
-        style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
-        {isLoading ? (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 16,
-              marginBottom: 12,
-            }}
-          >
-            <View
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 36,
-                backgroundColor: colors.surface2,
-              }}
-            />
-            <View style={{ flex: 1, gap: 8 }}>
-              <View
-                style={{
-                  width: 120,
-                  height: 16,
-                  borderRadius: 4,
-                  backgroundColor: colors.surface2,
-                }}
-              />
-              <View
-                style={{
-                  width: 80,
-                  height: 12,
-                  borderRadius: 4,
-                  backgroundColor: colors.surface2,
-                }}
-              />
-            </View>
-          </View>
-        ) : (
-          <>
+        {/* Header */}
+        <View
+          style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}
+        >
+          {isLoading ? (
             <View
               style={{
                 flexDirection: "row",
@@ -1757,106 +1859,171 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                 marginBottom: 12,
               }}
             >
-              <Avatar uri={displayProfile?.avatar} size={72} />
-              <View style={{ flex: 1 }}>
-                <Text
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.surface2,
+                }}
+              />
+              <View style={{ flex: 1, gap: 8 }}>
+                <View
                   style={{
-                    fontSize: 20,
-                    fontWeight: "800",
-                    color: colors.text,
+                    width: 120,
+                    height: 16,
+                    borderRadius: 4,
+                    backgroundColor: colors.surface2,
                   }}
-                >
-                  {displayProfile?.displayName}
-                </Text>
-                <TouchableOpacity
-                  onPress={() =>
-                    Linking.openURL(
-                      `https://bsky.app/profile/${displayProfile?.handle}`,
-                    )
-                  }
-                >
-                  <Text style={{ fontSize: 13, color: colors.primary }}>
-                    @{displayProfile?.handle}
-                  </Text>
-                </TouchableOpacity>
-                <Text
+                />
+                <View
                   style={{
-                    fontSize: 11,
-                    color: colors.textMuted,
-                    marginTop: 2,
+                    width: 80,
+                    height: 12,
+                    borderRadius: 4,
+                    backgroundColor: colors.surface2,
                   }}
-                >
-                  scrobbling since{" "}
-                  {dayjs(displayProfile?.createdAt).format("MMM YYYY")}
-                </Text>
+                />
               </View>
             </View>
-
-            {/* Stats */}
-            <View style={{ flexDirection: "row", gap: 20, marginBottom: 12 }}>
-              {[
-                { label: "Scrobbles", value: stats?.scrobbles },
-                { label: "Artists", value: stats?.artists },
-                { label: "Albums", value: stats?.albums },
-                { label: "Loved", value: stats?.lovedTracks },
-              ].map(({ label, value }) => (
-                <View key={label} style={{ alignItems: "center" }}>
+          ) : (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 16,
+                  marginBottom: 12,
+                }}
+              >
+                <Avatar uri={displayProfile?.avatar} size={72} />
+                <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      fontSize: 16,
+                      fontSize: 20,
                       fontWeight: "800",
                       color: colors.text,
                     }}
                   >
-                    {numeral(value).format("0,0") || "—"}
+                    {displayProfile?.displayName}
                   </Text>
-                  <Text style={{ fontSize: 10, color: colors.textMuted }}>
-                    {label}
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL(
+                        `https://bsky.app/profile/${displayProfile?.handle}`,
+                      )
+                    }
+                  >
+                    <Text style={{ fontSize: 13, color: colors.primary }}>
+                      @{displayProfile?.handle}
+                    </Text>
+                  </TouchableOpacity>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors.textMuted,
+                      marginTop: 2,
+                    }}
+                  >
+                    scrobbling since{" "}
+                    {dayjs(displayProfile?.createdAt).format("MMM YYYY")}
                   </Text>
                 </View>
-              ))}
-            </View>
+              </View>
 
-            {/* Genres */}
-            {genreTags.length > 0 && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                {genreTags.map((tag) => (
-                  <Text key={tag} style={{ fontSize: 11, color: colors.genre }}>
-                    # {tag}
-                  </Text>
+              {/* Stats */}
+              <View style={{ flexDirection: "row", gap: 20, marginBottom: 12 }}>
+                {[
+                  { label: "Scrobbles", value: stats?.scrobbles },
+                  { label: "Artists", value: stats?.artists },
+                  { label: "Albums", value: stats?.albums },
+                  { label: "Loved", value: stats?.lovedTracks },
+                ].map(({ label, value }) => (
+                  <View key={label} style={{ alignItems: "center" }}>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "800",
+                        color: colors.text,
+                      }}
+                    >
+                      {numeral(value).format("0,0") || "—"}
+                    </Text>
+                    <Text style={{ fontSize: 10, color: colors.textMuted }}>
+                      {label}
+                    </Text>
+                  </View>
                 ))}
               </View>
-            )}
 
-            {/* Actions */}
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {!isOwnProfile && !isFollowing && (
-                <TouchableOpacity
-                  onPress={onFollow}
+              {/* Genres */}
+              {genreTags.length > 0 && (
+                <View
                   style={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    backgroundColor: colors.primary,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginBottom: 12,
                   }}
                 >
-                  <Text
-                    style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}
-                  >
-                    + Follow
-                  </Text>
-                </TouchableOpacity>
+                  {genreTags.map((tag) => (
+                    <Text
+                      key={tag}
+                      style={{ fontSize: 11, color: colors.genre }}
+                    >
+                      # {tag}
+                    </Text>
+                  ))}
+                </View>
               )}
-              {!isOwnProfile && isFollowing && (
+
+              {/* Actions */}
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {!isOwnProfile && !isFollowing && (
+                  <TouchableOpacity
+                    onPress={onFollow}
+                    style={{
+                      paddingHorizontal: 20,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: colors.primary,
+                    }}
+                  >
+                    <Text
+                      style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}
+                    >
+                      + Follow
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {!isOwnProfile && isFollowing && (
+                  <TouchableOpacity
+                    onPress={onUnfollow}
+                    style={{
+                      paddingHorizontal: 20,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: colors.surface2,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      ✓ Following
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
-                  onPress={onUnfollow}
+                  onPress={() => {
+                    const text = `Check out ${displayProfile?.displayName || displayProfile?.handle} on Rocksky 🎵\nhttps://rocksky.app/profile/${displayProfile?.handle}`;
+                    Linking.openURL(
+                      `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
+                    );
+                  }}
                   style={{
                     paddingHorizontal: 20,
                     paddingVertical: 8,
@@ -1868,64 +2035,18 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                     style={{
                       color: colors.text,
                       fontSize: 13,
-                      fontWeight: "600",
+                      fontWeight: "500",
                     }}
                   >
-                    ✓ Following
+                    Share
                   </Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                onPress={() => {
-                  const text = `Check out ${displayProfile?.displayName || displayProfile?.handle} on Rocksky 🎵\nhttps://rocksky.app/profile/${displayProfile?.handle}`;
-                  Linking.openURL(
-                    `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
-                  );
-                }}
-                style={{
-                  paddingHorizontal: 20,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor: colors.surface2,
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 13,
-                    fontWeight: "500",
-                  }}
-                >
-                  Share
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL(`https://pdsls.dev/at/${displayProfile?.did}`)
-                }
-                style={{
-                  paddingHorizontal: 20,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor: colors.surface2,
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 13,
-                    fontWeight: "500",
-                  }}
-                >
-                  PDSls ↗
-                </Text>
-              </TouchableOpacity>
-              {isOwnProfile && (
                 <TouchableOpacity
-                  onPress={async () => {
-                    await storage.clear();
-                    Alert.alert("Signed out", "", [{ text: "OK" }]);
-                  }}
+                  onPress={() =>
+                    Linking.openURL(
+                      `https://pdsls.dev/at/${displayProfile?.did}`,
+                    )
+                  }
                   style={{
                     paddingHorizontal: 20,
                     paddingVertical: 8,
@@ -1935,66 +2056,142 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                 >
                   <Text
                     style={{
-                      color: colors.primary,
+                      color: colors.text,
                       fontSize: 13,
                       fontWeight: "500",
                     }}
                   >
-                    Sign out
+                    PDSls ↗
                   </Text>
                 </TouchableOpacity>
+                {isOwnProfile && (
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await storage.clear();
+                      Alert.alert("Signed out", "", [{ text: "OK" }]);
+                    }}
+                    style={{
+                      paddingHorizontal: 20,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: colors.surface2,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 13,
+                        fontWeight: "500",
+                      }}
+                    >
+                      Sign out
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Top track */}
+              {topTrack && (
+                <TopTrackBadge track={topTrack} navigation={navigation} />
               )}
-            </View>
+            </>
+          )}
+        </View>
 
-            {/* Top track */}
-            {topTrack && (
-              <TopTrackBadge track={topTrack} navigation={navigation} />
-            )}
-          </>
-        )}
-      </View>
-
-      {/* Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={{
-          flexDirection: "row",
-          alignItems: "flex-start",
-        }}
-      >
-        {TABS.map((tab, i) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(i)}
-            style={{
-              paddingHorizontal: 14,
-              paddingTop: 10,
-              paddingBottom: 8,
-              borderBottomWidth: 2,
-              borderBottomColor:
-                activeTab === i ? colors.primary : "transparent",
-              alignSelf: "flex-start",
-            }}
-          >
-            <Text
+        {/* Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+          }}
+        >
+          {TABS.map((tab, i) => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(i)}
               style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: activeTab === i ? colors.primary : colors.textMuted,
+                paddingHorizontal: 14,
+                paddingTop: 10,
+                paddingBottom: 8,
+                borderBottomWidth: 2,
+                borderBottomColor:
+                  activeTab === i ? colors.primary : "transparent",
+                alignSelf: "flex-start",
               }}
             >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: activeTab === i ? colors.primary : colors.textMuted,
+                }}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Tab content */}
+        <View style={{ paddingHorizontal: isUserListTab ? 0 : 16 }}>
+          {renderTabContent()}
+        </View>
       </ScrollView>
 
-      {/* Tab content */}
-      <View style={{ flex: 1, paddingHorizontal: hasScrollContent ? 0 : 16 }}>
-        {renderTabContent()}
-      </View>
+      {/* Compact identity bar, pinned once the header scrolls away */}
+      <Animated.View
+        pointerEvents={pinned ? "auto" : "none"}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          opacity: pinAnim,
+          transform: [
+            {
+              translateY: pinAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-12, 0],
+              }),
+            },
+          ],
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: colors.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <Avatar uri={displayProfile?.avatar} size={32} />
+          <View style={{ flex: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 14, fontWeight: "600", color: colors.text }}
+            >
+              {displayProfile?.displayName}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 11, color: colors.textMuted }}
+            >
+              @{displayProfile?.handle}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+
       <FloatingShoutBar
         uri={`at://${did}`}
         type="profile"
