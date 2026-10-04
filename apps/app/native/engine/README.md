@@ -13,6 +13,11 @@ Console and increments the remote Android version code. Use the existing app's
 upload key when EAS configures signing. To download an installable APK for device
 testing instead, use `--profile preview`.
 
+Release builds enable R8 optimization, obfuscation and resource shrinking through
+the `withReleaseOptimization` prebuild plugin. The engine's consumer rules preserve
+its JNI entry point names. Keep the release `mapping.txt` for crash deobfuscation;
+Android App Bundles include it in their ProGuard metadata.
+
 EAS installs Rust 1.98.0 and cargo-ndk 4.1.2 through the pre-install hook. Gradle
 then builds the Rust engine from source with `cargo build --release --locked`
 through cargo-ndk, using NDK 27.1.12297006. ARM64 and x86_64 libraries are checked

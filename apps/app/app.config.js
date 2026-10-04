@@ -32,6 +32,7 @@ module.exports = {
   },
   plugins: [
     "./plugins/withRustEngine",
+    "./plugins/withReleaseOptimization",
     [
       "expo-splash-screen",
       {
