@@ -6,9 +6,12 @@ import {
   createBottomTabNavigator,
 } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useAtomValue } from "jotai";
 import type { ComponentType } from "react";
 import { View } from "react-native";
+import { profileAtom } from "./atoms/profile";
 import MiniPlayer from "./components/MiniPlayer";
+import UserAvatar from "./components/UserAvatar";
 import { useUnreadCountQuery } from "./hooks/useNotifications";
 import AlbumDetails from "./screens/AlbumDetails";
 import ArtistDetails from "./screens/ArtistDetails";
@@ -22,6 +25,7 @@ import ShoutEditor from "./screens/ShoutEditor";
 import SignInScreen from "./screens/SignIn";
 import SongDetails from "./screens/SongDetails";
 import Story from "./screens/Story";
+import { storage } from "./storage";
 import { colors } from "./theme";
 
 const Tab = createBottomTabNavigator();
@@ -73,6 +77,12 @@ function CustomTabBar(props: BottomTabBarProps) {
 function HomeTabs() {
   const { data: unread } = useUnreadCountQuery();
   const unreadCount = unread?.count ?? 0;
+  const profile = useAtomValue(profileAtom);
+  // Signed-in users get their avatar as the Profile tab icon, when usable.
+  const tabAvatar =
+    storage.getDid() && profile?.avatar && !profile.avatar.endsWith("/@jpeg")
+      ? profile.avatar
+      : undefined;
 
   return (
     <Tab.Navigator
@@ -86,12 +96,7 @@ function HomeTabs() {
           height: 80,
           paddingTop: 0,
         },
-        tabBarShowLabel: true,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "500",
-          marginBottom: 4,
-        },
+        tabBarShowLabel: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarBadgeStyle: {
@@ -100,42 +105,51 @@ function HomeTabs() {
           fontSize: 10,
           fontWeight: "700",
         },
-        tabBarIcon: ({ color }) => {
+        tabBarIcon: ({ color, focused }) => {
           switch (route.name) {
             case "HomeTab":
               return (
                 <MaterialIcons
                   name="home-variant-outline"
-                  size={24}
+                  size={28}
                   color={color}
                 />
               );
             case "AlertsTab":
               return (
-                <MaterialIcons name="bell-outline" size={24} color={color} />
+                <MaterialIcons name="bell-outline" size={28} color={color} />
               );
             case "ChartsTab":
-              return <MaterialIcons name="chart-bar" size={24} color={color} />;
+              return <MaterialIcons name="chart-bar" size={28} color={color} />;
             case "SearchTab":
-              return <Feather name="search" size={22} color={color} />;
+              return <Feather name="search" size={26} color={color} />;
             case "ProfileTab":
+              if (tabAvatar) {
+                return (
+                  <View
+                    style={{
+                      borderRadius: 16,
+                      borderWidth: 1.5,
+                      borderColor: focused ? colors.primary : "transparent",
+                      padding: 1,
+                    }}
+                  >
+                    <UserAvatar uri={tabAvatar} size={28} />
+                  </View>
+                );
+              }
               return (
-                <MaterialIcons name="account-outline" size={24} color={color} />
+                <MaterialIcons name="account-outline" size={28} color={color} />
               );
           }
         },
       })}
     >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeStackScreen}
-        options={{ tabBarLabel: "Home" }}
-      />
+      <Tab.Screen name="HomeTab" component={HomeStackScreen} />
       <Tab.Screen
         name="AlertsTab"
         component={AlertsStackScreen}
         options={{
-          tabBarLabel: "Alerts",
           tabBarBadge:
             unreadCount > 0
               ? unreadCount > 99
@@ -144,21 +158,9 @@ function HomeTabs() {
               : undefined,
         }}
       />
-      <Tab.Screen
-        name="ChartsTab"
-        component={ChartsStackScreen}
-        options={{ tabBarLabel: "Charts" }}
-      />
-      <Tab.Screen
-        name="SearchTab"
-        component={SearchStackScreen}
-        options={{ tabBarLabel: "Search" }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileStackScreen}
-        options={{ tabBarLabel: "Profile" }}
-      />
+      <Tab.Screen name="ChartsTab" component={ChartsStackScreen} />
+      <Tab.Screen name="SearchTab" component={SearchStackScreen} />
+      <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
     </Tab.Navigator>
   );
 }
