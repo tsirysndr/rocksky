@@ -1,16 +1,6 @@
-export type TosBlock =
-  | { type: "text"; text: string }
-  | { type: "list"; items: string[] }
-  | { type: "contact"; text: string; email: string };
+import type { LegalDocument, LegalSection } from "./legal";
 
-export type TosSection = { title: string; blocks: TosBlock[] };
-
-export const TOS_LAST_UPDATED = "May 28, 2026";
-
-export const TOS_INTRO =
-  'Welcome to Rocksky. By accessing or using Rocksky, you agree to these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use the service.';
-
-export const TOS_SECTIONS: TosSection[] = [
+const sections: LegalSection[] = [
   {
     title: "1. About Rocksky",
     blocks: [
@@ -173,7 +163,7 @@ export const TOS_SECTIONS: TosSection[] = [
       },
       {
         type: "text",
-        text: "While Rocksky may use third-party infrastructure providers, users remain responsible for the content they upload. Data handling is described in these Terms; there is no separate privacy policy document.",
+        text: "While Rocksky may use third-party infrastructure providers, users remain responsible for the content they upload. Please refer to the Privacy Policy for more information.",
       },
     ],
   },
@@ -261,3 +251,11 @@ export const TOS_SECTIONS: TosSection[] = [
     ],
   },
 ];
+
+export const TOS: LegalDocument = {
+  title: "Terms of Service",
+  lastUpdated: "May 28, 2026",
+  intro:
+    'Welcome to Rocksky. By accessing or using Rocksky, you agree to these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use the service.',
+  sections,
+};

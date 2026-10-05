@@ -71,6 +71,12 @@ function Links() {
       <InternalLink to="/tos" className="mr-[10px] text-[var(--color-primary)]">
         Terms
       </InternalLink>
+      <InternalLink
+        to="/privacy"
+        className="mr-[10px] text-[var(--color-primary)]"
+      >
+        Privacy
+      </InternalLink>
     </div>
   );
 }

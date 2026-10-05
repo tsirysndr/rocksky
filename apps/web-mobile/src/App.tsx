@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import MiniPlayer from "./components/MiniPlayer";
 import AccessTokensPage from "./pages/access-tokens";
 import AlbumPage from "./pages/album";
@@ -19,6 +19,7 @@ import NotificationsPage from "./pages/notifications";
 import ProfilePage from "./pages/profile";
 import Recommendations from "./pages/recommendations";
 import Search from "./pages/search";
+import PrivacyPage from "./pages/privacy";
 import SongPage from "./pages/song";
 import TosPage from "./pages/tos";
 import ShoutEditor from "./pages/shout-editor";
@@ -55,8 +56,7 @@ function App() {
         <Route path="/profile/:did" element={<ProfilePage />} />
         <Route path="/shout-editor" element={<ShoutEditor />} />
         <Route path="/tos" element={<TosPage />} />
-        {/* There is no separate privacy policy; the terms cover data handling. */}
-        <Route path="/privacy" element={<Navigate to="/tos" replace />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
       </Routes>
       <MiniPlayer />
     </BrowserRouter>

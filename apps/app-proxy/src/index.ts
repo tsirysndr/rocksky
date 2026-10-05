@@ -98,16 +98,12 @@ export default {
 		const landingAsset = await proxyLandingAsset(request);
 		if (landingAsset) return landingAsset;
 
-		// There is no separate privacy policy — the Terms of Service cover data
-		// handling. Store listings and old links point at /privacy, which no SPA
-		// has a route for, so it rendered an in-app not-found. Redirect at the
-		// edge so the client never loads the wrong route at all; web and
-		// web-mobile also carry their own /privacy -> /tos route for direct hits
-		// on rocksky.pages.dev / m.rocksky.app and for client-side navigation.
-		if (url.pathname === '/privacy' || url.pathname === '/privacy-policy') {
-			const tos = new URL(request.url);
-			tos.pathname = '/tos';
-			return Response.redirect(tos.toString(), 301);
+		// /privacy is a real page in web and web-mobile, so it is NOT redirected.
+		// Only the alternate spelling is, for links that guessed the other name.
+		if (url.pathname === '/privacy-policy') {
+			const privacy = new URL(request.url);
+			privacy.pathname = '/privacy';
+			return Response.redirect(privacy.toString(), 301);
 		}
 
 		// Serve rockbox-wasm runtime assets (audio worklet + decoder worker + the
