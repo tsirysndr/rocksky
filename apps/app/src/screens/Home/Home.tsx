@@ -24,15 +24,13 @@ import {
   feedUrisAtom,
   followingFeedAtom,
 } from "@/src/atoms/feed";
-import Heart from "@/src/components/Icons/Heart";
-import HeartOutline from "@/src/components/Icons/HeartOutline";
 import { Text } from "@/src/components/Text";
 import {
   useFeedGeneratorsQuery,
   useFeedInfiniteQuery,
   useScrobbleInfiniteQuery,
 } from "@/src/hooks/useFeed";
-import useLike from "@/src/hooks/useLike";
+import TrackLikeButton from "@/src/components/TrackLikeButton";
 import type { RootStackParamList } from "@/src/Navigation";
 import { storage } from "@/src/storage";
 import { colors } from "@/src/theme";
@@ -195,38 +193,6 @@ function SongCard({
   onPress: (uri: string) => void;
   onPressProfile: (didOrHandle: string) => void;
 }) {
-  const [liked, setLiked] = useState(!!item.liked);
-  const [likesCount, setLikesCount] = useState(item.likesCount || 0);
-  const { like, unlike } = useLike();
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-
-  useEffect(() => {
-    setLiked(!!item.liked);
-    setLikesCount(item.likesCount || 0);
-  }, [item.liked, item.likesCount]);
-
-  const handleLike = () => {
-    if (!storage.getToken()) {
-      navigation.navigate("SignIn");
-      return;
-    }
-    if (liked) {
-      setLiked(false);
-      setLikesCount((c) => Math.max(0, c - 1));
-      unlike(item.uri).catch(() => {
-        setLiked(true);
-        setLikesCount((c) => c + 1);
-      });
-    } else {
-      setLiked(true);
-      setLikesCount((c) => c + 1);
-      like(item.uri).catch(() => {
-        setLiked(false);
-        setLikesCount((c) => Math.max(0, c - 1));
-      });
-    }
-  };
-
   return (
     <TouchableOpacity
       style={{ width: CARD_SIZE, marginBottom: 16 }}
@@ -272,27 +238,11 @@ function SongCard({
           }}
           pointerEvents="box-none"
         >
-          <TouchableOpacity
-            onPress={handleLike}
-            style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            {liked ? (
-              <Heart size={18} color={colors.primary} />
-            ) : (
-              <HeartOutline size={18} color="rgba(255,255,255,0.9)" />
-            )}
-            {likesCount > 0 && (
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: liked ? colors.primary : "rgba(255,255,255,0.9)",
-                }}
-              >
-                {likesCount}
-              </Text>
-            )}
-          </TouchableOpacity>
+          <TrackLikeButton
+            track={item}
+            showCount
+            color="rgba(255,255,255,0.9)"
+          />
         </LinearGradient>
       </View>
       <Text

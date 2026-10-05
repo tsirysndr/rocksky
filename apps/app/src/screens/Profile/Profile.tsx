@@ -1,3 +1,4 @@
+import TrackLikeButton from "@/src/components/TrackLikeButton";
 import Feather from "@expo/vector-icons/Feather";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -60,6 +61,9 @@ dayjs.extend(relativeTime);
 type ProfileRoute = RouteProp<RootStackParamList, "Profile" | "UserProfile">;
 
 type TrackItem = {
+  trackUri?: string;
+  trackId?: string;
+  liked?: boolean;
   id?: string;
   uri?: string;
   song_uri?: string;
@@ -452,6 +456,7 @@ function OverviewTab({
                 track.created_at || track.date || track.createdAt,
               ).fromNow()}
             </Text>
+            <TrackLikeButton track={track} />
           </TouchableOpacity>
         );
       })}
@@ -912,6 +917,7 @@ function LibraryTab({
               <Text style={{ fontSize: 10, color: colors.textMuted }}>
                 {dayjs(t.created_at || t.date || t.createdAt).fromNow()}
               </Text>
+              <TrackLikeButton track={t} />
             </TouchableOpacity>
           ))}
           {scrobbleList.length === 0 && (

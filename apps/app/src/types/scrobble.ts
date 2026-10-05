@@ -1,4 +1,5 @@
 export type Scrobble = {
+  liked?: boolean;
   id: string;
   trackId: string;
   title: string;

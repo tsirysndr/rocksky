@@ -14,6 +14,11 @@ export const getScrobbleByUri = async (uri: string) => {
   }
   const response = await client.get("/xrpc/app.rocksky.scrobble.getScrobble", {
     params: { uri },
+    headers: {
+      Authorization: storage.getToken()
+        ? `Bearer ${storage.getToken()}`
+        : undefined,
+    },
   });
 
   if (response.status !== 200) {
@@ -22,6 +27,9 @@ export const getScrobbleByUri = async (uri: string) => {
 
   return {
     id: response.data?.id,
+    trackUri: response.data?.trackUri,
+    trackId: response.data?.trackId,
+    liked: response.data?.liked,
     title: response.data?.title,
     artist: response.data?.artist,
     albumArtist: response.data?.albumArtist,

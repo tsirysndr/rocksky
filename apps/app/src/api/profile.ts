@@ -31,6 +31,11 @@ export const getRecentTracksByDid = async (
     "/xrpc/app.rocksky.actor.getActorScrobbles",
     {
       params: { did, offset, limit: size },
+      headers: {
+        Authorization: storage.getToken()
+          ? `Bearer ${storage.getToken()}`
+          : undefined,
+      },
     },
   );
   return response.data.scrobbles || [];

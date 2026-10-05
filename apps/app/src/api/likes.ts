@@ -63,3 +63,19 @@ export const getSongLikeState = async (
     return null;
   }
 };
+
+export const setTrackLiked = async (
+  target: { trackUri?: string | null; trackId?: string | null },
+  liked: boolean,
+) => {
+  if (target.trackUri?.includes("/app.rocksky.song/")) {
+    return liked ? like(target.trackUri) : unlike(target.trackUri);
+  }
+  if (!target.trackId)
+    throw new Error("This scrobble has no song available to like.");
+  const url = `${API_URL}/users/tracks/${encodeURIComponent(target.trackId)}/likes`;
+  const config = { headers: { Authorization: `Bearer ${storage.getToken()}` } };
+  return liked
+    ? (await axios.post(url, {}, config)).data
+    : (await axios.delete(url, config)).data;
+};

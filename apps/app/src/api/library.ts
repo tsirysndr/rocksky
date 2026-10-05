@@ -1,3 +1,4 @@
+import { storage } from "../storage";
 import type { Album } from "../types/album";
 import type { Artist } from "../types/artist";
 import type { Track } from "../types/track";
@@ -10,9 +11,17 @@ export const getSongByUri = async (uri: string) => {
 
   const response = await client.get("/xrpc/app.rocksky.song.getSong", {
     params: { uri },
+    headers: {
+      Authorization: storage.getToken()
+        ? `Bearer ${storage.getToken()}`
+        : undefined,
+    },
   });
   return {
     id: response.data?.id,
+    trackUri: response.data?.trackUri,
+    trackId: response.data?.trackId,
+    liked: response.data?.liked,
     title: response.data?.title,
     artist: response.data?.artist,
     albumArtist: response.data?.albumArtist,

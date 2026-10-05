@@ -1,3 +1,4 @@
+import TrackLikeButton from "@/src/components/TrackLikeButton";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -33,6 +34,10 @@ dayjs.extend(relativeTime);
 type Props = { route?: RouteProp<RootStackParamList, "SongDetails"> };
 
 type SongDetailsData = {
+  id?: string;
+  trackUri?: string;
+  trackId?: string;
+  liked?: boolean;
   uri?: string;
   firstScrobble?: { handle: string; avatar?: string; timestamp: string };
   title: string;
@@ -234,6 +239,16 @@ export default function SongDetails({ route }: Props) {
                   </Text>
                 </TouchableOpacity>
               )}
+
+              <View style={{ alignItems: "center", marginBottom: 12 }}>
+                <TrackLikeButton
+                  track={{
+                    trackUri: isScrobble ? song.trackUri : song.uri,
+                    trackId: isScrobble ? song.trackId : song.id,
+                    liked: song.liked,
+                  }}
+                />
+              </View>
 
               {/* Stats */}
               <View
