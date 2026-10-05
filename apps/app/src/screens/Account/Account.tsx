@@ -27,7 +27,9 @@ import { Text } from "../../components/Text";
 import type { RootStackParamList } from "../../Navigation";
 import { storage } from "../../storage";
 import { colors } from "../../theme";
+import Scrobbling from "./Scrobbling";
 export type AccountSection =
+  | "Scrobbling"
   | "API Keys"
   | "Access tokens"
   | "Mirror sources"
@@ -742,6 +744,8 @@ export default function Account({
       >
         {!token ? (
           <Text>Sign in to manage your account.</Text>
+        ) : section === "Scrobbling" ? (
+          <Scrobbling />
         ) : section === "API Keys" ? (
           <Credentials kind="keys" />
         ) : section === "Access tokens" ? (

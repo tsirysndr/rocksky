@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +22,9 @@ const items: {
   title: AccountSection;
   icon: React.ComponentProps<typeof Feather>["name"];
 }[] = [
+  ...(Platform.OS === "android"
+    ? [{ title: "Scrobbling" as const, icon: "headphones" as const }]
+    : []),
   { title: "API Keys", icon: "key" },
   { title: "Access tokens", icon: "lock" },
   { title: "Mirror sources", icon: "repeat" },

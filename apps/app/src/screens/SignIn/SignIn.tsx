@@ -110,8 +110,7 @@ export default function SignIn({ onSuccess, onCancel }: Props) {
       });
       const data = await res.json();
       if (data.token) {
-        await storage.setToken(data.token);
-        await storage.setDid(did);
+        await storage.setSession(data.token, did);
         onSuccess();
       } else {
         setError("Login failed. Please try again.");
