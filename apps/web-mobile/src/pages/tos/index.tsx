@@ -9,7 +9,7 @@ import Main from "../../layouts/Main";
 function Block({ block }: { block: TosBlock }) {
   if (block.type === "list") {
     return (
-      <ul className="list-disc pl-[20px] space-y-[4px]">
+      <ul className="list-disc pl-5 space-y-1">
         {block.items.map((item) => (
           <li key={item}>{item}</li>
         ))}
@@ -23,7 +23,8 @@ function Block({ block }: { block: TosBlock }) {
         {block.text}{" "}
         <a
           href={`mailto:${block.email}`}
-          className="text-[var(--color-purple)] hover:underline"
+          className="underline"
+          style={{ color: "var(--color-purple)" }}
         >
           {block.email}
         </a>
@@ -34,27 +35,42 @@ function Block({ block }: { block: TosBlock }) {
   return <p>{block.text}</p>;
 }
 
-function Tos() {
+export default function TosPage() {
   return (
     <Main>
-      <div className="mt-[60px] mb-[200px] max-w-[720px]">
-        <h1 className="text-[var(--color-text)] text-[28px] font-bold mb-[8px]">
+      <div className="px-4 pt-6 pb-10">
+        <h1
+          className="text-2xl font-bold mb-1"
+          style={{ color: "var(--color-text)" }}
+        >
           Terms of Service
         </h1>
-        <p className="text-[var(--color-text-secondary)] text-[13px] mb-[40px]">
+        <p
+          className="text-xs mb-6"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
           Last updated: {TOS_LAST_UPDATED}
         </p>
 
-        <p className="text-[var(--color-text-secondary)] text-[14px] leading-relaxed mb-[32px]">
+        <p
+          className="text-sm leading-relaxed mb-8"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
           {TOS_INTRO}
         </p>
 
         {TOS_SECTIONS.map((section) => (
-          <div key={section.title} className="mb-[32px]">
-            <h2 className="text-[var(--color-text)] text-[18px] font-semibold mb-[12px]">
+          <div key={section.title} className="mb-8">
+            <h2
+              className="text-base font-semibold mb-3"
+              style={{ color: "var(--color-text)" }}
+            >
               {section.title}
             </h2>
-            <div className="text-[var(--color-text-secondary)] text-[14px] leading-relaxed space-y-[8px]">
+            <div
+              className="text-sm leading-relaxed space-y-2"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               {section.blocks.map((block, i) => (
                 <Block key={i} block={block} />
               ))}
@@ -65,5 +81,3 @@ function Tos() {
     </Main>
   );
 }
-
-export default Tos;
