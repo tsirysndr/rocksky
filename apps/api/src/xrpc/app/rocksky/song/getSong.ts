@@ -2,7 +2,7 @@ import type { HandlerAuth } from "@atproto/xrpc-server";
 import { InvalidRequestError } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
-import { asc, count, eq, or, type SQL } from "drizzle-orm";
+import { asc, count, eq, inArray, or, type SQL } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
@@ -27,7 +27,7 @@ export default function (server: Server, ctx: Context) {
           return Effect.fail(err);
         }
         consola.error(err);
-        return Effect.succeed({});
+        return Effect.fail(err);
       }),
     );
   server.app.rocksky.song.getSong({
@@ -35,10 +35,13 @@ export default function (server: Server, ctx: Context) {
     // public — a DID just means `liked` can be filled in.
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
-      const result = await Effect.runPromise(getSong(params, auth));
+      const result = await Effect.runPromise(
+        Effect.either(getSong(params, auth)),
+      );
+      if (result._tag === "Left") throw result.left;
       return {
         encoding: "application/json",
-        body: result,
+        body: result.right,
       };
     },
   });
@@ -60,11 +63,21 @@ const retrieve = ({
       const isrc = params.isrc?.trim();
       const spotifyId = params.spotifyId?.trim();
       if (!uri && !mbid && !isrc && !spotifyId) {
-        throw new Error("getSong requires one of: uri, mbid, isrc, spotifyId");
+        throw new InvalidRequestError(
+          "getSong requires one of: uri, mbid, isrc, spotifyId",
+        );
       }
       const clauses: SQL[] = [];
       if (uri) {
-        clauses.push(eq(tables.userTracks.uri, uri));
+        // Resolve the user URI separately so the song lookup never joins all
+        // listeners or puts an OR across two tables.
+        const [userTrack] = await ctx.readDb
+          .select({ trackId: tables.userTracks.trackId })
+          .from(tables.userTracks)
+          .where(eq(tables.userTracks.uri, uri))
+          .limit(1)
+          .execute();
+        if (userTrack) clauses.push(eq(tables.tracks.id, userTrack.trackId));
         clauses.push(eq(tables.tracks.uri, uri));
       }
       if (mbid) clauses.push(eq(tables.tracks.mbId, mbid));
@@ -80,17 +93,14 @@ const retrieve = ({
       const where = clauses.length > 1 ? or(...clauses) : clauses[0];
 
       const row = await ctx.readDb
-        .select()
-        .from(tables.userTracks)
-        .leftJoin(
-          tables.tracks,
-          eq(tables.userTracks.trackId, tables.tracks.id),
-        )
+        .select({ tracks: tables.tracks, artists: tables.artists })
+        .from(tables.tracks)
         .leftJoin(
           tables.artists,
           eq(tables.tracks.artistUri, tables.artists.uri),
         )
         .where(where)
+        .limit(1)
         .execute()
         .then(([row]) => row);
 
@@ -102,16 +112,15 @@ const retrieve = ({
       }
       const { tracks: track, artists: artist } = row;
 
-      const artists = await Promise.all(
-        track.artist.split(",").map((name) =>
-          ctx.readDb
-            .select()
-            .from(tables.artists)
-            .where(eq(tables.artists.name, name.trim()))
-            .execute()
-            .then(([row]) => row),
-        ),
-      );
+      const artistNames = track.artist.split(",").map((name) => name.trim());
+      const artistRows = await ctx.readDb
+        .select()
+        .from(tables.artists)
+        .where(inArray(tables.artists.name, [...new Set(artistNames)]))
+        .execute();
+      const artists = artistNames
+        .map((name) => artistRows.find((artist) => artist.name === name))
+        .filter((artist) => artist !== undefined);
 
       return Promise.all([
         // withLikes over the single track, so the counts come from the same

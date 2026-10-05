@@ -1,19 +1,18 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { count, eq, inArray, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { count, countDistinct, eq, inArray } from "drizzle-orm";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { AlbumViewBasic } from "lexicon/types/app/rocksky/album/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtistAlbums";
 import { deepCamelCaseKeys } from "lib";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 200,
-    timeToLive: Duration.minutes(10),
-    lookup: (params: QueryParams) =>
+  const cachedAlbums = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -21,15 +20,15 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("10 seconds"),
       ),
-  });
+    "10 minutes",
+  );
 
   const getArtistAlbums = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cachedAlbums(params),
       Effect.catchAll((err) => {
         consola.error(err);
-        return Effect.succeed({ albums: [] });
+        return Effect.fail(err);
       }),
     );
 
@@ -74,7 +73,9 @@ const retrieve = ({
         .map((r) => r.albumId)
         .filter((id): id is string => id !== null);
 
-      const [albums, scrobbleCounts, uniqueListenersRows] = await Promise.all([
+      if (albumIds.length === 0) return { data: [] };
+
+      const [albums, scrobbleCounts] = await Promise.all([
         ctx.readDb
           .select({
             id: tables.albums.id,
@@ -93,16 +94,8 @@ const retrieve = ({
         ctx.readDb
           .select({
             albumId: tables.scrobbles.albumId,
-            play_count: count(tables.scrobbles.id).as("play_count"),
-          })
-          .from(tables.scrobbles)
-          .where(inArray(tables.scrobbles.albumId, albumIds))
-          .groupBy(tables.scrobbles.albumId)
-          .execute(),
-        ctx.readDb
-          .select({
-            albumId: tables.scrobbles.albumId,
-            unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
+            play_count: count(),
+            unique_listeners: countDistinct(tables.scrobbles.userId),
           })
           .from(tables.scrobbles)
           .where(inArray(tables.scrobbles.albumId, albumIds))
@@ -114,7 +107,7 @@ const retrieve = ({
         scrobbleCounts.map((r) => [r.albumId, Number(r.play_count)]),
       );
       const listenersMap = new Map(
-        uniqueListenersRows.map((r) => [r.albumId, Number(r.unique_listeners)]),
+        scrobbleCounts.map((r) => [r.albumId, Number(r.unique_listeners)]),
       );
 
       const data: Album[] = albums.map((album) => ({
