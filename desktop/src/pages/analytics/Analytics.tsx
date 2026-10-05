@@ -456,9 +456,14 @@ function Analytics() {
       (best, p) => (!best || p.count > best.count ? p : best),
       null,
     );
+    // "All time" starts at the epoch rather than at a date anyone picked, so
+    // the span — and with it the per-day and coverage numbers — is measured
+    // from the first day that actually has scrobbles.
+    const spanFrom =
+      range.label === "All time" && points.length ? points[0].key : range.from;
     const spanDays = Math.max(
       1,
-      dayjs(range.to).diff(dayjs(range.from), "day") + 1,
+      dayjs(range.to).diff(dayjs(spanFrom), "day") + 1,
     );
     return {
       scrobbles,
@@ -467,7 +472,7 @@ function Analytics() {
       perDay: scrobbles / spanDays,
       spanDays,
     };
-  }, [points, range.from, range.to]);
+  }, [points, range.from, range.to, range.label]);
 
   const byWeekday = useMemo(() => {
     const buckets = WEEKDAYS.map((label) => ({ label, key: label, count: 0 }));
