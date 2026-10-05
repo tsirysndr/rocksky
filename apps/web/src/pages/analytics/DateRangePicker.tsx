@@ -14,8 +14,8 @@ const PRESETS: { label: string; days: number | null }[] = [
   { label: "All time", days: null },
 ];
 
-/** "All time" reaches back as far as a scrobble can be dated. */
-const EPOCH = "1970-01-01";
+/** The floor for every range: older than any scrobble anyone has imported. */
+const EPOCH = "2000-01-01";
 
 export function presetRange(label: string): Range {
   const preset = PRESETS.find((p) => p.label === label) ?? PRESETS[1];
@@ -130,6 +130,7 @@ function DateRangePicker({
             <Calendar
               from={value.from}
               to={value.to}
+              min={EPOCH}
               max={dayjs().format("YYYY-MM-DD")}
               onSelect={(from, to) => {
                 onChange({ from, to, label: "Custom" });

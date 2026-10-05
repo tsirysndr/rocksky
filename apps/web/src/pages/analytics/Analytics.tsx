@@ -449,8 +449,8 @@ function Analytics() {
       (best, p) => (!best || p.count > best.count ? p : best),
       null,
     );
-    // "All time" starts at the epoch rather than at a date anyone picked, so
-    // the span — and with it the per-day and coverage numbers — is measured
+    // "All time" starts at a fixed floor rather than at a date anyone picked,
+    // so the span — and with it the per-day and coverage numbers — is measured
     // from the first day that actually has scrobbles.
     const spanFrom =
       range.label === "All time" && points.length ? points[0].key : range.from;

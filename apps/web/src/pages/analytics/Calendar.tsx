@@ -138,7 +138,7 @@ function Month({
   month: Dayjs;
   from: Dayjs | null;
   to: Dayjs | null;
-  min: Dayjs | null;
+  min: Dayjs;
   max: Dayjs;
   onPick: (day: Dayjs) => void;
   onNavigate: (delta: number) => void;
@@ -152,7 +152,7 @@ function Month({
           <NavButton
             type="button"
             aria-label="Previous month"
-            disabled={!!min && month.startOf("month").isBefore(min)}
+            disabled={month.startOf("month").isBefore(min)}
             onClick={() => onNavigate(-1)}
           >
             <IconChevronLeft size={16} />
@@ -179,8 +179,7 @@ function Month({
           <Weekday key={day}>{day}</Weekday>
         ))}
         {monthCells(month).map((day) => {
-          const disabled =
-            (!!min && day.isBefore(min, "day")) || day.isAfter(max, "day");
+          const disabled = day.isBefore(min, "day") || day.isAfter(max, "day");
           const selected =
             (!!from && day.isSame(from, "day")) ||
             (!!to && day.isSame(to, "day"));
@@ -222,11 +221,11 @@ function Calendar({
 }: {
   from: string;
   to: string;
-  min?: string;
+  min: string;
   max: string;
   onSelect: (from: string, to: string) => void;
 }) {
-  const minDay = min ? dayjs(min).startOf("day") : null;
+  const minDay = dayjs(min).startOf("day");
   const maxDay = dayjs(max).endOf("day");
   const [cursor, setCursor] = useState(() =>
     dayjs(to).startOf("month").subtract(1, "month"),
