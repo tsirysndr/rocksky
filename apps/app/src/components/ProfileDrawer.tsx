@@ -61,6 +61,16 @@ export default function ProfileDrawer({ onClose }: { onClose: () => void }) {
             </TouchableOpacity>
           </View>
           <ScrollView>
+            <TouchableOpacity
+              style={styles.item}
+              onPress={() => {
+                onClose();
+                navigation.navigate("Analytics");
+              }}
+            >
+              <Feather name="activity" size={22} color={colors.textMuted} />
+              <Text>Analytics</Text>
+            </TouchableOpacity>
             {items.map(({ title, icon }) => (
               <TouchableOpacity
                 key={title}

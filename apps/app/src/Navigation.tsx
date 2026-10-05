@@ -20,6 +20,7 @@ import UserAvatar from "./components/UserAvatar";
 import { useUnreadCountQuery } from "./hooks/useNotifications";
 import Account, { type AccountSection } from "./screens/Account/Account";
 import AlbumDetails from "./screens/AlbumDetails";
+import Analytics from "./screens/Analytics/Analytics";
 import ArtistDetails from "./screens/ArtistDetails";
 import Charts from "./screens/Charts";
 import Home from "./screens/Home";
@@ -59,6 +60,7 @@ function makeTabStack(name: string, RootScreen: ComponentType<any>) {
         <TabStack.Screen name="UserProfile" component={Profile} />
         <TabStack.Screen name="ShoutEditor" component={ShoutEditor} />
         <TabStack.Screen name="Charts" component={Charts} />
+        <TabStack.Screen name="Analytics" component={Analytics} />
       </TabStack.Navigator>
     );
   };
@@ -209,6 +211,10 @@ export function RootStack() {
       }}
     >
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
+      <Stack.Screen name="Analytics" component={Analytics} />
+      <Stack.Screen name="ArtistDetails" component={ArtistDetails} />
+      <Stack.Screen name="SongDetails" component={SongDetails} />
+      <Stack.Screen name="UserProfile" component={Profile} />
       {!!token && <Stack.Screen name="Account" component={Account} />}
       {!!token && <Stack.Screen name="Upload" component={Upload} />}
       <Stack.Screen
@@ -234,6 +240,7 @@ export function RootStack() {
 }
 
 export type RootStackParamList = {
+  Analytics: undefined;
   Account: { section: AccountSection };
   Upload: undefined;
   Home: undefined;

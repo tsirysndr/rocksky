@@ -531,6 +531,23 @@ export default function Home() {
         columnWrapperStyle={{ paddingHorizontal: 16, gap: 16 }}
         ListHeaderComponent={
           <>
+            <TouchableOpacity
+              accessibilityLabel="Open listening analytics"
+              onPress={() => navigation.navigate("Analytics")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 8,
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+              }}
+            >
+              <Feather name="activity" color={colors.primary} size={18} />
+              <Text style={{ color: colors.primary, fontSize: 13 }}>
+                Listening analytics
+              </Text>
+            </TouchableOpacity>
             <Stories />
             <FeedGenerators />
           </>
