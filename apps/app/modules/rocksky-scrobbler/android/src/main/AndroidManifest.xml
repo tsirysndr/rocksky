@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <application>
+    <service android:name=".ScrobbleListener" android:label="Rocksky scrobbling"
+      android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+      android:exported="true" android:foregroundServiceType="specialUse">
+      <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
+      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="User-enabled music scrobbling: observe other players' media sessions and save listens while the screen is off" />
+    </service>
+    <service android:name=".ScrobbleUploadJob" android:exported="true"
+      android:permission="android.permission.BIND_JOB_SERVICE" />
+    <receiver android:name=".ScrobbleBootReceiver" android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

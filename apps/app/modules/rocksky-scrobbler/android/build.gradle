@@ -1,0 +1,26 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+group = 'expo.modules.rockskyscrobbler'
+version = '0.1.0'
+android {
+  namespace 'expo.modules.rockskyscrobbler'
+  defaultConfig { versionCode 1; versionName '0.1.0' }
+  testOptions {
+    unitTests.includeAndroidResources = true
+    unitTests.all {
+      jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.io=ALL-UNNAMED',
+        '--add-opens=java.base/java.net=ALL-UNNAMED',
+        '--add-opens=java.base/java.security=ALL-UNNAMED',
+        '--add-opens=java.base/java.text=ALL-UNNAMED',
+        '--add-opens=java.base/jdk.internal.access=ALL-UNNAMED'
+    }
+  }
+}
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'org.robolectric:robolectric:4.17'
+}
