@@ -1,5 +1,10 @@
 {
   "build": {
+    "production-local": {
+      "extends": "production",
+      "credentialsSource": "local",
+      "environment": "production"
+    },
     "production": {
       "android": {
         "buildType": "app-bundle",
