@@ -1,10 +1,12 @@
+const isTestBuild = process.env.ROCKSKY_VARIANT === "test";
+
 module.exports = {
-  name: "Rocksky",
+  name: isTestBuild ? "Rocksky Test" : "Rocksky",
   slug: "rocksky",
   version: "2.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: "rocksky",
+  scheme: isTestBuild ? "rocksky-test" : "rocksky",
   userInterfaceStyle: "dark",
   backgroundColor: "#130825",
   newArchEnabled: true,
@@ -22,7 +24,7 @@ module.exports = {
       backgroundImage: "./assets/images/icon-background.png",
       backgroundColor: "#130825",
     },
-    package: "app.rocksky",
+    package: isTestBuild ? "app.rocksky.test" : "app.rocksky",
     versionCode: 3,
   },
   web: {
@@ -31,6 +33,7 @@ module.exports = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    "./plugins/withAndroidIdentity",
     "./plugins/withRustEngine",
     "./plugins/withReleaseOptimization",
     [

@@ -12,6 +12,7 @@
     "format": "biome format src",
     "typecheck": "tsc --noEmit",
     "test:analytics": "node --experimental-strip-types --test scripts/analytics.test.mjs",
+    "build:android:test:release": "bash scripts/build-android-test-release.sh",
     "adb:reverse": "adb reverse tcp:8081 tcp:8081",
     "eas-build-pre-install": "bash scripts/eas-pre-install.sh",
     "eas-build-post-install": "node scripts/eas-post-install.cjs",
