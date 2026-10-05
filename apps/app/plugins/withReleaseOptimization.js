@@ -23,6 +23,16 @@ module.exports = config => {
     if (!contents.includes('proguard-android-optimize.txt')) {
       throw new Error('Cannot configure release optimization: Android ProGuard declaration changed.');
     }
+    // ExoPlayer opens the bundled media-session FLAC with openRawResourceFd.
+    // That API cannot read compressed APK entries (FLAC is not in AAPT's
+    // default no-compress list), so keep this audio resource seekable.
+    const mediaResources = "androidResources { noCompress += ['flac'] }";
+    if (!contents.includes(mediaResources)) {
+      if (!/android\s*\{/.test(contents)) {
+        throw new Error('Cannot configure audio resources: Android Gradle block changed.');
+      }
+      contents = contents.replace(/android\s*\{/, `android {\n    ${mediaResources}`);
+    }
     const releaseRules = 'rootProject.file("../native/android-release.pro")';
     if (!contents.includes(releaseRules)) {
       const rulesDeclaration = /("proguard-rules\.pro"|'proguard-rules\.pro')/;
