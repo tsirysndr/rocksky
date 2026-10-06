@@ -10,11 +10,13 @@ import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbum";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { dedupeTracksKeepLyrics } from "lib";
 import { transientDbRetry } from "lib/dbRetry";
+import { toDiscogsView } from "lib/discogsView";
 import { withLikes } from "lib/trackLikes";
 import * as R from "ramda";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
 import type { SelectArtist } from "schema/artists";
+import type { SelectDiscogsRelease } from "schema/discogs-releases";
 
 export default function (server: Server, ctx: Context) {
   const getAlbum = (params: QueryParams, auth: HandlerAuth) =>
@@ -65,6 +67,10 @@ const retrieve = ({
           tables.artists,
           eq(tables.albums.artistUri, tables.artists.uri),
         )
+        .leftJoin(
+          tables.discogsReleases,
+          eq(tables.albums.discogsReleaseId, tables.discogsReleases.id),
+        )
         .where(eq(tables.albums.uri, params.uri))
         .execute()
         .then((rows) => rows[0]);
@@ -75,10 +81,11 @@ const retrieve = ({
           "NotFound",
         );
       }
-      const { albums: album, artists: artist } = row;
+      const { albums: album, artists: artist, discogs_releases: discogs } = row;
       return Promise.all([
         Promise.resolve(album),
         Promise.resolve(artist),
+        Promise.resolve(discogs),
         ctx.readDb
           .select()
           .from(tables.albumTracks)
@@ -123,9 +130,17 @@ const retrieve = ({
   });
 };
 
-const presentation = ([album, artist, tracks, uniqueListeners, playCount]: [
+const presentation = ([
+  album,
+  artist,
+  discogs,
+  tracks,
+  uniqueListeners,
+  playCount,
+]: [
   SelectAlbum,
   SelectArtist,
+  SelectDiscogsRelease | null,
   SongViewBasic[],
   number,
   number,
@@ -136,6 +151,7 @@ const presentation = ([album, artist, tracks, uniqueListeners, playCount]: [
     tracks,
     playCount,
     uniqueListeners,
+    discogs: toDiscogsView(discogs),
     createdAt: album.createdAt.toISOString(),
   }));
 };

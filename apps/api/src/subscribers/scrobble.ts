@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import tables from "schema";
 import chalk from "chalk";
 import { publishScrobble } from "nowplaying/nowplaying.service";
+import { enrichScrobbleWithDiscogs } from "lib/discogsEnrichment";
 
 export function onNewScrobble(ctx: Context) {
   const sc = StringCodec();
@@ -29,6 +30,15 @@ export function onNewScrobble(ctx: Context) {
 
       await updateUris(ctx, result.users.did);
       await refreshScrobbles(ctx, result.users.did);
+
+      // Optional metadata: never awaited, never allowed to fail the scrobble.
+      void enrichScrobbleWithDiscogs(ctx, result.scrobbles.trackId).catch(
+        (err) =>
+          consola.warn(
+            `Discogs enrichment failed for scrobble ${scrobbleId}:`,
+            err instanceof Error ? err.message : err,
+          ),
+      );
     }
   })();
 }

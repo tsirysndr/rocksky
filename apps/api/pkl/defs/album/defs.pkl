@@ -144,6 +144,114 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.song.defs#songViewBasic"
         }
       }
+
+      ["discogs"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.album.defs#discogsView"
+      }
+    }
+  }
+  ["discogsView"] {
+    type = "object"
+    description = "Release metadata matched on Discogs for this album."
+    properties {
+      ["releaseId"] = new IntegerType {
+        type = "integer"
+        description = "The Discogs release ID."
+      }
+
+      ["masterId"] = new IntegerType {
+        type = "integer"
+        description = "The Discogs master ID, shared by every edition of the release."
+      }
+
+      ["title"] = new StringType {
+        type = "string"
+        description = "The release title as Discogs spells it."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The release artist as Discogs credits it."
+      }
+
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The primary release image on Discogs."
+      }
+
+      ["year"] = new IntegerType {
+        type = "integer"
+        description = "The year this pressing was released."
+      }
+
+      ["originalYear"] = new IntegerType {
+        type = "integer"
+        description = "The year the release first came out, from its master."
+      }
+
+      ["releaseDate"] = new StringType {
+        type = "string"
+        description = "The release date of this pressing."
+      }
+
+      ["country"] = new StringType {
+        type = "string"
+        description = "The country this pressing was released in."
+      }
+
+      ["label"] = new StringType {
+        type = "string"
+        description = "The record label."
+      }
+
+      ["catalogNumber"] = new StringType {
+        type = "string"
+        description = "The label's catalog number for this pressing."
+      }
+
+      ["barcode"] = new StringType {
+        type = "string"
+        description = "The barcode printed on this pressing."
+      }
+
+      ["formats"] = new Array {
+        type = "array"
+        description = "The physical or digital formats of this pressing."
+        items = new StringType {
+          type = "string"
+        }
+      }
+
+      ["genres"] = new Array {
+        type = "array"
+        description = "The Discogs genres of the release."
+        items = new StringType {
+          type = "string"
+        }
+      }
+
+      ["styles"] = new Array {
+        type = "array"
+        description = "The Discogs styles of the release."
+        items = new StringType {
+          type = "string"
+        }
+      }
+
+      ["url"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The release page on Discogs."
+      }
+
+      ["score"] = new IntegerType {
+        type = "integer"
+        description = "Confidence of the match that produced this release, from 0 to 100."
+        minimum = 0
+        maximum = 100
+      }
     }
   }
 }

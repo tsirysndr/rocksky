@@ -52,6 +52,9 @@ export const ctx = {
   tracklist: axios.create({ baseURL: env.TRACKLIST }),
   musicbrainz: axios.create({ baseURL: env.MUSICBRAINZ_URL }),
   deezer: axios.create({ baseURL: env.DEEZER_URL }),
+  // The service queues for a rate limiter slot before answering, so the
+  // timeout has to outlast its own queue budget (DISCOGS_MAX_WAIT).
+  discogs: axios.create({ baseURL: env.DISCOGS_URL, timeout: 45_000 }),
   redis: await redis
     .createClient({ url: env.REDIS_URL })
     .on("error", (err) => {

@@ -954,6 +954,100 @@ export const schemaDict = {
               ref: "lex:app.rocksky.song.defs#songViewBasic",
             },
           },
+          discogs: {
+            type: "ref",
+            ref: "lex:app.rocksky.album.defs#discogsView",
+          },
+        },
+      },
+      discogsView: {
+        type: "object",
+        description: "Release metadata matched on Discogs for this album.",
+        properties: {
+          releaseId: {
+            type: "integer",
+            description: "The Discogs release ID.",
+          },
+          masterId: {
+            type: "integer",
+            description:
+              "The Discogs master ID, shared by every edition of the release.",
+          },
+          title: {
+            type: "string",
+            description: "The release title as Discogs spells it.",
+          },
+          artist: {
+            type: "string",
+            description: "The release artist as Discogs credits it.",
+          },
+          albumArt: {
+            type: "string",
+            description: "The primary release image on Discogs.",
+            format: "uri",
+          },
+          year: {
+            type: "integer",
+            description: "The year this pressing was released.",
+          },
+          originalYear: {
+            type: "integer",
+            description:
+              "The year the release first came out, from its master.",
+          },
+          releaseDate: {
+            type: "string",
+            description: "The release date of this pressing.",
+          },
+          country: {
+            type: "string",
+            description: "The country this pressing was released in.",
+          },
+          label: {
+            type: "string",
+            description: "The record label.",
+          },
+          catalogNumber: {
+            type: "string",
+            description: "The label's catalog number for this pressing.",
+          },
+          barcode: {
+            type: "string",
+            description: "The barcode printed on this pressing.",
+          },
+          formats: {
+            type: "array",
+            description: "The physical or digital formats of this pressing.",
+            items: {
+              type: "string",
+            },
+          },
+          genres: {
+            type: "array",
+            description: "The Discogs genres of the release.",
+            items: {
+              type: "string",
+            },
+          },
+          styles: {
+            type: "array",
+            description: "The Discogs styles of the release.",
+            items: {
+              type: "string",
+            },
+          },
+          url: {
+            type: "string",
+            description: "The release page on Discogs.",
+            format: "uri",
+          },
+          score: {
+            type: "integer",
+            description:
+              "Confidence of the match that produced this release, from 0 to 100.",
+            maximum: 100,
+            minimum: 0,
+          },
         },
       },
     },

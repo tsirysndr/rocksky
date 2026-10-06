@@ -70,6 +70,7 @@ export interface AlbumViewDetailed {
   uniqueListeners?: number;
   tags?: string[];
   tracks?: AppRockskySongDefs.SongViewBasic[];
+  discogs?: DiscogsView;
   [k: string]: unknown;
 }
 
@@ -83,4 +84,55 @@ export function isAlbumViewDetailed(v: unknown): v is AlbumViewDetailed {
 
 export function validateAlbumViewDetailed(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.album.defs#albumViewDetailed", v);
+}
+
+/** Release metadata matched on Discogs for this album. */
+export interface DiscogsView {
+  /** The Discogs release ID. */
+  releaseId?: number;
+  /** The Discogs master ID, shared by every edition of the release. */
+  masterId?: number;
+  /** The release title as Discogs spells it. */
+  title?: string;
+  /** The release artist as Discogs credits it. */
+  artist?: string;
+  /** The primary release image on Discogs. */
+  albumArt?: string;
+  /** The year this pressing was released. */
+  year?: number;
+  /** The year the release first came out, from its master. */
+  originalYear?: number;
+  /** The release date of this pressing. */
+  releaseDate?: string;
+  /** The country this pressing was released in. */
+  country?: string;
+  /** The record label. */
+  label?: string;
+  /** The label's catalog number for this pressing. */
+  catalogNumber?: string;
+  /** The barcode printed on this pressing. */
+  barcode?: string;
+  /** The physical or digital formats of this pressing. */
+  formats?: string[];
+  /** The Discogs genres of the release. */
+  genres?: string[];
+  /** The Discogs styles of the release. */
+  styles?: string[];
+  /** The release page on Discogs. */
+  url?: string;
+  /** Confidence of the match that produced this release, from 0 to 100. */
+  score?: number;
+  [k: string]: unknown;
+}
+
+export function isDiscogsView(v: unknown): v is DiscogsView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.album.defs#discogsView"
+  );
+}
+
+export function validateDiscogsView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.album.defs#discogsView", v);
 }

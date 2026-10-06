@@ -6,6 +6,8 @@ import importJobs from "./import-jobs";
 import artistAlbums from "./artist-albums";
 import artistTracks from "./artist-tracks";
 import artists from "./artists";
+import discogsReleases from "./discogs-releases";
+import discogsSearches from "./discogs-searches";
 import dropbox from "./dropbox";
 import dropboxAccounts from "./dropbox-accounts";
 import dropboxDirectories from "./dropbox-directories";
@@ -90,4 +92,6 @@ export default {
   feeds,
   follows,
   mirrorSources,
+  discogsReleases,
+  discogsSearches,
 };

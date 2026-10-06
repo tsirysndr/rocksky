@@ -40,6 +40,7 @@
     "backfill:track-uri": "tsx ./src/scripts/backfill-track-uri.ts",
     "backfill:replaygain": "tsx ./src/scripts/backfill-replaygain.ts",
     "backfill:analysis": "tsx ./src/scripts/backfill-analysis.ts",
+    "backfill:discogs": "tsx ./src/scripts/backfill-discogs.ts",
     "backfill:fingerprint": "BACKFILL_ONLY=fingerprint tsx ./src/scripts/backfill-analysis.ts"
   },
   "dependencies": {

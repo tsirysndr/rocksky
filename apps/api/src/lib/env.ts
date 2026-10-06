@@ -45,6 +45,7 @@ export const env = cleanEnv(process.env, {
   REDIS_URL: str({ default: "redis://localhost:6379" }),
   MUSICBRAINZ_URL: str({ default: "http://localhost:8088" }),
   DEEZER_URL: str({ default: "http://localhost:8090" }),
+  DISCOGS_URL: str({ default: "http://localhost:8095" }),
   PRIVATE_KEY_1: str({}),
   PRIVATE_KEY_2: str({}),
   PRIVATE_KEY_3: str({}),

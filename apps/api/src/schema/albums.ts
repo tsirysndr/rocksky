@@ -1,5 +1,6 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import discogsReleases from "./discogs-releases";
 
 const albums = pgTable("albums", {
   id: text("xata_id").primaryKey().default(sql`xata_id()`),
@@ -15,6 +16,9 @@ const albums = pgTable("albums", {
   tidalLink: text("tidal_link").unique(),
   youtubeLink: text("youtube_link").unique(),
   sha256: text("sha256").unique().notNull(),
+  discogsReleaseId: text("discogs_release_id").references(
+    () => discogsReleases.id,
+  ),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer("xata_version"),
