@@ -1,4 +1,8 @@
-import { type RouteProp, useNavigation } from "@react-navigation/native";
+import {
+  type RouteProp,
+  useNavigation,
+  useIsFocused,
+} from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
 import type { FC } from "react";
@@ -18,6 +22,7 @@ export type StoryWithDataProps = Partial<{
 }>;
 
 const StoryWithData: FC<StoryWithDataProps> = ({ route }) => {
+  const active = useIsFocused();
   const navigation = useNavigation<StoryScreenNavigationProp>();
   const handedOff = useAtomValue(storiesAtom);
   const { data: fetched } = useStoriesQuery();
@@ -39,6 +44,20 @@ const StoryWithData: FC<StoryWithDataProps> = ({ route }) => {
   return (
     <Story
       stories={stories}
+      active={active}
+      onShare={(story) => {
+        const isScrobble = story.uri?.includes("/app.rocksky.scrobble/");
+        // Open a fresh customization screen above the paused story viewer.
+        navigation.push("ShareCard", {
+          item: {
+            kind: isScrobble ? "scrobble" : "track",
+            uri: isScrobble ? story.uri : story.trackUri || "",
+            title: story.title,
+            subtitle: `${story.albumArtist || story.artist} · @${story.handle}`,
+            artwork: story.albumArt,
+          },
+        });
+      }}
       index={route?.params?.index}
       onOpenProfile={(did) => openInHomeTab("UserProfile", { did })}
       onPressArtist={(uri) => openInHomeTab("ArtistDetails", { uri })}

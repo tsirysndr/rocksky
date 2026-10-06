@@ -1,3 +1,4 @@
+import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -39,6 +40,8 @@ export type StoryProps = {
   onPressArtist: (artistUri: string) => void;
   onPressTrack: (trackUri: string) => void;
   onClose: () => void;
+  onShare: (story: StoryItem) => void;
+  active: boolean;
 };
 
 const Story: FC<StoryProps> = ({
@@ -48,6 +51,8 @@ const Story: FC<StoryProps> = ({
   onPressArtist,
   onPressTrack,
   onClose,
+  onShare,
+  active,
 }) => {
   const layout = useWindowDimensions();
   const [index, setIndex] = useState(
@@ -76,9 +81,10 @@ const Story: FC<StoryProps> = ({
   }, [index, stories.length, onClose, progress]);
 
   useEffect(() => {
-    startProgress();
+    if (active) startProgress();
+    else animRef.current?.stop();
     return () => animRef.current?.stop();
-  }, [startProgress]);
+  }, [startProgress, active]);
 
   const goNext = useCallback(() => {
     setIndex((i) => {
@@ -197,7 +203,15 @@ const Story: FC<StoryProps> = ({
             }}
           >
             <UserAvatar uri={current.avatar} size={36} />
-            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: "600",
+                flexShrink: 1,
+              }}
+            >
               @{current.handle}
             </Text>
             <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
@@ -207,6 +221,18 @@ const Story: FC<StoryProps> = ({
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
             {index + 1}/{stories.length}
           </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Share this story"
+            accessibilityHint="Opens the card customization screen"
+            onPress={() => {
+              animRef.current?.stop();
+              onShare(current);
+            }}
+            style={{ padding: 6 }}
+          >
+            <Feather name="share-2" size={21} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={{ padding: 6 }}>
             <Text style={{ color: "#fff", fontSize: 18 }}>✕</Text>
           </TouchableOpacity>
