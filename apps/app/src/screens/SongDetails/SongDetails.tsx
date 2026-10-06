@@ -26,6 +26,7 @@ import {
   useSongByUriQuery,
   useSongRecentListenersQuery,
 } from "@/src/hooks/useLibrary";
+import { songRecordUri } from "@/src/lib/songRecordUri";
 import type { RootStackParamList } from "@/src/Navigation";
 import { colors } from "@/src/theme";
 
@@ -75,7 +76,7 @@ export default function SongDetails({ route }: Props) {
     : scrobbleResult.data;
   const isLoading = songResult.isLoading || scrobbleResult.isLoading;
 
-  const recentListeners = useSongRecentListenersQuery(song?.uri || "");
+  const recentListeners = useSongRecentListenersQuery(songRecordUri(song, uri));
 
   const { data: tracks } = useArtistTracksQuery(song?.artistUri || "", 8);
   const { data: albums } = useArtistAlbumsQuery(song?.artistUri || "", 6);
@@ -290,6 +291,91 @@ export default function SongDetails({ route }: Props) {
                 </View>
               </View>
 
+              {(recentListeners.isLoading ||
+                recentListeners.isError ||
+                !!recentListeners.data?.length) && (
+                <View style={{ marginBottom: 24, gap: 12 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700" }}>
+                    Recent listeners
+                  </Text>
+                  {recentListeners.isLoading && (
+                    <ActivityIndicator color={colors.primary} />
+                  )}
+                  {recentListeners.isError && (
+                    <TouchableOpacity onPress={() => recentListeners.refetch()}>
+                      <Text style={{ color: colors.primary }}>
+                        Could not load listeners. Tap to retry.
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 20 }}
+                  >
+                    {recentListeners.data?.map((listener) => (
+                      <View
+                        key={listener.id}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                          width: 210,
+                        }}
+                      >
+                        <TouchableOpacity
+                          accessibilityRole="link"
+                          accessibilityLabel={`View @${listener.handle}`}
+                          onPress={() =>
+                            navigation.navigate("UserProfile", {
+                              handle: listener.handle,
+                            })
+                          }
+                        >
+                          <UserAvatar uri={listener.avatar} size={40} />
+                        </TouchableOpacity>
+                        <View style={{ flex: 1, gap: 4 }}>
+                          <TouchableOpacity
+                            onPress={() =>
+                              navigation.navigate("UserProfile", {
+                                handle: listener.handle,
+                              })
+                            }
+                          >
+                            <Text
+                              numberOfLines={1}
+                              style={{ fontWeight: "600" }}
+                            >
+                              @{listener.handle}
+                            </Text>
+                          </TouchableOpacity>
+                          {listener.timestamp && (
+                            <TouchableOpacity
+                              disabled={!listener.scrobbleUri}
+                              onPress={() =>
+                                listener.scrobbleUri &&
+                                navigation.push("SongDetails", {
+                                  uri: listener.scrobbleUri,
+                                })
+                              }
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: colors.textMuted,
+                                }}
+                              >
+                                {dayjs(listener.timestamp).fromNow()}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
               {/* Tags */}
               {song.tags && song.tags.length > 0 && (
                 <View
@@ -408,78 +494,6 @@ export default function SongDetails({ route }: Props) {
                   </Text>
                 </TouchableOpacity>
               </View>
-
-              {(recentListeners.isLoading ||
-                recentListeners.isError ||
-                !!recentListeners.data?.length) && (
-                <View style={{ marginVertical: 24, gap: 16 }}>
-                  <Text style={{ fontSize: 18, fontWeight: "700" }}>
-                    Recent listeners
-                  </Text>
-                  {recentListeners.isLoading && (
-                    <ActivityIndicator color={colors.primary} />
-                  )}
-                  {recentListeners.isError && (
-                    <TouchableOpacity onPress={() => recentListeners.refetch()}>
-                      <Text style={{ color: colors.primary }}>
-                        Could not load listeners. Tap to retry.
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {recentListeners.data?.map((listener) => (
-                    <View
-                      key={listener.id}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <TouchableOpacity
-                        accessibilityRole="link"
-                        accessibilityLabel={`View @${listener.handle}`}
-                        onPress={() =>
-                          navigation.navigate("UserProfile", {
-                            handle: listener.handle,
-                          })
-                        }
-                      >
-                        <UserAvatar uri={listener.avatar} size={40} />
-                      </TouchableOpacity>
-                      <View style={{ flex: 1, gap: 4 }}>
-                        <TouchableOpacity
-                          onPress={() =>
-                            navigation.navigate("UserProfile", {
-                              handle: listener.handle,
-                            })
-                          }
-                        >
-                          <Text numberOfLines={1} style={{ fontWeight: "600" }}>
-                            @{listener.handle}
-                          </Text>
-                        </TouchableOpacity>
-                        {listener.timestamp && (
-                          <TouchableOpacity
-                            disabled={!listener.scrobbleUri}
-                            onPress={() =>
-                              listener.scrobbleUri &&
-                              navigation.push("SongDetails", {
-                                uri: listener.scrobbleUri,
-                              })
-                            }
-                          >
-                            <Text
-                              style={{ fontSize: 12, color: colors.textMuted }}
-                            >
-                              {dayjs(listener.timestamp).fromNow()}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
 
               {/* Lyrics */}
               {song.lyrics && (
