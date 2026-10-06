@@ -26,9 +26,8 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      # Caching matters more here than usual: libduckdb-sys compiles the bundled
-      # DuckDB C++ amalgamation, which is ~10 minutes from cold. The cache keeps
-      # its OUT_DIR objects between runs.
+      # Cache Rust build artifacts. cargo.sh downloads and verifies the matching
+      # prebuilt static DuckDB release, then configures Cargo's linker paths.
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: riff
@@ -39,10 +38,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy --release --all-targets -- -D warnings
+        run: ./cargo.sh clippy --release --all-targets -- -D warnings
 
       - name: cargo test
-        run: cargo test --release --all-targets
+        run: ./cargo.sh test --release --all-targets
 
       # The unit and e2e tests drive the app in-process. This step exercises the
       # real binary over a real socket: CLI parsing, view registration at
@@ -50,8 +49,8 @@ jobs:
       - name: smoke test the binary
         run: |
           set -euo pipefail
-          cargo run --release --bin riff-fixtures -- --out testdata
-          cargo run --release --bin riff -- --host 127.0.0.1 --port 8092 &
+          ./cargo.sh run --release --bin riff-fixtures -- --out testdata
+          ./cargo.sh run --release --bin riff -- --host 127.0.0.1 --port 8092 &
           server=$!
           trap 'kill $server 2>/dev/null || true' EXIT
 
