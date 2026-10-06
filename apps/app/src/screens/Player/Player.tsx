@@ -137,7 +137,16 @@ export default function Player() {
     const isCurrent = index === queueCurrentIndex;
     return (
       <TouchableOpacity style={styles.queueRow} onPress={() => jumpTo(index)}>
-        <Text style={styles.queueIndex}>{index + 1}</Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={[
+            styles.queueIndex,
+            { width: Math.max(22, String(queueRows.length).length * 9 + 6) },
+          ]}
+        >
+          {index + 1}
+        </Text>
         {item.albumArt ? (
           <Image
             source={item.albumArt}
@@ -796,7 +805,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   queueIndex: {
-    width: 22,
+    flexShrink: 0,
     fontSize: 12,
     color: colors.textMuted,
     textAlign: "center",
