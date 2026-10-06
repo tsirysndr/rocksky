@@ -6,8 +6,7 @@ import (
 	"time"
 )
 
-// This file mirrors the shape of the Discogs API
-// (https://www.discogs.com/developers). Only the fields we consume are modeled.
+// Only the fields we consume are modeled: https://www.discogs.com/developers
 
 // flexString tolerates fields Discogs returns as either "2013" or 2013.
 type flexString string
@@ -48,8 +47,7 @@ type Community struct {
 	} `json:"rating"`
 }
 
-// SearchResult is one entry from /database/search. For releases, Title is
-// "Artist - Release Title".
+// SearchResult is one entry from /database/search; Title is "Artist - Release Title".
 type SearchResult struct {
 	ID          int64      `json:"id"`
 	MasterID    int64      `json:"master_id,omitempty"`
@@ -190,19 +188,16 @@ type Label struct {
 	SubLabels []LabelRef `json:"sublabels,omitempty"`
 }
 
-// APIError is the body Discogs returns alongside a non-2xx status.
 type APIError struct {
 	Message string `json:"message"`
 }
 
-// SearchParams are the inputs accepted by the enrichment endpoints.
 type SearchParams struct {
 	Title  string `json:"title"`
 	Artist string `json:"artist"`
 	Album  string `json:"album,omitempty"`
 }
 
-// Match is a ranked candidate release returned alongside the enriched track.
 type Match struct {
 	ID            int64    `json:"id"`
 	MasterID      int64    `json:"masterId,omitempty"`
@@ -222,8 +217,7 @@ type Match struct {
 	Score         float64  `json:"score"`
 }
 
-// EnrichedTrack is the normalized metadata returned to callers. Durations are
-// in milliseconds.
+// EnrichedTrack is the normalized metadata returned to callers. Durations are in milliseconds.
 type EnrichedTrack struct {
 	Title            string   `json:"title"`
 	Artist           string   `json:"artist"`
@@ -250,14 +244,12 @@ type EnrichedTrack struct {
 	DiscogsArtistID  int64    `json:"discogsArtistId,omitempty"`
 }
 
-// EnrichResponse is the payload returned by /enrich and /search.
 type EnrichResponse struct {
 	Track   *EnrichedTrack `json:"track"`
 	Matches []Match        `json:"matches"`
 }
 
-// RateLimitSnapshot is the last quota state Discogs reported, from the
-// X-Discogs-Ratelimit-* response headers.
+// RateLimitSnapshot comes from the X-Discogs-Ratelimit-* response headers.
 type RateLimitSnapshot struct {
 	Limit      int       `json:"limit"`
 	Used       int       `json:"used"`

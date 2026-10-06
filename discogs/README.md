@@ -32,9 +32,10 @@ blocks requests made with a default library agent.
 - **Circuit breaker**: five consecutive upstream failures pause outbound calls
   for 30s, doubling per failed probe up to 5 minutes. A `404` is Discogs
   answering, not refusing, so it never counts.
-- **Caching**: successes for 6h — the catalogue is near-static and the quota is
-  the scarce resource — failures for 90s. Concurrent identical queries collapse
-  into one upstream call.
+- **Caching**: in-process, like the [musicbrainz](../musicbrainz) service.
+  Successes are kept for 6h (`DISCOGS_CACHE_TTL`) — the catalogue is
+  near-static and the quota is the scarce resource — and failures for 90s.
+  Concurrent identical queries collapse into one upstream call.
 - **Quota visibility**: the `X-Discogs-Ratelimit-*` headers are tracked and
   served on `/ratelimit` and `/health`, logged as a warning under 5 remaining,
   and recorded on each `/enrich` span.
@@ -91,6 +92,7 @@ DISCOGS_TOKEN=... bun run discogs   # or: cd discogs && go run main.go
 | `DISCOGS_PORT` / `PORT`  | `8095`     | Listen port                                             |
 | `DISCOGS_RATE_LIMIT`     | `55`       | Requests per rolling 60s window, under Discogs' 60      |
 | `DISCOGS_MAX_WAIT`       | `30`       | Seconds a request may stay queued before it gets `429`  |
+| `DISCOGS_CACHE_TTL`      | `21600`    | Seconds a successful lookup is cached                   |
 
 ## Tests
 

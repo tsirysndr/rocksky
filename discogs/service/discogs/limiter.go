@@ -7,15 +7,10 @@ import (
 	"time"
 )
 
-// WindowLimiter admits at most n sends in any rolling window and queues the
-// rest. A token bucket sized (burst n, refill n/window) would emit 2n across a
-// window boundary and trip the per-token quota, so slot times are kept in a
-// ring instead: a send may go out no earlier than one window after the n-th
-// most recent one.
+// WindowLimiter admits at most n sends in any rolling window and queues the rest. A token bucket would emit 2n across a window boundary and trip the quota.
 type WindowLimiter struct {
 	mu sync.Mutex
-	// spacing is the window plus a guard band, since a sleeping goroutine
-	// wakes late and can land less than a window after one that ran on time.
+	// spacing carries a guard band: a sleeping goroutine wakes late, never early.
 	spacing time.Duration
 	slots   []time.Time
 	next    int
@@ -32,8 +27,7 @@ func NewWindowLimiter(n int, window time.Duration) *WindowLimiter {
 	return &WindowLimiter{spacing: window + guard, slots: make([]time.Time, n)}
 }
 
-// reserve claims the next send slot. When that slot falls past deadline
-// nothing is claimed, so a request that gives up never burns quota.
+// A slot past the deadline is not claimed, so a request that gives up never burns quota.
 func (l *WindowLimiter) reserve(now, deadline time.Time) (wait time.Duration, ok bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -51,8 +45,6 @@ func (l *WindowLimiter) reserve(now, deadline time.Time) (wait time.Duration, ok
 	return at.Sub(now), true
 }
 
-// Wait blocks until this request may be sent, or returns errQueueFull when its
-// turn would come after deadline.
 func (l *WindowLimiter) Wait(ctx context.Context, deadline time.Time) error {
 	wait, ok := l.reserve(time.Now(), deadline)
 	if !ok {
@@ -68,7 +60,6 @@ func (l *WindowLimiter) Wait(ctx context.Context, deadline time.Time) error {
 	case <-timer.C:
 		return nil
 	case <-ctx.Done():
-		// Forfeiting the slot only ever under-uses the quota.
 		return ctx.Err()
 	}
 }

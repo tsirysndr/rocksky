@@ -19,8 +19,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// statusClientClosedRequest is nginx's non-standard 499: the caller
-// disconnected before we could answer.
+// statusClientClosedRequest is nginx's 499: the caller hung up before we answered.
 const statusClientClosedRequest = 499
 
 type Server struct {
@@ -30,8 +29,6 @@ type Server struct {
 func main() {
 	svc, err := discogs.NewDiscogsService()
 	if err != nil {
-		// A tokenless client gets a quarter of the quota and no images, so
-		// starting without one would only fail later, per request.
 		fmt.Fprintf(os.Stderr, "discogs: %v — set a personal access token from https://www.discogs.com/settings/developers\n", err)
 		os.Exit(1)
 	}
@@ -95,8 +92,6 @@ func spanAttrs(ctx context.Context, attrs ...attribute.KeyValue) {
 	trace.SpanFromContext(ctx).SetAttributes(attrs...)
 }
 
-// enrichHandler takes { title, artist, album? } and returns the best enriched
-// release metadata plus the ranked candidate list.
 func (s *Server) enrichHandler(c echo.Context) error {
 	var req discogs.SearchParams
 	if err := c.Bind(&req); err != nil {
@@ -105,7 +100,6 @@ func (s *Server) enrichHandler(c echo.Context) error {
 	return s.enrich(c, req)
 }
 
-// searchHandler is the GET form, for callers that would rather not POST.
 func (s *Server) searchHandler(c echo.Context) error {
 	return s.enrich(c, discogs.SearchParams{
 		Title:  c.QueryParam("title"),
@@ -146,10 +140,7 @@ func (s *Server) enrich(c echo.Context, req discogs.SearchParams) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-// respondError answers with the status that describes what actually went
-// wrong, so a saturated local queue (429), Discogs refusing us (503), a caller
-// that hung up (499), a deadline (504) and a genuine upstream failure (502)
-// stop collapsing into one code.
+// respondError maps a failure to the status that describes it: 429 local queue, 503 breaker open, 499 hangup, 504 deadline, 502 upstream.
 func respondError(c echo.Context, err error) error {
 	status := http.StatusBadGateway
 
@@ -171,8 +162,6 @@ func respondError(c echo.Context, err error) error {
 	if writeErr := c.JSON(status, map[string]string{"error": err.Error()}); writeErr != nil {
 		return writeErr
 	}
-	// Returning the error once the response is committed hands it to the
-	// access log.
 	return err
 }
 

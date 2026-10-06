@@ -5,9 +5,7 @@ import (
 	"time"
 )
 
-// breaker pauses outbound calls once Discogs starts refusing them, so a
-// rejected token or an exhausted quota does not turn the whole incoming
-// stream into upstream rejections.
+// breaker pauses outbound calls once Discogs starts refusing them.
 type breaker struct {
 	mu sync.Mutex
 
@@ -27,8 +25,7 @@ func newBreaker(threshold int, base, max time.Duration) *breaker {
 	return &breaker{threshold: threshold, base: base, max: max}
 }
 
-// allow reports whether a request may go upstream, and whether it is the
-// single probe let through after a cooldown elapses.
+// probe is the single request let through after a cooldown elapses.
 func (b *breaker) allow(now time.Time) (allowed, probe bool, wait time.Duration) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -60,8 +57,6 @@ func (b *breaker) success() {
 	b.openUntil = time.Time{}
 }
 
-// failure records an upstream failure and reports the cooldown when it opens
-// or re-opens the breaker.
 func (b *breaker) failure(now time.Time, retryAfter time.Duration) (time.Duration, bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()

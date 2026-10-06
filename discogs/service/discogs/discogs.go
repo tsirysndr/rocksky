@@ -23,18 +23,12 @@ const (
 	defaultBaseURL = "https://api.discogs.com"
 
 	// Discogs allows 60 authenticated requests per rolling minute per token.
-	// We stay under it: their clock is not ours. Override with
-	// DISCOGS_RATE_LIMIT.
 	rateLimitWindow   = 1 * time.Minute
 	rateLimitRequests = 55
 
-	// Discogs' catalogue is near-static, and the quota is an order of
-	// magnitude tighter than Deezer's, so successes are cached for longer.
 	defaultCacheTTL = 6 * time.Hour
 	failureCacheTTL = 90 * time.Second
 
-	// defaultMaxQueueWait bounds the total time one /enrich may spend queued
-	// before it is answered 429. Override with DISCOGS_MAX_WAIT (seconds).
 	defaultMaxQueueWait = 30 * time.Second
 
 	breakerThreshold    = 5
@@ -45,22 +39,17 @@ const (
 	enrichScoreFloor = 0.5
 	searchPerPage    = 10
 
-	// lowQuotaWarning is the remaining-request count below which the quota
-	// Discogs reports is logged as a warning.
 	lowQuotaWarning = 5
 
 	janitorInterval = 10 * time.Minute
 
-	// userAgent identifies this service to Discogs. They reject requests from
-	// default library agents outright, so this must stay non-generic.
+	// Discogs blocks requests made with a default library user agent.
 	userAgent = "rocksky-discogs/0.1.0 +https://github.com/tsirysndr/rocksky"
 )
 
-// errQueueFull means no rate limiter slot came free inside the request's queue
-// budget. Nothing reached Discogs, so it is answered 429, never 5xx.
+// errQueueFull means nothing reached Discogs, so it is answered 429, never 5xx.
 var errQueueFull = errors.New("discogs request queue budget exhausted")
 
-// ErrMissingToken is returned when no personal access token is configured.
 var ErrMissingToken = errors.New("DISCOGS_TOKEN is not set")
 
 // UpstreamError carries the status the handler should answer with.
@@ -79,8 +68,7 @@ type cacheEntry struct {
 	expiresAt time.Time
 }
 
-// DiscogsService talks to the Discogs API with rate limiting, a circuit
-// breaker and an in-memory TTL cache. It is safe for concurrent use.
+// DiscogsService is a rate-limited, cached Discogs client. Safe for concurrent use.
 type DiscogsService struct {
 	baseURL    string
 	token      string
@@ -126,9 +114,7 @@ func WithMaxQueueWait(d time.Duration) Option {
 	return func(s *DiscogsService) { s.maxQueueWait = d }
 }
 
-// NewDiscogsService creates a service that reads its token from DISCOGS_TOKEN
-// unless WithToken overrides it. It fails rather than starting tokenless: an
-// unauthenticated Discogs client gets a smaller quota and no images.
+// NewDiscogsService reads DISCOGS_TOKEN unless WithToken overrides it, and refuses to start without one.
 func NewDiscogsService(opts ...Option) (*DiscogsService, error) {
 	s := &DiscogsService{
 		baseURL:      defaultBaseURL,
@@ -137,7 +123,7 @@ func NewDiscogsService(opts ...Option) (*DiscogsService, error) {
 		limiter:      NewWindowLimiter(envInt("DISCOGS_RATE_LIMIT", rateLimitRequests), rateLimitWindow),
 		breaker:      newBreaker(breakerThreshold, breakerBaseCooldown, breakerMaxCooldown),
 		cache:        make(map[string]cacheEntry),
-		cacheTTL:     defaultCacheTTL,
+		cacheTTL:     envDuration("DISCOGS_CACHE_TTL", defaultCacheTTL),
 		maxQueueWait: envDuration("DISCOGS_MAX_WAIT", defaultMaxQueueWait),
 		logger:       log.New(os.Stdout, "discogs: ", log.LstdFlags|log.Lmsgprefix),
 	}
@@ -167,8 +153,7 @@ func (s *DiscogsService) cacheSet(key string, value any) {
 	s.cacheMutex.Unlock()
 }
 
-// cacheFailure remembers an upstream failure briefly. Local queue and breaker
-// rejections are not cached: they say nothing about the answer.
+// Local queue and breaker rejections are not cached: they say nothing about the answer.
 func (s *DiscogsService) cacheFailure(key string, err error) {
 	var upstream *UpstreamError
 	if errors.Is(err, errQueueFull) || errors.Is(err, context.Canceled) ||
@@ -200,8 +185,7 @@ func (s *DiscogsService) janitor() {
 
 type queueBudgetKey struct{}
 
-// withQueueBudget stamps one deadline on a whole enrich fan-out, so a
-// backlogged queue delays the caller once rather than once per upstream call.
+// withQueueBudget stamps one deadline on a whole enrich fan-out.
 func withQueueBudget(ctx context.Context, d time.Duration) context.Context {
 	return context.WithValue(ctx, queueBudgetKey{}, time.Now().Add(d))
 }
@@ -217,14 +201,12 @@ func (s *DiscogsService) queueDeadline(ctx context.Context) time.Time {
 	return deadline
 }
 
-// RateLimit reports the quota Discogs last told us about.
 func (s *DiscogsService) RateLimit() RateLimitSnapshot {
 	s.quotaMutex.RLock()
 	defer s.quotaMutex.RUnlock()
 	return s.quota
 }
 
-// Cooldown is how long the breaker stays open, 0 when it is closed.
 func (s *DiscogsService) Cooldown() time.Duration {
 	return s.breaker.remaining(time.Now())
 }
@@ -249,8 +231,7 @@ func (s *DiscogsService) observeQuota(h http.Header) {
 	}
 }
 
-// answered reports whether a status is Discogs answering the question rather
-// than refusing to. A 404 is a real answer, so it must not open the breaker.
+// answered reports whether Discogs answered rather than refused; a 404 must not open the breaker.
 func answered(status int) bool {
 	switch status {
 	case http.StatusNotFound, http.StatusBadRequest, http.StatusUnprocessableEntity:
@@ -259,8 +240,6 @@ func answered(status int) bool {
 	return false
 }
 
-// get performs a queued, rate-limited, breaker-guarded GET and decodes the
-// JSON body into out.
 func (s *DiscogsService) get(ctx context.Context, path string, out any) error {
 	endpoint := s.baseURL + path
 
@@ -295,8 +274,6 @@ func (s *DiscogsService) get(ctx context.Context, path string, out any) error {
 		}
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	// Discogs blocks requests that do not identify themselves, and
-	// authenticates personal access tokens with this header form.
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Authorization", "Discogs token="+s.token)
 	req.Header.Set("Accept", "application/json")
@@ -360,7 +337,6 @@ func (s *DiscogsService) get(ctx context.Context, path string, out any) error {
 	return nil
 }
 
-// apiMessage extracts Discogs' error message, as " (<message>)" or "".
 func apiMessage(r io.Reader) string {
 	var apiErr APIError
 	if err := json.NewDecoder(io.LimitReader(r, 4<<10)).Decode(&apiErr); err != nil || apiErr.Message == "" {
@@ -386,16 +362,14 @@ func parseRetryAfter(value string) time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
-// Search queries the Discogs database for candidate releases.
 func (s *DiscogsService) Search(ctx context.Context, params SearchParams) ([]SearchResult, error) {
 	if strings.TrimSpace(params.Title) == "" && strings.TrimSpace(params.Artist) == "" {
 		return nil, fmt.Errorf("at least one of title or artist must be provided")
 	}
 
 	strict := buildSearchQuery(params)
-	cacheKey := "search:" + strict
 
-	value, err := s.fetchCached(cacheKey, func() (any, error) {
+	return fetchCached(s, "search:"+strict, func() ([]SearchResult, error) {
 		s.logger.Printf("cache miss for search: %q", strict)
 
 		var result SearchResponse
@@ -403,8 +377,7 @@ func (s *DiscogsService) Search(ctx context.Context, params SearchParams) ([]Sea
 			return nil, err
 		}
 
-		// The fielded search is strict; fall back to free text so decorated or
-		// misspelled titles still match.
+		// Fall back to free text when the fielded search finds nothing.
 		if len(result.Results) == 0 {
 			loose := url.Values{}
 			loose.Set("q", strings.TrimSpace(strings.Join([]string{params.Artist, params.Album, params.Title}, " ")))
@@ -417,98 +390,102 @@ func (s *DiscogsService) Search(ctx context.Context, params SearchParams) ([]Sea
 		}
 		return result.Results, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return value.([]SearchResult), nil
 }
 
-// fetchCached serves key from the cache, or runs fetch once on behalf of every
-// caller currently asking the same question.
-func (s *DiscogsService) fetchCached(key string, fetch func() (any, error)) (any, error) {
+// fetchCached answers from the cache, or runs fetch once per key on behalf of
+// every caller asking the same question.
+func fetchCached[T any](s *DiscogsService, key string, fetch func() (T, error)) (T, error) {
+	var zero T
 	if value, err, ok := s.cacheGet(key); ok {
-		return value, err
+		return typedOrZero[T](value), err
 	}
 
-	return withSingleflight(s.group.Do(key, func() (any, error) {
+	value, err, _ := s.group.Do(key, func() (any, error) {
 		if value, err, ok := s.cacheGet(key); ok {
-			return value, err
+			if err != nil {
+				return nil, err
+			}
+			return value, nil
 		}
-		value, err := fetch()
+
+		fetched, err := fetch()
 		if err != nil {
 			s.cacheFailure(key, err)
 			return nil, err
 		}
-		s.cacheSet(key, value)
-		return value, nil
-	}))
+		s.cacheSet(key, fetched)
+		return fetched, nil
+	})
+	if err != nil {
+		return zero, err
+	}
+
+	typed, ok := value.(T)
+	if !ok {
+		return zero, fmt.Errorf("cached value for %s has unexpected type %T", key, value)
+	}
+	return typed, nil
 }
 
-func withSingleflight(value any, err error, _ bool) (any, error) {
-	return value, err
+func typedOrZero[T any](value any) T {
+	typed, _ := value.(T)
+	return typed
 }
 
-// GetRelease fetches a release by Discogs ID: tracklist, labels, formats,
-// genres, styles, identifiers and images.
 func (s *DiscogsService) GetRelease(ctx context.Context, id int64) (*Release, error) {
-	value, err := s.fetchCached("release:"+strconv.FormatInt(id, 10), func() (any, error) {
+	release, err := fetchCached(s, "release:"+strconv.FormatInt(id, 10), func() (Release, error) {
 		var release Release
 		if err := s.get(ctx, "/releases/"+strconv.FormatInt(id, 10), &release); err != nil {
-			return nil, err
+			return Release{}, err
 		}
 		return release, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	release := value.(Release)
 	return &release, nil
 }
 
-// GetMaster fetches a master by Discogs ID, whose year is the original release
-// year rather than this pressing's.
+// GetMaster fetches a master, whose year is the original release year rather than this pressing's.
 func (s *DiscogsService) GetMaster(ctx context.Context, id int64) (*Master, error) {
-	value, err := s.fetchCached("master:"+strconv.FormatInt(id, 10), func() (any, error) {
+	master, err := fetchCached(s, "master:"+strconv.FormatInt(id, 10), func() (Master, error) {
 		var master Master
 		if err := s.get(ctx, "/masters/"+strconv.FormatInt(id, 10), &master); err != nil {
-			return nil, err
+			return Master{}, err
 		}
 		return master, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	master := value.(Master)
 	return &master, nil
 }
 
 func (s *DiscogsService) GetArtist(ctx context.Context, id int64) (*Artist, error) {
-	value, err := s.fetchCached("artist:"+strconv.FormatInt(id, 10), func() (any, error) {
+	artist, err := fetchCached(s, "artist:"+strconv.FormatInt(id, 10), func() (Artist, error) {
 		var artist Artist
 		if err := s.get(ctx, "/artists/"+strconv.FormatInt(id, 10), &artist); err != nil {
-			return nil, err
+			return Artist{}, err
 		}
 		return artist, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	artist := value.(Artist)
 	return &artist, nil
 }
 
 func (s *DiscogsService) GetLabel(ctx context.Context, id int64) (*Label, error) {
-	value, err := s.fetchCached("label:"+strconv.FormatInt(id, 10), func() (any, error) {
+	label, err := fetchCached(s, "label:"+strconv.FormatInt(id, 10), func() (Label, error) {
 		var label Label
 		if err := s.get(ctx, "/labels/"+strconv.FormatInt(id, 10), &label); err != nil {
-			return nil, err
+			return Label{}, err
 		}
 		return label, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	label := value.(Label)
 	return &label, nil
 }
 
@@ -526,8 +503,6 @@ func rankCandidates(params SearchParams, results []SearchResult) []rankedCandida
 		if ranked[i].score != ranked[j].score {
 			return ranked[i].score > ranked[j].score
 		}
-		// Collection counts stand in for popularity, then the earliest known
-		// pressing, then the id for determinism.
 		hi, hj := ranked[i].result.Community.Have, ranked[j].result.Community.Have
 		if hi != hj {
 			return hi > hj
@@ -567,9 +542,7 @@ func toMatch(c rankedCandidate) Match {
 	}
 }
 
-// Enrich searches for the track, ranks candidate releases and deep-fetches the
-// best one. Matches are deliberately not hydrated: at 60 requests per minute a
-// per-match release fetch would cost more quota than the answer is worth.
+// Enrich ranks candidates and deep-fetches the best one. Matches are not hydrated: at 60 requests a minute, a per-match release fetch costs more than it is worth.
 func (s *DiscogsService) Enrich(ctx context.Context, params SearchParams) (*EnrichResponse, error) {
 	ctx = withQueueBudget(ctx, s.maxQueueWait)
 
@@ -603,8 +576,7 @@ func (s *DiscogsService) Enrich(ctx context.Context, params SearchParams) (*Enri
 	return resp, nil
 }
 
-// hydrate deep-fetches the best release, and its master when the pressing's
-// own year is missing or clearly a reissue.
+// The master is fetched only when the pressing is a reissue or has no year of its own.
 func (s *DiscogsService) hydrate(ctx context.Context, params SearchParams, seed SearchResult) *EnrichedTrack {
 	enriched := buildFromSearch(params, seed)
 
@@ -690,8 +662,6 @@ func (s *DiscogsService) hydrate(ctx context.Context, params SearchParams, seed 
 	return enriched
 }
 
-// buildFromSearch maps a search result onto the normalized shape without extra
-// network calls.
 func buildFromSearch(params SearchParams, r SearchResult) *EnrichedTrack {
 	artist, album := splitResultTitle(r.Title)
 	artist = stripDisambiguator(artist)
@@ -715,7 +685,6 @@ func buildFromSearch(params SearchParams, r SearchResult) *EnrichedTrack {
 	}
 }
 
-// buildSearchQuery builds the fielded /database/search query.
 func buildSearchQuery(params SearchParams) string {
 	q := url.Values{}
 	if t := strings.TrimSpace(params.Title); t != "" {
@@ -794,7 +763,6 @@ func identifierValue(identifiers []Identifier, kind string) string {
 	return ""
 }
 
-// primaryImage prefers the release's primary image over the secondary scans.
 func primaryImage(images []Image) string {
 	for _, img := range images {
 		if strings.EqualFold(img.Type, "primary") && img.URI != "" {
@@ -809,7 +777,6 @@ func primaryImage(images []Image) string {
 	return ""
 }
 
-// releaseURL turns a search result's relative uri into an absolute one.
 func releaseURL(uri string) string {
 	switch {
 	case uri == "":

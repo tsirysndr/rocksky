@@ -16,8 +16,7 @@ import (
 
 // --- Mock Discogs API --------------------------------------------------------
 
-// These payloads mirror the shape of the real Discogs API for "Get Lucky" on a
-// reissue of Daft Punk's Random Access Memories.
+// Payloads mirror the real API for "Get Lucky" on a reissue of Random Access Memories.
 
 const searchResponseJSON = `{
   "pagination": { "page": 1, "pages": 1, "per_page": 10, "items": 2 },
@@ -196,8 +195,7 @@ func TestMissingTokenIsFatal(t *testing.T) {
 	}
 }
 
-// Discogs rejects requests that do not identify themselves, and the token
-// travels in an Authorization header of its own form.
+// Discogs rejects requests that do not identify themselves.
 func TestRequestsCarryUserAgentAndToken(t *testing.T) {
 	m := newMockDiscogs()
 	defer m.close()
@@ -366,8 +364,7 @@ func TestEnrichFillsAllMetadata(t *testing.T) {
 	}
 }
 
-// One enrichment is a search plus a release fetch, plus the master only when
-// the pressing is a reissue. At 60 requests a minute that budget is the point.
+// One enrichment is a search, a release fetch, and the master only for a reissue.
 func TestEnrichCostsThreeUpstreamCalls(t *testing.T) {
 	m := newMockDiscogs()
 	defer m.close()
@@ -497,8 +494,7 @@ func TestRateLimitHeadersAreObserved(t *testing.T) {
 	}
 }
 
-// A 404 is Discogs answering, so it must be reported as 404 and must not count
-// toward the breaker.
+// A 404 is Discogs answering, so it must not count toward the breaker.
 func TestNotFoundIsAnsweredNotFailed(t *testing.T) {
 	var calls int64
 	mux := http.NewServeMux()
@@ -709,6 +705,16 @@ func TestWaitReturnsQueueFullPastDeadline(t *testing.T) {
 	}
 	if err := limiter.Wait(context.Background(), time.Now().Add(time.Second)); !errors.Is(err, errQueueFull) {
 		t.Fatalf("expected errQueueFull, got %v", err)
+	}
+}
+
+func TestCacheTTLReadFromEnv(t *testing.T) {
+	t.Setenv("DISCOGS_CACHE_TTL", "90")
+	m := newMockDiscogs()
+	defer m.close()
+	svc := newTestService(t, m.server.URL)
+	if svc.cacheTTL != 90*time.Second {
+		t.Fatalf("DISCOGS_CACHE_TTL not honored: %v", svc.cacheTTL)
 	}
 }
 
