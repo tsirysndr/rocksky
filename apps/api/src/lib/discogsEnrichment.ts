@@ -4,12 +4,14 @@ import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import tables from "schema";
+import type { InsertDiscogsCredit } from "schema/discogs-credits";
 import type {
   InsertDiscogsRelease,
   SelectDiscogsRelease,
 } from "schema/discogs-releases";
 import type { SelectDiscogsSearch } from "schema/discogs-searches";
 import {
+  type DiscogsCredit,
   type DiscogsEnrichResponse,
   type DiscogsEnrichedTrack,
   enrichWithDiscogs,
@@ -46,6 +48,21 @@ const albumKey = (album: string, albumArtist: string) =>
   createHash("sha256")
     .update(`${album} - ${albumArtist}`.toLowerCase())
     .digest("hex");
+
+export const toDiscogsCreditRows = (
+  releaseId: string,
+  credits: DiscogsCredit[] = [],
+): InsertDiscogsCredit[] =>
+  credits
+    .filter((credit) => credit.name?.trim())
+    .map((credit, position) => ({
+      releaseId,
+      artistId: credit.artistId || null,
+      name: credit.name.trim(),
+      role: credit.role?.trim() || null,
+      tracks: credit.tracks?.trim() || null,
+      position,
+    }));
 
 export const toDiscogsReleaseRow = (
   track: DiscogsEnrichedTrack,
@@ -114,7 +131,8 @@ export const enrichAlbumWithDiscogs = async (
       .where(eq(tables.discogsReleases.id, existing.releaseId))
       .limit(1)
       .then((rows) => rows[0]);
-    if (release) {
+    // A release stored before credits were collected is asked again, once.
+    if (release?.creditsFetchedAt) {
       await linkAlbum(ctx, { album, artist, albumId }, release.id);
       return { status: "matched", release };
     }
@@ -138,13 +156,15 @@ export const enrichAlbumWithDiscogs = async (
 
   const release = await ctx.db
     .insert(tables.discogsReleases)
-    .values(row)
+    .values({ ...row, creditsFetchedAt: new Date() })
     .onConflictDoUpdate({
       target: tables.discogsReleases.discogsId,
-      set: { ...row, updatedAt: new Date() },
+      set: { ...row, creditsFetchedAt: new Date(), updatedAt: new Date() },
     })
     .returning()
     .then((rows) => rows[0]);
+
+  await storeCredits(ctx, release.id, response.track?.credits);
 
   await recordSearch(ctx, {
     sha256,
@@ -159,6 +179,24 @@ export const enrichAlbumWithDiscogs = async (
     `Discogs matched ${chalk.cyan(`${artist} - ${album}`)} to release ${chalk.green(release.discogsId)}`,
   );
   return { status: "matched", release };
+};
+
+// Credits are replaced rather than merged: Discogs is the only source, and a
+// re-fetch can drop or reorder them.
+const storeCredits = async (
+  ctx: Context,
+  releaseId: string,
+  credits?: DiscogsCredit[],
+) => {
+  const rows = toDiscogsCreditRows(releaseId, credits);
+  await ctx.db.transaction(async (tx) => {
+    await tx
+      .delete(tables.discogsCredits)
+      .where(eq(tables.discogsCredits.releaseId, releaseId));
+    if (rows.length > 0) {
+      await tx.insert(tables.discogsCredits).values(rows);
+    }
+  });
 };
 
 const recordSearch = async (

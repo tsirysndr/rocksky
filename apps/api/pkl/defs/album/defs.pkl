@@ -252,6 +252,40 @@ defs = new Mapping<String, ObjectType> {
         minimum = 0
         maximum = 100
       }
+
+      ["credits"] = new Array {
+        type = "array"
+        description = "Performance and production credits for the release."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.album.defs#discogsCreditView"
+        }
+      }
+    }
+  }
+  ["discogsCreditView"] {
+    type = "object"
+    description = "One performance or production credit from Discogs."
+    properties {
+      ["artistId"] = new IntegerType {
+        type = "integer"
+        description = "The Discogs artist ID, when the credit is linked to one."
+      }
+
+      ["name"] = new StringType {
+        type = "string"
+        description = "The credited name."
+      }
+
+      ["role"] = new StringType {
+        type = "string"
+        description = "The role as Discogs words it, such as \"Written-By\" or \"Mixed By, Engineer\"."
+      }
+
+      ["tracks"] = new StringType {
+        type = "string"
+        description = "The track positions the credit applies to, absent when it covers the whole release."
+      }
     }
   }
 }

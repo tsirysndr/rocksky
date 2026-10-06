@@ -6,6 +6,13 @@ import type { Context } from "context";
 // token and caches in-process, so callers may ask freely but must treat every
 // answer as optional.
 
+export interface DiscogsCredit {
+  artistId?: number;
+  name: string;
+  role?: string;
+  tracks?: string;
+}
+
 export interface DiscogsEnrichedTrack {
   title: string;
   artist: string;
@@ -27,6 +34,7 @@ export interface DiscogsEnrichedTrack {
   genres?: string[];
   styles?: string[];
   discogsUrl?: string;
+  credits?: DiscogsCredit[];
   discogsReleaseId?: number;
   discogsMasterId?: number;
   discogsArtistId?: number;

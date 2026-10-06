@@ -122,6 +122,8 @@ export interface DiscogsView {
   url?: string;
   /** Confidence of the match that produced this release, from 0 to 100. */
   score?: number;
+  /** Performance and production credits for the release. */
+  credits?: DiscogsCreditView[];
   [k: string]: unknown;
 }
 
@@ -135,4 +137,29 @@ export function isDiscogsView(v: unknown): v is DiscogsView {
 
 export function validateDiscogsView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.album.defs#discogsView", v);
+}
+
+/** One performance or production credit from Discogs. */
+export interface DiscogsCreditView {
+  /** The Discogs artist ID, when the credit is linked to one. */
+  artistId?: number;
+  /** The credited name. */
+  name?: string;
+  /** The role as Discogs words it, such as "Written-By" or "Mixed By, Engineer". */
+  role?: string;
+  /** The track positions the credit applies to, absent when it covers the whole release. */
+  tracks?: string;
+  [k: string]: unknown;
+}
+
+export function isDiscogsCreditView(v: unknown): v is DiscogsCreditView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.album.defs#discogsCreditView"
+  );
+}
+
+export function validateDiscogsCreditView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.album.defs#discogsCreditView", v);
 }

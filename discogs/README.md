@@ -58,6 +58,11 @@ album and artist when an album is given. The matched track (position, duration,
 per-track credits) comes out of the release's tracklist after the deep-fetch.
 Vinyl positions keep their sleeve numbering: `C2` is disc 2, track 2.
 
+`credits` carries the release's `extraartists` plus the matched track's own —
+producer, written-by, engineer, guest performers — with Discogs' own role
+wording, duplicates collapsed and the artist-supplied name (`anv`) preferred.
+This is the part of Discogs no other provider gives us.
+
 ## Endpoints
 
 | Method | Path             | Description                                                      |

@@ -62,6 +62,13 @@ const releaseResponseJSON = `{
   "uri": "https://www.discogs.com/release/4570366",
   "master_id": 525058,
   "artists": [{ "id": 1289, "name": "Daft Punk", "join": "" }],
+  "extraartists": [
+    { "id": 141, "name": "Pharrell Williams", "role": "Vocals", "tracks": "C2" },
+    { "id": 1289, "name": "Daft Punk", "role": "Producer" },
+    { "id": 1289, "name": "Daft Punk", "role": "Producer" },
+    { "id": 7777, "name": "Nile Rodgers (2)", "anv": "Nile Rodgers", "role": "Guitar", "tracks": "C2" },
+    { "id": 0, "name": "", "role": "Unknown" }
+  ],
   "labels": [{ "id": 1866, "name": "Columbia", "catno": "88883716861" }],
   "formats": [
     { "name": "Vinyl", "qty": "2", "descriptions": ["LP", "Album", "Reissue"] }
@@ -81,7 +88,8 @@ const releaseResponseJSON = `{
     { "position": "", "type_": "heading", "title": "Side C" },
     { "position": "C2", "type_": "track", "title": "Get Lucky", "duration": "6:09",
       "artists": [{ "id": 1289, "name": "Daft Punk", "join": "Feat." },
-                  { "id": 141, "name": "Pharrell Williams", "join": "" }] }
+                  { "id": 141, "name": "Pharrell Williams", "join": "" }],
+      "extraartists": [{ "id": 8888, "name": "Mick Guzauski", "role": "Mixed By" }] }
   ],
   "community": { "have": 30000, "want": 12000 }
 }`
@@ -361,6 +369,54 @@ func TestEnrichFillsAllMetadata(t *testing.T) {
 	}
 	if tr.DiscogsURL == "" {
 		t.Error("discogs url not set")
+	}
+}
+
+func TestEnrichCollectsCredits(t *testing.T) {
+	m := newMockDiscogs()
+	defer m.close()
+	svc := newTestService(t, m.server.URL)
+
+	resp, err := svc.Enrich(context.Background(), SearchParams{
+		Title: "Get Lucky", Artist: "Daft Punk", Album: "Random Access Memories",
+	})
+	if err != nil {
+		t.Fatalf("Enrich error: %v", err)
+	}
+
+	credits := resp.Track.Credits
+	byName := map[string]Credit{}
+	for _, c := range credits {
+		byName[c.Name] = c
+	}
+
+	if got := byName["Pharrell Williams"]; got.Role != "Vocals" || got.Tracks != "C2" || got.ArtistID != 141 {
+		t.Errorf("release credit not mapped: %+v", got)
+	}
+	// A track-level credit carries no position of its own, so it takes the
+	// matched track's.
+	if got := byName["Mick Guzauski"]; got.Role != "Mixed By" || got.Tracks != "C2" {
+		t.Errorf("track credit not mapped: %+v", got)
+	}
+	// The disambiguator is stripped and the artist-supplied name wins.
+	if _, ok := byName["Nile Rodgers"]; !ok {
+		t.Errorf("expected the ANV name, got %v", credits)
+	}
+	if _, ok := byName[""]; ok {
+		t.Error("a nameless credit should be dropped")
+	}
+	// "Daft Punk / Producer" is listed twice upstream.
+	producers := 0
+	for _, c := range credits {
+		if c.Name == "Daft Punk" && c.Role == "Producer" {
+			producers++
+		}
+	}
+	if producers != 1 {
+		t.Errorf("expected the duplicate producer credit to collapse, got %d", producers)
+	}
+	if len(credits) != 4 {
+		t.Errorf("expected 4 credits, got %d: %+v", len(credits), credits)
 	}
 }
 

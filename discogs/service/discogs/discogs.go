@@ -638,6 +638,10 @@ func (s *DiscogsService) hydrate(ctx context.Context, params SearchParams, seed 
 		enriched.DiscogsMasterID = release.MasterID
 	}
 
+	// Release credits first, then the matched track's own, which Discogs lists
+	// separately.
+	enriched.Credits = toCredits(release.ExtraArtists, "")
+
 	if track, ok := findTrack(release.Tracklist, params.Title); ok {
 		enriched.Title = track.Title
 		enriched.TrackPosition = track.Position
@@ -646,6 +650,10 @@ func (s *DiscogsService) hydrate(ctx context.Context, params SearchParams, seed 
 		if credit := joinCredits(track.Artists); credit != "" {
 			enriched.Artist = credit
 		}
+		enriched.Credits = append(
+			enriched.Credits,
+			toCredits(track.ExtraArtists, track.Position)...,
+		)
 	}
 
 	if enriched.DiscogsMasterID != 0 && (enriched.Year == 0 || isReissue(release.Formats)) {
@@ -725,6 +733,33 @@ func joinCredits(credits []ArtistCredit) string {
 		b.WriteString(name)
 	}
 	return b.String()
+}
+
+// toCredits flattens Discogs' extraartists, dropping the duplicates a release
+// with per-track credits repeats. tracks labels a track-level credit with the
+// position it came from, since those entries carry none of their own.
+func toCredits(credits []ArtistCredit, tracks string) []Credit {
+	out := make([]Credit, 0, len(credits))
+	seen := make(map[string]struct{}, len(credits))
+	for _, c := range credits {
+		name := stripDisambiguator(firstNonEmpty(c.ANV, c.Name))
+		if name == "" {
+			continue
+		}
+		at := firstNonEmpty(c.Tracks, tracks)
+		key := strings.ToLower(name + "\x00" + c.Role + "\x00" + at)
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, Credit{
+			ArtistID: c.ID,
+			Name:     name,
+			Role:     strings.TrimSpace(c.Role),
+			Tracks:   at,
+		})
+	}
+	return out
 }
 
 func formatNames(formats []Format) []string {

@@ -31,6 +31,10 @@ const discogsReleases = pgTable(
     discogsUrl: text("discogs_url"),
     // Confidence of the match that produced this row, from the service.
     score: real("score"),
+    // Null means credits were never fetched for this release, which is what
+    // lets a release stored before credits existed be filled in later. It is
+    // not the same as a release that genuinely has none.
+    creditsFetchedAt: timestamp("credits_fetched_at"),
     createdAt: timestamp("xata_createdat").defaultNow().notNull(),
     updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
     xataVersion: integer("xata_version"),

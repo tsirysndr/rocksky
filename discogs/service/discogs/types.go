@@ -124,25 +124,26 @@ type Track struct {
 }
 
 type Release struct {
-	ID          int64          `json:"id"`
-	Title       string         `json:"title"`
-	Year        int            `json:"year,omitempty"`
-	Released    string         `json:"released,omitempty"`
-	Country     string         `json:"country,omitempty"`
-	Notes       string         `json:"notes,omitempty"`
-	URI         string         `json:"uri,omitempty"`
-	MasterID    int64          `json:"master_id,omitempty"`
-	DataQuality string         `json:"data_quality,omitempty"`
-	Artists     []ArtistCredit `json:"artists,omitempty"`
-	Labels      []LabelRef     `json:"labels,omitempty"`
-	Companies   []LabelRef     `json:"companies,omitempty"`
-	Formats     []Format       `json:"formats,omitempty"`
-	Genres      []string       `json:"genres,omitempty"`
-	Styles      []string       `json:"styles,omitempty"`
-	Tracklist   []Track        `json:"tracklist,omitempty"`
-	Images      []Image        `json:"images,omitempty"`
-	Identifiers []Identifier   `json:"identifiers,omitempty"`
-	Community   Community      `json:"community,omitempty"`
+	ID           int64          `json:"id"`
+	Title        string         `json:"title"`
+	Year         int            `json:"year,omitempty"`
+	Released     string         `json:"released,omitempty"`
+	Country      string         `json:"country,omitempty"`
+	Notes        string         `json:"notes,omitempty"`
+	URI          string         `json:"uri,omitempty"`
+	MasterID     int64          `json:"master_id,omitempty"`
+	DataQuality  string         `json:"data_quality,omitempty"`
+	Artists      []ArtistCredit `json:"artists,omitempty"`
+	ExtraArtists []ArtistCredit `json:"extraartists,omitempty"`
+	Labels       []LabelRef     `json:"labels,omitempty"`
+	Companies    []LabelRef     `json:"companies,omitempty"`
+	Formats      []Format       `json:"formats,omitempty"`
+	Genres       []string       `json:"genres,omitempty"`
+	Styles       []string       `json:"styles,omitempty"`
+	Tracklist    []Track        `json:"tracklist,omitempty"`
+	Images       []Image        `json:"images,omitempty"`
+	Identifiers  []Identifier   `json:"identifiers,omitempty"`
+	Community    Community      `json:"community,omitempty"`
 }
 
 type Master struct {
@@ -217,6 +218,16 @@ type Match struct {
 	Score         float64  `json:"score"`
 }
 
+// Credit is one performance or production credit. Role is Discogs' own
+// wording ("Written-By", "Mixed By, Engineer"), and Tracks is the positions it
+// applies to, empty when it covers the whole release.
+type Credit struct {
+	ArtistID int64  `json:"artistId,omitempty"`
+	Name     string `json:"name"`
+	Role     string `json:"role,omitempty"`
+	Tracks   string `json:"tracks,omitempty"`
+}
+
 // EnrichedTrack is the normalized metadata returned to callers. Durations are in milliseconds.
 type EnrichedTrack struct {
 	Title            string   `json:"title"`
@@ -239,6 +250,7 @@ type EnrichedTrack struct {
 	Genres           []string `json:"genres,omitempty"`
 	Styles           []string `json:"styles,omitempty"`
 	DiscogsURL       string   `json:"discogsUrl,omitempty"`
+	Credits          []Credit `json:"credits,omitempty"`
 	DiscogsReleaseID int64    `json:"discogsReleaseId,omitempty"`
 	DiscogsMasterID  int64    `json:"discogsMasterId,omitempty"`
 	DiscogsArtistID  int64    `json:"discogsArtistId,omitempty"`

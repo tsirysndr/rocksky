@@ -16,6 +16,7 @@ import * as R from "ramda";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
 import type { SelectArtist } from "schema/artists";
+import type { SelectDiscogsCredit } from "schema/discogs-credits";
 import type { SelectDiscogsRelease } from "schema/discogs-releases";
 
 export default function (server: Server, ctx: Context) {
@@ -86,6 +87,14 @@ const retrieve = ({
         Promise.resolve(album),
         Promise.resolve(artist),
         Promise.resolve(discogs),
+        discogs
+          ? ctx.readDb
+              .select()
+              .from(tables.discogsCredits)
+              .where(eq(tables.discogsCredits.releaseId, discogs.id))
+              .orderBy(asc(tables.discogsCredits.position))
+              .execute()
+          : Promise.resolve([]),
         ctx.readDb
           .select()
           .from(tables.albumTracks)
@@ -134,6 +143,7 @@ const presentation = ([
   album,
   artist,
   discogs,
+  credits,
   tracks,
   uniqueListeners,
   playCount,
@@ -141,6 +151,7 @@ const presentation = ([
   SelectAlbum,
   SelectArtist,
   SelectDiscogsRelease | null,
+  SelectDiscogsCredit[],
   SongViewBasic[],
   number,
   number,
@@ -151,7 +162,7 @@ const presentation = ([
     tracks,
     playCount,
     uniqueListeners,
-    discogs: toDiscogsView(discogs),
+    discogs: toDiscogsView(discogs, credits),
     createdAt: album.createdAt.toISOString(),
   }));
 };

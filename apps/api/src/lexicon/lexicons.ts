@@ -1048,6 +1048,39 @@ export const schemaDict = {
             maximum: 100,
             minimum: 0,
           },
+          credits: {
+            type: "array",
+            description: "Performance and production credits for the release.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.album.defs#discogsCreditView",
+            },
+          },
+        },
+      },
+      discogsCreditView: {
+        type: "object",
+        description: "One performance or production credit from Discogs.",
+        properties: {
+          artistId: {
+            type: "integer",
+            description:
+              "The Discogs artist ID, when the credit is linked to one.",
+          },
+          name: {
+            type: "string",
+            description: "The credited name.",
+          },
+          role: {
+            type: "string",
+            description:
+              'The role as Discogs words it, such as "Written-By" or "Mixed By, Engineer".',
+          },
+          tracks: {
+            type: "string",
+            description:
+              "The track positions the credit applies to, absent when it covers the whole release.",
+          },
         },
       },
     },

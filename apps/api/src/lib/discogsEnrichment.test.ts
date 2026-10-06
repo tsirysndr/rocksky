@@ -5,6 +5,7 @@ import {
   discogsSearchKey,
   isStaleSearch,
   matchScore,
+  toDiscogsCreditRows,
   toDiscogsReleaseRow,
 } from "./discogsEnrichment";
 
@@ -127,5 +128,51 @@ describe("matchScore", () => {
 
   it("has no score without candidates", () => {
     expect(matchScore(response({ matches: [] }))).toBeUndefined();
+  });
+});
+
+describe("toDiscogsCreditRows", () => {
+  it("keeps Discogs' order and maps every field", () => {
+    const rows = toDiscogsCreditRows("rel_1", [
+      {
+        artistId: 141,
+        name: "Pharrell Williams",
+        role: "Vocals",
+        tracks: "C2",
+      },
+      { name: "Mick Guzauski", role: "Mixed By" },
+    ]);
+    expect(rows).toEqual([
+      {
+        releaseId: "rel_1",
+        artistId: 141,
+        name: "Pharrell Williams",
+        role: "Vocals",
+        tracks: "C2",
+        position: 0,
+      },
+      {
+        releaseId: "rel_1",
+        artistId: null,
+        name: "Mick Guzauski",
+        role: "Mixed By",
+        tracks: null,
+        position: 1,
+      },
+    ]);
+  });
+
+  it("drops nameless credits and renumbers what is left", () => {
+    const rows = toDiscogsCreditRows("rel_1", [
+      { name: "  " },
+      { name: "Nile Rodgers", role: "Guitar" },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ name: "Nile Rodgers", position: 0 });
+  });
+
+  it("has nothing to store when a release has no credits", () => {
+    expect(toDiscogsCreditRows("rel_1")).toEqual([]);
+    expect(toDiscogsCreditRows("rel_1", [])).toEqual([]);
   });
 });

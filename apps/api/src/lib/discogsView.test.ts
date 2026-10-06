@@ -21,6 +21,7 @@ const release = {
   styles: ["Disco", "Synth-pop"],
   discogsUrl: "https://www.discogs.com/release/4570366",
   score: 0.9712,
+  creditsFetchedAt: new Date(0),
   createdAt: new Date(0),
   updatedAt: new Date(0),
   xataVersion: 0,
@@ -73,5 +74,48 @@ describe("toDiscogsView", () => {
     expect(view?.genres).toBeUndefined();
     expect(view?.formats).toBeUndefined();
     expect(view?.albumArt).toBeUndefined();
+  });
+});
+
+describe("toDiscogsView credits", () => {
+  const credit = {
+    id: "cr_1",
+    releaseId: "rel_1",
+    artistId: 141,
+    name: "Pharrell Williams",
+    role: "Vocals",
+    tracks: "C2",
+    position: 0,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+    xataVersion: 0,
+  };
+
+  it("leaves credits out when there are none", () => {
+    expect(toDiscogsView(release)?.credits).toBeUndefined();
+    expect(toDiscogsView(release, [])?.credits).toBeUndefined();
+  });
+
+  it("maps credits onto the lexicon view", () => {
+    expect(toDiscogsView(release, [credit])?.credits).toEqual([
+      {
+        artistId: 141,
+        name: "Pharrell Williams",
+        role: "Vocals",
+        tracks: "C2",
+      },
+    ]);
+  });
+
+  it("omits the fields a credit does not carry", () => {
+    const view = toDiscogsView(release, [
+      { ...credit, artistId: null, role: null, tracks: null },
+    ])?.credits?.[0];
+    expect(view).toEqual({
+      artistId: undefined,
+      name: "Pharrell Williams",
+      role: undefined,
+      tracks: undefined,
+    });
   });
 });

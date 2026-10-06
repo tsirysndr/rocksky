@@ -6,6 +6,7 @@ import importJobs from "./import-jobs";
 import artistAlbums from "./artist-albums";
 import artistTracks from "./artist-tracks";
 import artists from "./artists";
+import discogsCredits from "./discogs-credits";
 import discogsReleases from "./discogs-releases";
 import discogsSearches from "./discogs-searches";
 import dropbox from "./dropbox";
@@ -94,4 +95,5 @@ export default {
   mirrorSources,
   discogsReleases,
   discogsSearches,
+  discogsCredits,
 };
