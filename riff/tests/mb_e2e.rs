@@ -288,3 +288,55 @@ async fn reimporting_an_entity_is_idempotent() {
         .unwrap();
     assert_eq!(isrcs, with_isrcs, "isrc side table matches the documents");
 }
+
+#[actix_web::test]
+async fn a_missing_title_never_queries_artist_credit_tables() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("missing-title.duckdb");
+    {
+        let conn = Connection::open(&path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE mb_recording (id VARCHAR, name_lc VARCHAR, data VARCHAR);
+             CREATE TABLE mb_alias (entity VARCHAR, entity_id VARCHAR, name_lc VARCHAR);",
+        )
+        .unwrap();
+    }
+    // Artist/credit tables are deliberately absent. A miss must short-circuit
+    // before binding the expensive joins, as it does for the production report.
+    let (catalog, _) = mb::db::open(&mb::db::Settings {
+        db_path: path,
+        pool_size: 1,
+        pool_timeout: std::time::Duration::from_secs(1),
+        writable: false,
+    })
+    .unwrap();
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(catalog))
+            .configure(mb::routes::configure),
+    )
+    .await;
+    let query = urlencode(r#"recording:"Play My Music" AND artist:"Jonas Brothers""#);
+    let response = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri(&format!("/ws/2/recording?query={query}"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = serde_json::from_slice(&test::read_body(response).await).unwrap();
+    assert_eq!(body["count"], 0);
+    assert!(body["recordings"].as_array().unwrap().is_empty());
+}
+
+#[actix_web::test]
+async fn title_candidates_still_respect_artist_filters() {
+    let doc = sample("recording");
+    let title = doc["title"].as_str().unwrap();
+    let query = format!(r#"recording:"{title}" AND artist:"Definitely Missing Artist 93741""#);
+    let (status, body) = get(&format!("/ws/2/recording?query={}", urlencode(&query))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["count"], 0);
+    assert!(body["recordings"].as_array().unwrap().is_empty());
+}

@@ -1,3 +1,4 @@
+import { InvalidRequestError } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, count, eq, or, sql } from "drizzle-orm";
@@ -7,7 +8,9 @@ import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/matchSong";
 import { decrypt } from "lib/crypto";
 import { transientDbRetry } from "lib/dbRetry";
+import { enrichmentSignal } from "lib/enrichmentBudget";
 import { env } from "lib/env";
+import { searchOnMusicBrainz } from "lib/musicbrainzEnrichment";
 import {
   spotifyGet,
   SpotifyRequestError,
@@ -15,7 +18,6 @@ import {
 } from "lib/spotifyGet";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
-import type { MusicbrainzTrack } from "types/track";
 
 import { getCacheKey, pickByAlbum, pickRowByAlbum } from "./albumFilter";
 import type {
@@ -40,7 +42,7 @@ export default function (server: Server, ctx: Context) {
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
-        return Effect.succeed({});
+        return Effect.fail(err);
       }),
     );
   server.app.rocksky.song.matchSong({
@@ -55,7 +57,9 @@ export default function (server: Server, ctx: Context) {
         };
       }
 
-      const result = await Effect.runPromise(matchSong(params));
+      const outcome = await Effect.runPromise(Effect.either(matchSong(params)));
+      if (outcome._tag === "Left") throw outcome.left;
+      const result = outcome.right;
 
       if (result && Object.keys(result).length > 0) {
         await ctx.redis.set(cacheKey, JSON.stringify(result), {
@@ -74,6 +78,9 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async (signal) => {
+      // Reserve the final two seconds for counts and response serialization.
+      // All optional providers share this budget, including fallback attempts.
+      const enrichment = enrichmentSignal(signal);
       const queryRecord = (
         whereCondition: Parameters<typeof ctx.db.select>[0] extends undefined
           ? never
@@ -159,7 +166,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             params.title,
             params.artist,
             params.album,
-            signal,
+            enrichment,
           );
           if (!spotifyTrack) {
             consola.debug(
@@ -313,6 +320,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         params.title,
         params.artist,
         params.album ?? track?.album,
+        enrichment,
       );
 
       if (deezerData) {
@@ -386,13 +394,21 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
 
       if (track && !track.mbId) {
         try {
-          const mbTrack = await searchOnMusicBrainz(ctx, track, params.mbId);
+          const mbTrack = await searchOnMusicBrainz(
+            ctx,
+            track,
+            params.mbId,
+            enrichment,
+          );
           track.mbId = mbTrack.mbId;
           mbArtists = mbTrack.artists;
         } catch (error) {
           consola.error("Error fetching MusicBrainz data, continuing:", error);
         }
       }
+
+      signal.throwIfAborted();
+      if (!track) throw new InvalidRequestError("Song not found", "NotFound");
 
       return Promise.all([
         Promise.resolve(track),
@@ -418,7 +434,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         Promise.resolve(deezerMatches),
       ]);
     },
-    catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
+    catch: (error) =>
+      error instanceof InvalidRequestError
+        ? error
+        : new Error(`Failed to retrieve song match: ${error}`),
   });
 };
 
@@ -471,6 +490,7 @@ const searchOnSpotify = async (
   album?: string,
   signal?: AbortSignal,
 ): Promise<Track | undefined> => {
+  signal?.throwIfAborted();
   const spotifyTokens = await ctx.db
     .select()
     .from(tables.spotifyTokens)
@@ -646,74 +666,23 @@ const searchOnDeezer = async (
   title: string,
   artist: string,
   album?: string,
+  signal?: AbortSignal,
 ): Promise<DeezerEnrichResponse | undefined> => {
   try {
-    const { data } = await ctx.deezer.post<DeezerEnrichResponse>("/enrich", {
-      title,
-      artist,
-      album,
-    });
+    signal?.throwIfAborted();
+    const { data } = await ctx.deezer.post<DeezerEnrichResponse>(
+      "/enrich",
+      {
+        title,
+        artist,
+        album,
+      },
+      { signal },
+    );
     return data;
   } catch (error) {
-    consola.error("Error fetching Deezer enrichment:", error);
+    if (!signal?.aborted)
+      consola.error("Error fetching Deezer enrichment:", error);
     return undefined;
   }
-};
-
-const searchOnMusicBrainz = async (
-  ctx: Context,
-  track: SelectTrack,
-  inputMbId?: string,
-) => {
-  let mbTrack;
-  try {
-    if (inputMbId) {
-      const { data } = await ctx.musicbrainz.get<MusicbrainzTrack>(
-        `/recording/${inputMbId}`,
-      );
-      mbTrack = data;
-    } else {
-      const { data } = await ctx.musicbrainz.post<MusicbrainzTrack>(
-        "/hydrate",
-        {
-          artist: track.artist
-            .replaceAll(";", ",")
-            .split(",")
-            .map((a) => ({ name: a.trim() })),
-          name: track.title,
-          album: track.album,
-        },
-      );
-      mbTrack = data;
-
-      if (!mbTrack?.trackMBID) {
-        const response = await ctx.musicbrainz.post<MusicbrainzTrack>(
-          "/hydrate",
-          {
-            artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
-            name: track.title,
-          },
-        );
-        mbTrack = response.data;
-      }
-    }
-
-    const mbId = mbTrack?.trackMBID;
-    const artists: MusicBrainzArtist[] = mbTrack?.artist?.map((artist) => ({
-      mbid: artist.mbid,
-      name: artist.name,
-    }));
-
-    return {
-      mbId,
-      artists,
-    };
-  } catch (error) {
-    consola.error("Error fetching MusicBrainz data");
-  }
-
-  return {
-    mbId: null,
-    artists: null,
-  };
 };

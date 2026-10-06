@@ -17,6 +17,7 @@ SyslogIdentifier=rocksky-mb
 # Environment
 Environment=HOME=/root
 Environment=USER=root
+# MBRIFF_TIMEOUT may also be set here (Go duration, default 1s).
 # MBRIFF_URL lives here (default http://localhost:8094): the local riff-mb is
 # queried first on every request, the real rate-limited MusicBrainz API only
 # when it has nothing.

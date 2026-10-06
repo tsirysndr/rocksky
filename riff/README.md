@@ -365,6 +365,26 @@ its table, so a failed run resumes where it left off and each dump can be
 deleted as soon as its row count checks out — the dump set and the database
 never need to fit on disk together.
 
+### Search indexes for an existing database
+
+Named searches resolve title/alias candidates first and stop immediately on a
+miss. Artist-credit joins only consider those IDs. New imports also create
+single-column ART indexes on alias names and credit entity IDs; DuckDB cannot
+use the original compound side-table indexes for these index scans.
+
+To add the indexes without re-importing dumps, build first, then run this during
+a maintenance window (DuckDB requires exclusive access for writes):
+
+```sh
+./cargo.sh build --release --bin riff-mb --bin riff-mb-import
+sudo systemctl stop rocksky-riff-mb
+./target/release/riff-mb-import --indexes-only --db /root/musicbrainz-db/musicbrainz.duckdb
+sudo systemctl start rocksky-riff-mb
+```
+
+`--indexes-only` is idempotent. The query change also works against the existing
+schema before the indexes are added.
+
 ### Endpoints
 
 ```

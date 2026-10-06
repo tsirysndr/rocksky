@@ -25,8 +25,18 @@ use std::path::PathBuf;
 struct Cli {
     /// Directory holding the dumps, either as <entity>/mbdump/<entity> (the
     /// upstream layout) or flat <entity>.jsonl files.
-    #[arg(short = 'd', long, env = "RIFF_MB_DUMPS_DIR")]
-    dumps_dir: PathBuf,
+    #[arg(
+        short = 'd',
+        long,
+        env = "RIFF_MB_DUMPS_DIR",
+        required_unless_present = "indexes_only"
+    )]
+    dumps_dir: Option<PathBuf>,
+
+    /// Add search indexes to an existing database without importing dumps.
+    /// Stop riff-mb first: DuckDB requires exclusive access for writes.
+    #[arg(long, conflicts_with = "only")]
+    indexes_only: bool,
 
     /// DuckDB file to write. Created if absent; re-importing an entity
     /// replaces its table.
@@ -70,9 +80,20 @@ fn run(cli: &Cli) -> Result<(), String> {
     ))
     .map_err(|e| format!("configuring DuckDB: {e}"))?;
 
+    if cli.indexes_only {
+        import::create_search_indexes(&conn).map_err(|e| format!("search indexes: {e}"))?;
+        println!("search indexes ready in {}", cli.db.display());
+        return Ok(());
+    }
+
     let only = (!cli.only.is_empty()).then_some(cli.only.as_slice());
     let started = std::time::Instant::now();
-    let report = import::import_all(&conn, &cli.dumps_dir, only, cli.max_object_size)?;
+    let report = import::import_all(
+        &conn,
+        cli.dumps_dir.as_deref().ok_or("--dumps-dir is required")?,
+        only,
+        cli.max_object_size,
+    )?;
 
     for (entity, count) in &report {
         println!("{entity:<14} {count} rows");

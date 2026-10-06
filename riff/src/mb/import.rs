@@ -57,6 +57,16 @@ pub fn create_shared_tables(conn: &Connection) -> duckdb::Result<()> {
     )
 }
 
+/// DuckDB's ART index scans need single-column indexes; the existing compound
+/// indexes on (entity, name/id) do not accelerate these probes. Safe to run
+/// independently on an existing imported database while the server is stopped.
+pub fn create_search_indexes(conn: &Connection) -> duckdb::Result<()> {
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_mb_alias_name_lc ON mb_alias (name_lc);
+         CREATE INDEX IF NOT EXISTS idx_mb_credit_entity_id ON mb_artist_credit (entity_id);",
+    )
+}
+
 /// Imports one entity's NDJSON file into its table, replacing any previous
 /// import of that entity. Returns the number of rows imported.
 pub fn import_entity(
@@ -94,6 +104,7 @@ pub fn import_entity(
         .map_err(|e| format!("importing {table}: {e}"))?;
 
     refresh_side_tables(conn, entity).map_err(|e| format!("side tables for {table}: {e}"))?;
+    create_search_indexes(conn).map_err(|e| format!("search indexes: {e}"))?;
 
     conn.execute_batch(&format!(
         "CREATE INDEX IF NOT EXISTS idx_{table}_id ON {table} (id);

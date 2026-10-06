@@ -33,6 +33,21 @@ type Server struct {
 	mbriffClient *http.Client
 }
 
+// Keep the local-first probe below callers' overall metadata deadlines. A
+// stalled riff-mb must leave time for the public MusicBrainz fallback.
+func newMbriffClient() *http.Client {
+	timeout := time.Second
+	if raw := os.Getenv("MBRIFF_TIMEOUT"); raw != "" {
+		parsed, err := time.ParseDuration(raw)
+		if err != nil || parsed <= 0 {
+			log.Printf("invalid MBRIFF_TIMEOUT %q; using 1s", raw)
+		} else {
+			timeout = parsed
+		}
+	}
+	return &http.Client{Timeout: timeout}
+}
+
 // mbriffSearchRecordings asks riff-mb the same query piper would send
 // upstream. Any failure (riff-mb down, non-200, bad JSON) returns an error so
 // the caller falls back to the real API.
@@ -157,7 +172,7 @@ func main() {
 		mb:           musicbrainz.NewMusicBrainzService(database),
 		limiter:      rate.NewLimiter(rate.Every(time.Second), 1),
 		mbriffURL:    strings.TrimRight(mbriffURL, "/"),
-		mbriffClient: &http.Client{Timeout: 5 * time.Second},
+		mbriffClient: newMbriffClient(),
 	}
 
 	e := echo.New()
@@ -274,6 +289,10 @@ func (s *Server) hydrateHandler(c echo.Context) error {
 		return c.JSON(http.StatusOK, resp)
 	}
 
+	// Do not start an external lookup after the caller's enrichment budget ended.
+	if ctx.Err() != nil {
+		return c.NoContent(499)
+	}
 	resp, _ := musicbrainz.HydrateTrack(s.mb, req)
 
 	// resp is nil when the real API had nothing either — dereferencing it

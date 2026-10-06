@@ -250,12 +250,25 @@ struct SearchSql {
 
 /// Builds the WHERE clause for a parsed query against one entity table.
 /// Every clause is an index probe or a semi-join over an indexed side table.
-fn search_sql(spec: &EntitySpec, q: &search::Query) -> SearchSql {
+fn search_sql(spec: &EntitySpec, q: &search::Query, candidates: Option<&[String]>) -> SearchSql {
     let mut conds = Vec::new();
     let mut binds = Vec::new();
     let path = spec.path;
 
-    if !q.name.is_empty() {
+    // IDs came from the database, but still quote them as SQL literals.
+    let candidate_list = candidates.map(|ids| {
+        ids.iter()
+            .map(|id| format!("'{}'", id.replace('\'', "''")))
+            .collect::<Vec<_>>()
+            .join(",")
+    });
+    let credit_filter = candidate_list
+        .as_ref()
+        .map(|ids| format!(" AND entity_id IN ({ids})"))
+        .unwrap_or_default();
+    if let Some(ids) = &candidate_list {
+        conds.push(format!("t.id IN ({ids})"));
+    } else if !q.name.is_empty() {
         let phrase = q.name.join(" ").to_lowercase();
         conds.push(format!(
             "(t.name_lc = ? OR t.id IN \
@@ -268,7 +281,7 @@ fn search_sql(spec: &EntitySpec, q: &search::Query) -> SearchSql {
         let phrase = q.artist.join(" ").to_lowercase();
         conds.push(format!(
             "t.id IN (SELECT entity_id FROM mb_artist_credit \
-             WHERE entity = '{path}' AND (credit_name_lc = ? \
+             WHERE entity = '{path}'{credit_filter} AND (credit_name_lc = ? \
                 OR artist_id IN (SELECT id FROM mb_artist WHERE name_lc = ?)))"
         ));
         binds.push(phrase.clone());
@@ -277,7 +290,7 @@ fn search_sql(spec: &EntitySpec, q: &search::Query) -> SearchSql {
     for arid in &q.arid {
         conds.push(format!(
             "t.id IN (SELECT entity_id FROM mb_artist_credit \
-             WHERE entity = '{path}' AND artist_id = ?)"
+             WHERE entity = '{path}'{credit_filter} AND artist_id = ?)"
         ));
         binds.push(arid.clone());
     }
@@ -317,6 +330,10 @@ fn run_collection_query(
         |r| r.get(0),
     )?;
 
+    if total == 0 {
+        return Ok((Vec::new(), 0));
+    }
+
     let page_sql = format!(
         "SELECT data FROM {} t WHERE {} ORDER BY t.name_lc, t.id LIMIT {limit} OFFSET {offset}",
         spec.table, sql.where_clause
@@ -342,7 +359,31 @@ async fn search_entity(
     }
 
     let (docs, total) = blocking(catalog, move |conn| {
-        let sql = search_sql(spec, &parsed);
+        // Resolve the title/aliases first, before any large artist-credit
+        // joins. Most proxy fallbacks are catalog misses; they must be cheap.
+        // Keep pathological common names on the general query path instead
+        // of building an unbounded IN list.
+        let candidates = if parsed.name.is_empty() {
+            None
+        } else {
+            let phrase = parsed.name.join(" ").to_lowercase();
+            let sql = format!(
+                "SELECT id FROM {} WHERE name_lc = ? UNION \
+                 SELECT entity_id FROM mb_alias WHERE entity = ? AND name_lc = ? LIMIT 4097",
+                spec.table
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            let ids = stmt
+                .query_map([phrase.as_str(), spec.path, phrase.as_str()], |r| {
+                    r.get::<_, String>(0)
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            if ids.is_empty() {
+                return Ok((Vec::new(), 0));
+            }
+            (ids.len() <= 4096).then_some(ids)
+        };
+        let sql = search_sql(spec, &parsed, candidates.as_deref());
         run_collection_query(conn, spec, &sql, limit, offset)
     })
     .await?;
