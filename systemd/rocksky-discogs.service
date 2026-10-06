@@ -19,6 +19,9 @@ SyslogIdentifier=rocksky-discogs
 # Environment
 Environment=HOME=/root
 Environment=USER=root
+# Doppler injects PORT=8000 (the api's port), which the service would otherwise
+# fall back to and fail to bind. DISCOGS_PORT wins over it.
+Environment=DISCOGS_PORT=8095
 
 [Install]
 WantedBy=multi-user.target
