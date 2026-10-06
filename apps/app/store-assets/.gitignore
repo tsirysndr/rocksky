@@ -1,0 +1,2 @@
+# Distribution archives duplicate the source images; keep local copies only.
+*.zip
