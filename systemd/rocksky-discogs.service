@@ -1,0 +1,24 @@
+[Unit]
+Description=Rocksky Discogs Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+ExecStart=/bin/bash -ic 'exec bun run discogs'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-discogs
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+# DISCOGS_TOKEN comes from the shell profile Doppler populates; the service
+# exits immediately without it.
+
+[Install]
+WantedBy=multi-user.target

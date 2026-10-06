@@ -1,0 +1,3 @@
+# Compiled binary produced by `go build` (named after the module directory).
+/discogs
+*.log
