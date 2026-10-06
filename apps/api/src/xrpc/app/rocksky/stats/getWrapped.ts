@@ -34,9 +34,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         consola.error(err);
         const { startDate, endDate } = periodWindow(period, year);
-        return Effect.succeed(
-          defaultWrapped(year, period, startDate, endDate),
-        );
+        return Effect.succeed(defaultWrapped(year, period, startDate, endDate));
       }),
     );
   };

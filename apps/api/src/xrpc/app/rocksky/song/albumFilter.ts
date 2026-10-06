@@ -34,7 +34,7 @@ export const canonicalScore = (
 
 // Highest canonicalScore wins; ties keep the provider's own ranking (first
 // occurrence). Returns undefined only for an empty list.
-export const preferCanonical = <T,>(
+export const preferCanonical = <T>(
   items: T[],
   albumOf: (item: T) => { name?: string | null; type?: string | null },
 ): T | undefined => {

@@ -72,7 +72,10 @@ const MISSING = ONLY_FINGERPRINT ? "a fingerprint" : "key/bpm/fingerprint";
 // One S3 client per storage target for the whole run. A fresh client per
 // download is a leak: its keep-alive sockets are live handles that root the
 // client, so hundreds of them pile up faster than the sockets idle out.
-const storageClients = new Map<string, ReturnType<typeof resolveStorageClient>>();
+const storageClients = new Map<
+  string,
+  ReturnType<typeof resolveStorageClient>
+>();
 function storageFor(userId: string, providerId: string | null) {
   const key = providerId ? `${userId}:${providerId}` : "managed";
   let client = storageClients.get(key);
@@ -182,10 +185,7 @@ async function main() {
         // The SDK has no default socket timeout, so a stalled connection
         // would hang the whole run — abort covers headers AND body read.
         const controller = new AbortController();
-        const timer = setTimeout(
-          () => controller.abort(),
-          DOWNLOAD_TIMEOUT_MS,
-        );
+        const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
         try {
           const { client, bucket } = await storageFor(
             row.userId,
@@ -225,7 +225,9 @@ async function main() {
         if (p.ok) {
           consola.info(
             `✔ ${tag} ${(p.key ?? "?").padEnd(4)} ${
-              p.bpm != null ? `${p.bpm.toFixed(1).padStart(5)} bpm` : "    ? bpm"
+              p.bpm != null
+                ? `${p.bpm.toFixed(1).padStart(5)} bpm`
+                : "    ? bpm"
             }  ${p.fingerprint ? "fp" : "  "}  ${label}`,
           );
         } else {

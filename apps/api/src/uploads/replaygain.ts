@@ -40,7 +40,19 @@ export function analyzeTrackGain(path: string): Promise<TrackGain | null> {
   return new Promise((resolve) => {
     const proc = spawn(
       FFMPEG,
-      ["-hide_banner", "-nostats", "-i", path, "-map", "0:a:0", "-af", "replaygain", "-f", "null", "-"],
+      [
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        path,
+        "-map",
+        "0:a:0",
+        "-af",
+        "replaygain",
+        "-f",
+        "null",
+        "-",
+      ],
       { stdio: ["ignore", "ignore", "pipe"] },
     );
     let stderr = "";

@@ -273,7 +273,9 @@ async function main() {
     `Pass 2 (PDS): ${chalk.greenBright(applied)} tracks ${DRY_RUN ? "would be" : ""} filled`,
   );
 
-  const after = DRY_RUN ? before - fromUserTracks - applied : await countNullUri();
+  const after = DRY_RUN
+    ? before - fromUserTracks - applied
+    : await countNullUri();
   consola.info(
     `${chalk.yellow(after)} tracks still have a NULL uri — no song record exists for them on any crawled PDS. ` +
       "They pick one up the next time they are scrobbled, since scrobbleTrack republishes when the stored track has no uri.",

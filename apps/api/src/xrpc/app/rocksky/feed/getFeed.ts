@@ -200,7 +200,9 @@ const hydrate = ({
           ])
         : [[], []];
 
-      const likesCountMap = new Map(likeCounts.map((r) => [r.trackId, r.count]));
+      const likesCountMap = new Map(
+        likeCounts.map((r) => [r.trackId, r.count]),
+      );
       const likedSet = new Set(likedRows.map((r) => r.trackId));
 
       const result = scrobbles.map((row) => ({

@@ -9,10 +9,16 @@ import {
 
 describe("pickByAlbum (provider search results)", () => {
   const items = [
-    { id: "remaster", album: { name: "Thriller (2003 Remaster)", album_type: "album" } },
+    {
+      id: "remaster",
+      album: { name: "Thriller (2003 Remaster)", album_type: "album" },
+    },
     { id: "live", album: { name: "Live in Bucharest", album_type: "album" } },
     { id: "official", album: { name: "Thriller", album_type: "album" } },
-    { id: "single", album: { name: "Thriller - Single", album_type: "single" } },
+    {
+      id: "single",
+      album: { name: "Thriller - Single", album_type: "single" },
+    },
   ];
 
   it("prefers the hit from the requested album over the first-ranked one", () => {
@@ -42,7 +48,10 @@ describe("pickByAlbum (provider search results)", () => {
   });
 
   it("tolerates hits without album metadata", () => {
-    const sparse = [{ id: "bare" }, { id: "full", album: { name: "Thriller" } }];
+    const sparse = [
+      { id: "bare" },
+      { id: "full", album: { name: "Thriller" } },
+    ];
     expect(pickByAlbum(sparse, "Thriller")?.id).toBe("full");
   });
 
@@ -55,15 +64,20 @@ describe("pickByAlbum (provider search results)", () => {
 describe("canonical-edition ranking", () => {
   it("scores a plain studio album above remaster/live/single/deluxe editions", () => {
     const studio = canonicalScore("Thriller", "album");
-    expect(studio > canonicalScore("Thriller (2003 Remaster)", "album")).toBe(true);
+    expect(studio > canonicalScore("Thriller (2003 Remaster)", "album")).toBe(
+      true,
+    );
     expect(studio > canonicalScore("Live in Bucharest", "album")).toBe(true);
     expect(studio > canonicalScore("Thriller - Single", "single")).toBe(true);
-    expect(studio > canonicalScore("Thriller (Deluxe Edition)", "album")).toBe(true);
+    expect(studio > canonicalScore("Thriller (Deluxe Edition)", "album")).toBe(
+      true,
+    );
   });
 
   it("uses Spotify's album_type when the names alone can't tell", () => {
     expect(
-      canonicalScore("Beat It", "album") > canonicalScore("Beat It", "compilation"),
+      canonicalScore("Beat It", "album") >
+        canonicalScore("Beat It", "compilation"),
     ).toBe(true);
   });
 
@@ -84,7 +98,9 @@ describe("canonical-edition ranking", () => {
   });
 
   it("still picks an album whose real title contains a marker when it's the only candidate", () => {
-    const only = [{ id: "hole", album: { name: "Live Through This", album_type: "album" } }];
+    const only = [
+      { id: "hole", album: { name: "Live Through This", album_type: "album" } },
+    ];
     expect(pickByAlbum(only)?.id).toBe("hole");
   });
 
@@ -94,7 +110,11 @@ describe("canonical-edition ranking", () => {
 });
 
 describe("pickRowByAlbum (database rows)", () => {
-  const row = (id: string, trackAlbum: string | null, albumTitle: string | null) => ({
+  const row = (
+    id: string,
+    trackAlbum: string | null,
+    albumTitle: string | null,
+  ) => ({
     id,
     tracks: { album: trackAlbum },
     albums: albumTitle === null ? null : { title: albumTitle },
@@ -158,8 +178,8 @@ describe("getCacheKey", () => {
     expect(getCacheKey({ ...base, mbId: "mb-1", album: "Thriller" })).toBe(
       "matchSong:mbId:mb-1:album:thriller",
     );
-    expect(getCacheKey({ ...base, isrc: "USSM19902991", album: "Thriller" })).toBe(
-      "matchSong:isrc:USSM19902991:album:thriller",
-    );
+    expect(
+      getCacheKey({ ...base, isrc: "USSM19902991", album: "Thriller" }),
+    ).toBe("matchSong:isrc:USSM19902991:album:thriller");
   });
 });

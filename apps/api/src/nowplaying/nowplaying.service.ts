@@ -691,20 +691,29 @@ export async function scrobbleTrack(
   track = { ...track, timestamp: track.timestamp || dayjs().unix() };
   const scrobbleTime = dayjs.unix(track.timestamp);
   const duplicateWindow = skipDupCheck ? 0 : 60;
-  const findExistingScrobble = () => ctx.db
-    .select({ id: scrobbles.id })
-    .from(scrobbles)
-    .innerJoin(users, eq(scrobbles.userId, users.id))
-    .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
-    .where(and(
-      eq(users.did, userDid),
-      sql`lower(${tracks.title}) = ${track.title.toLowerCase()}`,
-      sql`lower(${tracks.artist}) = ${track.artist.toLowerCase()}`,
-      gte(scrobbles.timestamp, scrobbleTime.subtract(duplicateWindow, "seconds").toDate()),
-      lte(scrobbles.timestamp, scrobbleTime.add(duplicateWindow, "seconds").toDate()),
-    ))
-    .limit(1)
-    .then((rows) => rows[0]);
+  const findExistingScrobble = () =>
+    ctx.db
+      .select({ id: scrobbles.id })
+      .from(scrobbles)
+      .innerJoin(users, eq(scrobbles.userId, users.id))
+      .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+      .where(
+        and(
+          eq(users.did, userDid),
+          sql`lower(${tracks.title}) = ${track.title.toLowerCase()}`,
+          sql`lower(${tracks.artist}) = ${track.artist.toLowerCase()}`,
+          gte(
+            scrobbles.timestamp,
+            scrobbleTime.subtract(duplicateWindow, "seconds").toDate(),
+          ),
+          lte(
+            scrobbles.timestamp,
+            scrobbleTime.add(duplicateWindow, "seconds").toDate(),
+          ),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0]);
 
   if (!skipDupCheck) {
     await assertNotBotFlagged(ctx, userDid);
@@ -1135,7 +1144,11 @@ export async function scrobbleTrack(
   const reservation = await reserveScrobble(
     ctx.redis,
     userDid,
-    { title: track.title!, artist: track.artist!, timestamp: scrobbleTime.unix() },
+    {
+      title: track.title!,
+      artist: track.artist!,
+      timestamp: scrobbleTime.unix(),
+    },
     duplicateWindow,
   );
   if (!reservation) {

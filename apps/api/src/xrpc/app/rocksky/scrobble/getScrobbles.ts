@@ -208,7 +208,10 @@ const enrichWithLikes = async (
       ? ctx.db
           .select({ trackId: tables.lovedTracks.trackId })
           .from(tables.lovedTracks)
-          .innerJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
+          .innerJoin(
+            tables.users,
+            eq(tables.lovedTracks.userId, tables.users.id),
+          )
           .where(
             and(
               inArray(tables.lovedTracks.trackId, trackIds),
