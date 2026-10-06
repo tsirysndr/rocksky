@@ -8,6 +8,11 @@ import type { QueryParams } from "lexicon/types/app/rocksky/song/matchSong";
 import { decrypt } from "lib/crypto";
 import { transientDbRetry } from "lib/dbRetry";
 import { env } from "lib/env";
+import {
+  spotifyGet,
+  SpotifyRequestError,
+  SPOTIFY_TIMEOUT_MS,
+} from "lib/spotifyGet";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
 import type { MusicbrainzTrack } from "types/track";
@@ -68,7 +73,7 @@ export default function (server: Server, ctx: Context) {
 
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
-    try: async () => {
+    try: async (signal) => {
       const queryRecord = (
         whereCondition: Parameters<typeof ctx.db.select>[0] extends undefined
           ? never
@@ -154,6 +159,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             params.title,
             params.artist,
             params.album,
+            signal,
           );
           if (!spotifyTrack) {
             consola.debug(
@@ -161,6 +167,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             );
           }
         } catch (error) {
+          signal.throwIfAborted();
           // Rate limiting is expected under load and is not an incident; any
           // other failure is. Either way the match continues without Spotify:
           // the Deezer enrichment below is the fallback source.
@@ -457,139 +464,12 @@ const presentation = ([
   }));
 };
 
-const MAX_SPOTIFY_RETRIES = 3;
-const INITIAL_RETRY_DELAY_MS = 1000;
-
-// The whole matchSong pipeline runs under Effect.timeout("10 seconds"), so a
-// single Spotify call has to give up well before that — otherwise the timeout
-// never fires here and the pipeline is torn down with requests still in flight.
-const SPOTIFY_TIMEOUT_MS = 5000;
-
-// Longest Retry-After we are willing to wait out inline. Anything longer means
-// the app is properly rate limited: give up on Spotify and let Deezer answer.
-const MAX_RETRY_AFTER_MS = 3000;
-
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-// SpotifyRequestError carries the upstream status so callers can tell a rate
-// limit apart from a bad token or a genuine miss.
-class SpotifyRequestError extends Error {
-  constructor(
-    readonly status: number,
-    readonly operation: string,
-    message?: string,
-  ) {
-    super(message ?? `Spotify ${operation} failed: ${status}`);
-    this.name = "SpotifyRequestError";
-  }
-
-  get isRateLimited(): boolean {
-    return this.status === 429;
-  }
-}
-
-const isAbort = (error: unknown): boolean =>
-  error instanceof Error &&
-  (error.name === "AbortError" || error.name === "TimeoutError");
-
-// spotifyGet performs one authenticated GET against the Spotify proxy, with a
-// real request timeout and status-aware retries.
-//
-// The timeout is handed to fetch as a signal rather than raced against the
-// promise: abandoning a promise leaves the socket open, so the request keeps
-// occupying a slot in the proxy's rate limiter until Node's 300s socket
-// timeout fires. That is what turned every retry into a wasted queue slot and
-// filled the proxy's log with 502s.
-const spotifyGet = async <T>(
-  url: string,
-  accessToken: string,
-  operation: string,
-): Promise<T> => {
-  let lastError: Error | undefined;
-
-  for (let attempt = 0; attempt < MAX_SPOTIFY_RETRIES; attempt++) {
-    const backoffMs = INITIAL_RETRY_DELAY_MS * 2 ** attempt;
-    const isLastAttempt = attempt === MAX_SPOTIFY_RETRIES - 1;
-    let response: Response;
-
-    try {
-      response = await fetch(url, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal: AbortSignal.timeout(SPOTIFY_TIMEOUT_MS),
-      });
-    } catch (error) {
-      // Timeout, abort or network failure — all worth one more try.
-      lastError =
-        error instanceof Error
-          ? error
-          : new Error(`Spotify ${operation} failed: ${String(error)}`);
-      if (isLastAttempt) throw lastError;
-      consola.warn(
-        `Spotify ${operation} ${isAbort(error) ? "timed out" : "network error"}, retrying attempt=${attempt + 1}/${MAX_SPOTIFY_RETRIES} delay_ms=${backoffMs}`,
-      );
-      await sleep(backoffMs);
-      continue;
-    }
-
-    if (response.ok) {
-      try {
-        return (await response.json()) as T;
-      } catch (error) {
-        throw new SpotifyRequestError(
-          response.status,
-          operation,
-          `Spotify ${operation} returned a malformed body: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
-
-    // 429 from Spotify itself or from the proxy's own queue: both send a
-    // Retry-After telling us exactly how long to hold off.
-    if (response.status === 429) {
-      const retryAfter = Number(response.headers.get("retry-after") ?? "");
-      const waitMs =
-        Number.isFinite(retryAfter) && retryAfter > 0
-          ? retryAfter * 1000
-          : backoffMs;
-
-      if (isLastAttempt || waitMs > MAX_RETRY_AFTER_MS) {
-        throw new SpotifyRequestError(
-          429,
-          operation,
-          `Spotify ${operation} rate limited (retry-after: ${retryAfter || "unset"}s)`,
-        );
-      }
-      consola.warn(
-        `Spotify ${operation} rate limited, waiting ${waitMs}ms (attempt=${attempt + 1}/${MAX_SPOTIFY_RETRIES})`,
-      );
-      await sleep(waitMs);
-      continue;
-    }
-
-    if (response.status >= 500) {
-      lastError = new SpotifyRequestError(response.status, operation);
-      if (isLastAttempt) throw lastError;
-      consola.warn(
-        `Spotify ${operation} returned ${response.status}, retrying attempt=${attempt + 1}/${MAX_SPOTIFY_RETRIES} delay_ms=${backoffMs}`,
-      );
-      await sleep(backoffMs);
-      continue;
-    }
-
-    // 400/401/403/404 — retrying with the same token and query cannot help.
-    throw new SpotifyRequestError(response.status, operation);
-  }
-
-  throw lastError ?? new Error(`Spotify ${operation} exhausted its retries`);
-};
-
 const searchOnSpotify = async (
   ctx: Context,
   title: string,
   artist: string,
   album?: string,
+  signal?: AbortSignal,
 ): Promise<Track | undefined> => {
   const spotifyTokens = await ctx.db
     .select()
@@ -639,7 +519,9 @@ const searchOnSpotify = async (
         env.SPOTIFY_ENCRYPTION_KEY,
       ),
     }),
-    signal: AbortSignal.timeout(SPOTIFY_TIMEOUT_MS),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(SPOTIFY_TIMEOUT_MS)])
+      : AbortSignal.timeout(SPOTIFY_TIMEOUT_MS),
   });
 
   if (!newAccessToken.ok) {
@@ -675,6 +557,7 @@ const searchOnSpotify = async (
     `${env.SPOTIFY_API_URL}/search?${q}`,
     access_token,
     "search",
+    signal,
   );
 
   const track = pickByAlbum(response.tracks?.items ?? [], album);
@@ -728,8 +611,10 @@ const searchOnSpotify = async (
         `${env.SPOTIFY_API_URL}/albums/${track.album.id}`,
         access_token,
         "get_album",
+        signal,
       );
     } catch (error) {
+      signal?.throwIfAborted();
       consola.warn(
         `Keeping the Spotify search hit without full album detail: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -740,8 +625,10 @@ const searchOnSpotify = async (
         `${env.SPOTIFY_API_URL}/artists/${track.artists[0].id}`,
         access_token,
         "get_artist",
+        signal,
       );
     } catch (error) {
+      signal?.throwIfAborted();
       consola.warn(
         `Keeping the Spotify search hit without full artist detail: ${error instanceof Error ? error.message : String(error)}`,
       );

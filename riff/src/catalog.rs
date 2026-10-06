@@ -1024,6 +1024,14 @@ fn run(
             .collect::<Result<Vec<_>, _>>()?)
     })?;
 
+    // A short nonempty page proves where the result set ends. The first
+    // page also proves an empty result, so neither needs the same scan again
+    // just to count it. An empty page beyond offset zero still needs a count.
+    if rowids.len() < limit as usize && (offset == 0 || !rowids.is_empty()) {
+        let total = (offset as i64 + rowids.len() as i64).min(MAX_SEARCH_WINDOW as i64);
+        return Ok((rowids, total));
+    }
+
     let count_sql = format!(
         "SELECT COUNT(*) FROM (SELECT {id_col} FROM {from} WHERE {} LIMIT {MAX_SEARCH_WINDOW}) s",
         built.where_sql
@@ -1042,7 +1050,28 @@ pub fn search_tracks(
     limit: u32,
     offset: u32,
 ) -> ApiResult<(Vec<Track>, i64)> {
-    let built = search::tracks(q);
+    // Give the sorted artist-credit relation literal IDs to prune against,
+    // rather than relying on runtime filters from a nested artist-name join.
+    // Resolve every homonymous artist (and repeated artist filter) first.
+    let artist_ids = if q.artist.is_empty() {
+        None
+    } else {
+        let sql = format!(
+            "SELECT row_id FROM artist_names WHERE name_key IN ({})",
+            search::keys(&q.artist)
+        );
+        let ids = timed(&sql, || {
+            let mut stmt = conn.prepare(&sql)?;
+            Ok(stmt
+                .query_map([], |r| r.get::<_, i64>(0))?
+                .collect::<Result<Vec<_>, _>>()?)
+        })?;
+        if ids.is_empty() {
+            return Ok((Vec::new(), 0));
+        }
+        Some(ids)
+    };
+    let built = search::tracks_with_artist_ids(q, artist_ids.as_deref());
     let (rowids, total) = run(conn, "t.row_id", "track_names t", &built, limit, offset)?;
     let mut loaded = tracks(conn, &rowids)?;
     Ok((

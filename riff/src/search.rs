@@ -231,7 +231,7 @@ fn order_by(alias: &str) -> (String, Vec<Value>) {
 /// Semijoin from track rows to an artist-name list:
 /// track -> track_artists_by_artist -> artist_names, every hop against a
 /// relation sorted by the column being probed.
-fn keys(terms: &[String]) -> String {
+pub(crate) fn keys(terms: &[String]) -> String {
     terms
         .iter()
         .map(|t| name_key(t))
@@ -265,6 +265,12 @@ fn albums_by_artist_names(terms: &[String]) -> String {
 
 /// Predicates over `track_names t`.
 pub fn tracks(q: &SearchQuery) -> Built {
+    tracks_with_artist_ids(q, None)
+}
+
+// Resolve explicit artist names before building the large track semijoin.
+// Literal IDs let the sorted artist-credit relation prune its row groups.
+pub(crate) fn tracks_with_artist_ids(q: &SearchQuery, artist_ids: Option<&[i64]>) -> Built {
     let mut sql = Vec::new();
 
     for term in &q.track {
@@ -282,7 +288,14 @@ pub fn tracks(q: &SearchQuery) -> Built {
     }
 
     if !q.artist.is_empty() {
-        sql.push(tracks_by_artist_names(&q.artist));
+        sql.push(match artist_ids {
+            Some(ids) if ids.is_empty() => "FALSE".to_string(),
+            Some(ids) => format!(
+                "t.row_id IN (SELECT track_rowid FROM track_artists_by_artist WHERE artist_rowid IN ({}))",
+                ids.iter().map(i64::to_string).collect::<Vec<_>>().join(",")
+            ),
+            None => tracks_by_artist_names(&q.artist),
+        });
     }
 
     for term in &q.album {

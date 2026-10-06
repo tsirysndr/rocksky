@@ -878,3 +878,24 @@ async fn materializing_twice_is_idempotent() {
     cfg.db_path = Some(db_path);
     db::open(&cfg).expect("open after rebuild");
 }
+
+#[actix_web::test]
+async fn explicit_artist_search_keeps_pagination_and_repeated_artist_semantics() {
+    let base = "/v1/search?type=track&q=artist:%22Kova%20Lune%22%20artist:%22Not%20In%20Catalog%22";
+    let all = get_ok(&format!("{base}&limit=50")).await;
+    let items = all["tracks"]["items"].as_array().unwrap();
+    assert!(!items.is_empty());
+    assert_eq!(all["tracks"]["total"].as_u64().unwrap(), items.len() as u64);
+    for item in items {
+        assert!(names(&item["artists"]).contains(&"Kova Lune".to_string()));
+    }
+    let page = get_ok(&format!("{base}&limit=1&offset=1")).await;
+    assert_eq!(page["tracks"]["total"], all["tracks"]["total"]);
+    assert_eq!(page["tracks"]["items"][0], items[1]);
+    let beyond = get_ok(&format!("{base}&limit=1&offset=999")).await;
+    assert_eq!(beyond["tracks"]["total"], all["tracks"]["total"]);
+    assert!(beyond["tracks"]["items"].as_array().unwrap().is_empty());
+    let missing = get_ok("/v1/search?type=track&q=artist:%22Not%20In%20Catalog%22").await;
+    assert_eq!(missing["tracks"]["total"], 0);
+    assert!(missing["tracks"]["items"].as_array().unwrap().is_empty());
+}
