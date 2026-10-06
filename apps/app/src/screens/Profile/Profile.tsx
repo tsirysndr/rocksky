@@ -2109,12 +2109,22 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                  onPress={() => {
-                    const text = `Check out ${displayProfile?.displayName || displayProfile?.handle} on Rocksky 🎵\nhttps://rocksky.app/profile/${displayProfile?.handle}`;
-                    Linking.openURL(
-                      `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
-                    );
-                  }}
+                  onPress={() =>
+                    navigation.navigate("ShareCard", {
+                      item: {
+                        kind: "profile",
+                        uri: resolvedDid,
+                        title:
+                          displayProfile?.displayName ||
+                          displayProfile?.handle ||
+                          "Rocksky listener",
+                        subtitle: displayProfile?.handle
+                          ? `@${displayProfile.handle}`
+                          : undefined,
+                        artwork: displayProfile?.avatar,
+                      },
+                    })
+                  }
                   style={{
                     paddingHorizontal: 20,
                     paddingVertical: 8,

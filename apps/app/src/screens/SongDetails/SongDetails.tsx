@@ -321,14 +321,17 @@ export default function SongDetails({ route }: Props) {
               {/* Links */}
               <View style={{ gap: 10, marginBottom: 24 }}>
                 <TouchableOpacity
-                  onPress={() => {
-                    const parts = uri.replace("at://", "").split("/");
-                    const link = `https://rocksky.app/${parts[0]}/${isScrobble ? "scrobble" : "song"}/${parts[2]}`;
-                    const text = `${isScrobble ? "Just scrobbled" : "Listening to"} ${song.title} by ${song.albumArtist || song.artist} on Rocksky 🎵\n${link}`;
-                    Linking.openURL(
-                      `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
-                    );
-                  }}
+                  onPress={() =>
+                    navigation.navigate("ShareCard", {
+                      item: {
+                        kind: isScrobble ? "scrobble" : "track",
+                        uri,
+                        title: song.title,
+                        subtitle: song.albumArtist || song.artist,
+                        artwork: song.cover,
+                      },
+                    })
+                  }
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
@@ -349,7 +352,7 @@ export default function SongDetails({ route }: Props) {
                       fontWeight: "600",
                     }}
                   >
-                    Share on Bluesky
+                    Share
                   </Text>
                 </TouchableOpacity>
 

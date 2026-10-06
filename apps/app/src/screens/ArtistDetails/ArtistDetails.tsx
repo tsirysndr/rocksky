@@ -204,15 +204,19 @@ export default function ArtistDetails({ route }: Props) {
                 </View>
               )}
 
-              {/* Share on Bluesky */}
+              {/* Share */}
               <TouchableOpacity
-                onPress={() => {
-                  const link = `https://rocksky.app/${did}/artist/${rkey}`;
-                  const text = `Listening to ${artist.name} on Rocksky 🎵\n${link}`;
-                  Linking.openURL(
-                    `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
-                  );
-                }}
+                onPress={() =>
+                  navigation.navigate("ShareCard", {
+                    item: {
+                      kind: "artist",
+                      uri,
+                      title: artist.name,
+                      subtitle: "Artist on Rocksky",
+                      artwork: artist.picture,
+                    },
+                  })
+                }
                 style={{
                   width: "100%",
                   paddingVertical: 14,
@@ -228,7 +232,7 @@ export default function ArtistDetails({ route }: Props) {
                     fontWeight: "600",
                   }}
                 >
-                  Share on Bluesky
+                  Share
                 </Text>
               </TouchableOpacity>
             </View>

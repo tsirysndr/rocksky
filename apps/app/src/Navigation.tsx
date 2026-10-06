@@ -17,6 +17,7 @@ import Bell from "./components/Icons/Bell";
 import LibraryIcon from "./components/Icons/Library";
 import MiniPlayer from "./components/MiniPlayer";
 import UserAvatar from "./components/UserAvatar";
+import type { ShareItem } from "./lib/shareLinks";
 import { useUnreadCountQuery } from "./hooks/useNotifications";
 import Account, { type AccountSection } from "./screens/Account/Account";
 import AlbumDetails from "./screens/AlbumDetails";
@@ -29,6 +30,7 @@ import Notifications from "./screens/Notifications";
 import Player from "./screens/Player";
 import Profile from "./screens/Profile";
 import Search from "./screens/Search";
+import ShareCard from "./screens/Share/ShareCard";
 import ShoutEditor from "./screens/ShoutEditor";
 import SignInScreen from "./screens/SignIn";
 import SongDetails from "./screens/SongDetails";
@@ -212,6 +214,11 @@ export function RootStack() {
     >
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
       <Stack.Screen name="Analytics" component={Analytics} />
+      <Stack.Screen
+        name="ShareCard"
+        component={ShareCard}
+        options={{ presentation: "modal" }}
+      />
       <Stack.Screen name="ArtistDetails" component={ArtistDetails} />
       <Stack.Screen name="SongDetails" component={SongDetails} />
       <Stack.Screen name="UserProfile" component={Profile} />
@@ -240,6 +247,7 @@ export function RootStack() {
 }
 
 export type RootStackParamList = {
+  ShareCard: { item: ShareItem };
   Analytics: undefined;
   Account: { section: AccountSection };
   Upload: undefined;
