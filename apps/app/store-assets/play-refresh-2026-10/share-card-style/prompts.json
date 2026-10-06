@@ -1,0 +1,56 @@
+{
+  "source": "https://play.google.com/store/apps/details?id=app.rocksky&hl=en&gl=US",
+  "generator": "Built-in image_gen",
+  "style": "Rocksky Afterglow sharing card gradient",
+  "prompts": [
+    {
+      "file": "01-discover.png",
+      "prompt": "Use case: compositing. Create ONE portrait Google Play promotional screenshot for Rocksky at 9:16. Image 1 is app UI insert, preserve it faithfully inside a slim black upright front-facing Android phone, all screen visible, exact UI proportions and content. Image 2 is reference for BACKGROUND DESIGN ONLY: copy the gradient style of the share card INSIDE that screenshot: a perfectly smooth flat vertical linear gradient from coral pink #f86486 at top through violet #7b35cb in middle to very dark plum #170b32 at bottom. Add only two extremely subtle oversized thin circular outlines at 8% white opacity, cropped at corners like the actual Rocksky share card. No waves, ribbons, folds, glowing borders, texture, grain, noise, aurora, neon lighting or 3D background objects. Premium restrained editorial style. Large bold clean white heading at top exactly \"Discover your next\\nfavorite track\" in two centered lines; small spaced uppercase ROCKSKY above it, pale yellow #fff2a3. Headline area occupies top 20%, slim phone centered beneath, bottom margin 3%, strong legibility, realistic fine black frame with minimal shadow. Background must feel EXACTLY like the actual app sharing card, smooth and minimal. Only one phone, no extra marketing text."
+    },
+    {
+      "file": "02-player.png",
+      "headline": "Your music.\nYour moment.",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Your music.\nYour moment.\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "03-equalizer.png",
+      "headline": "Fine-tune\nyour sound",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Fine-tune\nyour sound\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "04-track.png",
+      "headline": "Get closer to\nevery track",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Get closer to\nevery track\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "05-wrapped.png",
+      "headline": "Your year.\nOn repeat.",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Your year.\nOn repeat.\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "06-analytics.png",
+      "headline": "See your music\nin numbers",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"See your music\nin numbers\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "07-wrapped-sharing.png",
+      "headline": "Turn your year\ninto a story",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Turn your year\ninto a story\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "08-track-sharing.png",
+      "headline": "Share what\nyou love",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Share what\nyou love\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "09-library.png",
+      "headline": "Your collection.\nOne home.",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Your collection.\nOne home.\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    },
+    {
+      "file": "10-queue.png",
+      "headline": "Keep the\nmusic flowing",
+      "prompt": "Use case: compositing. Create ONE portrait 9:16 promotional app screenshot. Image 1 is actual app UI, faithfully insert it whole in the device, preserve all artwork, icons, numbers and text. Image 2 is exact campaign STYLE reference: match its smooth flat pink #f86486 through violet #7b35cb to dark plum #170b32 vertical gradient, extremely faint oversized thin circular outlines, slim upright black Android phone, position, scale, and typography. Keep identical background style, no texture/grain/waves/glow/ribbons/folds. Small pale yellow uppercase ROCKSKY above bold white two-line heading exactly \"Keep the\nmusic flowing\". Phone beneath heading in lower 73%, full screen and device visible, minimal shadow, no decorative objects, no extra marketing copy. Use image 1 as screen content exclusively, image 2 only for frame and background and layout. Preserve screenshot UI faithfully."
+    }
+  ]
+}
