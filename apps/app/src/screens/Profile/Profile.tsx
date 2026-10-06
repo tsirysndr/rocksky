@@ -1954,7 +1954,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
           gap: 10,
           paddingHorizontal: 16,
           paddingVertical: 8,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.background,
           height: 48,
           flexShrink: 0,
         }}
