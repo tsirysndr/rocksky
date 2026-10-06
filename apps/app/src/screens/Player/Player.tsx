@@ -1,7 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Slider from "@react-native-community/slider";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Image } from "expo-image";
 import { useAtomValue } from "jotai";
@@ -23,6 +23,7 @@ import {
   progressAtom,
 } from "@/src/atoms/nowplaying";
 import AudioSettingsSheet from "@/src/components/AudioSettingsSheet";
+import MarqueeText from "@/src/components/MarqueeText";
 import SourceSheet from "@/src/components/SourceSheet";
 import { Text } from "@/src/components/Text";
 import { usePlaybackControls } from "@/src/hooks/usePlaybackControls";
@@ -56,6 +57,7 @@ function formatTime(ms: number): string {
 export default function Player() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const focused = useIsFocused();
   const nowPlaying = useAtomValue(nowPlayingAtom);
   const progress = useAtomValue(progressAtom);
   useAtomValue(localQueueRevisionAtom);
@@ -343,15 +345,21 @@ export default function Player() {
 
             {/* Track info */}
             <View style={styles.info}>
-              <Text numberOfLines={2} style={styles.title}>
+              <MarqueeText
+                enabled={focused}
+                centered
+                containerStyle={{ alignSelf: "stretch" }}
+                style={styles.title}
+              >
                 {nowPlaying.title}
-              </Text>
+              </MarqueeText>
               <View style={styles.subtitleRow}>
-                <Text
-                  numberOfLines={1}
+                <MarqueeText
+                  enabled={focused}
+                  centered
+                  containerStyle={{ flex: 1, minWidth: 0 }}
                   style={[
                     styles.subtitle,
-                    { flexShrink: 1 },
                     !!nowPlaying.artistUri && styles.subtitleLink,
                   ]}
                   onPress={
@@ -365,7 +373,7 @@ export default function Player() {
                   }
                 >
                   {nowPlaying.artist}
-                </Text>
+                </MarqueeText>
                 {nowPlaying.album ? (
                   <>
                     <Text style={styles.subtitle}> · </Text>
@@ -373,7 +381,7 @@ export default function Player() {
                       numberOfLines={1}
                       style={[
                         styles.subtitle,
-                        { flexShrink: 1 },
+                        { flexShrink: 1, maxWidth: "45%" },
                         !!nowPlaying.albumUri && styles.subtitleLink,
                       ]}
                       onPress={
@@ -685,7 +693,7 @@ const styles = StyleSheet.create({
   subtitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    maxWidth: "100%",
+    width: "100%",
   },
   subtitle: {
     fontSize: 14,

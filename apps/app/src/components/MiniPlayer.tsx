@@ -3,17 +3,20 @@ import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image } from "expo-image";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
+import { useIsFocused } from "@react-navigation/native";
 import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { nowPlayingAtom, progressAtom } from "../atoms/nowplaying";
 import { usePlaybackControls } from "../hooks/usePlaybackControls";
 import { usePlaybackSource } from "../hooks/usePlaybackSource";
 import { colors } from "../theme";
+import MarqueeText from "./MarqueeText";
 import SourceSheet from "./SourceSheet";
 import { Text } from "./Text";
 
 type Props = { onOpenPlayer?: () => void };
 
 export default function MiniPlayer({ onOpenPlayer }: Props) {
+  const focused = useIsFocused();
   const nowPlaying = useAtomValue(nowPlayingAtom);
   const progress = useAtomValue(progressAtom);
   const { playPause, next, toggleLike } = usePlaybackControls();
@@ -73,16 +76,16 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
 
         {/* Track info — opens the full player */}
         <TouchableOpacity
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 0 }}
           onPress={onOpenPlayer}
           activeOpacity={0.7}
         >
-          <Text numberOfLines={1} style={styles.title}>
+          <MarqueeText enabled={focused} style={styles.title}>
             {nowPlaying?.title ?? "Nothing playing"}
-          </Text>
-          <Text numberOfLines={1} style={styles.subtitle}>
+          </MarqueeText>
+          <MarqueeText enabled={focused} style={styles.subtitle}>
             {nowPlaying ? nowPlaying.artist : sourceLabel}
-          </Text>
+          </MarqueeText>
         </TouchableOpacity>
 
         {/* Controls */}
