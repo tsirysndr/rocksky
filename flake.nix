@@ -181,6 +181,8 @@
           };
 
           cargoDeps = importCargoLock { lockFile = ./riff/Cargo.lock; };
+          # Nix builds offline; retain the bundled build explicitly here.
+          buildFeatures = [ "bundled-duckdb" ];
 
           doCheck = false;
 

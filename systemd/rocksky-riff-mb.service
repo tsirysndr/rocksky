@@ -9,7 +9,7 @@ User=root
 WorkingDirectory=/root/github/rocksky
 # riff is its own cargo workspace (excluded from the root one), so its binary
 # lives under riff/target, not the shared target/.
-#   cd /root/github/rocksky/riff && cargo build --release --bin riff-mb
+#   cd /root/github/rocksky/riff && ./cargo.sh build --release --bin riff-mb
 ExecStart=/root/github/rocksky/riff/target/release/riff-mb
 Restart=on-failure
 RestartSec=5

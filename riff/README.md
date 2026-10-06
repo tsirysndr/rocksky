@@ -87,8 +87,8 @@ Paging stops at 1000 items, as on Spotify, and `total` is capped there — see
 ## Running
 
 ```sh
-cargo run --release --bin riff-fixtures        # writes testdata/*.parquet
-cargo run --release --bin riff                 # serves them on :8092
+./cargo.sh run --release --bin riff-fixtures        # writes testdata/*.parquet
+./cargo.sh run --release --bin riff                 # serves them on :8092
 ```
 
 Every option takes a flag **or** an environment variable:
@@ -259,8 +259,8 @@ instead of queueing every caller into a timeout.
 workspace, so its binary is under `riff/target`, not the shared `target/`:
 
 ```sh
-cd /root/github/rocksky/riff && cargo build --release
-sudo cp systemd/rocksky-riff.service /etc/systemd/system/
+cd /root/github/rocksky/riff && ./cargo.sh build --release
+sudo cp ../systemd/rocksky-riff.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now rocksky-riff
 ```
 
@@ -273,13 +273,28 @@ override that in `/etc/default/rocksky-riff` rather than editing the unit.
 `Requires=` — the proxy falls back to Spotify by itself when riff is down, so
 riff must never be able to keep the proxy from starting.
 
-The first build compiles DuckDB's bundled C++ amalgamation and takes a while;
-subsequent ones do not.
+`./cargo.sh build --release` downloads the official [DuckDB 1.5.5 static release](https://github.com/duckdb/duckdb/releases/tag/v1.5.5)
+for native Linux (glibc) or macOS on x86_64/ARM64, verifies its pinned SHA-256,
+and caches it under `target/prebuilt-duckdb/`. It combines the prebuilt core,
+extension and dependency archives without compiling DuckDB C++. JSON and
+Parquet remain linked into the binary, with no DuckDB shared library or
+extension downloads required at runtime. All Riff binaries use the same cache.
+
+The wrapper requires Python 3, curl, and the platform's archive tool (`ar` on
+Linux, Apple's `libtool` on macOS). It accepts Cargo commands, for example
+`./cargo.sh build --release --bin riff-mb` and `./cargo.sh test --lib`.
+The first invocation needs GitHub access; cached builds work offline. Pass
+Cargo's `--offline` too when Rust dependencies are already cached.
+
+For a source build (including Nix, unsupported platforms, or cross-compilation),
+use `cargo build --release --features bundled-duckdb`. The exact Rust binding
+version in `Cargo.toml` and the release version/checksums in
+`scripts/cargo_static.py` must be updated together.
 
 ## Testing
 
 ```sh
-cargo test --release
+./cargo.sh test --release
 ```
 
 - `src/search.rs` — query-grammar unit tests, including the exact string
@@ -305,7 +320,7 @@ against the actual binary over a real socket.
 
 ## Test fixtures
 
-`cargo run --release --bin riff-fixtures` writes a ~40-track catalog in the exact
+`./cargo.sh run --release --bin riff-fixtures` writes a ~40-track catalog in the exact
 shape of the production dump — same column names, same types, including the
 all-`VARCHAR` audio features. Total size is a few KB, so there is never a reason
 to pull the real files down to develop against.
@@ -341,7 +356,7 @@ extracts only what lookups and searches filter on (ids, names, aliases, ISRCs,
 artist credits):
 
 ```sh
-cargo run --release --bin riff-mb-import -- \
+./cargo.sh run --release --bin riff-mb-import -- \
     --dumps-dir /root/musicbrainz --db /root/musicbrainz-db/musicbrainz.duckdb
 ```
 

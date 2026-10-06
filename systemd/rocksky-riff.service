@@ -9,7 +9,7 @@ User=root
 WorkingDirectory=/root/github/rocksky
 # riff is its own cargo workspace (excluded from the root one), so its binary
 # lives under riff/target, not the shared target/.
-#   cd /root/github/rocksky/riff && cargo build --release
+#   cd /root/github/rocksky/riff && ./cargo.sh build --release
 ExecStart=/bin/bash -ic 'exec doppler run -- ./riff/target/release/riff'
 Restart=on-failure
 RestartSec=5

@@ -8,13 +8,16 @@ edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/tsirysndr/rocksky"
 
+[features]
+# Explicit fallback for Nix and platforms without an official static archive.
+bundled-duckdb = ["duckdb/bundled", "duckdb/parquet", "duckdb/json"]
+
 [dependencies]
 actix-web = "4.11"
 clap = { version = "4.5", features = ["derive", "env"] }
-# `parquet` and `json` are linked in rather than autoloaded: an autoloading
-# DuckDB reaches out to extensions.duckdb.org on first use, and riff must work
-# on a box with no egress. Both imply `bundled`.
-duckdb = { version = "1.10505.0", features = ["bundled", "parquet", "json", "r2d2"] }
+# cargo.sh downloads the matching static library with JSON and Parquet included.
+# Pin the Rust bindings and the downloaded C library together.
+duckdb = { version = "=1.10505.0", features = ["r2d2"] }
 env_logger = "0.11"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 log = "0.4"
