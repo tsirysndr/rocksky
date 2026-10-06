@@ -27,7 +27,7 @@ module.exports = {
       backgroundColor: "#130825",
     },
     package: isTestBuild ? "app.rocksky.test" : "app.rocksky",
-    versionCode: 20,
+    versionCode: 21,
     intentFilters: isTestBuild
       ? []
       : [
