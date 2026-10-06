@@ -1698,6 +1698,11 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
   const refreshRef = useRef<(() => Promise<unknown>) | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [tabsPinned, setTabsPinned] = useState(false);
+  const tabsTop = useRef(Number.POSITIVE_INFINITY);
+  const inlineTabsRef = useRef<ScrollView>(null);
+  const pinnedTabsRef = useRef<ScrollView>(null);
+  const tabScrollX = useRef(0);
   const pinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -1711,6 +1716,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
     setPinned(contentOffset.y > PIN_THRESHOLD);
+    setTabsPinned(contentOffset.y >= tabsTop.current - 48);
     if (contentOffset.y + layoutMeasurement.height > contentSize.height - 600) {
       loadMoreRef.current?.();
     }
@@ -1843,6 +1849,55 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
     }
     return null;
   };
+
+  const renderTabs = (pinnedCopy = false) => (
+    <ScrollView
+      ref={pinnedCopy ? pinnedTabsRef : inlineTabsRef}
+      horizontal
+      contentOffset={{ x: tabScrollX.current, y: 0 }}
+      scrollEventThrottle={16}
+      onScroll={(event) => {
+        const x = event.nativeEvent.contentOffset.x;
+        if (Math.abs(x - tabScrollX.current) < 1) return;
+        tabScrollX.current = x;
+        (pinnedCopy ? inlineTabsRef : pinnedTabsRef).current?.scrollTo({
+          x,
+          animated: false,
+        });
+      }}
+      showsHorizontalScrollIndicator={false}
+      style={{ flexGrow: 0, backgroundColor: colors.background }}
+      contentContainerStyle={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+      }}
+    >
+      {TABS.map((tab, i) => (
+        <TouchableOpacity
+          key={tab}
+          onPress={() => setActiveTab(i)}
+          style={{
+            paddingHorizontal: 14,
+            paddingTop: 10,
+            paddingBottom: 8,
+            borderBottomWidth: 2,
+            borderBottomColor: activeTab === i ? colors.primary : "transparent",
+            alignSelf: "flex-start",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: activeTab === i ? colors.primary : colors.textMuted,
+            }}
+          >
+            {tab}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
 
   const isUserListTab = activeTab === 2 || activeTab === 3;
 
@@ -2111,41 +2166,13 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
         </View>
 
         {/* Tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ flexGrow: 0 }}
-          contentContainerStyle={{
-            flexDirection: "row",
-            alignItems: "flex-start",
+        <View
+          onLayout={(event) => {
+            tabsTop.current = event.nativeEvent.layout.y;
           }}
         >
-          {TABS.map((tab, i) => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(i)}
-              style={{
-                paddingHorizontal: 14,
-                paddingTop: 10,
-                paddingBottom: 8,
-                borderBottomWidth: 2,
-                borderBottomColor:
-                  activeTab === i ? colors.primary : "transparent",
-                alignSelf: "flex-start",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "600",
-                  color: activeTab === i ? colors.primary : colors.textMuted,
-                }}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          {renderTabs()}
+        </View>
 
         {/* Tab content */}
         <View style={{ paddingHorizontal: isUserListTab ? 0 : 16 }}>
@@ -2182,8 +2209,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
             paddingHorizontal: 16,
             paddingVertical: 8,
             backgroundColor: colors.surface,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
+            height: 48,
           }}
         >
           <TouchableOpacity
@@ -2217,6 +2243,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
             </Text>
           </View>
         </TouchableOpacity>
+        {tabsPinned && renderTabs(true)}
       </Animated.View>
 
       {drawerOpen && isOwnProfile && !!token && (
