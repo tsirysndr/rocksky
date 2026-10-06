@@ -3,7 +3,7 @@ const isTestBuild = process.env.ROCKSKY_VARIANT === "test";
 module.exports = {
   name: isTestBuild ? "Rocksky Test" : "Rocksky",
   slug: "rocksky",
-  version: "2.1.1",
+  version: "2.1.2",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: isTestBuild ? "rocksky-test" : "rocksky",
@@ -27,7 +27,7 @@ module.exports = {
       backgroundColor: "#130825",
     },
     package: isTestBuild ? "app.rocksky.test" : "app.rocksky",
-    versionCode: 21,
+    versionCode: 22,
     intentFilters: isTestBuild
       ? []
       : [
