@@ -2,7 +2,17 @@
 -- artist+album lookup in lib/discogsEnrichment.ts. Everything here is a cache
 -- of discogs.com, so the whole feature degrades to "no rows" and nothing in
 -- the scrobble path depends on it.
+--
+-- The search_path below is load-bearing. In production the role is `xata`, so
+-- an unqualified CREATE TABLE resolves to the `xata` schema (which is where
+-- 0006 onwards accidentally put notifications, access_tokens, user_uploads and
+-- the rest) rather than to `public`, where albums/tracks/users live. These
+-- tables join albums, so they belong in `public` too. xata_id() stays
+-- unqualified: it is in `public` on a local database and in `xata` on
+-- production, and the path covers both.
 
+SET search_path TO public, xata;
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "discogs_releases" (
 	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"discogs_id" integer NOT NULL,
