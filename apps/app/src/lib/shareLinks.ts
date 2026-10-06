@@ -4,7 +4,8 @@ export type ShareKind =
   | "album"
   | "artist"
   | "scrobble"
-  | "wrapped";
+  | "wrapped"
+  | "chart";
 export type ShareItem = {
   kind: ShareKind;
   uri: string;
@@ -28,7 +29,11 @@ const segment = (value: string) => value.length > 0 && !/[/?#\s]/.test(value);
 export function shareUrl(
   item: Pick<ShareItem, "kind" | "uri" | "year">,
 ): string {
-  if (item.kind === "profile" || item.kind === "wrapped") {
+  if (
+    item.kind === "profile" ||
+    item.kind === "wrapped" ||
+    item.kind === "chart"
+  ) {
     if (
       item.kind === "wrapped" &&
       (!Number.isInteger(item.year) ||

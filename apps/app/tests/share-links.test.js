@@ -69,3 +69,20 @@ test("sharing a scrobble keeps its record rather than substituting the track", (
     /scrobble\/3abc$/,
   );
 });
+
+test("top-list cards share the owner's profile and preserve the selected period in text", () => {
+  const item = {
+    kind: "chart",
+    uri: did,
+    title: "Top Albums",
+    subtitle: "Alice · 30 days",
+    rankings: [
+      { label: "30 days", names: ["Discovery", "Random Access Memories"] },
+    ],
+  };
+  assert.equal(
+    shareUrl(item),
+    `https://rocksky.app/profile/${encodeURIComponent(did)}`,
+  );
+  assert.match(shareText(item), /Top Albums — Alice · 30 days/);
+});

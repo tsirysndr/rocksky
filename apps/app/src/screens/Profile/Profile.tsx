@@ -318,6 +318,7 @@ function OverviewTab({
   navigation: NativeStackNavigationProp<RootStackParamList>;
   refreshRef: RefreshRef;
 }) {
+  const { data: owner } = useProfileByDidQuery(did);
   const [rangeDays, setRangeDays] = useState<number | null>(7);
   const [autoSwitched, setAutoSwitched] = useState(false);
 
@@ -361,6 +362,62 @@ function OverviewTab({
     setRangeDays(days);
   };
 
+  const period =
+    RANGE_OPTIONS.find((option) => option.days === rangeDays)?.label ||
+    "All time";
+  const chartHeading = (title: string, names: string[], pending: boolean) => (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: 16,
+        marginBottom: 8,
+      }}
+    >
+      <Text
+        style={{
+          color: colors.textMuted,
+          fontSize: 11,
+          fontWeight: "700",
+          letterSpacing: 1,
+          textTransform: "uppercase",
+        }}
+      >
+        {title}
+      </Text>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Share ${title.toLowerCase()} for ${period}`}
+        disabled={pending || names.length === 0}
+        onPress={() =>
+          navigation.navigate("ShareCard", {
+            item: {
+              kind: "chart",
+              uri: did,
+              title,
+              subtitle: `${owner?.displayName || owner?.handle || did} · ${period}`,
+              rankings: [{ label: period, names: names.slice(0, 5) }],
+            },
+          })
+        }
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          borderRadius: 16,
+          backgroundColor: colors.surface2,
+          opacity: pending ? 0.4 : 1,
+        }}
+      >
+        <Feather name="share-2" size={14} color={colors.primary} />
+        <Text style={{ color: colors.primary, fontSize: 12 }}>Share top 5</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const refetchArtists = artistsQuery.refetch;
   const refetchAlbums = albumsQuery.refetch;
   const refetchTracks = tracksQuery.refetch;
@@ -379,6 +436,35 @@ function OverviewTab({
 
   return (
     <View>
+      <TouchableOpacity
+        accessibilityRole="button"
+        onPress={() =>
+          navigation.navigate("Wrapped", {
+            did,
+            name: owner?.displayName || owner?.handle,
+          })
+        }
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          padding: 16,
+          marginTop: 16,
+          borderRadius: 16,
+          backgroundColor: colors.surface2,
+        }}
+      >
+        <Feather name="gift" size={24} color={colors.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.text, fontWeight: "700" }}>
+            Create a Wrapped card
+          </Text>
+          <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>
+            Choose a year, preview it, then share.
+          </Text>
+        </View>
+        <Feather name="chevron-right" size={20} color={colors.textMuted} />
+      </TouchableOpacity>
       {/* Recent Listens */}
       <Text
         style={{
@@ -463,19 +549,11 @@ function OverviewTab({
       {/* Top Artists */}
       {artistList.length > 0 && (
         <>
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: "700",
-              color: colors.textMuted,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              marginBottom: 8,
-              marginTop: 20,
-            }}
-          >
-            Top Artists
-          </Text>
+          {chartHeading(
+            "Top Artists",
+            artistList.map((a) => a.name || "Unknown artist"),
+            artistsQuery.isFetching || artistsQuery.isPlaceholderData,
+          )}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -536,19 +614,11 @@ function OverviewTab({
       {/* Top Albums */}
       {albumList.length > 0 && (
         <>
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: "700",
-              color: colors.textMuted,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              marginBottom: 8,
-              marginTop: 12,
-            }}
-          >
-            Top Albums
-          </Text>
+          {chartHeading(
+            "Top Albums",
+            albumList.map((a) => a.title || "Untitled album"),
+            albumsQuery.isFetching || albumsQuery.isPlaceholderData,
+          )}
           <View
             style={{
               flexDirection: "row",
@@ -609,19 +679,14 @@ function OverviewTab({
       {/* Top Tracks */}
       {trackList.length > 0 && (
         <>
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: "700",
-              color: colors.textMuted,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              marginBottom: 8,
-              marginTop: 12,
-            }}
-          >
-            Top Tracks
-          </Text>
+          {chartHeading(
+            "Top Tracks",
+            trackList.map(
+              (t) =>
+                `${t.title || "Untitled track"} · ${t.artist || t.albumArtist || t.album_artist || "Unknown artist"}`,
+            ),
+            tracksQuery.isFetching || tracksQuery.isPlaceholderData,
+          )}
           {trackList.map((t, i) => {
             const art = t.albumArt || t.album_art;
             return (

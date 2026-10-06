@@ -60,6 +60,7 @@ export default function ShareCard({
   const scale = cardWidth / 360;
   const height = format === "story" ? 640 : 360;
   const wrapped = item.kind === "wrapped";
+  const chart = item.kind === "chart";
   const run = async (action: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true);
@@ -206,7 +207,7 @@ export default function ShareCard({
                     {wrapped ? String(item.year) : item.kind.toUpperCase()}
                   </Text>
                 </View>
-                {wrapped ? (
+                {wrapped || chart ? (
                   <View style={{ gap: format === "story" ? 20 : 8 }}>
                     <Text
                       style={[
@@ -214,7 +215,7 @@ export default function ShareCard({
                         { fontSize: format === "story" ? 40 : 26 },
                       ]}
                     >
-                      Your year.{"\n"}On repeat.
+                      {wrapped ? "Your year.\nOn repeat." : item.title}
                     </Text>
                     <View style={{ flexDirection: "row", gap: 20 }}>
                       {item.stats?.map((stat) => (
@@ -244,19 +245,21 @@ export default function ShareCard({
                           >
                             {group.label.toUpperCase()}
                           </Text>
-                          {group.names.slice(0, 3).map((name, i) => (
-                            <Text
-                              key={`${i}-${name}`}
-                              numberOfLines={1}
-                              style={{
-                                color: "#fff",
-                                fontSize: 14,
-                                marginBottom: 3,
-                              }}
-                            >
-                              {String(i + 1).padStart(2, "0")} {name}
-                            </Text>
-                          ))}
+                          {group.names
+                            .slice(0, chart ? 5 : 3)
+                            .map((name, i) => (
+                              <Text
+                                key={`${i}-${name}`}
+                                numberOfLines={1}
+                                style={{
+                                  color: "#fff",
+                                  fontSize: 14,
+                                  marginBottom: chart ? 10 : 3,
+                                }}
+                              >
+                                {String(i + 1).padStart(2, "0")} {name}
+                              </Text>
+                            ))}
                         </View>
                       ))}
                   </View>
@@ -327,7 +330,9 @@ export default function ShareCard({
                     numberOfLines={1}
                     style={{ color: "#fff", fontSize: 12 }}
                   >
-                    {wrapped ? item.subtitle : "A little closer to the music."}
+                    {wrapped || chart
+                      ? item.subtitle
+                      : "A little closer to the music."}
                   </Text>
                   <Text style={styles.label}>ROCKSKY.APP</Text>
                 </View>
