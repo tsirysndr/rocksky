@@ -40,12 +40,43 @@ const palettes = [
     colors: ["#c65c30", "#6e2846", "#1d1028"] as const,
     accent: "#ffddac",
   },
+  {
+    name: "Aurora",
+    colors: ["#6151b0", "#22565e", "#0d2235"] as const,
+    accent: "#a9ffe4",
+  },
+  {
+    name: "Forest",
+    colors: ["#31725c", "#244932", "#101e1b"] as const,
+    accent: "#e4f6a8",
+  },
+  {
+    name: "Ocean",
+    colors: ["#087b97", "#19466f", "#111d43"] as const,
+    accent: "#b2f6ff",
+  },
+  {
+    name: "Rose",
+    colors: ["#b43a70", "#722956", "#29122f"] as const,
+    accent: "#ffd5e7",
+  },
+  {
+    name: "Sunset",
+    colors: ["#ab5826", "#8b304d", "#3e204a"] as const,
+    accent: "#ffedb2",
+  },
+  {
+    name: "Monochrome",
+    colors: ["#555967", "#292c35", "#101116"] as const,
+    accent: "#ffffff",
+  },
 ];
 export default function ShareCard({
   route,
   navigation,
 }: NativeStackScreenProps<RootStackParamList, "ShareCard">) {
   const item = route.params.item;
+  const link = item.uri ? shareUrl(item) : undefined;
   const { width } = useWindowDimensions();
   const card = useRef<View>(null);
   const [format, setFormat] = useState<"story" | "square">("story");
@@ -79,7 +110,7 @@ export default function ShareCard({
     run(async () => {
       if (!(await Sharing.isAvailableAsync()))
         throw new Error(
-          "Image sharing isn't available on this device. You can still share the link.",
+          "Image sharing isn't available on this device. You can still share the text.",
         );
       let uri: string | undefined;
       try {
@@ -92,7 +123,7 @@ export default function ShareCard({
         });
         // Stories can add the copied URL as a link sticker; image attachments
         // alone do not provide a tappable link on social platforms.
-        await Clipboard.setStringAsync(shareUrl(item));
+        if (link) await Clipboard.setStringAsync(link);
         await Sharing.shareAsync(uri, {
           mimeType: "image/png",
           UTI: "public.png",
@@ -105,10 +136,10 @@ export default function ShareCard({
   const shareLink = () =>
     run(() =>
       Share.share(
-        Platform.OS === "ios"
+        Platform.OS === "ios" && link
           ? {
               message: `${item.title}${item.subtitle ? ` — ${item.subtitle}` : ""}`,
-              url: shareUrl(item),
+              url: link,
             }
           : { message: shareText(item), title: item.title },
       ),
@@ -116,7 +147,7 @@ export default function ShareCard({
   const social = (app: "Bluesky" | "X" | "Facebook") =>
     run(() => {
       const text = encodeURIComponent(shareText(item));
-      const url = encodeURIComponent(shareUrl(item));
+      const url = encodeURIComponent(link || "");
       return Linking.openURL(
         app === "Bluesky"
           ? `https://bsky.app/intent/compose?text=${text}`
@@ -379,7 +410,9 @@ export default function ShareCard({
         </TouchableOpacity>
         <Text style={styles.note}>
           Choose Instagram, Facebook Stories, Discord, or another installed app.
-          The link is copied for a story link sticker.
+          {link
+            ? "The link is copied for a story link sticker."
+            : "This track has no public link yet; you can share its card or text."}
         </Text>
         <View style={styles.row}>
           <TouchableOpacity
@@ -387,32 +420,36 @@ export default function ShareCard({
             style={styles.pill}
             onPress={shareLink}
           >
-            <Text>Share link…</Text>
+            <Text>{link ? "Share link…" : "Share text…"}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            disabled={busy}
-            style={styles.pill}
-            onPress={() =>
-              run(async () => {
-                await Clipboard.setStringAsync(shareUrl(item));
-                Alert.alert("Link copied");
-              })
-            }
-          >
-            <Text>Copy link</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.row}>
-          {(["Bluesky", "X", "Facebook"] as const).map((app) => (
+          {link && (
             <TouchableOpacity
-              key={app}
               disabled={busy}
               style={styles.pill}
-              onPress={() => social(app)}
+              onPress={() =>
+                run(async () => {
+                  if (link) await Clipboard.setStringAsync(link);
+                  Alert.alert("Link copied");
+                })
+              }
             >
-              <Text>{app}</Text>
+              <Text>Copy link</Text>
             </TouchableOpacity>
-          ))}
+          )}
+        </View>
+        <View style={styles.row}>
+          {(["Bluesky", "X", "Facebook"] as const)
+            .filter((app) => app !== "Facebook" || !!link)
+            .map((app) => (
+              <TouchableOpacity
+                key={app}
+                disabled={busy}
+                style={styles.pill}
+                onPress={() => social(app)}
+              >
+                <Text>{app}</Text>
+              </TouchableOpacity>
+            ))}
         </View>
       </ScrollView>
     </SafeAreaView>

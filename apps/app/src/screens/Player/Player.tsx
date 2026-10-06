@@ -226,6 +226,40 @@ export default function Player() {
           </View>
           <View style={styles.topActions}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Share now playing"
+              accessibilityState={{ disabled: !nowPlaying }}
+              disabled={!nowPlaying}
+              style={!nowPlaying && styles.disabledAction}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              onPress={() => {
+                if (!nowPlaying) return;
+                const uri =
+                  /^at:\/\/[^/\s?#]+\/app\.rocksky\.(song|scrobble)\/[^/\s?#]+$/.test(
+                    nowPlaying.uri,
+                  )
+                    ? nowPlaying.uri
+                    : "";
+                navigation.navigate("ShareCard", {
+                  item: {
+                    kind: uri.includes("/app.rocksky.scrobble/")
+                      ? "scrobble"
+                      : "track",
+                    uri,
+                    title: nowPlaying.title,
+                    subtitle: nowPlaying.artist,
+                    artwork: nowPlaying.cover,
+                  },
+                });
+              }}
+            >
+              <Feather
+                name="share-2"
+                size={20}
+                color={nowPlaying ? colors.text : colors.textMuted}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => setSourceOpen(true)}
               hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
             >

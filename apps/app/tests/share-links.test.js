@@ -86,3 +86,15 @@ test("top-list cards share the owner's profile and preserve the selected period 
   );
   assert.match(shareText(item), /Top Albums — Alice · 30 days/);
 });
+
+test("unmatched now-playing tracks can share text without inventing a public link", () => {
+  assert.equal(
+    shareText({
+      kind: "track",
+      uri: "",
+      title: "Local song",
+      subtitle: "Local artist",
+    }),
+    "Local song — Local artist\nListening on Rocksky",
+  );
+});

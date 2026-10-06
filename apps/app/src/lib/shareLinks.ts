@@ -61,6 +61,8 @@ export function shareUrl(
 }
 
 export function shareText(item: ShareItem): string {
+  if (item.kind === "track" && !item.uri)
+    return `${item.title}${item.subtitle ? ` — ${item.subtitle}` : ""}\nListening on Rocksky`;
   return `${item.kind === "scrobble" ? "Just scrobbled: " : ""}${item.title}${item.subtitle ? ` — ${item.subtitle}` : ""}\n${shareUrl(item)}`;
 }
 
