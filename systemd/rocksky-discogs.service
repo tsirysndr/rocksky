@@ -7,7 +7,9 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/root/github/rocksky
-ExecStart=/bin/bash -ic 'exec bun run discogs'
+# DISCOGS_TOKEN comes from Doppler; the service exits without it, and
+# baking it into this unit would leave it readable in systemctl show.
+ExecStart=/bin/bash -ic 'exec doppler run --silent -- bun run discogs'
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -17,8 +19,6 @@ SyslogIdentifier=rocksky-discogs
 # Environment
 Environment=HOME=/root
 Environment=USER=root
-# DISCOGS_TOKEN comes from the shell profile Doppler populates; the service
-# exits immediately without it.
 
 [Install]
 WantedBy=multi-user.target
