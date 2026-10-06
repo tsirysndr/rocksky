@@ -2069,7 +2069,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
               )}
 
               {/* Actions */}
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {!isOwnProfile && !isFollowing && (
                   <TouchableOpacity
                     onPress={onFollow}
@@ -2140,6 +2140,32 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                     }}
                   >
                     Share
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  onPress={() =>
+                    navigation.navigate("Wrapped", {
+                      did: resolvedDid,
+                      name:
+                        displayProfile?.displayName || displayProfile?.handle,
+                    })
+                  }
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: colors.surface2,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontSize: 13,
+                      fontWeight: "500",
+                    }}
+                  >
+                    Wrapped
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity

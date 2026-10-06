@@ -31,6 +31,7 @@ import Player from "./screens/Player";
 import Profile from "./screens/Profile";
 import Search from "./screens/Search";
 import ShareCard from "./screens/Share/ShareCard";
+import Wrapped from "./screens/Share/Wrapped";
 import ShoutEditor from "./screens/ShoutEditor";
 import SignInScreen from "./screens/SignIn";
 import SongDetails from "./screens/SongDetails";
@@ -63,6 +64,7 @@ function makeTabStack(name: string, RootScreen: ComponentType<any>) {
         <TabStack.Screen name="ShoutEditor" component={ShoutEditor} />
         <TabStack.Screen name="Charts" component={Charts} />
         <TabStack.Screen name="Analytics" component={Analytics} />
+        <TabStack.Screen name="Wrapped" component={Wrapped} />
       </TabStack.Navigator>
     );
   };
@@ -214,6 +216,7 @@ export function RootStack() {
     >
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
       <Stack.Screen name="Analytics" component={Analytics} />
+      <Stack.Screen name="Wrapped" component={Wrapped} />
       <Stack.Screen
         name="ShareCard"
         component={ShareCard}
@@ -248,6 +251,7 @@ export function RootStack() {
 
 export type RootStackParamList = {
   ShareCard: { item: ShareItem };
+  Wrapped: { did: string; name?: string; year?: number };
   Analytics: undefined;
   Account: { section: AccountSection };
   Upload: undefined;
