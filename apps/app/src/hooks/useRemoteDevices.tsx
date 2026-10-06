@@ -87,6 +87,9 @@ export function useRemoteDevicesConnection() {
       name: "rocksky-mobile",
     });
 
+    // Registration announcements include controller-only clients (for example
+    // playerd-mcp and rockbox-web). Like web, discover players only from the
+    // server's player snapshot and playback/queue events, never registration.
     controller
       .on("devices", ({ primaryDevice, devices }) => {
         const next: Record<string, RemoteDevice> = {};
@@ -101,23 +104,6 @@ export function useRemoteDevicesConnection() {
             : primaryDevice && next[primaryDevice]
               ? primaryDevice
               : (Object.keys(next)[0] ?? null),
-        );
-      })
-      .on("deviceRegistered", ({ deviceId, name }) => {
-        if (!deviceId) return;
-        setDevices((prev) =>
-          prev[deviceId]
-            ? prev
-            : {
-                ...prev,
-                [deviceId]: {
-                  deviceId,
-                  name: name || "Remote device",
-                  nowPlaying: null,
-                  queue: [],
-                  queueIndex: 0,
-                },
-              },
         );
       })
       .on("deviceUnregistered", ({ deviceId }) => {
