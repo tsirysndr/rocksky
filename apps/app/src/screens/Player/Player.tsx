@@ -353,52 +353,48 @@ export default function Player() {
               >
                 {nowPlaying.title}
               </MarqueeText>
-              <View style={styles.subtitleRow}>
+              <MarqueeText
+                enabled={focused}
+                centered
+                containerStyle={{ alignSelf: "stretch" }}
+                style={[
+                  styles.subtitle,
+                  !!nowPlaying.artistUri && styles.subtitleLink,
+                ]}
+                onPress={
+                  nowPlaying.artistUri
+                    ? () =>
+                        openDetails(
+                          nowPlaying.artistUri as string,
+                          "ArtistDetails",
+                        )
+                    : undefined
+                }
+              >
+                {nowPlaying.artist}
+              </MarqueeText>
+              {!!nowPlaying.album && (
                 <MarqueeText
                   enabled={focused}
                   centered
-                  containerStyle={{ flex: 1, minWidth: 0 }}
+                  containerStyle={{ alignSelf: "stretch" }}
                   style={[
                     styles.subtitle,
-                    !!nowPlaying.artistUri && styles.subtitleLink,
+                    !!nowPlaying.albumUri && styles.subtitleLink,
                   ]}
                   onPress={
-                    nowPlaying.artistUri
+                    nowPlaying.albumUri
                       ? () =>
                           openDetails(
-                            nowPlaying.artistUri as string,
-                            "ArtistDetails",
+                            nowPlaying.albumUri as string,
+                            "AlbumDetails",
                           )
                       : undefined
                   }
                 >
-                  {nowPlaying.artist}
+                  {nowPlaying.album}
                 </MarqueeText>
-                {nowPlaying.album ? (
-                  <>
-                    <Text style={styles.subtitle}> · </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.subtitle,
-                        { flexShrink: 1, maxWidth: "45%" },
-                        !!nowPlaying.albumUri && styles.subtitleLink,
-                      ]}
-                      onPress={
-                        nowPlaying.albumUri
-                          ? () =>
-                              openDetails(
-                                nowPlaying.albumUri as string,
-                                "AlbumDetails",
-                              )
-                          : undefined
-                      }
-                    >
-                      {nowPlaying.album}
-                    </Text>
-                  </>
-                ) : null}
-              </View>
+              )}
             </View>
 
             {/* Seek */}
@@ -689,11 +685,6 @@ const styles = StyleSheet.create({
     fontFamily: "RockfordSansBold",
     color: "#fff",
     textAlign: "center",
-  },
-  subtitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
   },
   subtitle: {
     fontSize: 14,
