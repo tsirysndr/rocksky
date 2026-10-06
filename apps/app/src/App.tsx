@@ -11,6 +11,7 @@ import { authTokenAtom } from "./atoms/auth";
 import StarrySplash from "./components/StarrySplash";
 import { useCurrentUserProfile } from "./hooks/useProfile";
 import { queryClient } from "./lib/queryClient";
+import { linking } from "./lib/linking";
 import { RootStack } from "./Navigation";
 import { NowPlayingProvider } from "./providers/NowPlayingProvider";
 import { storage } from "./storage";
@@ -57,7 +58,7 @@ function AppInner({ fontsLoaded }: { fontsLoaded: boolean }) {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {storageReady && (
         <NowPlayingProvider>
-          <NavigationContainer theme={navigationTheme}>
+          <NavigationContainer theme={navigationTheme} linking={linking}>
             <RootStack />
           </NavigationContainer>
         </NowPlayingProvider>

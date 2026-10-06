@@ -17,6 +17,8 @@ module.exports = {
   },
   ios: {
     supportsTablet: true,
+    bundleIdentifier: isTestBuild ? "app.rocksky.test" : "app.rocksky",
+    associatedDomains: isTestBuild ? [] : ["applinks:rocksky.app"],
   },
   android: {
     adaptiveIcon: {
@@ -26,6 +28,25 @@ module.exports = {
     },
     package: isTestBuild ? "app.rocksky.test" : "app.rocksky",
     versionCode: 18,
+    intentFilters: isTestBuild
+      ? []
+      : [
+          {
+            action: "VIEW",
+            autoVerify: true,
+            category: ["BROWSABLE", "DEFAULT"],
+            data: [
+              { scheme: "https", host: "rocksky.app", pathPrefix: "/profile/" },
+              ...["song", "track", "album", "artist", "scrobble"].map(
+                (type) => ({
+                  scheme: "https",
+                  host: "rocksky.app",
+                  pathPattern: `/.*/${type}/.*`,
+                }),
+              ),
+            ],
+          },
+        ],
   },
   web: {
     bundler: "metro",

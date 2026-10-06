@@ -216,6 +216,7 @@ export function RootStack() {
     >
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
       <Stack.Screen name="Analytics" component={Analytics} />
+      <Stack.Screen name="AlbumDetails" component={AlbumDetails} />
       <Stack.Screen name="Wrapped" component={Wrapped} />
       <Stack.Screen
         name="ShareCard"

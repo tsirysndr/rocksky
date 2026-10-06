@@ -1,3 +1,4 @@
+import { appLinkResponse, type AppLinkEnvironment } from "./app-links";
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
@@ -88,6 +89,8 @@ export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 		const origin = request.headers.get('Origin');
+		const association = appLinkResponse(url.pathname, env as AppLinkEnvironment);
+		if (association) return association;
 		let redirectToApi = false;
 
 		// Handle CORS preflight
