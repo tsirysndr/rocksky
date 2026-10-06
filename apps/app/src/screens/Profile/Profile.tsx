@@ -10,7 +10,6 @@ import numeral from "numeral";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Linking,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -19,10 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import type { GraphUser } from "@/src/api/graph";
 import { authTokenAtom } from "@/src/atoms/auth";
 import { followsAtom } from "@/src/atoms/follows";
@@ -1669,7 +1665,14 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
   const genreTags: string[] = [];
   for (const artist of genreArtists) {
     for (const tag of artist.tags ?? []) {
-      if (!genreTags.includes(tag)) genreTags.push(tag);
+      const label = tag.trim().replace(/\s+/g, " ");
+      if (
+        label &&
+        !genreTags.some(
+          (existing) => existing.toLowerCase() === label.toLowerCase(),
+        )
+      )
+        genreTags.push(label);
       if (genreTags.length >= 20) break;
     }
     if (genreTags.length >= 20) break;
@@ -1692,31 +1695,14 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
 
   // Whole-screen scrolling: the active tab registers its pagination/refresh
   // hooks here so the single outer ScrollView can drive them.
-  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const loadMoreRef = useRef<(() => void) | null>(null);
   const refreshRef = useRef<(() => Promise<unknown>) | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const [tabsPinned, setTabsPinned] = useState(false);
-  const tabsTop = useRef(Number.POSITIVE_INFINITY);
-  const inlineTabsRef = useRef<ScrollView>(null);
-  const pinnedTabsRef = useRef<ScrollView>(null);
-  const tabScrollX = useRef(0);
-  const pinAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(pinAnim, {
-      toValue: pinned ? 1 : 0,
-      duration: 180,
-      useNativeDriver: true,
-    }).start();
-  }, [pinned, pinAnim]);
-
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
     setPinned(contentOffset.y > PIN_THRESHOLD);
-    setTabsPinned(contentOffset.y >= tabsTop.current - 48);
     if (contentOffset.y + layoutMeasurement.height > contentSize.height - 600) {
       loadMoreRef.current?.();
     }
@@ -1850,26 +1836,15 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
     return null;
   };
 
-  const renderTabs = (pinnedCopy = false) => (
+  const renderTabs = () => (
     <ScrollView
-      ref={pinnedCopy ? pinnedTabsRef : inlineTabsRef}
       horizontal
-      contentOffset={{ x: tabScrollX.current, y: 0 }}
-      scrollEventThrottle={16}
-      onScroll={(event) => {
-        const x = event.nativeEvent.contentOffset.x;
-        if (Math.abs(x - tabScrollX.current) < 1) return;
-        tabScrollX.current = x;
-        (pinnedCopy ? inlineTabsRef : pinnedTabsRef).current?.scrollTo({
-          x,
-          animated: false,
-        });
-      }}
+      removeClippedSubviews={false}
       showsHorizontalScrollIndicator={false}
-      style={{ flexGrow: 0, backgroundColor: colors.background }}
+      style={{ height: 48, flexGrow: 0, backgroundColor: colors.background }}
       contentContainerStyle={{
         flexDirection: "row",
-        alignItems: "flex-start",
+        alignItems: "stretch",
       }}
     >
       {TABS.map((tab, i) => (
@@ -1878,14 +1853,14 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
           onPress={() => setActiveTab(i)}
           style={{
             paddingHorizontal: 14,
-            paddingTop: 10,
-            paddingBottom: 8,
+            justifyContent: "center",
             borderBottomWidth: 2,
             borderBottomColor: activeTab === i ? colors.primary : "transparent",
-            alignSelf: "flex-start",
           }}
         >
           <Text
+            numberOfLines={1}
+            maxFontSizeMultiplier={1.5}
             style={{
               fontSize: 13,
               fontWeight: "600",
@@ -1906,8 +1881,58 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={["top", "left", "right"]}
     >
+      <TouchableOpacity
+        onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          backgroundColor: colors.surface,
+          height: 48,
+          flexShrink: 0,
+        }}
+      >
+        <TouchableOpacity
+          accessibilityLabel={isOwnProfile ? "Open account menu" : "Back"}
+          hitSlop={8}
+          onPress={(event) => {
+            event.stopPropagation();
+            if (isOwnProfile && token) setDrawerOpen(true);
+            else navigation.goBack();
+          }}
+        >
+          <Feather
+            name={isOwnProfile ? "menu" : "arrow-left"}
+            size={24}
+            color={colors.text}
+          />
+        </TouchableOpacity>
+        {pinned && <Avatar uri={displayProfile?.avatar} size={32} />}
+        <View
+          style={{ flex: 1, opacity: pinned ? 1 : 0 }}
+          accessibilityElementsHidden={!pinned}
+          importantForAccessibility={pinned ? "auto" : "no-hide-descendants"}
+        >
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 14, fontWeight: "600", color: colors.text }}
+          >
+            {displayProfile?.displayName}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 11, color: colors.textMuted }}
+          >
+            @{displayProfile?.handle}
+          </Text>
+        </View>
+      </TouchableOpacity>
       <ScrollView
         ref={scrollRef}
+        stickyHeaderIndices={[1]}
+        removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -1919,24 +1944,6 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
           />
         }
       >
-        <TouchableOpacity
-          accessibilityLabel={isOwnProfile ? "Open account menu" : "Back"}
-          onPress={() => {
-            if (isOwnProfile && token) setDrawerOpen(true);
-            else navigation.goBack();
-          }}
-          style={{
-            paddingHorizontal: 16,
-            paddingTop: 12,
-            alignSelf: "flex-start",
-          }}
-        >
-          <Feather
-            name={isOwnProfile ? "menu" : "arrow-left"}
-            size={26}
-            color={colors.text}
-          />
-        </TouchableOpacity>
         {/* Header */}
         <View
           style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}
@@ -2047,25 +2054,20 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                 ))}
               </View>
 
-              {/* Genres */}
+              {/* A text block measures all lines in normal flow, including long genres. */}
               {genreTags.length > 0 && (
-                <View
+                <Text
                   style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 8,
-                    marginBottom: 12,
+                    color: colors.genre,
+                    fontSize: 11,
+                    lineHeight: 14,
+                    includeFontPadding: false,
+                    marginBottom: 8,
+                    flexShrink: 0,
                   }}
                 >
-                  {genreTags.map((tag) => (
-                    <Text
-                      key={tag}
-                      style={{ fontSize: 11, color: colors.genre }}
-                    >
-                      # {tag}
-                    </Text>
-                  ))}
-                </View>
+                  {genreTags.map((tag) => `# ${tag}`).join("   ·   ")}
+                </Text>
               )}
 
               {/* Actions */}
@@ -2201,11 +2203,10 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
           )}
         </View>
 
-        {/* Tabs */}
+        {/* One native sticky row survives tab changes and header remeasurement. */}
         <View
-          onLayout={(event) => {
-            tabsTop.current = event.nativeEvent.layout.y;
-          }}
+          collapsable={false}
+          style={{ height: 48, backgroundColor: colors.background }}
         >
           {renderTabs()}
         </View>
@@ -2215,72 +2216,6 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
           {renderTabContent()}
         </View>
       </ScrollView>
-
-      {/* Compact identity bar, pinned once the header scrolls away */}
-      <Animated.View
-        pointerEvents={pinned ? "auto" : "none"}
-        style={{
-          position: "absolute",
-          top: insets.top,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-          opacity: pinAnim,
-          transform: [
-            {
-              translateY: pinAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-12, 0],
-              }),
-            },
-          ],
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            backgroundColor: colors.surface,
-            height: 48,
-          }}
-        >
-          <TouchableOpacity
-            accessibilityLabel={isOwnProfile ? "Open account menu" : "Back"}
-            hitSlop={8}
-            onPress={(event) => {
-              event.stopPropagation();
-              if (isOwnProfile && token) setDrawerOpen(true);
-              else navigation.goBack();
-            }}
-          >
-            <Feather
-              name={isOwnProfile ? "menu" : "arrow-left"}
-              size={24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-          <Avatar uri={displayProfile?.avatar} size={32} />
-          <View style={{ flex: 1 }}>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: 14, fontWeight: "600", color: colors.text }}
-            >
-              {displayProfile?.displayName}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: 11, color: colors.textMuted }}
-            >
-              @{displayProfile?.handle}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        {tabsPinned && renderTabs(true)}
-      </Animated.View>
 
       {drawerOpen && isOwnProfile && !!token && (
         <ProfileDrawer onClose={() => setDrawerOpen(false)} />
