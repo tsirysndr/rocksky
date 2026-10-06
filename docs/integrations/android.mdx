@@ -1,0 +1,122 @@
+---
+title: "Native Android scrobbling"
+description: "Record plays from other music apps with Rocksky's built-in Android scrobbler."
+icon: "android"
+---
+
+The Rocksky Android app can scrobble music from other apps on your phone.
+Sign in, grant notification access, and listen normally. You do not need to
+create an API key or configure a separate scrobbler.
+
+Rocksky reads the title, artist, and available album information from Android
+media sessions. Players such as Spotify, Tidal, Deezer, YouTube Music, and
+Apple Music can provide this information. Detection depends on the metadata
+each player shares with Android; a title and artist are required.
+
+## Set up scrobbling
+
+<Steps>
+  <Step title="Sign in to Rocksky">
+    Install the [Rocksky Android app](https://play.google.com/store/apps/details?id=app.rocksky)
+    and sign in to the account where you want to save your listens.
+  </Step>
+  <Step title="Open the scrobbling settings">
+    Go to **Account → Scrobbling**. Make sure **Scrobble other apps** is on.
+    Scrobbling and newly detected players are enabled by default.
+  </Step>
+  <Step title="Allow notification access">
+    Tap **Allow notification access**, then enable access for Rocksky in
+    Android's settings. Return to Rocksky when you finish.
+
+    Android may also ask permission to show notifications. That permission
+    controls Rocksky's ongoing service notification; you still need to grant
+    **notification access** so Rocksky can detect music from other apps.
+  </Step>
+  <Step title="Check your music apps">
+    Under **Apps to scrobble**, leave the players you want to track switched
+    on. Other media players appear automatically when detected. Turn a player
+    off to stop collecting new listens from it.
+  </Step>
+  <Step title="Play a track">
+    Start music in an enabled player. The scrobbling screen should show
+    **Listening in the background** and a **DETECTED NOW** card with the track.
+    After it qualifies, the card changes to **LISTEN SAVED**.
+  </Step>
+</Steps>
+
+<Note>
+  This feature requires a native Android build of Rocksky. It is not available
+  in Expo Go or on iOS. Rocksky's own player is excluded from this listener
+  because it already has its own scrobbling support.
+</Note>
+
+## Choose when a track counts
+
+In **When to scrobble**, the default **Listening time** mode saves a play after
+50% of the track or 4 minutes of actual listening, whichever comes first.
+Tracks with a known duration below 30 seconds are skipped. Pauses, buffering,
+and seeking forward do not add listening time. If the duration is unavailable,
+Rocksky uses the configured time in seconds.
+
+You can change **Maximum listening time (seconds)**, **Track percentage**, and
+**Minimum track length (seconds)**, then tap **Save timing**. Tap
+**Restore default timing** to reset these settings.
+
+Choose **Track position** to save when playback reaches a particular position
+instead. Seeking to that position can qualify the play. A track shorter than
+the selected position cannot qualify.
+
+## Scrobble recognized music
+
+Turn on **Music recognition** and enable the recognition app under
+**Apps to scrobble**. Rocksky reads supported recognition-result notifications;
+these results do not have a playback position.
+
+| Source | When Rocksky saves the result |
+| --- | --- |
+| Shazam / Auto Shazam and Audile | Immediately after a supported result notification appears |
+| Supported legacy Pixel Now Playing, Pixel Ambient Services, and Ambient Music Mod notifications | After 15 seconds, unless the notification disappears first |
+
+Repeated recognitions of the same track are suppressed for five minutes.
+Album information is included when the recognition app supplies it.
+
+Newer Pixel Now Playing versions may hide recognition data. If the notification
+does not expose a supported title and artist, Rocksky cannot record it.
+
+## Background listening and offline uploads
+
+The native listener can continue with the screen off and without keeping the
+Rocksky screen open. If your phone restricts background activity, tap
+**Background & battery settings** and allow unrestricted battery usage for
+Rocksky. Android force-stop suspends detection until you reopen the app.
+
+Qualifying listens are saved on your device before upload. **Offline queue**
+shows how many are waiting, whether any need a retry, and the last upload time.
+Uploads resume automatically when you have a connection and scrobbling is
+enabled, even with the app closed. Queued listens keep their original listening
+timestamps.
+
+**LISTEN SAVED** means the listen has been saved locally; it may still be waiting
+to upload. Check your Rocksky profile after the queue drains to see your plays.
+
+Turning off **Scrobble other apps** pauses both collection and uploads without
+deleting queued listens. Turning off an individual player stops new collection
+from that player. Saved listens stay tied to the account that collected them;
+signing in to another account does not upload them to that account.
+
+## Troubleshooting
+
+- **No track appears:** Check that you are signed in, notification access is
+  enabled, and the player is on under **Apps to scrobble**. Start playback again.
+  The player must provide both a title and an artist.
+- **Tracking stops with the screen off:** Allow unrestricted battery usage and
+  reopen Rocksky if you force-stopped it.
+- **Listens stay queued:** Check your connection and turn on **Scrobble other
+  apps**. Sign in again if your session has expired, using the account that
+  collected the listens. Tap **Retry saved listens** to retry failed uploads.
+- **A play appears twice:** Disable overlapping scrobbling for the same player
+  in other integrations, such as [Pano Scrobbler](/integrations/pano-scrobbler)
+  or a separate Spotify connection.
+
+If you prefer a separate Android scrobbler, see the
+[Pano Scrobbler setup guide](/integrations/pano-scrobbler).

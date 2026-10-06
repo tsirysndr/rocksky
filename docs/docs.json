@@ -45,6 +45,7 @@
               "integrations/jellyfin-server",
               "integrations/navidrome",
               "integrations/navidrome-server",
+              "integrations/android",
               "integrations/pano-scrobbler",
               "integrations/web-scrobbler",
               "integrations/kodi",
