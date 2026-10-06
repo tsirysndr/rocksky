@@ -261,6 +261,47 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.album.defs#discogsCreditView"
         }
       }
+
+      ["tracklist"] = new Array {
+        type = "array"
+        description = "The release tracklist."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.album.defs#discogsTrackView"
+        }
+      }
+
+      ["labels"] = new Array {
+        type = "array"
+        description = "Every label and company on the release."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.album.defs#discogsLabelView"
+        }
+      }
+
+      ["identifiers"] = new Array {
+        type = "array"
+        description = "Every identifier printed on the release."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.album.defs#discogsIdentifierView"
+        }
+      }
+
+      ["artists"] = new Array {
+        type = "array"
+        description = "Every artist credited on the release."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.album.defs#discogsArtistView"
+        }
+      }
+
+      ["master"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.album.defs#discogsMasterView"
+      }
     }
   }
   ["discogsCreditView"] {
@@ -286,6 +327,183 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The track positions the credit applies to, absent when it covers the whole release."
       }
+    }
+  }
+  ["discogsTrackView"] {
+    type = "object"
+    description = "One entry of the release tracklist, as printed on it."
+    properties {
+      ["position"] = new StringType {
+        type = "string"
+        description = "The position Discogs prints, such as 7, 2-04 or C2."
+      }
+
+      ["type"] = new StringType {
+        type = "string"
+        description = "The entry kind: track, heading or index."
+      }
+
+      ["title"] = new StringType {
+        type = "string"
+        description = "The track title."
+      }
+
+      ["duration"] = new StringType {
+        type = "string"
+        description = "The duration as printed, m:ss."
+      }
+
+      ["durationMs"] = new IntegerType {
+        type = "integer"
+        description = "The duration in milliseconds."
+      }
+
+      ["discNumber"] = new IntegerType {
+        type = "integer"
+        description = "The disc the track sits on, parsed from the position."
+      }
+
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+        description = "The track number, side-relative for vinyl."
+      }
+
+    }
+  }
+  ["discogsLabelView"] {
+    type = "object"
+    description = "A label or company involved in the release."
+    properties {
+      ["labelId"] = new IntegerType {
+        type = "integer"
+        description = "The Discogs label ID."
+      }
+
+      ["name"] = new StringType {
+        type = "string"
+        description = "The label or company name."
+      }
+
+      ["catalogNumber"] = new StringType {
+        type = "string"
+        description = "The catalog number this label gave the release."
+      }
+
+      ["kind"] = new StringType {
+        type = "string"
+        description = "Either label or company."
+      }
+
+      ["entityType"] = new StringType {
+        type = "string"
+        description = "The role for a company, such as Pressed By or Distributed By."
+      }
+
+    }
+  }
+  ["discogsIdentifierView"] {
+    type = "object"
+    description = "An identifier printed on the release: barcode, matrix / runout, label code, rights society."
+    properties {
+      ["type"] = new StringType {
+        type = "string"
+        description = "The identifier type as Discogs names it."
+      }
+
+      ["value"] = new StringType {
+        type = "string"
+        description = "The identifier itself."
+      }
+
+      ["description"] = new StringType {
+        type = "string"
+        description = "What the identifier applies to, when Discogs says."
+      }
+
+    }
+  }
+  ["discogsArtistView"] {
+    type = "object"
+    description = "An artist credited on the release itself."
+    properties {
+      ["artistId"] = new IntegerType {
+        type = "integer"
+        description = "The Discogs artist ID."
+      }
+
+      ["name"] = new StringType {
+        type = "string"
+        description = "The artist name."
+      }
+
+      ["anv"] = new StringType {
+        type = "string"
+        description = "The name as credited on this release, when it differs."
+      }
+
+      ["joinPhrase"] = new StringType {
+        type = "string"
+        description = "What separates this artist from the next in the credit."
+      }
+
+      ["role"] = new StringType {
+        type = "string"
+        description = "The role, when the release gives one."
+      }
+
+    }
+  }
+  ["discogsMasterView"] {
+    type = "object"
+    description = "The master that groups every edition of the release."
+    properties {
+      ["masterId"] = new IntegerType {
+        type = "integer"
+        description = "The Discogs master ID."
+      }
+
+      ["title"] = new StringType {
+        type = "string"
+        description = "The master title."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The master artist credit."
+      }
+
+      ["year"] = new IntegerType {
+        type = "integer"
+        description = "The year the release first came out."
+      }
+
+      ["mainReleaseId"] = new IntegerType {
+        type = "integer"
+        description = "The release Discogs treats as the canonical edition."
+      }
+
+      ["url"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The master page on Discogs."
+      }
+
+      ["genres"] = new Array {
+        type = "array"
+        description = "The Discogs genres of the master."
+        items = new StringType {
+          type = "string"
+        }
+      }
+
+      ["styles"] = new Array {
+        type = "array"
+        description = "The Discogs styles of the master."
+        items = new StringType {
+          type = "string"
+        }
+      }
+
     }
   }
 }

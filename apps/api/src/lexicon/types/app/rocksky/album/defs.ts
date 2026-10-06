@@ -124,6 +124,15 @@ export interface DiscogsView {
   score?: number;
   /** Performance and production credits for the release. */
   credits?: DiscogsCreditView[];
+  /** The release tracklist. */
+  tracklist?: DiscogsTrackView[];
+  /** Every label and company on the release. */
+  labels?: DiscogsLabelView[];
+  /** Every identifier printed on the release. */
+  identifiers?: DiscogsIdentifierView[];
+  /** Every artist credited on the release. */
+  artists?: DiscogsArtistView[];
+  master?: DiscogsMasterView;
   [k: string]: unknown;
 }
 
@@ -162,4 +171,147 @@ export function isDiscogsCreditView(v: unknown): v is DiscogsCreditView {
 
 export function validateDiscogsCreditView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.album.defs#discogsCreditView", v);
+}
+
+/** One entry of the release tracklist, as printed on it. */
+export interface DiscogsTrackView {
+  /** The position Discogs prints, such as 7, 2-04 or C2. */
+  position?: string;
+  /** The entry kind: track, heading or index. */
+  type?: string;
+  /** The track title. */
+  title?: string;
+  /** The duration as printed, m:ss. */
+  duration?: string;
+  /** The duration in milliseconds. */
+  durationMs?: number;
+  /** The disc the track sits on, parsed from the position. */
+  discNumber?: number;
+  /** The track number, side-relative for vinyl. */
+  trackNumber?: number;
+  [k: string]: unknown;
+}
+
+export function isDiscogsTrackView(v: unknown): v is DiscogsTrackView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.album.defs#discogsTrackView"
+  );
+}
+
+export function validateDiscogsTrackView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.album.defs#discogsTrackView", v);
+}
+
+/** A label or company involved in the release. */
+export interface DiscogsLabelView {
+  /** The Discogs label ID. */
+  labelId?: number;
+  /** The label or company name. */
+  name?: string;
+  /** The catalog number this label gave the release. */
+  catalogNumber?: string;
+  /** Either label or company. */
+  kind?: string;
+  /** The role for a company, such as Pressed By or Distributed By. */
+  entityType?: string;
+  [k: string]: unknown;
+}
+
+export function isDiscogsLabelView(v: unknown): v is DiscogsLabelView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.album.defs#discogsLabelView"
+  );
+}
+
+export function validateDiscogsLabelView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.album.defs#discogsLabelView", v);
+}
+
+/** An identifier printed on the release: barcode, matrix / runout, label code, rights society. */
+export interface DiscogsIdentifierView {
+  /** The identifier type as Discogs names it. */
+  type?: string;
+  /** The identifier itself. */
+  value?: string;
+  /** What the identifier applies to, when Discogs says. */
+  description?: string;
+  [k: string]: unknown;
+}
+
+export function isDiscogsIdentifierView(
+  v: unknown,
+): v is DiscogsIdentifierView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.album.defs#discogsIdentifierView"
+  );
+}
+
+export function validateDiscogsIdentifierView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.album.defs#discogsIdentifierView", v);
+}
+
+/** An artist credited on the release itself. */
+export interface DiscogsArtistView {
+  /** The Discogs artist ID. */
+  artistId?: number;
+  /** The artist name. */
+  name?: string;
+  /** The name as credited on this release, when it differs. */
+  anv?: string;
+  /** What separates this artist from the next in the credit. */
+  joinPhrase?: string;
+  /** The role, when the release gives one. */
+  role?: string;
+  [k: string]: unknown;
+}
+
+export function isDiscogsArtistView(v: unknown): v is DiscogsArtistView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.album.defs#discogsArtistView"
+  );
+}
+
+export function validateDiscogsArtistView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.album.defs#discogsArtistView", v);
+}
+
+/** The master that groups every edition of the release. */
+export interface DiscogsMasterView {
+  /** The Discogs master ID. */
+  masterId?: number;
+  /** The master title. */
+  title?: string;
+  /** The master artist credit. */
+  artist?: string;
+  /** The year the release first came out. */
+  year?: number;
+  /** The release Discogs treats as the canonical edition. */
+  mainReleaseId?: number;
+  /** The master page on Discogs. */
+  url?: string;
+  /** The Discogs genres of the master. */
+  genres?: string[];
+  /** The Discogs styles of the master. */
+  styles?: string[];
+  [k: string]: unknown;
+}
+
+export function isDiscogsMasterView(v: unknown): v is DiscogsMasterView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.album.defs#discogsMasterView"
+  );
+}
+
+export function validateDiscogsMasterView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.album.defs#discogsMasterView", v);
 }

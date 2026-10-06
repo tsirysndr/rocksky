@@ -7,8 +7,13 @@ import artistAlbums from "./artist-albums";
 import artistTracks from "./artist-tracks";
 import artists from "./artists";
 import discogsCredits from "./discogs-credits";
+import discogsIdentifiers from "./discogs-identifiers";
+import discogsMasters from "./discogs-masters";
+import discogsReleaseArtists from "./discogs-release-artists";
+import discogsReleaseLabels from "./discogs-release-labels";
 import discogsReleases from "./discogs-releases";
 import discogsSearches from "./discogs-searches";
+import discogsTracks from "./discogs-tracks";
 import dropbox from "./dropbox";
 import dropboxAccounts from "./dropbox-accounts";
 import dropboxDirectories from "./dropbox-directories";
@@ -96,4 +101,9 @@ export default {
   discogsReleases,
   discogsSearches,
   discogsCredits,
+  discogsMasters,
+  discogsReleaseArtists,
+  discogsReleaseLabels,
+  discogsIdentifiers,
+  discogsTracks,
 };

@@ -16,7 +16,7 @@ import * as R from "ramda";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
 import type { SelectArtist } from "schema/artists";
-import type { SelectDiscogsCredit } from "schema/discogs-credits";
+import type { DiscogsRelations } from "lib/discogsView";
 import type { SelectDiscogsRelease } from "schema/discogs-releases";
 
 export default function (server: Server, ctx: Context) {
@@ -88,13 +88,8 @@ const retrieve = ({
         Promise.resolve(artist),
         Promise.resolve(discogs),
         discogs
-          ? ctx.readDb
-              .select()
-              .from(tables.discogsCredits)
-              .where(eq(tables.discogsCredits.releaseId, discogs.id))
-              .orderBy(asc(tables.discogsCredits.position))
-              .execute()
-          : Promise.resolve([]),
+          ? discogsRelations(ctx, discogs)
+          : Promise.resolve({} as DiscogsRelations),
         ctx.readDb
           .select()
           .from(tables.albumTracks)
@@ -139,11 +134,58 @@ const retrieve = ({
   });
 };
 
+// Every child table of the matched release, in the order Discogs listed them.
+const discogsRelations = async (
+  ctx: Context,
+  release: SelectDiscogsRelease,
+): Promise<DiscogsRelations> => {
+  const [credits, tracklist, labels, identifiers, artists, master] =
+    await Promise.all([
+      ctx.readDb
+        .select()
+        .from(tables.discogsCredits)
+        .where(eq(tables.discogsCredits.releaseId, release.id))
+        .orderBy(asc(tables.discogsCredits.position)),
+      ctx.readDb
+        .select()
+        .from(tables.discogsTracks)
+        .where(eq(tables.discogsTracks.releaseId, release.id))
+        .orderBy(asc(tables.discogsTracks.idx)),
+      ctx.readDb
+        .select()
+        .from(tables.discogsReleaseLabels)
+        .where(eq(tables.discogsReleaseLabels.releaseId, release.id))
+        .orderBy(
+          asc(tables.discogsReleaseLabels.kind),
+          asc(tables.discogsReleaseLabels.position),
+        ),
+      ctx.readDb
+        .select()
+        .from(tables.discogsIdentifiers)
+        .where(eq(tables.discogsIdentifiers.releaseId, release.id))
+        .orderBy(asc(tables.discogsIdentifiers.position)),
+      ctx.readDb
+        .select()
+        .from(tables.discogsReleaseArtists)
+        .where(eq(tables.discogsReleaseArtists.releaseId, release.id))
+        .orderBy(asc(tables.discogsReleaseArtists.position)),
+      release.masterId
+        ? ctx.readDb
+            .select()
+            .from(tables.discogsMasters)
+            .where(eq(tables.discogsMasters.discogsId, release.masterId))
+            .limit(1)
+            .then((rows) => rows[0] ?? null)
+        : Promise.resolve(null),
+    ]);
+  return { credits, tracklist, labels, identifiers, artists, master };
+};
+
 const presentation = ([
   album,
   artist,
   discogs,
-  credits,
+  relations,
   tracks,
   uniqueListeners,
   playCount,
@@ -151,7 +193,7 @@ const presentation = ([
   SelectAlbum,
   SelectArtist,
   SelectDiscogsRelease | null,
-  SelectDiscogsCredit[],
+  DiscogsRelations,
   SongViewBasic[],
   number,
   number,
@@ -162,7 +204,7 @@ const presentation = ([
     tracks,
     playCount,
     uniqueListeners,
-    discogs: toDiscogsView(discogs, credits),
+    discogs: toDiscogsView(discogs, relations),
     createdAt: album.createdAt.toISOString(),
   }));
 };

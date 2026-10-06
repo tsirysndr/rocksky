@@ -64,6 +64,90 @@ export interface DiscogsEnrichResponse {
   matches: DiscogsMatch[];
 }
 
+// The Discogs objects the service passes through on /releases/:id and
+// /masters/:id, in its own JSON shape (snake_case, as Discogs sends it).
+export interface DiscogsArtistCredit {
+  id?: number;
+  name: string;
+  anv?: string;
+  join?: string;
+  role?: string;
+  tracks?: string;
+  resource_url?: string;
+}
+
+export interface DiscogsLabelRef {
+  id?: number;
+  name: string;
+  catno?: string;
+  entity_type?: string;
+  entity_type_name?: string;
+  resource_url?: string;
+}
+
+export interface DiscogsFormat {
+  name?: string;
+  qty?: string;
+  text?: string;
+  descriptions?: string[];
+}
+
+export interface DiscogsImage {
+  type?: string;
+  uri?: string;
+  uri150?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface DiscogsIdentifier {
+  type: string;
+  value?: string;
+  description?: string;
+}
+
+export interface DiscogsTracklistEntry {
+  position?: string;
+  type_?: string;
+  title: string;
+  duration?: string;
+  artists?: DiscogsArtistCredit[];
+  extraartists?: DiscogsArtistCredit[];
+}
+
+export interface DiscogsRelease {
+  id: number;
+  title: string;
+  year?: number;
+  released?: string;
+  country?: string;
+  notes?: string;
+  uri?: string;
+  master_id?: number;
+  data_quality?: string;
+  artists?: DiscogsArtistCredit[];
+  extraartists?: DiscogsArtistCredit[];
+  labels?: DiscogsLabelRef[];
+  companies?: DiscogsLabelRef[];
+  formats?: DiscogsFormat[];
+  genres?: string[];
+  styles?: string[];
+  tracklist?: DiscogsTracklistEntry[];
+  images?: DiscogsImage[];
+  identifiers?: DiscogsIdentifier[];
+}
+
+export interface DiscogsMaster {
+  id: number;
+  title: string;
+  year?: number;
+  main_release?: number;
+  uri?: string;
+  artists?: DiscogsArtistCredit[];
+  genres?: string[];
+  styles?: string[];
+}
+
 export interface DiscogsQuery {
   artist: string;
   album?: string;
@@ -90,6 +174,46 @@ export const enrichWithDiscogs = async (
   } catch (error) {
     consola.warn(
       "Discogs enrichment failed:",
+      error instanceof Error ? error.message : error,
+    );
+    return undefined;
+  }
+};
+
+/**
+ * Fetch a full release. /enrich already deep-fetched it, so the service
+ * answers this from its own cache and it costs no Discogs quota. Never throws.
+ */
+export const getDiscogsRelease = async (
+  ctx: Context,
+  id: number,
+): Promise<DiscogsRelease | undefined> => {
+  try {
+    const { data } = await ctx.discogs.get<DiscogsRelease>(`/releases/${id}`);
+    return data;
+  } catch (error) {
+    consola.warn(
+      `Discogs release ${id} fetch failed:`,
+      error instanceof Error ? error.message : error,
+    );
+    return undefined;
+  }
+};
+
+/**
+ * Fetch a master. Unlike the release this can cost a request out of the
+ * quota, so callers should ask only for masters they do not already have.
+ */
+export const getDiscogsMaster = async (
+  ctx: Context,
+  id: number,
+): Promise<DiscogsMaster | undefined> => {
+  try {
+    const { data } = await ctx.discogs.get<DiscogsMaster>(`/masters/${id}`);
+    return data;
+  } catch (error) {
+    consola.warn(
+      `Discogs master ${id} fetch failed:`,
       error instanceof Error ? error.message : error,
     );
     return undefined;

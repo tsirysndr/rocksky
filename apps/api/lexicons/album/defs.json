@@ -219,6 +219,42 @@
             "type": "ref",
             "ref": "app.rocksky.album.defs#discogsCreditView"
           }
+        },
+        "tracklist": {
+          "type": "array",
+          "description": "The release tracklist.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.album.defs#discogsTrackView"
+          }
+        },
+        "labels": {
+          "type": "array",
+          "description": "Every label and company on the release.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.album.defs#discogsLabelView"
+          }
+        },
+        "identifiers": {
+          "type": "array",
+          "description": "Every identifier printed on the release.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.album.defs#discogsIdentifierView"
+          }
+        },
+        "artists": {
+          "type": "array",
+          "description": "Every artist credited on the release.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.album.defs#discogsArtistView"
+          }
+        },
+        "master": {
+          "type": "ref",
+          "ref": "app.rocksky.album.defs#discogsMasterView"
         }
       }
     },
@@ -241,6 +277,155 @@
         "tracks": {
           "type": "string",
           "description": "The track positions the credit applies to, absent when it covers the whole release."
+        }
+      }
+    },
+    "discogsTrackView": {
+      "type": "object",
+      "description": "One entry of the release tracklist, as printed on it.",
+      "properties": {
+        "position": {
+          "type": "string",
+          "description": "The position Discogs prints, such as 7, 2-04 or C2."
+        },
+        "type": {
+          "type": "string",
+          "description": "The entry kind: track, heading or index."
+        },
+        "title": {
+          "type": "string",
+          "description": "The track title."
+        },
+        "duration": {
+          "type": "string",
+          "description": "The duration as printed, m:ss."
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "The duration in milliseconds."
+        },
+        "discNumber": {
+          "type": "integer",
+          "description": "The disc the track sits on, parsed from the position."
+        },
+        "trackNumber": {
+          "type": "integer",
+          "description": "The track number, side-relative for vinyl."
+        }
+      }
+    },
+    "discogsLabelView": {
+      "type": "object",
+      "description": "A label or company involved in the release.",
+      "properties": {
+        "labelId": {
+          "type": "integer",
+          "description": "The Discogs label ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The label or company name."
+        },
+        "catalogNumber": {
+          "type": "string",
+          "description": "The catalog number this label gave the release."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Either label or company."
+        },
+        "entityType": {
+          "type": "string",
+          "description": "The role for a company, such as Pressed By or Distributed By."
+        }
+      }
+    },
+    "discogsIdentifierView": {
+      "type": "object",
+      "description": "An identifier printed on the release: barcode, matrix / runout, label code, rights society.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The identifier type as Discogs names it."
+        },
+        "value": {
+          "type": "string",
+          "description": "The identifier itself."
+        },
+        "description": {
+          "type": "string",
+          "description": "What the identifier applies to, when Discogs says."
+        }
+      }
+    },
+    "discogsArtistView": {
+      "type": "object",
+      "description": "An artist credited on the release itself.",
+      "properties": {
+        "artistId": {
+          "type": "integer",
+          "description": "The Discogs artist ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The artist name."
+        },
+        "anv": {
+          "type": "string",
+          "description": "The name as credited on this release, when it differs."
+        },
+        "joinPhrase": {
+          "type": "string",
+          "description": "What separates this artist from the next in the credit."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role, when the release gives one."
+        }
+      }
+    },
+    "discogsMasterView": {
+      "type": "object",
+      "description": "The master that groups every edition of the release.",
+      "properties": {
+        "masterId": {
+          "type": "integer",
+          "description": "The Discogs master ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "The master title."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The master artist credit."
+        },
+        "year": {
+          "type": "integer",
+          "description": "The year the release first came out."
+        },
+        "mainReleaseId": {
+          "type": "integer",
+          "description": "The release Discogs treats as the canonical edition."
+        },
+        "url": {
+          "type": "string",
+          "description": "The master page on Discogs.",
+          "format": "uri"
+        },
+        "genres": {
+          "type": "array",
+          "description": "The Discogs genres of the master.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "styles": {
+          "type": "array",
+          "description": "The Discogs styles of the master.",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

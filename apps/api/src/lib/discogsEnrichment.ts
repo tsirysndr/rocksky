@@ -14,8 +14,18 @@ import {
   type DiscogsCredit,
   type DiscogsEnrichResponse,
   type DiscogsEnrichedTrack,
+  type DiscogsRelease,
   enrichWithDiscogs,
+  getDiscogsMaster,
+  getDiscogsRelease,
 } from "./discogs";
+import {
+  toIdentifierRows,
+  toMasterRow,
+  toReleaseArtistRows,
+  toReleaseLabelRows,
+  toTrackRows,
+} from "./discogsRelation";
 
 // Discogs keeps being added to, so a miss is retried eventually rather than
 // treated as settled; a hit is never re-asked.
@@ -165,6 +175,7 @@ export const enrichAlbumWithDiscogs = async (
     .then((rows) => rows[0]);
 
   await storeCredits(ctx, release.id, response.track?.credits);
+  await storeRelations(ctx, release.id, release.discogsId, release.masterId);
 
   await recordSearch(ctx, {
     sha256,
@@ -197,6 +208,88 @@ const storeCredits = async (
       await tx.insert(tables.discogsCredits).values(rows);
     }
   });
+};
+
+// The full release comes back from the service's own cache (the /enrich
+// deep-fetch already paid for it), so the relational half costs no quota. The
+// master can cost a request, so it is only asked for when it is not stored.
+const storeRelations = async (
+  ctx: Context,
+  releaseRowId: string,
+  discogsId: number,
+  masterId: number | null,
+) => {
+  const release = await getDiscogsRelease(ctx, discogsId);
+  if (release) {
+    await writeReleaseChildren(ctx, releaseRowId, release);
+  }
+  if (masterId) {
+    await storeMaster(ctx, masterId);
+  }
+};
+
+const writeReleaseChildren = async (
+  ctx: Context,
+  releaseId: string,
+  release: DiscogsRelease,
+) => {
+  const artists = toReleaseArtistRows(releaseId, release.artists);
+  const labels = toReleaseLabelRows(releaseId, release);
+  const identifiers = toIdentifierRows(releaseId, release.identifiers);
+  const tracks = toTrackRows(releaseId, release.tracklist);
+
+  await ctx.db.transaction(async (tx) => {
+    await tx
+      .delete(tables.discogsReleaseArtists)
+      .where(eq(tables.discogsReleaseArtists.releaseId, releaseId));
+    await tx
+      .delete(tables.discogsReleaseLabels)
+      .where(eq(tables.discogsReleaseLabels.releaseId, releaseId));
+    await tx
+      .delete(tables.discogsIdentifiers)
+      .where(eq(tables.discogsIdentifiers.releaseId, releaseId));
+    await tx
+      .delete(tables.discogsTracks)
+      .where(eq(tables.discogsTracks.releaseId, releaseId));
+
+    if (artists.length > 0) {
+      await tx.insert(tables.discogsReleaseArtists).values(artists);
+    }
+    if (labels.length > 0) {
+      await tx.insert(tables.discogsReleaseLabels).values(labels);
+    }
+    if (identifiers.length > 0) {
+      await tx.insert(tables.discogsIdentifiers).values(identifiers);
+    }
+    if (tracks.length > 0) {
+      await tx.insert(tables.discogsTracks).values(tracks);
+    }
+  });
+};
+
+const storeMaster = async (ctx: Context, masterId: number) => {
+  const stored = await ctx.db
+    .select({ id: tables.discogsMasters.id })
+    .from(tables.discogsMasters)
+    .where(eq(tables.discogsMasters.discogsId, masterId))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (stored) {
+    return;
+  }
+
+  const master = await getDiscogsMaster(ctx, masterId);
+  const row = master ? toMasterRow(master) : undefined;
+  if (!row) {
+    return;
+  }
+  await ctx.db
+    .insert(tables.discogsMasters)
+    .values(row)
+    .onConflictDoUpdate({
+      target: tables.discogsMasters.discogsId,
+      set: { ...row, updatedAt: new Date() },
+    });
 };
 
 const recordSearch = async (
