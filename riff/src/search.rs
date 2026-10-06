@@ -289,7 +289,7 @@ pub(crate) fn tracks_with_artist_ids(q: &SearchQuery, artist_ids: Option<&[i64]>
 
     if !q.artist.is_empty() {
         sql.push(match artist_ids {
-            Some(ids) if ids.is_empty() => "FALSE".to_string(),
+            Some([]) => "FALSE".to_string(),
             Some(ids) => format!(
                 "t.row_id IN (SELECT track_rowid FROM track_artists_by_artist WHERE artist_rowid IN ({}))",
                 ids.iter().map(i64::to_string).collect::<Vec<_>>().join(",")
