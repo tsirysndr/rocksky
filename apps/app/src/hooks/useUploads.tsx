@@ -2,10 +2,16 @@ import {
   keepPreviousData,
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
-import { getUploads, type PickedAudioFile, uploadTrack } from "../api/uploads";
+import {
+  getUploadCount,
+  getUploads,
+  type PickedAudioFile,
+  uploadTrack,
+} from "../api/uploads";
 import { authTokenAtom } from "../atoms/auth";
 import { storage } from "../storage";
 
@@ -30,6 +36,16 @@ export const useUploadsInfiniteQuery = (q: string, enabled = true) => {
     gcTime: GC_TIME,
     refetchOnMount: false,
     placeholderData: keepPreviousData,
+  });
+};
+
+export const useUploadCountQuery = (enabled = true) => {
+  const token = useAtomValue(authTokenAtom);
+  return useQuery({
+    queryKey: ["uploads", "count", storage.getDid()],
+    queryFn: getUploadCount,
+    enabled: enabled && !!token,
+    staleTime: STALE_TIME,
   });
 };
 

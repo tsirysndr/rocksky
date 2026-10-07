@@ -599,6 +599,18 @@ app.get("/", async (c) => {
   return c.json(uploads);
 });
 
+// GET /uploads/count ---------------------------------------------------------
+// Read-only count scoped to the signed-in user's uploads. Keeps pagination cheap.
+app.get("/count", async (c) => {
+  const user = await resolveUser(c.req.header("authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const [result] = await ctx.db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(tables.userUploads)
+    .where(eq(tables.userUploads.userId, user.id));
+  return c.json({ total: result.total });
+});
+
 // GET /uploads/albums --------------------------------------------------------
 // Paginated list of distinct albums the caller has uploaded tracks for.
 app.get("/albums", async (c) => {

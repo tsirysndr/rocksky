@@ -75,6 +75,16 @@ export const getUploads = async (
   return response.data;
 };
 
+export const getUploadCount = async (): Promise<number> => {
+  const { data } = await axios.get<{ total: number }>(
+    `${API_URL}/uploads/count`,
+    {
+      headers: authHeaders(),
+    },
+  );
+  return data.total;
+};
+
 // /uploads/albums and /uploads/artists are gone from the client: they group-by
 // the user's whole upload set on every page. Albums and artists are browsed
 // through navidrome's Subsonic API instead — see api/navidrome.ts.
