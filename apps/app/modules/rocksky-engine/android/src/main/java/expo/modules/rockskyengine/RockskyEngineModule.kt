@@ -61,8 +61,52 @@ class RockskyEngineModule : Module() {
     }
   }
 
+  private fun localMusicPath(id: String): String {
+      val context = requireNotNull(appContext.reactContext).applicationContext
+      check(LocalMusicScanJob.hasPermission(context)) { "Allow music access to play this file" }
+      val track = LocalMusicStore(context).use { it.track(id) } ?: error("Track is no longer available")
+      val path = track.getString("path")
+      return if (path.isNotBlank() && java.io.File(path).canRead()) path else {
+        val dir = java.io.File(context.cacheDir, "local-playback").apply { mkdirs() }
+        val file = java.io.File(dir, "$id-${track.getString("stamp")}.${java.io.File(track.getString("filename")).extension}")
+        if (!file.exists()) {
+          val pending = java.io.File.createTempFile("audio-", ".tmp", dir)
+          try {
+            context.contentResolver.openInputStream(android.net.Uri.parse(track.getString("uri"))).use { input ->
+              checkNotNull(input) { "Audio file is unavailable" }
+              pending.outputStream().use { input.copyTo(it) }
+            }
+            check(pending.renameTo(file)) { "Could not prepare the audio file" }
+          } finally { pending.delete() }
+        }
+        file.absolutePath
+      }
+    }
+
+  private val identifying = java.util.concurrent.atomic.AtomicBoolean(false)
+
   override fun definition() = ModuleDefinition {
     Name("RockskyEngine")
+
+    AsyncFunction("localLibrary") {
+      val context = requireNotNull(appContext.reactContext).applicationContext
+      LocalMusicScanJob.ensureScheduled(context)
+      LocalMusicStore(context).use { it.library().put("scan", LocalMusicScanJob.status(context)).toString() }
+    }
+    AsyncFunction("scanLocalMusic") {
+      LocalMusicScanJob.schedule(requireNotNull(appContext.reactContext).applicationContext, force = true)
+    }
+    AsyncFunction("mutateLocalMusic") { json: String ->
+      LocalMusicStore(requireNotNull(appContext.reactContext).applicationContext).use { it.mutate(org.json.JSONObject(json)).toString() }
+    }
+    AsyncFunction("localMusicPath") { id: String -> localMusicPath(id) }
+    AsyncFunction("fingerprintLocalTrack") { id: String ->
+      check(identifying.compareAndSet(false, true)) { "Already identifying a track" }
+      try {
+        check(ensureLoaded()) { "Native audio engine is unavailable" }
+        NativeEngine.command(org.json.JSONObject().put("cmd", "fingerprint").put("path", localMusicPath(id)).toString())
+      } finally { identifying.set(false) }
+    }
 
     Function("isAvailable") {
       ensureLoaded()

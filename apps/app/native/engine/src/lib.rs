@@ -3,6 +3,8 @@
 //! command entrypoint.
 
 mod audio;
+mod fingerprint;
+mod metadata;
 
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -14,6 +16,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
+    Fingerprint {
+        path: String,
+    },
+    ReadMetadata {
+        path: String,
+        art_path: String,
+    },
     Open {
         paths: Vec<String>,
         #[serde(default)]
@@ -307,11 +316,24 @@ pub fn handle(input: &str) -> String {
         Ok(r) => r,
         Err(e) => return err(format!("bad command: {e}")),
     };
+    if let Request::Fingerprint { path } = &request {
+        return match fingerprint::read(std::path::Path::new(path)) {
+            Ok(value) => serde_json::json!({"ok":true,"fingerprint":value}).to_string(),
+            Err(e) => err(e),
+        };
+    }
+    if let Request::ReadMetadata { path, art_path } = &request {
+        return match metadata::read(std::path::Path::new(path), std::path::Path::new(art_path)) {
+            Ok(metadata) => serde_json::json!({"ok":true,"metadata":metadata}).to_string(),
+            Err(e) => err(e),
+        };
+    }
     let engine = match engine() {
         Ok(e) => e,
         Err(e) => return err(e),
     };
     match request {
+        Request::ReadMetadata { .. } | Request::Fingerprint { .. } => unreachable!(),
         Request::Status => {
             let snap = engine.snapshot();
             serde_json::to_string(&StatusResponse {

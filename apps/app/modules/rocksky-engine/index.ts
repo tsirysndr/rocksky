@@ -2,6 +2,11 @@ import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { requireOptionalNativeModule } from "expo";
 
 type RockskyEngineNativeModule = {
+  localLibrary(): Promise<string>;
+  scanLocalMusic(): Promise<void>;
+  mutateLocalMusic(json: string): Promise<string>;
+  localMusicPath(id: string): Promise<string>;
+  fingerprintLocalTrack(id: string): Promise<string>;
   isAvailable(): boolean;
   command(json: string): string;
 };
@@ -44,6 +49,36 @@ export type EngineCommand =
 
 const native =
   requireOptionalNativeModule<RockskyEngineNativeModule>("RockskyEngine");
+
+export const localMusicNative = {
+  async fingerprint(id: string): Promise<string> {
+    if (!native)
+      throw new Error("Local music requires an Android native build.");
+    const result = JSON.parse(await native.fingerprintLocalTrack(id));
+    if (!result.ok) throw new Error(result.error);
+    return result.fingerprint;
+  },
+  async library() {
+    if (!native)
+      throw new Error("Local music requires an Android native build.");
+    return JSON.parse(await native.localLibrary());
+  },
+  async scan() {
+    if (!native)
+      throw new Error("Local music requires an Android native build.");
+    await native.scanLocalMusic();
+  },
+  async mutate(input: Record<string, unknown>) {
+    if (!native)
+      throw new Error("Local music requires an Android native build.");
+    return JSON.parse(await native.mutateLocalMusic(JSON.stringify(input)));
+  },
+  async path(id: string) {
+    if (!native)
+      throw new Error("Local music requires an Android native build.");
+    return native.localMusicPath(id);
+  },
+};
 
 export function isEngineAvailable(): boolean {
   try {
