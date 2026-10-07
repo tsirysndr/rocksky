@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.dropbox.getMetadata";
 
 /// Retrieve metadata of a file or folder in Dropbox
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// Path to the file or folder in Dropbox
@@ -21,7 +21,13 @@ pub struct Parameters {
 }
 
 /// The response body.
-pub type Output = super::super::super::super::app::rocksky::dropbox::defs::FileView;
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Output {
+    /// Metadata returned by the provider; currently an empty object.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<serde_json::Value>,
+}
 
 /// This method, implemented.
 ///

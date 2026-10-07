@@ -525,9 +525,12 @@ fn emit_object(
 
     out.push_str(&nested);
     doc_comment(out, description, 0);
+    // `Default` so a caller can build a view with the handful of fields it
+    // actually has and `..Default::default()` for the rest — without it, every
+    // field a lexicon gains breaks every struct literal downstream.
     writeln!(
         out,
-        "#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]"
+        "#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]"
     )?;
     // Every lexicon property is camelCase on the wire; the struct is
     // snake_case. `rename_all` covers the common case and the per-field

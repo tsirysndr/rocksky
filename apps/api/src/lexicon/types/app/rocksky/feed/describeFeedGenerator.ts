@@ -9,7 +9,7 @@ import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskyFeedDefs from "./defs";
 
-export type QueryParams = {};
+export type QueryParams = {}
 
 export type InputSchema = undefined;
 

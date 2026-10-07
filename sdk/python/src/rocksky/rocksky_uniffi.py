@@ -2835,6 +2835,15 @@ class _UniffiConverterFloat(_UniffiConverterPrimitiveFloat):
     def write(value, buf):
         buf.write_float(value)
 
+class _UniffiConverterDouble(_UniffiConverterPrimitiveFloat):
+    @staticmethod
+    def read(buf):
+        return buf.read_double()
+
+    @staticmethod
+    def write(value, buf):
+        buf.write_double(value)
+
 class _UniffiConverterBool:
     @classmethod
     def check_lower(cls, value):
@@ -6630,7 +6639,14 @@ class AlbumView:
     sha256: "typing.Optional[str]"
     play_count: "typing.Optional[int]"
     unique_listeners: "typing.Optional[int]"
-    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", artist_uri: "typing.Optional[str]", year: "typing.Optional[int]", album_art: "typing.Optional[str]", release_date: "typing.Optional[str]", sha256: "typing.Optional[str]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]"):
+    created_at: "typing.Optional[str]"
+    updated_at: "typing.Optional[str]"
+    discogs_release_id: "typing.Optional[str]"
+    spotify_link: "typing.Optional[str]"
+    youtube_link: "typing.Optional[str]"
+    apple_music_link: "typing.Optional[str]"
+    tidal_link: "typing.Optional[str]"
+    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", artist_uri: "typing.Optional[str]", year: "typing.Optional[int]", album_art: "typing.Optional[str]", release_date: "typing.Optional[str]", sha256: "typing.Optional[str]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]", discogs_release_id: "typing.Optional[str]", spotify_link: "typing.Optional[str]", youtube_link: "typing.Optional[str]", apple_music_link: "typing.Optional[str]", tidal_link: "typing.Optional[str]"):
         self.id = id
         self.uri = uri
         self.title = title
@@ -6642,9 +6658,16 @@ class AlbumView:
         self.sha256 = sha256
         self.play_count = play_count
         self.unique_listeners = unique_listeners
+        self.created_at = created_at
+        self.updated_at = updated_at
+        self.discogs_release_id = discogs_release_id
+        self.spotify_link = spotify_link
+        self.youtube_link = youtube_link
+        self.apple_music_link = apple_music_link
+        self.tidal_link = tidal_link
 
     def __str__(self):
-        return "AlbumView(id={}, uri={}, title={}, artist={}, artist_uri={}, year={}, album_art={}, release_date={}, sha256={}, play_count={}, unique_listeners={})".format(self.id, self.uri, self.title, self.artist, self.artist_uri, self.year, self.album_art, self.release_date, self.sha256, self.play_count, self.unique_listeners)
+        return "AlbumView(id={}, uri={}, title={}, artist={}, artist_uri={}, year={}, album_art={}, release_date={}, sha256={}, play_count={}, unique_listeners={}, created_at={}, updated_at={}, discogs_release_id={}, spotify_link={}, youtube_link={}, apple_music_link={}, tidal_link={})".format(self.id, self.uri, self.title, self.artist, self.artist_uri, self.year, self.album_art, self.release_date, self.sha256, self.play_count, self.unique_listeners, self.created_at, self.updated_at, self.discogs_release_id, self.spotify_link, self.youtube_link, self.apple_music_link, self.tidal_link)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -6669,6 +6692,20 @@ class AlbumView:
             return False
         if self.unique_listeners != other.unique_listeners:
             return False
+        if self.created_at != other.created_at:
+            return False
+        if self.updated_at != other.updated_at:
+            return False
+        if self.discogs_release_id != other.discogs_release_id:
+            return False
+        if self.spotify_link != other.spotify_link:
+            return False
+        if self.youtube_link != other.youtube_link:
+            return False
+        if self.apple_music_link != other.apple_music_link:
+            return False
+        if self.tidal_link != other.tidal_link:
+            return False
         return True
 
 class _UniffiConverterTypeAlbumView(_UniffiConverterRustBuffer):
@@ -6686,6 +6723,13 @@ class _UniffiConverterTypeAlbumView(_UniffiConverterRustBuffer):
             sha256=_UniffiConverterOptionalString.read(buf),
             play_count=_UniffiConverterOptionalUInt64.read(buf),
             unique_listeners=_UniffiConverterOptionalUInt64.read(buf),
+            created_at=_UniffiConverterOptionalString.read(buf),
+            updated_at=_UniffiConverterOptionalString.read(buf),
+            discogs_release_id=_UniffiConverterOptionalString.read(buf),
+            spotify_link=_UniffiConverterOptionalString.read(buf),
+            youtube_link=_UniffiConverterOptionalString.read(buf),
+            apple_music_link=_UniffiConverterOptionalString.read(buf),
+            tidal_link=_UniffiConverterOptionalString.read(buf),
         )
 
     @staticmethod
@@ -6701,6 +6745,13 @@ class _UniffiConverterTypeAlbumView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.check_lower(value.sha256)
         _UniffiConverterOptionalUInt64.check_lower(value.play_count)
         _UniffiConverterOptionalUInt64.check_lower(value.unique_listeners)
+        _UniffiConverterOptionalString.check_lower(value.created_at)
+        _UniffiConverterOptionalString.check_lower(value.updated_at)
+        _UniffiConverterOptionalString.check_lower(value.discogs_release_id)
+        _UniffiConverterOptionalString.check_lower(value.spotify_link)
+        _UniffiConverterOptionalString.check_lower(value.youtube_link)
+        _UniffiConverterOptionalString.check_lower(value.apple_music_link)
+        _UniffiConverterOptionalString.check_lower(value.tidal_link)
 
     @staticmethod
     def write(value, buf):
@@ -6715,6 +6766,13 @@ class _UniffiConverterTypeAlbumView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.sha256, buf)
         _UniffiConverterOptionalUInt64.write(value.play_count, buf)
         _UniffiConverterOptionalUInt64.write(value.unique_listeners, buf)
+        _UniffiConverterOptionalString.write(value.created_at, buf)
+        _UniffiConverterOptionalString.write(value.updated_at, buf)
+        _UniffiConverterOptionalString.write(value.discogs_release_id, buf)
+        _UniffiConverterOptionalString.write(value.spotify_link, buf)
+        _UniffiConverterOptionalString.write(value.youtube_link, buf)
+        _UniffiConverterOptionalString.write(value.apple_music_link, buf)
+        _UniffiConverterOptionalString.write(value.tidal_link, buf)
 
 
 class ArtistInput:
@@ -6793,7 +6851,17 @@ class ArtistView:
     unique_listeners: "typing.Optional[int]"
     tags: "typing.List[str]"
     genres: "typing.List[str]"
-    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", name: "typing.Optional[str]", picture: "typing.Optional[str]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", tags: "typing.List[str]", genres: "typing.List[str]"):
+    created_at: "typing.Optional[str]"
+    updated_at: "typing.Optional[str]"
+    biography: "typing.Optional[str]"
+    born: "typing.Optional[str]"
+    born_in: "typing.Optional[str]"
+    died: "typing.Optional[str]"
+    spotify_link: "typing.Optional[str]"
+    youtube_link: "typing.Optional[str]"
+    apple_music_link: "typing.Optional[str]"
+    tidal_link: "typing.Optional[str]"
+    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", name: "typing.Optional[str]", picture: "typing.Optional[str]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", tags: "typing.List[str]", genres: "typing.List[str]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]", biography: "typing.Optional[str]", born: "typing.Optional[str]", born_in: "typing.Optional[str]", died: "typing.Optional[str]", spotify_link: "typing.Optional[str]", youtube_link: "typing.Optional[str]", apple_music_link: "typing.Optional[str]", tidal_link: "typing.Optional[str]"):
         self.id = id
         self.uri = uri
         self.name = name
@@ -6802,9 +6870,19 @@ class ArtistView:
         self.unique_listeners = unique_listeners
         self.tags = tags
         self.genres = genres
+        self.created_at = created_at
+        self.updated_at = updated_at
+        self.biography = biography
+        self.born = born
+        self.born_in = born_in
+        self.died = died
+        self.spotify_link = spotify_link
+        self.youtube_link = youtube_link
+        self.apple_music_link = apple_music_link
+        self.tidal_link = tidal_link
 
     def __str__(self):
-        return "ArtistView(id={}, uri={}, name={}, picture={}, play_count={}, unique_listeners={}, tags={}, genres={})".format(self.id, self.uri, self.name, self.picture, self.play_count, self.unique_listeners, self.tags, self.genres)
+        return "ArtistView(id={}, uri={}, name={}, picture={}, play_count={}, unique_listeners={}, tags={}, genres={}, created_at={}, updated_at={}, biography={}, born={}, born_in={}, died={}, spotify_link={}, youtube_link={}, apple_music_link={}, tidal_link={})".format(self.id, self.uri, self.name, self.picture, self.play_count, self.unique_listeners, self.tags, self.genres, self.created_at, self.updated_at, self.biography, self.born, self.born_in, self.died, self.spotify_link, self.youtube_link, self.apple_music_link, self.tidal_link)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -6823,6 +6901,26 @@ class ArtistView:
             return False
         if self.genres != other.genres:
             return False
+        if self.created_at != other.created_at:
+            return False
+        if self.updated_at != other.updated_at:
+            return False
+        if self.biography != other.biography:
+            return False
+        if self.born != other.born:
+            return False
+        if self.born_in != other.born_in:
+            return False
+        if self.died != other.died:
+            return False
+        if self.spotify_link != other.spotify_link:
+            return False
+        if self.youtube_link != other.youtube_link:
+            return False
+        if self.apple_music_link != other.apple_music_link:
+            return False
+        if self.tidal_link != other.tidal_link:
+            return False
         return True
 
 class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
@@ -6837,6 +6935,16 @@ class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
             unique_listeners=_UniffiConverterOptionalUInt64.read(buf),
             tags=_UniffiConverterSequenceString.read(buf),
             genres=_UniffiConverterSequenceString.read(buf),
+            created_at=_UniffiConverterOptionalString.read(buf),
+            updated_at=_UniffiConverterOptionalString.read(buf),
+            biography=_UniffiConverterOptionalString.read(buf),
+            born=_UniffiConverterOptionalString.read(buf),
+            born_in=_UniffiConverterOptionalString.read(buf),
+            died=_UniffiConverterOptionalString.read(buf),
+            spotify_link=_UniffiConverterOptionalString.read(buf),
+            youtube_link=_UniffiConverterOptionalString.read(buf),
+            apple_music_link=_UniffiConverterOptionalString.read(buf),
+            tidal_link=_UniffiConverterOptionalString.read(buf),
         )
 
     @staticmethod
@@ -6849,6 +6957,16 @@ class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalUInt64.check_lower(value.unique_listeners)
         _UniffiConverterSequenceString.check_lower(value.tags)
         _UniffiConverterSequenceString.check_lower(value.genres)
+        _UniffiConverterOptionalString.check_lower(value.created_at)
+        _UniffiConverterOptionalString.check_lower(value.updated_at)
+        _UniffiConverterOptionalString.check_lower(value.biography)
+        _UniffiConverterOptionalString.check_lower(value.born)
+        _UniffiConverterOptionalString.check_lower(value.born_in)
+        _UniffiConverterOptionalString.check_lower(value.died)
+        _UniffiConverterOptionalString.check_lower(value.spotify_link)
+        _UniffiConverterOptionalString.check_lower(value.youtube_link)
+        _UniffiConverterOptionalString.check_lower(value.apple_music_link)
+        _UniffiConverterOptionalString.check_lower(value.tidal_link)
 
     @staticmethod
     def write(value, buf):
@@ -6860,6 +6978,84 @@ class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalUInt64.write(value.unique_listeners, buf)
         _UniffiConverterSequenceString.write(value.tags, buf)
         _UniffiConverterSequenceString.write(value.genres, buf)
+        _UniffiConverterOptionalString.write(value.created_at, buf)
+        _UniffiConverterOptionalString.write(value.updated_at, buf)
+        _UniffiConverterOptionalString.write(value.biography, buf)
+        _UniffiConverterOptionalString.write(value.born, buf)
+        _UniffiConverterOptionalString.write(value.born_in, buf)
+        _UniffiConverterOptionalString.write(value.died, buf)
+        _UniffiConverterOptionalString.write(value.spotify_link, buf)
+        _UniffiConverterOptionalString.write(value.youtube_link, buf)
+        _UniffiConverterOptionalString.write(value.apple_music_link, buf)
+        _UniffiConverterOptionalString.write(value.tidal_link, buf)
+
+
+class DropboxView:
+    """
+    The listener's linked Dropbox (`app.rocksky.actor.defs#responseDropboxView`).
+    """
+
+    id: "typing.Optional[str]"
+    email: "typing.Optional[str]"
+    user_id: "typing.Optional[str]"
+    is_beta_user: "typing.Optional[bool]"
+    created_at: "typing.Optional[str]"
+    updated_at: "typing.Optional[str]"
+    def __init__(self, *, id: "typing.Optional[str]", email: "typing.Optional[str]", user_id: "typing.Optional[str]", is_beta_user: "typing.Optional[bool]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]"):
+        self.id = id
+        self.email = email
+        self.user_id = user_id
+        self.is_beta_user = is_beta_user
+        self.created_at = created_at
+        self.updated_at = updated_at
+
+    def __str__(self):
+        return "DropboxView(id={}, email={}, user_id={}, is_beta_user={}, created_at={}, updated_at={})".format(self.id, self.email, self.user_id, self.is_beta_user, self.created_at, self.updated_at)
+
+    def __eq__(self, other):
+        if self.id != other.id:
+            return False
+        if self.email != other.email:
+            return False
+        if self.user_id != other.user_id:
+            return False
+        if self.is_beta_user != other.is_beta_user:
+            return False
+        if self.created_at != other.created_at:
+            return False
+        if self.updated_at != other.updated_at:
+            return False
+        return True
+
+class _UniffiConverterTypeDropboxView(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return DropboxView(
+            id=_UniffiConverterOptionalString.read(buf),
+            email=_UniffiConverterOptionalString.read(buf),
+            user_id=_UniffiConverterOptionalString.read(buf),
+            is_beta_user=_UniffiConverterOptionalBool.read(buf),
+            created_at=_UniffiConverterOptionalString.read(buf),
+            updated_at=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.id)
+        _UniffiConverterOptionalString.check_lower(value.email)
+        _UniffiConverterOptionalString.check_lower(value.user_id)
+        _UniffiConverterOptionalBool.check_lower(value.is_beta_user)
+        _UniffiConverterOptionalString.check_lower(value.created_at)
+        _UniffiConverterOptionalString.check_lower(value.updated_at)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.id, buf)
+        _UniffiConverterOptionalString.write(value.email, buf)
+        _UniffiConverterOptionalString.write(value.user_id, buf)
+        _UniffiConverterOptionalBool.write(value.is_beta_user, buf)
+        _UniffiConverterOptionalString.write(value.created_at, buf)
+        _UniffiConverterOptionalString.write(value.updated_at, buf)
 
 
 class EqualizerBand:
@@ -7078,6 +7274,46 @@ class _UniffiConverterTypeGlobalStats(_UniffiConverterRustBuffer):
         _UniffiConverterUInt64.write(value.tracks, buf)
 
 
+class GoogledriveView:
+    """
+    The listener's linked Google Drive (`app.rocksky.actor.defs#responseGoogledriveView`).
+    """
+
+    created_at: "typing.Optional[str]"
+    updated_at: "typing.Optional[str]"
+    def __init__(self, *, created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]"):
+        self.created_at = created_at
+        self.updated_at = updated_at
+
+    def __str__(self):
+        return "GoogledriveView(created_at={}, updated_at={})".format(self.created_at, self.updated_at)
+
+    def __eq__(self, other):
+        if self.created_at != other.created_at:
+            return False
+        if self.updated_at != other.updated_at:
+            return False
+        return True
+
+class _UniffiConverterTypeGoogledriveView(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return GoogledriveView(
+            created_at=_UniffiConverterOptionalString.read(buf),
+            updated_at=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.created_at)
+        _UniffiConverterOptionalString.check_lower(value.updated_at)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.created_at, buf)
+        _UniffiConverterOptionalString.write(value.updated_at, buf)
+
+
 class NotificationActor:
     """
     The user who triggered a notification
@@ -7195,6 +7431,60 @@ class _UniffiConverterTypeNotificationList(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.cursor, buf)
 
 
+class NotificationSubject:
+    """
+    The song a notification is about (`app.rocksky.notification.defs#subjectView`).
+    """
+
+    uri: "typing.Optional[str]"
+    title: "typing.Optional[str]"
+    artist: "typing.Optional[str]"
+    album_art: "typing.Optional[str]"
+    def __init__(self, *, uri: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", album_art: "typing.Optional[str]"):
+        self.uri = uri
+        self.title = title
+        self.artist = artist
+        self.album_art = album_art
+
+    def __str__(self):
+        return "NotificationSubject(uri={}, title={}, artist={}, album_art={})".format(self.uri, self.title, self.artist, self.album_art)
+
+    def __eq__(self, other):
+        if self.uri != other.uri:
+            return False
+        if self.title != other.title:
+            return False
+        if self.artist != other.artist:
+            return False
+        if self.album_art != other.album_art:
+            return False
+        return True
+
+class _UniffiConverterTypeNotificationSubject(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return NotificationSubject(
+            uri=_UniffiConverterOptionalString.read(buf),
+            title=_UniffiConverterOptionalString.read(buf),
+            artist=_UniffiConverterOptionalString.read(buf),
+            album_art=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.uri)
+        _UniffiConverterOptionalString.check_lower(value.title)
+        _UniffiConverterOptionalString.check_lower(value.artist)
+        _UniffiConverterOptionalString.check_lower(value.album_art)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.uri, buf)
+        _UniffiConverterOptionalString.write(value.title, buf)
+        _UniffiConverterOptionalString.write(value.artist, buf)
+        _UniffiConverterOptionalString.write(value.album_art, buf)
+
+
 class NotificationView:
     """
     A single notification (`app.rocksky.notification.defs#notificationView`).
@@ -7217,7 +7507,8 @@ class NotificationView:
     shout_id: "typing.Optional[str]"
     shout_content: "typing.Optional[str]"
     actor: "typing.Optional[NotificationActor]"
-    def __init__(self, *, id: "str", notification_type: "str", read: "bool", created_at: "str", subject_uri: "typing.Optional[str]", shout_id: "typing.Optional[str]", shout_content: "typing.Optional[str]", actor: "typing.Optional[NotificationActor]"):
+    subject: "typing.Optional[NotificationSubject]"
+    def __init__(self, *, id: "str", notification_type: "str", read: "bool", created_at: "str", subject_uri: "typing.Optional[str]", shout_id: "typing.Optional[str]", shout_content: "typing.Optional[str]", actor: "typing.Optional[NotificationActor]", subject: "typing.Optional[NotificationSubject]"):
         self.id = id
         self.notification_type = notification_type
         self.read = read
@@ -7226,9 +7517,10 @@ class NotificationView:
         self.shout_id = shout_id
         self.shout_content = shout_content
         self.actor = actor
+        self.subject = subject
 
     def __str__(self):
-        return "NotificationView(id={}, notification_type={}, read={}, created_at={}, subject_uri={}, shout_id={}, shout_content={}, actor={})".format(self.id, self.notification_type, self.read, self.created_at, self.subject_uri, self.shout_id, self.shout_content, self.actor)
+        return "NotificationView(id={}, notification_type={}, read={}, created_at={}, subject_uri={}, shout_id={}, shout_content={}, actor={}, subject={})".format(self.id, self.notification_type, self.read, self.created_at, self.subject_uri, self.shout_id, self.shout_content, self.actor, self.subject)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -7247,6 +7539,8 @@ class NotificationView:
             return False
         if self.actor != other.actor:
             return False
+        if self.subject != other.subject:
+            return False
         return True
 
 class _UniffiConverterTypeNotificationView(_UniffiConverterRustBuffer):
@@ -7261,6 +7555,7 @@ class _UniffiConverterTypeNotificationView(_UniffiConverterRustBuffer):
             shout_id=_UniffiConverterOptionalString.read(buf),
             shout_content=_UniffiConverterOptionalString.read(buf),
             actor=_UniffiConverterOptionalTypeNotificationActor.read(buf),
+            subject=_UniffiConverterOptionalTypeNotificationSubject.read(buf),
         )
 
     @staticmethod
@@ -7273,6 +7568,7 @@ class _UniffiConverterTypeNotificationView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.check_lower(value.shout_id)
         _UniffiConverterOptionalString.check_lower(value.shout_content)
         _UniffiConverterOptionalTypeNotificationActor.check_lower(value.actor)
+        _UniffiConverterOptionalTypeNotificationSubject.check_lower(value.subject)
 
     @staticmethod
     def write(value, buf):
@@ -7284,6 +7580,7 @@ class _UniffiConverterTypeNotificationView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.shout_id, buf)
         _UniffiConverterOptionalString.write(value.shout_content, buf)
         _UniffiConverterOptionalTypeNotificationActor.write(value.actor, buf)
+        _UniffiConverterOptionalTypeNotificationSubject.write(value.subject, buf)
 
 
 class NowPlayingInput:
@@ -7449,7 +7746,11 @@ class ProfileView:
     avatar: "typing.Optional[str]"
     created_at: "typing.Optional[str]"
     updated_at: "typing.Optional[str]"
-    def __init__(self, *, id: "typing.Optional[str]", did: "typing.Optional[str]", handle: "typing.Optional[str]", display_name: "typing.Optional[str]", avatar: "typing.Optional[str]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]"):
+    spotify_user: "typing.Optional[SpotifyUserView]"
+    spotify_connected: "typing.Optional[bool]"
+    googledrive: "typing.Optional[GoogledriveView]"
+    dropbox: "typing.Optional[DropboxView]"
+    def __init__(self, *, id: "typing.Optional[str]", did: "typing.Optional[str]", handle: "typing.Optional[str]", display_name: "typing.Optional[str]", avatar: "typing.Optional[str]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]", spotify_user: "typing.Optional[SpotifyUserView]", spotify_connected: "typing.Optional[bool]", googledrive: "typing.Optional[GoogledriveView]", dropbox: "typing.Optional[DropboxView]"):
         self.id = id
         self.did = did
         self.handle = handle
@@ -7457,9 +7758,13 @@ class ProfileView:
         self.avatar = avatar
         self.created_at = created_at
         self.updated_at = updated_at
+        self.spotify_user = spotify_user
+        self.spotify_connected = spotify_connected
+        self.googledrive = googledrive
+        self.dropbox = dropbox
 
     def __str__(self):
-        return "ProfileView(id={}, did={}, handle={}, display_name={}, avatar={}, created_at={}, updated_at={})".format(self.id, self.did, self.handle, self.display_name, self.avatar, self.created_at, self.updated_at)
+        return "ProfileView(id={}, did={}, handle={}, display_name={}, avatar={}, created_at={}, updated_at={}, spotify_user={}, spotify_connected={}, googledrive={}, dropbox={})".format(self.id, self.did, self.handle, self.display_name, self.avatar, self.created_at, self.updated_at, self.spotify_user, self.spotify_connected, self.googledrive, self.dropbox)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -7476,6 +7781,14 @@ class ProfileView:
             return False
         if self.updated_at != other.updated_at:
             return False
+        if self.spotify_user != other.spotify_user:
+            return False
+        if self.spotify_connected != other.spotify_connected:
+            return False
+        if self.googledrive != other.googledrive:
+            return False
+        if self.dropbox != other.dropbox:
+            return False
         return True
 
 class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
@@ -7489,6 +7802,10 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
             avatar=_UniffiConverterOptionalString.read(buf),
             created_at=_UniffiConverterOptionalString.read(buf),
             updated_at=_UniffiConverterOptionalString.read(buf),
+            spotify_user=_UniffiConverterOptionalTypeSpotifyUserView.read(buf),
+            spotify_connected=_UniffiConverterOptionalBool.read(buf),
+            googledrive=_UniffiConverterOptionalTypeGoogledriveView.read(buf),
+            dropbox=_UniffiConverterOptionalTypeDropboxView.read(buf),
         )
 
     @staticmethod
@@ -7500,6 +7817,10 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.check_lower(value.avatar)
         _UniffiConverterOptionalString.check_lower(value.created_at)
         _UniffiConverterOptionalString.check_lower(value.updated_at)
+        _UniffiConverterOptionalTypeSpotifyUserView.check_lower(value.spotify_user)
+        _UniffiConverterOptionalBool.check_lower(value.spotify_connected)
+        _UniffiConverterOptionalTypeGoogledriveView.check_lower(value.googledrive)
+        _UniffiConverterOptionalTypeDropboxView.check_lower(value.dropbox)
 
     @staticmethod
     def write(value, buf):
@@ -7510,6 +7831,10 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.avatar, buf)
         _UniffiConverterOptionalString.write(value.created_at, buf)
         _UniffiConverterOptionalString.write(value.updated_at, buf)
+        _UniffiConverterOptionalTypeSpotifyUserView.write(value.spotify_user, buf)
+        _UniffiConverterOptionalBool.write(value.spotify_connected, buf)
+        _UniffiConverterOptionalTypeGoogledriveView.write(value.googledrive, buf)
+        _UniffiConverterOptionalTypeDropboxView.write(value.dropbox, buf)
 
 
 class RemoteDevice:
@@ -8266,7 +8591,29 @@ class ScrobbleView:
     created_at: "typing.Optional[str]"
     liked: "typing.Optional[bool]"
     likes_count: "typing.Optional[int]"
-    def __init__(self, *, id: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", album_artist: "typing.Optional[str]", album: "typing.Optional[str]", album_art: "typing.Optional[str]", handle: "typing.Optional[str]", did: "typing.Optional[str]", avatar: "typing.Optional[str]", uri: "typing.Optional[str]", track_uri: "typing.Optional[str]", artist_uri: "typing.Optional[str]", album_uri: "typing.Optional[str]", created_at: "typing.Optional[str]", liked: "typing.Optional[bool]", likes_count: "typing.Optional[int]"):
+    cover: "typing.Optional[str]"
+    date: "typing.Optional[str]"
+    user: "typing.Optional[str]"
+    user_display_name: "typing.Optional[str]"
+    user_avatar: "typing.Optional[str]"
+    tags: "typing.List[str]"
+    mb_id: "typing.Optional[str]"
+    mbid: "typing.Optional[str]"
+    isrc: "typing.Optional[str]"
+    composer: "typing.Optional[str]"
+    genre: "typing.Optional[str]"
+    label: "typing.Optional[str]"
+    copyright_message: "typing.Optional[str]"
+    key: "typing.Optional[str]"
+    track_number: "typing.Optional[int]"
+    disc_number: "typing.Optional[int]"
+    duration: "typing.Optional[int]"
+    spotify_link: "typing.Optional[str]"
+    youtube_link: "typing.Optional[str]"
+    apple_music_link: "typing.Optional[str]"
+    tidal_link: "typing.Optional[str]"
+    bpm: "typing.Optional[float]"
+    def __init__(self, *, id: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", album_artist: "typing.Optional[str]", album: "typing.Optional[str]", album_art: "typing.Optional[str]", handle: "typing.Optional[str]", did: "typing.Optional[str]", avatar: "typing.Optional[str]", uri: "typing.Optional[str]", track_uri: "typing.Optional[str]", artist_uri: "typing.Optional[str]", album_uri: "typing.Optional[str]", created_at: "typing.Optional[str]", liked: "typing.Optional[bool]", likes_count: "typing.Optional[int]", cover: "typing.Optional[str]", date: "typing.Optional[str]", user: "typing.Optional[str]", user_display_name: "typing.Optional[str]", user_avatar: "typing.Optional[str]", tags: "typing.List[str]", mb_id: "typing.Optional[str]", mbid: "typing.Optional[str]", isrc: "typing.Optional[str]", composer: "typing.Optional[str]", genre: "typing.Optional[str]", label: "typing.Optional[str]", copyright_message: "typing.Optional[str]", key: "typing.Optional[str]", track_number: "typing.Optional[int]", disc_number: "typing.Optional[int]", duration: "typing.Optional[int]", spotify_link: "typing.Optional[str]", youtube_link: "typing.Optional[str]", apple_music_link: "typing.Optional[str]", tidal_link: "typing.Optional[str]", bpm: "typing.Optional[float]"):
         self.id = id
         self.title = title
         self.artist = artist
@@ -8283,9 +8630,31 @@ class ScrobbleView:
         self.created_at = created_at
         self.liked = liked
         self.likes_count = likes_count
+        self.cover = cover
+        self.date = date
+        self.user = user
+        self.user_display_name = user_display_name
+        self.user_avatar = user_avatar
+        self.tags = tags
+        self.mb_id = mb_id
+        self.mbid = mbid
+        self.isrc = isrc
+        self.composer = composer
+        self.genre = genre
+        self.label = label
+        self.copyright_message = copyright_message
+        self.key = key
+        self.track_number = track_number
+        self.disc_number = disc_number
+        self.duration = duration
+        self.spotify_link = spotify_link
+        self.youtube_link = youtube_link
+        self.apple_music_link = apple_music_link
+        self.tidal_link = tidal_link
+        self.bpm = bpm
 
     def __str__(self):
-        return "ScrobbleView(id={}, title={}, artist={}, album_artist={}, album={}, album_art={}, handle={}, did={}, avatar={}, uri={}, track_uri={}, artist_uri={}, album_uri={}, created_at={}, liked={}, likes_count={})".format(self.id, self.title, self.artist, self.album_artist, self.album, self.album_art, self.handle, self.did, self.avatar, self.uri, self.track_uri, self.artist_uri, self.album_uri, self.created_at, self.liked, self.likes_count)
+        return "ScrobbleView(id={}, title={}, artist={}, album_artist={}, album={}, album_art={}, handle={}, did={}, avatar={}, uri={}, track_uri={}, artist_uri={}, album_uri={}, created_at={}, liked={}, likes_count={}, cover={}, date={}, user={}, user_display_name={}, user_avatar={}, tags={}, mb_id={}, mbid={}, isrc={}, composer={}, genre={}, label={}, copyright_message={}, key={}, track_number={}, disc_number={}, duration={}, spotify_link={}, youtube_link={}, apple_music_link={}, tidal_link={}, bpm={})".format(self.id, self.title, self.artist, self.album_artist, self.album, self.album_art, self.handle, self.did, self.avatar, self.uri, self.track_uri, self.artist_uri, self.album_uri, self.created_at, self.liked, self.likes_count, self.cover, self.date, self.user, self.user_display_name, self.user_avatar, self.tags, self.mb_id, self.mbid, self.isrc, self.composer, self.genre, self.label, self.copyright_message, self.key, self.track_number, self.disc_number, self.duration, self.spotify_link, self.youtube_link, self.apple_music_link, self.tidal_link, self.bpm)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -8320,6 +8689,50 @@ class ScrobbleView:
             return False
         if self.likes_count != other.likes_count:
             return False
+        if self.cover != other.cover:
+            return False
+        if self.date != other.date:
+            return False
+        if self.user != other.user:
+            return False
+        if self.user_display_name != other.user_display_name:
+            return False
+        if self.user_avatar != other.user_avatar:
+            return False
+        if self.tags != other.tags:
+            return False
+        if self.mb_id != other.mb_id:
+            return False
+        if self.mbid != other.mbid:
+            return False
+        if self.isrc != other.isrc:
+            return False
+        if self.composer != other.composer:
+            return False
+        if self.genre != other.genre:
+            return False
+        if self.label != other.label:
+            return False
+        if self.copyright_message != other.copyright_message:
+            return False
+        if self.key != other.key:
+            return False
+        if self.track_number != other.track_number:
+            return False
+        if self.disc_number != other.disc_number:
+            return False
+        if self.duration != other.duration:
+            return False
+        if self.spotify_link != other.spotify_link:
+            return False
+        if self.youtube_link != other.youtube_link:
+            return False
+        if self.apple_music_link != other.apple_music_link:
+            return False
+        if self.tidal_link != other.tidal_link:
+            return False
+        if self.bpm != other.bpm:
+            return False
         return True
 
 class _UniffiConverterTypeScrobbleView(_UniffiConverterRustBuffer):
@@ -8342,6 +8755,28 @@ class _UniffiConverterTypeScrobbleView(_UniffiConverterRustBuffer):
             created_at=_UniffiConverterOptionalString.read(buf),
             liked=_UniffiConverterOptionalBool.read(buf),
             likes_count=_UniffiConverterOptionalUInt32.read(buf),
+            cover=_UniffiConverterOptionalString.read(buf),
+            date=_UniffiConverterOptionalString.read(buf),
+            user=_UniffiConverterOptionalString.read(buf),
+            user_display_name=_UniffiConverterOptionalString.read(buf),
+            user_avatar=_UniffiConverterOptionalString.read(buf),
+            tags=_UniffiConverterSequenceString.read(buf),
+            mb_id=_UniffiConverterOptionalString.read(buf),
+            mbid=_UniffiConverterOptionalString.read(buf),
+            isrc=_UniffiConverterOptionalString.read(buf),
+            composer=_UniffiConverterOptionalString.read(buf),
+            genre=_UniffiConverterOptionalString.read(buf),
+            label=_UniffiConverterOptionalString.read(buf),
+            copyright_message=_UniffiConverterOptionalString.read(buf),
+            key=_UniffiConverterOptionalString.read(buf),
+            track_number=_UniffiConverterOptionalUInt32.read(buf),
+            disc_number=_UniffiConverterOptionalUInt32.read(buf),
+            duration=_UniffiConverterOptionalUInt64.read(buf),
+            spotify_link=_UniffiConverterOptionalString.read(buf),
+            youtube_link=_UniffiConverterOptionalString.read(buf),
+            apple_music_link=_UniffiConverterOptionalString.read(buf),
+            tidal_link=_UniffiConverterOptionalString.read(buf),
+            bpm=_UniffiConverterOptionalDouble.read(buf),
         )
 
     @staticmethod
@@ -8362,6 +8797,28 @@ class _UniffiConverterTypeScrobbleView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.check_lower(value.created_at)
         _UniffiConverterOptionalBool.check_lower(value.liked)
         _UniffiConverterOptionalUInt32.check_lower(value.likes_count)
+        _UniffiConverterOptionalString.check_lower(value.cover)
+        _UniffiConverterOptionalString.check_lower(value.date)
+        _UniffiConverterOptionalString.check_lower(value.user)
+        _UniffiConverterOptionalString.check_lower(value.user_display_name)
+        _UniffiConverterOptionalString.check_lower(value.user_avatar)
+        _UniffiConverterSequenceString.check_lower(value.tags)
+        _UniffiConverterOptionalString.check_lower(value.mb_id)
+        _UniffiConverterOptionalString.check_lower(value.mbid)
+        _UniffiConverterOptionalString.check_lower(value.isrc)
+        _UniffiConverterOptionalString.check_lower(value.composer)
+        _UniffiConverterOptionalString.check_lower(value.genre)
+        _UniffiConverterOptionalString.check_lower(value.label)
+        _UniffiConverterOptionalString.check_lower(value.copyright_message)
+        _UniffiConverterOptionalString.check_lower(value.key)
+        _UniffiConverterOptionalUInt32.check_lower(value.track_number)
+        _UniffiConverterOptionalUInt32.check_lower(value.disc_number)
+        _UniffiConverterOptionalUInt64.check_lower(value.duration)
+        _UniffiConverterOptionalString.check_lower(value.spotify_link)
+        _UniffiConverterOptionalString.check_lower(value.youtube_link)
+        _UniffiConverterOptionalString.check_lower(value.apple_music_link)
+        _UniffiConverterOptionalString.check_lower(value.tidal_link)
+        _UniffiConverterOptionalDouble.check_lower(value.bpm)
 
     @staticmethod
     def write(value, buf):
@@ -8381,6 +8838,28 @@ class _UniffiConverterTypeScrobbleView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.created_at, buf)
         _UniffiConverterOptionalBool.write(value.liked, buf)
         _UniffiConverterOptionalUInt32.write(value.likes_count, buf)
+        _UniffiConverterOptionalString.write(value.cover, buf)
+        _UniffiConverterOptionalString.write(value.date, buf)
+        _UniffiConverterOptionalString.write(value.user, buf)
+        _UniffiConverterOptionalString.write(value.user_display_name, buf)
+        _UniffiConverterOptionalString.write(value.user_avatar, buf)
+        _UniffiConverterSequenceString.write(value.tags, buf)
+        _UniffiConverterOptionalString.write(value.mb_id, buf)
+        _UniffiConverterOptionalString.write(value.mbid, buf)
+        _UniffiConverterOptionalString.write(value.isrc, buf)
+        _UniffiConverterOptionalString.write(value.composer, buf)
+        _UniffiConverterOptionalString.write(value.genre, buf)
+        _UniffiConverterOptionalString.write(value.label, buf)
+        _UniffiConverterOptionalString.write(value.copyright_message, buf)
+        _UniffiConverterOptionalString.write(value.key, buf)
+        _UniffiConverterOptionalUInt32.write(value.track_number, buf)
+        _UniffiConverterOptionalUInt32.write(value.disc_number, buf)
+        _UniffiConverterOptionalUInt64.write(value.duration, buf)
+        _UniffiConverterOptionalString.write(value.spotify_link, buf)
+        _UniffiConverterOptionalString.write(value.youtube_link, buf)
+        _UniffiConverterOptionalString.write(value.apple_music_link, buf)
+        _UniffiConverterOptionalString.write(value.tidal_link, buf)
+        _UniffiConverterOptionalDouble.write(value.bpm, buf)
 
 
 class ShoutGifInput:
@@ -8653,7 +9132,23 @@ class SongView:
     isrc: "typing.Optional[str]"
     tags: "typing.List[str]"
     created_at: "typing.Optional[str]"
-    def __init__(self, *, id: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", album_artist: "typing.Optional[str]", album: "typing.Optional[str]", album_art: "typing.Optional[str]", uri: "typing.Optional[str]", duration: "typing.Optional[int]", track_number: "typing.Optional[int]", disc_number: "typing.Optional[int]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", album_uri: "typing.Optional[str]", artist_uri: "typing.Optional[str]", mbid: "typing.Optional[str]", isrc: "typing.Optional[str]", tags: "typing.List[str]", created_at: "typing.Optional[str]"):
+    updated_at: "typing.Optional[str]"
+    liked: "typing.Optional[bool]"
+    likes_count: "typing.Optional[int]"
+    mb_id: "typing.Optional[str]"
+    lyrics: "typing.Optional[str]"
+    composer: "typing.Optional[str]"
+    genre: "typing.Optional[str]"
+    label: "typing.Optional[str]"
+    copyright_message: "typing.Optional[str]"
+    key: "typing.Optional[str]"
+    acoustid_fingerprint: "typing.Optional[str]"
+    spotify_link: "typing.Optional[str]"
+    youtube_link: "typing.Optional[str]"
+    apple_music_link: "typing.Optional[str]"
+    tidal_link: "typing.Optional[str]"
+    bpm: "typing.Optional[float]"
+    def __init__(self, *, id: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", album_artist: "typing.Optional[str]", album: "typing.Optional[str]", album_art: "typing.Optional[str]", uri: "typing.Optional[str]", duration: "typing.Optional[int]", track_number: "typing.Optional[int]", disc_number: "typing.Optional[int]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", album_uri: "typing.Optional[str]", artist_uri: "typing.Optional[str]", mbid: "typing.Optional[str]", isrc: "typing.Optional[str]", tags: "typing.List[str]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]", liked: "typing.Optional[bool]", likes_count: "typing.Optional[int]", mb_id: "typing.Optional[str]", lyrics: "typing.Optional[str]", composer: "typing.Optional[str]", genre: "typing.Optional[str]", label: "typing.Optional[str]", copyright_message: "typing.Optional[str]", key: "typing.Optional[str]", acoustid_fingerprint: "typing.Optional[str]", spotify_link: "typing.Optional[str]", youtube_link: "typing.Optional[str]", apple_music_link: "typing.Optional[str]", tidal_link: "typing.Optional[str]", bpm: "typing.Optional[float]"):
         self.id = id
         self.title = title
         self.artist = artist
@@ -8672,9 +9167,25 @@ class SongView:
         self.isrc = isrc
         self.tags = tags
         self.created_at = created_at
+        self.updated_at = updated_at
+        self.liked = liked
+        self.likes_count = likes_count
+        self.mb_id = mb_id
+        self.lyrics = lyrics
+        self.composer = composer
+        self.genre = genre
+        self.label = label
+        self.copyright_message = copyright_message
+        self.key = key
+        self.acoustid_fingerprint = acoustid_fingerprint
+        self.spotify_link = spotify_link
+        self.youtube_link = youtube_link
+        self.apple_music_link = apple_music_link
+        self.tidal_link = tidal_link
+        self.bpm = bpm
 
     def __str__(self):
-        return "SongView(id={}, title={}, artist={}, album_artist={}, album={}, album_art={}, uri={}, duration={}, track_number={}, disc_number={}, play_count={}, unique_listeners={}, album_uri={}, artist_uri={}, mbid={}, isrc={}, tags={}, created_at={})".format(self.id, self.title, self.artist, self.album_artist, self.album, self.album_art, self.uri, self.duration, self.track_number, self.disc_number, self.play_count, self.unique_listeners, self.album_uri, self.artist_uri, self.mbid, self.isrc, self.tags, self.created_at)
+        return "SongView(id={}, title={}, artist={}, album_artist={}, album={}, album_art={}, uri={}, duration={}, track_number={}, disc_number={}, play_count={}, unique_listeners={}, album_uri={}, artist_uri={}, mbid={}, isrc={}, tags={}, created_at={}, updated_at={}, liked={}, likes_count={}, mb_id={}, lyrics={}, composer={}, genre={}, label={}, copyright_message={}, key={}, acoustid_fingerprint={}, spotify_link={}, youtube_link={}, apple_music_link={}, tidal_link={}, bpm={})".format(self.id, self.title, self.artist, self.album_artist, self.album, self.album_art, self.uri, self.duration, self.track_number, self.disc_number, self.play_count, self.unique_listeners, self.album_uri, self.artist_uri, self.mbid, self.isrc, self.tags, self.created_at, self.updated_at, self.liked, self.likes_count, self.mb_id, self.lyrics, self.composer, self.genre, self.label, self.copyright_message, self.key, self.acoustid_fingerprint, self.spotify_link, self.youtube_link, self.apple_music_link, self.tidal_link, self.bpm)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -8713,6 +9224,38 @@ class SongView:
             return False
         if self.created_at != other.created_at:
             return False
+        if self.updated_at != other.updated_at:
+            return False
+        if self.liked != other.liked:
+            return False
+        if self.likes_count != other.likes_count:
+            return False
+        if self.mb_id != other.mb_id:
+            return False
+        if self.lyrics != other.lyrics:
+            return False
+        if self.composer != other.composer:
+            return False
+        if self.genre != other.genre:
+            return False
+        if self.label != other.label:
+            return False
+        if self.copyright_message != other.copyright_message:
+            return False
+        if self.key != other.key:
+            return False
+        if self.acoustid_fingerprint != other.acoustid_fingerprint:
+            return False
+        if self.spotify_link != other.spotify_link:
+            return False
+        if self.youtube_link != other.youtube_link:
+            return False
+        if self.apple_music_link != other.apple_music_link:
+            return False
+        if self.tidal_link != other.tidal_link:
+            return False
+        if self.bpm != other.bpm:
+            return False
         return True
 
 class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
@@ -8737,6 +9280,22 @@ class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
             isrc=_UniffiConverterOptionalString.read(buf),
             tags=_UniffiConverterSequenceString.read(buf),
             created_at=_UniffiConverterOptionalString.read(buf),
+            updated_at=_UniffiConverterOptionalString.read(buf),
+            liked=_UniffiConverterOptionalBool.read(buf),
+            likes_count=_UniffiConverterOptionalUInt32.read(buf),
+            mb_id=_UniffiConverterOptionalString.read(buf),
+            lyrics=_UniffiConverterOptionalString.read(buf),
+            composer=_UniffiConverterOptionalString.read(buf),
+            genre=_UniffiConverterOptionalString.read(buf),
+            label=_UniffiConverterOptionalString.read(buf),
+            copyright_message=_UniffiConverterOptionalString.read(buf),
+            key=_UniffiConverterOptionalString.read(buf),
+            acoustid_fingerprint=_UniffiConverterOptionalString.read(buf),
+            spotify_link=_UniffiConverterOptionalString.read(buf),
+            youtube_link=_UniffiConverterOptionalString.read(buf),
+            apple_music_link=_UniffiConverterOptionalString.read(buf),
+            tidal_link=_UniffiConverterOptionalString.read(buf),
+            bpm=_UniffiConverterOptionalDouble.read(buf),
         )
 
     @staticmethod
@@ -8759,6 +9318,22 @@ class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.check_lower(value.isrc)
         _UniffiConverterSequenceString.check_lower(value.tags)
         _UniffiConverterOptionalString.check_lower(value.created_at)
+        _UniffiConverterOptionalString.check_lower(value.updated_at)
+        _UniffiConverterOptionalBool.check_lower(value.liked)
+        _UniffiConverterOptionalUInt32.check_lower(value.likes_count)
+        _UniffiConverterOptionalString.check_lower(value.mb_id)
+        _UniffiConverterOptionalString.check_lower(value.lyrics)
+        _UniffiConverterOptionalString.check_lower(value.composer)
+        _UniffiConverterOptionalString.check_lower(value.genre)
+        _UniffiConverterOptionalString.check_lower(value.label)
+        _UniffiConverterOptionalString.check_lower(value.copyright_message)
+        _UniffiConverterOptionalString.check_lower(value.key)
+        _UniffiConverterOptionalString.check_lower(value.acoustid_fingerprint)
+        _UniffiConverterOptionalString.check_lower(value.spotify_link)
+        _UniffiConverterOptionalString.check_lower(value.youtube_link)
+        _UniffiConverterOptionalString.check_lower(value.apple_music_link)
+        _UniffiConverterOptionalString.check_lower(value.tidal_link)
+        _UniffiConverterOptionalDouble.check_lower(value.bpm)
 
     @staticmethod
     def write(value, buf):
@@ -8780,6 +9355,90 @@ class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.isrc, buf)
         _UniffiConverterSequenceString.write(value.tags, buf)
         _UniffiConverterOptionalString.write(value.created_at, buf)
+        _UniffiConverterOptionalString.write(value.updated_at, buf)
+        _UniffiConverterOptionalBool.write(value.liked, buf)
+        _UniffiConverterOptionalUInt32.write(value.likes_count, buf)
+        _UniffiConverterOptionalString.write(value.mb_id, buf)
+        _UniffiConverterOptionalString.write(value.lyrics, buf)
+        _UniffiConverterOptionalString.write(value.composer, buf)
+        _UniffiConverterOptionalString.write(value.genre, buf)
+        _UniffiConverterOptionalString.write(value.label, buf)
+        _UniffiConverterOptionalString.write(value.copyright_message, buf)
+        _UniffiConverterOptionalString.write(value.key, buf)
+        _UniffiConverterOptionalString.write(value.acoustid_fingerprint, buf)
+        _UniffiConverterOptionalString.write(value.spotify_link, buf)
+        _UniffiConverterOptionalString.write(value.youtube_link, buf)
+        _UniffiConverterOptionalString.write(value.apple_music_link, buf)
+        _UniffiConverterOptionalString.write(value.tidal_link, buf)
+        _UniffiConverterOptionalDouble.write(value.bpm, buf)
+
+
+class SpotifyUserView:
+    """
+    The listener's Spotify account (`app.rocksky.actor.defs#responseSpotifyUserView`).
+    """
+
+    id: "typing.Optional[str]"
+    user_id: "typing.Optional[str]"
+    spotify_app_id: "typing.Optional[str]"
+    is_beta_user: "typing.Optional[bool]"
+    created_at: "typing.Optional[str]"
+    updated_at: "typing.Optional[str]"
+    def __init__(self, *, id: "typing.Optional[str]", user_id: "typing.Optional[str]", spotify_app_id: "typing.Optional[str]", is_beta_user: "typing.Optional[bool]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]"):
+        self.id = id
+        self.user_id = user_id
+        self.spotify_app_id = spotify_app_id
+        self.is_beta_user = is_beta_user
+        self.created_at = created_at
+        self.updated_at = updated_at
+
+    def __str__(self):
+        return "SpotifyUserView(id={}, user_id={}, spotify_app_id={}, is_beta_user={}, created_at={}, updated_at={})".format(self.id, self.user_id, self.spotify_app_id, self.is_beta_user, self.created_at, self.updated_at)
+
+    def __eq__(self, other):
+        if self.id != other.id:
+            return False
+        if self.user_id != other.user_id:
+            return False
+        if self.spotify_app_id != other.spotify_app_id:
+            return False
+        if self.is_beta_user != other.is_beta_user:
+            return False
+        if self.created_at != other.created_at:
+            return False
+        if self.updated_at != other.updated_at:
+            return False
+        return True
+
+class _UniffiConverterTypeSpotifyUserView(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return SpotifyUserView(
+            id=_UniffiConverterOptionalString.read(buf),
+            user_id=_UniffiConverterOptionalString.read(buf),
+            spotify_app_id=_UniffiConverterOptionalString.read(buf),
+            is_beta_user=_UniffiConverterOptionalBool.read(buf),
+            created_at=_UniffiConverterOptionalString.read(buf),
+            updated_at=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.id)
+        _UniffiConverterOptionalString.check_lower(value.user_id)
+        _UniffiConverterOptionalString.check_lower(value.spotify_app_id)
+        _UniffiConverterOptionalBool.check_lower(value.is_beta_user)
+        _UniffiConverterOptionalString.check_lower(value.created_at)
+        _UniffiConverterOptionalString.check_lower(value.updated_at)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.id, buf)
+        _UniffiConverterOptionalString.write(value.user_id, buf)
+        _UniffiConverterOptionalString.write(value.spotify_app_id, buf)
+        _UniffiConverterOptionalBool.write(value.is_beta_user, buf)
+        _UniffiConverterOptionalString.write(value.created_at, buf)
+        _UniffiConverterOptionalString.write(value.updated_at, buf)
 
 
 class UnreadCount:
@@ -10037,6 +10696,33 @@ class _UniffiConverterOptionalFloat(_UniffiConverterRustBuffer):
 
 
 
+class _UniffiConverterOptionalDouble(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterDouble.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterDouble.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterDouble.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
 class _UniffiConverterOptionalBool(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -10091,6 +10777,60 @@ class _UniffiConverterOptionalString(_UniffiConverterRustBuffer):
 
 
 
+class _UniffiConverterOptionalTypeDropboxView(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeDropboxView.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeDropboxView.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeDropboxView.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
+class _UniffiConverterOptionalTypeGoogledriveView(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeGoogledriveView.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeGoogledriveView.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeGoogledriveView.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
 class _UniffiConverterOptionalTypeNotificationActor(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -10113,6 +10853,33 @@ class _UniffiConverterOptionalTypeNotificationActor(_UniffiConverterRustBuffer):
             return None
         elif flag == 1:
             return _UniffiConverterTypeNotificationActor.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
+class _UniffiConverterOptionalTypeNotificationSubject(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeNotificationSubject.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeNotificationSubject.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeNotificationSubject.read(buf)
         else:
             raise InternalError("Unexpected flag byte for optional type")
 
@@ -10194,6 +10961,33 @@ class _UniffiConverterOptionalTypeShoutGifInput(_UniffiConverterRustBuffer):
             return None
         elif flag == 1:
             return _UniffiConverterTypeShoutGifInput.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
+class _UniffiConverterOptionalTypeSpotifyUserView(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeSpotifyUserView.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeSpotifyUserView.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeSpotifyUserView.read(buf)
         else:
             raise InternalError("Unexpected flag byte for optional type")
 
@@ -10602,11 +11396,14 @@ __all__ = [
     "AlbumView",
     "ArtistInput",
     "ArtistView",
+    "DropboxView",
     "EqualizerBand",
     "EqualizerPreset",
     "GlobalStats",
+    "GoogledriveView",
     "NotificationActor",
     "NotificationList",
+    "NotificationSubject",
     "NotificationView",
     "NowPlayingInput",
     "Profile",
@@ -10621,6 +11418,7 @@ __all__ = [
     "ShoutGifInput",
     "SongInput",
     "SongView",
+    "SpotifyUserView",
     "UnreadCount",
     "UpdateSeenResult",
     "album_hash",

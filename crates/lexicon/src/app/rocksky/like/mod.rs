@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.like";
 /// A declaration of a like.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Like {
     /// The date when the like was created. Format: `datetime`.

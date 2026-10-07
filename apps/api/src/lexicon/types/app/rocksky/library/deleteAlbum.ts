@@ -8,7 +8,7 @@ import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 
-export type QueryParams = {};
+export type QueryParams = {}
 
 export interface InputSchema {
   /** The album id (album xata_id, as exposed by the library API). */

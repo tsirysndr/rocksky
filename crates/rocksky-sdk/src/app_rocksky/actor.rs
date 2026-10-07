@@ -54,8 +54,6 @@ pub struct ArtistViewBasic<S: BosStr = DefaultStr> {
     pub user1_rank: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user2_rank: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub weight: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -68,8 +66,6 @@ pub struct ArtistViewBasic<S: BosStr = DefaultStr> {
 pub struct CompatibilityViewBasic<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compatibility_level: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub compatibility_percentage: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shared_artists: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,7 +88,7 @@ pub struct CompatibilityViewBasic<S: BosStr = DefaultStr> {
 pub struct NeighbourViewBasic<S: BosStr = DefaultStr> {
     ///The URL of the actor's avatar image.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub avatar: Option<UriValue<S>>,
+    pub avatar: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub did: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -102,9 +98,6 @@ pub struct NeighbourViewBasic<S: BosStr = DefaultStr> {
     ///The number of artists shared with the actor.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shared_artists_count: Option<i64>,
-    ///The similarity score with the actor.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub similarity_score: Option<i64>,
     ///The top shared artist names with the actor.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_shared_artist_names: Option<Vec<S>>,
@@ -166,15 +159,85 @@ pub struct ProfileViewDetailed<S: BosStr = DefaultStr> {
     ///The display name of the actor.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub display_name: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dropbox: Option<actor::ResponseDropboxView<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub googledrive: Option<actor::ResponseGoogledriveView<S>>,
     ///The handle of the actor.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub handle: Option<S>,
     ///The unique identifier of the actor.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_connected: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_user: Option<actor::ResponseSpotifyUserView<S>>,
     ///The date and time when the actor was last updated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<Datetime>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct ResponseDropboxView<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_beta_user: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct ResponseGoogledriveView<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct ResponseSpotifyUserView<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_beta_user: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_app_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -277,6 +340,51 @@ impl<S: BosStr> LexiconSchema for ProfileViewDetailed<S> {
     }
     fn def_name() -> &'static str {
         "profileViewDetailed"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_actor_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for ResponseDropboxView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.actor.defs"
+    }
+    fn def_name() -> &'static str {
+        "responseDropboxView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_actor_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for ResponseGoogledriveView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.actor.defs"
+    }
+    fn def_name() -> &'static str {
+        "responseGoogledriveView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_actor_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for ResponseSpotifyUserView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.actor.defs"
+    }
+    fn def_name() -> &'static str {
+        "responseSpotifyUserView"
     }
     fn lexicon_doc() -> LexiconDoc<'static> {
         lexicon_doc_app_rocksky_actor_defs()
@@ -437,12 +545,6 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                                 ..Default::default()
                             }),
                         );
-                        map.insert(
-                            SmolStr::new_static("weight"),
-                            LexObjectProperty::Integer(LexInteger {
-                                ..Default::default()
-                            }),
-                        );
                         map
                     },
                     ..Default::default()
@@ -456,12 +558,6 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         let mut map = BTreeMap::new();
                         map.insert(
                             SmolStr::new_static("compatibilityLevel"),
-                            LexObjectProperty::Integer(LexInteger {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("compatibilityPercentage"),
                             LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
@@ -522,7 +618,6 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                                 description: Some(CowStr::new_static(
                                     "The URL of the actor's avatar image.",
                                 )),
-                                format: Some(LexStringFormat::Uri),
                                 ..Default::default()
                             }),
                         );
@@ -546,12 +641,6 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         );
                         map.insert(
                             SmolStr::new_static("sharedArtistsCount"),
-                            LexObjectProperty::Integer(LexInteger {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("similarityScore"),
                             LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
@@ -710,6 +799,24 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("dropbox"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.actor.defs#responseDropboxView",
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("googledrive"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.actor.defs#responseGoogledriveView",
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("handle"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The handle of the actor.")),
@@ -726,12 +833,156 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("spotifyConnected"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("spotifyUser"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.actor.defs#responseSpotifyUserView",
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("updatedAt"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
                                     "The date and time when the actor was last updated.",
                                 )),
                                 format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("responseDropboxView"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("email"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("id"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("isBetaUser"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("userId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("responseGoogledriveView"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("responseSpotifyUserView"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("id"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("isBetaUser"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("spotifyAppId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("userId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
                         );

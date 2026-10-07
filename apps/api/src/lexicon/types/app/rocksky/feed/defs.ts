@@ -1,12 +1,12 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import * as AppRockskyActorDefs from "../actor/defs";
-import * as AppRockskyScrobbleDefs from "../scrobble/defs";
+import type * as AppRockskyActorDefs from "../actor/defs";
+import type * as AppRockskyScrobbleDefs from "../scrobble/defs";
 
 export interface SearchResultsView {
   hits?: SearchHit[];

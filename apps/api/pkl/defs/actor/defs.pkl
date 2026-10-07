@@ -41,10 +41,6 @@ defs = new Mapping<String, BaseType> {
         type = "ref"
         ref = "app.rocksky.actor.defs#responseSpotifyUserView"
       }
-      ["spotifyToken"] = new Ref {
-        type = "ref"
-        ref = "app.rocksky.actor.defs#responseSpotifyTokenView"
-      }
       ["spotifyConnected"] = new BooleanType {
         type = "boolean"
       }
@@ -263,30 +259,6 @@ defs = new Mapping<String, BaseType> {
       }
     }
     nullable = List("xataVersion", "userId", "spotifyAppId")
-  }
-  ["responseSpotifyTokenView"] = new ObjectType {
-    type = "object"
-    properties = new Mapping<String, BaseType> {
-      ["createdAt"] = new StringType {
-        type = "string"
-      }
-      ["updatedAt"] = new StringType {
-        type = "string"
-      }
-      ["id"] = new StringType {
-        type = "string"
-      }
-      ["xataVersion"] = new IntegerType {
-        type = "integer"
-      }
-      ["userId"] = new StringType {
-        type = "string"
-      }
-      ["spotifyAppId"] = new StringType {
-        type = "string"
-      }
-    }
-    nullable = List("xataVersion", "userId")
   }
   ["responseGoogledriveView"] = new ObjectType {
     type = "object"

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.player.addDirectoryToQueue";
 
 /// Add directory to the player's queue
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The directory to add to the queue

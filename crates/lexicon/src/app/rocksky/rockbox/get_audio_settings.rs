@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.rockbox.getAudioSettings";
 /// Get Rockbox audio settings. If `did` is provided the request is public;
 /// otherwise an auth token is required and the caller's own settings are
 /// returned.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// DID or handle of the user whose settings to fetch. Required for

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.library.getTopSongs";
 
 /// Get the top songs for an artist.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The artist name.
@@ -24,9 +24,24 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Output {}
+pub struct Output {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Unmodified OpenSubsonic topSongs payload from Navidrome. Its
+    /// provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top_songs: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+}
 
 /// This method, implemented.
 ///

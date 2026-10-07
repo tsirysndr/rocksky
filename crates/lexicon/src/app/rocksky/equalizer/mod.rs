@@ -16,7 +16,7 @@ pub const NSID: &str = "app.rocksky.equalizer";
 /// case, dashes, no spaces (e.g. "Bass Boost" -> "bass-boost").
 ///
 /// Record key: `any`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Equalizer {
     /// Up to 10 EQ bands

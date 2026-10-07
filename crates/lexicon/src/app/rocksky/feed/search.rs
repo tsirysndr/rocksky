@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.feed.search";
 
 /// Search for content in the feed
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The search query string

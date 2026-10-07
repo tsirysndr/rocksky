@@ -8,6 +8,7 @@
 #[allow(unused_imports)]
 use alloc::collections::BTreeMap;
 
+use crate::app_rocksky::apikey::ApiKeyView;
 #[allow(unused_imports)]
 use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
@@ -32,7 +33,7 @@ pub struct RemoveApikeyParams<S: BosStr = DefaultStr> {
 )]
 pub struct RemoveApikeyOutput<S: BosStr = DefaultStr> {
     #[serde(flatten)]
-    pub value: Data<S>,
+    pub value: ApiKeyView<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.mirror.putMirrorSource";
 
 /// The request body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Input {
     /// API key / token to be encrypted at rest. Omit to leave the existing key

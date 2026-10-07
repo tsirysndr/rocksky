@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.shout";
 /// A declaration of a shout.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Shout {
     /// The date when the shout was created. Format: `datetime`.

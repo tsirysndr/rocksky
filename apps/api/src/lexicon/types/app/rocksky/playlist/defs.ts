@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import * as AppRockskySongDefs from "../song/defs";
+import type * as AppRockskySongDefs from "../song/defs";
 
 /** Detailed view of a playlist, including its tracks and metadata */
 export interface PlaylistViewDetailed {

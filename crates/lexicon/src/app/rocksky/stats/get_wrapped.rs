@@ -12,12 +12,17 @@ use serde::{Deserialize, Serialize};
 /// The lexicon this module was generated from.
 pub const NSID: &str = "app.rocksky.stats.getWrapped";
 
-/// Get a user's year-in-review Wrapped stats
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Get a user's Wrapped stats for a year or a recent rolling window
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The DID or handle of the user Format: `at-identifier`.
     pub did: String,
+    /// The window to compute stats over: a calendar year (see year), or a
+    /// rolling window ending now. Defaults to year. Known values: `year`,
+    /// `3months`, `month`, `2weeks`, `week`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period: Option<String>,
     /// The year to get wrapped stats for (defaults to current year)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,

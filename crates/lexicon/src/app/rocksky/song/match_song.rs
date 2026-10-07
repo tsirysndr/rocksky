@@ -14,7 +14,7 @@ pub const NSID: &str = "app.rocksky.song.matchSong";
 
 /// Matches a song against Rocksky’s music database and external metadata
 /// providers to resolve the best canonical track, artist, and album
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// Optional album title — candidates whose album matches it

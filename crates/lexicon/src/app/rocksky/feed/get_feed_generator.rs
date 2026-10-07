@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.feed.getFeedGenerator";
 
 /// Get information about a feed generator
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// AT-URI of the feed generator record. Format: `at-uri`.
@@ -21,7 +21,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     #[serde(default, skip_serializing_if = "Option::is_none")]

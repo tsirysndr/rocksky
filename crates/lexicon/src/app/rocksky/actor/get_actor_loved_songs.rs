@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.actor.getActorLovedSongs";
 
 /// Get loved songs for an actor
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The DID or handle of the actor Format: `at-identifier`.
@@ -27,7 +27,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     #[serde(default, skip_serializing_if = "Option::is_none")]

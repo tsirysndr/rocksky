@@ -12,17 +12,19 @@ use serde::{Deserialize, Serialize};
 /// The lexicon this module was generated from.
 pub const NSID: &str = "app.rocksky.shout.defs";
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Author {
-    /// The URL of the author's avatar image. Format: `uri`.
+    /// The URL of the author's avatar image. May be explicitly null as well as
+    /// absent; both read as `None`. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avatar: Option<String>,
     /// The decentralized identifier (DID) of the author. Format:
     /// `at-identifier`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub did: Option<String>,
-    /// The display name of the author.
+    /// The display name of the author. May be explicitly null as well as
+    /// absent; both read as `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
     /// The handle of the author. Format: `at-identifier`.
@@ -36,7 +38,7 @@ pub struct Author {
 /// A GIF, sticker, or clip embedded in a shout. `url` may point at an image
 /// (GIF/WebP) or a video (MP4); the client decides how to render it from
 /// the file extension.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Gif {
     /// Alternative text describing the media.
@@ -57,7 +59,7 @@ pub struct Gif {
 
 /// A mention of another actor within the shout message, anchored to a UTF-8
 /// byte range in the message.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Mention {
     /// Exclusive UTF-8 byte offset of the mention end.
@@ -68,12 +70,14 @@ pub struct Mention {
     pub did: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShoutView {
     /// The author of the shout.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub author: Option<Author>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
     /// The date and time when the shout was created. Format: `datetime`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
@@ -87,10 +91,17 @@ pub struct ShoutView {
     /// The unique identifier of the shout.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub likes: Option<i64>,
     /// The content of the shout.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
-    /// The ID of the parent shout if this is a reply, otherwise null.
+    /// The ID of the parent shout if this is a reply, otherwise null. May be
+    /// explicitly null as well as absent; both read as `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
 }

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.charts.getTopScrobblers";
 
 /// Get the listeners who scrobbled the most, all-time or over a date range
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The end date to count scrobbles to (ISO 8601 format) Format: `datetime`.
@@ -32,7 +32,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     #[serde(default, skip_serializing_if = "Option::is_none")]

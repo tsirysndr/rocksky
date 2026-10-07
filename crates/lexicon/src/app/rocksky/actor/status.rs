@@ -16,7 +16,7 @@ pub const NSID: &str = "app.rocksky.actor.status";
 /// time (rkey: self).
 ///
 /// Record key: `literal:self`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     /// When the status expires. Defaults to startedAt plus track duration plus

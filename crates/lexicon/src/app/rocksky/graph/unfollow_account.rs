@@ -14,7 +14,7 @@ pub const NSID: &str = "app.rocksky.graph.unfollowAccount";
 
 /// Removes a 'follow' relationship from the authenticated account to a
 /// specified account.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// Format: `at-identifier`.
@@ -22,7 +22,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     /// A cursor value to pass to subsequent calls to get the next page of

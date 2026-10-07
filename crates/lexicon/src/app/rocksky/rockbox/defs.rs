@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// The lexicon this module was generated from.
 pub const NSID: &str = "app.rocksky.rockbox.defs";
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CrossfadeSettings {
     /// Fade-in delay in ms
@@ -35,7 +35,7 @@ pub struct CrossfadeSettings {
     pub mode: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EqualizerBand {
     /// Center frequency in Hz
@@ -46,7 +46,7 @@ pub struct EqualizerBand {
     pub q: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EqualizerSettings {
     /// Up to 10 EQ bands
@@ -61,7 +61,7 @@ pub struct EqualizerSettings {
     pub precut: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplayGainSettings {
     /// Replay gain mode: disabled | track | album | trackIfShuffling
@@ -75,7 +75,7 @@ pub struct ReplayGainSettings {
     pub prevent_clipping: Option<bool>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsView {
     /// When this settings record was first created. Format: `datetime`.
@@ -97,7 +97,7 @@ pub struct SettingsView {
     pub updated_at: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToneSettings {
     /// Left/right balance. Negative = left, positive = right

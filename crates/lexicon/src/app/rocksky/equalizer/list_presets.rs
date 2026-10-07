@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.equalizer.listPresets";
 /// List equalizer presets. If `did` is provided the request is public;
 /// otherwise an auth token is required and the caller's own presets are
 /// returned.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// DID or handle of the user whose presets to fetch. Required for
@@ -25,7 +25,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     pub presets: Vec<super::super::super::super::app::rocksky::equalizer::defs::PresetView>,

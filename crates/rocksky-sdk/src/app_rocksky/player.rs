@@ -41,9 +41,37 @@ use serde::{Deserialize, Serialize};
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct CurrentlyPlayingViewDetailed<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actions: Option<Data<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_uri: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist_uri: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<Data<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currently_playing_type: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device: Option<Data<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_playing: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub item: Option<Data<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress_ms: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repeat_state: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shuffle_state: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<i64>,
     ///The title of the currently playing track
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -107,11 +135,95 @@ fn lexicon_doc_app_rocksky_player_defs() -> LexiconDoc<'static> {
                         #[allow(unused_mut)]
                         let mut map = BTreeMap::new();
                         map.insert(
+                            SmolStr::new_static("actions"),
+                            LexObjectProperty::Unknown(LexUnknown {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("albumUri"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("artistUri"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("context"),
+                            LexObjectProperty::Unknown(LexUnknown {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("currently_playing_type"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("device"),
+                            LexObjectProperty::Unknown(LexUnknown {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("is_playing"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("item"),
+                            LexObjectProperty::Unknown(LexUnknown {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("liked"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("progress_ms"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("repeat_state"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("shuffle_state"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("timestamp"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("title"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
                                     "The title of the currently playing track",
                                 )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uri"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );

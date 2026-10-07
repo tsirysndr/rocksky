@@ -2486,6 +2486,29 @@ public object FfiConverterFloat: FfiConverter<Float, Float> {
 /**
  * @suppress
  */
+public object FfiConverterDouble: FfiConverter<Double, Double> {
+    override fun lift(value: Double): Double {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Double {
+        return buf.getDouble()
+    }
+
+    override fun lower(value: Double): Double {
+        return value
+    }
+
+    override fun allocationSize(value: Double) = 8UL
+
+    override fun write(value: Double, buf: ByteBuffer) {
+        buf.putDouble(value)
+    }
+}
+
+/**
+ * @suppress
+ */
 public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
     override fun lift(value: Byte): Boolean {
         return value.toInt() != 0
@@ -6693,7 +6716,14 @@ data class AlbumView (
     var `releaseDate`: kotlin.String?, 
     var `sha256`: kotlin.String?, 
     var `playCount`: kotlin.ULong?, 
-    var `uniqueListeners`: kotlin.ULong?
+    var `uniqueListeners`: kotlin.ULong?, 
+    var `createdAt`: kotlin.String?, 
+    var `updatedAt`: kotlin.String?, 
+    var `discogsReleaseId`: kotlin.String?, 
+    var `spotifyLink`: kotlin.String?, 
+    var `youtubeLink`: kotlin.String?, 
+    var `appleMusicLink`: kotlin.String?, 
+    var `tidalLink`: kotlin.String?
 ) {
     
     companion object
@@ -6716,6 +6746,13 @@ public object FfiConverterTypeAlbumView: FfiConverterRustBuffer<AlbumView> {
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalULong.read(buf),
             FfiConverterOptionalULong.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -6730,7 +6767,14 @@ public object FfiConverterTypeAlbumView: FfiConverterRustBuffer<AlbumView> {
             FfiConverterOptionalString.allocationSize(value.`releaseDate`) +
             FfiConverterOptionalString.allocationSize(value.`sha256`) +
             FfiConverterOptionalULong.allocationSize(value.`playCount`) +
-            FfiConverterOptionalULong.allocationSize(value.`uniqueListeners`)
+            FfiConverterOptionalULong.allocationSize(value.`uniqueListeners`) +
+            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`) +
+            FfiConverterOptionalString.allocationSize(value.`discogsReleaseId`) +
+            FfiConverterOptionalString.allocationSize(value.`spotifyLink`) +
+            FfiConverterOptionalString.allocationSize(value.`youtubeLink`) +
+            FfiConverterOptionalString.allocationSize(value.`appleMusicLink`) +
+            FfiConverterOptionalString.allocationSize(value.`tidalLink`)
     )
 
     override fun write(value: AlbumView, buf: ByteBuffer) {
@@ -6745,6 +6789,13 @@ public object FfiConverterTypeAlbumView: FfiConverterRustBuffer<AlbumView> {
             FfiConverterOptionalString.write(value.`sha256`, buf)
             FfiConverterOptionalULong.write(value.`playCount`, buf)
             FfiConverterOptionalULong.write(value.`uniqueListeners`, buf)
+            FfiConverterOptionalString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`updatedAt`, buf)
+            FfiConverterOptionalString.write(value.`discogsReleaseId`, buf)
+            FfiConverterOptionalString.write(value.`spotifyLink`, buf)
+            FfiConverterOptionalString.write(value.`youtubeLink`, buf)
+            FfiConverterOptionalString.write(value.`appleMusicLink`, buf)
+            FfiConverterOptionalString.write(value.`tidalLink`, buf)
     }
 }
 
@@ -6804,7 +6855,17 @@ data class ArtistView (
     var `playCount`: kotlin.ULong?, 
     var `uniqueListeners`: kotlin.ULong?, 
     var `tags`: List<kotlin.String>, 
-    var `genres`: List<kotlin.String>
+    var `genres`: List<kotlin.String>, 
+    var `createdAt`: kotlin.String?, 
+    var `updatedAt`: kotlin.String?, 
+    var `biography`: kotlin.String?, 
+    var `born`: kotlin.String?, 
+    var `bornIn`: kotlin.String?, 
+    var `died`: kotlin.String?, 
+    var `spotifyLink`: kotlin.String?, 
+    var `youtubeLink`: kotlin.String?, 
+    var `appleMusicLink`: kotlin.String?, 
+    var `tidalLink`: kotlin.String?
 ) {
     
     companion object
@@ -6824,6 +6885,16 @@ public object FfiConverterTypeArtistView: FfiConverterRustBuffer<ArtistView> {
             FfiConverterOptionalULong.read(buf),
             FfiConverterSequenceString.read(buf),
             FfiConverterSequenceString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -6835,7 +6906,17 @@ public object FfiConverterTypeArtistView: FfiConverterRustBuffer<ArtistView> {
             FfiConverterOptionalULong.allocationSize(value.`playCount`) +
             FfiConverterOptionalULong.allocationSize(value.`uniqueListeners`) +
             FfiConverterSequenceString.allocationSize(value.`tags`) +
-            FfiConverterSequenceString.allocationSize(value.`genres`)
+            FfiConverterSequenceString.allocationSize(value.`genres`) +
+            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`) +
+            FfiConverterOptionalString.allocationSize(value.`biography`) +
+            FfiConverterOptionalString.allocationSize(value.`born`) +
+            FfiConverterOptionalString.allocationSize(value.`bornIn`) +
+            FfiConverterOptionalString.allocationSize(value.`died`) +
+            FfiConverterOptionalString.allocationSize(value.`spotifyLink`) +
+            FfiConverterOptionalString.allocationSize(value.`youtubeLink`) +
+            FfiConverterOptionalString.allocationSize(value.`appleMusicLink`) +
+            FfiConverterOptionalString.allocationSize(value.`tidalLink`)
     )
 
     override fun write(value: ArtistView, buf: ByteBuffer) {
@@ -6847,6 +6928,67 @@ public object FfiConverterTypeArtistView: FfiConverterRustBuffer<ArtistView> {
             FfiConverterOptionalULong.write(value.`uniqueListeners`, buf)
             FfiConverterSequenceString.write(value.`tags`, buf)
             FfiConverterSequenceString.write(value.`genres`, buf)
+            FfiConverterOptionalString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`updatedAt`, buf)
+            FfiConverterOptionalString.write(value.`biography`, buf)
+            FfiConverterOptionalString.write(value.`born`, buf)
+            FfiConverterOptionalString.write(value.`bornIn`, buf)
+            FfiConverterOptionalString.write(value.`died`, buf)
+            FfiConverterOptionalString.write(value.`spotifyLink`, buf)
+            FfiConverterOptionalString.write(value.`youtubeLink`, buf)
+            FfiConverterOptionalString.write(value.`appleMusicLink`, buf)
+            FfiConverterOptionalString.write(value.`tidalLink`, buf)
+    }
+}
+
+
+
+/**
+ * The listener's linked Dropbox (`app.rocksky.actor.defs#responseDropboxView`).
+ */
+data class DropboxView (
+    var `id`: kotlin.String?, 
+    var `email`: kotlin.String?, 
+    var `userId`: kotlin.String?, 
+    var `isBetaUser`: kotlin.Boolean?, 
+    var `createdAt`: kotlin.String?, 
+    var `updatedAt`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDropboxView: FfiConverterRustBuffer<DropboxView> {
+    override fun read(buf: ByteBuffer): DropboxView {
+        return DropboxView(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DropboxView) = (
+            FfiConverterOptionalString.allocationSize(value.`id`) +
+            FfiConverterOptionalString.allocationSize(value.`email`) +
+            FfiConverterOptionalString.allocationSize(value.`userId`) +
+            FfiConverterOptionalBoolean.allocationSize(value.`isBetaUser`) +
+            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`)
+    )
+
+    override fun write(value: DropboxView, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`id`, buf)
+            FfiConverterOptionalString.write(value.`email`, buf)
+            FfiConverterOptionalString.write(value.`userId`, buf)
+            FfiConverterOptionalBoolean.write(value.`isBetaUser`, buf)
+            FfiConverterOptionalString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`updatedAt`, buf)
     }
 }
 
@@ -7019,6 +7161,41 @@ public object FfiConverterTypeGlobalStats: FfiConverterRustBuffer<GlobalStats> {
 
 
 /**
+ * The listener's linked Google Drive (`app.rocksky.actor.defs#responseGoogledriveView`).
+ */
+data class GoogledriveView (
+    var `createdAt`: kotlin.String?, 
+    var `updatedAt`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeGoogledriveView: FfiConverterRustBuffer<GoogledriveView> {
+    override fun read(buf: ByteBuffer): GoogledriveView {
+        return GoogledriveView(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: GoogledriveView) = (
+            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`)
+    )
+
+    override fun write(value: GoogledriveView, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`updatedAt`, buf)
+    }
+}
+
+
+
+/**
  * The user who triggered a notification
  * (`app.rocksky.notification.defs#notificationActor`).
  */
@@ -7112,6 +7289,49 @@ public object FfiConverterTypeNotificationList: FfiConverterRustBuffer<Notificat
 
 
 /**
+ * The song a notification is about (`app.rocksky.notification.defs#subjectView`).
+ */
+data class NotificationSubject (
+    var `uri`: kotlin.String?, 
+    var `title`: kotlin.String?, 
+    var `artist`: kotlin.String?, 
+    var `albumArt`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNotificationSubject: FfiConverterRustBuffer<NotificationSubject> {
+    override fun read(buf: ByteBuffer): NotificationSubject {
+        return NotificationSubject(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NotificationSubject) = (
+            FfiConverterOptionalString.allocationSize(value.`uri`) +
+            FfiConverterOptionalString.allocationSize(value.`title`) +
+            FfiConverterOptionalString.allocationSize(value.`artist`) +
+            FfiConverterOptionalString.allocationSize(value.`albumArt`)
+    )
+
+    override fun write(value: NotificationSubject, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`uri`, buf)
+            FfiConverterOptionalString.write(value.`title`, buf)
+            FfiConverterOptionalString.write(value.`artist`, buf)
+            FfiConverterOptionalString.write(value.`albumArt`, buf)
+    }
+}
+
+
+
+/**
  * A single notification (`app.rocksky.notification.defs#notificationView`).
  */
 data class NotificationView (
@@ -7129,7 +7349,8 @@ data class NotificationView (
     var `subjectUri`: kotlin.String?, 
     var `shoutId`: kotlin.String?, 
     var `shoutContent`: kotlin.String?, 
-    var `actor`: NotificationActor?
+    var `actor`: NotificationActor?, 
+    var `subject`: NotificationSubject?
 ) {
     
     companion object
@@ -7149,6 +7370,7 @@ public object FfiConverterTypeNotificationView: FfiConverterRustBuffer<Notificat
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalTypeNotificationActor.read(buf),
+            FfiConverterOptionalTypeNotificationSubject.read(buf),
         )
     }
 
@@ -7160,7 +7382,8 @@ public object FfiConverterTypeNotificationView: FfiConverterRustBuffer<Notificat
             FfiConverterOptionalString.allocationSize(value.`subjectUri`) +
             FfiConverterOptionalString.allocationSize(value.`shoutId`) +
             FfiConverterOptionalString.allocationSize(value.`shoutContent`) +
-            FfiConverterOptionalTypeNotificationActor.allocationSize(value.`actor`)
+            FfiConverterOptionalTypeNotificationActor.allocationSize(value.`actor`) +
+            FfiConverterOptionalTypeNotificationSubject.allocationSize(value.`subject`)
     )
 
     override fun write(value: NotificationView, buf: ByteBuffer) {
@@ -7172,6 +7395,7 @@ public object FfiConverterTypeNotificationView: FfiConverterRustBuffer<Notificat
             FfiConverterOptionalString.write(value.`shoutId`, buf)
             FfiConverterOptionalString.write(value.`shoutContent`, buf)
             FfiConverterOptionalTypeNotificationActor.write(value.`actor`, buf)
+            FfiConverterOptionalTypeNotificationSubject.write(value.`subject`, buf)
     }
 }
 
@@ -7289,7 +7513,11 @@ data class ProfileView (
     var `displayName`: kotlin.String?, 
     var `avatar`: kotlin.String?, 
     var `createdAt`: kotlin.String?, 
-    var `updatedAt`: kotlin.String?
+    var `updatedAt`: kotlin.String?, 
+    var `spotifyUser`: SpotifyUserView?, 
+    var `spotifyConnected`: kotlin.Boolean?, 
+    var `googledrive`: GoogledriveView?, 
+    var `dropbox`: DropboxView?
 ) {
     
     companion object
@@ -7308,6 +7536,10 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeSpotifyUserView.read(buf),
+            FfiConverterOptionalBoolean.read(buf),
+            FfiConverterOptionalTypeGoogledriveView.read(buf),
+            FfiConverterOptionalTypeDropboxView.read(buf),
         )
     }
 
@@ -7318,7 +7550,11 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
             FfiConverterOptionalString.allocationSize(value.`displayName`) +
             FfiConverterOptionalString.allocationSize(value.`avatar`) +
             FfiConverterOptionalString.allocationSize(value.`createdAt`) +
-            FfiConverterOptionalString.allocationSize(value.`updatedAt`)
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`) +
+            FfiConverterOptionalTypeSpotifyUserView.allocationSize(value.`spotifyUser`) +
+            FfiConverterOptionalBoolean.allocationSize(value.`spotifyConnected`) +
+            FfiConverterOptionalTypeGoogledriveView.allocationSize(value.`googledrive`) +
+            FfiConverterOptionalTypeDropboxView.allocationSize(value.`dropbox`)
     )
 
     override fun write(value: ProfileView, buf: ByteBuffer) {
@@ -7329,6 +7565,10 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
             FfiConverterOptionalString.write(value.`avatar`, buf)
             FfiConverterOptionalString.write(value.`createdAt`, buf)
             FfiConverterOptionalString.write(value.`updatedAt`, buf)
+            FfiConverterOptionalTypeSpotifyUserView.write(value.`spotifyUser`, buf)
+            FfiConverterOptionalBoolean.write(value.`spotifyConnected`, buf)
+            FfiConverterOptionalTypeGoogledriveView.write(value.`googledrive`, buf)
+            FfiConverterOptionalTypeDropboxView.write(value.`dropbox`, buf)
     }
 }
 
@@ -7786,7 +8026,29 @@ data class ScrobbleView (
     var `albumUri`: kotlin.String?, 
     var `createdAt`: kotlin.String?, 
     var `liked`: kotlin.Boolean?, 
-    var `likesCount`: kotlin.UInt?
+    var `likesCount`: kotlin.UInt?, 
+    var `cover`: kotlin.String?, 
+    var `date`: kotlin.String?, 
+    var `user`: kotlin.String?, 
+    var `userDisplayName`: kotlin.String?, 
+    var `userAvatar`: kotlin.String?, 
+    var `tags`: List<kotlin.String>, 
+    var `mbId`: kotlin.String?, 
+    var `mbid`: kotlin.String?, 
+    var `isrc`: kotlin.String?, 
+    var `composer`: kotlin.String?, 
+    var `genre`: kotlin.String?, 
+    var `label`: kotlin.String?, 
+    var `copyrightMessage`: kotlin.String?, 
+    var `key`: kotlin.String?, 
+    var `trackNumber`: kotlin.UInt?, 
+    var `discNumber`: kotlin.UInt?, 
+    var `duration`: kotlin.ULong?, 
+    var `spotifyLink`: kotlin.String?, 
+    var `youtubeLink`: kotlin.String?, 
+    var `appleMusicLink`: kotlin.String?, 
+    var `tidalLink`: kotlin.String?, 
+    var `bpm`: kotlin.Double?
 ) {
     
     companion object
@@ -7814,6 +8076,28 @@ public object FfiConverterTypeScrobbleView: FfiConverterRustBuffer<ScrobbleView>
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalBoolean.read(buf),
             FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalULong.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalDouble.read(buf),
         )
     }
 
@@ -7833,7 +8117,29 @@ public object FfiConverterTypeScrobbleView: FfiConverterRustBuffer<ScrobbleView>
             FfiConverterOptionalString.allocationSize(value.`albumUri`) +
             FfiConverterOptionalString.allocationSize(value.`createdAt`) +
             FfiConverterOptionalBoolean.allocationSize(value.`liked`) +
-            FfiConverterOptionalUInt.allocationSize(value.`likesCount`)
+            FfiConverterOptionalUInt.allocationSize(value.`likesCount`) +
+            FfiConverterOptionalString.allocationSize(value.`cover`) +
+            FfiConverterOptionalString.allocationSize(value.`date`) +
+            FfiConverterOptionalString.allocationSize(value.`user`) +
+            FfiConverterOptionalString.allocationSize(value.`userDisplayName`) +
+            FfiConverterOptionalString.allocationSize(value.`userAvatar`) +
+            FfiConverterSequenceString.allocationSize(value.`tags`) +
+            FfiConverterOptionalString.allocationSize(value.`mbId`) +
+            FfiConverterOptionalString.allocationSize(value.`mbid`) +
+            FfiConverterOptionalString.allocationSize(value.`isrc`) +
+            FfiConverterOptionalString.allocationSize(value.`composer`) +
+            FfiConverterOptionalString.allocationSize(value.`genre`) +
+            FfiConverterOptionalString.allocationSize(value.`label`) +
+            FfiConverterOptionalString.allocationSize(value.`copyrightMessage`) +
+            FfiConverterOptionalString.allocationSize(value.`key`) +
+            FfiConverterOptionalUInt.allocationSize(value.`trackNumber`) +
+            FfiConverterOptionalUInt.allocationSize(value.`discNumber`) +
+            FfiConverterOptionalULong.allocationSize(value.`duration`) +
+            FfiConverterOptionalString.allocationSize(value.`spotifyLink`) +
+            FfiConverterOptionalString.allocationSize(value.`youtubeLink`) +
+            FfiConverterOptionalString.allocationSize(value.`appleMusicLink`) +
+            FfiConverterOptionalString.allocationSize(value.`tidalLink`) +
+            FfiConverterOptionalDouble.allocationSize(value.`bpm`)
     )
 
     override fun write(value: ScrobbleView, buf: ByteBuffer) {
@@ -7853,6 +8159,28 @@ public object FfiConverterTypeScrobbleView: FfiConverterRustBuffer<ScrobbleView>
             FfiConverterOptionalString.write(value.`createdAt`, buf)
             FfiConverterOptionalBoolean.write(value.`liked`, buf)
             FfiConverterOptionalUInt.write(value.`likesCount`, buf)
+            FfiConverterOptionalString.write(value.`cover`, buf)
+            FfiConverterOptionalString.write(value.`date`, buf)
+            FfiConverterOptionalString.write(value.`user`, buf)
+            FfiConverterOptionalString.write(value.`userDisplayName`, buf)
+            FfiConverterOptionalString.write(value.`userAvatar`, buf)
+            FfiConverterSequenceString.write(value.`tags`, buf)
+            FfiConverterOptionalString.write(value.`mbId`, buf)
+            FfiConverterOptionalString.write(value.`mbid`, buf)
+            FfiConverterOptionalString.write(value.`isrc`, buf)
+            FfiConverterOptionalString.write(value.`composer`, buf)
+            FfiConverterOptionalString.write(value.`genre`, buf)
+            FfiConverterOptionalString.write(value.`label`, buf)
+            FfiConverterOptionalString.write(value.`copyrightMessage`, buf)
+            FfiConverterOptionalString.write(value.`key`, buf)
+            FfiConverterOptionalUInt.write(value.`trackNumber`, buf)
+            FfiConverterOptionalUInt.write(value.`discNumber`, buf)
+            FfiConverterOptionalULong.write(value.`duration`, buf)
+            FfiConverterOptionalString.write(value.`spotifyLink`, buf)
+            FfiConverterOptionalString.write(value.`youtubeLink`, buf)
+            FfiConverterOptionalString.write(value.`appleMusicLink`, buf)
+            FfiConverterOptionalString.write(value.`tidalLink`, buf)
+            FfiConverterOptionalDouble.write(value.`bpm`, buf)
     }
 }
 
@@ -8023,7 +8351,23 @@ data class SongView (
     var `mbid`: kotlin.String?, 
     var `isrc`: kotlin.String?, 
     var `tags`: List<kotlin.String>, 
-    var `createdAt`: kotlin.String?
+    var `createdAt`: kotlin.String?, 
+    var `updatedAt`: kotlin.String?, 
+    var `liked`: kotlin.Boolean?, 
+    var `likesCount`: kotlin.UInt?, 
+    var `mbId`: kotlin.String?, 
+    var `lyrics`: kotlin.String?, 
+    var `composer`: kotlin.String?, 
+    var `genre`: kotlin.String?, 
+    var `label`: kotlin.String?, 
+    var `copyrightMessage`: kotlin.String?, 
+    var `key`: kotlin.String?, 
+    var `acoustidFingerprint`: kotlin.String?, 
+    var `spotifyLink`: kotlin.String?, 
+    var `youtubeLink`: kotlin.String?, 
+    var `appleMusicLink`: kotlin.String?, 
+    var `tidalLink`: kotlin.String?, 
+    var `bpm`: kotlin.Double?
 ) {
     
     companion object
@@ -8053,6 +8397,22 @@ public object FfiConverterTypeSongView: FfiConverterRustBuffer<SongView> {
             FfiConverterOptionalString.read(buf),
             FfiConverterSequenceString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalBoolean.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalDouble.read(buf),
         )
     }
 
@@ -8074,7 +8434,23 @@ public object FfiConverterTypeSongView: FfiConverterRustBuffer<SongView> {
             FfiConverterOptionalString.allocationSize(value.`mbid`) +
             FfiConverterOptionalString.allocationSize(value.`isrc`) +
             FfiConverterSequenceString.allocationSize(value.`tags`) +
-            FfiConverterOptionalString.allocationSize(value.`createdAt`)
+            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`) +
+            FfiConverterOptionalBoolean.allocationSize(value.`liked`) +
+            FfiConverterOptionalUInt.allocationSize(value.`likesCount`) +
+            FfiConverterOptionalString.allocationSize(value.`mbId`) +
+            FfiConverterOptionalString.allocationSize(value.`lyrics`) +
+            FfiConverterOptionalString.allocationSize(value.`composer`) +
+            FfiConverterOptionalString.allocationSize(value.`genre`) +
+            FfiConverterOptionalString.allocationSize(value.`label`) +
+            FfiConverterOptionalString.allocationSize(value.`copyrightMessage`) +
+            FfiConverterOptionalString.allocationSize(value.`key`) +
+            FfiConverterOptionalString.allocationSize(value.`acoustidFingerprint`) +
+            FfiConverterOptionalString.allocationSize(value.`spotifyLink`) +
+            FfiConverterOptionalString.allocationSize(value.`youtubeLink`) +
+            FfiConverterOptionalString.allocationSize(value.`appleMusicLink`) +
+            FfiConverterOptionalString.allocationSize(value.`tidalLink`) +
+            FfiConverterOptionalDouble.allocationSize(value.`bpm`)
     )
 
     override fun write(value: SongView, buf: ByteBuffer) {
@@ -8096,6 +8472,73 @@ public object FfiConverterTypeSongView: FfiConverterRustBuffer<SongView> {
             FfiConverterOptionalString.write(value.`isrc`, buf)
             FfiConverterSequenceString.write(value.`tags`, buf)
             FfiConverterOptionalString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`updatedAt`, buf)
+            FfiConverterOptionalBoolean.write(value.`liked`, buf)
+            FfiConverterOptionalUInt.write(value.`likesCount`, buf)
+            FfiConverterOptionalString.write(value.`mbId`, buf)
+            FfiConverterOptionalString.write(value.`lyrics`, buf)
+            FfiConverterOptionalString.write(value.`composer`, buf)
+            FfiConverterOptionalString.write(value.`genre`, buf)
+            FfiConverterOptionalString.write(value.`label`, buf)
+            FfiConverterOptionalString.write(value.`copyrightMessage`, buf)
+            FfiConverterOptionalString.write(value.`key`, buf)
+            FfiConverterOptionalString.write(value.`acoustidFingerprint`, buf)
+            FfiConverterOptionalString.write(value.`spotifyLink`, buf)
+            FfiConverterOptionalString.write(value.`youtubeLink`, buf)
+            FfiConverterOptionalString.write(value.`appleMusicLink`, buf)
+            FfiConverterOptionalString.write(value.`tidalLink`, buf)
+            FfiConverterOptionalDouble.write(value.`bpm`, buf)
+    }
+}
+
+
+
+/**
+ * The listener's Spotify account (`app.rocksky.actor.defs#responseSpotifyUserView`).
+ */
+data class SpotifyUserView (
+    var `id`: kotlin.String?, 
+    var `userId`: kotlin.String?, 
+    var `spotifyAppId`: kotlin.String?, 
+    var `isBetaUser`: kotlin.Boolean?, 
+    var `createdAt`: kotlin.String?, 
+    var `updatedAt`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSpotifyUserView: FfiConverterRustBuffer<SpotifyUserView> {
+    override fun read(buf: ByteBuffer): SpotifyUserView {
+        return SpotifyUserView(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SpotifyUserView) = (
+            FfiConverterOptionalString.allocationSize(value.`id`) +
+            FfiConverterOptionalString.allocationSize(value.`userId`) +
+            FfiConverterOptionalString.allocationSize(value.`spotifyAppId`) +
+            FfiConverterOptionalBoolean.allocationSize(value.`isBetaUser`) +
+            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`updatedAt`)
+    )
+
+    override fun write(value: SpotifyUserView, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`id`, buf)
+            FfiConverterOptionalString.write(value.`userId`, buf)
+            FfiConverterOptionalString.write(value.`spotifyAppId`, buf)
+            FfiConverterOptionalBoolean.write(value.`isBetaUser`, buf)
+            FfiConverterOptionalString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`updatedAt`, buf)
     }
 }
 
@@ -9057,6 +9500,38 @@ public object FfiConverterOptionalFloat: FfiConverterRustBuffer<kotlin.Float?> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalDouble: FfiConverterRustBuffer<kotlin.Double?> {
+    override fun read(buf: ByteBuffer): kotlin.Double? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterDouble.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Double?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterDouble.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Double?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterDouble.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalBoolean: FfiConverterRustBuffer<kotlin.Boolean?> {
     override fun read(buf: ByteBuffer): kotlin.Boolean? {
         if (buf.get().toInt() == 0) {
@@ -9121,6 +9596,70 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeDropboxView: FfiConverterRustBuffer<DropboxView?> {
+    override fun read(buf: ByteBuffer): DropboxView? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeDropboxView.read(buf)
+    }
+
+    override fun allocationSize(value: DropboxView?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeDropboxView.allocationSize(value)
+        }
+    }
+
+    override fun write(value: DropboxView?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeDropboxView.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeGoogledriveView: FfiConverterRustBuffer<GoogledriveView?> {
+    override fun read(buf: ByteBuffer): GoogledriveView? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeGoogledriveView.read(buf)
+    }
+
+    override fun allocationSize(value: GoogledriveView?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeGoogledriveView.allocationSize(value)
+        }
+    }
+
+    override fun write(value: GoogledriveView?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeGoogledriveView.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeNotificationActor: FfiConverterRustBuffer<NotificationActor?> {
     override fun read(buf: ByteBuffer): NotificationActor? {
         if (buf.get().toInt() == 0) {
@@ -9143,6 +9682,38 @@ public object FfiConverterOptionalTypeNotificationActor: FfiConverterRustBuffer<
         } else {
             buf.put(1)
             FfiConverterTypeNotificationActor.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeNotificationSubject: FfiConverterRustBuffer<NotificationSubject?> {
+    override fun read(buf: ByteBuffer): NotificationSubject? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeNotificationSubject.read(buf)
+    }
+
+    override fun allocationSize(value: NotificationSubject?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeNotificationSubject.allocationSize(value)
+        }
+    }
+
+    override fun write(value: NotificationSubject?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeNotificationSubject.write(value, buf)
         }
     }
 }
@@ -9239,6 +9810,38 @@ public object FfiConverterOptionalTypeShoutGifInput: FfiConverterRustBuffer<Shou
         } else {
             buf.put(1)
             FfiConverterTypeShoutGifInput.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeSpotifyUserView: FfiConverterRustBuffer<SpotifyUserView?> {
+    override fun read(buf: ByteBuffer): SpotifyUserView? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeSpotifyUserView.read(buf)
+    }
+
+    override fun allocationSize(value: SpotifyUserView?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeSpotifyUserView.allocationSize(value)
+        }
+    }
+
+    override fun write(value: SpotifyUserView?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeSpotifyUserView.write(value, buf)
         }
     }
 }

@@ -42,16 +42,12 @@ pub struct ActorArtistViewBasic {
     pub user1_rank: Option<i64>,
     #[serde(rename = "user2Rank", default, skip_serializing_if = "Option::is_none")]
     pub user2_rank: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub weight: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ActorCompatibilityViewBasic {
     #[serde(rename = "compatibilityLevel", default, skip_serializing_if = "Option::is_none")]
     pub compatibility_level: Option<i64>,
-    #[serde(rename = "compatibilityPercentage", default, skip_serializing_if = "Option::is_none")]
-    pub compatibility_percentage: Option<i64>,
     #[serde(rename = "sharedArtists", default, skip_serializing_if = "Option::is_none")]
     pub shared_artists: Option<i64>,
     #[serde(rename = "topSharedArtistNames", default, skip_serializing_if = "Vec::is_empty")]
@@ -80,9 +76,6 @@ pub struct ActorNeighbourViewBasic {
     /// The number of artists shared with the actor.
     #[serde(rename = "sharedArtistsCount", default, skip_serializing_if = "Option::is_none")]
     pub shared_artists_count: Option<i64>,
-    /// The similarity score with the actor.
-    #[serde(rename = "similarityScore", default, skip_serializing_if = "Option::is_none")]
-    pub similarity_score: Option<i64>,
     /// The top shared artist names with the actor.
     #[serde(rename = "topSharedArtistNames", default, skip_serializing_if = "Vec::is_empty")]
     pub top_shared_artist_names: Vec<String>,
@@ -139,6 +132,58 @@ pub struct ActorProfileViewDetailed {
     /// The date and time when the actor was last updated.
     #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime<Utc>>,
+    #[serde(rename = "spotifyUser", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_user: Option<ActorResponseSpotifyUserView>,
+    #[serde(rename = "spotifyConnected", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_connected: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub googledrive: Option<ActorResponseGoogledriveView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dropbox: Option<ActorResponseDropboxView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ActorResponseDropboxView {
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(rename = "isBetaUser", default, skip_serializing_if = "Option::is_none")]
+    pub is_beta_user: Option<bool>,
+    #[serde(rename = "userId", default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ActorResponseGoogledriveView {
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ActorResponseSpotifyUserView {
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    #[serde(rename = "userId", default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    #[serde(rename = "isBetaUser", default, skip_serializing_if = "Option::is_none")]
+    pub is_beta_user: Option<bool>,
+    #[serde(rename = "spotifyAppId", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_app_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -206,6 +251,205 @@ pub struct AddSongsParams {
     pub uri: String,
     /// AT-URIs of the app.rocksky.song records to add
     pub songs: Vec<String>,
+}
+
+/// An artist credited on the release itself.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumDiscogsArtistView {
+    /// The Discogs artist ID.
+    #[serde(rename = "artistId", default, skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<i64>,
+    /// The artist name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The name as credited on this release, when it differs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anv: Option<String>,
+    /// What separates this artist from the next in the credit.
+    #[serde(rename = "joinPhrase", default, skip_serializing_if = "Option::is_none")]
+    pub join_phrase: Option<String>,
+    /// The role, when the release gives one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+}
+
+/// One performance or production credit from Discogs.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumDiscogsCreditView {
+    /// The Discogs artist ID, when the credit is linked to one.
+    #[serde(rename = "artistId", default, skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<i64>,
+    /// The credited name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The role as Discogs words it, such as "Written-By" or "Mixed By, Engineer".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// The track positions the credit applies to, absent when it covers the whole release.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tracks: Option<String>,
+}
+
+/// An identifier printed on the release: barcode, matrix / runout, label code, rights society.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumDiscogsIdentifierView {
+    /// The identifier type as Discogs names it.
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    /// The identifier itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// What the identifier applies to, when Discogs says.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+/// A label or company involved in the release.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumDiscogsLabelView {
+    /// The Discogs label ID.
+    #[serde(rename = "labelId", default, skip_serializing_if = "Option::is_none")]
+    pub label_id: Option<i64>,
+    /// The label or company name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The catalog number this label gave the release.
+    #[serde(rename = "catalogNumber", default, skip_serializing_if = "Option::is_none")]
+    pub catalog_number: Option<String>,
+    /// Either label or company.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// The role for a company, such as Pressed By or Distributed By.
+    #[serde(rename = "entityType", default, skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
+}
+
+/// The master that groups every edition of the release.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumDiscogsMasterView {
+    /// The Discogs master ID.
+    #[serde(rename = "masterId", default, skip_serializing_if = "Option::is_none")]
+    pub master_id: Option<i64>,
+    /// The master title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The master artist credit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// The year the release first came out.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    /// The release Discogs treats as the canonical edition.
+    #[serde(rename = "mainReleaseId", default, skip_serializing_if = "Option::is_none")]
+    pub main_release_id: Option<i64>,
+    /// The master page on Discogs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// The Discogs genres of the master.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
+    /// The Discogs styles of the master.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub styles: Vec<String>,
+}
+
+/// One entry of the release tracklist, as printed on it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumDiscogsTrackView {
+    /// The position Discogs prints, such as 7, 2-04 or C2.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<String>,
+    /// The entry kind: track, heading or index.
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    /// The track title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The duration as printed, m:ss.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<String>,
+    /// The duration in milliseconds.
+    #[serde(rename = "durationMs", default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<i64>,
+    /// The disc the track sits on, parsed from the position.
+    #[serde(rename = "discNumber", default, skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    /// The track number, side-relative for vinyl.
+    #[serde(rename = "trackNumber", default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
+}
+
+/// Release metadata matched on Discogs for this album.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AlbumDiscogsView {
+    /// The Discogs release ID.
+    #[serde(rename = "releaseId", default, skip_serializing_if = "Option::is_none")]
+    pub release_id: Option<i64>,
+    /// The Discogs master ID, shared by every edition of the release.
+    #[serde(rename = "masterId", default, skip_serializing_if = "Option::is_none")]
+    pub master_id: Option<i64>,
+    /// The release title as Discogs spells it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The release artist as Discogs credits it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// The primary release image on Discogs.
+    #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    /// The year this pressing was released.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    /// The year the release first came out, from its master.
+    #[serde(rename = "originalYear", default, skip_serializing_if = "Option::is_none")]
+    pub original_year: Option<i64>,
+    /// The release date of this pressing.
+    #[serde(rename = "releaseDate", default, skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<String>,
+    /// The country this pressing was released in.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country: Option<String>,
+    /// The record label.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// The label's catalog number for this pressing.
+    #[serde(rename = "catalogNumber", default, skip_serializing_if = "Option::is_none")]
+    pub catalog_number: Option<String>,
+    /// The barcode printed on this pressing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub barcode: Option<String>,
+    /// The physical or digital formats of this pressing.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub formats: Vec<String>,
+    /// The Discogs genres of the release.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
+    /// The Discogs styles of the release.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub styles: Vec<String>,
+    /// The release page on Discogs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// Confidence of the match that produced this release, from 0 to 100.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub score: Option<i64>,
+    /// Performance and production credits for the release.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub credits: Vec<AlbumDiscogsCreditView>,
+    /// The release tracklist.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tracklist: Vec<AlbumDiscogsTrackView>,
+    /// Every label and company on the release.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub labels: Vec<AlbumDiscogsLabelView>,
+    /// Every identifier printed on the release.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub identifiers: Vec<AlbumDiscogsIdentifierView>,
+    /// Every artist credited on the release.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artists: Vec<AlbumDiscogsArtistView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub master: Option<AlbumDiscogsMasterView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -293,6 +537,22 @@ pub struct AlbumViewBasic {
     /// The number of unique listeners who have played the album.
     #[serde(rename = "uniqueListeners", default, skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(rename = "discogsReleaseId", default, skip_serializing_if = "Option::is_none")]
+    pub discogs_release_id: Option<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -334,6 +594,24 @@ pub struct AlbumViewDetailed {
     pub tags: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tracks: Vec<SongViewBasic>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discogs: Option<AlbumDiscogsView>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(rename = "discogsReleaseId", default, skip_serializing_if = "Option::is_none")]
+    pub discogs_release_id: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -513,6 +791,30 @@ pub struct ArtistViewBasic {
     pub unique_listeners: Option<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub biography: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born: Option<DateTime<Utc>>,
+    #[serde(rename = "bornIn", default, skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub died: Option<DateTime<Utc>>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -540,6 +842,30 @@ pub struct ArtistViewDetailed {
     pub unique_listeners: Option<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub biography: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born: Option<DateTime<Utc>>,
+    #[serde(rename = "bornIn", default, skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub died: Option<DateTime<Utc>>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -748,6 +1074,19 @@ pub struct DeletePlaylistInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DeletePlaylistOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Non-fatal AT Protocol playlist mirror error, when available.
+    #[serde(rename = "atprotoError", default, skip_serializing_if = "Option::is_none")]
+    pub atproto_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -806,6 +1145,12 @@ pub struct DropboxFileListView {
     /// A list of files in the Dropbox.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<DropboxFileView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directory: Option<DropboxResponseDirectoryView>,
+    #[serde(rename = "parentDirectory", default, skip_serializing_if = "Option::is_none")]
+    pub parent_directory: Option<DropboxResponseParentDirectoryView>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub directories: Vec<DropboxResponseDirectoriesItemView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -828,6 +1173,16 @@ pub struct DropboxFileView {
     /// The last modified date and time of the file on the server.
     #[serde(rename = "serverModified", default, skip_serializing_if = "Option::is_none")]
     pub server_modified: Option<DateTime<Utc>>,
+    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<String>,
+    #[serde(rename = "directoryId", default, skip_serializing_if = "Option::is_none")]
+    pub directory_id: Option<String>,
+    #[serde(rename = "trackId", default, skip_serializing_if = "Option::is_none")]
+    pub track_id: Option<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -835,6 +1190,32 @@ pub struct DropboxGetFilesParams {
     /// Path to the Dropbox folder or root directory
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DropboxResponseDirectoriesItemView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(rename = "parentId", default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DropboxResponseDirectoryView {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DropboxResponseParentDirectoryView {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -902,6 +1283,8 @@ pub struct FeedGeneratorView {
     pub avatar: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub creator: Option<ActorProfileViewBasic>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -936,8 +1319,6 @@ pub struct FeedRecommendationView {
     pub album_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub genres: Vec<String>,
-    #[serde(rename = "recommendationScore", default, skip_serializing_if = "Option::is_none")]
-    pub recommendation_score: Option<i64>,
     /// neighbour | social | serendipity
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
@@ -969,8 +1350,6 @@ pub struct FeedRecommendedAlbumView {
     pub year: Option<i64>,
     #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
     pub album_art: Option<String>,
-    #[serde(rename = "recommendationScore", default, skip_serializing_if = "Option::is_none")]
-    pub recommendation_score: Option<i64>,
     /// known-artist | new-artist | serendipity
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
@@ -996,11 +1375,173 @@ pub struct FeedRecommendedArtistView {
     pub picture: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub genres: Vec<String>,
-    #[serde(rename = "recommendationScore", default, skip_serializing_if = "Option::is_none")]
-    pub recommendation_score: Option<i64>,
     /// neighbour | social | serendipity
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FeedSearchFederation {
+    #[serde(rename = "indexUid", default, skip_serializing_if = "Option::is_none")]
+    pub index_uid: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FeedSearchHit {
+    /// The unique identifier of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The title of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The artist of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// The artist of the album the song belongs to.
+    #[serde(rename = "albumArtist", default, skip_serializing_if = "Option::is_none")]
+    pub album_artist: Option<String>,
+    /// The URL of the album art image.
+    #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    /// The URI of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    /// The album of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<String>,
+    /// The duration of the song in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
+    /// The track number of the song in the album.
+    #[serde(rename = "trackNumber", default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
+    /// The disc number of the song in the album.
+    #[serde(rename = "discNumber", default, skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    /// The number of times the song has been played.
+    #[serde(rename = "playCount", default, skip_serializing_if = "Option::is_none")]
+    pub play_count: Option<i64>,
+    /// The number of users who have loved this song.
+    #[serde(rename = "likesCount", default, skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
+    /// Whether the authenticated user has loved this song. False when unauthenticated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    /// The number of unique listeners who have played the song.
+    #[serde(rename = "uniqueListeners", default, skip_serializing_if = "Option::is_none")]
+    pub unique_listeners: Option<i64>,
+    /// The URI of the album the song belongs to.
+    #[serde(rename = "albumUri", default, skip_serializing_if = "Option::is_none")]
+    pub album_uri: Option<String>,
+    /// The URI of the artist of the song.
+    #[serde(rename = "artistUri", default, skip_serializing_if = "Option::is_none")]
+    pub artist_uri: Option<String>,
+    /// The SHA256 hash of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    /// The MusicBrainz ID of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    /// The International Standard Recording Code (ISRC) of the song.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    /// The timestamp when the song was created.
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "mbId", default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(rename = "copyrightMessage", default, skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(rename = "acoustidFingerprint", default, skip_serializing_if = "Option::is_none")]
+    pub acoustid_fingerprint: Option<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    /// The year the album was released.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    /// The release date of the album.
+    #[serde(rename = "releaseDate", default, skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<String>,
+    #[serde(rename = "discogsReleaseId", default, skip_serializing_if = "Option::is_none")]
+    pub discogs_release_id: Option<String>,
+    /// The name of the artist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The picture of the artist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub picture: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub biography: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born: Option<DateTime<Utc>>,
+    #[serde(rename = "bornIn", default, skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub died: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
+    /// The DID of the curator of the playlist.
+    #[serde(rename = "curatorDid", default, skip_serializing_if = "Option::is_none")]
+    pub curator_did: Option<String>,
+    /// The handle of the curator of the playlist.
+    #[serde(rename = "curatorHandle", default, skip_serializing_if = "Option::is_none")]
+    pub curator_handle: Option<String>,
+    /// The name of the curator of the playlist.
+    #[serde(rename = "curatorName", default, skip_serializing_if = "Option::is_none")]
+    pub curator_name: Option<String>,
+    /// The URL of the avatar image of the curator.
+    #[serde(rename = "curatorAvatarUrl", default, skip_serializing_if = "Option::is_none")]
+    pub curator_avatar_url: Option<String>,
+    /// A description of the playlist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// The URL of the cover image for the playlist.
+    #[serde(rename = "coverImageUrl", default, skip_serializing_if = "Option::is_none")]
+    pub cover_image_url: Option<String>,
+    /// The number of tracks in the playlist.
+    #[serde(rename = "trackCount", default, skip_serializing_if = "Option::is_none")]
+    pub track_count: Option<i64>,
+    /// Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.
+    #[serde(rename = "trackArts", default, skip_serializing_if = "Vec::is_empty")]
+    pub track_arts: Vec<String>,
+    #[serde(rename = "curatorDId", default, skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<String>,
+    /// The DID of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+    /// The handle of the actor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handle: Option<String>,
+    /// The display name of the actor.
+    #[serde(rename = "displayName", default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    /// The URL of the actor's avatar image.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
+    #[serde(rename = "_federation", default, skip_serializing_if = "Option::is_none")]
+    pub federation: Option<FeedSearchFederation>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1012,7 +1553,7 @@ pub struct FeedSearchParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FeedSearchResultsView {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub hits: Vec<Value>,
+    pub hits: Vec<FeedSearchHit>,
     #[serde(rename = "processingTimeMs", default, skip_serializing_if = "Option::is_none")]
     pub processing_time_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1061,6 +1602,10 @@ pub struct FeedStoryView {
     pub track_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    #[serde(rename = "likesCount", default, skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1077,6 +1622,9 @@ pub struct FeedView {
     /// The pagination cursor for the next set of results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
+    /// Legacy empty-array error fallback; successful responses use feed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scrobbles: Vec<ScrobbleViewBasic>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1247,7 +1795,7 @@ pub struct GetActorScrobblesParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetActorSongsOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub songs: Vec<SongViewBasic>,
+    pub tracks: Vec<SongViewBasic>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1270,6 +1818,19 @@ pub struct GetActorSongsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetAlbumInfoOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic albumInfo payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "albumInfo", default, skip_serializing_if = "Option::is_none")]
+    pub album_info: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1280,6 +1841,19 @@ pub struct GetAlbumInfoParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetAlbumListOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic albumList2 payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "albumList2", default, skip_serializing_if = "Option::is_none")]
+    pub album_list2: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1315,7 +1889,7 @@ pub struct GetAlbumRecommendationsParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetAlbumShoutsOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub shouts: Vec<Value>,
+    pub shouts: Vec<ShoutView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1366,8 +1940,8 @@ pub struct GetAlbumTracksParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetApikeysOutput {
-    #[serde(rename = "apiKeys", default, skip_serializing_if = "Vec::is_empty")]
-    pub api_keys: Vec<Value>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub apikeys: Vec<ApiKeyView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1394,6 +1968,19 @@ pub struct GetArtistAlbumsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetArtistInfoOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic artistInfo2 payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "artistInfo2", default, skip_serializing_if = "Option::is_none")]
+    pub artist_info2: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1449,7 +2036,7 @@ pub struct GetArtistRecommendationsParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetArtistShoutsOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub shouts: Vec<Value>,
+    pub shouts: Vec<ShoutView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1648,6 +2235,19 @@ pub struct GetFollowsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetGenresOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic genres payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1660,6 +2260,19 @@ pub struct GetGlobalStatsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetIndexesOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic indexes payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub indexes: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1668,6 +2281,19 @@ pub struct GetIndexesParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetInternetRadioStationsOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic internetRadioStations payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "internetRadioStations", default, skip_serializing_if = "Option::is_none")]
+    pub internet_radio_stations: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1694,6 +2320,19 @@ pub struct GetKnownFollowersParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetLicenseOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic license payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub license: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1702,6 +2341,19 @@ pub struct GetLicenseParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetLyricsOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic lyrics payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1712,6 +2364,13 @@ pub struct GetLyricsParams {
     /// The song title.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetMetadataOutput {
+    /// Metadata returned by the provider; currently an empty object.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1731,6 +2390,19 @@ pub struct GetMirrorSourcesParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetMusicDirectoryOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic directory payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directory: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1741,6 +2413,19 @@ pub struct GetMusicDirectoryParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetMusicFoldersOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic musicFolders payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "musicFolders", default, skip_serializing_if = "Option::is_none")]
+    pub music_folders: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1749,6 +2434,19 @@ pub struct GetMusicFoldersParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetNowPlayingOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic nowPlaying payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "nowPlaying", default, skip_serializing_if = "Option::is_none")]
+    pub now_playing: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1763,6 +2461,19 @@ pub struct GetPlaybackQueueParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetPlayQueueOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic playQueue payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "playQueue", default, skip_serializing_if = "Option::is_none")]
+    pub play_queue: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1779,7 +2490,7 @@ pub struct GetProfileParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetProfileShoutsOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub shouts: Vec<Value>,
+    pub shouts: Vec<ShoutView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1796,6 +2507,19 @@ pub struct GetProfileShoutsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetRandomSongsOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic randomSongs payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "randomSongs", default, skip_serializing_if = "Option::is_none")]
+    pub random_songs: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1824,6 +2548,19 @@ pub struct GetRecommendationsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetScanStatusOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "scanStatus", default, skip_serializing_if = "Option::is_none")]
+    pub scan_status: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1889,7 +2626,7 @@ pub struct GetScrobblesParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetShoutRepliesOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub shouts: Vec<Value>,
+    pub shouts: Vec<ShoutView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1906,6 +2643,19 @@ pub struct GetShoutRepliesParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetSimilarSongsOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic similarSongs2 payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "similarSongs2", default, skip_serializing_if = "Option::is_none")]
+    pub similar_songs2: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1937,6 +2687,19 @@ pub struct GetSongRecentListenersParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetSongsByGenreOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic songsByGenre payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "songsByGenre", default, skip_serializing_if = "Option::is_none")]
+    pub songs_by_genre: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1954,7 +2717,7 @@ pub struct GetSongsByGenreParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetSongsOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub songs: Vec<SongViewBasic>,
+    pub tracks: Vec<SongViewBasic>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1984,6 +2747,19 @@ pub struct GetSongsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetStarredOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic starred2 payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starred2: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2082,6 +2858,19 @@ pub struct GetTopScrobblersParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetTopSongsOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic topSongs payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "topSongs", default, skip_serializing_if = "Option::is_none")]
+    pub top_songs: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2121,7 +2910,7 @@ pub struct GetTopTracksParams {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetTrackShoutsOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub shouts: Vec<Value>,
+    pub shouts: Vec<ShoutView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2138,6 +2927,19 @@ pub struct GetUnreadCountOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetUserOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic user payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2167,6 +2969,12 @@ pub struct GoogledriveDownloadFileParams {
 pub struct GoogledriveFileListView {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<GoogledriveFileView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directory: Option<GoogledriveResponseDirectoryView>,
+    #[serde(rename = "parentDirectory", default, skip_serializing_if = "Option::is_none")]
+    pub parent_directory: Option<GoogledriveResponseParentDirectoryView>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub directories: Vec<GoogledriveResponseDirectoriesItemView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2174,6 +2982,18 @@ pub struct GoogledriveFileView {
     /// The unique identifier of the file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<String>,
+    #[serde(rename = "directoryId", default, skip_serializing_if = "Option::is_none")]
+    pub directory_id: Option<String>,
+    #[serde(rename = "trackId", default, skip_serializing_if = "Option::is_none")]
+    pub track_id: Option<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2181,6 +3001,32 @@ pub struct GoogledriveGetFilesParams {
     /// Path to the Google Drive folder or root directory
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GoogledriveResponseDirectoriesItemView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(rename = "parentId", default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GoogledriveResponseDirectoryView {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GoogledriveResponseParentDirectoryView {
 }
 
 /// indicates that a handle or DID could not be resolved
@@ -2231,10 +3077,39 @@ pub struct LibraryCreatePlaylistInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryCreatePlaylistOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playlist: Option<Value>,
+    /// Non-fatal AT Protocol playlist mirror error, when available.
+    #[serde(rename = "atprotoError", default, skip_serializing_if = "Option::is_none")]
+    pub atproto_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryGetAlbumOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic album payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2245,6 +3120,19 @@ pub struct LibraryGetAlbumParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryGetArtistOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic artist payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2255,6 +3143,19 @@ pub struct LibraryGetArtistParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryGetArtistsOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic artists payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artists: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2263,6 +3164,19 @@ pub struct LibraryGetArtistsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryGetPlaylistOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playlist: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2273,6 +3187,19 @@ pub struct LibraryGetPlaylistParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryGetPlaylistsOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic playlists payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playlists: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2281,6 +3208,19 @@ pub struct LibraryGetPlaylistsParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryGetSongOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic song payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub song: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2291,6 +3231,19 @@ pub struct LibraryGetSongParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibrarySearchOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic searchResult3 payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "searchResult3", default, skip_serializing_if = "Option::is_none")]
+    pub search_result3: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2338,6 +3291,19 @@ pub struct LibraryUpdatePlaylistInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LibraryUpdatePlaylistOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Non-fatal AT Protocol playlist mirror error, when available.
+    #[serde(rename = "atprotoError", default, skip_serializing_if = "Option::is_none")]
+    pub atproto_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2498,6 +3464,16 @@ pub struct NotificationView {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PingOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2523,6 +3499,34 @@ pub struct PlayerCurrentlyPlayingViewDetailed {
     /// The title of the currently playing track
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shuffle_state: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat_state: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub item: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currently_playing_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actions: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_playing: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    #[serde(rename = "albumUri", default, skip_serializing_if = "Option::is_none")]
+    pub album_uri: Option<String>,
+    #[serde(rename = "artistUri", default, skip_serializing_if = "Option::is_none")]
+    pub artist_uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2745,6 +3749,10 @@ pub struct PlaylistViewBasic {
     /// Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.
     #[serde(rename = "trackArts", default, skip_serializing_if = "Vec::is_empty")]
     pub track_arts: Vec<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "curatorDId", default, skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<String>,
 }
 
 /// Detailed view of a playlist, including its tracks and metadata
@@ -2783,6 +3791,12 @@ pub struct PlaylistViewDetailed {
     /// A list of tracks in the playlist.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tracks: Vec<SongViewBasic>,
+    #[serde(rename = "curatorDId", default, skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "trackCount", default, skip_serializing_if = "Option::is_none")]
+    pub track_count: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3079,6 +4093,16 @@ pub struct SavePlayQueueInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SavePlayQueueOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3108,6 +4132,16 @@ pub struct ScrobbleInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ScrobbleOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3242,6 +4276,50 @@ pub struct ScrobbleViewBasic {
     pub liked: Option<bool>,
     #[serde(rename = "likesCount", default, skip_serializing_if = "Option::is_none")]
     pub likes_count: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
+    #[serde(rename = "userDisplayName", default, skip_serializing_if = "Option::is_none")]
+    pub user_display_name: Option<String>,
+    #[serde(rename = "userAvatar", default, skip_serializing_if = "Option::is_none")]
+    pub user_avatar: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(rename = "mbId", default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composer: Option<String>,
+    #[serde(rename = "trackNumber", default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(rename = "discNumber", default, skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(rename = "copyrightMessage", default, skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3297,6 +4375,52 @@ pub struct ScrobbleViewDetailed {
     /// The first scrobble of this song on Rocksky.
     #[serde(rename = "firstScrobble", default, skip_serializing_if = "Option::is_none")]
     pub first_scrobble: Option<ScrobbleFirstScrobbleView>,
+    /// The MusicBrainz recording ID of the track, when available.
+    #[serde(rename = "mbId", default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    /// The International Standard Recording Code (ISRC) of the track, when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "albumArtist", default, skip_serializing_if = "Option::is_none")]
+    pub album_artist: Option<String>,
+    #[serde(rename = "trackNumber", default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(rename = "discNumber", default, skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(rename = "copyrightMessage", default, skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(rename = "acoustidFingerprint", default, skip_serializing_if = "Option::is_none")]
+    pub acoustid_fingerprint: Option<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3414,6 +4538,14 @@ pub struct ShoutView {
     /// Mentions of other actors within the message, anchored to UTF-8 byte ranges.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub facets: Vec<ShoutMention>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub likes: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3596,6 +4728,14 @@ pub struct SongRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SongResponseMbArtistsItemView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SongViewBasic {
     /// The unique identifier of the song.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -3659,6 +4799,34 @@ pub struct SongViewBasic {
     /// The timestamp when the song was created.
     #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "mbId", default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(rename = "copyrightMessage", default, skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(rename = "acoustidFingerprint", default, skip_serializing_if = "Option::is_none")]
+    pub acoustid_fingerprint: Option<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3733,6 +4901,45 @@ pub struct SongViewDetailed {
     /// Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub matches: Vec<SongMatchView>,
+    /// The MusicBrainz recording ID of the track, when available.
+    #[serde(rename = "mbId", default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(rename = "releaseDate", default, skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    #[serde(rename = "artistPicture", default, skip_serializing_if = "Option::is_none")]
+    pub artist_picture: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
+    #[serde(rename = "mbArtists", default, skip_serializing_if = "Vec::is_empty")]
+    pub mb_artists: Vec<SongResponseMbArtistsItemView>,
+    #[serde(rename = "youtubeLink", default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(rename = "spotifyLink", default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(rename = "appleMusicLink", default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(rename = "tidalLink", default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(rename = "copyrightMessage", default, skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(rename = "acoustidFingerprint", default, skip_serializing_if = "Option::is_none")]
+    pub acoustid_fingerprint: Option<String>,
+    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3784,6 +4991,16 @@ pub struct StarInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StarOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3800,6 +5017,19 @@ pub struct StartPlaylistParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StartScanOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    /// Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(rename = "scanStatus", default, skip_serializing_if = "Option::is_none")]
+    pub scan_status: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -4063,6 +5293,16 @@ pub struct UnstarInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UnstarOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -4084,6 +5324,16 @@ pub struct UpdateNowPlayingInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateNowPlayingOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    #[serde(rename = "serverVersion", default, skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<String>,
+    #[serde(rename = "openSubsonic", default, skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

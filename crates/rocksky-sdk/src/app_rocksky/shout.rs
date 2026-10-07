@@ -158,6 +158,8 @@ pub struct ShoutView<S: BosStr = DefaultStr> {
     ///The author of the shout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<shout::Author<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<S>,
     ///The date and time when the shout was created.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<Datetime>,
@@ -170,12 +172,18 @@ pub struct ShoutView<S: BosStr = DefaultStr> {
     ///The unique identifier of the shout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub likes: Option<i64>,
     ///The content of the shout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<S>,
     ///The ID of the parent shout if this is a reply, otherwise null.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -846,6 +854,10 @@ fn lexicon_doc_app_rocksky_shout_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("content"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("createdAt"),
                             LexObjectProperty::String(LexString {
                                 description: Some(
@@ -889,6 +901,18 @@ fn lexicon_doc_app_rocksky_shout_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("liked"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("likes"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("message"),
                             LexObjectProperty::String(LexString {
                                 description: Some(
@@ -907,6 +931,10 @@ fn lexicon_doc_app_rocksky_shout_defs() -> LexiconDoc<'static> {
                                 ),
                                 ..Default::default()
                             }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uri"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map
                     },

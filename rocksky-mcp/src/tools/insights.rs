@@ -16,7 +16,7 @@ use super::{actor_prop, tool, Args, Ctx};
 use crate::protocol::strip_nulls;
 use crate::rocksky::{
     album_view_json, artist_view_json, parse_interval, profile_json, scrobble_detail_json,
-    song_view_json, web_link,
+    song_view_json, web_link, SearchHit,
 };
 
 pub fn definitions() -> Vec<Value> {
@@ -287,44 +287,44 @@ pub async fn call(ctx: &Ctx, name: &str, args: &Args<'_>) -> Result<Option<Value
     Ok(Some(result))
 }
 
-/// Fold one federated search hit into a flat, typed row. The AppView returns
-/// the raw indexed document plus `_federation.indexUid`, and the documents are
-/// database rows — far more fields than the model needs to pick a result.
-fn search_hit_json(hit: &Value) -> Option<Value> {
-    let index = hit
-        .get("_federation")
-        .and_then(|f| f.get("indexUid"))
-        .and_then(Value::as_str)?;
-    let str_of = |key: &str| hit.get(key).and_then(Value::as_str).unwrap_or_default();
+/// Fold one federated search hit into a flat, typed row. `searchHit` is the
+/// flattened union of every indexed shape — database rows, far more fields than
+/// the model needs to pick a result — so `_federation.indexUid` says which of
+/// them this hit actually is.
+fn search_hit_json(hit: &SearchHit) -> Option<Value> {
+    let index = hit.federation.as_ref()?.index_uid.as_deref()?;
+    fn str_of(field: &Option<String>) -> &str {
+        field.as_deref().unwrap_or_default()
+    }
     let link = || {
-        let uri = str_of("uri");
+        let uri = str_of(&hit.uri);
         (!uri.is_empty()).then(|| web_link(uri))
     };
     let mut v = match index {
         "tracks" => json!({
             "type": "track",
-            "title": str_of("title"),
-            "artist": str_of("artist"),
-            "album": str_of("album"),
+            "title": str_of(&hit.title),
+            "artist": str_of(&hit.artist),
+            "album": str_of(&hit.album),
         }),
         "albums" => json!({
             "type": "album",
-            "title": str_of("title"),
-            "artist": str_of("artist"),
+            "title": str_of(&hit.title),
+            "artist": str_of(&hit.artist),
         }),
-        "artists" => json!({ "type": "artist", "name": str_of("name") }),
+        "artists" => json!({ "type": "artist", "name": str_of(&hit.name) }),
         "playlists" => json!({
             "type": "playlist",
-            "name": str_of("name"),
-            "description": str_of("description"),
+            "name": str_of(&hit.name),
+            "description": str_of(&hit.description),
         }),
         "users" => {
-            let handle = str_of("handle");
+            let handle = str_of(&hit.handle);
             return Some(json!({
                 "type": "user",
                 "handle": handle,
-                "displayName": str_of("displayName"),
-                "did": str_of("did"),
+                "displayName": str_of(&hit.display_name),
+                "did": str_of(&hit.did),
                 "link": format!("https://rocksky.app/profile/{handle}"),
             }));
         }

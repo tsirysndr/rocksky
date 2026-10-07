@@ -13,10 +13,11 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.playlist.defs";
 
 /// Basic view of a playlist, including its metadata
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistViewBasic {
-    /// The URL of the cover image for the playlist. Format: `uri`.
+    /// The URL of the cover image for the playlist. May be explicitly null as
+    /// well as absent; both read as `None`. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cover_image_url: Option<String>,
     /// The date and time when the playlist was created. Format: `datetime`.
@@ -25,6 +26,8 @@ pub struct PlaylistViewBasic {
     /// The URL of the avatar image of the curator. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub curator_avatar_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<String>,
     /// The DID of the curator of the playlist. Format: `at-identifier`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub curator_did: Option<String>,
@@ -50,16 +53,19 @@ pub struct PlaylistViewBasic {
     /// The number of tracks in the playlist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub track_count: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
     /// The URI of the playlist. Format: `at-uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
 }
 
 /// Detailed view of a playlist, including its tracks and metadata
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistViewDetailed {
-    /// The URL of the cover image for the playlist. Format: `uri`.
+    /// The URL of the cover image for the playlist. May be explicitly null as
+    /// well as absent; both read as `None`. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cover_image_url: Option<String>,
     /// The date and time when the playlist was created. Format: `datetime`.
@@ -68,6 +74,8 @@ pub struct PlaylistViewDetailed {
     /// The URL of the avatar image of the curator. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub curator_avatar_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<String>,
     /// The DID of the curator of the playlist. Format: `at-identifier`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub curator_did: Option<String>,
@@ -86,9 +94,13 @@ pub struct PlaylistViewDetailed {
     /// The title of the playlist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub track_count: Option<i64>,
     /// A list of tracks in the playlist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tracks: Option<Vec<super::super::super::super::app::rocksky::song::defs::SongViewBasic>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
     /// The URI of the playlist. Format: `at-uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,

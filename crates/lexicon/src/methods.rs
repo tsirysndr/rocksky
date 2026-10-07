@@ -1245,7 +1245,7 @@ pub const METHODS: &[Method] = &[
         has_input: false,
         has_output: true,
     },
-    // Get a user's year-in-review Wrapped stats
+    // Get a user's Wrapped stats for a year or a recent rolling window
     Method {
         nsid: "app.rocksky.stats.getWrapped",
         kind: MethodKind::Query,

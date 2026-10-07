@@ -411,11 +411,6 @@ const presentation = ([
       createdAt: spotifyUser?.createdAt.toISOString(),
       updatedAt: spotifyUser?.updatedAt.toISOString(),
     },
-    spotifyToken: {
-      ...R.omit(["accessToken", "refreshToken"], spotifyToken),
-      createdAt: spotifyToken?.createdAt.toISOString(),
-      updatedAt: spotifyToken?.updatedAt.toISOString(),
-    },
     spotifyConnected: !!spotifyToken,
     googledrive: {
       ...googledrive,

@@ -35,9 +35,15 @@ use serde::{Deserialize, Serialize};
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct FileListView<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directories: Option<Vec<dropbox::ResponseDirectoriesItemView<S>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directory: Option<dropbox::ResponseDirectoryView<S>>,
     ///A list of files in the Dropbox.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub files: Option<Vec<dropbox::FileView<S>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_directory: Option<dropbox::ResponseParentDirectoryView<S>>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -51,6 +57,12 @@ pub struct FileView<S: BosStr = DefaultStr> {
     ///The last modified date and time of the file on the client.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_modified: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directory_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<S>,
     ///The unique identifier of the file.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
@@ -66,6 +78,54 @@ pub struct FileView<S: BosStr = DefaultStr> {
     ///The last modified date and time of the file on the server.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server_modified: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct ResponseDirectoriesItemView<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct ResponseDirectoryView<S: BosStr = DefaultStr> {
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct ResponseParentDirectoryView<S: BosStr = DefaultStr> {
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -113,6 +173,51 @@ impl<S: BosStr> LexiconSchema for FileView<S> {
     }
 }
 
+impl<S: BosStr> LexiconSchema for ResponseDirectoriesItemView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.dropbox.defs"
+    }
+    fn def_name() -> &'static str {
+        "responseDirectoriesItemView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_dropbox_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for ResponseDirectoryView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.dropbox.defs"
+    }
+    fn def_name() -> &'static str {
+        "responseDirectoryView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_dropbox_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for ResponseParentDirectoryView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.dropbox.defs"
+    }
+    fn def_name() -> &'static str {
+        "responseParentDirectoryView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_dropbox_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
 impl<S: BosStr> LexiconSchema for TemporaryLinkView<S> {
     fn nsid() -> &'static str {
         "app.rocksky.dropbox.defs"
@@ -145,6 +250,27 @@ fn lexicon_doc_app_rocksky_dropbox_defs() -> LexiconDoc<'static> {
                         #[allow(unused_mut)]
                         let mut map = BTreeMap::new();
                         map.insert(
+                            SmolStr::new_static("directories"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.dropbox.defs#responseDirectoriesItemView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("directory"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.dropbox.defs#responseDirectoryView",
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("files"),
                             LexObjectProperty::Array(LexArray {
                                 description: Some(CowStr::new_static(
@@ -154,6 +280,15 @@ fn lexicon_doc_app_rocksky_dropbox_defs() -> LexiconDoc<'static> {
                                     r#ref: CowStr::new_static("app.rocksky.dropbox.defs#fileView"),
                                     ..Default::default()
                                 }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("parentDirectory"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.dropbox.defs#responseParentDirectoryView",
+                                ),
                                 ..Default::default()
                             }),
                         );
@@ -175,6 +310,24 @@ fn lexicon_doc_app_rocksky_dropbox_defs() -> LexiconDoc<'static> {
                                     "The last modified date and time of the file on the client.",
                                 )),
                                 format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("directoryId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("fileId"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -222,6 +375,93 @@ fn lexicon_doc_app_rocksky_dropbox_defs() -> LexiconDoc<'static> {
                                 ..Default::default()
                             }),
                         );
+                        map.insert(
+                            SmolStr::new_static("trackId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("responseDirectoriesItemView"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("fileId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("id"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("name"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("parentId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("path"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("responseDirectoryView"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("responseParentDirectoryView"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
                         map
                     },
                     ..Default::default()

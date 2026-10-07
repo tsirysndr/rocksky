@@ -12,14 +12,14 @@ use serde::{Deserialize, Serialize};
 /// The lexicon this module was generated from.
 pub const NSID: &str = "app.rocksky.charts.defs";
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChartsView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scrobbles: Option<Vec<ScrobbleViewBasic>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DecadeViewBasic {
     /// The first year of the decade, e.g. 1990.
@@ -33,7 +33,7 @@ pub struct DecadeViewBasic {
     pub unique_albums: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScrobbleViewBasic {
     /// The number of scrobbles on this date.
@@ -44,7 +44,7 @@ pub struct ScrobbleViewBasic {
     pub date: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScrobblerViewBasic {
     /// The URL of the actor's avatar image. Format: `uri`.

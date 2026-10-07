@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.graph.follow";
 /// Record declaring a social 'follow' relationship of another account.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Follow {
     /// Format: `datetime`.

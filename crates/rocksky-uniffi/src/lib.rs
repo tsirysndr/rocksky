@@ -392,6 +392,10 @@ pub struct ProfileView {
     pub avatar: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub spotify_user: Option<SpotifyUserView>,
+    pub spotify_connected: Option<bool>,
+    pub googledrive: Option<GoogledriveView>,
+    pub dropbox: Option<DropboxView>,
 }
 
 impl From<rocksky_sdk::appview::ProfileView> for ProfileView {
@@ -404,6 +408,74 @@ impl From<rocksky_sdk::appview::ProfileView> for ProfileView {
             avatar: p.avatar,
             created_at: p.created_at,
             updated_at: p.updated_at,
+            spotify_user: p.spotify_user.map(Into::into),
+            spotify_connected: p.spotify_connected,
+            googledrive: p.googledrive.map(Into::into),
+            dropbox: p.dropbox.map(Into::into),
+        }
+    }
+}
+
+/// The listener's Spotify account (`app.rocksky.actor.defs#responseSpotifyUserView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct SpotifyUserView {
+    pub id: Option<String>,
+    pub user_id: Option<String>,
+    pub spotify_app_id: Option<String>,
+    pub is_beta_user: Option<bool>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+impl From<rocksky_sdk::appview::SpotifyUserView> for SpotifyUserView {
+    fn from(v: rocksky_sdk::appview::SpotifyUserView) -> Self {
+        SpotifyUserView {
+            id: v.id,
+            user_id: v.user_id,
+            spotify_app_id: v.spotify_app_id,
+            is_beta_user: v.is_beta_user,
+            created_at: v.created_at,
+            updated_at: v.updated_at,
+        }
+    }
+}
+
+/// The listener's linked Google Drive (`app.rocksky.actor.defs#responseGoogledriveView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct GoogledriveView {
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+impl From<rocksky_sdk::appview::GoogledriveView> for GoogledriveView {
+    fn from(v: rocksky_sdk::appview::GoogledriveView) -> Self {
+        GoogledriveView {
+            created_at: v.created_at,
+            updated_at: v.updated_at,
+        }
+    }
+}
+
+/// The listener's linked Dropbox (`app.rocksky.actor.defs#responseDropboxView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct DropboxView {
+    pub id: Option<String>,
+    pub email: Option<String>,
+    pub user_id: Option<String>,
+    pub is_beta_user: Option<bool>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+impl From<rocksky_sdk::appview::DropboxView> for DropboxView {
+    fn from(v: rocksky_sdk::appview::DropboxView) -> Self {
+        DropboxView {
+            id: v.id,
+            email: v.email,
+            user_id: v.user_id,
+            is_beta_user: v.is_beta_user,
+            created_at: v.created_at,
+            updated_at: v.updated_at,
         }
     }
 }
@@ -445,6 +517,7 @@ pub struct NotificationView {
     pub shout_id: Option<String>,
     pub shout_content: Option<String>,
     pub actor: Option<NotificationActor>,
+    pub subject: Option<NotificationSubject>,
 }
 
 impl From<rocksky_sdk::appview::NotificationView> for NotificationView {
@@ -458,6 +531,27 @@ impl From<rocksky_sdk::appview::NotificationView> for NotificationView {
             shout_id: n.shout_id,
             shout_content: n.shout_content,
             actor: n.actor.map(Into::into),
+            subject: n.subject.map(Into::into),
+        }
+    }
+}
+
+/// The song a notification is about (`app.rocksky.notification.defs#subjectView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct NotificationSubject {
+    pub uri: Option<String>,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album_art: Option<String>,
+}
+
+impl From<rocksky_sdk::appview::NotificationSubject> for NotificationSubject {
+    fn from(v: rocksky_sdk::appview::NotificationSubject) -> Self {
+        NotificationSubject {
+            uri: v.uri,
+            title: v.title,
+            artist: v.artist,
+            album_art: v.album_art,
         }
     }
 }
@@ -592,6 +686,28 @@ pub struct ScrobbleView {
     pub created_at: Option<String>,
     pub liked: Option<bool>,
     pub likes_count: Option<u32>,
+    pub cover: Option<String>,
+    pub date: Option<String>,
+    pub user: Option<String>,
+    pub user_display_name: Option<String>,
+    pub user_avatar: Option<String>,
+    pub tags: Vec<String>,
+    pub mb_id: Option<String>,
+    pub mbid: Option<String>,
+    pub isrc: Option<String>,
+    pub composer: Option<String>,
+    pub genre: Option<String>,
+    pub label: Option<String>,
+    pub copyright_message: Option<String>,
+    pub key: Option<String>,
+    pub track_number: Option<u32>,
+    pub disc_number: Option<u32>,
+    pub duration: Option<u64>,
+    pub spotify_link: Option<String>,
+    pub youtube_link: Option<String>,
+    pub apple_music_link: Option<String>,
+    pub tidal_link: Option<String>,
+    pub bpm: Option<f64>,
 }
 
 impl From<rocksky_sdk::appview::ScrobbleView> for ScrobbleView {
@@ -613,6 +729,28 @@ impl From<rocksky_sdk::appview::ScrobbleView> for ScrobbleView {
             created_at: s.created_at,
             liked: s.liked,
             likes_count: s.likes_count,
+            cover: s.cover,
+            date: s.date,
+            user: s.user,
+            user_display_name: s.user_display_name,
+            user_avatar: s.user_avatar,
+            tags: s.tags,
+            mb_id: s.mb_id,
+            mbid: s.mbid,
+            isrc: s.isrc,
+            composer: s.composer,
+            genre: s.genre,
+            label: s.label,
+            copyright_message: s.copyright_message,
+            key: s.key,
+            track_number: s.track_number,
+            disc_number: s.disc_number,
+            duration: s.duration,
+            spotify_link: s.spotify_link,
+            youtube_link: s.youtube_link,
+            apple_music_link: s.apple_music_link,
+            tidal_link: s.tidal_link,
+            bpm: s.bpm,
         }
     }
 }
@@ -638,6 +776,22 @@ pub struct SongView {
     pub isrc: Option<String>,
     pub tags: Vec<String>,
     pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub liked: Option<bool>,
+    pub likes_count: Option<u32>,
+    pub mb_id: Option<String>,
+    pub lyrics: Option<String>,
+    pub composer: Option<String>,
+    pub genre: Option<String>,
+    pub label: Option<String>,
+    pub copyright_message: Option<String>,
+    pub key: Option<String>,
+    pub acoustid_fingerprint: Option<String>,
+    pub spotify_link: Option<String>,
+    pub youtube_link: Option<String>,
+    pub apple_music_link: Option<String>,
+    pub tidal_link: Option<String>,
+    pub bpm: Option<f64>,
 }
 
 impl From<rocksky_sdk::appview::SongView> for SongView {
@@ -661,6 +815,22 @@ impl From<rocksky_sdk::appview::SongView> for SongView {
             isrc: s.isrc,
             tags: s.tags,
             created_at: s.created_at,
+            updated_at: s.updated_at,
+            liked: s.liked,
+            likes_count: s.likes_count,
+            mb_id: s.mb_id,
+            lyrics: s.lyrics,
+            composer: s.composer,
+            genre: s.genre,
+            label: s.label,
+            copyright_message: s.copyright_message,
+            key: s.key,
+            acoustid_fingerprint: s.acoustid_fingerprint,
+            spotify_link: s.spotify_link,
+            youtube_link: s.youtube_link,
+            apple_music_link: s.apple_music_link,
+            tidal_link: s.tidal_link,
+            bpm: s.bpm,
         }
     }
 }
@@ -676,6 +846,16 @@ pub struct ArtistView {
     pub unique_listeners: Option<u64>,
     pub tags: Vec<String>,
     pub genres: Vec<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub biography: Option<String>,
+    pub born: Option<String>,
+    pub born_in: Option<String>,
+    pub died: Option<String>,
+    pub spotify_link: Option<String>,
+    pub youtube_link: Option<String>,
+    pub apple_music_link: Option<String>,
+    pub tidal_link: Option<String>,
 }
 
 impl From<rocksky_sdk::appview::ArtistView> for ArtistView {
@@ -689,6 +869,16 @@ impl From<rocksky_sdk::appview::ArtistView> for ArtistView {
             unique_listeners: a.unique_listeners,
             tags: a.tags,
             genres: a.genres,
+            created_at: a.created_at,
+            updated_at: a.updated_at,
+            biography: a.biography,
+            born: a.born,
+            born_in: a.born_in,
+            died: a.died,
+            spotify_link: a.spotify_link,
+            youtube_link: a.youtube_link,
+            apple_music_link: a.apple_music_link,
+            tidal_link: a.tidal_link,
         }
     }
 }
@@ -707,6 +897,13 @@ pub struct AlbumView {
     pub sha256: Option<String>,
     pub play_count: Option<u64>,
     pub unique_listeners: Option<u64>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub discogs_release_id: Option<String>,
+    pub spotify_link: Option<String>,
+    pub youtube_link: Option<String>,
+    pub apple_music_link: Option<String>,
+    pub tidal_link: Option<String>,
 }
 
 impl From<rocksky_sdk::appview::AlbumView> for AlbumView {
@@ -723,6 +920,13 @@ impl From<rocksky_sdk::appview::AlbumView> for AlbumView {
             sha256: a.sha256,
             play_count: a.play_count,
             unique_listeners: a.unique_listeners,
+            created_at: a.created_at,
+            updated_at: a.updated_at,
+            discogs_release_id: a.discogs_release_id,
+            spotify_link: a.spotify_link,
+            youtube_link: a.youtube_link,
+            apple_music_link: a.apple_music_link,
+            tidal_link: a.tidal_link,
         }
     }
 }

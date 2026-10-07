@@ -14,7 +14,7 @@ pub const NSID: &str = "app.rocksky.playlist.updatePlaylist";
 
 /// Update a playlist's metadata. Rewrites the app.rocksky.playlist record
 /// in place; only the owner may do so.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The new description of the playlist
@@ -31,7 +31,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     /// The CID of the updated app.rocksky.playlist record.

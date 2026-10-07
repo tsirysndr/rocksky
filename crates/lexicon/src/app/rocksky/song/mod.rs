@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.song";
 /// A declaration of a song.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Song {
     /// The album of the song.

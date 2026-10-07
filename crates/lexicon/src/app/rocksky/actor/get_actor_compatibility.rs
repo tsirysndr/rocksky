@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.actor.getActorCompatibility";
 
 /// Get compatibility for an actor
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// DID or handle to get compatibility for Format: `at-identifier`.
@@ -21,9 +21,10 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
+    /// May be explicitly null as well as absent; both read as `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compatibility:
         Option<super::super::super::super::app::rocksky::actor::defs::CompatibilityViewBasic>,

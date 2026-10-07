@@ -14,7 +14,7 @@ pub const NSID: &str = "app.rocksky.graph.getKnownFollowers";
 
 /// Enumerates accounts which follow a specified account (actor) and are
 /// followed by the viewer.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// Format: `at-identifier`.
@@ -26,7 +26,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     /// A cursor value to pass to subsequent calls to get the next page of

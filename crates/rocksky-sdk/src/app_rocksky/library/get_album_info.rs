@@ -31,6 +31,19 @@ pub struct GetAlbumInfo<S: BosStr = DefaultStr> {
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct GetAlbumInfoOutput<S: BosStr = DefaultStr> {
+    ///Unmodified OpenSubsonic albumInfo payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_info: Option<Data<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

@@ -15,14 +15,6 @@ export type Profile = {
     createdAt: string;
     updatedAt: string;
   };
-  spotifyToken: {
-    id: string;
-    xataVersion: number;
-    userId: string;
-    spotifyAppId: string;
-    createdAt: string;
-    updatedAt: string;
-  };
   spotifyConnected: boolean;
   googledrive: {
     id: string;

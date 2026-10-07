@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// The lexicon this module was generated from.
 pub const NSID: &str = "app.rocksky.actor.defs";
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistViewBasic {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -29,17 +29,13 @@ pub struct ArtistViewBasic {
     pub user1_rank: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user2_rank: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub weight: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompatibilityViewBasic {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compatibility_level: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub compatibility_percentage: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shared_artists: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -52,10 +48,10 @@ pub struct CompatibilityViewBasic {
     pub user2_artist_count: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NeighbourViewBasic {
-    /// The URL of the actor's avatar image. Format: `uri`.
+    /// The URL of the actor's avatar image.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avatar: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -67,9 +63,6 @@ pub struct NeighbourViewBasic {
     /// The number of artists shared with the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shared_artists_count: Option<i64>,
-    /// The similarity score with the actor.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub similarity_score: Option<i64>,
     /// The top shared artist names with the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_shared_artist_names: Option<Vec<String>>,
@@ -81,10 +74,11 @@ pub struct NeighbourViewBasic {
     pub user_id: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileViewBasic {
-    /// The URL of the actor's avatar image. Format: `uri`.
+    /// The URL of the actor's avatar image. May be explicitly null as well as
+    /// absent; both read as `None`. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avatar: Option<String>,
     /// The date and time when the actor was created. Format: `datetime`.
@@ -93,7 +87,8 @@ pub struct ProfileViewBasic {
     /// The DID of the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub did: Option<String>,
-    /// The display name of the actor.
+    /// The display name of the actor. May be explicitly null as well as absent;
+    /// both read as `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
     /// The handle of the actor.
@@ -107,7 +102,7 @@ pub struct ProfileViewBasic {
     pub updated_at: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileViewDetailed {
     /// The URL of the actor's avatar image. Format: `uri`.
@@ -122,18 +117,78 @@ pub struct ProfileViewDetailed {
     /// The display name of the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dropbox: Option<ResponseDropboxView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub googledrive: Option<ResponseGoogledriveView>,
     /// The handle of the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub handle: Option<String>,
     /// The unique identifier of the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_connected: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_user: Option<ResponseSpotifyUserView>,
     /// The date and time when the actor was last updated. Format: `datetime`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseDropboxView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_beta_user: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseGoogledriveView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseSpotifyUserView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_beta_user: Option<bool>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_app_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackView {
     /// The album name.

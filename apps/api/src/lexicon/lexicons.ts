@@ -1,7 +1,7 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { LexiconDoc, Lexicons } from "@atproto/lexicon";
+import { type LexiconDoc, Lexicons } from "@atproto/lexicon";
 
 export const schemaDict = {
   AppRockskyActorDefs: {
@@ -46,10 +46,6 @@ export const schemaDict = {
             type: "ref",
             ref: "lex:app.rocksky.actor.defs#responseSpotifyUserView",
           },
-          spotifyToken: {
-            type: "ref",
-            ref: "lex:app.rocksky.actor.defs#responseSpotifyTokenView",
-          },
           spotifyConnected: {
             type: "boolean",
           },
@@ -65,6 +61,7 @@ export const schemaDict = {
       },
       profileViewBasic: {
         type: "object",
+        nullable: ["avatar", "displayName"],
         properties: {
           id: {
             type: "string",
@@ -98,7 +95,6 @@ export const schemaDict = {
             format: "datetime",
           },
         },
-        nullable: ["avatar", "displayName"],
       },
       neighbourViewBasic: {
         type: "object",
@@ -246,6 +242,7 @@ export const schemaDict = {
       },
       responseSpotifyUserView: {
         type: "object",
+        nullable: ["xataVersion", "userId", "spotifyAppId"],
         properties: {
           createdAt: {
             type: "string",
@@ -269,31 +266,6 @@ export const schemaDict = {
             type: "string",
           },
         },
-        nullable: ["xataVersion", "userId", "spotifyAppId"],
-      },
-      responseSpotifyTokenView: {
-        type: "object",
-        properties: {
-          createdAt: {
-            type: "string",
-          },
-          updatedAt: {
-            type: "string",
-          },
-          id: {
-            type: "string",
-          },
-          xataVersion: {
-            type: "integer",
-          },
-          userId: {
-            type: "string",
-          },
-          spotifyAppId: {
-            type: "string",
-          },
-        },
-        nullable: ["xataVersion", "userId"],
       },
       responseGoogledriveView: {
         type: "object",
@@ -308,6 +280,7 @@ export const schemaDict = {
       },
       responseDropboxView: {
         type: "object",
+        nullable: ["userId", "xataVersion"],
         properties: {
           createdAt: {
             type: "string",
@@ -331,7 +304,6 @@ export const schemaDict = {
             type: "string",
           },
         },
-        nullable: ["userId", "xataVersion"],
       },
     },
   },

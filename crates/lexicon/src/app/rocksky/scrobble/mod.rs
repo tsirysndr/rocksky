@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.scrobble";
 /// A declaration of a scrobble.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Scrobble {
     /// The album of the song.

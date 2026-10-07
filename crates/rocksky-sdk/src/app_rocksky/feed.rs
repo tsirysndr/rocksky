@@ -26,19 +26,15 @@ use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
 use jacquard_common::deps::codegen::unicode_segmentation::UnicodeSegmentation;
 use jacquard_common::deps::smol_str::SmolStr;
 use jacquard_common::types::ident::AtIdentifier;
-use jacquard_common::types::string::{AtUri, UriValue};
+use jacquard_common::types::string::{AtUri, Datetime, UriValue};
 use jacquard_common::types::value::Data;
-use jacquard_derive::{open_union, IntoStatic};
+use jacquard_derive::IntoStatic;
 use jacquard_lexicon::lexicon::LexiconDoc;
 use jacquard_lexicon::schema::LexiconSchema;
 
 use crate::app_rocksky::actor::ProfileViewBasic;
-use crate::app_rocksky::album::AlbumViewBasic;
-use crate::app_rocksky::artist::ArtistViewBasic;
 use crate::app_rocksky::feed;
-use crate::app_rocksky::playlist::PlaylistViewBasic;
 use crate::app_rocksky::scrobble::ScrobbleViewBasic;
-use crate::app_rocksky::song::SongViewBasic;
 #[allow(unused_imports)]
 use jacquard_lexicon::validation::{ConstraintError, ValidationPath};
 use serde::{Deserialize, Serialize};
@@ -55,6 +51,8 @@ pub struct FeedGeneratorView<S: BosStr = DefaultStr> {
     pub creator: Option<ProfileViewBasic<S>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -113,6 +111,9 @@ pub struct FeedView<S: BosStr = DefaultStr> {
     pub cursor: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub feed: Option<Vec<feed::FeedItemView<S>>>,
+    ///Legacy empty-array error fallback; successful responses use feed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scrobbles: Option<Vec<ScrobbleViewBasic<S>>>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -137,8 +138,6 @@ pub struct RecommendationView<S: BosStr = DefaultStr> {
     pub genres: Option<Vec<S>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub likes_count: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub recommendation_score: Option<i64>,
     ///neighbour | social | serendipity
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<S>,
@@ -178,8 +177,6 @@ pub struct RecommendedAlbumView<S: BosStr = DefaultStr> {
     pub artist_uri: Option<AtUri<S>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub recommendation_score: Option<i64>,
     ///known-artist | new-artist | serendipity
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<S>,
@@ -221,8 +218,6 @@ pub struct RecommendedArtistView<S: BosStr = DefaultStr> {
     pub name: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<UriValue<S>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub recommendation_score: Option<i64>,
     ///neighbour | social | serendipity
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<S>,
@@ -251,11 +246,187 @@ pub struct RecommendedArtistsView<S: BosStr = DefaultStr> {
     rename_all = "camelCase",
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
+pub struct SearchFederation<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index_uid: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct SearchHit<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub federation: Option<feed::SearchFederation<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub acoustid_fingerprint: Option<S>,
+    ///The album of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album: Option<S>,
+    ///The URL of the album art image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<UriValue<S>>,
+    ///The artist of the album the song belongs to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_artist: Option<S>,
+    ///The URI of the album the song belongs to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<S>,
+    ///The artist of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist: Option<S>,
+    ///The URI of the artist of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist_uri: Option<AtUri<S>>,
+    ///The URL of the actor's avatar image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub biography: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub born: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub composer: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<S>,
+    ///The URL of the cover image for the playlist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover_image_url: Option<UriValue<S>>,
+    ///The timestamp when the song was created.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<Datetime>,
+    ///The URL of the avatar image of the curator.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curator_avatar_url: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<S>,
+    ///The DID of the curator of the playlist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curator_did: Option<AtIdentifier<S>>,
+    ///The handle of the curator of the playlist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curator_handle: Option<AtIdentifier<S>>,
+    ///The name of the curator of the playlist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curator_name: Option<S>,
+    ///A description of the playlist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<S>,
+    ///The DID of the actor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub died: Option<Datetime>,
+    ///The disc number of the song in the album.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discogs_release_id: Option<S>,
+    ///The display name of the actor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<S>,
+    ///The duration of the song in milliseconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genre: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<S>>,
+    ///The handle of the actor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub handle: Option<S>,
+    ///The unique identifier of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<S>,
+    ///The International Standard Recording Code (ISRC) of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<S>,
+    ///Whether the authenticated user has loved this song. False when unauthenticated.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    ///The number of users who have loved this song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<S>,
+    ///The MusicBrainz ID of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<S>,
+    ///The name of the artist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<S>,
+    ///The picture of the artist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture: Option<S>,
+    ///The number of times the song has been played.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub play_count: Option<i64>,
+    ///The release date of the album.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<S>,
+    ///The SHA256 hash of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<S>,
+    ///The title of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<S>,
+    ///Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_arts: Option<Vec<UriValue<S>>>,
+    ///The number of tracks in the playlist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_count: Option<i64>,
+    ///The track number of the song in the album.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
+    ///The number of unique listeners who have played the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unique_listeners: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
+    ///The URI of the song.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    ///The year the album was released.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
 pub struct SearchResultsView<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub estimated_total_hits: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub hits: Option<Vec<SearchResultsViewHitsItem<S>>>,
+    pub hits: Option<Vec<feed::SearchHit<S>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -264,22 +435,6 @@ pub struct SearchResultsView<S: BosStr = DefaultStr> {
     pub processing_time_ms: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
-}
-
-#[open_union]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
-#[serde(tag = "$type", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
-pub enum SearchResultsViewHitsItem<S: BosStr = DefaultStr> {
-    #[serde(rename = "app.rocksky.song.defs#songViewBasic")]
-    SongViewBasic(Box<SongViewBasic<S>>),
-    #[serde(rename = "app.rocksky.album.defs#albumViewBasic")]
-    AlbumViewBasic(Box<AlbumViewBasic<S>>),
-    #[serde(rename = "app.rocksky.artist.defs#artistViewBasic")]
-    ArtistViewBasic(Box<ArtistViewBasic<S>>),
-    #[serde(rename = "app.rocksky.playlist.defs#playlistViewBasic")]
-    PlaylistViewBasic(Box<PlaylistViewBasic<S>>),
-    #[serde(rename = "app.rocksky.actor.defs#profileViewBasic")]
-    ProfileViewBasic(Box<ProfileViewBasic<S>>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
@@ -322,6 +477,10 @@ pub struct StoryView<S: BosStr = DefaultStr> {
     pub handle: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -499,6 +658,72 @@ impl<S: BosStr> LexiconSchema for RecommendedArtistsView<S> {
     }
 }
 
+impl<S: BosStr> LexiconSchema for SearchFederation<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.feed.defs"
+    }
+    fn def_name() -> &'static str {
+        "searchFederation"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_feed_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for SearchHit<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.feed.defs"
+    }
+    fn def_name() -> &'static str {
+        "searchHit"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_feed_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        if let Some(ref value) = self.likes_count {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("likes_count"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        if let Some(ref value) = self.play_count {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("play_count"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        if let Some(ref value) = self.track_count {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("track_count"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        if let Some(ref value) = self.unique_listeners {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("unique_listeners"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<S: BosStr> LexiconSchema for SearchResultsView<S> {
     fn nsid() -> &'static str {
         "app.rocksky.feed.defs"
@@ -578,6 +803,12 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                         );
                         map.insert(
                             SmolStr::new_static("description"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("did"),
                             LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
@@ -677,9 +908,11 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("cursor"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The pagination cursor for the next set of results.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The pagination cursor for the next set of results.",
+                                    ),
+                                ),
                                 ..Default::default()
                             }),
                         );
@@ -687,7 +920,26 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                             SmolStr::new_static("feed"),
                             LexObjectProperty::Array(LexArray {
                                 items: LexArrayItem::Ref(LexRef {
-                                    r#ref: CowStr::new_static("app.rocksky.feed.defs#feedItemView"),
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.feed.defs#feedItemView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("scrobbles"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "Legacy empty-array error fallback; successful responses use feed.",
+                                    ),
+                                ),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.scrobble.defs#scrobbleViewBasic",
+                                    ),
                                     ..Default::default()
                                 }),
                                 ..Default::default()
@@ -748,12 +1000,6 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                         );
                         map.insert(
                             SmolStr::new_static("likesCount"),
-                            LexObjectProperty::Integer(LexInteger {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("recommendationScore"),
                             LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
@@ -843,12 +1089,6 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("id"),
                             LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("recommendationScore"),
-                            LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
                         );
@@ -949,12 +1189,6 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
-                            SmolStr::new_static("recommendationScore"),
-                            LexObjectProperty::Integer(LexInteger {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
                             SmolStr::new_static("source"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
@@ -1005,6 +1239,484 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                 }),
             );
             map.insert(
+                SmolStr::new_static("searchFederation"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("indexUid"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("searchHit"),
+                LexUserType::Object(LexObject {
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("_federation"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.feed.defs#searchFederation",
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("acoustidFingerprint"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("album"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The album of the song."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("albumArt"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The URL of the album art image."),
+                                ),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("albumArtist"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The artist of the album the song belongs to.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("albumUri"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The URI of the album the song belongs to.",
+                                    ),
+                                ),
+                                format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("appleMusicLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("artist"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The artist of the song."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("artistUri"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The URI of the artist of the song."),
+                                ),
+                                format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("avatar"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The URL of the actor's avatar image."),
+                                ),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("biography"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("born"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("bornIn"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("composer"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("copyrightMessage"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("coverImageUrl"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The URL of the cover image for the playlist.",
+                                    ),
+                                ),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The timestamp when the song was created.",
+                                    ),
+                                ),
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("curatorAvatarUrl"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The URL of the avatar image of the curator.",
+                                    ),
+                                ),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("curatorDId"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("curatorDid"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The DID of the curator of the playlist.",
+                                    ),
+                                ),
+                                format: Some(LexStringFormat::AtIdentifier),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("curatorHandle"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The handle of the curator of the playlist.",
+                                    ),
+                                ),
+                                format: Some(LexStringFormat::AtIdentifier),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("curatorName"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The name of the curator of the playlist.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("description"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("A description of the playlist."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("did"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The DID of the actor."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("died"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("discNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("discogsReleaseId"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("displayName"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The display name of the actor."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("duration"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("genre"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("genres"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("handle"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The handle of the actor."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("id"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The unique identifier of the song."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("isrc"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The International Standard Recording Code (ISRC) of the song.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("key"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("label"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("liked"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("likesCount"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("lyrics"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mbId"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mbid"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The MusicBrainz ID of the song."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("name"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The name of the artist."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("picture"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The picture of the artist."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("playCount"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("releaseDate"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The release date of the album."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("sha256"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The SHA256 hash of the song."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("spotifyLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tags"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tidalLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("title"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The title of the song."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackArts"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.",
+                                    ),
+                                ),
+                                items: LexArrayItem::String(LexString {
+                                    format: Some(LexStringFormat::Uri),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackCount"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uniqueListeners"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("uri"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The URI of the song."),
+                                ),
+                                format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("year"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("youtubeLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
                 SmolStr::new_static("searchResultsView"),
                 LexUserType::Object(LexObject {
                     properties: {
@@ -1019,20 +1731,8 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("hits"),
                             LexObjectProperty::Array(LexArray {
-                                items: LexArrayItem::Union(LexRefUnion {
-                                    refs: vec![
-                                        CowStr::new_static("app.rocksky.song.defs#songViewBasic"),
-                                        CowStr::new_static("app.rocksky.album.defs#albumViewBasic"),
-                                        CowStr::new_static(
-                                            "app.rocksky.artist.defs#artistViewBasic",
-                                        ),
-                                        CowStr::new_static(
-                                            "app.rocksky.playlist.defs#playlistViewBasic",
-                                        ),
-                                        CowStr::new_static(
-                                            "app.rocksky.actor.defs#profileViewBasic",
-                                        ),
-                                    ],
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static("app.rocksky.feed.defs#searchHit"),
                                     ..Default::default()
                                 }),
                                 ..Default::default()
@@ -1156,6 +1856,18 @@ fn lexicon_doc_app_rocksky_feed_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("id"),
                             LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("liked"),
+                            LexObjectProperty::Boolean(LexBoolean {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("likesCount"),
+                            LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
                         );

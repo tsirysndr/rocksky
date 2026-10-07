@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.shout.getAlbumShouts";
 
 /// Get shouts for an album
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// The maximum number of shouts to return
@@ -28,11 +28,11 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub shouts: Option<Vec<serde_json::Value>>,
+    pub shouts: Option<Vec<super::super::super::super::app::rocksky::shout::defs::ShoutView>>,
 }
 
 /// This method, implemented.

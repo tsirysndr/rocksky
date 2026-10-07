@@ -10,7 +10,7 @@ import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskyRockboxDefs from "../rockbox/defs";
 import type * as AppRockskyEqualizerDefs from "./defs";
 
-export type QueryParams = {};
+export type QueryParams = {}
 
 export interface InputSchema {
   /** Display name of the preset. */

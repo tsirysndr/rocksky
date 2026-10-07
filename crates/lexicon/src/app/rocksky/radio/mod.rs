@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.radio";
 /// A declaration of a radio station.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Radio {
     /// The date when the radio station was created. Format: `datetime`.

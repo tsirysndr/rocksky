@@ -8,6 +8,7 @@
 #[allow(unused_imports)]
 use alloc::collections::BTreeMap;
 
+use crate::app_rocksky::shout::ShoutView;
 #[allow(unused_imports)]
 use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
@@ -39,7 +40,7 @@ pub struct GetArtistShouts<S: BosStr = DefaultStr> {
 )]
 pub struct GetArtistShoutsOutput<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub shouts: Option<Vec<Data<S>>>,
+    pub shouts: Option<Vec<ShoutView<S>>>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

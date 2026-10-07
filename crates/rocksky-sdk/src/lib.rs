@@ -86,10 +86,11 @@ pub use agent::{
     ScrobbleDraft, ScrobbleMatch, ScrobbleResult, ShoutGif, SongDraft,
 };
 pub use appview::{
-    AlbumView, AppView, ArtistView, DateInterval, EqualizerBandView, EqualizerPresetInput,
-    EqualizerPresetView, FeedItem, FeedView, GlobalStats, NotificationActor, NotificationList,
-    NotificationView, ProfileView, ScrobbleInput, ScrobbleView, SearchResults, SongView,
-    UnreadCount, UpdateSeenResult,
+    AlbumView, AppView, ArtistView, DateInterval, DropboxView, EqualizerBandView,
+    EqualizerPresetInput, EqualizerPresetView, FeedItem, FeedView, GlobalStats, GoogledriveView,
+    NotificationActor, NotificationList, NotificationSubject, NotificationView, ProfileView,
+    ScrobbleInput, ScrobbleView, SearchFederation, SearchHit, SearchResults, SongView,
+    SpotifyUserView, UnreadCount, UpdateSeenResult,
 };
 pub use auth::Profile;
 #[cfg(feature = "dedup")]

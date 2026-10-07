@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.rockbox.audio.settings";
 /// A user's Rockbox audio settings. One record per user (rkey: self).
 ///
 /// Record key: `literal:self`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     /// When this settings record was first created. Format: `datetime`.

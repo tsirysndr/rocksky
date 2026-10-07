@@ -14,7 +14,7 @@ use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
 use jacquard_common::types::ident::AtIdentifier;
 use jacquard_common::types::value::Data;
-use jacquard_common::{BosStr, DefaultStr, FromStaticStr};
+use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
 use jacquard_derive::IntoStatic;
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +25,8 @@ use serde::{Deserialize, Serialize};
 )]
 pub struct GetWrapped<S: BosStr = DefaultStr> {
     pub did: AtIdentifier<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub period: Option<S>,
     /// (min: 2000)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,
@@ -105,7 +107,7 @@ pub mod get_wrapped_state {
 /// Builder for constructing an instance of this type.
 pub struct GetWrappedBuilder<St: get_wrapped_state::State, S: BosStr = DefaultStr> {
     _state: PhantomData<fn() -> St>,
-    _fields: (Option<AtIdentifier<S>>, Option<i64>),
+    _fields: (Option<AtIdentifier<S>>, Option<S>, Option<i64>),
     _type: PhantomData<fn() -> S>,
 }
 
@@ -128,7 +130,7 @@ impl GetWrappedBuilder<get_wrapped_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         GetWrappedBuilder {
             _state: PhantomData,
-            _fields: (None, None),
+            _fields: (None, None, None),
             _type: PhantomData,
         }
     }
@@ -139,7 +141,7 @@ impl<S: BosStr> GetWrappedBuilder<get_wrapped_state::Empty, S> {
     pub fn builder() -> Self {
         GetWrappedBuilder {
             _state: PhantomData,
-            _fields: (None, None),
+            _fields: (None, None, None),
             _type: PhantomData,
         }
     }
@@ -165,14 +167,27 @@ where
 }
 
 impl<St: get_wrapped_state::State, S: BosStr> GetWrappedBuilder<St, S> {
+    /// Set the `period` field (optional)
+    pub fn period(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.1 = value.into();
+        self
+    }
+    /// Set the `period` field to an Option value (optional)
+    pub fn maybe_period(mut self, value: Option<S>) -> Self {
+        self._fields.1 = value;
+        self
+    }
+}
+
+impl<St: get_wrapped_state::State, S: BosStr> GetWrappedBuilder<St, S> {
     /// Set the `year` field (optional)
     pub fn year(mut self, value: impl Into<Option<i64>>) -> Self {
-        self._fields.1 = value.into();
+        self._fields.2 = value.into();
         self
     }
     /// Set the `year` field to an Option value (optional)
     pub fn maybe_year(mut self, value: Option<i64>) -> Self {
-        self._fields.1 = value;
+        self._fields.2 = value;
         self
     }
 }
@@ -186,7 +201,8 @@ where
     pub fn build(self) -> GetWrapped<S> {
         GetWrapped {
             did: self._fields.0.unwrap(),
-            year: self._fields.1,
+            period: self._fields.1,
+            year: self._fields.2,
         }
     }
 }

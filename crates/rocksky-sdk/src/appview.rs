@@ -1257,6 +1257,64 @@ pub struct ProfileView {
     pub created_at: Option<String>,
     #[serde(default)]
     pub updated_at: Option<String>,
+    #[serde(default)]
+    pub spotify_user: Option<SpotifyUserView>,
+    #[serde(default)]
+    pub spotify_connected: Option<bool>,
+    #[serde(default)]
+    pub googledrive: Option<GoogledriveView>,
+    #[serde(default)]
+    pub dropbox: Option<DropboxView>,
+}
+
+/// `app.rocksky.actor.defs#responseSpotifyUserView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpotifyUserView {
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub user_id: Option<String>,
+    #[serde(default)]
+    pub spotify_app_id: Option<String>,
+    #[serde(default)]
+    pub is_beta_user: Option<bool>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub xata_version: Option<i64>,
+}
+
+/// `app.rocksky.actor.defs#responseGoogledriveView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoogledriveView {
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+}
+
+/// `app.rocksky.actor.defs#responseDropboxView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DropboxView {
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub email: Option<String>,
+    #[serde(default)]
+    pub user_id: Option<String>,
+    #[serde(default)]
+    pub is_beta_user: Option<bool>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub xata_version: Option<String>,
 }
 
 /// A scrobble as returned by the AppView (`app.rocksky.scrobble.defs#scrobbleViewBasic`).
@@ -1307,6 +1365,57 @@ pub struct ScrobbleView {
     pub liked: Option<bool>,
     #[serde(default)]
     pub likes_count: Option<u32>,
+    #[serde(default)]
+    pub cover: Option<String>,
+    #[serde(default)]
+    pub date: Option<String>,
+    /// The scrobbling actor, as the social responses spell it.
+    #[serde(default)]
+    pub user: Option<String>,
+    #[serde(default)]
+    pub user_display_name: Option<String>,
+    #[serde(default)]
+    pub user_avatar: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub mb_id: Option<String>,
+    #[serde(default)]
+    pub mbid: Option<String>,
+    #[serde(default)]
+    pub isrc: Option<String>,
+    #[serde(default)]
+    pub composer: Option<String>,
+    #[serde(default)]
+    pub genre: Option<String>,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub copyright_message: Option<String>,
+    #[serde(default)]
+    pub key: Option<String>,
+    #[serde(default)]
+    pub track_number: Option<u32>,
+    #[serde(default)]
+    pub disc_number: Option<u32>,
+    /// Track length in milliseconds.
+    #[serde(default)]
+    pub duration: Option<u64>,
+    #[serde(default)]
+    pub spotify_link: Option<String>,
+    #[serde(default)]
+    pub youtube_link: Option<String>,
+    #[serde(default)]
+    pub apple_music_link: Option<String>,
+    #[serde(default)]
+    pub tidal_link: Option<String>,
+    #[serde(default)]
+    pub xata_version: Option<i64>,
+    /// Not in the lexicon: Lexicon has no float primitive, so production
+    /// returns this as a documented open extension (see
+    /// `apps/api/tests/xrpc-response-exceptions.json`).
+    #[serde(default)]
+    pub bpm: Option<f64>,
 }
 
 /// Input for [`AppView::create_scrobble`]. Only `title`, `artist` and
@@ -1381,6 +1490,43 @@ pub struct SongView {
     pub tags: Vec<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub liked: Option<bool>,
+    #[serde(default)]
+    pub likes_count: Option<u32>,
+    #[serde(default)]
+    pub mb_id: Option<String>,
+    #[serde(default)]
+    pub lyrics: Option<String>,
+    #[serde(default)]
+    pub composer: Option<String>,
+    #[serde(default)]
+    pub genre: Option<String>,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub copyright_message: Option<String>,
+    #[serde(default)]
+    pub key: Option<String>,
+    #[serde(default)]
+    pub acoustid_fingerprint: Option<String>,
+    #[serde(default)]
+    pub spotify_link: Option<String>,
+    #[serde(default)]
+    pub youtube_link: Option<String>,
+    #[serde(default)]
+    pub apple_music_link: Option<String>,
+    #[serde(default)]
+    pub tidal_link: Option<String>,
+    #[serde(default)]
+    pub xata_version: Option<i64>,
+    /// Not in the lexicon: Lexicon has no float primitive, so production
+    /// returns this as a documented open extension (see
+    /// `apps/api/tests/xrpc-response-exceptions.json`).
+    #[serde(default)]
+    pub bpm: Option<f64>,
 }
 
 /// `app.rocksky.album.defs#albumViewBasic`.
@@ -1409,6 +1555,22 @@ pub struct AlbumView {
     pub play_count: Option<u64>,
     #[serde(default)]
     pub unique_listeners: Option<u64>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub discogs_release_id: Option<String>,
+    #[serde(default)]
+    pub spotify_link: Option<String>,
+    #[serde(default)]
+    pub youtube_link: Option<String>,
+    #[serde(default)]
+    pub apple_music_link: Option<String>,
+    #[serde(default)]
+    pub tidal_link: Option<String>,
+    #[serde(default)]
+    pub xata_version: Option<i64>,
 }
 
 /// `app.rocksky.artist.defs#artistViewBasic`.
@@ -1434,6 +1596,28 @@ pub struct ArtistView {
     /// The AppView returns artist tags under `genres`; kept distinct from `tags`.
     #[serde(default)]
     pub genres: Vec<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub biography: Option<String>,
+    #[serde(default)]
+    pub born: Option<String>,
+    #[serde(default)]
+    pub born_in: Option<String>,
+    #[serde(default)]
+    pub died: Option<String>,
+    #[serde(default)]
+    pub spotify_link: Option<String>,
+    #[serde(default)]
+    pub youtube_link: Option<String>,
+    #[serde(default)]
+    pub apple_music_link: Option<String>,
+    #[serde(default)]
+    pub tidal_link: Option<String>,
+    #[serde(default)]
+    pub xata_version: Option<i64>,
 }
 
 /// `app.rocksky.feed.defs#feedView`.
@@ -1444,6 +1628,9 @@ pub struct FeedView {
     pub feed: Vec<FeedItem>,
     #[serde(default)]
     pub cursor: Option<String>,
+    /// Some feed responses carry the scrobbles flat, beside `feed`.
+    #[serde(default)]
+    pub scrobbles: Vec<ScrobbleView>,
 }
 
 /// `app.rocksky.feed.defs#feedItemView`.
@@ -1454,13 +1641,12 @@ pub struct FeedItem {
     pub scrobble: Option<ScrobbleView>,
 }
 
-/// `app.rocksky.feed.defs#searchResultsView`. Hits are a union of song / album /
-/// artist / playlist / actor views, kept as raw JSON.
+/// `app.rocksky.feed.defs#searchResultsView`.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResults {
     #[serde(default)]
-    pub hits: Vec<serde_json::Value>,
+    pub hits: Vec<SearchHit>,
     #[serde(default)]
     pub processing_time_ms: Option<u64>,
     #[serde(default)]
@@ -1469,6 +1655,145 @@ pub struct SearchResults {
     pub offset: Option<u32>,
     #[serde(default)]
     pub estimated_total_hits: Option<u64>,
+}
+
+/// `app.rocksky.feed.defs#searchHit` — one search result. The def is the
+/// flattened union of the song / album / artist / playlist / actor shapes, so
+/// which fields are set depends on `_federation.index_uid`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchHit {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album_artist: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub play_count: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub likes_count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liked: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unique_listeners: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album_uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist_uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acoustid_fingerprint: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub year: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discogs_release_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub picture: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub biography: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub died: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curator_did: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curator_handle: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curator_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curator_avatar_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover_image_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub track_count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub track_arts: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handle: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
+    #[serde(rename = "_federation", default)]
+    pub federation: Option<SearchFederation>,
+    /// Not in the lexicon: Lexicon has no float primitive, so production
+    /// returns this as a documented open extension (see
+    /// `apps/api/tests/xrpc-response-exceptions.json`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bpm: Option<f64>,
+}
+
+/// `app.rocksky.feed.defs#searchFederation` — which index a hit came from.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchFederation {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub index_uid: Option<String>,
 }
 
 /// `app.rocksky.stats.defs#globalStatsView`.
@@ -1528,6 +1853,23 @@ pub struct NotificationView {
     pub shout_content: Option<String>,
     #[serde(default)]
     pub actor: Option<NotificationActor>,
+    #[serde(default)]
+    pub subject: Option<NotificationSubject>,
+}
+
+/// `app.rocksky.notification.defs#subjectView` — the song a notification is about,
+/// enriched server-side.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationSubject {
+    #[serde(default)]
+    pub uri: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub artist: Option<String>,
+    #[serde(default)]
+    pub album_art: Option<String>,
 }
 
 /// Result of `app.rocksky.notification.listNotifications`.

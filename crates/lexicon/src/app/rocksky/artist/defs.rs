@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// The lexicon this module was generated from.
 pub const NSID: &str = "app.rocksky.artist.defs";
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistMbid {
     /// The MusicBrainz Identifier (MBID) of the artist.
@@ -23,16 +23,39 @@ pub struct ArtistMbid {
     pub name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistViewBasic {
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub biography: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`. Format:
+    /// `datetime`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`. Format:
+    /// `datetime`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub died: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<String>>,
     /// The unique identifier of the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// The name of the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// The picture of the artist.
+    /// The picture of the artist. May be explicitly null as well as absent;
+    /// both read as `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     /// The number of times the artist has been played.
@@ -41,26 +64,64 @@ pub struct ArtistViewBasic {
     /// The SHA256 hash of the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
     /// The number of unique listeners who have played the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,
-    /// The URI of the artist. Format: `at-uri`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// The URI of the artist. May be explicitly null as well as absent; both
+    /// read as `None`. Format: `at-uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistViewDetailed {
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub biography: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`. Format:
+    /// `datetime`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`. Format:
+    /// `datetime`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub died: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<String>>,
     /// The unique identifier of the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// The name of the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// The picture of the artist.
+    /// The picture of the artist. May be explicitly null as well as absent;
+    /// both read as `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     /// The number of times the artist has been played.
@@ -69,17 +130,32 @@ pub struct ArtistViewDetailed {
     /// The SHA256 hash of the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<String>,
     /// The number of unique listeners who have played the artist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,
-    /// The URI of the artist. Format: `at-uri`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// The URI of the artist. May be explicitly null as well as absent; both
+    /// read as `None`. Format: `at-uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    /// May be explicitly null as well as absent; both read as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListenerViewBasic {
     /// The URL of the listener's avatar image. Format: `uri`.
@@ -107,7 +183,7 @@ pub struct ListenerViewBasic {
     pub total_plays: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecentListenerView {
     /// The URL of the listener's avatar image. Format: `uri`.
@@ -135,7 +211,7 @@ pub struct RecentListenerView {
     pub timestamp: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongViewBasic {
     /// The number of times the song has been played.

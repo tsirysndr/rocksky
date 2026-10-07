@@ -30,6 +30,7 @@ use jacquard_derive::{lexicon, IntoStatic};
 use jacquard_lexicon::lexicon::LexiconDoc;
 use jacquard_lexicon::schema::LexiconSchema;
 
+use crate::app_rocksky::album;
 use crate::app_rocksky::song::SongViewBasic;
 #[allow(unused_imports)]
 use jacquard_lexicon::validation::{ConstraintError, ValidationPath};
@@ -107,12 +108,18 @@ pub struct AlbumViewBasic<S: BosStr = DefaultStr> {
     ///The URL of the album art image.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_art: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<S>,
     ///The artist of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artist: Option<S>,
     ///The URI of the album's artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artist_uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discogs_release_id: Option<S>,
     ///The unique identifier of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
@@ -125,18 +132,28 @@ pub struct AlbumViewBasic<S: BosStr = DefaultStr> {
     ///The SHA256 hash of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<S>,
     ///The title of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
     ///The number of unique listeners who have played the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<Datetime>,
     ///The URI of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
     ///The year the album was released.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -150,12 +167,20 @@ pub struct AlbumViewDetailed<S: BosStr = DefaultStr> {
     ///The URL of the album art image.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_art: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<S>,
     ///The artist of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artist: Option<S>,
     ///The URI of the album's artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artist_uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discogs: Option<album::DiscogsView<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discogs_release_id: Option<S>,
     ///The unique identifier of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
@@ -169,7 +194,11 @@ pub struct AlbumViewDetailed<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<S>,
     ///The title of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
@@ -178,10 +207,264 @@ pub struct AlbumViewDetailed<S: BosStr = DefaultStr> {
     ///The number of unique listeners who have played the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<Datetime>,
     ///The URI of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
     ///The year the album was released.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// An artist credited on the release itself.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct DiscogsArtistView<S: BosStr = DefaultStr> {
+    ///The name as credited on this release, when it differs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anv: Option<S>,
+    ///The Discogs artist ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<i64>,
+    ///What separates this artist from the next in the credit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub join_phrase: Option<S>,
+    ///The artist name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<S>,
+    ///The role, when the release gives one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// One performance or production credit from Discogs.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct DiscogsCreditView<S: BosStr = DefaultStr> {
+    ///The Discogs artist ID, when the credit is linked to one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<i64>,
+    ///The credited name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<S>,
+    ///The role as Discogs words it, such as "Written-By" or "Mixed By, Engineer".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<S>,
+    ///The track positions the credit applies to, absent when it covers the whole release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tracks: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// An identifier printed on the release: barcode, matrix / runout, label code, rights society.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct DiscogsIdentifierView<S: BosStr = DefaultStr> {
+    ///What the identifier applies to, when Discogs says.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<S>,
+    ///The identifier type as Discogs names it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<S>,
+    ///The identifier itself.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// A label or company involved in the release.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct DiscogsLabelView<S: BosStr = DefaultStr> {
+    ///The catalog number this label gave the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub catalog_number: Option<S>,
+    ///The role for a company, such as Pressed By or Distributed By.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<S>,
+    ///Either label or company.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<S>,
+    ///The Discogs label ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_id: Option<i64>,
+    ///The label or company name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// The master that groups every edition of the release.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct DiscogsMasterView<S: BosStr = DefaultStr> {
+    ///The master artist credit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist: Option<S>,
+    ///The Discogs genres of the master.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<S>>,
+    ///The release Discogs treats as the canonical edition.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub main_release_id: Option<i64>,
+    ///The Discogs master ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub master_id: Option<i64>,
+    ///The Discogs styles of the master.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub styles: Option<Vec<S>>,
+    ///The master title.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<S>,
+    ///The master page on Discogs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<UriValue<S>>,
+    ///The year the release first came out.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub year: Option<i64>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// One entry of the release tracklist, as printed on it.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct DiscogsTrackView<S: BosStr = DefaultStr> {
+    ///The disc the track sits on, parsed from the position.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    ///The duration as printed, m:ss.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<S>,
+    ///The duration in milliseconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<i64>,
+    ///The position Discogs prints, such as 7, 2-04 or C2.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position: Option<S>,
+    ///The track title.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<S>,
+    ///The track number, side-relative for vinyl.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
+    ///The entry kind: track, heading or index.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// Release metadata matched on Discogs for this album.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct DiscogsView<S: BosStr = DefaultStr> {
+    ///The primary release image on Discogs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<UriValue<S>>,
+    ///The release artist as Discogs credits it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist: Option<S>,
+    ///Every artist credited on the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artists: Option<Vec<album::DiscogsArtistView<S>>>,
+    ///The barcode printed on this pressing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub barcode: Option<S>,
+    ///The label's catalog number for this pressing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub catalog_number: Option<S>,
+    ///The country this pressing was released in.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country: Option<S>,
+    ///Performance and production credits for the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credits: Option<Vec<album::DiscogsCreditView<S>>>,
+    ///The physical or digital formats of this pressing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub formats: Option<Vec<S>>,
+    ///The Discogs genres of the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<S>>,
+    ///Every identifier printed on the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifiers: Option<Vec<album::DiscogsIdentifierView<S>>>,
+    ///The record label.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<S>,
+    ///Every label and company on the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub labels: Option<Vec<album::DiscogsLabelView<S>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub master: Option<album::DiscogsMasterView<S>>,
+    ///The Discogs master ID, shared by every edition of the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub master_id: Option<i64>,
+    ///The year the release first came out, from its master.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_year: Option<i64>,
+    ///The release date of this pressing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<S>,
+    ///The Discogs release ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_id: Option<i64>,
+    ///Confidence of the match that produced this release, from 0 to 100.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score: Option<i64>,
+    ///The Discogs styles of the release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub styles: Option<Vec<S>>,
+    ///The release title as Discogs spells it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<S>,
+    ///The release tracklist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tracklist: Option<Vec<album::DiscogsTrackView<S>>>,
+    ///The release page on Discogs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<UriValue<S>>,
+    ///The year this pressing was released.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
@@ -382,6 +665,129 @@ impl<S: BosStr> LexiconSchema for AlbumViewDetailed<S> {
             if *value < 0i64 {
                 return Err(ConstraintError::Minimum {
                     path: ValidationPath::from_field("unique_listeners"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for DiscogsArtistView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.album.defs"
+    }
+    fn def_name() -> &'static str {
+        "discogsArtistView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_album_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for DiscogsCreditView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.album.defs"
+    }
+    fn def_name() -> &'static str {
+        "discogsCreditView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_album_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for DiscogsIdentifierView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.album.defs"
+    }
+    fn def_name() -> &'static str {
+        "discogsIdentifierView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_album_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for DiscogsLabelView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.album.defs"
+    }
+    fn def_name() -> &'static str {
+        "discogsLabelView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_album_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for DiscogsMasterView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.album.defs"
+    }
+    fn def_name() -> &'static str {
+        "discogsMasterView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_album_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for DiscogsTrackView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.album.defs"
+    }
+    fn def_name() -> &'static str {
+        "discogsTrackView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_album_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for DiscogsView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.album.defs"
+    }
+    fn def_name() -> &'static str {
+        "discogsView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_album_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        if let Some(ref value) = self.score {
+            if *value > 100i64 {
+                return Err(ConstraintError::Maximum {
+                    path: ValidationPath::from_field("score"),
+                    max: 100i64,
+                    actual: *value,
+                });
+            }
+        }
+        if let Some(ref value) = self.score {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("score"),
                     min: 0i64,
                     actual: *value,
                 });
@@ -950,6 +1356,12 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("appleMusicLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("artist"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The artist of the album.")),
@@ -963,6 +1375,19 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                                     "The URI of the album's artist.",
                                 )),
                                 format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("discogsReleaseId"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1001,6 +1426,18 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("spotifyLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tidalLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("title"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The title of the album.")),
@@ -1015,6 +1452,13 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("uri"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The URI of the album.")),
@@ -1023,8 +1467,20 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("year"),
                             LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("youtubeLink"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1050,6 +1506,12 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("appleMusicLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("artist"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The artist of the album.")),
@@ -1063,6 +1525,25 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                                     "The URI of the album's artist.",
                                 )),
                                 format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("discogs"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static("app.rocksky.album.defs#discogsView"),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("discogsReleaseId"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1101,11 +1582,23 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("spotifyLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("tags"),
                             LexObjectProperty::Array(LexArray {
                                 items: LexArrayItem::String(LexString {
                                     ..Default::default()
                                 }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tidalLink"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1136,10 +1629,624 @@ fn lexicon_doc_app_rocksky_album_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("uri"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The URI of the album.")),
                                 format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("year"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("youtubeLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("discogsArtistView"),
+                LexUserType::Object(LexObject {
+                    description: Some(CowStr::new_static(
+                        "An artist credited on the release itself.",
+                    )),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("anv"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The name as credited on this release, when it differs.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("artistId"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("joinPhrase"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "What separates this artist from the next in the credit.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("name"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The artist name.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("role"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The role, when the release gives one.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("discogsCreditView"),
+                LexUserType::Object(LexObject {
+                    description: Some(
+                        CowStr::new_static(
+                            "One performance or production credit from Discogs.",
+                        ),
+                    ),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("artistId"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("name"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The credited name.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("role"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The role as Discogs words it, such as \"Written-By\" or \"Mixed By, Engineer\".",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tracks"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The track positions the credit applies to, absent when it covers the whole release.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("discogsIdentifierView"),
+                LexUserType::Object(LexObject {
+                    description: Some(
+                        CowStr::new_static(
+                            "An identifier printed on the release: barcode, matrix / runout, label code, rights society.",
+                        ),
+                    ),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("description"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "What the identifier applies to, when Discogs says.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("type"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The identifier type as Discogs names it.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("value"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The identifier itself."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("discogsLabelView"),
+                LexUserType::Object(LexObject {
+                    description: Some(CowStr::new_static(
+                        "A label or company involved in the release.",
+                    )),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("catalogNumber"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The catalog number this label gave the release.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("entityType"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The role for a company, such as Pressed By or Distributed By.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("kind"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("Either label or company.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("labelId"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("name"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The label or company name.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("discogsMasterView"),
+                LexUserType::Object(LexObject {
+                    description: Some(CowStr::new_static(
+                        "The master that groups every edition of the release.",
+                    )),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("artist"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The master artist credit.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("genres"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "The Discogs genres of the master.",
+                                )),
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mainReleaseId"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("masterId"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("styles"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "The Discogs styles of the master.",
+                                )),
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("title"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The master title.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("url"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The master page on Discogs.",
+                                )),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("year"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("discogsTrackView"),
+                LexUserType::Object(LexObject {
+                    description: Some(CowStr::new_static(
+                        "One entry of the release tracklist, as printed on it.",
+                    )),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("discNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("duration"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The duration as printed, m:ss.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("durationMs"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("position"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The position Discogs prints, such as 7, 2-04 or C2.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("title"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The track title.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("type"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The entry kind: track, heading or index.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("discogsView"),
+                LexUserType::Object(LexObject {
+                    description: Some(CowStr::new_static(
+                        "Release metadata matched on Discogs for this album.",
+                    )),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("albumArt"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The primary release image on Discogs.",
+                                )),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("artist"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The release artist as Discogs credits it.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("artists"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "Every artist credited on the release.",
+                                )),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.album.defs#discogsArtistView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("barcode"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The barcode printed on this pressing.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("catalogNumber"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The label's catalog number for this pressing.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("country"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The country this pressing was released in.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("credits"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "Performance and production credits for the release.",
+                                )),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.album.defs#discogsCreditView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("formats"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "The physical or digital formats of this pressing.",
+                                )),
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("genres"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "The Discogs genres of the release.",
+                                )),
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("identifiers"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "Every identifier printed on the release.",
+                                )),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.album.defs#discogsIdentifierView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("label"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static("The record label.")),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("labels"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "Every label and company on the release.",
+                                )),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.album.defs#discogsLabelView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("master"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static(
+                                    "app.rocksky.album.defs#discogsMasterView",
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("masterId"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("originalYear"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("releaseDate"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The release date of this pressing.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("releaseId"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("score"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                maximum: Some(100i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("styles"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "The Discogs styles of the release.",
+                                )),
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("title"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The release title as Discogs spells it.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tracklist"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static("The release tracklist.")),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.album.defs#discogsTrackView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("url"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The release page on Discogs.",
+                                )),
+                                format: Some(LexStringFormat::Uri),
                                 ..Default::default()
                             }),
                         );

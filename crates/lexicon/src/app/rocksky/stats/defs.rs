@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// The lexicon this module was generated from.
 pub const NSID: &str = "app.rocksky.stats.defs";
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GlobalStatsView {
     /// Total number of albums known to Rocksky.
@@ -32,7 +32,7 @@ pub struct GlobalStatsView {
     pub users: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatsView {
     /// The total number of unique albums scrobbled.
@@ -52,7 +52,7 @@ pub struct StatsView {
     pub tracks: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedAlbum {
     /// The album art URL.
@@ -75,7 +75,7 @@ pub struct WrappedAlbum {
     pub uri: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedArtist {
     /// The unique identifier of the artist.
@@ -95,7 +95,7 @@ pub struct WrappedArtist {
     pub uri: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedDayCount {
     /// Number of scrobbles on this day.
@@ -106,7 +106,7 @@ pub struct WrappedDayCount {
     pub date: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedGenreCount {
     /// Number of scrobbles for this genre.
@@ -117,7 +117,7 @@ pub struct WrappedGenreCount {
     pub genre: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedMilestone {
     /// The name of the artist.
@@ -135,7 +135,7 @@ pub struct WrappedMilestone {
     pub track_uri: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedMonthCount {
     /// Number of scrobbles in this month.
@@ -146,7 +146,7 @@ pub struct WrappedMonthCount {
     pub month: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedTrack {
     /// The album art URL.
@@ -175,9 +175,12 @@ pub struct WrappedTrack {
     pub uri: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WrappedView {
+    /// Exclusive end of the window. Format: `datetime`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
     /// The first scrobble of the year.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_scrobble: Option<WrappedMilestone>,
@@ -196,10 +199,20 @@ pub struct WrappedView {
     /// Number of artists heard for the first time this year.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub new_artists_count: Option<i64>,
+    /// The window the stats cover. Known values: `year`, `3months`, `month`,
+    /// `2weeks`, `week`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period: Option<String>,
+    /// Scrobble counts per day (UTC), only days with plays.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrobbles_per_day: Option<Vec<WrappedDayCount>>,
     /// Scrobble counts per month.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scrobbles_per_month: Option<Vec<WrappedMonthCount>>,
-    /// Top 5 albums by play count.
+    /// Inclusive start of the window. Format: `datetime`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    /// Top 6 albums by play count.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_albums: Option<Vec<WrappedAlbum>>,
     /// Top 5 artists by play count.

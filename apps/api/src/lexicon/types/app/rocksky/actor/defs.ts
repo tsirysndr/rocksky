@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import * as AppRockskyArtistDefs from "../artist/defs";
+import type * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface ProfileViewDetailed {
   /** The unique identifier of the actor. */
@@ -23,7 +23,6 @@ export interface ProfileViewDetailed {
   /** The date and time when the actor was last updated. */
   updatedAt?: string;
   spotifyUser?: ResponseSpotifyUserView;
-  spotifyToken?: ResponseSpotifyTokenView;
   spotifyConnected?: boolean;
   googledrive?: ResponseGoogledriveView;
   dropbox?: ResponseDropboxView;
@@ -201,33 +200,6 @@ export function isResponseSpotifyUserView(
 
 export function validateResponseSpotifyUserView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.actor.defs#responseSpotifyUserView", v);
-}
-
-export interface ResponseSpotifyTokenView {
-  createdAt?: string;
-  updatedAt?: string;
-  id?: string;
-  xataVersion?: number | null;
-  userId?: string | null;
-  spotifyAppId?: string;
-  [k: string]: unknown;
-}
-
-export function isResponseSpotifyTokenView(
-  v: unknown,
-): v is ResponseSpotifyTokenView {
-  return (
-    isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "app.rocksky.actor.defs#responseSpotifyTokenView"
-  );
-}
-
-export function validateResponseSpotifyTokenView(v: unknown): ValidationResult {
-  return lexicons.validate(
-    "app.rocksky.actor.defs#responseSpotifyTokenView",
-    v,
-  );
 }
 
 export interface ResponseGoogledriveView {

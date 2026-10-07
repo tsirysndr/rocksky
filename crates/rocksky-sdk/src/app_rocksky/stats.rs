@@ -241,6 +241,9 @@ pub struct WrappedTrack<S: BosStr = DefaultStr> {
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct WrappedView<S: BosStr = DefaultStr> {
+    ///Exclusive end of the window.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<Datetime>,
     ///The first scrobble of the year.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub first_scrobble: Option<stats::WrappedMilestone<S>>,
@@ -259,10 +262,19 @@ pub struct WrappedView<S: BosStr = DefaultStr> {
     ///Number of artists heard for the first time this year.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub new_artists_count: Option<i64>,
+    ///The window the stats cover.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub period: Option<WrappedViewPeriod<S>>,
+    ///Scrobble counts per day (UTC), only days with plays.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scrobbles_per_day: Option<Vec<stats::WrappedDayCount<S>>>,
     ///Scrobble counts per month.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scrobbles_per_month: Option<Vec<stats::WrappedMonthCount<S>>>,
-    ///Top 5 albums by play count.
+    ///Inclusive start of the window.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<Datetime>,
+    ///Top 6 albums by play count.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_albums: Option<Vec<stats::WrappedAlbum<S>>>,
     ///Top 5 artists by play count.
@@ -285,6 +297,97 @@ pub struct WrappedView<S: BosStr = DefaultStr> {
     pub year: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// The window the stats cover.
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum WrappedViewPeriod<S: BosStr = DefaultStr> {
+    Year,
+    _3months,
+    Month,
+    _2weeks,
+    Week,
+    Other(S),
+}
+
+impl<S: BosStr> WrappedViewPeriod<S> {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Year => "year",
+            Self::_3months => "3months",
+            Self::Month => "month",
+            Self::_2weeks => "2weeks",
+            Self::Week => "week",
+            Self::Other(s) => s.as_ref(),
+        }
+    }
+    /// Construct from a string-like value, matching known values.
+    pub fn from_value(s: S) -> Self {
+        match s.as_ref() {
+            "year" => Self::Year,
+            "3months" => Self::_3months,
+            "month" => Self::Month,
+            "2weeks" => Self::_2weeks,
+            "week" => Self::Week,
+            _ => Self::Other(s),
+        }
+    }
+}
+
+impl<S: BosStr> core::fmt::Display for WrappedViewPeriod<S> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl<S: BosStr> AsRef<str> for WrappedViewPeriod<S> {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl<S: BosStr> Serialize for WrappedViewPeriod<S> {
+    fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
+    where
+        Ser: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de, S: Deserialize<'de> + BosStr> Deserialize<'de> for WrappedViewPeriod<S> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = S::deserialize(deserializer)?;
+        Ok(Self::from_value(s))
+    }
+}
+
+impl<S: BosStr + Default> Default for WrappedViewPeriod<S> {
+    fn default() -> Self {
+        Self::Other(Default::default())
+    }
+}
+
+impl<S: BosStr> jacquard_common::IntoStatic for WrappedViewPeriod<S>
+where
+    S: BosStr + jacquard_common::IntoStatic,
+    S::Output: BosStr,
+{
+    type Output = WrappedViewPeriod<S::Output>;
+    fn into_static(self) -> Self::Output {
+        match self {
+            WrappedViewPeriod::Year => WrappedViewPeriod::Year,
+            WrappedViewPeriod::_3months => WrappedViewPeriod::_3months,
+            WrappedViewPeriod::Month => WrappedViewPeriod::Month,
+            WrappedViewPeriod::_2weeks => WrappedViewPeriod::_2weeks,
+            WrappedViewPeriod::Week => WrappedViewPeriod::Week,
+            WrappedViewPeriod::Other(v) => WrappedViewPeriod::Other(v.into_static()),
+        }
+    }
 }
 
 impl<S: BosStr> LexiconSchema for GlobalStatsView<S> {
@@ -968,6 +1071,16 @@ fn lexicon_doc_app_rocksky_stats_defs() -> LexiconDoc<'static> {
                         #[allow(unused_mut)]
                         let mut map = BTreeMap::new();
                         map.insert(
+                            SmolStr::new_static("endDate"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "Exclusive end of the window.",
+                                )),
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("firstScrobble"),
                             LexObjectProperty::Ref(LexRef {
                                 r#ref: CowStr::new_static(
@@ -1015,6 +1128,30 @@ fn lexicon_doc_app_rocksky_stats_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("period"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "The window the stats cover.",
+                                )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("scrobblesPerDay"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(CowStr::new_static(
+                                    "Scrobble counts per day (UTC), only days with plays.",
+                                )),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.stats.defs#wrappedDayCount",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("scrobblesPerMonth"),
                             LexObjectProperty::Array(LexArray {
                                 description: Some(CowStr::new_static("Scrobble counts per month.")),
@@ -1028,10 +1165,20 @@ fn lexicon_doc_app_rocksky_stats_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("startDate"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(CowStr::new_static(
+                                    "Inclusive start of the window.",
+                                )),
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("topAlbums"),
                             LexObjectProperty::Array(LexArray {
                                 description: Some(CowStr::new_static(
-                                    "Top 5 albums by play count.",
+                                    "Top 6 albums by play count.",
                                 )),
                                 items: LexArrayItem::Ref(LexRef {
                                     r#ref: CowStr::new_static(

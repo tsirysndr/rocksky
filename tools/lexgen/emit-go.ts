@@ -63,16 +63,36 @@ function splitCamel(s: string): string[] {
     .filter(Boolean);
 }
 
-function pascal(s: string): string {
+function pascal(s: string, acronyms = true): string {
   if (!s) return s;
   const segs = splitCamel(s);
   return segs
     .map((seg) => {
       const lower = seg.toLowerCase();
-      if (ACRONYM_UPPER.has(lower)) return lower.toUpperCase();
+      if (acronyms && ACRONYM_UPPER.has(lower)) return lower.toUpperCase();
       return lower[0].toUpperCase() + lower.slice(1);
     })
     .join("");
+}
+
+// Expanding acronyms can map two distinct lexicon fields onto one Go
+// identifier: `curatorDid` and `curatorDId` — both of which production really
+// sends — each become `CuratorDID`, which does not compile. Keep the acronym
+// spelling for whichever field comes first and fall back to the literal
+// PascalCase for the rest, so every field keeps a distinct, stable name.
+function goFieldName(name: string, taken: Set<string>): string {
+  const candidates = [pascal(name), pascal(name, false)];
+  for (const candidate of candidates) {
+    if (!taken.has(candidate)) {
+      taken.add(candidate);
+      return candidate;
+    }
+  }
+  let n = 2;
+  while (taken.has(`${candidates[0]}${n}`)) n++;
+  const unique = `${candidates[0]}${n}`;
+  taken.add(unique);
+  return unique;
 }
 
 function goPrim(name: string): string {
@@ -124,9 +144,10 @@ function emitStruct(t: NamedType): string {
   const lines: string[] = [];
   if (t.description) lines.push(`// ${t.name} ${t.description.replace(/\n/g, " ")}`);
   lines.push(`type ${t.name} struct {`);
+  const taken = new Set<string>();
   for (const f of t.fields) {
     if (f.description) lines.push(`\t// ${f.description.replace(/\n/g, " ")}`);
-    const goName = pascal(f.name);
+    const goName = goFieldName(f.name, taken);
     const ty = goType(f.type);
     lines.push(`\t${goName} ${ty} ${jsonTag(f.name)}`);
   }

@@ -12,6 +12,7 @@ use rocksky_sdk::{
     AlbumView, AppView, ArtistView, DateInterval, EqualizerPresetView, ProfileView, ScrobbleView,
     SearchResults, SongView,
 };
+pub use rocksky_sdk::SearchHit;
 use serde::Deserialize;
 use serde_json::{json, Value};
 

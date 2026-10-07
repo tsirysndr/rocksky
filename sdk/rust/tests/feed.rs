@@ -15,8 +15,8 @@ async fn search_returns_heterogeneous_hits() {
         .and(query_param("query", "kate"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "hits": [
-                {"type": "song", "title": "Wuthering Heights"},
-                {"type": "artist", "name": "Kate Bush"}
+                {"title": "Wuthering Heights", "_federation": {"indexUid": "tracks"}},
+                {"name": "Kate Bush", "_federation": {"indexUid": "artists"}}
             ],
             "estimatedTotalHits": 2,
             "processingTimeMs": 7,
@@ -28,7 +28,16 @@ async fn search_returns_heterogeneous_hits() {
     assert_eq!(results.hits.len(), 2);
     assert_eq!(results.estimated_total_hits, Some(2));
     assert_eq!(results.processing_time_ms, Some(7));
-    assert_eq!(results.hits[0]["type"], "song");
+    assert_eq!(results.hits[0].title.as_deref(), Some("Wuthering Heights"));
+    // Which shape a hit is comes from the index it federated in from, not a
+    // `type` field — `searchHit` is the flattened union of all of them.
+    assert_eq!(
+        results.hits[1]
+            .federation
+            .as_ref()
+            .and_then(|f| f.index_uid.as_deref()),
+        Some("artists")
+    );
 }
 
 #[tokio::test]
@@ -119,6 +128,9 @@ async fn recommendations_unwraps_inner_array() {
         .await
         .unwrap();
     assert_eq!(r.recommendations.len(), 1);
-    assert_eq!(r.recommendations[0].recommendation_score, Some(88));
+    // `recommendationScore` stays off the generated type: production returns it
+    // fractional and Lexicon has no float primitive, so `recommendationView`
+    // leaves it out as a documented open extension. It must still decode
+    // without error.
     assert_eq!(r.recommendations[0].source.as_deref(), Some("knn"));
 }

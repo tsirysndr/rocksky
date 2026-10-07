@@ -8,7 +8,6 @@
 #[allow(unused_imports)]
 use alloc::collections::BTreeMap;
 
-use crate::app_rocksky::dropbox::FileView;
 #[allow(unused_imports)]
 use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
@@ -26,14 +25,15 @@ pub struct GetMetadata<S: BosStr = DefaultStr> {
     pub path: S,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
 #[serde(
     rename_all = "camelCase",
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct GetMetadataOutput<S: BosStr = DefaultStr> {
-    #[serde(flatten)]
-    pub value: FileView<S>,
+    ///Metadata returned by the provider; currently an empty object.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Data<S>>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

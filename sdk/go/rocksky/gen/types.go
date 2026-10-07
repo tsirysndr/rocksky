@@ -24,12 +24,10 @@ type ActorArtistViewBasic struct {
 	URI string `json:"uri,omitempty"`
 	User1Rank int `json:"user1Rank,omitempty"`
 	User2Rank int `json:"user2Rank,omitempty"`
-	Weight int `json:"weight,omitempty"`
 }
 
 type ActorCompatibilityViewBasic struct {
 	CompatibilityLevel int `json:"compatibilityLevel,omitempty"`
-	CompatibilityPercentage int `json:"compatibilityPercentage,omitempty"`
 	SharedArtists int `json:"sharedArtists,omitempty"`
 	TopSharedArtistNames []string `json:"topSharedArtistNames,omitempty"`
 	TopSharedDetailedArtists []ActorArtistViewBasic `json:"topSharedDetailedArtists,omitempty"`
@@ -46,8 +44,6 @@ type ActorNeighbourViewBasic struct {
 	Avatar string `json:"avatar,omitempty"`
 	// The number of artists shared with the actor.
 	SharedArtistsCount int `json:"sharedArtistsCount,omitempty"`
-	// The similarity score with the actor.
-	SimilarityScore int `json:"similarityScore,omitempty"`
 	// The top shared artist names with the actor.
 	TopSharedArtistNames []string `json:"topSharedArtistNames,omitempty"`
 	// The top shared artist details with the actor.
@@ -86,6 +82,35 @@ type ActorProfileViewDetailed struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	// The date and time when the actor was last updated.
 	UpdatedAt string `json:"updatedAt,omitempty"`
+	SpotifyUser *ActorResponseSpotifyUserView `json:"spotifyUser,omitempty"`
+	SpotifyConnected bool `json:"spotifyConnected,omitempty"`
+	Googledrive *ActorResponseGoogledriveView `json:"googledrive,omitempty"`
+	Dropbox *ActorResponseDropboxView `json:"dropbox,omitempty"`
+}
+
+type ActorResponseDropboxView struct {
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	ID string `json:"id,omitempty"`
+	Email string `json:"email,omitempty"`
+	IsBetaUser bool `json:"isBetaUser,omitempty"`
+	UserID string `json:"userId,omitempty"`
+	XataVersion string `json:"xataVersion,omitempty"`
+}
+
+type ActorResponseGoogledriveView struct {
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
+type ActorResponseSpotifyUserView struct {
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	ID string `json:"id,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
+	UserID string `json:"userId,omitempty"`
+	IsBetaUser bool `json:"isBetaUser,omitempty"`
+	SpotifyAppID string `json:"spotifyAppId,omitempty"`
 }
 
 type ActorTrackView struct {
@@ -136,6 +161,143 @@ type AddSongsParams struct {
 	URI string `json:"uri,omitempty"`
 	// AT-URIs of the app.rocksky.song records to add
 	Songs []string `json:"songs,omitempty"`
+}
+
+// AlbumDiscogsArtistView An artist credited on the release itself.
+type AlbumDiscogsArtistView struct {
+	// The Discogs artist ID.
+	ArtistID int `json:"artistId,omitempty"`
+	// The artist name.
+	Name string `json:"name,omitempty"`
+	// The name as credited on this release, when it differs.
+	Anv string `json:"anv,omitempty"`
+	// What separates this artist from the next in the credit.
+	JoinPhrase string `json:"joinPhrase,omitempty"`
+	// The role, when the release gives one.
+	Role string `json:"role,omitempty"`
+}
+
+// AlbumDiscogsCreditView One performance or production credit from Discogs.
+type AlbumDiscogsCreditView struct {
+	// The Discogs artist ID, when the credit is linked to one.
+	ArtistID int `json:"artistId,omitempty"`
+	// The credited name.
+	Name string `json:"name,omitempty"`
+	// The role as Discogs words it, such as "Written-By" or "Mixed By, Engineer".
+	Role string `json:"role,omitempty"`
+	// The track positions the credit applies to, absent when it covers the whole release.
+	Tracks string `json:"tracks,omitempty"`
+}
+
+// AlbumDiscogsIdentifierView An identifier printed on the release: barcode, matrix / runout, label code, rights society.
+type AlbumDiscogsIdentifierView struct {
+	// The identifier type as Discogs names it.
+	Type string `json:"type,omitempty"`
+	// The identifier itself.
+	Value string `json:"value,omitempty"`
+	// What the identifier applies to, when Discogs says.
+	Description string `json:"description,omitempty"`
+}
+
+// AlbumDiscogsLabelView A label or company involved in the release.
+type AlbumDiscogsLabelView struct {
+	// The Discogs label ID.
+	LabelID int `json:"labelId,omitempty"`
+	// The label or company name.
+	Name string `json:"name,omitempty"`
+	// The catalog number this label gave the release.
+	CatalogNumber string `json:"catalogNumber,omitempty"`
+	// Either label or company.
+	Kind string `json:"kind,omitempty"`
+	// The role for a company, such as Pressed By or Distributed By.
+	EntityType string `json:"entityType,omitempty"`
+}
+
+// AlbumDiscogsMasterView The master that groups every edition of the release.
+type AlbumDiscogsMasterView struct {
+	// The Discogs master ID.
+	MasterID int `json:"masterId,omitempty"`
+	// The master title.
+	Title string `json:"title,omitempty"`
+	// The master artist credit.
+	Artist string `json:"artist,omitempty"`
+	// The year the release first came out.
+	Year int `json:"year,omitempty"`
+	// The release Discogs treats as the canonical edition.
+	MainReleaseID int `json:"mainReleaseId,omitempty"`
+	// The master page on Discogs.
+	URL string `json:"url,omitempty"`
+	// The Discogs genres of the master.
+	Genres []string `json:"genres,omitempty"`
+	// The Discogs styles of the master.
+	Styles []string `json:"styles,omitempty"`
+}
+
+// AlbumDiscogsTrackView One entry of the release tracklist, as printed on it.
+type AlbumDiscogsTrackView struct {
+	// The position Discogs prints, such as 7, 2-04 or C2.
+	Position string `json:"position,omitempty"`
+	// The entry kind: track, heading or index.
+	Type string `json:"type,omitempty"`
+	// The track title.
+	Title string `json:"title,omitempty"`
+	// The duration as printed, m:ss.
+	Duration string `json:"duration,omitempty"`
+	// The duration in milliseconds.
+	DurationMS int `json:"durationMs,omitempty"`
+	// The disc the track sits on, parsed from the position.
+	DiscNumber int `json:"discNumber,omitempty"`
+	// The track number, side-relative for vinyl.
+	TrackNumber int `json:"trackNumber,omitempty"`
+}
+
+// AlbumDiscogsView Release metadata matched on Discogs for this album.
+type AlbumDiscogsView struct {
+	// The Discogs release ID.
+	ReleaseID int `json:"releaseId,omitempty"`
+	// The Discogs master ID, shared by every edition of the release.
+	MasterID int `json:"masterId,omitempty"`
+	// The release title as Discogs spells it.
+	Title string `json:"title,omitempty"`
+	// The release artist as Discogs credits it.
+	Artist string `json:"artist,omitempty"`
+	// The primary release image on Discogs.
+	AlbumArt string `json:"albumArt,omitempty"`
+	// The year this pressing was released.
+	Year int `json:"year,omitempty"`
+	// The year the release first came out, from its master.
+	OriginalYear int `json:"originalYear,omitempty"`
+	// The release date of this pressing.
+	ReleaseDate string `json:"releaseDate,omitempty"`
+	// The country this pressing was released in.
+	Country string `json:"country,omitempty"`
+	// The record label.
+	Label string `json:"label,omitempty"`
+	// The label's catalog number for this pressing.
+	CatalogNumber string `json:"catalogNumber,omitempty"`
+	// The barcode printed on this pressing.
+	Barcode string `json:"barcode,omitempty"`
+	// The physical or digital formats of this pressing.
+	Formats []string `json:"formats,omitempty"`
+	// The Discogs genres of the release.
+	Genres []string `json:"genres,omitempty"`
+	// The Discogs styles of the release.
+	Styles []string `json:"styles,omitempty"`
+	// The release page on Discogs.
+	URL string `json:"url,omitempty"`
+	// Confidence of the match that produced this release, from 0 to 100.
+	Score int `json:"score,omitempty"`
+	// Performance and production credits for the release.
+	Credits []AlbumDiscogsCreditView `json:"credits,omitempty"`
+	// The release tracklist.
+	Tracklist []AlbumDiscogsTrackView `json:"tracklist,omitempty"`
+	// Every label and company on the release.
+	Labels []AlbumDiscogsLabelView `json:"labels,omitempty"`
+	// Every identifier printed on the release.
+	Identifiers []AlbumDiscogsIdentifierView `json:"identifiers,omitempty"`
+	// Every artist credited on the release.
+	Artists []AlbumDiscogsArtistView `json:"artists,omitempty"`
+	Master *AlbumDiscogsMasterView `json:"master,omitempty"`
 }
 
 type AlbumGetAlbumParams struct {
@@ -197,6 +359,14 @@ type AlbumViewBasic struct {
 	PlayCount int `json:"playCount,omitempty"`
 	// The number of unique listeners who have played the album.
 	UniqueListeners int `json:"uniqueListeners,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	DiscogsReleaseID string `json:"discogsReleaseId,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
 }
 
 type AlbumViewDetailed struct {
@@ -224,6 +394,15 @@ type AlbumViewDetailed struct {
 	UniqueListeners int `json:"uniqueListeners,omitempty"`
 	Tags []string `json:"tags,omitempty"`
 	Tracks []SongViewBasic `json:"tracks,omitempty"`
+	Discogs *AlbumDiscogsView `json:"discogs,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	DiscogsReleaseID string `json:"discogsReleaseId,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
 }
 
 type ApiKeyView struct {
@@ -347,6 +526,18 @@ type ArtistViewBasic struct {
 	// The number of unique listeners who have played the artist.
 	UniqueListeners int `json:"uniqueListeners,omitempty"`
 	Tags []string `json:"tags,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Biography string `json:"biography,omitempty"`
+	Born string `json:"born,omitempty"`
+	BornIn string `json:"bornIn,omitempty"`
+	Died string `json:"died,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	Genres []string `json:"genres,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
 }
 
 type ArtistViewDetailed struct {
@@ -365,6 +556,18 @@ type ArtistViewDetailed struct {
 	// The number of unique listeners who have played the artist.
 	UniqueListeners int `json:"uniqueListeners,omitempty"`
 	Tags []string `json:"tags,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Biography string `json:"biography,omitempty"`
+	Born string `json:"born,omitempty"`
+	BornIn string `json:"bornIn,omitempty"`
+	Died string `json:"died,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	Genres []string `json:"genres,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
 }
 
 type ChartsDecadeViewBasic struct {
@@ -514,6 +717,13 @@ type DeletePlaylistInput struct {
 }
 
 type DeletePlaylistOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Non-fatal AT Protocol playlist mirror error, when available.
+	AtprotoError string `json:"atprotoError,omitempty"`
 }
 
 type DeletePresetParams struct {
@@ -558,6 +768,9 @@ type DropboxDownloadFileParams struct {
 type DropboxFileListView struct {
 	// A list of files in the Dropbox.
 	Files []DropboxFileView `json:"files,omitempty"`
+	Directory *DropboxResponseDirectoryView `json:"directory,omitempty"`
+	ParentDirectory *DropboxResponseParentDirectoryView `json:"parentDirectory,omitempty"`
+	Directories []DropboxResponseDirectoriesItemView `json:"directories,omitempty"`
 }
 
 type DropboxFileView struct {
@@ -573,11 +786,32 @@ type DropboxFileView struct {
 	ClientModified string `json:"clientModified,omitempty"`
 	// The last modified date and time of the file on the server.
 	ServerModified string `json:"serverModified,omitempty"`
+	FileID string `json:"fileId,omitempty"`
+	DirectoryID string `json:"directoryId,omitempty"`
+	TrackID string `json:"trackId,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 type DropboxGetFilesParams struct {
 	// Path to the Dropbox folder or root directory
 	At string `json:"at,omitempty"`
+}
+
+type DropboxResponseDirectoriesItemView struct {
+	ID string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	FileID string `json:"fileId,omitempty"`
+	Path string `json:"path,omitempty"`
+	ParentID string `json:"parentId,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
+type DropboxResponseDirectoryView struct {
+}
+
+type DropboxResponseParentDirectoryView struct {
 }
 
 type DropboxTemporaryLinkView struct {
@@ -626,6 +860,7 @@ type FeedGeneratorView struct {
 	URI string `json:"uri,omitempty"`
 	Avatar string `json:"avatar,omitempty"`
 	Creator *ActorProfileViewBasic `json:"creator,omitempty"`
+	DID string `json:"did,omitempty"`
 }
 
 type FeedItemView struct {
@@ -646,7 +881,6 @@ type FeedRecommendationView struct {
 	ArtistURI string `json:"artistUri,omitempty"`
 	AlbumURI string `json:"albumUri,omitempty"`
 	Genres []string `json:"genres,omitempty"`
-	RecommendationScore int `json:"recommendationScore,omitempty"`
 	// neighbour | social | serendipity
 	Source string `json:"source,omitempty"`
 	LikesCount int `json:"likesCount,omitempty"`
@@ -665,7 +899,6 @@ type FeedRecommendedAlbumView struct {
 	ArtistURI string `json:"artistUri,omitempty"`
 	Year int `json:"year,omitempty"`
 	AlbumArt string `json:"albumArt,omitempty"`
-	RecommendationScore int `json:"recommendationScore,omitempty"`
 	// known-artist | new-artist | serendipity
 	Source string `json:"source,omitempty"`
 }
@@ -681,9 +914,110 @@ type FeedRecommendedArtistView struct {
 	Name string `json:"name,omitempty"`
 	Picture string `json:"picture,omitempty"`
 	Genres []string `json:"genres,omitempty"`
-	RecommendationScore int `json:"recommendationScore,omitempty"`
 	// neighbour | social | serendipity
 	Source string `json:"source,omitempty"`
+}
+
+type FeedSearchFederation struct {
+	IndexUid string `json:"indexUid,omitempty"`
+}
+
+type FeedSearchHit struct {
+	// The unique identifier of the song.
+	ID string `json:"id,omitempty"`
+	// The title of the song.
+	Title string `json:"title,omitempty"`
+	// The artist of the song.
+	Artist string `json:"artist,omitempty"`
+	// The artist of the album the song belongs to.
+	AlbumArtist string `json:"albumArtist,omitempty"`
+	// The URL of the album art image.
+	AlbumArt string `json:"albumArt,omitempty"`
+	// The URI of the song.
+	URI string `json:"uri,omitempty"`
+	// The album of the song.
+	Album string `json:"album,omitempty"`
+	// The duration of the song in milliseconds.
+	Duration int `json:"duration,omitempty"`
+	// The track number of the song in the album.
+	TrackNumber int `json:"trackNumber,omitempty"`
+	// The disc number of the song in the album.
+	DiscNumber int `json:"discNumber,omitempty"`
+	// The number of times the song has been played.
+	PlayCount int `json:"playCount,omitempty"`
+	// The number of users who have loved this song.
+	LikesCount int `json:"likesCount,omitempty"`
+	// Whether the authenticated user has loved this song. False when unauthenticated.
+	Liked bool `json:"liked,omitempty"`
+	// The number of unique listeners who have played the song.
+	UniqueListeners int `json:"uniqueListeners,omitempty"`
+	// The URI of the album the song belongs to.
+	AlbumURI string `json:"albumUri,omitempty"`
+	// The URI of the artist of the song.
+	ArtistURI string `json:"artistUri,omitempty"`
+	// The SHA256 hash of the song.
+	SHA256 string `json:"sha256,omitempty"`
+	// The MusicBrainz ID of the song.
+	MBID string `json:"mbid,omitempty"`
+	// The International Standard Recording Code (ISRC) of the song.
+	ISRC string `json:"isrc,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+	// The timestamp when the song was created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	MbID string `json:"mbId,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	Lyrics string `json:"lyrics,omitempty"`
+	Composer string `json:"composer,omitempty"`
+	Genre string `json:"genre,omitempty"`
+	Label string `json:"label,omitempty"`
+	CopyrightMessage string `json:"copyrightMessage,omitempty"`
+	Key string `json:"key,omitempty"`
+	AcoustidFingerprint string `json:"acoustidFingerprint,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
+	// The year the album was released.
+	Year int `json:"year,omitempty"`
+	// The release date of the album.
+	ReleaseDate string `json:"releaseDate,omitempty"`
+	DiscogsReleaseID string `json:"discogsReleaseId,omitempty"`
+	// The name of the artist.
+	Name string `json:"name,omitempty"`
+	// The picture of the artist.
+	Picture string `json:"picture,omitempty"`
+	Biography string `json:"biography,omitempty"`
+	Born string `json:"born,omitempty"`
+	BornIn string `json:"bornIn,omitempty"`
+	Died string `json:"died,omitempty"`
+	Genres []string `json:"genres,omitempty"`
+	// The DID of the curator of the playlist.
+	CuratorDID string `json:"curatorDid,omitempty"`
+	// The handle of the curator of the playlist.
+	CuratorHandle string `json:"curatorHandle,omitempty"`
+	// The name of the curator of the playlist.
+	CuratorName string `json:"curatorName,omitempty"`
+	// The URL of the avatar image of the curator.
+	CuratorAvatarURL string `json:"curatorAvatarUrl,omitempty"`
+	// A description of the playlist.
+	Description string `json:"description,omitempty"`
+	// The URL of the cover image for the playlist.
+	CoverImageURL string `json:"coverImageUrl,omitempty"`
+	// The number of tracks in the playlist.
+	TrackCount int `json:"trackCount,omitempty"`
+	// Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.
+	TrackArts []string `json:"trackArts,omitempty"`
+	CuratorDId string `json:"curatorDId,omitempty"`
+	// The DID of the actor.
+	DID string `json:"did,omitempty"`
+	// The handle of the actor.
+	Handle string `json:"handle,omitempty"`
+	// The display name of the actor.
+	DisplayName string `json:"displayName,omitempty"`
+	// The URL of the actor's avatar image.
+	Avatar string `json:"avatar,omitempty"`
+	Federation *FeedSearchFederation `json:"_federation,omitempty"`
 }
 
 type FeedSearchParams struct {
@@ -692,7 +1026,7 @@ type FeedSearchParams struct {
 }
 
 type FeedSearchResultsView struct {
-	Hits []any `json:"hits,omitempty"`
+	Hits []FeedSearchHit `json:"hits,omitempty"`
 	ProcessingTimeMS int `json:"processingTimeMs,omitempty"`
 	Limit int `json:"limit,omitempty"`
 	Offset int `json:"offset,omitempty"`
@@ -719,6 +1053,8 @@ type FeedStoryView struct {
 	TrackID string `json:"trackId,omitempty"`
 	TrackURI string `json:"trackUri,omitempty"`
 	URI string `json:"uri,omitempty"`
+	Liked bool `json:"liked,omitempty"`
+	LikesCount int `json:"likesCount,omitempty"`
 }
 
 type FeedUriView struct {
@@ -730,6 +1066,8 @@ type FeedView struct {
 	Feed []FeedItemView `json:"feed,omitempty"`
 	// The pagination cursor for the next set of results.
 	Cursor string `json:"cursor,omitempty"`
+	// Legacy empty-array error fallback; successful responses use feed.
+	Scrobbles []ScrobbleViewBasic `json:"scrobbles,omitempty"`
 }
 
 type FollowAccountOutput struct {
@@ -851,7 +1189,7 @@ type GetActorScrobblesParams struct {
 }
 
 type GetActorSongsOutput struct {
-	Songs []SongViewBasic `json:"songs,omitempty"`
+	Tracks []SongViewBasic `json:"tracks,omitempty"`
 }
 
 type GetActorSongsParams struct {
@@ -868,6 +1206,13 @@ type GetActorSongsParams struct {
 }
 
 type GetAlbumInfoOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic albumInfo payload from Navidrome. Its provider-defined fields are preserved.
+	AlbumInfo any `json:"albumInfo,omitempty"`
 }
 
 type GetAlbumInfoParams struct {
@@ -876,6 +1221,13 @@ type GetAlbumInfoParams struct {
 }
 
 type GetAlbumListOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic albumList2 payload from Navidrome. Its provider-defined fields are preserved.
+	AlbumList2 any `json:"albumList2,omitempty"`
 }
 
 type GetAlbumListParams struct {
@@ -900,7 +1252,7 @@ type GetAlbumRecommendationsParams struct {
 }
 
 type GetAlbumShoutsOutput struct {
-	Shouts []any `json:"shouts,omitempty"`
+	Shouts []ShoutView `json:"shouts,omitempty"`
 }
 
 type GetAlbumShoutsParams struct {
@@ -937,7 +1289,7 @@ type GetAlbumTracksParams struct {
 }
 
 type GetApikeysOutput struct {
-	APIKeys []any `json:"apiKeys,omitempty"`
+	Apikeys []ApiKeyView `json:"apikeys,omitempty"`
 }
 
 type GetApikeysParams struct {
@@ -957,6 +1309,13 @@ type GetArtistAlbumsParams struct {
 }
 
 type GetArtistInfoOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic artistInfo2 payload from Navidrome. Its provider-defined fields are preserved.
+	ArtistInfo2 any `json:"artistInfo2,omitempty"`
 }
 
 type GetArtistInfoParams struct {
@@ -997,7 +1356,7 @@ type GetArtistRecommendationsParams struct {
 }
 
 type GetArtistShoutsOutput struct {
-	Shouts []any `json:"shouts,omitempty"`
+	Shouts []ShoutView `json:"shouts,omitempty"`
 }
 
 type GetArtistShoutsParams struct {
@@ -1142,6 +1501,13 @@ type GetFollowsParams struct {
 }
 
 type GetGenresOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic genres payload from Navidrome. Its provider-defined fields are preserved.
+	Genres any `json:"genres,omitempty"`
 }
 
 type GetGenresParams struct {
@@ -1151,12 +1517,26 @@ type GetGlobalStatsParams struct {
 }
 
 type GetIndexesOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic indexes payload from Navidrome. Its provider-defined fields are preserved.
+	Indexes any `json:"indexes,omitempty"`
 }
 
 type GetIndexesParams struct {
 }
 
 type GetInternetRadioStationsOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic internetRadioStations payload from Navidrome. Its provider-defined fields are preserved.
+	InternetRadioStations any `json:"internetRadioStations,omitempty"`
 }
 
 type GetInternetRadioStationsParams struct {
@@ -1176,12 +1556,26 @@ type GetKnownFollowersParams struct {
 }
 
 type GetLicenseOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic license payload from Navidrome. Its provider-defined fields are preserved.
+	License any `json:"license,omitempty"`
 }
 
 type GetLicenseParams struct {
 }
 
 type GetLyricsOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic lyrics payload from Navidrome. Its provider-defined fields are preserved.
+	Lyrics any `json:"lyrics,omitempty"`
 }
 
 type GetLyricsParams struct {
@@ -1189,6 +1583,11 @@ type GetLyricsParams struct {
 	Artist string `json:"artist,omitempty"`
 	// The song title.
 	Title string `json:"title,omitempty"`
+}
+
+type GetMetadataOutput struct {
+	// Metadata returned by the provider; currently an empty object.
+	Metadata any `json:"metadata,omitempty"`
 }
 
 type GetMetadataParams struct {
@@ -1204,6 +1603,13 @@ type GetMirrorSourcesParams struct {
 }
 
 type GetMusicDirectoryOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic directory payload from Navidrome. Its provider-defined fields are preserved.
+	Directory any `json:"directory,omitempty"`
 }
 
 type GetMusicDirectoryParams struct {
@@ -1212,12 +1618,26 @@ type GetMusicDirectoryParams struct {
 }
 
 type GetMusicFoldersOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic musicFolders payload from Navidrome. Its provider-defined fields are preserved.
+	MusicFolders any `json:"musicFolders,omitempty"`
 }
 
 type GetMusicFoldersParams struct {
 }
 
 type GetNowPlayingOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic nowPlaying payload from Navidrome. Its provider-defined fields are preserved.
+	NowPlaying any `json:"nowPlaying,omitempty"`
 }
 
 type GetNowPlayingParams struct {
@@ -1228,6 +1648,13 @@ type GetPlaybackQueueParams struct {
 }
 
 type GetPlayQueueOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic playQueue payload from Navidrome. Its provider-defined fields are preserved.
+	PlayQueue any `json:"playQueue,omitempty"`
 }
 
 type GetPlayQueueParams struct {
@@ -1239,7 +1666,7 @@ type GetProfileParams struct {
 }
 
 type GetProfileShoutsOutput struct {
-	Shouts []any `json:"shouts,omitempty"`
+	Shouts []ShoutView `json:"shouts,omitempty"`
 }
 
 type GetProfileShoutsParams struct {
@@ -1252,6 +1679,13 @@ type GetProfileShoutsParams struct {
 }
 
 type GetRandomSongsOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic randomSongs payload from Navidrome. Its provider-defined fields are preserved.
+	RandomSongs any `json:"randomSongs,omitempty"`
 }
 
 type GetRandomSongsParams struct {
@@ -1272,6 +1706,13 @@ type GetRecommendationsParams struct {
 }
 
 type GetScanStatusOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved.
+	ScanStatus any `json:"scanStatus,omitempty"`
 }
 
 type GetScanStatusParams struct {
@@ -1317,7 +1758,7 @@ type GetScrobblesParams struct {
 }
 
 type GetShoutRepliesOutput struct {
-	Shouts []any `json:"shouts,omitempty"`
+	Shouts []ShoutView `json:"shouts,omitempty"`
 }
 
 type GetShoutRepliesParams struct {
@@ -1330,6 +1771,13 @@ type GetShoutRepliesParams struct {
 }
 
 type GetSimilarSongsOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic similarSongs2 payload from Navidrome. Its provider-defined fields are preserved.
+	SimilarSongs2 any `json:"similarSongs2,omitempty"`
 }
 
 type GetSimilarSongsParams struct {
@@ -1353,6 +1801,13 @@ type GetSongRecentListenersParams struct {
 }
 
 type GetSongsByGenreOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic songsByGenre payload from Navidrome. Its provider-defined fields are preserved.
+	SongsByGenre any `json:"songsByGenre,omitempty"`
 }
 
 type GetSongsByGenreParams struct {
@@ -1365,7 +1820,7 @@ type GetSongsByGenreParams struct {
 }
 
 type GetSongsOutput struct {
-	Songs []SongViewBasic `json:"songs,omitempty"`
+	Tracks []SongViewBasic `json:"tracks,omitempty"`
 }
 
 type GetSongsParams struct {
@@ -1386,6 +1841,13 @@ type GetSongsParams struct {
 }
 
 type GetStarredOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic starred2 payload from Navidrome. Its provider-defined fields are preserved.
+	Starred2 any `json:"starred2,omitempty"`
 }
 
 type GetStarredParams struct {
@@ -1457,6 +1919,13 @@ type GetTopScrobblersParams struct {
 }
 
 type GetTopSongsOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic topSongs payload from Navidrome. Its provider-defined fields are preserved.
+	TopSongs any `json:"topSongs,omitempty"`
 }
 
 type GetTopSongsParams struct {
@@ -1484,7 +1953,7 @@ type GetTopTracksParams struct {
 }
 
 type GetTrackShoutsOutput struct {
-	Shouts []any `json:"shouts,omitempty"`
+	Shouts []ShoutView `json:"shouts,omitempty"`
 }
 
 type GetTrackShoutsParams struct {
@@ -1498,6 +1967,13 @@ type GetUnreadCountOutput struct {
 }
 
 type GetUserOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic user payload from Navidrome. Its provider-defined fields are preserved.
+	User any `json:"user,omitempty"`
 }
 
 type GetUserParams struct {
@@ -1519,16 +1995,41 @@ type GoogledriveDownloadFileParams struct {
 
 type GoogledriveFileListView struct {
 	Files []GoogledriveFileView `json:"files,omitempty"`
+	Directory *GoogledriveResponseDirectoryView `json:"directory,omitempty"`
+	ParentDirectory *GoogledriveResponseParentDirectoryView `json:"parentDirectory,omitempty"`
+	Directories []GoogledriveResponseDirectoriesItemView `json:"directories,omitempty"`
 }
 
 type GoogledriveFileView struct {
 	// The unique identifier of the file.
 	ID string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	FileID string `json:"fileId,omitempty"`
+	DirectoryID string `json:"directoryId,omitempty"`
+	TrackID string `json:"trackId,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 type GoogledriveGetFilesParams struct {
 	// Path to the Google Drive folder or root directory
 	At string `json:"at,omitempty"`
+}
+
+type GoogledriveResponseDirectoriesItemView struct {
+	ID string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	FileID string `json:"fileId,omitempty"`
+	Path string `json:"path,omitempty"`
+	ParentID string `json:"parentId,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
+type GoogledriveResponseDirectoryView struct {
+}
+
+type GoogledriveResponseParentDirectoryView struct {
 }
 
 // GraphNotFoundActor indicates that a handle or DID could not be resolved
@@ -1568,9 +2069,25 @@ type LibraryCreatePlaylistInput struct {
 }
 
 type LibraryCreatePlaylistOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved.
+	Playlist any `json:"playlist,omitempty"`
+	// Non-fatal AT Protocol playlist mirror error, when available.
+	AtprotoError string `json:"atprotoError,omitempty"`
 }
 
 type LibraryGetAlbumOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic album payload from Navidrome. Its provider-defined fields are preserved.
+	Album any `json:"album,omitempty"`
 }
 
 type LibraryGetAlbumParams struct {
@@ -1579,6 +2096,13 @@ type LibraryGetAlbumParams struct {
 }
 
 type LibraryGetArtistOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic artist payload from Navidrome. Its provider-defined fields are preserved.
+	Artist any `json:"artist,omitempty"`
 }
 
 type LibraryGetArtistParams struct {
@@ -1587,12 +2111,26 @@ type LibraryGetArtistParams struct {
 }
 
 type LibraryGetArtistsOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic artists payload from Navidrome. Its provider-defined fields are preserved.
+	Artists any `json:"artists,omitempty"`
 }
 
 type LibraryGetArtistsParams struct {
 }
 
 type LibraryGetPlaylistOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved.
+	Playlist any `json:"playlist,omitempty"`
 }
 
 type LibraryGetPlaylistParams struct {
@@ -1601,12 +2139,26 @@ type LibraryGetPlaylistParams struct {
 }
 
 type LibraryGetPlaylistsOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic playlists payload from Navidrome. Its provider-defined fields are preserved.
+	Playlists any `json:"playlists,omitempty"`
 }
 
 type LibraryGetPlaylistsParams struct {
 }
 
 type LibraryGetSongOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic song payload from Navidrome. Its provider-defined fields are preserved.
+	Song any `json:"song,omitempty"`
 }
 
 type LibraryGetSongParams struct {
@@ -1615,6 +2167,13 @@ type LibraryGetSongParams struct {
 }
 
 type LibrarySearchOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic searchResult3 payload from Navidrome. Its provider-defined fields are preserved.
+	SearchResult3 any `json:"searchResult3,omitempty"`
 }
 
 type LibrarySearchParams struct {
@@ -1648,6 +2207,13 @@ type LibraryUpdatePlaylistInput struct {
 }
 
 type LibraryUpdatePlaylistOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Non-fatal AT Protocol playlist mirror error, when available.
+	AtprotoError string `json:"atprotoError,omitempty"`
 }
 
 type LikeRecord struct {
@@ -1764,6 +2330,11 @@ type NotificationView struct {
 }
 
 type PingOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
 }
 
 type PingParams struct {
@@ -1780,6 +2351,20 @@ type PlayDirectoryParams struct {
 type PlayerCurrentlyPlayingViewDetailed struct {
 	// The title of the currently playing track
 	Title string `json:"title,omitempty"`
+	Device any `json:"device,omitempty"`
+	ShuffleState bool `json:"shuffle_state,omitempty"`
+	RepeatState string `json:"repeat_state,omitempty"`
+	Timestamp int `json:"timestamp,omitempty"`
+	Context any `json:"context,omitempty"`
+	ProgressMS int `json:"progress_ms,omitempty"`
+	Item any `json:"item,omitempty"`
+	CurrentlyPlayingType string `json:"currently_playing_type,omitempty"`
+	Actions any `json:"actions,omitempty"`
+	IsPlaying bool `json:"is_playing,omitempty"`
+	URI string `json:"uri,omitempty"`
+	AlbumURI string `json:"albumUri,omitempty"`
+	ArtistURI string `json:"artistUri,omitempty"`
+	Liked bool `json:"liked,omitempty"`
 }
 
 type PlayerGetCurrentlyPlayingParams struct {
@@ -1941,6 +2526,8 @@ type PlaylistViewBasic struct {
 	TrackCount int `json:"trackCount,omitempty"`
 	// Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.
 	TrackArts []string `json:"trackArts,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	CuratorDId string `json:"curatorDId,omitempty"`
 }
 
 // PlaylistViewDetailed Detailed view of a playlist, including its tracks and metadata
@@ -1967,6 +2554,9 @@ type PlaylistViewDetailed struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	// A list of tracks in the playlist.
 	Tracks []SongViewBasic `json:"tracks,omitempty"`
+	CuratorDId string `json:"curatorDId,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	TrackCount int `json:"trackCount,omitempty"`
 }
 
 type ProfileRecord struct {
@@ -2179,6 +2769,11 @@ type SavePlayQueueInput struct {
 }
 
 type SavePlayQueueOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
 }
 
 type ScrobbleFirstScrobbleView struct {
@@ -2200,6 +2795,11 @@ type ScrobbleInput struct {
 }
 
 type ScrobbleOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
 }
 
 type ScrobbleRecord struct {
@@ -2292,6 +2892,28 @@ type ScrobbleViewBasic struct {
 	SHA256 string `json:"sha256,omitempty"`
 	Liked bool `json:"liked,omitempty"`
 	LikesCount int `json:"likesCount,omitempty"`
+	Cover string `json:"cover,omitempty"`
+	Date string `json:"date,omitempty"`
+	User string `json:"user,omitempty"`
+	UserDisplayName string `json:"userDisplayName,omitempty"`
+	UserAvatar string `json:"userAvatar,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+	MbID string `json:"mbId,omitempty"`
+	MBID string `json:"mbid,omitempty"`
+	ISRC string `json:"isrc,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	Composer string `json:"composer,omitempty"`
+	TrackNumber int `json:"trackNumber,omitempty"`
+	Duration int `json:"duration,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	DiscNumber int `json:"discNumber,omitempty"`
+	Genre string `json:"genre,omitempty"`
+	Label string `json:"label,omitempty"`
+	CopyrightMessage string `json:"copyrightMessage,omitempty"`
+	Key string `json:"key,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
 }
 
 type ScrobbleViewDetailed struct {
@@ -2328,6 +2950,30 @@ type ScrobbleViewDetailed struct {
 	Artists []ArtistViewBasic `json:"artists,omitempty"`
 	// The first scrobble of this song on Rocksky.
 	FirstScrobble *ScrobbleFirstScrobbleView `json:"firstScrobble,omitempty"`
+	// The MusicBrainz recording ID of the track, when available.
+	MbID string `json:"mbId,omitempty"`
+	// The International Standard Recording Code (ISRC) of the track, when available.
+	ISRC string `json:"isrc,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	AlbumArtist string `json:"albumArtist,omitempty"`
+	TrackNumber int `json:"trackNumber,omitempty"`
+	Duration int `json:"duration,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	DiscNumber int `json:"discNumber,omitempty"`
+	Lyrics string `json:"lyrics,omitempty"`
+	Composer string `json:"composer,omitempty"`
+	Genre string `json:"genre,omitempty"`
+	Label string `json:"label,omitempty"`
+	CopyrightMessage string `json:"copyrightMessage,omitempty"`
+	Key string `json:"key,omitempty"`
+	AcoustidFingerprint string `json:"acoustidFingerprint,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
+	MBID string `json:"mbid,omitempty"`
 }
 
 type SettingsRecord struct {
@@ -2410,6 +3056,10 @@ type ShoutView struct {
 	Gif *ShoutGif `json:"gif,omitempty"`
 	// Mentions of other actors within the message, anchored to UTF-8 byte ranges.
 	Facets []ShoutMention `json:"facets,omitempty"`
+	Content string `json:"content,omitempty"`
+	URI string `json:"uri,omitempty"`
+	Likes int `json:"likes,omitempty"`
+	Liked bool `json:"liked,omitempty"`
 }
 
 type SongFirstScrobbleView struct {
@@ -2536,6 +3186,11 @@ type SongRecord struct {
 	ISRC string `json:"isrc,omitempty"`
 }
 
+type SongResponseMbArtistsItemView struct {
+	MBID string `json:"mbid,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
 type SongViewBasic struct {
 	// The unique identifier of the song.
 	ID string `json:"id,omitempty"`
@@ -2578,6 +3233,20 @@ type SongViewBasic struct {
 	Tags []string `json:"tags,omitempty"`
 	// The timestamp when the song was created.
 	CreatedAt string `json:"createdAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	MbID string `json:"mbId,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	Lyrics string `json:"lyrics,omitempty"`
+	Composer string `json:"composer,omitempty"`
+	Genre string `json:"genre,omitempty"`
+	Label string `json:"label,omitempty"`
+	CopyrightMessage string `json:"copyrightMessage,omitempty"`
+	Key string `json:"key,omitempty"`
+	AcoustidFingerprint string `json:"acoustidFingerprint,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
 }
 
 type SongViewDetailed struct {
@@ -2627,6 +3296,26 @@ type SongViewDetailed struct {
 	FirstScrobble *SongFirstScrobbleView `json:"firstScrobble,omitempty"`
 	// Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty.
 	Matches []SongMatchView `json:"matches,omitempty"`
+	// The MusicBrainz recording ID of the track, when available.
+	MbID string `json:"mbId,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	ReleaseDate string `json:"releaseDate,omitempty"`
+	Year int `json:"year,omitempty"`
+	ArtistPicture string `json:"artistPicture,omitempty"`
+	Genres []string `json:"genres,omitempty"`
+	MbArtists []SongResponseMbArtistsItemView `json:"mbArtists,omitempty"`
+	YoutubeLink string `json:"youtubeLink,omitempty"`
+	SpotifyLink string `json:"spotifyLink,omitempty"`
+	AppleMusicLink string `json:"appleMusicLink,omitempty"`
+	TidalLink string `json:"tidalLink,omitempty"`
+	Lyrics string `json:"lyrics,omitempty"`
+	Composer string `json:"composer,omitempty"`
+	Genre string `json:"genre,omitempty"`
+	Label string `json:"label,omitempty"`
+	CopyrightMessage string `json:"copyrightMessage,omitempty"`
+	Key string `json:"key,omitempty"`
+	AcoustidFingerprint string `json:"acoustidFingerprint,omitempty"`
+	XataVersion int `json:"xataVersion,omitempty"`
 }
 
 type SpotifyGetCurrentlyPlayingParams struct {
@@ -2664,6 +3353,11 @@ type StarInput struct {
 }
 
 type StarOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
 }
 
 type StartPlaylistParams struct {
@@ -2676,6 +3370,13 @@ type StartPlaylistParams struct {
 }
 
 type StartScanOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
+	// Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved.
+	ScanStatus any `json:"scanStatus,omitempty"`
 }
 
 type StartScanParams struct {
@@ -2860,6 +3561,11 @@ type UnstarInput struct {
 }
 
 type UnstarOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
 }
 
 type UpdateApikeyInput struct {
@@ -2877,6 +3583,11 @@ type UpdateNowPlayingInput struct {
 }
 
 type UpdateNowPlayingOutput struct {
+	Status string `json:"status,omitempty"`
+	Version string `json:"version,omitempty"`
+	Type string `json:"type,omitempty"`
+	ServerVersion string `json:"serverVersion,omitempty"`
+	OpenSubsonic bool `json:"openSubsonic,omitempty"`
 }
 
 type UpdateSeenInput struct {

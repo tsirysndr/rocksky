@@ -12,7 +12,7 @@ use alloc::collections::BTreeMap;
 use core::marker::PhantomData;
 use jacquard_common::deps::smol_str::SmolStr;
 use jacquard_common::types::value::Data;
-use jacquard_common::{BosStr, DefaultStr, FromStaticStr};
+use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
 use jacquard_derive::IntoStatic;
 use serde::{Deserialize, Serialize};
 
@@ -26,6 +26,16 @@ pub struct Ping;
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct PingOutput<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

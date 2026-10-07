@@ -14,12 +14,12 @@ pub const NSID: &str = "app.rocksky.mirror.getMirrorSources";
 
 /// Get the authenticated user's scrobble mirror sources (Last.fm,
 /// ListenBrainz, Teal.fm).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {}
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     pub sources: Vec<super::super::super::super::app::rocksky::mirror::defs::MirrorSourceView>,

@@ -24,12 +24,10 @@ export interface ActorArtistViewBasic {
   uri?: AtUri;
   user1Rank?: number;
   user2Rank?: number;
-  weight?: number;
 }
 
 export interface ActorCompatibilityViewBasic {
   compatibilityLevel?: number;
-  compatibilityPercentage?: number;
   sharedArtists?: number;
   topSharedArtistNames?: string[];
   topSharedDetailedArtists?: ActorArtistViewBasic[];
@@ -43,11 +41,9 @@ export interface ActorNeighbourViewBasic {
   handle?: string;
   displayName?: string;
   /** The URL of the actor's avatar image. */
-  avatar?: Uri;
+  avatar?: string;
   /** The number of artists shared with the actor. */
   sharedArtistsCount?: number;
-  /** The similarity score with the actor. */
-  similarityScore?: number;
   /** The top shared artist names with the actor. */
   topSharedArtistNames?: string[];
   /** The top shared artist details with the actor. */
@@ -86,6 +82,35 @@ export interface ActorProfileViewDetailed {
   createdAt?: DateTime;
   /** The date and time when the actor was last updated. */
   updatedAt?: DateTime;
+  spotifyUser?: ActorResponseSpotifyUserView;
+  spotifyConnected?: boolean;
+  googledrive?: ActorResponseGoogledriveView;
+  dropbox?: ActorResponseDropboxView;
+}
+
+export interface ActorResponseDropboxView {
+  createdAt?: string;
+  updatedAt?: string;
+  id?: string;
+  email?: string;
+  isBetaUser?: boolean;
+  userId?: string;
+  xataVersion?: string;
+}
+
+export interface ActorResponseGoogledriveView {
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ActorResponseSpotifyUserView {
+  createdAt?: string;
+  updatedAt?: string;
+  id?: string;
+  xataVersion?: number;
+  userId?: string;
+  isBetaUser?: boolean;
+  spotifyAppId?: string;
 }
 
 export interface ActorTrackView {
@@ -136,6 +161,143 @@ export interface AddSongsParams {
   uri: AtUri;
   /** AT-URIs of the app.rocksky.song records to add */
   songs: AtUri[];
+}
+
+/** An artist credited on the release itself. */
+export interface AlbumDiscogsArtistView {
+  /** The Discogs artist ID. */
+  artistId?: number;
+  /** The artist name. */
+  name?: string;
+  /** The name as credited on this release, when it differs. */
+  anv?: string;
+  /** What separates this artist from the next in the credit. */
+  joinPhrase?: string;
+  /** The role, when the release gives one. */
+  role?: string;
+}
+
+/** One performance or production credit from Discogs. */
+export interface AlbumDiscogsCreditView {
+  /** The Discogs artist ID, when the credit is linked to one. */
+  artistId?: number;
+  /** The credited name. */
+  name?: string;
+  /** The role as Discogs words it, such as "Written-By" or "Mixed By, Engineer". */
+  role?: string;
+  /** The track positions the credit applies to, absent when it covers the whole release. */
+  tracks?: string;
+}
+
+/** An identifier printed on the release: barcode, matrix / runout, label code, rights society. */
+export interface AlbumDiscogsIdentifierView {
+  /** The identifier type as Discogs names it. */
+  type?: string;
+  /** The identifier itself. */
+  value?: string;
+  /** What the identifier applies to, when Discogs says. */
+  description?: string;
+}
+
+/** A label or company involved in the release. */
+export interface AlbumDiscogsLabelView {
+  /** The Discogs label ID. */
+  labelId?: number;
+  /** The label or company name. */
+  name?: string;
+  /** The catalog number this label gave the release. */
+  catalogNumber?: string;
+  /** Either label or company. */
+  kind?: string;
+  /** The role for a company, such as Pressed By or Distributed By. */
+  entityType?: string;
+}
+
+/** The master that groups every edition of the release. */
+export interface AlbumDiscogsMasterView {
+  /** The Discogs master ID. */
+  masterId?: number;
+  /** The master title. */
+  title?: string;
+  /** The master artist credit. */
+  artist?: string;
+  /** The year the release first came out. */
+  year?: number;
+  /** The release Discogs treats as the canonical edition. */
+  mainReleaseId?: number;
+  /** The master page on Discogs. */
+  url?: Uri;
+  /** The Discogs genres of the master. */
+  genres?: string[];
+  /** The Discogs styles of the master. */
+  styles?: string[];
+}
+
+/** One entry of the release tracklist, as printed on it. */
+export interface AlbumDiscogsTrackView {
+  /** The position Discogs prints, such as 7, 2-04 or C2. */
+  position?: string;
+  /** The entry kind: track, heading or index. */
+  type?: string;
+  /** The track title. */
+  title?: string;
+  /** The duration as printed, m:ss. */
+  duration?: string;
+  /** The duration in milliseconds. */
+  durationMs?: number;
+  /** The disc the track sits on, parsed from the position. */
+  discNumber?: number;
+  /** The track number, side-relative for vinyl. */
+  trackNumber?: number;
+}
+
+/** Release metadata matched on Discogs for this album. */
+export interface AlbumDiscogsView {
+  /** The Discogs release ID. */
+  releaseId?: number;
+  /** The Discogs master ID, shared by every edition of the release. */
+  masterId?: number;
+  /** The release title as Discogs spells it. */
+  title?: string;
+  /** The release artist as Discogs credits it. */
+  artist?: string;
+  /** The primary release image on Discogs. */
+  albumArt?: Uri;
+  /** The year this pressing was released. */
+  year?: number;
+  /** The year the release first came out, from its master. */
+  originalYear?: number;
+  /** The release date of this pressing. */
+  releaseDate?: string;
+  /** The country this pressing was released in. */
+  country?: string;
+  /** The record label. */
+  label?: string;
+  /** The label's catalog number for this pressing. */
+  catalogNumber?: string;
+  /** The barcode printed on this pressing. */
+  barcode?: string;
+  /** The physical or digital formats of this pressing. */
+  formats?: string[];
+  /** The Discogs genres of the release. */
+  genres?: string[];
+  /** The Discogs styles of the release. */
+  styles?: string[];
+  /** The release page on Discogs. */
+  url?: Uri;
+  /** Confidence of the match that produced this release, from 0 to 100. */
+  score?: number;
+  /** Performance and production credits for the release. */
+  credits?: AlbumDiscogsCreditView[];
+  /** The release tracklist. */
+  tracklist?: AlbumDiscogsTrackView[];
+  /** Every label and company on the release. */
+  labels?: AlbumDiscogsLabelView[];
+  /** Every identifier printed on the release. */
+  identifiers?: AlbumDiscogsIdentifierView[];
+  /** Every artist credited on the release. */
+  artists?: AlbumDiscogsArtistView[];
+  master?: AlbumDiscogsMasterView;
 }
 
 export interface AlbumGetAlbumParams {
@@ -197,6 +359,14 @@ export interface AlbumViewBasic {
   playCount?: number;
   /** The number of unique listeners who have played the album. */
   uniqueListeners?: number;
+  appleMusicLink?: string;
+  spotifyLink?: string;
+  tidalLink?: string;
+  youtubeLink?: string;
+  discogsReleaseId?: string;
+  createdAt?: DateTime;
+  updatedAt?: DateTime;
+  xataVersion?: number;
 }
 
 export interface AlbumViewDetailed {
@@ -224,6 +394,15 @@ export interface AlbumViewDetailed {
   uniqueListeners?: number;
   tags?: string[];
   tracks?: SongViewBasic[];
+  discogs?: AlbumDiscogsView;
+  createdAt?: string;
+  appleMusicLink?: string;
+  spotifyLink?: string;
+  tidalLink?: string;
+  youtubeLink?: string;
+  discogsReleaseId?: string;
+  updatedAt?: DateTime;
+  xataVersion?: number;
 }
 
 export interface ApiKeyView {
@@ -347,6 +526,18 @@ export interface ArtistViewBasic {
   /** The number of unique listeners who have played the artist. */
   uniqueListeners?: number;
   tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  biography?: string;
+  born?: DateTime;
+  bornIn?: string;
+  died?: DateTime;
+  appleMusicLink?: string;
+  spotifyLink?: string;
+  tidalLink?: string;
+  youtubeLink?: string;
+  genres?: string[];
+  xataVersion?: number;
 }
 
 export interface ArtistViewDetailed {
@@ -365,6 +556,18 @@ export interface ArtistViewDetailed {
   /** The number of unique listeners who have played the artist. */
   uniqueListeners?: number;
   tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  biography?: string;
+  born?: DateTime;
+  bornIn?: string;
+  died?: DateTime;
+  appleMusicLink?: string;
+  spotifyLink?: string;
+  tidalLink?: string;
+  youtubeLink?: string;
+  genres?: string[];
+  xataVersion?: number;
 }
 
 export interface ChartsDecadeViewBasic {
@@ -514,7 +717,13 @@ export interface DeletePlaylistInput {
 }
 
 export interface DeletePlaylistOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Non-fatal AT Protocol playlist mirror error, when available. */
+  atprotoError?: string;
 }
 
 export interface DeletePresetParams {
@@ -559,6 +768,9 @@ export interface DropboxDownloadFileParams {
 export interface DropboxFileListView {
   /** A list of files in the Dropbox. */
   files?: DropboxFileView[];
+  directory?: DropboxResponseDirectoryView;
+  parentDirectory?: DropboxResponseParentDirectoryView;
+  directories?: DropboxResponseDirectoriesItemView[];
 }
 
 export interface DropboxFileView {
@@ -574,11 +786,34 @@ export interface DropboxFileView {
   clientModified?: DateTime;
   /** The last modified date and time of the file on the server. */
   serverModified?: DateTime;
+  fileId?: string;
+  directoryId?: string;
+  trackId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface DropboxGetFilesParams {
   /** Path to the Dropbox folder or root directory */
   at?: string;
+}
+
+export interface DropboxResponseDirectoriesItemView {
+  id?: string;
+  name?: string;
+  fileId?: string;
+  path?: string;
+  parentId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DropboxResponseDirectoryView {
+
+}
+
+export interface DropboxResponseParentDirectoryView {
+
 }
 
 export interface DropboxTemporaryLinkView {
@@ -627,6 +862,7 @@ export interface FeedGeneratorView {
   uri?: AtUri;
   avatar?: Uri;
   creator?: ActorProfileViewBasic;
+  did?: string;
 }
 
 export interface FeedItemView {
@@ -647,7 +883,6 @@ export interface FeedRecommendationView {
   artistUri?: AtUri;
   albumUri?: AtUri;
   genres?: string[];
-  recommendationScore?: number;
   /** neighbour | social | serendipity */
   source?: string;
   likesCount?: number;
@@ -666,7 +901,6 @@ export interface FeedRecommendedAlbumView {
   artistUri?: AtUri;
   year?: number;
   albumArt?: Uri;
-  recommendationScore?: number;
   /** known-artist | new-artist | serendipity */
   source?: string;
 }
@@ -682,9 +916,110 @@ export interface FeedRecommendedArtistView {
   name?: string;
   picture?: Uri;
   genres?: string[];
-  recommendationScore?: number;
   /** neighbour | social | serendipity */
   source?: string;
+}
+
+export interface FeedSearchFederation {
+  indexUid?: string;
+}
+
+export interface FeedSearchHit {
+  /** The unique identifier of the song. */
+  id?: string;
+  /** The title of the song. */
+  title?: string;
+  /** The artist of the song. */
+  artist?: string;
+  /** The artist of the album the song belongs to. */
+  albumArtist?: string;
+  /** The URL of the album art image. */
+  albumArt?: Uri;
+  /** The URI of the song. */
+  uri?: AtUri;
+  /** The album of the song. */
+  album?: string;
+  /** The duration of the song in milliseconds. */
+  duration?: number;
+  /** The track number of the song in the album. */
+  trackNumber?: number;
+  /** The disc number of the song in the album. */
+  discNumber?: number;
+  /** The number of times the song has been played. */
+  playCount?: number;
+  /** The number of users who have loved this song. */
+  likesCount?: number;
+  /** Whether the authenticated user has loved this song. False when unauthenticated. */
+  liked?: boolean;
+  /** The number of unique listeners who have played the song. */
+  uniqueListeners?: number;
+  /** The URI of the album the song belongs to. */
+  albumUri?: AtUri;
+  /** The URI of the artist of the song. */
+  artistUri?: AtUri;
+  /** The SHA256 hash of the song. */
+  sha256?: string;
+  /** The MusicBrainz ID of the song. */
+  mbid?: string;
+  /** The International Standard Recording Code (ISRC) of the song. */
+  isrc?: string;
+  tags?: string[];
+  /** The timestamp when the song was created. */
+  createdAt?: DateTime;
+  updatedAt?: string;
+  mbId?: string;
+  youtubeLink?: string;
+  spotifyLink?: string;
+  appleMusicLink?: string;
+  tidalLink?: string;
+  lyrics?: string;
+  composer?: string;
+  genre?: string;
+  label?: string;
+  copyrightMessage?: string;
+  key?: string;
+  acoustidFingerprint?: string;
+  xataVersion?: number;
+  /** The year the album was released. */
+  year?: number;
+  /** The release date of the album. */
+  releaseDate?: string;
+  discogsReleaseId?: string;
+  /** The name of the artist. */
+  name?: string;
+  /** The picture of the artist. */
+  picture?: string;
+  biography?: string;
+  born?: DateTime;
+  bornIn?: string;
+  died?: DateTime;
+  genres?: string[];
+  /** The DID of the curator of the playlist. */
+  curatorDid?: AtIdentifier;
+  /** The handle of the curator of the playlist. */
+  curatorHandle?: AtIdentifier;
+  /** The name of the curator of the playlist. */
+  curatorName?: string;
+  /** The URL of the avatar image of the curator. */
+  curatorAvatarUrl?: Uri;
+  /** A description of the playlist. */
+  description?: string;
+  /** The URL of the cover image for the playlist. */
+  coverImageUrl?: Uri;
+  /** The number of tracks in the playlist. */
+  trackCount?: number;
+  /** Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own. */
+  trackArts?: Uri[];
+  curatorDId?: string;
+  /** The DID of the actor. */
+  did?: string;
+  /** The handle of the actor. */
+  handle?: string;
+  /** The display name of the actor. */
+  displayName?: string;
+  /** The URL of the actor's avatar image. */
+  avatar?: Uri;
+  _federation?: FeedSearchFederation;
 }
 
 export interface FeedSearchParams {
@@ -693,7 +1028,7 @@ export interface FeedSearchParams {
 }
 
 export interface FeedSearchResultsView {
-  hits?: SongViewBasic | AlbumViewBasic | ArtistViewBasic | PlaylistViewBasic | ActorProfileViewBasic[];
+  hits?: FeedSearchHit[];
   processingTimeMs?: number;
   limit?: number;
   offset?: number;
@@ -720,6 +1055,8 @@ export interface FeedStoryView {
   trackId?: string;
   trackUri?: AtUri;
   uri?: AtUri;
+  liked?: boolean;
+  likesCount?: number;
 }
 
 export interface FeedUriView {
@@ -731,6 +1068,8 @@ export interface FeedView {
   feed?: FeedItemView[];
   /** The pagination cursor for the next set of results. */
   cursor?: string;
+  /** Legacy empty-array error fallback; successful responses use feed. */
+  scrobbles?: ScrobbleViewBasic[];
 }
 
 export interface FollowAccountOutput {
@@ -852,7 +1191,7 @@ export interface GetActorScrobblesParams {
 }
 
 export interface GetActorSongsOutput {
-  songs?: SongViewBasic[];
+  tracks?: SongViewBasic[];
 }
 
 export interface GetActorSongsParams {
@@ -869,7 +1208,13 @@ export interface GetActorSongsParams {
 }
 
 export interface GetAlbumInfoOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic albumInfo payload from Navidrome. Its provider-defined fields are preserved. */
+  albumInfo?: unknown;
 }
 
 export interface GetAlbumInfoParams {
@@ -878,7 +1223,13 @@ export interface GetAlbumInfoParams {
 }
 
 export interface GetAlbumListOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic albumList2 payload from Navidrome. Its provider-defined fields are preserved. */
+  albumList2?: unknown;
 }
 
 export interface GetAlbumListParams {
@@ -903,7 +1254,7 @@ export interface GetAlbumRecommendationsParams {
 }
 
 export interface GetAlbumShoutsOutput {
-  shouts?: unknown[];
+  shouts?: ShoutView[];
 }
 
 export interface GetAlbumShoutsParams {
@@ -940,7 +1291,7 @@ export interface GetAlbumTracksParams {
 }
 
 export interface GetApikeysOutput {
-  apiKeys?: unknown[];
+  apikeys?: ApiKeyView[];
 }
 
 export interface GetApikeysParams {
@@ -960,7 +1311,13 @@ export interface GetArtistAlbumsParams {
 }
 
 export interface GetArtistInfoOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic artistInfo2 payload from Navidrome. Its provider-defined fields are preserved. */
+  artistInfo2?: unknown;
 }
 
 export interface GetArtistInfoParams {
@@ -1001,7 +1358,7 @@ export interface GetArtistRecommendationsParams {
 }
 
 export interface GetArtistShoutsOutput {
-  shouts?: unknown[];
+  shouts?: ShoutView[];
 }
 
 export interface GetArtistShoutsParams {
@@ -1146,7 +1503,13 @@ export interface GetFollowsParams {
 }
 
 export interface GetGenresOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic genres payload from Navidrome. Its provider-defined fields are preserved. */
+  genres?: unknown;
 }
 
 export interface GetGenresParams {
@@ -1158,7 +1521,13 @@ export interface GetGlobalStatsParams {
 }
 
 export interface GetIndexesOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic indexes payload from Navidrome. Its provider-defined fields are preserved. */
+  indexes?: unknown;
 }
 
 export interface GetIndexesParams {
@@ -1166,7 +1535,13 @@ export interface GetIndexesParams {
 }
 
 export interface GetInternetRadioStationsOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic internetRadioStations payload from Navidrome. Its provider-defined fields are preserved. */
+  internetRadioStations?: unknown;
 }
 
 export interface GetInternetRadioStationsParams {
@@ -1187,7 +1562,13 @@ export interface GetKnownFollowersParams {
 }
 
 export interface GetLicenseOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic license payload from Navidrome. Its provider-defined fields are preserved. */
+  license?: unknown;
 }
 
 export interface GetLicenseParams {
@@ -1195,7 +1576,13 @@ export interface GetLicenseParams {
 }
 
 export interface GetLyricsOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic lyrics payload from Navidrome. Its provider-defined fields are preserved. */
+  lyrics?: unknown;
 }
 
 export interface GetLyricsParams {
@@ -1203,6 +1590,11 @@ export interface GetLyricsParams {
   artist?: string;
   /** The song title. */
   title?: string;
+}
+
+export interface GetMetadataOutput {
+  /** Metadata returned by the provider; currently an empty object. */
+  metadata?: unknown;
 }
 
 export interface GetMetadataParams {
@@ -1219,7 +1611,13 @@ export interface GetMirrorSourcesParams {
 }
 
 export interface GetMusicDirectoryOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic directory payload from Navidrome. Its provider-defined fields are preserved. */
+  directory?: unknown;
 }
 
 export interface GetMusicDirectoryParams {
@@ -1228,7 +1626,13 @@ export interface GetMusicDirectoryParams {
 }
 
 export interface GetMusicFoldersOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic musicFolders payload from Navidrome. Its provider-defined fields are preserved. */
+  musicFolders?: unknown;
 }
 
 export interface GetMusicFoldersParams {
@@ -1236,7 +1640,13 @@ export interface GetMusicFoldersParams {
 }
 
 export interface GetNowPlayingOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic nowPlaying payload from Navidrome. Its provider-defined fields are preserved. */
+  nowPlaying?: unknown;
 }
 
 export interface GetNowPlayingParams {
@@ -1248,7 +1658,13 @@ export interface GetPlaybackQueueParams {
 }
 
 export interface GetPlayQueueOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic playQueue payload from Navidrome. Its provider-defined fields are preserved. */
+  playQueue?: unknown;
 }
 
 export interface GetPlayQueueParams {
@@ -1261,7 +1677,7 @@ export interface GetProfileParams {
 }
 
 export interface GetProfileShoutsOutput {
-  shouts?: unknown[];
+  shouts?: ShoutView[];
 }
 
 export interface GetProfileShoutsParams {
@@ -1274,7 +1690,13 @@ export interface GetProfileShoutsParams {
 }
 
 export interface GetRandomSongsOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic randomSongs payload from Navidrome. Its provider-defined fields are preserved. */
+  randomSongs?: unknown;
 }
 
 export interface GetRandomSongsParams {
@@ -1295,7 +1717,13 @@ export interface GetRecommendationsParams {
 }
 
 export interface GetScanStatusOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved. */
+  scanStatus?: unknown;
 }
 
 export interface GetScanStatusParams {
@@ -1342,7 +1770,7 @@ export interface GetScrobblesParams {
 }
 
 export interface GetShoutRepliesOutput {
-  shouts?: unknown[];
+  shouts?: ShoutView[];
 }
 
 export interface GetShoutRepliesParams {
@@ -1355,7 +1783,13 @@ export interface GetShoutRepliesParams {
 }
 
 export interface GetSimilarSongsOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic similarSongs2 payload from Navidrome. Its provider-defined fields are preserved. */
+  similarSongs2?: unknown;
 }
 
 export interface GetSimilarSongsParams {
@@ -1379,7 +1813,13 @@ export interface GetSongRecentListenersParams {
 }
 
 export interface GetSongsByGenreOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic songsByGenre payload from Navidrome. Its provider-defined fields are preserved. */
+  songsByGenre?: unknown;
 }
 
 export interface GetSongsByGenreParams {
@@ -1392,7 +1832,7 @@ export interface GetSongsByGenreParams {
 }
 
 export interface GetSongsOutput {
-  songs?: SongViewBasic[];
+  tracks?: SongViewBasic[];
 }
 
 export interface GetSongsParams {
@@ -1413,7 +1853,13 @@ export interface GetSongsParams {
 }
 
 export interface GetStarredOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic starred2 payload from Navidrome. Its provider-defined fields are preserved. */
+  starred2?: unknown;
 }
 
 export interface GetStarredParams {
@@ -1486,7 +1932,13 @@ export interface GetTopScrobblersParams {
 }
 
 export interface GetTopSongsOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic topSongs payload from Navidrome. Its provider-defined fields are preserved. */
+  topSongs?: unknown;
 }
 
 export interface GetTopSongsParams {
@@ -1514,7 +1966,7 @@ export interface GetTopTracksParams {
 }
 
 export interface GetTrackShoutsOutput {
-  shouts?: unknown[];
+  shouts?: ShoutView[];
 }
 
 export interface GetTrackShoutsParams {
@@ -1528,7 +1980,13 @@ export interface GetUnreadCountOutput {
 }
 
 export interface GetUserOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic user payload from Navidrome. Its provider-defined fields are preserved. */
+  user?: unknown;
 }
 
 export interface GetUserParams {
@@ -1551,16 +2009,43 @@ export interface GoogledriveDownloadFileParams {
 
 export interface GoogledriveFileListView {
   files?: GoogledriveFileView[];
+  directory?: GoogledriveResponseDirectoryView;
+  parentDirectory?: GoogledriveResponseParentDirectoryView;
+  directories?: GoogledriveResponseDirectoriesItemView[];
 }
 
 export interface GoogledriveFileView {
   /** The unique identifier of the file. */
   id?: string;
+  name?: string;
+  fileId?: string;
+  directoryId?: string;
+  trackId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GoogledriveGetFilesParams {
   /** Path to the Google Drive folder or root directory */
   at?: string;
+}
+
+export interface GoogledriveResponseDirectoriesItemView {
+  id?: string;
+  name?: string;
+  fileId?: string;
+  path?: string;
+  parentId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GoogledriveResponseDirectoryView {
+
+}
+
+export interface GoogledriveResponseParentDirectoryView {
+
 }
 
 /** indicates that a handle or DID could not be resolved */
@@ -1600,11 +2085,25 @@ export interface LibraryCreatePlaylistInput {
 }
 
 export interface LibraryCreatePlaylistOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved. */
+  playlist?: unknown;
+  /** Non-fatal AT Protocol playlist mirror error, when available. */
+  atprotoError?: string;
 }
 
 export interface LibraryGetAlbumOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic album payload from Navidrome. Its provider-defined fields are preserved. */
+  album?: unknown;
 }
 
 export interface LibraryGetAlbumParams {
@@ -1613,7 +2112,13 @@ export interface LibraryGetAlbumParams {
 }
 
 export interface LibraryGetArtistOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic artist payload from Navidrome. Its provider-defined fields are preserved. */
+  artist?: unknown;
 }
 
 export interface LibraryGetArtistParams {
@@ -1622,7 +2127,13 @@ export interface LibraryGetArtistParams {
 }
 
 export interface LibraryGetArtistsOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic artists payload from Navidrome. Its provider-defined fields are preserved. */
+  artists?: unknown;
 }
 
 export interface LibraryGetArtistsParams {
@@ -1630,7 +2141,13 @@ export interface LibraryGetArtistsParams {
 }
 
 export interface LibraryGetPlaylistOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved. */
+  playlist?: unknown;
 }
 
 export interface LibraryGetPlaylistParams {
@@ -1639,7 +2156,13 @@ export interface LibraryGetPlaylistParams {
 }
 
 export interface LibraryGetPlaylistsOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic playlists payload from Navidrome. Its provider-defined fields are preserved. */
+  playlists?: unknown;
 }
 
 export interface LibraryGetPlaylistsParams {
@@ -1647,7 +2170,13 @@ export interface LibraryGetPlaylistsParams {
 }
 
 export interface LibraryGetSongOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic song payload from Navidrome. Its provider-defined fields are preserved. */
+  song?: unknown;
 }
 
 export interface LibraryGetSongParams {
@@ -1656,7 +2185,13 @@ export interface LibraryGetSongParams {
 }
 
 export interface LibrarySearchOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic searchResult3 payload from Navidrome. Its provider-defined fields are preserved. */
+  searchResult3?: unknown;
 }
 
 export interface LibrarySearchParams {
@@ -1690,7 +2225,13 @@ export interface LibraryUpdatePlaylistInput {
 }
 
 export interface LibraryUpdatePlaylistOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Non-fatal AT Protocol playlist mirror error, when available. */
+  atprotoError?: string;
 }
 
 export interface LikeRecord {
@@ -1807,7 +2348,11 @@ export interface NotificationView {
 }
 
 export interface PingOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
 }
 
 export interface PingParams {
@@ -1825,6 +2370,20 @@ export interface PlayDirectoryParams {
 export interface PlayerCurrentlyPlayingViewDetailed {
   /** The title of the currently playing track */
   title?: string;
+  device?: unknown;
+  shuffle_state?: boolean;
+  repeat_state?: string;
+  timestamp?: number;
+  context?: unknown;
+  progress_ms?: number;
+  item?: unknown;
+  currently_playing_type?: string;
+  actions?: unknown;
+  is_playing?: boolean;
+  uri?: string;
+  albumUri?: string;
+  artistUri?: string;
+  liked?: boolean;
 }
 
 export interface PlayerGetCurrentlyPlayingParams {
@@ -1986,6 +2545,8 @@ export interface PlaylistViewBasic {
   trackCount?: number;
   /** Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own. */
   trackArts?: Uri[];
+  updatedAt?: string;
+  curatorDId?: string;
 }
 
 /** Detailed view of a playlist, including its tracks and metadata */
@@ -2012,6 +2573,9 @@ export interface PlaylistViewDetailed {
   createdAt?: DateTime;
   /** A list of tracks in the playlist. */
   tracks?: SongViewBasic[];
+  curatorDId?: string;
+  updatedAt?: string;
+  trackCount?: number;
 }
 
 export interface ProfileRecord {
@@ -2224,7 +2788,11 @@ export interface SavePlayQueueInput {
 }
 
 export interface SavePlayQueueOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
 }
 
 export interface ScrobbleFirstScrobbleView {
@@ -2246,7 +2814,11 @@ export interface ScrobbleInput {
 }
 
 export interface ScrobbleOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
 }
 
 export interface ScrobbleRecord {
@@ -2339,6 +2911,28 @@ export interface ScrobbleViewBasic {
   sha256?: string;
   liked?: boolean;
   likesCount?: number;
+  cover?: string;
+  date?: string;
+  user?: string;
+  userDisplayName?: string;
+  userAvatar?: string;
+  tags?: string[];
+  mbId?: string;
+  mbid?: string;
+  isrc?: string;
+  spotifyLink?: string;
+  composer?: string;
+  trackNumber?: number;
+  duration?: number;
+  youtubeLink?: string;
+  appleMusicLink?: string;
+  tidalLink?: string;
+  discNumber?: number;
+  genre?: string;
+  label?: string;
+  copyrightMessage?: string;
+  key?: string;
+  xataVersion?: number;
 }
 
 export interface ScrobbleViewDetailed {
@@ -2375,6 +2969,30 @@ export interface ScrobbleViewDetailed {
   artists?: ArtistViewBasic[];
   /** The first scrobble of this song on Rocksky. */
   firstScrobble?: ScrobbleFirstScrobbleView;
+  /** The MusicBrainz recording ID of the track, when available. */
+  mbId?: string;
+  /** The International Standard Recording Code (ISRC) of the track, when available. */
+  isrc?: string;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  albumArtist?: string;
+  trackNumber?: number;
+  duration?: number;
+  youtubeLink?: string;
+  spotifyLink?: string;
+  appleMusicLink?: string;
+  tidalLink?: string;
+  discNumber?: number;
+  lyrics?: string;
+  composer?: string;
+  genre?: string;
+  label?: string;
+  copyrightMessage?: string;
+  key?: string;
+  acoustidFingerprint?: string;
+  xataVersion?: number;
+  mbid?: string;
 }
 
 export interface SettingsRecord {
@@ -2457,6 +3075,10 @@ export interface ShoutView {
   gif?: ShoutGif;
   /** Mentions of other actors within the message, anchored to UTF-8 byte ranges. */
   facets?: ShoutMention[];
+  content?: string;
+  uri?: string;
+  likes?: number;
+  liked?: boolean;
 }
 
 export interface SongFirstScrobbleView {
@@ -2583,6 +3205,11 @@ export interface SongRecord {
   isrc?: string;
 }
 
+export interface SongResponseMbArtistsItemView {
+  mbid?: string;
+  name?: string;
+}
+
 export interface SongViewBasic {
   /** The unique identifier of the song. */
   id?: string;
@@ -2625,6 +3252,20 @@ export interface SongViewBasic {
   tags?: string[];
   /** The timestamp when the song was created. */
   createdAt?: DateTime;
+  updatedAt?: string;
+  mbId?: string;
+  youtubeLink?: string;
+  spotifyLink?: string;
+  appleMusicLink?: string;
+  tidalLink?: string;
+  lyrics?: string;
+  composer?: string;
+  genre?: string;
+  label?: string;
+  copyrightMessage?: string;
+  key?: string;
+  acoustidFingerprint?: string;
+  xataVersion?: number;
 }
 
 export interface SongViewDetailed {
@@ -2674,6 +3315,26 @@ export interface SongViewDetailed {
   firstScrobble?: SongFirstScrobbleView;
   /** Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty. */
   matches?: SongMatchView[];
+  /** The MusicBrainz recording ID of the track, when available. */
+  mbId?: string;
+  updatedAt?: string;
+  releaseDate?: string;
+  year?: number;
+  artistPicture?: string;
+  genres?: string[];
+  mbArtists?: SongResponseMbArtistsItemView[];
+  youtubeLink?: string;
+  spotifyLink?: string;
+  appleMusicLink?: string;
+  tidalLink?: string;
+  lyrics?: string;
+  composer?: string;
+  genre?: string;
+  label?: string;
+  copyrightMessage?: string;
+  key?: string;
+  acoustidFingerprint?: string;
+  xataVersion?: number;
 }
 
 export interface SpotifyGetCurrentlyPlayingParams {
@@ -2711,7 +3372,11 @@ export interface StarInput {
 }
 
 export interface StarOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
 }
 
 export interface StartPlaylistParams {
@@ -2724,7 +3389,13 @@ export interface StartPlaylistParams {
 }
 
 export interface StartScanOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved. */
+  scanStatus?: unknown;
 }
 
 export interface StartScanParams {
@@ -2910,7 +3581,11 @@ export interface UnstarInput {
 }
 
 export interface UnstarOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
 }
 
 export interface UpdateApikeyInput {
@@ -2928,7 +3603,11 @@ export interface UpdateNowPlayingInput {
 }
 
 export interface UpdateNowPlayingOutput {
-
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
 }
 
 export interface UpdateSeenInput {
@@ -2960,10 +3639,10 @@ export interface Endpoints {
   "app.rocksky.album.getAlbum": AlbumViewDetailed;
   "app.rocksky.album.getAlbums": GetAlbumsOutput;
   "app.rocksky.album.getAlbumTracks": GetAlbumTracksOutput;
-  "app.rocksky.apikey.createApikey": unknown;
+  "app.rocksky.apikey.createApikey": ApiKeyView;
   "app.rocksky.apikey.getApikeys": GetApikeysOutput;
-  "app.rocksky.apikey.removeApikey": unknown;
-  "app.rocksky.apikey.updateApikey": unknown;
+  "app.rocksky.apikey.removeApikey": ApiKeyView;
+  "app.rocksky.apikey.updateApikey": ApiKeyView;
   "app.rocksky.artist.getArtist": ArtistViewDetailed;
   "app.rocksky.artist.getArtistAlbums": GetArtistAlbumsOutput;
   "app.rocksky.artist.getArtistListeners": GetArtistListenersOutput;
@@ -2977,7 +3656,7 @@ export interface Endpoints {
   "app.rocksky.charts.getTopTracks": GetTopTracksOutput;
   "app.rocksky.dropbox.downloadFile": void;
   "app.rocksky.dropbox.getFiles": DropboxFileListView;
-  "app.rocksky.dropbox.getMetadata": DropboxFileView;
+  "app.rocksky.dropbox.getMetadata": GetMetadataOutput;
   "app.rocksky.dropbox.getTemporaryLink": DropboxTemporaryLinkView;
   "app.rocksky.equalizer.deletePreset": void;
   "app.rocksky.equalizer.listPresets": ListPresetsOutput;

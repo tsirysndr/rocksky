@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.apikey.updateApikey";
 
 /// The request body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Input {
     /// A new description for the API key.
@@ -26,7 +26,7 @@ pub struct Input {
 }
 
 /// The response body.
-pub type Output = serde_json::Value;
+pub type Output = super::super::super::super::app::rocksky::apikey::defs::ApiKeyView;
 
 /// This method, implemented.
 ///

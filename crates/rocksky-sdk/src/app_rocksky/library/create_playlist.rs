@@ -34,6 +34,22 @@ pub struct CreatePlaylist<S: BosStr = DefaultStr> {
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct CreatePlaylistOutput<S: BosStr = DefaultStr> {
+    ///Non-fatal AT Protocol playlist mirror error, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub atproto_error: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_subsonic: Option<bool>,
+    ///Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub playlist: Option<Data<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_version: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

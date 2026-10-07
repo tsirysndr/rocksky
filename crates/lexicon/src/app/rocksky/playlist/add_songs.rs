@@ -14,7 +14,7 @@ pub const NSID: &str = "app.rocksky.playlist.addSongs";
 
 /// Add songs to a playlist. Publishes one app.rocksky.playlist.song record
 /// per song to the caller's repo; only the playlist owner may do so.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// AT-URIs of the app.rocksky.song records to add
@@ -24,7 +24,7 @@ pub struct Parameters {
 }
 
 /// The response body.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     /// AT-URIs of the created app.rocksky.playlist.song records

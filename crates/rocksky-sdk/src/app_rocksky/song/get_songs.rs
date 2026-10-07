@@ -49,7 +49,7 @@ pub struct GetSongs<S: BosStr = DefaultStr> {
 )]
 pub struct GetSongsOutput<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub songs: Option<Vec<SongViewBasic<S>>>,
+    pub tracks: Option<Vec<SongViewBasic<S>>>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }

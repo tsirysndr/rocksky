@@ -110,6 +110,8 @@ pub struct PlaylistViewBasic<S: BosStr = DefaultStr> {
     ///The URL of the avatar image of the curator.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub curator_avatar_url: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<S>,
     ///The DID of the curator of the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub curator_did: Option<AtIdentifier<S>>,
@@ -134,6 +136,8 @@ pub struct PlaylistViewBasic<S: BosStr = DefaultStr> {
     ///The number of tracks in the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
     ///The URI of the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<AtUri<S>>,
@@ -158,6 +162,8 @@ pub struct PlaylistViewDetailed<S: BosStr = DefaultStr> {
     ///The URL of the avatar image of the curator.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub curator_avatar_url: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curator_d_id: Option<S>,
     ///The DID of the curator of the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub curator_did: Option<AtIdentifier<S>>,
@@ -176,9 +182,13 @@ pub struct PlaylistViewDetailed<S: BosStr = DefaultStr> {
     ///The title of the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_count: Option<i64>,
     ///A list of tracks in the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tracks: Option<Vec<SongViewBasic<S>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
     ///The URI of the playlist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<AtUri<S>>,
@@ -789,6 +799,10 @@ fn lexicon_doc_app_rocksky_playlist_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("curatorDId"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("curatorDid"),
                             LexObjectProperty::String(LexString {
                                 description: Some(
@@ -873,6 +887,10 @@ fn lexicon_doc_app_rocksky_playlist_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("uri"),
                             LexObjectProperty::String(LexString {
                                 description: Some(
@@ -923,6 +941,12 @@ fn lexicon_doc_app_rocksky_playlist_defs() -> LexiconDoc<'static> {
                                     "The URL of the avatar image of the curator.",
                                 )),
                                 format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("curatorDId"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -981,6 +1005,12 @@ fn lexicon_doc_app_rocksky_playlist_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("trackCount"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("tracks"),
                             LexObjectProperty::Array(LexArray {
                                 description: Some(CowStr::new_static(
@@ -992,6 +1022,12 @@ fn lexicon_doc_app_rocksky_playlist_defs() -> LexiconDoc<'static> {
                                     ),
                                     ..Default::default()
                                 }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );

@@ -28,7 +28,7 @@ pub enum ProfileLabels {
 /// A declaration of a Bluesky account profile.
 ///
 /// Record key: `literal:self`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Profile {
     /// Small image to be displayed next to posts from account. AKA, 'profile

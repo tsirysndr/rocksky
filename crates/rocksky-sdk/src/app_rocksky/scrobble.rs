@@ -171,6 +171,8 @@ pub struct ScrobbleViewBasic<S: BosStr = DefaultStr> {
     ///The URI of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<S>,
     ///The artist of the song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artist: Option<S>,
@@ -180,12 +182,26 @@ pub struct ScrobbleViewBasic<S: BosStr = DefaultStr> {
     ///The avatar URL of the user who created the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub composer: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover: Option<S>,
     ///The timestamp when the scrobble was created.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub date: Option<S>,
     ///The DID of the user who created the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub did: Option<AtIdentifier<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genre: Option<S>,
     ///The handle of the user who created the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub handle: Option<S>,
@@ -193,24 +209,52 @@ pub struct ScrobbleViewBasic<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub liked: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub likes_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<S>,
     ///The SHA256 hash of the scrobble data.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<S>,
     ///The title of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
     ///The unique identifier of the track this scrobble is of.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
     ///The URI of the track (song) this scrobble is of.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_uri: Option<AtUri<S>>,
     ///The URI of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_avatar: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_display_name: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -221,12 +265,18 @@ pub struct ScrobbleViewBasic<S: BosStr = DefaultStr> {
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct ScrobbleViewDetailed<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub acoustid_fingerprint: Option<S>,
     ///The album of the song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_artist: Option<S>,
     ///The URI of the album.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<S>,
     ///The artist of the song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artist: Option<S>,
@@ -235,18 +285,37 @@ pub struct ScrobbleViewDetailed<S: BosStr = DefaultStr> {
     pub artist_uri: Option<AtUri<S>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artists: Option<Vec<ArtistViewBasic<S>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub composer: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copyright_message: Option<S>,
     ///The album art URL of the song.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cover: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
     ///The timestamp when the scrobble was created.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
     ///The first scrobble of this song on Rocksky.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub first_scrobble: Option<scrobble::FirstScrobbleView<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genre: Option<S>,
     ///The unique identifier of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
+    ///The International Standard Recording Code (ISRC) of the track, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub liked: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -254,24 +323,45 @@ pub struct ScrobbleViewDetailed<S: BosStr = DefaultStr> {
     ///The number of listeners
     #[serde(skip_serializing_if = "Option::is_none")]
     pub listeners: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<S>,
+    ///The MusicBrainz recording ID of the track, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<S>,
     ///The number of scrobbles for this song
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scrobbles: Option<i64>,
     ///The SHA256 hash of the scrobble data.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<S>,
     ///The title of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
     ///The URI of the track (song) this scrobble is of.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_uri: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
     ///The URI of the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<UriValue<S>>,
     ///The handle of the user who created the scrobble.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -1619,6 +1709,12 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("appleMusicLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("artist"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The artist of the song.")),
@@ -1644,6 +1740,24 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("composer"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("copyrightMessage"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("cover"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("createdAt"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
@@ -1654,12 +1768,36 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("date"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("did"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
                                     "The DID of the user who created the scrobble.",
                                 )),
                                 format: Some(LexStringFormat::AtIdentifier),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("discNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("duration"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("genre"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1682,6 +1820,24 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("isrc"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("key"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("label"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("liked"),
                             LexObjectProperty::Boolean(LexBoolean {
                                 ..Default::default()
@@ -1694,11 +1850,44 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("mbId"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mbid"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("sha256"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
                                     "The SHA256 hash of the scrobble data.",
                                 )),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("spotifyLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tags"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tidalLink"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1719,6 +1908,12 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("trackNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("trackUri"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
@@ -1736,6 +1931,36 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                                 ..Default::default()
                             }),
                         );
+                        map.insert(
+                            SmolStr::new_static("user"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("userAvatar"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("userDisplayName"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("youtubeLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
                         map
                     },
                     ..Default::default()
@@ -1748,31 +1973,51 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                         #[allow(unused_mut)]
                         let mut map = BTreeMap::new();
                         map.insert(
+                            SmolStr::new_static("acoustidFingerprint"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("album"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The album of the song.")),
+                                description: Some(
+                                    CowStr::new_static("The album of the song."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("albumArtist"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("albumUri"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The URI of the album.")),
+                                description: Some(
+                                    CowStr::new_static("The URI of the album."),
+                                ),
                                 format: Some(LexStringFormat::AtUri),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("appleMusicLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("artist"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The artist of the song.")),
+                                description: Some(
+                                    CowStr::new_static("The artist of the song."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("artistUri"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The URI of the artist.")),
+                                description: Some(
+                                    CowStr::new_static("The URI of the artist."),
+                                ),
                                 format: Some(LexStringFormat::AtUri),
                                 ..Default::default()
                             }),
@@ -1790,22 +2035,48 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("composer"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("copyrightMessage"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("cover"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The album art URL of the song.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The album art URL of the song."),
+                                ),
                                 format: Some(LexStringFormat::Uri),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("date"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The timestamp when the scrobble was created.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The timestamp when the scrobble was created.",
+                                    ),
+                                ),
                                 format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("discNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("duration"),
+                            LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
                         );
@@ -1819,13 +2090,36 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("genre"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("id"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The unique identifier of the scrobble.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The unique identifier of the scrobble."),
+                                ),
                                 ..Default::default()
                             }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("isrc"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The International Standard Recording Code (ISRC) of the track, when available.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("key"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("label"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("liked"),
@@ -1846,6 +2140,25 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("lyrics"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mbId"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The MusicBrainz recording ID of the track, when available.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mbid"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("scrobbles"),
                             LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
@@ -1854,32 +2167,65 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("sha256"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The SHA256 hash of the scrobble data.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The SHA256 hash of the scrobble data."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("spotifyLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tags"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tidalLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("title"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The title of the scrobble.")),
+                                description: Some(
+                                    CowStr::new_static("The title of the scrobble."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackNumber"),
+                            LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("trackUri"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The URI of the track (song) this scrobble is of.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The URI of the track (song) this scrobble is of.",
+                                    ),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
                             SmolStr::new_static("uri"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The URI of the scrobble.")),
+                                description: Some(
+                                    CowStr::new_static("The URI of the scrobble."),
+                                ),
                                 format: Some(LexStringFormat::Uri),
                                 ..Default::default()
                             }),
@@ -1887,11 +2233,23 @@ fn lexicon_doc_app_rocksky_scrobble_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("user"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The handle of the user who created the scrobble.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The handle of the user who created the scrobble.",
+                                    ),
+                                ),
                                 ..Default::default()
                             }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("youtubeLink"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map
                     },

@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.playlist";
 /// A declaration of a playlist.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Playlist {
     /// The Apple Music link of the playlist.

@@ -109,6 +109,20 @@ pub struct ArtistMbid<S: BosStr = DefaultStr> {
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct ArtistViewBasic<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub biography: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub born: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub died: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<S>>,
     ///The unique identifier of the artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
@@ -125,13 +139,23 @@ pub struct ArtistViewBasic<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<S>,
     ///The number of unique listeners who have played the artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
     ///The URI of the artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -142,6 +166,20 @@ pub struct ArtistViewBasic<S: BosStr = DefaultStr> {
     bound(deserialize = "S: Deserialize<'de> + BosStr")
 )]
 pub struct ArtistViewDetailed<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_music_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub biography: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub born: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub born_in: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub died: Option<Datetime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<S>>,
     ///The unique identifier of the artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
@@ -158,13 +196,23 @@ pub struct ArtistViewDetailed<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tidal_link: Option<S>,
     ///The number of unique listeners who have played the artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<S>,
     ///The URI of the artist.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<AtUri<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xata_version: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube_link: Option<S>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -984,6 +1032,53 @@ fn lexicon_doc_app_rocksky_artist_defs() -> LexiconDoc<'static> {
                         #[allow(unused_mut)]
                         let mut map = BTreeMap::new();
                         map.insert(
+                            SmolStr::new_static("appleMusicLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("biography"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("born"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("bornIn"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("died"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("genres"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("id"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
@@ -1023,11 +1118,23 @@ fn lexicon_doc_app_rocksky_artist_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("spotifyLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("tags"),
                             LexObjectProperty::Array(LexArray {
                                 items: LexArrayItem::String(LexString {
                                     ..Default::default()
                                 }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tidalLink"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1039,10 +1146,28 @@ fn lexicon_doc_app_rocksky_artist_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("uri"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The URI of the artist.")),
                                 format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("youtubeLink"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1058,6 +1183,53 @@ fn lexicon_doc_app_rocksky_artist_defs() -> LexiconDoc<'static> {
                         #[allow(unused_mut)]
                         let mut map = BTreeMap::new();
                         map.insert(
+                            SmolStr::new_static("appleMusicLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("biography"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("born"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("bornIn"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("createdAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("died"),
+                            LexObjectProperty::String(LexString {
+                                format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("genres"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::String(LexString {
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("id"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static(
@@ -1097,11 +1269,23 @@ fn lexicon_doc_app_rocksky_artist_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("spotifyLink"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("tags"),
                             LexObjectProperty::Array(LexArray {
                                 items: LexArrayItem::String(LexString {
                                     ..Default::default()
                                 }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("tidalLink"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -1113,10 +1297,28 @@ fn lexicon_doc_app_rocksky_artist_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("updatedAt"),
+                            LexObjectProperty::String(LexString {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("uri"),
                             LexObjectProperty::String(LexString {
                                 description: Some(CowStr::new_static("The URI of the artist.")),
                                 format: Some(LexStringFormat::AtUri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("xataVersion"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("youtubeLink"),
+                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );

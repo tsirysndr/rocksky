@@ -178,6 +178,9 @@ fn view(row: &FeedRow) -> ScrobbleViewBasic {
         // and a `likes_count` would be a second query per row.
         liked: None,
         likes_count: None,
+        // A feed skeleton carries only what the row has; the rest of the
+        // (all-optional) view stays absent.
+        ..Default::default()
     }
 }
 

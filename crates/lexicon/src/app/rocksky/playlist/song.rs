@@ -18,7 +18,7 @@ pub const NSID: &str = "app.rocksky.playlist.song";
 /// without dereferencing the song.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Song {
     /// The date and time the song was added to the playlist. Format:

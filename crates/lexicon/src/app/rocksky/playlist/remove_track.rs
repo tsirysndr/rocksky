@@ -16,7 +16,7 @@ pub const NSID: &str = "app.rocksky.playlist.removeTrack";
 /// record that put it there, which only the repo that added it can do.
 /// Prefer `index`: a song can sit in a playlist more than once, and
 /// `songUri` alone cannot say which copy to drop.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
     /// 0-based position of the entry to remove, in the order getPlaylist

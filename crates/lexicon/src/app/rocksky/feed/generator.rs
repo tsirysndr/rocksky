@@ -16,7 +16,7 @@ pub const NSID: &str = "app.rocksky.feed.generator";
 /// metadata about it. The record can exist in any repository.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Generator {
     #[serde(default, skip_serializing_if = "Option::is_none")]

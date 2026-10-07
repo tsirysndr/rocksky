@@ -15,7 +15,7 @@ pub const NSID: &str = "app.rocksky.artist";
 /// A declaration of an artist.
 ///
 /// Record key: `tid`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Artist {
     /// The biography of the artist.
