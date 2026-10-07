@@ -1,3 +1,14 @@
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAtomValue } from "jotai";
+import { authTokenAtom } from "../../atoms/auth";
+import type { RootStackParamList } from "../../Navigation";
+import { storage } from "../../storage";
+import { enqueueUploads } from "../../lib/uploadQueue";
+import {
+  localUploadDisabledReason,
+  localUploadFiles,
+} from "../../lib/deviceMusicUpload";
 import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -311,6 +322,13 @@ function MetadataEditor({
 }
 
 export default function DeviceLibrary() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const signedIn = !!useAtomValue(authTokenAtom);
+  const [albumActions, setAlbumActions] = useState<{
+    title: string;
+    ids: string[];
+  } | null>(null);
   const library = useQuery({
     queryKey: ["device-library"],
     queryFn: readDeviceLibrary,
@@ -374,6 +392,38 @@ export default function DeviceLibrary() {
     } finally {
       setWorking(false);
     }
+  };
+  const uploadIds = albumActions?.ids ?? (actions ? [actions.id] : []);
+  const uploadTracks = tracks.filter((track) => uploadIds.includes(track.id));
+  const uploadReason =
+    uploadTracks.length !== uploadIds.length
+      ? "Some tracks are no longer available."
+      : localUploadDisabledReason(uploadTracks);
+  const uploadLocal = () => {
+    if (!storage.getDid() || !storage.getToken()) {
+      setActions(null);
+      setAlbumActions(null);
+      navigation.navigate("SignIn");
+      return;
+    }
+    void run(async () => {
+      const owner = storage.getDid();
+      const session = storage.getToken();
+      if (!owner || !session) throw new Error("Sign in to upload music.");
+      const fresh = await readDeviceLibrary();
+      const chosen = fresh.tracks.filter((track) =>
+        uploadIds.includes(track.id),
+      );
+      if (chosen.length !== uploadIds.length)
+        throw new Error("Some tracks are no longer available.");
+      const files = localUploadFiles(chosen);
+      if (owner !== storage.getDid() || session !== storage.getToken())
+        throw new Error("Sign in to upload music.");
+      enqueueUploads(files);
+      setActions(null);
+      setAlbumActions(null);
+      navigation.navigate("Upload");
+    });
   };
   const mutate = async (input: Record<string, unknown>) => {
     await localMusicNative.mutate(input);
@@ -571,6 +621,13 @@ export default function DeviceLibrary() {
           <Text numberOfLines={1} style={{ flex: 1 }}>
             {detail.title}
           </Text>
+          {tab === "Albums" && (
+            <Button
+              text="Album options"
+              icon="more-horizontal"
+              onPress={() => setAlbumActions(detail)}
+            />
+          )}
           {detail.playlist && (
             <Button
               text="Edit"
@@ -630,6 +687,9 @@ export default function DeviceLibrary() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.track}
+              onLongPress={
+                tab === "Albums" ? () => setAlbumActions(item) : undefined
+              }
               onPress={() => {
                 setDetail(item);
                 setSearch("");
@@ -643,11 +703,26 @@ export default function DeviceLibrary() {
                   {item.ids.length} tracks
                 </Text>
               </View>
-              <Feather
-                name="chevron-right"
-                color={colors.textMuted}
-                size={20}
-              />
+              {tab === "Albums" ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Album options"
+                  hitSlop={12}
+                  onPress={() => setAlbumActions(item)}
+                >
+                  <Feather
+                    name="more-horizontal"
+                    color={colors.textMuted}
+                    size={22}
+                  />
+                </Pressable>
+              ) : (
+                <Feather
+                  name="chevron-right"
+                  color={colors.textMuted}
+                  size={20}
+                />
+              )}
             </Pressable>
           )}
         />
@@ -749,13 +824,14 @@ export default function DeviceLibrary() {
         </>
       )}
       <Modal
-        visible={!!actions || !!adding || !!naming}
+        visible={!!actions || !!albumActions || !!adding || !!naming}
         transparent
         animationType="slide"
         onRequestClose={() => {
           setActions(null);
           setAdding(null);
           setNaming(null);
+          setAlbumActions(null);
         }}
       >
         <View style={styles.overlay}>
@@ -828,6 +904,22 @@ export default function DeviceLibrary() {
                       setActions(null);
                     }}
                   />
+                </View>
+              )}
+              {(actions || albumActions) && (
+                <View style={{ gap: 10 }}>
+                  {albumActions && (
+                    <Text style={styles.heading}>{albumActions.title}</Text>
+                  )}
+                  <Button
+                    text={albumActions ? "Upload album" : "Upload"}
+                    icon="upload"
+                    disabled={working || (signedIn && !!uploadReason)}
+                    onPress={uploadLocal}
+                  />
+                  {signedIn && uploadReason && (
+                    <Text style={styles.muted}>{uploadReason}</Text>
+                  )}
                 </View>
               )}
               {adding && (
@@ -920,6 +1012,7 @@ export default function DeviceLibrary() {
                   setActions(null);
                   setAdding(null);
                   setNaming(null);
+                  setAlbumActions(null);
                 }}
               />
             </ScrollView>

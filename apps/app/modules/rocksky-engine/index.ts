@@ -7,6 +7,8 @@ type RockskyEngineNativeModule = {
   mutateLocalMusic(json: string): Promise<string>;
   localMusicPath(id: string): Promise<string>;
   fingerprintLocalTrack(id: string): Promise<string>;
+  prepareLocalMusicUpload(id: string): Promise<string>;
+  releaseLocalMusicUpload(uri: string): Promise<void>;
   isAvailable(): boolean;
   command(json: string): string;
 };
@@ -51,6 +53,16 @@ const native =
   requireOptionalNativeModule<RockskyEngineNativeModule>("RockskyEngine");
 
 export const localMusicNative = {
+  async prepareUpload(
+    id: string,
+  ): Promise<{ uri: string; name: string; mimeType: string }> {
+    if (!native)
+      throw new Error("Local music requires an Android native build.");
+    return JSON.parse(await native.prepareLocalMusicUpload(id));
+  },
+  async releaseUpload(uri: string) {
+    if (native) await native.releaseLocalMusicUpload(uri);
+  },
   async fingerprint(id: string): Promise<string> {
     if (!native)
       throw new Error("Local music requires an Android native build.");

@@ -3,11 +3,19 @@ import { type PickedAudioFile, uploadTrack } from "../api/uploads";
 import { storage } from "../storage";
 import { queryClient } from "./queryClient";
 import { describeUploadError } from "./uploadError";
+import { localMusicNative } from "../../modules/rocksky-engine";
 export type UploadJob = {
   id: number;
   owner: string;
   file: PickedAudioFile;
-  status: "queued" | "uploading" | "processing" | "done" | "skipped" | "error";
+  status:
+    | "queued"
+    | "preparing"
+    | "uploading"
+    | "processing"
+    | "done"
+    | "skipped"
+    | "error";
   progress: number;
   error?: string;
   missingFields?: string[];
@@ -36,16 +44,34 @@ async function drain() {
         );
       if (!job || !storage.getToken()) break;
       controller = new AbortController();
-      update(job.id, { status: "uploading", progress: 0, error: undefined });
+      const activeController = controller;
+      const session = storage.getToken();
+      let prepared: PickedAudioFile | undefined;
+      update(job.id, {
+        status: job.file.localTrackId ? "preparing" : "uploading",
+        progress: 0,
+        error: undefined,
+      });
       try {
+        if (job.file.localTrackId)
+          prepared = await localMusicNative.prepareUpload(
+            job.file.localTrackId,
+          );
+        if (
+          activeController.signal.aborted ||
+          job.owner !== storage.getDid() ||
+          session !== storage.getToken()
+        )
+          throw new Error("Upload cancelled");
+        update(job.id, { status: "uploading" });
         const result = await uploadTrack(
-          job.file,
+          prepared ?? job.file,
           (progress) =>
             update(job.id, {
               progress,
               status: progress >= 100 ? "processing" : "uploading",
             }),
-          controller.signal,
+          activeController.signal,
         );
         update(job.id, {
           status: "done",
@@ -66,6 +92,10 @@ async function drain() {
           retryable: failure.retryable,
         });
       } finally {
+        if (prepared)
+          await localMusicNative
+            .releaseUpload(prepared.uri)
+            .catch(() => undefined);
         controller = null;
       }
     }

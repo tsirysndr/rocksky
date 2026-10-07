@@ -5,6 +5,89 @@ use lofty::tag::{Accessor, ItemKey, ItemValue};
 use serde_json::{json, Value};
 use std::path::Path;
 
+/// Called only for a private upload copy, never the user's original file.
+pub fn write_upload(path: &Path, metadata: &Value, art_path: Option<&Path>) -> Result<(), String> {
+    use lofty::config::WriteOptions;
+    use lofty::tag::Tag;
+    let text = |key: &str| metadata[key].as_str().unwrap_or("").trim();
+    for (field, limit) in [("title", 512), ("artist", 256), ("album", 256)] {
+        let value = text(field);
+        if value.is_empty() || value.chars().count() > limit {
+            return Err(format!("Complete the {field} metadata before uploading"));
+        }
+    }
+    let mut file = lofty::probe::Probe::open(path)
+        .and_then(|p| p.read())
+        .map_err(|e| e.to_string())?;
+    if file.primary_tag().is_none() {
+        file.insert_tag(Tag::new(file.primary_tag_type()));
+    }
+    let tag = file
+        .primary_tag_mut()
+        .ok_or("This audio format cannot be tagged for upload")?;
+    tag.set_title(text("title").to_owned());
+    tag.set_artist(text("artist").to_owned());
+    tag.set_album(text("album").to_owned());
+    let album_artist = if text("albumArtist").is_empty() {
+        text("artist")
+    } else {
+        text("albumArtist")
+    };
+    tag.insert_text(ItemKey::AlbumArtist, album_artist.to_owned());
+    if metadata.get("genre").is_some() {
+        tag.remove_genre();
+        if !text("genre").is_empty() {
+            tag.set_genre(text("genre").to_owned());
+        }
+    }
+    for field in ["year", "trackNumber", "discNumber"] {
+        if metadata.get(field).is_none() {
+            continue;
+        }
+        let value = metadata[field]
+            .as_u64()
+            .and_then(|n| u32::try_from(n).ok())
+            .filter(|n| *n > 0);
+        match field {
+            "year" => {
+                tag.remove_year();
+                if let Some(n) = value {
+                    tag.set_year(n);
+                }
+            }
+            "trackNumber" => {
+                tag.remove_track();
+                if let Some(n) = value {
+                    tag.set_track(n);
+                }
+            }
+            _ => {
+                tag.remove_disk();
+                if let Some(n) = value {
+                    tag.set_disk(n);
+                }
+            }
+        }
+    }
+    if !text("mbId").is_empty() {
+        tag.insert_text(ItemKey::MusicBrainzRecordingId, text("mbId").to_owned());
+    }
+    if metadata.get("albumArt").is_some() {
+        while !tag.pictures().is_empty() {
+            tag.remove_picture(0);
+        }
+    }
+    if let Some(art_path) = art_path {
+        let mut input = std::fs::File::open(art_path).map_err(|e| e.to_string())?;
+        let mut picture =
+            lofty::picture::Picture::from_reader(&mut input).map_err(|e| e.to_string())?;
+        picture.set_pic_type(PictureType::CoverFront);
+        tag.push_picture(picture);
+    }
+    file.save_to_path(path, WriteOptions::default())
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -13,6 +96,38 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../../crates/audio/tests/fixtures")
             .join(name)
+    }
+
+    #[test]
+    fn upload_copy_contains_corrected_tags_and_art_without_changing_original() {
+        let dir = tempfile::tempdir().unwrap();
+        let art = dir.path().join("cover.png");
+        read(&fixture("tagged.mp3"), &art).unwrap();
+        for name in ["partial.mp3", "tagged.flac", "untagged.mp3"] {
+            let original = std::fs::read(fixture(name)).unwrap();
+            let copy = dir.path().join(name);
+            std::fs::copy(fixture(name), &copy).unwrap();
+            write_upload(&copy, &json!({"title":"Correct title","artist":"Correct artist","album":"Correct album","albumArtist":"Album artist","genre":"Pop","year":2024,"trackNumber":7,"discNumber":2,"albumArt":"cover"}), Some(&art)).unwrap();
+            let result = read(&copy, &dir.path().join(format!("{name}.art"))).unwrap();
+            assert_eq!(result["title"], "Correct title");
+            assert_eq!(result["artist"], "Correct artist");
+            assert_eq!(result["album"], "Correct album");
+            assert_eq!(result["year"], 2024);
+            assert_eq!(result["trackNumber"], 7);
+            assert_eq!(result["discNumber"], 2);
+            assert!(result["albumArt"].as_str().is_some());
+            assert_eq!(std::fs::read(fixture(name)).unwrap(), original);
+        }
+    }
+
+    #[test]
+    fn upload_rejects_missing_core_metadata() {
+        assert!(write_upload(
+            &fixture("partial.mp3"),
+            &json!({"title":"Only title"}),
+            None
+        )
+        .is_err());
     }
 
     #[test]

@@ -100,6 +100,12 @@ class RockskyEngineModule : Module() {
       LocalMusicStore(requireNotNull(appContext.reactContext).applicationContext).use { it.mutate(org.json.JSONObject(json)).toString() }
     }
     AsyncFunction("localMusicPath") { id: String -> localMusicPath(id) }
+    AsyncFunction("prepareLocalMusicUpload") { id: String ->
+      LocalMusicUpload.prepare(requireNotNull(appContext.reactContext).applicationContext, id)
+    }
+    AsyncFunction("releaseLocalMusicUpload") { uri: String ->
+      LocalMusicUpload.release(requireNotNull(appContext.reactContext).applicationContext, uri)
+    }
     AsyncFunction("fingerprintLocalTrack") { id: String ->
       check(identifying.compareAndSet(false, true)) { "Already identifying a track" }
       try {

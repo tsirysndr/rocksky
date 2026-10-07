@@ -29,7 +29,7 @@ export default function Upload() {
   const allJobs = useAtomValue(uploadJobsAtom);
   const jobs = allJobs.filter((job) => job.owner === storage.getDid());
   const ongoing = jobs.filter((job) =>
-    ["queued", "uploading", "processing"].includes(job.status),
+    ["queued", "preparing", "uploading", "processing"].includes(job.status),
   ).length;
   const [picking, setPicking] = useState(false);
   const pick = async () => {
@@ -164,15 +164,17 @@ export default function Upload() {
                   <Text style={styles.description}>
                     {item.status === "queued"
                       ? "Queued"
-                      : item.status === "uploading"
-                        ? `Uploading · ${item.progress}%`
-                        : item.status === "processing"
-                          ? "Processing metadata…"
-                          : item.status === "done"
-                            ? (item.title ?? "Uploaded")
-                            : item.status === "skipped"
-                              ? `Skipped · ${item.error}`
-                              : `Upload failed · ${item.error ?? "Unknown error"}`}
+                      : item.status === "preparing"
+                        ? "Preparing audio and metadata…"
+                        : item.status === "uploading"
+                          ? `Uploading · ${item.progress}%`
+                          : item.status === "processing"
+                            ? "Processing metadata…"
+                            : item.status === "done"
+                              ? (item.title ?? "Uploaded")
+                              : item.status === "skipped"
+                                ? `Skipped · ${item.error}`
+                                : `Upload failed · ${item.error ?? "Unknown error"}`}
                   </Text>
                   {!!item.missingFields?.length && (
                     <Text style={styles.description}>

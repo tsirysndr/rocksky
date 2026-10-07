@@ -80,6 +80,8 @@ export const getUploads = async (
 // through navidrome's Subsonic API instead — see api/navidrome.ts.
 
 export type PickedAudioFile = {
+  /** Resolve and tag a private copy immediately before sending a device track. */
+  localTrackId?: string;
   uri: string;
   name: string;
   mimeType: string;

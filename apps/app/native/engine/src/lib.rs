@@ -16,6 +16,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
+    WriteUploadMetadata {
+        path: String,
+        metadata: serde_json::Value,
+        art_path: Option<String>,
+    },
     Fingerprint {
         path: String,
     },
@@ -316,6 +321,21 @@ pub fn handle(input: &str) -> String {
         Ok(r) => r,
         Err(e) => return err(format!("bad command: {e}")),
     };
+    if let Request::WriteUploadMetadata {
+        path,
+        metadata,
+        art_path,
+    } = &request
+    {
+        return match metadata::write_upload(
+            std::path::Path::new(path),
+            metadata,
+            art_path.as_deref().map(std::path::Path::new),
+        ) {
+            Ok(()) => ok(),
+            Err(e) => err(e),
+        };
+    }
     if let Request::Fingerprint { path } = &request {
         return match fingerprint::read(std::path::Path::new(path)) {
             Ok(value) => serde_json::json!({"ok":true,"fingerprint":value}).to_string(),
@@ -333,7 +353,9 @@ pub fn handle(input: &str) -> String {
         Err(e) => return err(e),
     };
     match request {
-        Request::ReadMetadata { .. } | Request::Fingerprint { .. } => unreachable!(),
+        Request::ReadMetadata { .. }
+        | Request::Fingerprint { .. }
+        | Request::WriteUploadMetadata { .. } => unreachable!(),
         Request::Status => {
             let snap = engine.snapshot();
             serde_json::to_string(&StatusResponse {
