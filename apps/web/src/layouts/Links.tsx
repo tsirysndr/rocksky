@@ -25,55 +25,55 @@ const InternalLink = styled(RouterLink)`
 
 function Links() {
   return (
-    <div className="inline-flex mt-[30px] mb-[20px]">
+    <div className="flex flex-wrap w-full gap-x-[10px] gap-y-2 mt-[30px] mb-[20px]">
       <Link
         href="https://docs.rocksky.app"
         target="_blank"
-        className="mr-[10px] text-[var(--color-primary)]"
+        className="text-[var(--color-primary)]"
       >
         About
       </Link>
       <Link
         href="https://docs.rocksky.app/faq"
         target="_blank"
-        className="mr-[10px] text-[var(--color-primary)]"
+        className="text-[var(--color-primary)]"
       >
         FAQ
       </Link>
       <Link
         href="https://doc.rocksky.app/"
         target="_blank"
-        className="mr-[10px] text-[var(--color-primary)]"
+        className="text-[var(--color-primary)]"
       >
         Docs
       </Link>
       <Link
         href="https://docs.rocksky.app/cli/overview"
         target="_blank"
-        className="mr-[10px] text-[var(--color-primary)]"
+        className="text-[var(--color-primary)]"
       >
         CLI
       </Link>
       <Link
         href="https://tangled.org/@rocksky.app/rocksky"
         target="_blank"
-        className="mr-[10px] text-[var(--color-primary)]"
+        className="text-[var(--color-primary)]"
       >
         Source
       </Link>
       <Link
         href="https://discord.gg/EVcBy2fVa3"
         target="_blank"
-        className="mr-[10px] text-[var(--color-primary)]"
+        className="text-[var(--color-primary)]"
       >
         Discord
       </Link>
-      <InternalLink to="/tos" className="mr-[10px] text-[var(--color-primary)]">
+      <InternalLink to="/tos" className="text-[var(--color-primary)]">
         Terms
       </InternalLink>
       <InternalLink
         to="/privacy"
-        className="mr-[10px] text-[var(--color-primary)]"
+        className="basis-full text-[var(--color-primary)]"
       >
         Privacy
       </InternalLink>
