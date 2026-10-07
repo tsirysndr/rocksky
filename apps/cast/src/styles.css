@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @font-face {
+  font-family: RockfordSansLight;
+  src: url("/fonts/RockfordSans-Light.otf") format("opentype");
+  font-display: swap;
+}
+@font-face {
   font-family: Rockford;
   src: url("/fonts/RockfordSans-Regular.otf") format("opentype");
   font-weight: 400;
@@ -88,10 +93,14 @@ button:disabled {
   flex-shrink: 0;
 }
 .brand {
+  /* Match the web navbar and landing-page wordmark exactly. */
+  font-family: RockfordSansLight, sans-serif;
+  font-size: 26px;
   font-weight: 700;
-  font-size: 2.05vw;
-  letter-spacing: -0.07em;
-  gap: 0.65vw;
+  font-synthesis: weight;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: oklch(95.07% 0.028 338.58);
 }
 .cast-badge {
   gap: 0.7vw;
@@ -548,9 +557,6 @@ button:disabled {
   .tv-footer,
   .cast-badge {
     font-size: 1.3vw;
-  }
-  .brand {
-    font-size: 3vw;
   }
   .idle-scene {
     min-height: 80vh;

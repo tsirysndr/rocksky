@@ -152,7 +152,7 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
       <div className="grain" aria-hidden="true" />
       <header className="tv-header flex items-center justify-between">
         <div className="brand flex items-center">
-          <span>rocksky</span>
+          <span>Rocksky</span>
         </div>
         <div className="cast-badge flex items-center">
           <Icon name="cast" />
