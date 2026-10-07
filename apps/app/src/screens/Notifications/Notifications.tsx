@@ -1,3 +1,4 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { type NavigationProp, useNavigation } from "@react-navigation/native";
 import { useAtomValue } from "jotai";
@@ -6,7 +7,6 @@ import {
   FlatList,
   Image,
   RefreshControl,
-  SafeAreaView,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -355,7 +355,10 @@ export default function Notifications() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      edges={["top", "left", "right"]}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
         <Text style={{ fontSize: 24, fontWeight: "800", color: colors.text }}>
           Notifications

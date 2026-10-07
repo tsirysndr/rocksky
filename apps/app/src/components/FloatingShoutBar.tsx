@@ -1,3 +1,4 @@
+import Feather from "@expo/vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TouchableOpacity, View } from "react-native";
@@ -55,7 +56,7 @@ export default function FloatingShoutBar({
           elevation: 8,
         }}
       >
-        <Text style={{ fontSize: 16 }}>💬</Text>
+        <Feather name="message-circle" size={20} color={colors.textMuted} />
         <Text style={{ color: colors.textMuted, fontSize: 14, flex: 1 }}>
           Add a shout...
         </Text>
