@@ -1,3 +1,16 @@
+import { Alert } from "react-native";
+import type { DeviceTrack } from "@/src/lib/deviceMusicModel";
+import {
+  localUploadDisabledReason,
+  localUploadFiles,
+} from "@/src/lib/deviceMusicUpload";
+import { enqueueUploads } from "@/src/lib/uploadQueue";
+import { storage } from "@/src/storage";
+import { useQuery } from "@tanstack/react-query";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
+import { readDeviceLibrary, deviceQueueTrack } from "@/src/lib/deviceMusic";
+import { searchDeviceTracks } from "@/src/lib/deviceMusicSearch";
 import Feather from "@expo/vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -27,6 +40,7 @@ import ThemedSwitch from "@/src/components/ThemedSwitch";
 import { useSearchQuery } from "@/src/hooks/useSearch";
 import { useUploadsInfiniteQuery } from "@/src/hooks/useUploads";
 import {
+  playQueue,
   playUploadedTracks,
   queueTracks,
   uploadToQueueTrack,
@@ -161,14 +175,16 @@ export default function Search() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const token = useAtomValue(authTokenAtom);
   const [libraryOnly, setLibraryOnly] = useState(false);
-  const library = libraryOnly && !!token;
+  const library = libraryOnly;
+  const [localMenuTrack, setLocalMenuTrack] = useState<DeviceTrack | null>(
+    null,
+  );
   const [menuTrack, setMenuTrack] = useState<UploadedTrack | null>(null);
   const [playlistTrack, setPlaylistTrack] = useState<UploadedTrack | null>(
     null,
   );
   useEffect(() => {
     if (!token) {
-      setLibraryOnly(false);
       setMenuTrack(null);
       setPlaylistTrack(null);
     }
@@ -188,10 +204,50 @@ export default function Search() {
   const { data, isLoading } = useSearchQuery(debouncedQuery, !library);
   const libraryQuery = useUploadsInfiniteQuery(
     debouncedQuery,
-    library && !!debouncedQuery.trim(),
+    library && !!token && !!debouncedQuery.trim(),
   );
   const libraryTracks = libraryQuery.data?.pages.flat() ?? [];
   const results: ResultItem[] = data?.hits || [];
+  const deviceLibrary = useQuery({
+    queryKey: ["device-library"],
+    queryFn: readDeviceLibrary,
+    enabled: Platform.OS === "android",
+    refetchInterval: (query) =>
+      ["pending", "scanning"].includes(query.state.data?.scan.state ?? "")
+        ? 1500
+        : false,
+  });
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS === "android") void deviceLibrary.refetch();
+    }, [deviceLibrary.refetch]),
+  );
+  const localTracks = searchDeviceTracks(
+    deviceLibrary.data?.tracks ?? [],
+    debouncedQuery,
+  );
+  const localResults = localTracks.length ? (
+    <View>
+      <Text style={{ color: colors.textMuted, paddingVertical: 12 }}>
+        On this device
+      </Text>
+      {localTracks.map((track, index) => (
+        <SearchResultRow
+          key={track.id}
+          item={{
+            id: track.id,
+            title: track.title || track.filename,
+            artist: [track.artist, track.album].filter(Boolean).join(" · "),
+            albumArt: track.albumArt ?? undefined,
+          }}
+          onPress={() =>
+            void playQueue(localTracks.map(deviceQueueTrack), index)
+          }
+          onMore={() => setLocalMenuTrack(track)}
+        />
+      ))}
+    </View>
+  ) : null;
 
   const handlePressItem = (item: ResultItem) => {
     const table = item._federation?.indexUid ?? "tracks";
@@ -276,7 +332,7 @@ export default function Search() {
             </View>
           </View>
 
-          {!!token && (
+          {(!!token || Platform.OS === "android") && (
             <View
               style={{
                 flexDirection: "row",
@@ -297,6 +353,7 @@ export default function Search() {
           {library && (
             <FlatList
               data={libraryTracks}
+              ListHeaderComponent={localResults}
               keyExtractor={(item) => item.upload.id}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{
@@ -324,7 +381,7 @@ export default function Search() {
                 />
               )}
               ListEmptyComponent={
-                libraryQuery.isLoading ? (
+                localTracks.length ? null : token && libraryQuery.isLoading ? (
                   <ActivityIndicator color={colors.primary} />
                 ) : (
                   <Text
@@ -356,7 +413,7 @@ export default function Search() {
           {!library && (
             <>
               {/* Loading */}
-              {isLoading && (
+              {isLoading && localTracks.length === 0 && (
                 <View style={{ alignItems: "center", paddingVertical: 48 }}>
                   <ActivityIndicator size="large" color={colors.primary} />
                 </View>
@@ -389,34 +446,38 @@ export default function Search() {
               )}
 
               {/* No results */}
-              {!isLoading && debouncedQuery && results.length === 0 && (
-                <View
-                  style={{
-                    alignItems: "center",
-                    paddingVertical: 64,
-                    paddingHorizontal: 32,
-                  }}
-                >
-                  <Feather
-                    name="search"
-                    size={48}
-                    color={colors.textMuted}
-                    style={{ opacity: 0.2, marginBottom: 12 }}
-                  />
-                  <Text
+              {!isLoading &&
+                debouncedQuery &&
+                results.length === 0 &&
+                localTracks.length === 0 && (
+                  <View
                     style={{
-                      fontSize: 13,
-                      color: colors.textMuted,
-                      textAlign: "center",
+                      alignItems: "center",
+                      paddingVertical: 64,
+                      paddingHorizontal: 32,
                     }}
                   >
-                    No results for "{debouncedQuery}"
-                  </Text>
-                </View>
-              )}
+                    <Feather
+                      name="search"
+                      size={48}
+                      color={colors.textMuted}
+                      style={{ opacity: 0.2, marginBottom: 12 }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: colors.textMuted,
+                        textAlign: "center",
+                      }}
+                    >
+                      No results for "{debouncedQuery}"
+                    </Text>
+                  </View>
+                )}
 
               {/* Results */}
-              {!isLoading && results.length > 0 && (
+              {(localTracks.length > 0 ||
+                (!isLoading && results.length > 0)) && (
                 <ScrollView
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
@@ -425,19 +486,104 @@ export default function Search() {
                     paddingBottom: 20,
                   }}
                 >
-                  {results.map((item, i) => (
-                    <SearchResultRow
-                      key={item.uri || item.id || i}
-                      item={item}
-                      onPress={() => handlePressItem(item)}
-                    />
-                  ))}
+                  {localResults}
+                  {isLoading && <ActivityIndicator color={colors.primary} />}
+                  {!isLoading &&
+                    results.map((item, i) => (
+                      <SearchResultRow
+                        key={item.uri || item.id || i}
+                        item={item}
+                        onPress={() => handlePressItem(item)}
+                      />
+                    ))}
                 </ScrollView>
               )}
             </>
           )}
         </View>
       </KeyboardAvoidingView>
+      {localMenuTrack && (
+        <PickerSheet
+          title={localMenuTrack.title || localMenuTrack.filename}
+          artwork={localMenuTrack.albumArt || null}
+          subtitle={localMenuTrack.artist || ""}
+          onClose={() => setLocalMenuTrack(null)}
+        >
+          <TouchableOpacity
+            style={{ padding: 16 }}
+            onPress={() => {
+              void queueTracks([deviceQueueTrack(localMenuTrack)], "next");
+              setLocalMenuTrack(null);
+            }}
+          >
+            <Text>Play next</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ padding: 16 }}
+            onPress={() => {
+              void queueTracks([deviceQueueTrack(localMenuTrack)], "last");
+              setLocalMenuTrack(null);
+            }}
+          >
+            <Text>Add to queue</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled:
+                !!token && !!localUploadDisabledReason([localMenuTrack]),
+            }}
+            disabled={!!token && !!localUploadDisabledReason([localMenuTrack])}
+            style={{
+              padding: 16,
+              opacity:
+                token && localUploadDisabledReason([localMenuTrack]) ? 0.45 : 1,
+              flexDirection: "row",
+              gap: 10,
+            }}
+            onPress={() => {
+              const track = localMenuTrack;
+              setLocalMenuTrack(null);
+              if (!storage.getToken()) {
+                navigation.navigate("SignIn");
+                return;
+              }
+              void (async () => {
+                try {
+                  const owner = storage.getDid();
+                  const session = storage.getToken();
+                  const fresh = await readDeviceLibrary();
+                  const current = fresh.tracks.find(
+                    (item) => item.id === track.id,
+                  );
+                  if (!current)
+                    throw new Error("Track is no longer available.");
+                  if (
+                    owner !== storage.getDid() ||
+                    session !== storage.getToken()
+                  )
+                    return;
+                  enqueueUploads(localUploadFiles([current]));
+                  navigation.navigate("Upload");
+                } catch (error) {
+                  Alert.alert(
+                    "Upload",
+                    error instanceof Error ? error.message : String(error),
+                  );
+                }
+              })();
+            }}
+          >
+            <Feather name="upload" size={18} color={colors.text} />
+            <Text>Upload</Text>
+          </TouchableOpacity>
+          {!!token && !!localUploadDisabledReason([localMenuTrack]) && (
+            <Text style={{ color: colors.textMuted, paddingHorizontal: 16 }}>
+              {localUploadDisabledReason([localMenuTrack])}
+            </Text>
+          )}
+        </PickerSheet>
+      )}
       {menuTrack && token && (
         <PickerSheet
           title={menuTrack.track.title}

@@ -68,6 +68,8 @@ On a device, also check permission denial/revocation, a rescan after changing
 files, locked-screen playback, mixed queues, editing a playing track, and
 AcoustID matches with real music.
 
-## Upload
+## Upload and search
 
 Local track and album context menus offer Upload. Every selected album track must have complete metadata; unsupported upload formats are disabled. The queue prepares one private file copy at a time, embeds the current SQLite metadata and cover, uploads it, then removes the copy. Original audio files stay unchanged. For signed-out users, Upload opens Sign In. Once signed in, metadata validation controls whether Upload is enabled.
+
+Search includes on-device tracks by title, artist, album, genre and filename, including when signed out. Tap a local result to play it.
