@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "../../components/Text";
 import { colors } from "../../theme";
@@ -20,14 +20,7 @@ export default function Library() {
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       {Platform.OS === "android" && (
-        <View
-          style={{
-            flexDirection: "row",
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            gap: 8,
-          }}
-        >
+        <View style={styles.switcher}>
           {[
             ["uploaded", "Uploaded music"],
             ["device", "Local music"],
@@ -40,16 +33,17 @@ export default function Library() {
                 setSource(value);
                 void AsyncStorage.setItem("library-source", value);
               }}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                padding: 10,
-                borderRadius: 12,
-                backgroundColor:
-                  source === value ? colors.primary : colors.surface2,
-              }}
+              style={[styles.segment, source === value && styles.activeSegment]}
             >
-              <Text>{label}</Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.segmentLabel,
+                  source === value && styles.activeLabel,
+                ]}
+              >
+                {label}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -58,3 +52,35 @@ export default function Library() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  switcher: {
+    flexDirection: "row",
+    flexShrink: 0,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    padding: 4,
+    borderRadius: 28,
+    backgroundColor: colors.surface2,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeSegment: {
+    backgroundColor: colors.primary,
+  },
+  segmentLabel: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  activeLabel: { color: colors.text },
+});
