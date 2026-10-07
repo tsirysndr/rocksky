@@ -4,6 +4,44 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.17.0] - 2026-10-07
+
+Regenerated from the updated `app.rocksky.*` lexicons.
+
+### Added
+
+- **Catalogue enrichment fields across the generated views.** `scrobbleViewBasic`
+  grew from 18 to 40 properties and `songViewBasic` from 19 to 35 — streaming
+  links (`spotifyLink`, `youtubeLink`, `appleMusicLink`, `tidalLink`),
+  credits and tagging (`composer`, `label`, `genre`, `copyrightMessage`,
+  `isrc`, `mbId`, `key`) and track position (`trackNumber`, `discNumber`,
+  `duration`). `albumViewBasic` and `artistViewBasic` gained the same links
+  plus `discogsReleaseId` and artist biography (`biography`, `born`,
+  `bornIn`, `died`).
+- **Discogs release views** — `discogsView` and its `DiscogsArtist`,
+  `DiscogsLabel`, `DiscogsTrack`, `DiscogsCredit`, `DiscogsIdentifier` and
+  `DiscogsMaster` members.
+- **Typed search hits.** `searchResultsView.hits` is now `FeedSearchHit[]`
+  rather than opaque JSON. Which shape a hit is comes from
+  `_federation.indexUid`, not a `type` field — the def is the flattened union
+  of the song / album / artist / playlist / actor documents.
+- **Profile integration views** — `spotifyUser`, `spotifyConnected`,
+  `googledrive` and `dropbox` on `profileViewDetailed`.
+- **Notification subjects** — `notificationView.subject` carries the song's
+  `uri`, `title`, `artist` and `albumArt`, enriched server-side.
+
+### Removed
+
+- **`profileViewDetailed.spotifyToken`.** `app.rocksky.actor.getProfile` no
+  longer returns it; `spotifyConnected` already carries the only part of it
+  callers needed, and the rest was internal storage plumbing.
+
+### Note
+
+- `recommendationScore` and `bpm` stay off the generated types: production
+  returns them fractional and Lexicon has no float primitive, so they remain
+  documented open extensions. They are still on the wire.
+
 ## [0.14.1] - 2026-08-24
 
 Playlist writes, and the typed shapes the library screens needed.

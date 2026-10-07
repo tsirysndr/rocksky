@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.0
+
+- Regenerated the native core against the updated `app.rocksky.*` lexicons.
+  Scrobble and song payloads now carry the catalogue enrichment fields
+  (streaming links, `composer`, `label`, `genre`, `copyright_message`, `isrc`,
+  `mb_id`, `key`, `track_number`, `disc_number`, `duration`, `bpm`), albums
+  carry `discogs_release_id`, and artists carry `biography` / `born` /
+  `born_in` / `died`.
+- Profiles gained `spotify_user`, `spotify_connected`, `googledrive` and
+  `dropbox`; notifications gained an enriched `subject`.
+- Removed `spotify_token` from the profile payload — the API no longer returns
+  it, and `spotify_connected` covers the only part callers used.
+
 ## 0.11.0
 
 - Added `Rocksky::Filter`, a fluent RSQL builder (`eq`, `ne`, `gt`, `ge`,

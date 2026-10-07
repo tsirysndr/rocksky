@@ -3,6 +3,24 @@
 All notable changes to the Rocksky Clojure SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.12.0] - 2026-10-07
+
+### Added
+
+- Regenerated the native core against the updated `app.rocksky.*` lexicons:
+  scrobble and song maps now carry the catalogue enrichment keys (streaming
+  links, `:composer`, `:label`, `:genre`, `:copyrightMessage`, `:isrc`,
+  `:mbId`, `:key`, `:trackNumber`, `:discNumber`, `:duration`, `:bpm`), albums
+  carry `:discogsReleaseId`, and artists carry `:biography`, `:born`,
+  `:bornIn` and `:died`.
+- Profile maps gained `:spotifyUser`, `:spotifyConnected`, `:googledrive` and
+  `:dropbox`; notifications gained an enriched `:subject`.
+
+### Removed
+
+- `:spotifyToken` from the profile map — the API no longer returns it, and
+  `:spotifyConnected` covers the only part callers used.
+
 ## [0.10.0] - 2026-08-22
 
 ### Added
