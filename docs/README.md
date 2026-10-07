@@ -44,8 +44,22 @@ mint broken-links     # validate internal links
 
 ## Updating the API reference
 
-Replace `api-reference/openapi.json` with a regenerated spec — the endpoint
-tree under the **API reference** tab will pick it up automatically.
+In the Rocksky source repository, run:
+
+```sh
+node apps/api/scripts/generate-openapi.cjs
+node --test apps/api/tests/openapi.test.cjs
+```
+
+The generator reads the registered XRPC handlers, current lexicons, and
+known response-type exceptions. It updates `docs/api-reference/openapi.json`
+without executing handlers. Use `node apps/api/scripts/generate-openapi.cjs --check`
+to detect stale output.
+
+Copy the generated spec to this documentation site's
+`api-reference/openapi.json`. The **API reference** tab picks it up automatically.
+Do not edit generated endpoint pages. When changing authentication behavior,
+update the generator's authentication overrides too.
 
 ## Publishing
 

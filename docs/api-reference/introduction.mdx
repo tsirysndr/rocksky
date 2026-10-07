@@ -34,8 +34,11 @@ You can obtain a token by:
   copy the secret once, and use it interchangeably with a JWT (see
   [Personal access tokens](#personal-access-tokens) below)
 
-Read-only endpoints (profiles, charts, public scrobble feeds, search) work
-without authentication.
+Public profiles, charts, public scrobble feeds, and search work without
+authentication. Private library, notification, and account operations require
+authentication even when they only read data. Some public endpoints accept a
+token to include viewer-specific information. Each endpoint lists its own
+authentication requirements.
 
 ## Personal access tokens
 
@@ -102,3 +105,14 @@ The HTTP status code carries the category (400-class for client errors,
 
 The endpoint reference below is generated directly from the
 [OpenAPI specification](/api-reference/openapi.json) shipped with this site.
+It follows the registered XRPC routes and lexicons in the Rocksky source
+repository. Production may run an earlier revision.
+
+Queries use `GET`; procedures use `POST`. Some procedures take query parameters
+instead of a JSON body, so follow the parameter location shown on each endpoint.
+Nullable response fields are distinct from optional fields. OpenSubsonic payloads
+retain provider-defined fields.
+
+Routes whose handlers are unfinished are marked in the reference. Some handlers
+return empty fallback objects when an upstream service fails; HTTP 200 alone
+does not always mean that a lookup found data.
