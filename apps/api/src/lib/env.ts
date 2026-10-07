@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { cleanEnv, host, num, port, str } from "envalid";
+import { bool, cleanEnv, host, num, port, str } from "envalid";
 
 dotenv.config();
 
@@ -46,6 +46,7 @@ export const env = cleanEnv(process.env, {
   MUSICBRAINZ_URL: str({ default: "http://localhost:8088" }),
   DEEZER_URL: str({ default: "http://localhost:8090" }),
   DISCOGS_URL: str({ default: "http://localhost:8095" }),
+  DISCOGS_ENRICHMENT_ENABLED: bool({ default: false }),
   PRIVATE_KEY_1: str({}),
   PRIVATE_KEY_2: str({}),
   PRIVATE_KEY_3: str({}),

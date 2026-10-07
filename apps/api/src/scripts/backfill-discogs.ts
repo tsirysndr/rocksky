@@ -17,6 +17,7 @@
  *   tsx ./src/scripts/backfill-discogs.ts
  *
  * Env:
+ *   DISCOGS_ENRICHMENT_ENABLED  "true" — enable enrichment (default false)
  *   BACKFILL_ALBUMS_PER_MINUTE  albums asked about per minute (default 18)
  *   BACKFILL_LIMIT              stop after this many albums (default: all)
  *   BACKFILL_DRY_RUN            "1" — report what would be asked, write nothing
@@ -27,6 +28,7 @@ import { consola } from "consola";
 import { ctx } from "context";
 import { and, asc, count, gt, isNull } from "drizzle-orm";
 import { enrichAlbumWithDiscogs } from "lib/discogsEnrichment";
+import { env } from "lib/env";
 import tables from "schema";
 import { retryPgConnection } from "lib/pgConnectionRecovery";
 
@@ -60,6 +62,13 @@ const retryDb = <T>(label: string, run: () => PromiseLike<T>) =>
   });
 
 async function main() {
+  if (!env.DISCOGS_ENRICHMENT_ENABLED) {
+    consola.info(
+      "Discogs enrichment is disabled. Set DISCOGS_ENRICHMENT_ENABLED=true to run the backfill.",
+    );
+    process.exit(0);
+  }
+
   const pending = await retryDb("Count pending albums", () =>
     ctx.db
       .select({ count: count() })

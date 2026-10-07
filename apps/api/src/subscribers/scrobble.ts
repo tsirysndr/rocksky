@@ -8,6 +8,7 @@ import tables from "schema";
 import chalk from "chalk";
 import { publishScrobble } from "nowplaying/nowplaying.service";
 import { enrichScrobbleWithDiscogs } from "lib/discogsEnrichment";
+import { env } from "lib/env";
 
 export function onNewScrobble(ctx: Context) {
   const sc = StringCodec();
@@ -32,13 +33,15 @@ export function onNewScrobble(ctx: Context) {
       await refreshScrobbles(ctx, result.users.did);
 
       // Optional metadata: never awaited, never allowed to fail the scrobble.
-      void enrichScrobbleWithDiscogs(ctx, result.scrobbles.trackId).catch(
-        (err) =>
-          consola.warn(
-            `Discogs enrichment failed for scrobble ${scrobbleId}:`,
-            err instanceof Error ? err.message : err,
-          ),
-      );
+      if (env.DISCOGS_ENRICHMENT_ENABLED) {
+        void enrichScrobbleWithDiscogs(ctx, result.scrobbles.trackId).catch(
+          (err) =>
+            consola.warn(
+              `Discogs enrichment failed for scrobble ${scrobbleId}:`,
+              err instanceof Error ? err.message : err,
+            ),
+        );
+      }
     }
   })();
 }
