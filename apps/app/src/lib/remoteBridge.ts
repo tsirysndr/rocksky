@@ -1,7 +1,7 @@
 import type { RemoteController } from "@rocksky/sdk/remote";
 import axios from "axios";
 import { getDefaultStore } from "jotai";
-import { selectedSourceAtom } from "../atoms/devices";
+import { activeDeviceIdAtom, selectedSourceAtom } from "../atoms/devices";
 import {
   nowPlayingAtom,
   playbackLockedUntilAtom,
@@ -72,7 +72,7 @@ export const remoteBridge = {
     state.localHandler = handler;
   },
 
-  send(action: TransportAction, positionMs?: number) {
+  send(action: TransportAction, positionMs?: number): boolean {
     // Read the selected source at dispatch time; React effects may still hold
     // the previous route immediately after restore or switching devices.
     const selected = store.get(selectedSourceAtom);
@@ -81,33 +81,44 @@ export const remoteBridge = {
         ? "rockbox"
         : (selected?.kind ?? store.get(playerAtom) ?? state.source);
     if (source === "local") {
-      state.localHandler?.(action, positionMs);
-      return;
+      if (!state.localHandler) return false;
+      state.localHandler(action, positionMs);
+      return true;
     }
     if (source === "spotify") {
       void sendSpotify(action, positionMs);
-      return;
+      return true;
     }
     const target =
-      selected?.kind === "device" ? selected.id : (state.target ?? undefined);
+      selected?.kind === "device" ? selected.id : store.get(activeDeviceIdAtom);
+    // The protocol broadcasts commands without a target. A missing route
+    // (startup, disconnect, sign-out) must never control every linked device.
+    // Read the live ID rather than the route effect's potentially stale target.
+    if (source !== "rockbox" || !target?.trim() || !state.controller)
+      return false;
     const args =
       action === "seek"
         ? { position: Math.max(0, Math.round(positionMs ?? 0)) }
         : undefined;
-    state.controller?.command(action, target, args);
+    state.controller.command(action, target, args);
+    return true;
   },
 
-  // Optimistic play/pause used by the notification buttons: flips the shared
-  // now-playing state immediately and locks out polling echoes for 1.5s.
-  togglePlayPause() {
+  // Media-session Play/Pause are absolute commands, even when polling has
+  // stale state. Update the UI only if there was a concrete playback route.
+  setPlaying(playing: boolean) {
+    if (!this.send(playing ? "play" : "pause")) return false;
     const nowPlaying = store.get(nowPlayingAtom);
-    const wasPlaying = nowPlaying?.isPlaying ?? false;
     store.set(playbackLockedUntilAtom, Date.now() + 1500);
     if (nowPlaying) {
-      store.set(nowPlayingAtom, { ...nowPlaying, isPlaying: !wasPlaying });
+      store.set(nowPlayingAtom, { ...nowPlaying, isPlaying: playing });
     }
-    this.send(wasPlaying ? "pause" : "play");
-    return !wasPlaying;
+    return true;
+  },
+
+  togglePlayPause() {
+    const wasPlaying = this.isPlaying();
+    return this.setPlaying(!wasPlaying) ? !wasPlaying : wasPlaying;
   },
 
   isPlaying() {

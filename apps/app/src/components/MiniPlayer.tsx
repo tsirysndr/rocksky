@@ -29,7 +29,12 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
     deviceList,
   } = usePlaybackSource();
 
-  if (!nowPlaying && deviceList.length === 0 && !thisDeviceAvailable) {
+  // Keep the device switcher accessible when another device has a song,
+  // without changing which device the user's controls target.
+  const remoteHasSong = deviceList.some((device) =>
+    Boolean(device.nowPlaying?.title?.trim()),
+  );
+  if (!nowPlaying?.title?.trim() && !remoteHasSong) {
     return null;
   }
 
@@ -81,10 +86,10 @@ export default function MiniPlayer({ onOpenPlayer }: Props) {
           activeOpacity={0.7}
         >
           <MarqueeText enabled={focused} style={styles.title}>
-            {nowPlaying?.title ?? "Nothing playing"}
+            {nowPlaying?.title || "Nothing playing"}
           </MarqueeText>
           <MarqueeText enabled={focused} style={styles.subtitle}>
-            {nowPlaying ? nowPlaying.artist : sourceLabel}
+            {nowPlaying?.artist || sourceLabel}
           </MarqueeText>
         </TouchableOpacity>
 
