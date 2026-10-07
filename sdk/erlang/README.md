@@ -14,6 +14,13 @@ identity hashes shared across every Rocksky SDK.
 The OTP application is `rocksky_erl`; the modules are `rocksky` (friendly API)
 and `rocksky_nif` (raw NIF). This same NIF powers the Elixir and Gleam SDKs.
 
+## Installation
+
+```erlang
+%% rebar.config
+{deps, [{rocksky_erl, "0.11.0"}]}.
+```
+
 ## Build
 
 ```sh

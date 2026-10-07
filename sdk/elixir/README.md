@@ -16,11 +16,11 @@ every Rocksky SDK.
 
 ```elixir
 def deps do
-  [{:rocksky_ex, "~> 0.11"}]
+  [{:rocksky_ex, "~> 0.14.0"}]
 end
 ```
 
-`rocksky_ex` 0.7.0 pulls in `rocksky_erl` 0.4.0, whose loader fetches the native library from
+`rocksky_ex` 0.14.0 requires `rocksky_erl` ~> 0.10.0, whose loader fetches the native library from
 the GitHub release on first use (checksum-verified). For monorepo dev, build it
 locally and point at it: `../erlang/build-core.sh` then set
 `ROCKSKY_ERL_PATH=../erlang`.
