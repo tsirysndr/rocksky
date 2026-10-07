@@ -51,6 +51,21 @@ const retrieve = ({
     const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
 
+    // Resolve the actor before reading scrobbles. Filtering through the users
+    // join lets PostgreSQL walk the global timestamp index until it finds this
+    // listener, which can time out even for a tiny page on a quiet profile.
+    const [user] = await db
+      .select({ id: tables.users.id })
+      .from(tables.users)
+      .where(
+        or(
+          eq(tables.users.did, params.did),
+          eq(tables.users.handle, params.did),
+        ),
+      )
+      .limit(1);
+    if (!user) return { data: [] };
+
     const rows = await db
       .select({
         id: tables.scrobbles.id,
@@ -73,12 +88,7 @@ const retrieve = ({
       .from(tables.scrobbles)
       .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
       .innerJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
-      .where(
-        or(
-          eq(tables.users.did, params.did),
-          eq(tables.users.handle, params.did),
-        ),
-      )
+      .where(eq(tables.scrobbles.userId, user.id))
       // id breaks ties: scrobbles can share a timestamp, and without a
       // unique key OFFSET pages overlap and skip.
       .orderBy(desc(tables.scrobbles.timestamp), desc(tables.scrobbles.id))
