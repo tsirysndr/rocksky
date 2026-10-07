@@ -163,6 +163,48 @@ export const getStreamUrl = (uploadId: string): string => {
   return `${API_URL}/uploads/${uploadId}/stream?token=${token}`;
 };
 
+// A Cast queue is fetched directly by the receiver, often long after the sender sleeps.
+// Never expose the account JWT as a fallback URL credential.
+let castToken: { token: string; expiresAt: number } | null = null;
+let castTokenOwner: string | null = null;
+let castTokenRequest: Promise<void> | null = null;
+export async function getCastStreamUrl(uploadId: string): Promise<string> {
+  const owner = storage.getToken();
+  if (!owner) throw new Error("Sign in to cast uploaded music.");
+  if (castTokenOwner !== owner) {
+    castToken = null;
+    castTokenOwner = owner;
+  }
+  if (!castToken || Date.now() >= castToken.expiresAt - 300_000) {
+    if (!castTokenRequest)
+      castTokenRequest = (async () => {
+        const { data } = await axios.get<{ token: string; expiresIn: number }>(
+          `${API_URL}/uploads/stream-token`,
+          {
+            headers: authHeaders(),
+            params: { purpose: "cast" },
+            timeout: 15_000,
+          },
+        );
+        if (
+          !data.token ||
+          !Number.isFinite(data.expiresIn) ||
+          storage.getToken() !== owner
+        )
+          throw new Error("Could not authorize Chromecast playback.");
+        castToken = {
+          token: data.token,
+          expiresAt: Date.now() + data.expiresIn * 1000,
+        };
+      })().finally(() => {
+        castTokenRequest = null;
+      });
+    await castTokenRequest;
+  }
+  if (!castToken) throw new Error("Could not authorize Chromecast playback.");
+  return `${API_URL}/uploads/${encodeURIComponent(uploadId)}/stream?token=${encodeURIComponent(castToken.token)}`;
+}
+
 export type ScrobbleInput = {
   title: string;
   artist: string;

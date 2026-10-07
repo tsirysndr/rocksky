@@ -32,6 +32,7 @@ import {
 import { remoteBridge } from "@/src/lib/remoteBridge";
 import {
   restoreLocalQueue,
+  startCastPlayback,
   startLocalRemotePlayer,
   stopLocalRemotePlayer,
 } from "@/src/lib/uploadEngine";
@@ -191,6 +192,7 @@ function useLocalPlayerBroadcast() {
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const token = useAtomValue(authTokenAtom);
   const did = token ? storage.getDid() || "" : "";
+  useEffect(() => startCastPlayback(), []);
   useRemoteDevicesConnection();
   useLocalPlayerBroadcast();
   useNavidromeCredentials();
@@ -205,7 +207,7 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
     did,
     !token || deviceTrackActive || localEngineActive,
   );
-  useMediaSessionSync(token ? nowPlaying : null);
+  useMediaSessionSync(nowPlaying);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: consumers only re-render on track/playing/liked changes, not on every poll tick
   const memoizedNowPlaying = useMemo(

@@ -15,12 +15,12 @@ export function useNowPlayingLike() {
   const { data } = useQuery({
     queryKey: ["song", "like-state", storage.getDid(), { uri }],
     queryFn: () => getSongLikeState({ uri }),
-    enabled: !!token && !!uri && player !== "local",
+    enabled: !!token && !!uri && player !== "local" && player !== "cast",
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
   useEffect(() => {
-    if (player === "local" || !data || data.liked === track?.liked) return;
+    if (player === "local" || player === "cast" || !data || data.liked === track?.liked) return;
     setTrack((current) =>
       current?.uri === uri ? { ...current, liked: data.liked } : current,
     );

@@ -1,3 +1,6 @@
+import { useAtomValue } from "jotai";
+import { Alert } from "react-native";
+import { castPlayback, castSdk, castStateAtom } from "../lib/castPlayback";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
@@ -25,6 +28,8 @@ const NOTHING_PLAYING = "Nothing playing";
  * decided — and every row says what is playing on it, or that nothing is.
  */
 export default function SourceSheet({ visible, onClose }: Props) {
+  const casting = useAtomValue(castStateAtom);
+  const CastButton = castSdk?.CastButton;
   const {
     current,
     thisDeviceActive,
@@ -55,6 +60,64 @@ export default function SourceSheet({ visible, onClose }: Props) {
         <View style={styles.grabHandle} />
         <Text style={styles.sheetTitle}>Select Source</Text>
         <ScrollView showsVerticalScrollIndicator={false}>
+          {thisDeviceActive && CastButton && (
+            <TouchableOpacity
+              style={[
+                styles.sheetRow,
+                current?.kind === "cast" && styles.sheetRowActive,
+              ]}
+              onPress={() => {
+                void castSdk?.default
+                  .showCastDialog()
+                  .catch((error) => Alert.alert("Chromecast", String(error)));
+              }}
+            >
+              <CastButton
+                style={{
+                  width: 24,
+                  height: 24,
+                  tintColor:
+                    current?.kind === "cast"
+                      ? colors.primary
+                      : colors.textMuted,
+                }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.sheetRowTitle,
+                    current?.kind === "cast" && { color: colors.primary },
+                  ]}
+                >
+                  {casting.connected ? casting.name : "Google Chromecast"}
+                </Text>
+                <Text style={styles.sheetRowSubtitle}>
+                  {casting.suspended
+                    ? "Reconnecting…"
+                    : casting.connected
+                      ? "Casting local & uploaded music"
+                      : "Cast music to your TV or speaker"}
+                </Text>
+              </View>
+              {current?.kind === "cast" && (
+                <Feather name="check" size={18} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          )}
+          {casting.connected && current?.kind === "cast" && (
+            <TouchableOpacity
+              style={styles.sheetRow}
+              onPress={() => {
+                void castPlayback
+                  .disconnect()
+                  .catch((error) => Alert.alert("Chromecast", String(error)));
+              }}
+            >
+              <Feather name="cast" size={20} color={colors.textMuted} />
+              <Text style={styles.sheetRowTitle}>Stop casting</Text>
+            </TouchableOpacity>
+          )}
+
           {deviceList.map((device) => {
             const isCurrent = sameSource(current, {
               kind: "device",

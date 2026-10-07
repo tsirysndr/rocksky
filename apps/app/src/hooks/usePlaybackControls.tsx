@@ -64,7 +64,7 @@ export function usePlaybackControls() {
   const setShuffle = useCallback(
     (enabled: boolean) => {
       setNowPlaying((prev) => (prev ? { ...prev, shuffle: enabled } : null));
-      if (player === "local") setLocalShuffle(enabled);
+      if ((player === "local" || player === "cast")) setLocalShuffle(enabled);
       else commands?.send("shuffle", { enabled }, target);
     },
     [commands, target, setNowPlaying, player],
@@ -73,7 +73,7 @@ export function usePlaybackControls() {
   const setRepeat = useCallback(
     (mode: "off" | "one" | "all") => {
       setNowPlaying((prev) => (prev ? { ...prev, repeat: mode } : null));
-      if (player === "local") setLocalRepeat(mode);
+      if ((player === "local" || player === "cast")) setLocalRepeat(mode);
       else commands?.send("repeat", { mode }, target);
     },
     [commands, target, setNowPlaying, player],
@@ -96,7 +96,7 @@ export function usePlaybackControls() {
   const toggleLike = useCallback(() => {
     // The in-app engine owns this: a navidrome track has no AT-URI to like by,
     // so it stars the Subsonic id instead and the heart did nothing here.
-    if (player === "local") {
+    if ((player === "local" || player === "cast")) {
       void toggleLocalLike();
       return;
     }

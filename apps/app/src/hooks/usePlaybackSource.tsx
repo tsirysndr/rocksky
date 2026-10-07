@@ -1,5 +1,6 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useMemo } from "react";
+import { Alert } from "react-native";
 import {
   activeDeviceIdAtom,
   devicesAtom,
@@ -8,6 +9,7 @@ import {
   remoteCommandsAtom,
   selectedSourceAtom,
 } from "../atoms/devices";
+import { castPlayback, castStateAtom } from "../lib/castPlayback";
 import { nowPlayingAtom, playerAtom } from "../atoms/nowplaying";
 import {
   isLocalEngineAvailable,
@@ -32,6 +34,7 @@ export const sameSource = (
  * about what is selected: the derivation below is the only copy of it.
  */
 export function usePlaybackSource() {
+  const casting = useAtomValue(castStateAtom);
   const devices = useAtomValue(devicesAtom);
   const player = useAtomValue(playerAtom);
   const [activeDeviceId, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
@@ -58,31 +61,40 @@ export function usePlaybackSource() {
   // points at the source producing sound; with nothing playing it falls back to
   // the pick, then to the server's primary device.
   const current: PlaybackSource | null =
-    player === "local"
-      ? { kind: "local" }
-      : player === "spotify"
-        ? { kind: "spotify" }
-        : player === "rockbox" && activeDeviceId
-          ? { kind: "device", id: activeDeviceId }
-          : (picked ??
-            (activeDeviceId ? { kind: "device", id: activeDeviceId } : null));
+    player === "cast"
+      ? { kind: "cast" }
+      : player === "local"
+        ? { kind: "local" }
+        : player === "spotify"
+          ? { kind: "spotify" }
+          : player === "rockbox" && activeDeviceId
+            ? { kind: "device", id: activeDeviceId }
+            : (picked ??
+              (activeDeviceId ? { kind: "device", id: activeDeviceId } : null));
 
   const thisDeviceActive = sameSource(current, { kind: "local" });
   const spotifyActive = sameSource(current, { kind: "spotify" });
 
-  const sourceLabel = thisDeviceActive
-    ? "This Device"
-    : spotifyActive
-      ? "Spotify"
-      : current?.kind === "device" && activeDevice
-        ? activeDevice.name
-        : "Select a device";
+  const sourceLabel =
+    current?.kind === "cast"
+      ? casting.name
+      : thisDeviceActive
+        ? "This Device"
+        : spotifyActive
+          ? "Spotify"
+          : current?.kind === "device" && activeDevice
+            ? activeDevice.name
+            : "Select a device";
 
   // playerAtom is what the transport bridge routes on, so each pick sets it:
   // otherwise the buttons keep talking to the source that was playing before.
   const selectDevice = useCallback(
     (deviceId: string) => {
       setPicked({ kind: "device", id: deviceId });
+      if (casting.connected)
+        void castPlayback
+          .disconnect()
+          .catch((error) => Alert.alert("Chromecast", String(error)));
       commands?.setPrimary(deviceId);
       const track = devices[deviceId]?.nowPlaying;
       setPlayer(track ? "rockbox" : null);
@@ -90,21 +102,37 @@ export function usePlaybackSource() {
       // from its own state, and if it is idle the placeholder is the truth.
       if (!track) setNowPlaying(null);
     },
-    [commands, devices, setNowPlaying, setPicked, setPlayer],
+    [commands, devices, setNowPlaying, setPicked, setPlayer, casting.connected],
   );
 
   const selectThisDevice = useCallback(() => {
+    if (casting.connected) {
+      void castPlayback
+        .disconnect()
+        .catch((error) => Alert.alert("Chromecast", String(error)));
+      return;
+    }
     setPicked({ kind: "local" });
     setActiveDeviceId(null);
     const queued = localQueue().length > 0;
     setPlayer(queued ? "local" : null);
     if (!queued) setNowPlaying(null);
-  }, [setActiveDeviceId, setNowPlaying, setPicked, setPlayer]);
+  }, [
+    setActiveDeviceId,
+    setNowPlaying,
+    setPicked,
+    setPlayer,
+    casting.connected,
+  ]);
 
   const selectSpotify = useCallback(() => {
     setPicked({ kind: "spotify" });
+    if (casting.connected)
+      void castPlayback
+        .disconnect()
+        .catch((error) => Alert.alert("Chromecast", String(error)));
     setActiveDeviceId(null);
-  }, [setActiveDeviceId, setPicked]);
+  }, [setActiveDeviceId, setPicked, casting.connected]);
 
   /**
    * Whether audio settings can be applied to the current source.

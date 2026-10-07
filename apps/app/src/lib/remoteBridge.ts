@@ -12,7 +12,7 @@ import { storage } from "../storage";
 
 export type TransportAction = "play" | "pause" | "next" | "previous" | "seek";
 
-type Source = "rockbox" | "spotify" | "local" | null;
+type Source = "rockbox" | "spotify" | "local" | "cast" | null;
 
 type LocalTransportHandler = (
   action: TransportAction,
@@ -80,7 +80,7 @@ export const remoteBridge = {
       selected?.kind === "device"
         ? "rockbox"
         : (selected?.kind ?? store.get(playerAtom) ?? state.source);
-    if (source === "local") {
+    if (source === "local" || source === "cast") {
       if (!state.localHandler) return false;
       state.localHandler(action, positionMs);
       return true;

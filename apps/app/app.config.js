@@ -59,6 +59,11 @@ module.exports = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    ["react-native-google-cast", {
+      receiverAppId: process.env.GOOGLE_CAST_RECEIVER_APP_ID || "833D8703",
+      androidPlayServicesCastFrameworkVersion: "22.3.1",
+      expandedController: false,
+    }],
     "./plugins/withAndroidIdentity",
     "./plugins/withRustEngine",
     "./plugins/withReleaseOptimization",

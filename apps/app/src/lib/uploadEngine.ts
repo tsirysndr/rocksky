@@ -9,7 +9,10 @@ import { atom, getDefaultStore } from "jotai";
 import { Alert, AppState, Platform } from "react-native";
 import {
   type EngineStatus,
-  engineCommand,
+  engineCommand as nativeEngineCommand,
+  type EngineCommand,
+  type EngineAck,
+  type EngineError,
   isEngineAvailable,
   localMusicNative,
 } from "../../modules/rocksky-engine";
@@ -25,6 +28,7 @@ import {
 import { getProfileByDid } from "../api/profile";
 import {
   ensureStreamToken,
+  getCastStreamUrl,
   getStreamUrl,
   submitScrobble,
 } from "../api/uploads";
@@ -46,6 +50,7 @@ import { queryClient } from "./queryClient";
 import { createQueueSnapshotWriter } from "./queueSnapshotWriter";
 import { remoteBridge, type TransportAction } from "./remoteBridge";
 import { deviceQueueTrack, type DeviceTrack } from "./deviceMusicModel";
+import { castPlayback } from "./castPlayback";
 
 // Local playback of uploads through the native Rust engine: owns the queue
 // metadata (the engine only knows URLs), mirrors engine state into the shared
@@ -81,7 +86,99 @@ export type UploadQueueTrack = {
    * `uploadId` and a short-lived stream token.
    */
   streamUrl?: string;
+  mimeType?: string;
 };
+
+// Both transports feed the same queue, controls, persistence and scrobble gate.
+function engineCommand(command: { cmd: "status" }): EngineStatus | EngineError;
+function engineCommand(
+  command: Exclude<EngineCommand, { cmd: "status" }>,
+): EngineAck | EngineError;
+function engineCommand(
+  command: EngineCommand,
+): EngineStatus | EngineAck | EngineError {
+  if (castPlayback.connected()) return castPlayback.command(command);
+  return command.cmd === "status"
+    ? nativeEngineCommand(command)
+    : nativeEngineCommand(command);
+}
+
+async function openPlayback(
+  tracks: UploadQueueTrack[],
+  paths: string[],
+  index: number,
+  positionMs = 0,
+  autoplay = true,
+): Promise<EngineAck | EngineError> {
+  if (castPlayback.connected()) {
+    await castPlayback.load(tracks, paths, index, positionMs, autoplay);
+    nativeEngineCommand({ cmd: "pause" });
+    return { ok: true };
+  }
+  return nativeEngineCommand({ cmd: "open", paths, startIndex: index });
+}
+
+/** Mounted once by NowPlayingProvider. Cast session events never broadcast remote commands. */
+export function startCastPlayback() {
+  return castPlayback.start(
+    async (resumed) => {
+      if (queue.length === 0) await restoreLocalQueue();
+      const index = Math.min(
+        castPlayback.status().index ?? lastIndex ?? resumeIndex,
+        Math.max(0, queue.length - 1),
+      );
+      const position = resumed
+        ? castPlayback.status().positionMs
+        : store.get(progressAtom);
+      const playing = resumed
+        ? castPlayback.status().state === "playing"
+        : (store.get(nowPlayingAtom)?.isPlaying ?? false);
+      store.set(selectedSourceAtom, { kind: "cast" });
+      nativeEngineCommand({ cmd: "pause" });
+      if (queue.length > 0) {
+        await openPlayback(
+          queue,
+          await resolvePaths(queue),
+          index,
+          position,
+          playing,
+        );
+        resumePending = false;
+        if (lastIndex !== index) lastTrack = null;
+        lastIndex = index;
+        openedAt = Date.now();
+        sawPlaying = false;
+        activate();
+        pollOnce();
+      } else {
+        store.set(nowPlayingAtom, null);
+        store.set(playerAtom, null);
+        store.set(localEngineActiveAtom, true);
+      }
+    },
+    () => {
+      const previous = castPlayback.status();
+      resumeIndex = previous.index ?? lastIndex ?? 0;
+      resumePositionMs = previous.positionMs;
+      resumePending = queue.length > 0;
+      resumeWantsPlay = false;
+      if (store.get(selectedSourceAtom)?.kind === "cast") {
+        store.set(selectedSourceAtom, { kind: "local" });
+        store.set(playerAtom, queue.length ? "local" : null);
+        store.set(nowPlayingAtom, (value) =>
+          value ? { ...value, isPlaying: false } : null,
+        );
+        // A disconnect leaves the phone paused; never start a second audio source automatically.
+        if (queue.length) activate();
+        else store.set(localEngineActiveAtom, false);
+      } else {
+        deactivate();
+      }
+      notifyQueue();
+      void saveQueueSnapshot();
+    },
+  );
+}
 
 const MIN_TRACK_MS = 30_000;
 const MAX_SCROBBLE_THRESHOLD_MS = 4 * 60_000;
@@ -341,11 +438,13 @@ async function resumeRestoredQueue(): Promise<boolean> {
     if (!resumePending || queue !== restoringQueue) return false;
     await applyLocalPlaybackModes();
     if (!resumePending || queue !== restoringQueue) return false;
-    const result = engineCommand({
-      cmd: "open",
+    const result = await openPlayback(
+      restoringQueue,
       paths,
-      startIndex: resumeIndex,
-    });
+      resumeIndex,
+      resumePositionMs,
+      resumeWantsPlay,
+    );
     if (!result.ok) throw new Error(result.error);
     resumePending = false;
     lastIndex = resumeIndex;
@@ -400,6 +499,26 @@ export function localQueueIndex(): number | null {
 export function removeLocalAt(index: number) {
   if (!Number.isInteger(index) || index < 0 || index >= queue.length) return;
   if (index === (lastIndex ?? resumeIndex)) return;
+  if (castPlayback.connected()) {
+    const current = castPlayback.status();
+    const next = queue.filter((_, i) => i !== index);
+    const nextIndex =
+      (current.index ?? 0) - (index < (current.index ?? 0) ? 1 : 0);
+    void (async () => {
+      await castPlayback.load(
+        next,
+        await resolvePaths(next),
+        nextIndex,
+        current.positionMs,
+        current.state === "playing",
+      );
+      queue = next;
+      lastIndex = nextIndex;
+      notifyQueue();
+      await saveQueueSnapshot();
+    })().catch((error) => Alert.alert("Chromecast", String(error)));
+    return;
+  }
   if (!resumePending) {
     // The engine may have advanced since the last UI poll.
     const status = engineCommand({ cmd: "status" });
@@ -638,7 +757,7 @@ export async function toggleLocalLike(): Promise<boolean> {
 /** True unless the user has switched the display to another source. */
 function engineOwnsDisplay(): boolean {
   const selected = store.get(selectedSourceAtom);
-  return !selected || selected.kind === "local";
+  return !selected || selected.kind === "local" || selected.kind === "cast";
 }
 
 function pollOnce() {
@@ -713,7 +832,7 @@ function pollOnce() {
       albumUri: track.albumUri ?? undefined,
       ...localModes.get(),
     });
-    store.set(playerAtom, "local");
+    store.set(playerAtom, castPlayback.connected() ? "cast" : "local");
     store.set(progressAtom, positionMs);
   }
 
@@ -745,7 +864,7 @@ function deactivate() {
   remoteBridge.setLocalHandler(null);
   store.set(localEngineActiveAtom, false);
   lastIndex = null;
-  if (store.get(playerAtom) === "local") {
+  if (["local", "cast"].includes(store.get(playerAtom) ?? "")) {
     store.set(nowPlayingAtom, null);
     store.set(playerAtom, null);
     store.set(progressAtom, 0);
@@ -807,7 +926,9 @@ async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
     paths.push(
       track.localId
         ? await localMusicNative.path(track.localId)
-        : streamUrlFor(track),
+        : castPlayback.connected() && !track.navidromeId && !track.streamUrl
+          ? await getCastStreamUrl(track.uploadId)
+          : streamUrlFor(track),
     );
   return paths;
 }
@@ -820,16 +941,20 @@ export async function playUploads(
   const session = storage.getToken();
   if (!session && tracks.some((track) => !track.localId)) return false;
   if (!isEngineAvailable() || tracks.length === 0) return false;
+  const casting = castPlayback.connected();
   const paths = await resolvePaths(tracks);
+  if (casting !== castPlayback.connected()) return false;
   await applyLocalPlaybackModes();
   if (storage.getToken() !== session) return false;
-  const result = engineCommand({ cmd: "open", paths, startIndex });
+  const result = await openPlayback(tracks, paths, startIndex);
   if (!result.ok) return false;
   queue = tracks;
   resumePending = false;
   resumeIndex = startIndex;
   resumePositionMs = 0;
-  store.set(selectedSourceAtom, { kind: "local" });
+  store.set(selectedSourceAtom, {
+    kind: castPlayback.connected() ? "cast" : "local",
+  });
   lastIndex = startIndex;
   lastTrack = null;
   pendingSeek = null;
@@ -871,6 +996,24 @@ async function enqueueLocalTracks(
   if (!isEngineAvailable() || tracks.length === 0) return false;
   if (queue.length === 0) return playUploads(tracks, 0);
   let index = lastIndex ?? resumeIndex;
+  if (castPlayback.connected()) {
+    const current = castPlayback.status();
+    index = current.index ?? index;
+    const at = where === "next" ? index + 1 : queue.length;
+    const next = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
+    await castPlayback.load(
+      next,
+      await resolvePaths(next),
+      index,
+      current.positionMs,
+      current.state === "playing",
+    );
+    queue = next;
+    notifyQueue();
+    advertiseQueue();
+    await saveQueueSnapshot();
+    return true;
+  }
   if (!resumePending) {
     const paths = await resolvePaths(tracks);
     // URL resolution can take time: read the current track after it completes.

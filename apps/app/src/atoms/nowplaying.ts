@@ -20,7 +20,7 @@ export const nowPlayingAtom = atom<NowPlaying | null>(null);
 
 export const progressAtom = atom(0);
 
-export const playerAtom = atom<"rockbox" | "spotify" | "local" | null>(null);
+export const playerAtom = atom<"rockbox" | "spotify" | "local" | "cast" | null>(null);
 
 // Timestamp (ms) until which isPlaying updates from polling should be ignored
 export const playbackLockedUntilAtom = atom(0);

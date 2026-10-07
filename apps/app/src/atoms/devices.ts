@@ -89,6 +89,7 @@ export const remoteCommandsAtom = atom<RemoteCommands | null>(null);
  */
 export type PlaybackSource =
   | { kind: "device"; id: string }
+  | { kind: "cast" }
   | { kind: "local" }
   | { kind: "spotify" };
 

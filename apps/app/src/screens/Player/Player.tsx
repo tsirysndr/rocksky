@@ -93,7 +93,7 @@ export default function Player() {
   } = usePlaybackSource();
 
   const isSpotify = player === "spotify";
-  const isLocal = currentSource?.kind === "local";
+  const isLocal = currentSource?.kind === "local" || currentSource?.kind === "cast";
   const activeDevice =
     !isSpotify && !isLocal && activeDeviceId
       ? devices[activeDeviceId]

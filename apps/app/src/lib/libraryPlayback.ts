@@ -11,6 +11,7 @@ import {
 export function uploadToQueueTrack(item: UploadedTrack): UploadQueueTrack {
   return {
     uploadId: item.upload.id,
+    mimeType: item.upload.mimeType,
     title: item.track.title,
     artist: item.track.artist,
     albumArtist: item.track.albumArtist,
