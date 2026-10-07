@@ -44,6 +44,7 @@ export const useUploadCountQuery = (enabled = true) => {
   return useQuery({
     queryKey: ["uploads", "count", storage.getDid()],
     queryFn: getUploadCount,
+    retry: false,
     enabled: enabled && !!token,
     staleTime: STALE_TIME,
   });

@@ -1250,9 +1250,7 @@ export default function Library({
                   ? `${uploadCount.data} tracks`
                   : !query && !tracksQuery.hasNextPage && !tracksQuery.isLoading
                     ? `${tracks.length} tracks`
-                    : uploadCount.isError
-                      ? `${tracks.length}${tracksQuery.hasNextPage ? "+" : ""} tracks loaded`
-                      : "Loading track count…"}
+                    : `${tracks.length}${tracksQuery.hasNextPage ? "+" : ""} tracks loaded`}
               </Text>
             </View>
           }

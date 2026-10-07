@@ -75,14 +75,21 @@ export const getUploads = async (
   return response.data;
 };
 
-export const getUploadCount = async (): Promise<number> => {
-  const { data } = await axios.get<{ total: number }>(
-    `${API_URL}/uploads/count`,
-    {
-      headers: authHeaders(),
-    },
-  );
-  return data.total;
+export const getUploadCount = async (): Promise<number | null> => {
+  try {
+    const { data } = await axios.get<{ total?: unknown }>(
+      `${API_URL}/uploads/count`,
+      { headers: authHeaders(), timeout: 5000 },
+    );
+    return typeof data?.total === "number" &&
+      Number.isSafeInteger(data.total) &&
+      data.total >= 0
+      ? data.total
+      : null;
+  } catch {
+    // Optional metadata: older servers do not expose this endpoint yet.
+    return null;
+  }
 };
 
 // /uploads/albums and /uploads/artists are gone from the client: they group-by
