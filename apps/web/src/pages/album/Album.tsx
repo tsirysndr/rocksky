@@ -24,6 +24,7 @@ import { useTimeFormat } from "../../hooks/useFormat";
 import { useAlbumQuery } from "../../hooks/useLibrary";
 import SongCover from "../../components/SongCover";
 import Main from "../../layouts/Main";
+import DiscogsDetails from "../../components/DiscogsDetails";
 
 const Group = styled.div`
   display: flex;
@@ -580,6 +581,7 @@ const Album = () => {
             </LabelXSmall>
           </div>
         </div>
+        {album && <DiscogsDetails key={uri} discogs={data?.discogs} />}
         <Shout type="album" />
       </div>
     </Main>

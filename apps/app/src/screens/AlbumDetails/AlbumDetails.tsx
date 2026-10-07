@@ -1,3 +1,5 @@
+import type { AlbumDiscogsView } from "@rocksky/sdk";
+import DiscogsDetails from "@/src/components/DiscogsDetails";
 import Feather from "@expo/vector-icons/Feather";
 import { Image as BackgroundImage } from "expo-image";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
@@ -34,6 +36,7 @@ type AlbumTrack = {
 };
 
 type AlbumDetailsData = {
+  discogs?: AlbumDiscogsView;
   title: string;
   artist: string;
   artistUri?: string;
@@ -427,6 +430,8 @@ export default function AlbumDetails({ route }: Props) {
                       );
                     },
                   )}
+
+                <DiscogsDetails key={uri} discogs={album.discogs} />
 
                 {/* Release info */}
                 {(album.releaseDate || album.label) && (
