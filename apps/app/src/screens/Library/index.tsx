@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "../../components/Text";
@@ -8,17 +7,14 @@ import DeviceLibrary from "./DeviceLibrary";
 import UploadedLibrary from "./Library";
 
 export default function Library() {
-  const [source, setSource] = useState("uploaded");
-  useEffect(() => {
-    void AsyncStorage.getItem("library-source").then((value) => {
-      if (value === "device" && Platform.OS === "android") setSource(value);
-    });
-  }, []);
+  const [source, setSource] = useState(
+    Platform.OS === "android" ? "device" : "uploaded",
+  );
   const sourceSwitcher = Platform.OS === "android" && (
     <View style={styles.switcher}>
       {[
-        ["uploaded", "Uploaded music"],
         ["device", "Local music"],
+        ["uploaded", "Uploaded music"],
       ].map(([value, label]) => (
         <Pressable
           accessibilityRole="tab"
@@ -26,7 +22,6 @@ export default function Library() {
           key={value}
           onPress={() => {
             setSource(value);
-            void AsyncStorage.setItem("library-source", value);
           }}
           style={[styles.segment, source === value && styles.activeSegment]}
         >
