@@ -1,3 +1,4 @@
+import RecordingMetadata from "@/src/components/RecordingMetadata";
 import TrackLikeButton from "@/src/components/TrackLikeButton";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
@@ -53,6 +54,8 @@ type SongDetailsData = {
   scrobbles?: number;
   lyrics?: string;
   spotifyLink?: string;
+  mbId?: string | null;
+  isrc?: string | null;
 };
 
 type ArtistReleaseItem = {
@@ -494,6 +497,8 @@ export default function SongDetails({ route }: Props) {
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              <RecordingMetadata mbId={song.mbId} isrc={song.isrc} />
 
               {/* Lyrics */}
               {song.lyrics && (

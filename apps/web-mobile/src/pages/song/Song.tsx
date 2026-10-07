@@ -1,3 +1,4 @@
+import RecordingMetadata from "../../components/RecordingMetadata";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import ContentLoader from "react-content-loader";
@@ -195,6 +196,8 @@ export default function Song() {
                 </a>
               )}
             </div>
+
+            <RecordingMetadata mbId={song?.mbId} isrc={song?.isrc} />
 
             {/* Lyrics */}
             {song.lyrics && (

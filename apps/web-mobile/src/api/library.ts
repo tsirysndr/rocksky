@@ -20,6 +20,8 @@ export const getSongByUri = async (uri: string) => {
     scrobbles: data?.playCount || 1,
     lyrics: data?.lyrics,
     spotifyLink: data?.spotifyLink,
+    mbId: data?.mbId,
+    isrc: data?.isrc,
     composer: data?.composer,
     uri: data?.uri,
     // A song's own URI is what liking needs; on a scrobble the raw response

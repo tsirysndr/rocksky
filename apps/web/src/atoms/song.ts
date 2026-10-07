@@ -18,6 +18,8 @@ export const songAtom = atom<{
   artistUri?: string;
   albumUri?: string;
   spotifyLink?: string;
+  mbId?: string;
+  isrc?: string;
   composer?: string | null;
   uri?: string;
   /** The song's own AT-URI. On a scrobble page `uri` is the scrobble's. */

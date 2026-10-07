@@ -34,6 +34,8 @@ export const getSongByUri = async (uri: string) => {
     scrobbles: response.data?.playCount || 1,
     lyrics: response.data?.lyrics,
     spotifyLink: response.data?.spotifyLink,
+    mbId: response.data?.mbId,
+    isrc: response.data?.isrc,
     composer: response.data?.composer,
     uri: response.data?.uri,
     artists: response.data?.artists,
