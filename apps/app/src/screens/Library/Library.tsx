@@ -1,4 +1,5 @@
 import { MoreButton, libraryActionStyles } from "./LibraryActions";
+import { libraryStyles } from "./LibraryStyles";
 import LibraryList from "./LibraryList";
 import type { ReactNode } from "react";
 import Feather from "@expo/vector-icons/Feather";
@@ -60,7 +61,10 @@ import {
   useRemoveTrackFromPlaylistMutation,
   useRenamePlaylistMutation,
 } from "@/src/hooks/usePlaylists";
-import { useUploadsInfiniteQuery } from "@/src/hooks/useUploads";
+import {
+  useUploadCountQuery,
+  useUploadsInfiniteQuery,
+} from "@/src/hooks/useUploads";
 import {
   playQueue,
   playUploadedTracks,
@@ -873,12 +877,37 @@ export default function Library({
   // group-by the user's whole upload set per page and took seconds.
   const { data: creds } = useNavidromeCredentials();
   const tracksQuery = useUploadsInfiniteQuery(query, signedIn);
+  const uploadCount = useUploadCountQuery(signedIn);
+  const [startingPlayback, setStartingPlayback] = useState(false);
   const albumsQuery = useNavidromeAlbumsInfiniteQuery(query, signedIn);
   const artistsQuery = useNavidromeArtistsQuery(query, signedIn);
   const playlistsQuery = useNavidromePlaylistsQuery(signedIn);
   const favoritesQuery = useNavidromeFavoritesQuery(query, signedIn);
 
   const tracks: UploadedTrack[] = tracksQuery.data?.pages.flat() ?? [];
+  const playAllUploads = async (shuffle: boolean) => {
+    if (startingPlayback || tracksQuery.isLoading) return;
+    setStartingPlayback(true);
+    try {
+      let result = tracksQuery;
+      while (result.hasNextPage) {
+        result = await tracksQuery.fetchNextPage({ cancelRefetch: false });
+        if (result.isFetchNextPageError) throw result.error;
+      }
+      const all = result.data?.pages.flat() ?? [];
+      const unique = [
+        ...new Map(all.map((track) => [track.upload.id, track])).values(),
+      ];
+      await playUploadedTracks(shuffle ? shuffled(unique) : unique, 0);
+    } catch (error) {
+      Alert.alert(
+        "Playback failed",
+        error instanceof Error ? error.message : "Could not load your tracks.",
+      );
+    } finally {
+      setStartingPlayback(false);
+    }
+  };
   // Pages are offset-based, so a library that changes between requests can
   // repeat a row across pages — deduped here rather than in the query, whose
   // page lengths drive the offsets.
@@ -1179,6 +1208,54 @@ export default function Library({
         <LibraryList
           header={libraryHeader}
           tabs={pinnedControls}
+          ListHeaderComponent={
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingVertical: 12,
+              }}
+            >
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["play", "shuffle"] as const).map((icon) => (
+                  <TouchableOpacity
+                    key={icon}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      icon === "play" ? "Play all" : "Shuffle all"
+                    }
+                    accessibilityState={{
+                      disabled: startingPlayback || !tracks.length,
+                    }}
+                    disabled={startingPlayback || !tracks.length}
+                    onPress={() => void playAllUploads(icon === "shuffle")}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: startingPlayback || !tracks.length ? 0.45 : 1,
+                    }}
+                  >
+                    <Feather name={icon} size={24} color={colors.text} />
+                  </TouchableOpacity>
+                ))}
+                {startingPlayback && (
+                  <ActivityIndicator color={colors.primary} />
+                )}
+              </View>
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                {uploadCount.data != null
+                  ? `${uploadCount.data} tracks`
+                  : !query && !tracksQuery.hasNextPage && !tracksQuery.isLoading
+                    ? `${tracks.length} tracks`
+                    : uploadCount.isError
+                      ? `${tracks.length}${tracksQuery.hasNextPage ? "+" : ""} tracks loaded`
+                      : "Loading track count…"}
+              </Text>
+            </View>
+          }
           data={tracks}
           keyExtractor={(item) => item.upload.id}
           renderItem={({ item, index }) => (
@@ -1421,6 +1498,7 @@ export default function Library({
 }
 
 const styles = StyleSheet.create({
+  ...libraryStyles,
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -1452,69 +1530,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.inputBackground,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 13,
-    paddingVertical: 9,
-  },
-  pillBar: {
-    flexGrow: 0,
-    flexShrink: 0,
-    marginBottom: 12,
-  },
-  pillRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: colors.surface2,
-  },
-  pillActive: {
-    backgroundColor: colors.primary,
-  },
-  pillText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textMuted,
-  },
-  pillTextActive: {
-    color: "#fff",
-  },
-  trackRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 9,
-    gap: 12,
-  },
+
   coverArt: {
     overflow: "hidden",
     backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
   },
-  rowTitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: colors.text,
-  },
-  rowSubtitle: {
-    fontSize: 11,
-    color: colors.textMuted,
-  },
+
   rowMeta: {
     fontSize: 11,
     color: colors.textMuted,
@@ -1577,47 +1600,7 @@ const styles = StyleSheet.create({
   pickerList: {
     maxHeight: 320,
   },
-  newButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    marginBottom: 6,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  newButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.text,
-  },
-  albumCard: {
-    flex: 1 / 3,
-    marginBottom: 14,
-  },
-  albumArtBox: {
-    aspectRatio: 1,
-    borderRadius: 10,
-    overflow: "hidden",
-    backgroundColor: colors.surface2,
-    marginBottom: 5,
-  },
-  albumArt: {
-    width: "100%",
-    height: "100%",
-  },
-  albumArtFallback: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  albumTitle: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: colors.text,
-  },
+
   emptyText: {
     color: colors.textMuted,
     textAlign: "center",

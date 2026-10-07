@@ -1,4 +1,6 @@
 import { MoreButton, MenuAction, libraryActionStyles } from "./LibraryActions";
+import { libraryStyles } from "./LibraryStyles";
+import PlaylistCover from "../../components/PlaylistCover";
 import LibraryList from "./LibraryList";
 import type { ReactNode } from "react";
 import { useNavigation } from "@react-navigation/native";
@@ -589,6 +591,7 @@ export default function DeviceLibrary({
         ids: [],
         art: track.albumArt,
       };
+      group.art ||= track.albumArt;
       group.ids.push(track.id);
       grouped.set(key, group);
     }
@@ -692,33 +695,47 @@ export default function DeviceLibrary({
   );
   const pinnedControls = !album ? (
     <View>
-      <TextInput
-        accessibilityLabel="Search local library"
-        style={[styles.input, { marginHorizontal: 16 }]}
-        placeholder="Search your music"
-        placeholderTextColor={colors.textMuted}
-        value={search}
-        onChangeText={setSearch}
-      />
+      <View style={[libraryStyles.searchBox, { marginHorizontal: 16 }]}>
+        <Feather name="search" size={14} color={colors.textMuted} />
+        <TextInput
+          accessibilityLabel="Search local library"
+          style={libraryStyles.searchInput}
+          placeholder="Search your library"
+          placeholderTextColor={colors.textMuted}
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.tabStrip}
-        contentContainerStyle={styles.tabs}
+        style={[libraryStyles.pillBar, { marginHorizontal: 16 }]}
+        contentContainerStyle={libraryStyles.pillRow}
       >
         {tabs.map((item) => (
           <Pressable
             key={item}
             accessibilityRole="tab"
             accessibilityState={{ selected: tab === item }}
-            style={[styles.tab, tab === item && styles.selected]}
+            style={[
+              libraryStyles.pill,
+              tab === item && libraryStyles.pillActive,
+            ]}
             onPress={() => {
               setTab(item);
               setDetail(null);
               setSearch("");
             }}
           >
-            <Text numberOfLines={1} style={styles.tabLabel}>
+            <Text
+              numberOfLines={1}
+              style={[
+                libraryStyles.pillText,
+                tab === item && libraryStyles.pillTextActive,
+              ]}
+            >
               {item}
             </Text>
           </Pressable>
@@ -734,13 +751,13 @@ export default function DeviceLibrary({
             header={libraryHeader}
             tabs={pinnedControls}
             ListHeaderComponent={
-              <View style={styles.header}>
-                <Button
-                  text="New local playlist"
-                  icon="plus"
-                  onPress={() => setNaming({ name: "" })}
-                />
-              </View>
+              <Pressable
+                style={[libraryStyles.newButton, { marginHorizontal: 16 }]}
+                onPress={() => setNaming({ name: "" })}
+              >
+                <Feather name="plus" size={14} color={colors.text} />
+                <Text style={libraryStyles.newButtonText}>New playlist</Text>
+              </Pressable>
             }
             refreshControl={refreshControl()}
             alwaysBounceVertical
@@ -751,6 +768,7 @@ export default function DeviceLibrary({
             renderItem={({ item }) => (
               <Pressable
                 style={styles.track}
+                onLongPress={() => setNaming({ id: item.id, name: item.name })}
                 onPress={() => {
                   setDetail({
                     title: item.name,
@@ -760,13 +778,28 @@ export default function DeviceLibrary({
                   setSearch("");
                 }}
               >
-                <Feather name="list" size={24} color={colors.text} />
-                <View>
-                  <Text>{item.name}</Text>
-                  <Text style={styles.muted}>
-                    {item.trackIds.length} tracks
+                <PlaylistCover
+                  size={44}
+                  trackArts={item.trackIds
+                    .map(
+                      (id) => tracks.find((track) => track.id === id)?.albumArt,
+                    )
+                    .filter((art): art is string => !!art)
+                    .slice(0, 4)}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={libraryStyles.rowTitle}>
+                    {item.name}
+                  </Text>
+                  <Text numberOfLines={1} style={libraryStyles.rowSubtitle}>
+                    {item.trackIds.length} track
+                    {item.trackIds.length === 1 ? "" : "s"}
                   </Text>
                 </View>
+                <MoreButton
+                  label="Playlist options"
+                  onPress={() => setNaming({ id: item.id, name: item.name })}
+                />
               </Pressable>
             )}
             ListEmptyComponent={
@@ -783,44 +816,61 @@ export default function DeviceLibrary({
           refreshControl={refreshControl()}
           alwaysBounceVertical
           data={groups}
+          numColumns={tab === "Albums" ? 3 : 1}
+          columnWrapperStyle={{ gap: 10, paddingHorizontal: 16 }}
           keyExtractor={(g) => JSON.stringify([g.title, g.subtitle])}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.track}
-              onLongPress={
-                tab === "Albums" ? () => setAlbumActions(item) : undefined
-              }
-              onPress={() => {
-                if (tab === "Albums") {
-                  navigation.navigate("LocalAlbumDetails", item);
-                } else {
+          renderItem={({ item }) =>
+            tab === "Albums" ? (
+              <Pressable
+                style={libraryStyles.albumCard}
+                onLongPress={() => setAlbumActions(item)}
+                onPress={() => navigation.navigate("LocalAlbumDetails", item)}
+              >
+                <View style={libraryStyles.albumArtBox}>
+                  {item.art ? (
+                    <Image
+                      source={{ uri: item.art }}
+                      style={libraryStyles.albumArt}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={libraryStyles.albumArtFallback}>
+                      <Text style={{ opacity: 0.2, fontSize: 22 }}>♪</Text>
+                    </View>
+                  )}
+                </View>
+                <Text numberOfLines={1} style={libraryStyles.albumTitle}>
+                  {item.title}
+                </Text>
+                <Text numberOfLines={1} style={libraryStyles.rowSubtitle}>
+                  {item.subtitle}
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={styles.track}
+                onPress={() => {
                   setDetail(item);
                   setSearch("");
-                }
-              }}
-            >
-              <Artwork uri={item.art} />
-              <View style={{ flex: 1 }}>
-                <Text numberOfLines={1}>{item.title}</Text>
-                <Text numberOfLines={1} style={styles.muted}>
-                  {item.subtitle ? `${item.subtitle} · ` : ""}
-                  {item.ids.length} tracks
-                </Text>
-              </View>
-              {tab === "Albums" ? (
-                <MoreButton
-                  label="Album options"
-                  onPress={() => setAlbumActions(item)}
-                />
-              ) : (
+                }}
+              >
+                <Artwork uri={item.art} size={44} round />
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={libraryStyles.rowTitle}>
+                    {item.title}
+                  </Text>
+                  <Text numberOfLines={1} style={libraryStyles.rowSubtitle}>
+                    {item.ids.length} tracks
+                  </Text>
+                </View>
                 <Feather
                   name="chevron-right"
+                  size={18}
                   color={colors.textMuted}
-                  size={20}
                 />
-              )}
-            </Pressable>
-          )}
+              </Pressable>
+            )
+          }
         />
       ) : (
         <>
@@ -962,8 +1012,10 @@ export default function DeviceLibrary({
                 )}
                 <Artwork uri={item.albumArt} />
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Text numberOfLines={1}>{item.title || item.filename}</Text>
-                  <Text numberOfLines={1} style={styles.muted}>
+                  <Text numberOfLines={1} style={libraryStyles.rowTitle}>
+                    {item.title || item.filename}
+                  </Text>
+                  <Text numberOfLines={1} style={libraryStyles.rowSubtitle}>
                     {item.artist || "Unknown artist"}
                   </Text>
                 </View>
@@ -1320,11 +1372,22 @@ export default function DeviceLibrary({
   );
 }
 
-function Artwork({ uri, size = 48 }: { uri?: string | null; size?: number }) {
+function Artwork({
+  uri,
+  size = 44,
+  round = false,
+}: {
+  uri?: string | null;
+  size?: number;
+  round?: boolean;
+}) {
   return uri ? (
     <Image
       source={{ uri }}
-      style={[styles.art, { width: size, height: size }]}
+      style={[
+        styles.art,
+        { width: size, height: size, borderRadius: round ? size / 2 : 6 },
+      ]}
     />
   ) : (
     <View
@@ -1333,6 +1396,7 @@ function Artwork({ uri, size = 48 }: { uri?: string | null; size?: number }) {
         {
           width: size,
           height: size,
+          borderRadius: round ? size / 2 : 6,
           alignItems: "center",
           justifyContent: "center",
         },
@@ -1404,29 +1468,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   row: { flexDirection: "row", gap: 12, justifyContent: "flex-end" },
-  tabStrip: { flexGrow: 0, flexShrink: 0 },
-  tabs: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    alignItems: "center",
-  },
-  tab: {
-    flexShrink: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-  },
-  selected: { backgroundColor: colors.primary },
-  tabLabel: { color: colors.text, fontSize: 14, lineHeight: 20 },
-  track: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
+  track: { ...libraryStyles.trackRow, paddingHorizontal: 16 },
   art: {
     width: 48,
     height: 48,
