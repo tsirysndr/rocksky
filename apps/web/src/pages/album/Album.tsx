@@ -256,20 +256,6 @@ const Album = () => {
                   </div>
                 </div>
               )}
-              {formats.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    color: "var(--color-text-muted)",
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                    whiteSpace: "nowrap",
-                    overflowX: "auto",
-                  }}
-                >
-                  {formats.join(" · ")}
-                </div>
-              )}
             </div>
             <div className="ml-[20px] flex-1">
               <HeadingMedium margin={0} className="!text-[var(--color-text)]">
@@ -388,6 +374,22 @@ const Album = () => {
               </div>
             </div>
           </Group>
+        )}
+        {album && formats.length > 0 && (
+          <div
+            style={{
+              marginTop: 12,
+              color: "var(--color-text)",
+              fontSize: 13,
+              lineHeight: 1.5,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ color: "var(--color-text-muted)", marginRight: 8 }}>
+              Formats
+            </span>
+            {formats.join(", ")}
+          </div>
         )}
 
         <div className="mt-[20px]">
