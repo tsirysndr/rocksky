@@ -15,7 +15,10 @@ export default function RecordingMetadata({
   const code = isrc?.trim();
   if (!recordingId && !code) return null;
   return (
-    <div className="flex flex-col items-start gap-3 mt-3">
+    <div
+      className="flex flex-col items-start"
+      style={{ gap: 20, marginTop: 20 }}
+    >
       {recordingId && (
         <a
           href={`https://musicbrainz.org/recording/${encodeURIComponent(recordingId)}`}

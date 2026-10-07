@@ -7,6 +7,8 @@ import { useAtomValue } from "jotai";
 import { songAtom } from "../../atoms/song";
 
 const Link = styled.a`
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
   color: #000;
   &:hover {
