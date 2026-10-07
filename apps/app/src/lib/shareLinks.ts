@@ -14,7 +14,12 @@ export type ShareItem = {
   artwork?: string;
   year?: number;
   stats?: { label: string; value: string }[];
-  rankings?: { label: string; names: string[] }[];
+  rankings?: {
+    label: string;
+    names: string[];
+    artworks?: (string | null | undefined)[];
+    artworkShape?: "circle" | "rounded";
+  }[];
 };
 const collections = {
   song: "app.rocksky.song",

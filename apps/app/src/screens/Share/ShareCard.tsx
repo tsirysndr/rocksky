@@ -85,6 +85,9 @@ export default function ShareCard({
   const [imageReady, setImageReady] = useState(!item.artwork);
   const [imageFailed, setImageFailed] = useState(false);
   const [laidOut, setLaidOut] = useState(false);
+  const [rankingImages, setRankingImages] = useState<
+    Record<string, "ready" | "failed">
+  >({});
   const palette = palettes[paletteIndex];
   // Capture at 1080px; the on-screen layout scales uniformly to preserve type.
   const cardWidth = Math.min(width - 48, 360);
@@ -92,6 +95,15 @@ export default function ShareCard({
   const height = format === "story" ? 640 : 360;
   const wrapped = item.kind === "wrapped";
   const chart = item.kind === "chart";
+  const visibleRankings =
+    item.rankings?.slice(0, format === "story" ? 2 : 1) ?? [];
+  const rankingLimit = chart ? 5 : 3;
+  const rankingImagesReady = visibleRankings.every((group) =>
+    group.names.slice(0, rankingLimit).every((_, index) => {
+      const uri = group.artworks?.[index];
+      return !uri || !!rankingImages[uri];
+    }),
+  );
   const run = async (action: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true);
@@ -254,7 +266,7 @@ export default function ShareCard({
                           <Text
                             style={{
                               color: palette.accent,
-                              fontSize: 32,
+                              fontSize: format === "story" ? 32 : 24,
                               fontWeight: "800",
                             }}
                           >
@@ -264,35 +276,95 @@ export default function ShareCard({
                         </View>
                       ))}
                     </View>
-                    {item.rankings
-                      ?.slice(0, format === "story" ? 2 : 1)
-                      .map((group) => (
-                        <View key={group.label}>
-                          <Text
-                            style={[
-                              styles.label,
-                              { color: palette.accent, marginBottom: 6 },
-                            ]}
-                          >
-                            {group.label.toUpperCase()}
-                          </Text>
-                          {group.names
-                            .slice(0, chart ? 5 : 3)
-                            .map((name, i) => (
+                    {visibleRankings.map((group) => (
+                      <View key={group.label}>
+                        <Text
+                          style={[
+                            styles.label,
+                            { color: palette.accent, marginBottom: 6 },
+                          ]}
+                        >
+                          {group.label.toUpperCase()}
+                        </Text>
+                        {group.names.slice(0, rankingLimit).map((name, i) => {
+                          const artwork = group.artworks?.[i];
+                          const size =
+                            format === "story"
+                              ? chart
+                                ? 40
+                                : 30
+                              : chart
+                                ? 28
+                                : 24;
+                          const circle = group.artworkShape === "circle";
+                          return (
+                            <View
+                              key={`${i}-${name}`}
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 9,
+                                marginBottom: 4,
+                              }}
+                            >
                               <Text
-                                key={`${i}-${name}`}
-                                numberOfLines={1}
                                 style={{
-                                  color: "#fff",
-                                  fontSize: 14,
-                                  marginBottom: chart ? 10 : 3,
+                                  color: palette.accent,
+                                  width: 19,
+                                  fontSize: 11,
                                 }}
                               >
-                                {String(i + 1).padStart(2, "0")} {name}
+                                {String(i + 1).padStart(2, "0")}
                               </Text>
-                            ))}
-                        </View>
-                      ))}
+                              <View
+                                style={{
+                                  width: size,
+                                  height: size,
+                                  borderRadius: circle ? size / 2 : 5,
+                                  overflow: "hidden",
+                                  backgroundColor: "#ffffff20",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {artwork &&
+                                rankingImages[artwork] !== "failed" ? (
+                                  <Image
+                                    source={{ uri: artwork }}
+                                    resizeMode="cover"
+                                    style={{ width: size, height: size }}
+                                    onLoad={() =>
+                                      setRankingImages((current) => ({
+                                        ...current,
+                                        [artwork]: "ready",
+                                      }))
+                                    }
+                                    onError={() =>
+                                      setRankingImages((current) => ({
+                                        ...current,
+                                        [artwork]: "failed",
+                                      }))
+                                    }
+                                  />
+                                ) : (
+                                  <Feather
+                                    name={circle ? "user" : "music"}
+                                    color="#ffffffbb"
+                                    size={size * 0.5}
+                                  />
+                                )}
+                              </View>
+                              <Text
+                                numberOfLines={1}
+                                style={{ flex: 1, color: "#fff", fontSize: 13 }}
+                              >
+                                {name}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))}
                   </View>
                 ) : (
                   <View style={{ gap: format === "story" ? 24 : 12 }}>
@@ -392,11 +464,13 @@ export default function ShareCard({
         </View>
         <TouchableOpacity
           accessibilityRole="button"
-          disabled={busy || !imageReady || !laidOut}
+          disabled={busy || !imageReady || !rankingImagesReady || !laidOut}
           onPress={exportCard}
           style={[
             styles.primary,
-            (busy || !imageReady || !laidOut) && { opacity: 0.5 },
+            (busy || !imageReady || !rankingImagesReady || !laidOut) && {
+              opacity: 0.5,
+            },
           ]}
         >
           {busy ? (

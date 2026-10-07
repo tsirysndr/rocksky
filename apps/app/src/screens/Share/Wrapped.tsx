@@ -69,9 +69,13 @@ export default function Wrapped({
           {
             label: "Top artists",
             names: artists.map((a) => a.name || "Unknown artist"),
+            artworks: artists.map((a) => a.picture),
+            artworkShape: "circle",
           },
           {
             label: "Top tracks",
+            artworks: tracks.map((t) => t.albumArt),
+            artworkShape: "rounded",
             names: tracks.map(
               (t) =>
                 `${t.title || "Untitled track"} · ${t.artist || "Unknown artist"}`,

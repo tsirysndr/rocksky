@@ -365,7 +365,13 @@ function OverviewTab({
   const period =
     RANGE_OPTIONS.find((option) => option.days === rangeDays)?.label ||
     "All time";
-  const chartHeading = (title: string, names: string[], pending: boolean) => (
+  const chartHeading = (
+    title: string,
+    names: string[],
+    pending: boolean,
+    artworks: (string | null | undefined)[],
+    artworkShape: "circle" | "rounded",
+  ) => (
     <View
       style={{
         flexDirection: "row",
@@ -397,7 +403,14 @@ function OverviewTab({
               uri: did,
               title,
               subtitle: `${owner?.displayName || owner?.handle || did} · ${period}`,
-              rankings: [{ label: period, names: names.slice(0, 5) }],
+              rankings: [
+                {
+                  label: period,
+                  names: names.slice(0, 5),
+                  artworks: artworks.slice(0, 5),
+                  artworkShape,
+                },
+              ],
             },
           })
         }
@@ -553,6 +566,8 @@ function OverviewTab({
             "Top Artists",
             artistList.map((a) => a.name || "Unknown artist"),
             artistsQuery.isFetching || artistsQuery.isPlaceholderData,
+            artistList.map((a) => a.picture || a.photo),
+            "circle",
           )}
           <ScrollView
             horizontal
@@ -618,6 +633,8 @@ function OverviewTab({
             "Top Albums",
             albumList.map((a) => a.title || "Untitled album"),
             albumsQuery.isFetching || albumsQuery.isPlaceholderData,
+            albumList.map((a) => a.albumArt || a.album_art),
+            "rounded",
           )}
           <View
             style={{
@@ -686,6 +703,8 @@ function OverviewTab({
                 `${t.title || "Untitled track"} · ${t.artist || t.albumArtist || t.album_artist || "Unknown artist"}`,
             ),
             tracksQuery.isFetching || tracksQuery.isPlaceholderData,
+            trackList.map((t) => t.albumArt || t.album_art),
+            "rounded",
           )}
           {trackList.map((t, i) => {
             const art = t.albumArt || t.album_art;
