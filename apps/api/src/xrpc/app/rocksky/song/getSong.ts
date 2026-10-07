@@ -181,6 +181,8 @@ const presentation = ([
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
+    mbId: track.mbId?.trim() || undefined,
+    isrc: track.isrc?.trim() || undefined,
     tags: artist?.genres || [],
     artists: artists.map((item) => ({
       ...item,

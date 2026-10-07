@@ -166,6 +166,14 @@
           "type": "ref",
           "description": "The first scrobble of this song on Rocksky.",
           "ref": "app.rocksky.scrobble.defs#firstScrobbleView"
+        },
+        "mbId": {
+          "type": "string",
+          "description": "The MusicBrainz recording ID of the track, when available."
+        },
+        "isrc": {
+          "type": "string",
+          "description": "The International Standard Recording Code (ISRC) of the track, when available."
         }
       }
     },

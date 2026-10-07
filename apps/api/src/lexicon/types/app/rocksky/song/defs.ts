@@ -65,6 +65,8 @@ export function validateSongViewBasic(v: unknown): ValidationResult {
 }
 
 export interface SongViewDetailed {
+  /** The MusicBrainz recording ID of the track, when available. */
+  mbId?: string;
   /** The unique identifier of the song. */
   id?: string;
   /** The title of the song. */

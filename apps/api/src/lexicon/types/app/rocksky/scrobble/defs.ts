@@ -58,6 +58,10 @@ export function validateScrobbleViewBasic(v: unknown): ValidationResult {
 }
 
 export interface ScrobbleViewDetailed {
+  /** The MusicBrainz recording ID of the track, when available. */
+  mbId?: string;
+  /** The International Standard Recording Code (ISRC) of the track, when available. */
+  isrc?: string;
   /** The unique identifier of the scrobble. */
   id?: string;
   /** The handle of the user who created the scrobble. */

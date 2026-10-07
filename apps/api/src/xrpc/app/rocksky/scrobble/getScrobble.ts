@@ -157,6 +157,8 @@ const presentation = ([
 ]): Effect.Effect<ScrobbleViewDetailed, never> => {
   return Effect.sync(() => ({
     ...R.omit(["albumArt", "id", "albumUri"], tracks),
+    mbId: tracks.mbId?.trim() || undefined,
+    isrc: tracks.isrc?.trim() || undefined,
     artists: trackArtists.map((item) => ({
       ...item,
       createdAt: item.createdAt.toISOString(),

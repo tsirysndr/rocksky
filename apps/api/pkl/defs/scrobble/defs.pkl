@@ -105,6 +105,14 @@ defs = new Mapping<String, ObjectType> {
   ["scrobbleViewDetailed"] {
     type = "object"
     properties {
+      ["mbId"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz recording ID of the track, when available."
+      }
+      ["isrc"] = new StringType {
+        type = "string"
+        description = "The International Standard Recording Code (ISRC) of the track, when available."
+      }
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the scrobble."

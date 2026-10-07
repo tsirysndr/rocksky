@@ -105,6 +105,10 @@ defs = new Mapping<String, ObjectType> {
   ["songViewDetailed"] {
     type = "object"
     properties {
+      ["mbId"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz recording ID of the track, when available."
+      }
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the song."

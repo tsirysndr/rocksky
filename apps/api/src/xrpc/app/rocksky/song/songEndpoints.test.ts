@@ -7,6 +7,7 @@ import pg from "pg";
 import tables from "schema";
 import getArtistAlbums from "../artist/getArtistAlbums";
 import getSong from "./getSong";
+import getScrobble from "../scrobble/getScrobble";
 
 const databaseUrl = process.env.ROCKSKY_QUERY_TEST_DATABASE_URL;
 describe.skipIf(!databaseUrl)(
@@ -14,6 +15,7 @@ describe.skipIf(!databaseUrl)(
   () => {
     const client = new pg.Client({ connectionString: databaseUrl });
     let song: (request: any) => Promise<any>;
+    let scrobble: (request: any) => Promise<any>;
     let albums: (request: any) => Promise<any>;
     const queries: string[] = [];
     beforeAll(async () => {
@@ -77,6 +79,11 @@ describe.skipIf(!databaseUrl)(
                 song = config.handler;
               },
             },
+            scrobble: {
+              getScrobble(config: any) {
+                scrobble = config.handler;
+              },
+            },
             artist: {
               getArtistAlbums(config: any) {
                 albums = config.handler;
@@ -86,6 +93,7 @@ describe.skipIf(!databaseUrl)(
         },
       } as unknown as Server;
       getSong(server, ctx);
+      getScrobble(server, ctx);
       getArtistAlbums(server, ctx);
     });
     afterAll(async () => {
@@ -102,6 +110,8 @@ describe.skipIf(!databaseUrl)(
       ]) {
         const { body } = await song({ params, auth: {} });
         expect(body.id).toBe("track");
+        expect(body.mbId).toBe("mbid");
+        expect(body.isrc).toBe("isrc");
         expect(body.playCount).toBe(3);
         expect(body.uniqueListeners).toBe(2);
         expect(body.firstScrobble.handle).toBe("two.test");
@@ -155,6 +165,43 @@ describe.skipIf(!databaseUrl)(
           })
         ).body.liked,
       ).toBe(false);
+    });
+
+    it("returns camel-case identifiers for tracks and their scrobbles, omitting missing identifiers", async () => {
+      await client.query(
+        "UPDATE scrobbles SET uri = 'at://scrobble' WHERE xata_id = 's1'",
+      );
+      try {
+        for (const [mbId, isrc] of [
+          ["4330e262-40ee-4827-82d7-8fdf2c1f0c8a", "USWD10833901"],
+          [null, "USWD10833901"],
+          ["4330e262-40ee-4827-82d7-8fdf2c1f0c8a", null],
+          [null, null],
+          ["  ", ""],
+        ]) {
+          await client.query(
+            "UPDATE tracks SET mb_id = $1, isrc = $2 WHERE xata_id = 'track'",
+            [mbId, isrc],
+          );
+          for (const [handler, uri] of [
+            [song, "at://track"],
+            [scrobble, "at://scrobble"],
+          ] as const) {
+            const response = await handler({ params: { uri }, auth: {} });
+            // Assert the JSON sent over the wire, not just an in-memory object.
+            const body = JSON.parse(JSON.stringify(response.body));
+            expect(body.title).toBe("Song");
+            expect(body.mbId).toBe(mbId?.trim() || undefined);
+            expect(body.isrc).toBe(isrc?.trim() || undefined);
+            expect(Object.hasOwn(body, "mbId")).toBe(!!mbId?.trim());
+            expect(Object.hasOwn(body, "isrc")).toBe(!!isrc?.trim());
+          }
+        }
+      } finally {
+        await client.query(
+          "UPDATE tracks SET mb_id = 'mbid', isrc = 'isrc' WHERE xata_id = 'track'",
+        );
+      }
     });
 
     it("rejects missing songs and invalid input instead of returning an empty success", async () => {

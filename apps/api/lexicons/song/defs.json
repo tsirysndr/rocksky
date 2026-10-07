@@ -217,6 +217,10 @@
             "type": "ref",
             "ref": "app.rocksky.song.defs#songMatchView"
           }
+        },
+        "mbId": {
+          "type": "string",
+          "description": "The MusicBrainz recording ID of the track, when available."
         }
       }
     },

@@ -7348,6 +7348,16 @@ export const schemaDict = {
       scrobbleViewDetailed: {
         type: "object",
         properties: {
+          mbId: {
+            type: "string",
+            description:
+              "The MusicBrainz recording ID of the track, when available.",
+          },
+          isrc: {
+            type: "string",
+            description:
+              "The International Standard Recording Code (ISRC) of the track, when available.",
+          },
           id: {
             type: "string",
             description: "The unique identifier of the scrobble.",
@@ -8428,6 +8438,11 @@ export const schemaDict = {
       songViewDetailed: {
         type: "object",
         properties: {
+          mbId: {
+            type: "string",
+            description:
+              "The MusicBrainz recording ID of the track, when available.",
+          },
           id: {
             type: "string",
             description: "The unique identifier of the song.",
