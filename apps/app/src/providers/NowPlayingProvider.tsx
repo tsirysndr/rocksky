@@ -178,12 +178,12 @@ function useLocalPlayerBroadcast() {
   const token = useAtomValue(authTokenAtom);
 
   useEffect(() => {
+    void restoreLocalQueue();
     if (!token) {
       stopLocalRemotePlayer();
       return;
     }
     startLocalRemotePlayer();
-    void restoreLocalQueue();
     return () => stopLocalRemotePlayer();
   }, [token]);
 }

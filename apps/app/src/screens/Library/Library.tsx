@@ -1065,7 +1065,7 @@ export default function Library() {
 
   if (!signedIn) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
+      <SafeAreaView style={styles.screen} edges={["left", "right"]}>
         <View style={styles.signInWrap}>
           <LibraryGlyph size={40} color={colors.textMuted} />
           <Text style={{ fontSize: 14, color: colors.textMuted }}>
@@ -1087,7 +1087,7 @@ export default function Library() {
   const view = stack[stack.length - 1];
   if (view) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
+      <SafeAreaView style={styles.screen} edges={["left", "right"]}>
         {view.kind === "album" ? (
           <AlbumDetailScreen
             view={view}
@@ -1123,7 +1123,7 @@ export default function Library() {
     (tab === 1 && albumsQuery.isFetchingNextPage);
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.screen} edges={["left", "right"]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Library</Text>

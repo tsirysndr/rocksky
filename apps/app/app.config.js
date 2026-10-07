@@ -11,6 +11,11 @@ module.exports = {
   backgroundColor: "#130825",
   newArchEnabled: true,
   extra: {
+    // AcoustID application client key (not a user's submission key).
+    acoustidClientKey:
+      process.env.ACOUSTIC_ID_API_KEY ||
+      process.env.EXPO_PUBLIC_ACOUSTID_API_KEY ||
+      "",
     eas: {
       projectId: "b11aecfd-7217-4707-b0a8-6ad121c51bd4",
     },

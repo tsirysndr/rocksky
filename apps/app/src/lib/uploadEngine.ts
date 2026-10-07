@@ -11,6 +11,7 @@ import {
   type EngineStatus,
   engineCommand,
   isEngineAvailable,
+  localMusicNative,
 } from "../../modules/rocksky-engine";
 import { getSongLikeState, like, unlike } from "../api/likes";
 import {
@@ -44,12 +45,15 @@ import {
 import { queryClient } from "./queryClient";
 import { createQueueSnapshotWriter } from "./queueSnapshotWriter";
 import { remoteBridge, type TransportAction } from "./remoteBridge";
+import { deviceQueueTrack, type DeviceTrack } from "./deviceMusicModel";
 
 // Local playback of uploads through the native Rust engine: owns the queue
 // metadata (the engine only knows URLs), mirrors engine state into the shared
 // now-playing atoms, routes transport actions, and scrobbles.
 
 export type UploadQueueTrack = {
+  localId?: string;
+  scrobbleEligible?: boolean;
   uploadId: string;
   title: string;
   artist: string;
@@ -87,6 +91,32 @@ const store = getDefaultStore();
 export const localQueueRevisionAtom = atom(0);
 const notifyQueue = () =>
   store.set(localQueueRevisionAtom, (value) => value + 1);
+
+/** A local edit immediately changes scrobble eligibility, including queued copies. */
+export function refreshDeviceQueueTracks(tracks: DeviceTrack[]) {
+  const updates = new Map(tracks.map((track) => [track.id, track]));
+  for (const track of queue) {
+    const update = track.localId ? updates.get(track.localId) : undefined;
+    if (update) Object.assign(track, deviceQueueTrack(update));
+  }
+  notifyQueue();
+  scheduleQueueSave();
+  if (lastTrack?.localId && engineOwnsDisplay()) {
+    store.set(nowPlayingAtom, (previous) =>
+      previous
+        ? {
+            ...previous,
+            title: lastTrack!.title,
+            artist: lastTrack!.artist,
+            album: lastTrack!.album,
+            cover: lastTrack!.albumArt ?? "",
+            liked: lastTrack!.liked ?? false,
+          }
+        : previous,
+    );
+    void resolveLikeState(lastTrack, lastIndex ?? 0);
+  }
+}
 let lastTrack: UploadQueueTrack | null = null;
 let pendingSeek: { position: number; until: number } | null = null;
 let queue: UploadQueueTrack[] = [];
@@ -223,7 +253,6 @@ AppState.addEventListener("change", (state) => {
  */
 export async function restoreLocalQueue(): Promise<boolean> {
   const session = storage.getToken();
-  if (!session) return false;
   if (!isEngineAvailable() || queue.length > 0) return false;
   await localModes.load().catch(reportQueueSaveError);
   let snapshot: PersistedQueue | null = null;
@@ -236,6 +265,7 @@ export async function restoreLocalQueue(): Promise<boolean> {
   if (
     storage.getToken() !== session ||
     !snapshot?.tracks?.length ||
+    (!session && snapshot.tracks.some((track) => !track.localId)) ||
     queue.length > 0
   )
     return false;
@@ -436,6 +466,8 @@ function handleTransport(action: TransportAction, positionMs?: number) {
 
 function maybeScrobble(track: UploadQueueTrack, status: EngineStatus) {
   if (scrobbled || status.state !== "playing") return;
+  if (!storage.getToken() || (track.localId && track.scrobbleEligible !== true))
+    return;
   const duration = track.durationMs || status.durationMs;
   if (duration < MIN_TRACK_MS) return;
   const threshold = Math.min(duration * 0.5, MAX_SCROBBLE_THRESHOLD_MS);
@@ -446,7 +478,9 @@ function maybeScrobble(track: UploadQueueTrack, status: EngineStatus) {
     artist: track.artist,
     albumArtist: track.albumArtist || track.artist,
     album: track.album,
-    albumArt: track.albumArt ?? undefined,
+    albumArt: track.albumArt?.startsWith("https://")
+      ? track.albumArt
+      : undefined,
     duration,
     timestamp: Math.floor(startedAt / 1000),
   }).catch(() => {
@@ -468,6 +502,17 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
   let liked: boolean | null = null;
   let uri: string | null = null;
 
+  if (track.localId) {
+    try {
+      const library = await localMusicNative.library();
+      liked =
+        library.tracks.find((item: { id: string }) => item.id === track.localId)
+          ?.favorite ?? false;
+    } catch {
+      liked = track.liked ?? false;
+    }
+  }
+
   if (track.navidromeId && navidromeCreds) {
     // getStarred2 is the love list for navidrome ids; getSong can't be asked,
     // since a Subsonic song exposes no URI to look it up by. Read through the
@@ -488,7 +533,7 @@ async function resolveLikeState(track: UploadQueueTrack, index: number) {
     : track.mbId
       ? { mbid: track.mbId }
       : null;
-  if (liked !== true && params) {
+  if (!track.localId && liked !== true && params) {
     const state = await queryClient
       .fetchQuery({
         queryKey: ["song", "like-state", storage.getDid(), params],
@@ -561,7 +606,14 @@ export async function toggleLocalLike(): Promise<boolean> {
 
   const uri = track.songUri ?? resolvedUri;
   try {
-    if (track.navidromeId && navidromeCreds) {
+    if (track.localId) {
+      await localMusicNative.mutate({
+        action: "favorite",
+        id: track.localId,
+        favorite: next,
+      });
+      queryClient.invalidateQueries({ queryKey: ["device-library"] });
+    } else if (track.navidromeId && navidromeCreds) {
       if (next) await starNavidromeSong(navidromeCreds, track.navidromeId);
       else await unstarNavidromeSong(navidromeCreds, track.navidromeId);
     } else if (uri) {
@@ -712,6 +764,19 @@ function streamUrlFor(track: UploadQueueTrack): string {
 }
 
 async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
+  if (tracks.some((track) => track.localId)) {
+    const library = await localMusicNative.library();
+    const deviceTracks = new Map<string, DeviceTrack>(
+      library.tracks.map((track: DeviceTrack) => [track.id, track]),
+    );
+    for (const track of tracks) {
+      if (!track.localId) continue;
+      const current = deviceTracks.get(track.localId);
+      if (!current)
+        throw new Error(`Local file is no longer available: ${track.title}`);
+      Object.assign(track, deviceQueueTrack(current));
+    }
+  }
   if (
     tracks.some((track) => track.navidromeId && !track.streamUrl) &&
     !navidromeCreds
@@ -733,9 +798,18 @@ async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
   }
   // Only the upload-backed path needs the token; a navidrome queue carries its
   // own credentialed URLs.
-  const needsToken = tracks.some((t) => !t.streamUrl && !t.navidromeId);
+  const needsToken = tracks.some(
+    (t) => !t.localId && !t.streamUrl && !t.navidromeId,
+  );
   if (needsToken) await ensureStreamToken();
-  return tracks.map(streamUrlFor);
+  const paths: string[] = [];
+  for (const track of tracks)
+    paths.push(
+      track.localId
+        ? await localMusicNative.path(track.localId)
+        : streamUrlFor(track),
+    );
+  return paths;
 }
 
 /** Replace the queue with `tracks` and start playing at `startIndex`. */
@@ -744,7 +818,7 @@ export async function playUploads(
   startIndex: number,
 ): Promise<boolean> {
   const session = storage.getToken();
-  if (!session) return false;
+  if (!session && tracks.some((track) => !track.localId)) return false;
   if (!isEngineAvailable() || tracks.length === 0) return false;
   const paths = await resolvePaths(tracks);
   await applyLocalPlaybackModes();
@@ -862,13 +936,13 @@ const deviceLabel = (): string =>
 const toRemoteQueueItem = (track: UploadQueueTrack): RemoteQueueItem => ({
   // A navidrome song is addressed by its Subsonic id, an upload by its id;
   // sending the right one is what lets a controller re-enqueue it.
-  uploadId: track.navidromeId ? undefined : track.uploadId,
+  uploadId: track.localId || track.navidromeId ? undefined : track.uploadId,
   trackId: track.navidromeId,
   title: track.title,
   artist: track.artist,
   album: track.album,
   albumArtist: track.albumArtist,
-  albumArt: track.albumArt ?? undefined,
+  albumArt: track.albumArt?.startsWith("https://") ? track.albumArt : undefined,
   durationMs: track.durationMs,
   songUri: track.songUri ?? undefined,
   albumUri: track.albumUri ?? undefined,
@@ -892,7 +966,9 @@ function advertiseNowPlaying(force = false) {
     artist: track.artist,
     album: track.album,
     albumArtist: track.albumArtist,
-    albumArt: track.albumArt ?? undefined,
+    albumArt: track.albumArt?.startsWith("https://")
+      ? track.albumArt
+      : undefined,
     durationMs: np.duration,
     elapsedMs: np.progress,
     isPlaying: np.isPlaying,
