@@ -14,7 +14,11 @@
  * of being recorded as a miss.
  *
  * Usage (also wired as `bun backfill:discogs`):
- *   tsx ./src/scripts/backfill-discogs.ts
+ *   tsx ./src/scripts/backfill-discogs.ts [--cursor <offset>]
+ *
+ * --cursor is a zero-based offset into currently unlinked albums (default 0).
+ * Example: --cursor 15829 skips 15,829 pending albums. Matches remove albums
+ * from this list, so offsets from an earlier run may refer to different albums.
  *
  * Env:
  *   DISCOGS_ENRICHMENT_ENABLED  "true" — enable enrichment (default false)
@@ -26,7 +30,8 @@
 import chalk from "chalk";
 import { consola } from "consola";
 import { ctx } from "context";
-import { and, asc, count, gt, isNull } from "drizzle-orm";
+import { and, asc, count, isNull, sql } from "drizzle-orm";
+import { parseArgs } from "node:util";
 import { enrichAlbumWithDiscogs } from "lib/discogsEnrichment";
 import { env } from "lib/env";
 import tables from "schema";
@@ -61,7 +66,29 @@ const retryDb = <T>(label: string, run: () => PromiseLike<T>) =>
       ),
   });
 
+// Compare in Postgres to preserve timestamp precision, including microseconds.
+// The ID breaks ties for albums created at the same timestamp.
+const pendingAfter = (cursor?: string) =>
+  and(
+    isNull(tables.albums.discogsReleaseId),
+    cursor
+      ? sql`(${tables.albums.createdAt}, ${tables.albums.id}) >
+          (SELECT xata_createdat, xata_id FROM albums WHERE xata_id = ${cursor})`
+      : undefined,
+  );
+
 async function main() {
+  const { values } = parseArgs({
+    args: process.argv.slice(2),
+    options: { cursor: { type: "string" } },
+    strict: true,
+    allowPositionals: false,
+  });
+  const rawOffset = values.cursor ?? "0";
+  const offset = Number(rawOffset);
+  if (!/^\d+$/.test(rawOffset) || !Number.isSafeInteger(offset)) {
+    throw new Error("--cursor must be a non-negative integer offset");
+  }
   if (!env.DISCOGS_ENRICHMENT_ENABLED) {
     consola.info(
       "Discogs enrichment is disabled. Set DISCOGS_ENRICHMENT_ENABLED=true to run the backfill.",
@@ -77,9 +104,9 @@ async function main() {
       .then((rows) => rows[0]?.count ?? 0),
   );
 
-  const target = Math.min(pending, LIMIT);
+  const target = Math.min(Math.max(0, pending - offset), LIMIT);
   consola.info(
-    `${pending} album(s) without a Discogs link · asking ${ALBUMS_PER_MINUTE}/min · ETA ${formatEta((target * SPACING_MS) / 1000)}${DRY_RUN ? " (dry run)" : ""}`,
+    `${pending} album(s) without a Discogs link · starting offset ${offset} · asking ${ALBUMS_PER_MINUTE}/min · ETA ${formatEta((target * SPACING_MS) / 1000)}${DRY_RUN ? " (dry run)" : ""}`,
   );
 
   let processed = 0;
@@ -89,7 +116,7 @@ async function main() {
   let skipped = 0;
   // Keyset cursor: a matched album drops out of the filter, but a miss stays
   // in it, so paging has to move past what has been asked about.
-  let cursor: Date | undefined;
+  let cursor: string | undefined;
   const startedAt = Date.now();
 
   while (processed < target) {
@@ -97,16 +124,11 @@ async function main() {
       ctx.db
         .select()
         .from(tables.albums)
-        .where(
-          cursor
-            ? and(
-                isNull(tables.albums.discogsReleaseId),
-                gt(tables.albums.createdAt, cursor),
-              )
-            : isNull(tables.albums.discogsReleaseId),
-        )
-        .orderBy(asc(tables.albums.createdAt))
-        .limit(PAGE_SIZE),
+        .where(pendingAfter(cursor))
+        .orderBy(asc(tables.albums.createdAt), asc(tables.albums.id))
+        .limit(PAGE_SIZE)
+        // Apply the numeric offset once; matches shrink the pending set.
+        .offset(cursor === undefined ? offset : 0),
     );
 
     if (albums.length === 0) {
@@ -118,8 +140,8 @@ async function main() {
 
       const label = chalk.cyan(`${album.artist} - ${album.title}`);
       if (DRY_RUN) {
-        consola.info(`[${processed + 1}/${target}] would ask for ${label}`);
-        cursor = album.createdAt;
+        consola.info(`[${offset + processed + 1}/${offset + target}] would ask for ${label}`);
+        cursor = album.id;
         processed++;
         continue;
       }
@@ -143,27 +165,27 @@ async function main() {
         result = await enrich();
       }
 
-      cursor = album.createdAt;
+      cursor = album.id;
       processed++;
       switch (result.status) {
         case "matched":
           matched++;
           consola.success(
-            `[${processed}/${target}] ${label} → ${chalk.green(result.release.discogsId)}`,
+            `[${offset + processed}/${offset + target}] ${label} → ${chalk.green(result.release.discogsId)}`,
           );
           break;
         case "missed":
           missed++;
-          consola.info(`[${processed}/${target}] ${label} → no match`);
+          consola.info(`[${offset + processed}/${offset + target}] ${label} → no match`);
           break;
         case "skipped":
           skipped++;
-          consola.info(`[${processed}/${target}] ${label} → incomplete album`);
+          consola.info(`[${offset + processed}/${offset + target}] ${label} → incomplete album`);
           break;
         default:
           failed++;
           consola.error(
-            `[${processed}/${target}] ${label} → discogs unavailable`,
+            `[${offset + processed}/${offset + target}] ${label} → discogs unavailable`,
           );
           break;
       }
