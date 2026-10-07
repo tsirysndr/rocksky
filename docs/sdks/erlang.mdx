@@ -90,3 +90,33 @@ dedup store, then keep it warm with `rocksky:agent_sync_repo(Agent)` and
 `rocksky:song_hash(Title, Artist, Album)` / `album_hash` / `artist_hash` —
 lowercase-hex SHA-256, byte-for-byte identical across every Rocksky SDK and the
 server.
+
+## Typed XRPC and raw calls
+
+Include `rocksky_models.hrl` for generated records. `rocksky_xrpc` exposes
+endpoint functions with specs; `rocksky_models` provides validated encoders
+and decoders for params, request bodies and nested responses.
+
+```erlang
+-include_lib("rocksky_erl/include/rocksky_models.hrl").
+
+Client = rocksky_xrpc:new(),
+Params = #song_get_song_params{uri = <<"at://did:plc:example/app.rocksky.song/example">>},
+{ok, Song} = rocksky_xrpc:song_get_song(Client, Params),
+Mbid = Song#song_view_detailed.mb_id,
+
+{ok, {Status, Bytes}} = rocksky_xrpc:raw(Client, get,
+    <<"app.rocksky.song.getSong">>, #{<<"uri">> => Params#song_get_song_params.uri}, undefined).
+%% POST: raw(Client, post, Nsid, ParamsMap, JsonBody).
+```
+
+Configure clients with `with_endpoint/2`, `with_token/2` and `with_timeout/2`
+(milliseconds). Typed calls report `{error, {http, Status, Bytes}}`,
+`{error, {transport, Reason}}` or `{error, {decode, Reason}}`.
+Raw calls preserve HTTP status and bytes, including non-2xx responses.
+
+Existing native-core APIs remain available. The typed layer uses HTTP directly
+and accepts your bearer token; it does not automatically read native-agent
+sessions. Query arrays use repeated URL parameters. Fields the lexicons
+explicitly leave open, such as provider payloads, remain JSON values.
+Regenerate with `bun tools/lexgen/generate.ts --erlang` from the repository root.

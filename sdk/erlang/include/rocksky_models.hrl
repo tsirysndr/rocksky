@@ -1,0 +1,703 @@
+%% Generated from lexicons. Regenerate: bun tools/lexgen/generate.ts --erlang
+-ifndef(ROCKSKY_MODELS_HRL).
+-define(ROCKSKY_MODELS_HRL, true).
+-type json_value() :: null | boolean() | integer() | float() | binary() | [json_value()] | #{binary() => json_value()}.
+-record(blob_cid_ref, {'link' = undefined :: binary() | undefined}).
+-type blob_cid_ref() :: #blob_cid_ref{}.
+-record(blob_ref, {'type' = undefined :: binary() | undefined, 'ref' = undefined :: blob_cid_ref() | undefined, 'mime_type' = undefined :: binary() | undefined, 'size' = undefined :: integer() | undefined}).
+-type blob_ref() :: #blob_ref{}.
+-record(actor_artist_view_basic, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'picture' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'user1_rank' = undefined :: integer() | undefined, 'user2_rank' = undefined :: integer() | undefined, 'weight' = undefined :: float() | undefined}).
+-type actor_artist_view_basic() :: #actor_artist_view_basic{}.
+-record(actor_compatibility_view_basic, {'compatibility_level' = undefined :: integer() | undefined, 'shared_artists' = undefined :: integer() | undefined, 'top_shared_artist_names' = undefined :: [binary()] | undefined, 'top_shared_detailed_artists' = undefined :: [actor_artist_view_basic()] | undefined, 'user1_artist_count' = undefined :: integer() | undefined, 'user2_artist_count' = undefined :: integer() | undefined, 'compatibility_percentage' = undefined :: float() | undefined}).
+-type actor_compatibility_view_basic() :: #actor_compatibility_view_basic{}.
+-record(actor_neighbour_view_basic, {'user_id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'shared_artists_count' = undefined :: integer() | undefined, 'top_shared_artist_names' = undefined :: [binary()] | undefined, 'top_shared_artists_details' = undefined :: [artist_view_basic()] | undefined, 'similarity_score' = undefined :: float() | undefined}).
+-type actor_neighbour_view_basic() :: #actor_neighbour_view_basic{}.
+-record(actor_profile_view_basic, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type actor_profile_view_basic() :: #actor_profile_view_basic{}.
+-record(actor_profile_view_detailed, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'spotify_user' = undefined :: actor_response_spotify_user_view() | undefined, 'spotify_connected' = undefined :: boolean() | undefined, 'googledrive' = undefined :: actor_response_googledrive_view() | undefined, 'dropbox' = undefined :: actor_response_dropbox_view() | undefined}).
+-type actor_profile_view_detailed() :: #actor_profile_view_detailed{}.
+-record(actor_response_dropbox_view, {'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'id' = undefined :: binary() | undefined, 'email' = undefined :: binary() | undefined, 'is_beta_user' = undefined :: boolean() | undefined, 'user_id' = undefined :: binary() | undefined, 'xata_version' = undefined :: binary() | undefined}).
+-type actor_response_dropbox_view() :: #actor_response_dropbox_view{}.
+-record(actor_response_googledrive_view, {'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type actor_response_googledrive_view() :: #actor_response_googledrive_view{}.
+-record(actor_response_spotify_user_view, {'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'id' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined, 'user_id' = undefined :: binary() | undefined, 'is_beta_user' = undefined :: boolean() | undefined, 'spotify_app_id' = undefined :: binary() | undefined}).
+-type actor_response_spotify_user_view() :: #actor_response_spotify_user_view{}.
+-record(actor_track_view, {'name' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_cover_url' = undefined :: binary() | undefined, 'duration_ms' = undefined :: integer() | undefined, 'source' = undefined :: binary() | undefined, 'recording_mb_id' = undefined :: binary() | undefined, 'track_number' = undefined :: integer() | undefined}).
+-type actor_track_view() :: #actor_track_view{}.
+-record(add_directory_to_queue_params, {'player_id' = undefined :: binary() | undefined, 'directory' = undefined :: binary() | undefined, 'position' = undefined :: integer() | undefined, 'shuffle' = undefined :: boolean() | undefined}).
+-type add_directory_to_queue_params() :: #add_directory_to_queue_params{}.
+-record(add_items_to_queue_params, {'player_id' = undefined :: binary() | undefined, 'items' = undefined :: [binary()] | undefined, 'position' = undefined :: integer() | undefined, 'shuffle' = undefined :: boolean() | undefined}).
+-type add_items_to_queue_params() :: #add_items_to_queue_params{}.
+-record(add_songs_output, {'uris' = undefined :: [binary()] | undefined}).
+-type add_songs_output() :: #add_songs_output{}.
+-record(add_songs_params, {'uri' = undefined :: binary() | undefined, 'songs' = undefined :: [binary()] | undefined}).
+-type add_songs_params() :: #add_songs_params{}.
+-record(album_discogs_artist_view, {'artist_id' = undefined :: integer() | undefined, 'name' = undefined :: binary() | undefined, 'anv' = undefined :: binary() | undefined, 'join_phrase' = undefined :: binary() | undefined, 'role' = undefined :: binary() | undefined}).
+-type album_discogs_artist_view() :: #album_discogs_artist_view{}.
+-record(album_discogs_credit_view, {'artist_id' = undefined :: integer() | undefined, 'name' = undefined :: binary() | undefined, 'role' = undefined :: binary() | undefined, 'tracks' = undefined :: binary() | undefined}).
+-type album_discogs_credit_view() :: #album_discogs_credit_view{}.
+-record(album_discogs_identifier_view, {'type' = undefined :: binary() | undefined, 'value' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined}).
+-type album_discogs_identifier_view() :: #album_discogs_identifier_view{}.
+-record(album_discogs_label_view, {'label_id' = undefined :: integer() | undefined, 'name' = undefined :: binary() | undefined, 'catalog_number' = undefined :: binary() | undefined, 'kind' = undefined :: binary() | undefined, 'entity_type' = undefined :: binary() | undefined}).
+-type album_discogs_label_view() :: #album_discogs_label_view{}.
+-record(album_discogs_master_view, {'master_id' = undefined :: integer() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'main_release_id' = undefined :: integer() | undefined, 'url' = undefined :: binary() | undefined, 'genres' = undefined :: [binary()] | undefined, 'styles' = undefined :: [binary()] | undefined}).
+-type album_discogs_master_view() :: #album_discogs_master_view{}.
+-record(album_discogs_track_view, {'position' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'duration' = undefined :: binary() | undefined, 'duration_ms' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined}).
+-type album_discogs_track_view() :: #album_discogs_track_view{}.
+-record(album_discogs_view, {'release_id' = undefined :: integer() | undefined, 'master_id' = undefined :: integer() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'original_year' = undefined :: integer() | undefined, 'release_date' = undefined :: binary() | undefined, 'country' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'catalog_number' = undefined :: binary() | undefined, 'barcode' = undefined :: binary() | undefined, 'formats' = undefined :: [binary()] | undefined, 'genres' = undefined :: [binary()] | undefined, 'styles' = undefined :: [binary()] | undefined, 'url' = undefined :: binary() | undefined, 'score' = undefined :: integer() | undefined, 'credits' = undefined :: [album_discogs_credit_view()] | undefined, 'tracklist' = undefined :: [album_discogs_track_view()] | undefined, 'labels' = undefined :: [album_discogs_label_view()] | undefined, 'identifiers' = undefined :: [album_discogs_identifier_view()] | undefined, 'artists' = undefined :: [album_discogs_artist_view()] | undefined, 'master' = undefined :: album_discogs_master_view() | undefined}).
+-type album_discogs_view() :: #album_discogs_view{}.
+-record(album_get_album_params, {'uri' = undefined :: binary() | undefined}).
+-type album_get_album_params() :: #album_get_album_params{}.
+-record(album_record, {'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'release_date' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined, 'album_art' = undefined :: blob_ref() | undefined, 'album_art_url' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'youtube_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type album_record() :: #album_record{}.
+-record(album_view_basic, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'album_art' = undefined :: binary() | undefined, 'release_date' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined, 'unique_listeners' = undefined :: integer() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'discogs_release_id' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined}).
+-type album_view_basic() :: #album_view_basic{}.
+-record(album_view_detailed, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'album_art' = undefined :: binary() | undefined, 'release_date' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined, 'unique_listeners' = undefined :: integer() | undefined, 'tags' = undefined :: [binary()] | undefined, 'tracks' = undefined :: [song_view_basic()] | undefined, 'discogs' = undefined :: album_discogs_view() | undefined, 'created_at' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'discogs_release_id' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined}).
+-type album_view_detailed() :: #album_view_detailed{}.
+-record(api_key_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type api_key_view() :: #api_key_view{}.
+-record(artist_get_artist_params, {'uri' = undefined :: binary() | undefined}).
+-type artist_get_artist_params() :: #artist_get_artist_params{}.
+-record(artist_get_artists_output, {'artists' = undefined :: [artist_view_basic()] | undefined}).
+-type artist_get_artists_output() :: #artist_get_artists_output{}.
+-record(artist_get_artists_params, {'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'names' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'filter' = undefined :: binary() | undefined}).
+-type artist_get_artists_params() :: #artist_get_artists_params{}.
+-record(artist_listener_view_basic, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'most_listened_song' = undefined :: artist_song_view_basic() | undefined, 'total_plays' = undefined :: integer() | undefined, 'rank' = undefined :: integer() | undefined}).
+-type artist_listener_view_basic() :: #artist_listener_view_basic{}.
+-record(artist_mbid, {'mbid' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type artist_mbid() :: #artist_mbid{}.
+-record(artist_recent_listener_view, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'timestamp' = undefined :: binary() | undefined, 'scrobble_uri' = undefined :: binary() | undefined}).
+-type artist_recent_listener_view() :: #artist_recent_listener_view{}.
+-record(artist_record, {'name' = undefined :: binary() | undefined, 'bio' = undefined :: binary() | undefined, 'picture' = undefined :: blob_ref() | undefined, 'picture_url' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'born' = undefined :: binary() | undefined, 'died' = undefined :: binary() | undefined, 'born_in' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type artist_record() :: #artist_record{}.
+-record(artist_song_view_basic, {'uri' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined}).
+-type artist_song_view_basic() :: #artist_song_view_basic{}.
+-record(artist_view_basic, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'picture' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined, 'unique_listeners' = undefined :: integer() | undefined, 'tags' = undefined :: [binary()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'biography' = undefined :: binary() | undefined, 'born' = undefined :: binary() | undefined, 'born_in' = undefined :: binary() | undefined, 'died' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'genres' = undefined :: [binary()] | undefined, 'xata_version' = undefined :: integer() | undefined}).
+-type artist_view_basic() :: #artist_view_basic{}.
+-record(artist_view_detailed, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'picture' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined, 'unique_listeners' = undefined :: integer() | undefined, 'tags' = undefined :: [binary()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'biography' = undefined :: binary() | undefined, 'born' = undefined :: binary() | undefined, 'born_in' = undefined :: binary() | undefined, 'died' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'genres' = undefined :: [binary()] | undefined, 'xata_version' = undefined :: integer() | undefined}).
+-type artist_view_detailed() :: #artist_view_detailed{}.
+-record(charts_decade_view_basic, {'decade' = undefined :: integer() | undefined, 'scrobbles' = undefined :: integer() | undefined, 'unique_albums' = undefined :: integer() | undefined}).
+-type charts_decade_view_basic() :: #charts_decade_view_basic{}.
+-record(charts_scrobbler_view_basic, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'scrobbles' = undefined :: integer() | undefined, 'unique_artists' = undefined :: integer() | undefined, 'unique_tracks' = undefined :: integer() | undefined}).
+-type charts_scrobbler_view_basic() :: #charts_scrobbler_view_basic{}.
+-record(charts_scrobble_view_basic, {'date' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined}).
+-type charts_scrobble_view_basic() :: #charts_scrobble_view_basic{}.
+-record(charts_view, {'scrobbles' = undefined :: [charts_scrobble_view_basic()] | undefined}).
+-type charts_view() :: #charts_view{}.
+-record(create_apikey_input, {'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined}).
+-type create_apikey_input() :: #create_apikey_input{}.
+-record(create_scrobble_input, {'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'mb_id' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'track_number' = undefined :: integer() | undefined, 'release_date' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'lyrics' = undefined :: binary() | undefined, 'composer' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'artist_picture' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'lastfm_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'deezer_link' = undefined :: binary() | undefined, 'timestamp' = undefined :: integer() | undefined}).
+-type create_scrobble_input() :: #create_scrobble_input{}.
+-record(create_shout_input, {'message' = undefined :: binary() | undefined}).
+-type create_shout_input() :: #create_shout_input{}.
+-record(create_song_input, {'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'mb_id' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'track_number' = undefined :: integer() | undefined, 'release_date' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'lyrics' = undefined :: binary() | undefined}).
+-type create_song_input() :: #create_song_input{}.
+-record(delete_album_input, {'id' = undefined :: binary() | undefined}).
+-type delete_album_input() :: #delete_album_input{}.
+-record(delete_album_output, {'status' = undefined :: binary() | undefined, 'deleted' = undefined :: integer() | undefined}).
+-type delete_album_output() :: #delete_album_output{}.
+-record(delete_playlist_input, {'id' = undefined :: binary() | undefined}).
+-type delete_playlist_input() :: #delete_playlist_input{}.
+-record(delete_playlist_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'atproto_error' = undefined :: binary() | undefined}).
+-type delete_playlist_output() :: #delete_playlist_output{}.
+-record(delete_preset_params, {'rkey' = undefined :: binary() | undefined}).
+-type delete_preset_params() :: #delete_preset_params{}.
+-record(delete_song_input, {'id' = undefined :: binary() | undefined}).
+-type delete_song_input() :: #delete_song_input{}.
+-record(delete_song_output, {'status' = undefined :: binary() | undefined, 'deleted' = undefined :: integer() | undefined}).
+-type delete_song_output() :: #delete_song_output{}.
+-record(describe_feed_generator_output, {'did' = undefined :: binary() | undefined, 'feeds' = undefined :: [feed_uri_view()] | undefined}).
+-type describe_feed_generator_output() :: #describe_feed_generator_output{}.
+-record(dislike_shout_input, {'uri' = undefined :: binary() | undefined}).
+-type dislike_shout_input() :: #dislike_shout_input{}.
+-record(dislike_song_input, {'uri' = undefined :: binary() | undefined}).
+-type dislike_song_input() :: #dislike_song_input{}.
+-record(dropbox_download_file_params, {'file_id' = undefined :: binary() | undefined}).
+-type dropbox_download_file_params() :: #dropbox_download_file_params{}.
+-record(dropbox_file_list_view, {'files' = undefined :: [dropbox_file_view()] | undefined, 'directory' = undefined :: dropbox_response_directory_view() | undefined, 'parent_directory' = undefined :: dropbox_response_parent_directory_view() | undefined, 'directories' = undefined :: [dropbox_response_directories_item_view()] | undefined}).
+-type dropbox_file_list_view() :: #dropbox_file_list_view{}.
+-record(dropbox_file_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'path_lower' = undefined :: binary() | undefined, 'path_display' = undefined :: binary() | undefined, 'client_modified' = undefined :: binary() | undefined, 'server_modified' = undefined :: binary() | undefined, 'file_id' = undefined :: binary() | undefined, 'directory_id' = undefined :: binary() | undefined, 'track_id' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type dropbox_file_view() :: #dropbox_file_view{}.
+-record(dropbox_get_files_params, {'at' = undefined :: binary() | undefined}).
+-type dropbox_get_files_params() :: #dropbox_get_files_params{}.
+-record(dropbox_response_directories_item_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'file_id' = undefined :: binary() | undefined, 'path' = undefined :: binary() | undefined, 'parent_id' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type dropbox_response_directories_item_view() :: #dropbox_response_directories_item_view{}.
+-record(dropbox_response_directory_view, {}).
+-type dropbox_response_directory_view() :: #dropbox_response_directory_view{}.
+-record(dropbox_response_parent_directory_view, {}).
+-type dropbox_response_parent_directory_view() :: #dropbox_response_parent_directory_view{}.
+-record(dropbox_temporary_link_view, {'link' = undefined :: binary() | undefined}).
+-type dropbox_temporary_link_view() :: #dropbox_temporary_link_view{}.
+-record(equalizer_preset_view, {'uri' = undefined :: binary() | undefined, 'rkey' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'precut' = undefined :: integer() | undefined, 'bands' = undefined :: [rockbox_equalizer_band()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type equalizer_preset_view() :: #equalizer_preset_view{}.
+-record(equalizer_record, {'name' = undefined :: binary() | undefined, 'precut' = undefined :: integer() | undefined, 'bands' = undefined :: [rockbox_equalizer_band()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type equalizer_record() :: #equalizer_record{}.
+-record(feed_generators_view, {'feeds' = undefined :: [feed_generator_view()] | undefined}).
+-type feed_generators_view() :: #feed_generators_view{}.
+-record(feed_generator_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'creator' = undefined :: actor_profile_view_basic() | undefined, 'did' = undefined :: binary() | undefined}).
+-type feed_generator_view() :: #feed_generator_view{}.
+-record(feed_item_view, {'scrobble' = undefined :: scrobble_view_basic() | undefined}).
+-type feed_item_view() :: #feed_item_view{}.
+-record(feed_recommendations_view, {'recommendations' = undefined :: [feed_recommendation_view()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type feed_recommendations_view() :: #feed_recommendations_view{}.
+-record(feed_recommendation_view, {'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'track_uri' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'album_uri' = undefined :: binary() | undefined, 'genres' = undefined :: [binary()] | undefined, 'source' = undefined :: binary() | undefined, 'likes_count' = undefined :: integer() | undefined, 'recommendation_score' = undefined :: float() | undefined}).
+-type feed_recommendation_view() :: #feed_recommendation_view{}.
+-record(feed_recommended_albums_view, {'albums' = undefined :: [feed_recommended_album_view()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type feed_recommended_albums_view() :: #feed_recommended_albums_view{}.
+-record(feed_recommended_album_view, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'album_art' = undefined :: binary() | undefined, 'source' = undefined :: binary() | undefined, 'recommendation_score' = undefined :: float() | undefined}).
+-type feed_recommended_album_view() :: #feed_recommended_album_view{}.
+-record(feed_recommended_artists_view, {'artists' = undefined :: [feed_recommended_artist_view()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type feed_recommended_artists_view() :: #feed_recommended_artists_view{}.
+-record(feed_recommended_artist_view, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'picture' = undefined :: binary() | undefined, 'genres' = undefined :: [binary()] | undefined, 'source' = undefined :: binary() | undefined, 'recommendation_score' = undefined :: float() | undefined}).
+-type feed_recommended_artist_view() :: #feed_recommended_artist_view{}.
+-record(feed_search_federation, {'index_uid' = undefined :: binary() | undefined}).
+-type feed_search_federation() :: #feed_search_federation{}.
+-record(feed_search_hit, {'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'play_count' = undefined :: integer() | undefined, 'likes_count' = undefined :: integer() | undefined, 'liked' = undefined :: boolean() | undefined, 'unique_listeners' = undefined :: integer() | undefined, 'album_uri' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'mb_id' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'lyrics' = undefined :: binary() | undefined, 'composer' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'key' = undefined :: binary() | undefined, 'acoustid_fingerprint' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined, 'year' = undefined :: integer() | undefined, 'release_date' = undefined :: binary() | undefined, 'discogs_release_id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'picture' = undefined :: binary() | undefined, 'biography' = undefined :: binary() | undefined, 'born' = undefined :: binary() | undefined, 'born_in' = undefined :: binary() | undefined, 'died' = undefined :: binary() | undefined, 'genres' = undefined :: [binary()] | undefined, 'curator_did' = undefined :: binary() | undefined, 'curator_handle' = undefined :: binary() | undefined, 'curator_name' = undefined :: binary() | undefined, 'curator_avatar_url' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'cover_image_url' = undefined :: binary() | undefined, 'track_count' = undefined :: integer() | undefined, 'track_arts' = undefined :: [binary()] | undefined, 'curator_d_id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'federation' = undefined :: feed_search_federation() | undefined, 'bpm' = undefined :: float() | undefined}).
+-type feed_search_hit() :: #feed_search_hit{}.
+-record(feed_search_params, {'query' = undefined :: binary() | undefined}).
+-type feed_search_params() :: #feed_search_params{}.
+-record(feed_search_results_view, {'hits' = undefined :: [feed_search_hit()] | undefined, 'processing_time_ms' = undefined :: integer() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'estimated_total_hits' = undefined :: integer() | undefined}).
+-type feed_search_results_view() :: #feed_search_results_view{}.
+-record(feed_stories_view, {'stories' = undefined :: [feed_story_view()] | undefined}).
+-type feed_stories_view() :: #feed_stories_view{}.
+-record(feed_story_view, {'album' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'album_uri' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'track_id' = undefined :: binary() | undefined, 'track_uri' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'liked' = undefined :: boolean() | undefined, 'likes_count' = undefined :: integer() | undefined}).
+-type feed_story_view() :: #feed_story_view{}.
+-record(feed_uri_view, {'uri' = undefined :: binary() | undefined}).
+-type feed_uri_view() :: #feed_uri_view{}.
+-record(feed_view, {'feed' = undefined :: [feed_item_view()] | undefined, 'cursor' = undefined :: binary() | undefined, 'scrobbles' = undefined :: [scrobble_view_basic()] | undefined}).
+-type feed_view() :: #feed_view{}.
+-record(follow_account_output, {'subject' = undefined :: actor_profile_view_basic() | undefined, 'followers' = undefined :: [actor_profile_view_basic()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type follow_account_output() :: #follow_account_output{}.
+-record(follow_account_params, {'account' = undefined :: binary() | undefined}).
+-type follow_account_params() :: #follow_account_params{}.
+-record(follow_record, {'created_at' = undefined :: binary() | undefined, 'subject' = undefined :: binary() | undefined, 'via' = undefined :: strong_ref() | undefined}).
+-type follow_record() :: #follow_record{}.
+-record(generator_record, {'did' = undefined :: binary() | undefined, 'avatar' = undefined :: blob_ref() | undefined, 'display_name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type generator_record() :: #generator_record{}.
+-record(get_actor_albums_output, {'albums' = undefined :: [album_view_basic()] | undefined}).
+-type get_actor_albums_output() :: #get_actor_albums_output{}.
+-record(get_actor_albums_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
+-type get_actor_albums_params() :: #get_actor_albums_params{}.
+-record(get_actor_artists_output, {'artists' = undefined :: [artist_view_basic()] | undefined}).
+-type get_actor_artists_output() :: #get_actor_artists_output{}.
+-record(get_actor_artists_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
+-type get_actor_artists_params() :: #get_actor_artists_params{}.
+-record(get_actor_compatibility_output, {'compatibility' = undefined :: actor_compatibility_view_basic() | undefined}).
+-type get_actor_compatibility_output() :: #get_actor_compatibility_output{}.
+-record(get_actor_compatibility_params, {'did' = undefined :: binary() | undefined}).
+-type get_actor_compatibility_params() :: #get_actor_compatibility_params{}.
+-record(get_actor_loved_songs_output, {'tracks' = undefined :: [song_view_basic()] | undefined}).
+-type get_actor_loved_songs_output() :: #get_actor_loved_songs_output{}.
+-record(get_actor_loved_songs_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_actor_loved_songs_params() :: #get_actor_loved_songs_params{}.
+-record(get_actor_neighbours_output, {'neighbours' = undefined :: [actor_neighbour_view_basic()] | undefined}).
+-type get_actor_neighbours_output() :: #get_actor_neighbours_output{}.
+-record(get_actor_neighbours_params, {'did' = undefined :: binary() | undefined}).
+-type get_actor_neighbours_params() :: #get_actor_neighbours_params{}.
+-record(get_actor_playlists_output, {'playlists' = undefined :: [playlist_view_basic()] | undefined}).
+-type get_actor_playlists_output() :: #get_actor_playlists_output{}.
+-record(get_actor_playlists_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'filter' = undefined :: binary() | undefined}).
+-type get_actor_playlists_params() :: #get_actor_playlists_params{}.
+-record(get_actor_scrobbles_output, {'scrobbles' = undefined :: [scrobble_view_basic()] | undefined}).
+-type get_actor_scrobbles_output() :: #get_actor_scrobbles_output{}.
+-record(get_actor_scrobbles_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_actor_scrobbles_params() :: #get_actor_scrobbles_params{}.
+-record(get_actor_songs_output, {'tracks' = undefined :: [song_view_basic()] | undefined}).
+-type get_actor_songs_output() :: #get_actor_songs_output{}.
+-record(get_actor_songs_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
+-type get_actor_songs_params() :: #get_actor_songs_params{}.
+-record(get_album_info_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'album_info' = undefined :: json_value() | undefined}).
+-type get_album_info_output() :: #get_album_info_output{}.
+-record(get_album_info_params, {'id' = undefined :: binary() | undefined}).
+-type get_album_info_params() :: #get_album_info_params{}.
+-record(get_album_list_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'album_list2' = undefined :: json_value() | undefined}).
+-type get_album_list_output() :: #get_album_list_output{}.
+-record(get_album_list_params, {'type' = undefined :: binary() | undefined, 'size' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'from_year' = undefined :: integer() | undefined, 'to_year' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined}).
+-type get_album_list_params() :: #get_album_list_params{}.
+-record(get_album_recommendations_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_album_recommendations_params() :: #get_album_recommendations_params{}.
+-record(get_album_shouts_output, {'shouts' = undefined :: [shout_view()] | undefined}).
+-type get_album_shouts_output() :: #get_album_shouts_output{}.
+-record(get_album_shouts_params, {'uri' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_album_shouts_params() :: #get_album_shouts_params{}.
+-record(get_albums_output, {'albums' = undefined :: [album_view_basic()] | undefined}).
+-type get_albums_output() :: #get_albums_output{}.
+-record(get_albums_params, {'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined, 'filter' = undefined :: binary() | undefined}).
+-type get_albums_params() :: #get_albums_params{}.
+-record(get_album_tracks_output, {'tracks' = undefined :: [song_view_basic()] | undefined}).
+-type get_album_tracks_output() :: #get_album_tracks_output{}.
+-record(get_album_tracks_params, {'uri' = undefined :: binary() | undefined}).
+-type get_album_tracks_params() :: #get_album_tracks_params{}.
+-record(get_apikeys_output, {'apikeys' = undefined :: [api_key_view()] | undefined}).
+-type get_apikeys_output() :: #get_apikeys_output{}.
+-record(get_apikeys_params, {'offset' = undefined :: integer() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_apikeys_params() :: #get_apikeys_params{}.
+-record(get_artist_albums_output, {'albums' = undefined :: [album_view_basic()] | undefined}).
+-type get_artist_albums_output() :: #get_artist_albums_output{}.
+-record(get_artist_albums_params, {'uri' = undefined :: binary() | undefined}).
+-type get_artist_albums_params() :: #get_artist_albums_params{}.
+-record(get_artist_info_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'artist_info2' = undefined :: json_value() | undefined}).
+-type get_artist_info_output() :: #get_artist_info_output{}.
+-record(get_artist_info_params, {'id' = undefined :: binary() | undefined}).
+-type get_artist_info_params() :: #get_artist_info_params{}.
+-record(get_artist_listeners_output, {'listeners' = undefined :: [artist_listener_view_basic()] | undefined}).
+-type get_artist_listeners_output() :: #get_artist_listeners_output{}.
+-record(get_artist_listeners_params, {'uri' = undefined :: binary() | undefined, 'offset' = undefined :: integer() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_artist_listeners_params() :: #get_artist_listeners_params{}.
+-record(get_artist_recent_listeners_output, {'listeners' = undefined :: [artist_recent_listener_view()] | undefined}).
+-type get_artist_recent_listeners_output() :: #get_artist_recent_listeners_output{}.
+-record(get_artist_recent_listeners_params, {'uri' = undefined :: binary() | undefined, 'offset' = undefined :: integer() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_artist_recent_listeners_params() :: #get_artist_recent_listeners_params{}.
+-record(get_artist_recommendations_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_artist_recommendations_params() :: #get_artist_recommendations_params{}.
+-record(get_artist_shouts_output, {'shouts' = undefined :: [shout_view()] | undefined}).
+-type get_artist_shouts_output() :: #get_artist_shouts_output{}.
+-record(get_artist_shouts_params, {'uri' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_artist_shouts_params() :: #get_artist_shouts_params{}.
+-record(get_artist_tracks_output, {'tracks' = undefined :: [song_view_basic()] | undefined}).
+-type get_artist_tracks_output() :: #get_artist_tracks_output{}.
+-record(get_artist_tracks_params, {'uri' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_artist_tracks_params() :: #get_artist_tracks_params{}.
+-record(get_audio_settings_params, {'did' = undefined :: binary() | undefined}).
+-type get_audio_settings_params() :: #get_audio_settings_params{}.
+-record(get_cover_art_url_output, {'url' = undefined :: binary() | undefined}).
+-type get_cover_art_url_output() :: #get_cover_art_url_output{}.
+-record(get_cover_art_url_params, {'id' = undefined :: binary() | undefined, 'size' = undefined :: integer() | undefined}).
+-type get_cover_art_url_params() :: #get_cover_art_url_params{}.
+-record(get_decades_output, {'decades' = undefined :: [charts_decade_view_basic()] | undefined}).
+-type get_decades_output() :: #get_decades_output{}.
+-record(get_decades_params, {'did' = undefined :: binary() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
+-type get_decades_params() :: #get_decades_params{}.
+-record(get_download_url_output, {'url' = undefined :: binary() | undefined}).
+-type get_download_url_output() :: #get_download_url_output{}.
+-record(get_download_url_params, {'id' = undefined :: binary() | undefined}).
+-type get_download_url_params() :: #get_download_url_params{}.
+-record(get_feed_generator_output, {'view' = undefined :: feed_generator_view() | undefined}).
+-type get_feed_generator_output() :: #get_feed_generator_output{}.
+-record(get_feed_generator_params, {'feed' = undefined :: binary() | undefined}).
+-type get_feed_generator_params() :: #get_feed_generator_params{}.
+-record(get_feed_generators_params, {'size' = undefined :: integer() | undefined}).
+-type get_feed_generators_params() :: #get_feed_generators_params{}.
+-record(get_feed_params, {'feed' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type get_feed_params() :: #get_feed_params{}.
+-record(get_feed_skeleton_output, {'scrobbles' = undefined :: [scrobble_view_basic()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type get_feed_skeleton_output() :: #get_feed_skeleton_output{}.
+-record(get_feed_skeleton_params, {'feed' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type get_feed_skeleton_params() :: #get_feed_skeleton_params{}.
+-record(get_file_params, {'file_id' = undefined :: binary() | undefined}).
+-type get_file_params() :: #get_file_params{}.
+-record(get_followers_output, {'subject' = undefined :: actor_profile_view_basic() | undefined, 'followers' = undefined :: [actor_profile_view_basic()] | undefined, 'cursor' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined}).
+-type get_followers_output() :: #get_followers_output{}.
+-record(get_followers_params, {'actor' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'dids' = undefined :: [binary()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type get_followers_params() :: #get_followers_params{}.
+-record(get_follows_output, {'subject' = undefined :: actor_profile_view_basic() | undefined, 'follows' = undefined :: [actor_profile_view_basic()] | undefined, 'cursor' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined}).
+-type get_follows_output() :: #get_follows_output{}.
+-record(get_follows_params, {'actor' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'dids' = undefined :: [binary()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type get_follows_params() :: #get_follows_params{}.
+-record(get_genres_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'genres' = undefined :: json_value() | undefined}).
+-type get_genres_output() :: #get_genres_output{}.
+-record(get_genres_params, {}).
+-type get_genres_params() :: #get_genres_params{}.
+-record(get_global_stats_params, {}).
+-type get_global_stats_params() :: #get_global_stats_params{}.
+-record(get_indexes_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'indexes' = undefined :: json_value() | undefined}).
+-type get_indexes_output() :: #get_indexes_output{}.
+-record(get_indexes_params, {}).
+-type get_indexes_params() :: #get_indexes_params{}.
+-record(get_internet_radio_stations_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'internet_radio_stations' = undefined :: json_value() | undefined}).
+-type get_internet_radio_stations_output() :: #get_internet_radio_stations_output{}.
+-record(get_internet_radio_stations_params, {}).
+-type get_internet_radio_stations_params() :: #get_internet_radio_stations_params{}.
+-record(get_known_followers_output, {'subject' = undefined :: actor_profile_view_basic() | undefined, 'followers' = undefined :: [actor_profile_view_basic()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type get_known_followers_output() :: #get_known_followers_output{}.
+-record(get_known_followers_params, {'actor' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type get_known_followers_params() :: #get_known_followers_params{}.
+-record(get_license_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'license' = undefined :: json_value() | undefined}).
+-type get_license_output() :: #get_license_output{}.
+-record(get_license_params, {}).
+-type get_license_params() :: #get_license_params{}.
+-record(get_lyrics_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'lyrics' = undefined :: json_value() | undefined}).
+-type get_lyrics_output() :: #get_lyrics_output{}.
+-record(get_lyrics_params, {'artist' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined}).
+-type get_lyrics_params() :: #get_lyrics_params{}.
+-record(get_metadata_output, {'metadata' = undefined :: json_value() | undefined}).
+-type get_metadata_output() :: #get_metadata_output{}.
+-record(get_metadata_params, {'path' = undefined :: binary() | undefined}).
+-type get_metadata_params() :: #get_metadata_params{}.
+-record(get_mirror_sources_output, {'sources' = undefined :: [mirror_source_view()] | undefined}).
+-type get_mirror_sources_output() :: #get_mirror_sources_output{}.
+-record(get_mirror_sources_params, {}).
+-type get_mirror_sources_params() :: #get_mirror_sources_params{}.
+-record(get_music_directory_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'directory' = undefined :: json_value() | undefined}).
+-type get_music_directory_output() :: #get_music_directory_output{}.
+-record(get_music_directory_params, {'id' = undefined :: binary() | undefined}).
+-type get_music_directory_params() :: #get_music_directory_params{}.
+-record(get_music_folders_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'music_folders' = undefined :: json_value() | undefined}).
+-type get_music_folders_output() :: #get_music_folders_output{}.
+-record(get_music_folders_params, {}).
+-type get_music_folders_params() :: #get_music_folders_params{}.
+-record(get_now_playing_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'now_playing' = undefined :: json_value() | undefined}).
+-type get_now_playing_output() :: #get_now_playing_output{}.
+-record(get_now_playing_params, {}).
+-type get_now_playing_params() :: #get_now_playing_params{}.
+-record(get_playback_queue_params, {'player_id' = undefined :: binary() | undefined}).
+-type get_playback_queue_params() :: #get_playback_queue_params{}.
+-record(get_play_queue_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'play_queue' = undefined :: json_value() | undefined}).
+-type get_play_queue_output() :: #get_play_queue_output{}.
+-record(get_play_queue_params, {}).
+-type get_play_queue_params() :: #get_play_queue_params{}.
+-record(get_profile_params, {'did' = undefined :: binary() | undefined}).
+-type get_profile_params() :: #get_profile_params{}.
+-record(get_profile_shouts_output, {'shouts' = undefined :: [shout_view()] | undefined}).
+-type get_profile_shouts_output() :: #get_profile_shouts_output{}.
+-record(get_profile_shouts_params, {'did' = undefined :: binary() | undefined, 'offset' = undefined :: integer() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_profile_shouts_params() :: #get_profile_shouts_params{}.
+-record(get_random_songs_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'random_songs' = undefined :: json_value() | undefined}).
+-type get_random_songs_output() :: #get_random_songs_output{}.
+-record(get_random_songs_params, {'size' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined, 'from_year' = undefined :: integer() | undefined, 'to_year' = undefined :: integer() | undefined}).
+-type get_random_songs_params() :: #get_random_songs_params{}.
+-record(get_recommendations_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_recommendations_params() :: #get_recommendations_params{}.
+-record(get_scan_status_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'scan_status' = undefined :: json_value() | undefined}).
+-type get_scan_status_output() :: #get_scan_status_output{}.
+-record(get_scan_status_params, {}).
+-type get_scan_status_params() :: #get_scan_status_params{}.
+-record(get_scrobble_params, {'uri' = undefined :: binary() | undefined}).
+-type get_scrobble_params() :: #get_scrobble_params{}.
+-record(get_scrobbles_chart_params, {'did' = undefined :: binary() | undefined, 'artisturi' = undefined :: binary() | undefined, 'albumuri' = undefined :: binary() | undefined, 'songuri' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'from' = undefined :: binary() | undefined, 'to' = undefined :: binary() | undefined}).
+-type get_scrobbles_chart_params() :: #get_scrobbles_chart_params{}.
+-record(get_scrobbles_output, {'scrobbles' = undefined :: [scrobble_view_basic()] | undefined}).
+-type get_scrobbles_output() :: #get_scrobbles_output{}.
+-record(get_scrobbles_params, {'did' = undefined :: binary() | undefined, 'following' = undefined :: boolean() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'filter' = undefined :: binary() | undefined}).
+-type get_scrobbles_params() :: #get_scrobbles_params{}.
+-record(get_shout_replies_output, {'shouts' = undefined :: [shout_view()] | undefined}).
+-type get_shout_replies_output() :: #get_shout_replies_output{}.
+-record(get_shout_replies_params, {'uri' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_shout_replies_params() :: #get_shout_replies_params{}.
+-record(get_similar_songs_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'similar_songs2' = undefined :: json_value() | undefined}).
+-type get_similar_songs_output() :: #get_similar_songs_output{}.
+-record(get_similar_songs_params, {'id' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined}).
+-type get_similar_songs_params() :: #get_similar_songs_params{}.
+-record(get_song_recent_listeners_output, {'listeners' = undefined :: [song_recent_listener_view()] | undefined}).
+-type get_song_recent_listeners_output() :: #get_song_recent_listeners_output{}.
+-record(get_song_recent_listeners_params, {'uri' = undefined :: binary() | undefined, 'offset' = undefined :: integer() | undefined, 'limit' = undefined :: integer() | undefined}).
+-type get_song_recent_listeners_params() :: #get_song_recent_listeners_params{}.
+-record(get_songs_by_genre_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'songs_by_genre' = undefined :: json_value() | undefined}).
+-type get_songs_by_genre_output() :: #get_songs_by_genre_output{}.
+-record(get_songs_by_genre_params, {'genre' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_songs_by_genre_params() :: #get_songs_by_genre_params{}.
+-record(get_songs_output, {'tracks' = undefined :: [song_view_basic()] | undefined}).
+-type get_songs_output() :: #get_songs_output{}.
+-record(get_songs_params, {'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'spotify_id' = undefined :: binary() | undefined, 'filter' = undefined :: binary() | undefined}).
+-type get_songs_params() :: #get_songs_params{}.
+-record(get_starred_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'starred2' = undefined :: json_value() | undefined}).
+-type get_starred_output() :: #get_starred_output{}.
+-record(get_starred_params, {}).
+-type get_starred_params() :: #get_starred_params{}.
+-record(get_stats_params, {'did' = undefined :: binary() | undefined}).
+-type get_stats_params() :: #get_stats_params{}.
+-record(get_stories_params, {'size' = undefined :: integer() | undefined, 'feed' = undefined :: binary() | undefined, 'following' = undefined :: boolean() | undefined}).
+-type get_stories_params() :: #get_stories_params{}.
+-record(get_stream_url_output, {'url' = undefined :: binary() | undefined}).
+-type get_stream_url_output() :: #get_stream_url_output{}.
+-record(get_stream_url_params, {'id' = undefined :: binary() | undefined, 'max_bit_rate' = undefined :: integer() | undefined, 'format' = undefined :: binary() | undefined}).
+-type get_stream_url_params() :: #get_stream_url_params{}.
+-record(get_temporary_link_params, {'path' = undefined :: binary() | undefined}).
+-type get_temporary_link_params() :: #get_temporary_link_params{}.
+-record(get_top_artists_output, {'artists' = undefined :: [artist_view_basic()] | undefined}).
+-type get_top_artists_output() :: #get_top_artists_output{}.
+-record(get_top_artists_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
+-type get_top_artists_params() :: #get_top_artists_params{}.
+-record(get_top_scrobblers_output, {'scrobblers' = undefined :: [charts_scrobbler_view_basic()] | undefined}).
+-type get_top_scrobblers_output() :: #get_top_scrobblers_output{}.
+-record(get_top_scrobblers_params, {'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
+-type get_top_scrobblers_params() :: #get_top_scrobblers_params{}.
+-record(get_top_songs_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'top_songs' = undefined :: json_value() | undefined}).
+-type get_top_songs_output() :: #get_top_songs_output{}.
+-record(get_top_songs_params, {'artist' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined}).
+-type get_top_songs_params() :: #get_top_songs_params{}.
+-record(get_top_tracks_output, {'tracks' = undefined :: [song_view_basic()] | undefined}).
+-type get_top_tracks_output() :: #get_top_tracks_output{}.
+-record(get_top_tracks_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
+-type get_top_tracks_params() :: #get_top_tracks_params{}.
+-record(get_track_shouts_output, {'shouts' = undefined :: [shout_view()] | undefined}).
+-type get_track_shouts_output() :: #get_track_shouts_output{}.
+-record(get_track_shouts_params, {'uri' = undefined :: binary() | undefined}).
+-type get_track_shouts_params() :: #get_track_shouts_params{}.
+-record(get_unread_count_output, {'count' = undefined :: integer() | undefined}).
+-type get_unread_count_output() :: #get_unread_count_output{}.
+-record(get_user_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'user' = undefined :: json_value() | undefined}).
+-type get_user_output() :: #get_user_output{}.
+-record(get_user_params, {}).
+-type get_user_params() :: #get_user_params{}.
+-record(get_wrapped_params, {'did' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'period' = undefined :: binary() | undefined}).
+-type get_wrapped_params() :: #get_wrapped_params{}.
+-record(googledrive_download_file_params, {'file_id' = undefined :: binary() | undefined}).
+-type googledrive_download_file_params() :: #googledrive_download_file_params{}.
+-record(googledrive_file_list_view, {'files' = undefined :: [googledrive_file_view()] | undefined, 'directory' = undefined :: googledrive_response_directory_view() | undefined, 'parent_directory' = undefined :: googledrive_response_parent_directory_view() | undefined, 'directories' = undefined :: [googledrive_response_directories_item_view()] | undefined}).
+-type googledrive_file_list_view() :: #googledrive_file_list_view{}.
+-record(googledrive_file_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'file_id' = undefined :: binary() | undefined, 'directory_id' = undefined :: binary() | undefined, 'track_id' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type googledrive_file_view() :: #googledrive_file_view{}.
+-record(googledrive_get_files_params, {'at' = undefined :: binary() | undefined}).
+-type googledrive_get_files_params() :: #googledrive_get_files_params{}.
+-record(googledrive_response_directories_item_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'file_id' = undefined :: binary() | undefined, 'path' = undefined :: binary() | undefined, 'parent_id' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type googledrive_response_directories_item_view() :: #googledrive_response_directories_item_view{}.
+-record(googledrive_response_directory_view, {}).
+-type googledrive_response_directory_view() :: #googledrive_response_directory_view{}.
+-record(googledrive_response_parent_directory_view, {}).
+-type googledrive_response_parent_directory_view() :: #googledrive_response_parent_directory_view{}.
+-record(graph_not_found_actor, {'actor' = undefined :: binary() | undefined, 'not_found' = undefined :: boolean() | undefined}).
+-type graph_not_found_actor() :: #graph_not_found_actor{}.
+-record(graph_relationship, {'did' = undefined :: binary() | undefined, 'following' = undefined :: binary() | undefined, 'followed_by' = undefined :: binary() | undefined}).
+-type graph_relationship() :: #graph_relationship{}.
+-record(insert_directory_params, {'uri' = undefined :: binary() | undefined, 'directory' = undefined :: binary() | undefined, 'position' = undefined :: integer() | undefined}).
+-type insert_directory_params() :: #insert_directory_params{}.
+-record(insert_files_params, {'uri' = undefined :: binary() | undefined, 'files' = undefined :: [binary()] | undefined, 'position' = undefined :: integer() | undefined}).
+-type insert_files_params() :: #insert_files_params{}.
+-record(library_create_playlist_input, {'name' = undefined :: binary() | undefined}).
+-type library_create_playlist_input() :: #library_create_playlist_input{}.
+-record(library_create_playlist_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'playlist' = undefined :: json_value() | undefined, 'atproto_error' = undefined :: binary() | undefined}).
+-type library_create_playlist_output() :: #library_create_playlist_output{}.
+-record(library_get_album_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'album' = undefined :: json_value() | undefined}).
+-type library_get_album_output() :: #library_get_album_output{}.
+-record(library_get_album_params, {'id' = undefined :: binary() | undefined}).
+-type library_get_album_params() :: #library_get_album_params{}.
+-record(library_get_artist_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'artist' = undefined :: json_value() | undefined}).
+-type library_get_artist_output() :: #library_get_artist_output{}.
+-record(library_get_artist_params, {'id' = undefined :: binary() | undefined}).
+-type library_get_artist_params() :: #library_get_artist_params{}.
+-record(library_get_artists_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'artists' = undefined :: json_value() | undefined}).
+-type library_get_artists_output() :: #library_get_artists_output{}.
+-record(library_get_artists_params, {}).
+-type library_get_artists_params() :: #library_get_artists_params{}.
+-record(library_get_playlist_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'playlist' = undefined :: json_value() | undefined}).
+-type library_get_playlist_output() :: #library_get_playlist_output{}.
+-record(library_get_playlist_params, {'id' = undefined :: binary() | undefined}).
+-type library_get_playlist_params() :: #library_get_playlist_params{}.
+-record(library_get_playlists_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'playlists' = undefined :: json_value() | undefined}).
+-type library_get_playlists_output() :: #library_get_playlists_output{}.
+-record(library_get_playlists_params, {}).
+-type library_get_playlists_params() :: #library_get_playlists_params{}.
+-record(library_get_song_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'song' = undefined :: json_value() | undefined}).
+-type library_get_song_output() :: #library_get_song_output{}.
+-record(library_get_song_params, {'id' = undefined :: binary() | undefined}).
+-type library_get_song_params() :: #library_get_song_params{}.
+-record(library_search_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'search_result3' = undefined :: json_value() | undefined}).
+-type library_search_output() :: #library_search_output{}.
+-record(library_search_params, {'query' = undefined :: binary() | undefined, 'artist_count' = undefined :: integer() | undefined, 'artist_offset' = undefined :: integer() | undefined, 'album_count' = undefined :: integer() | undefined, 'album_offset' = undefined :: integer() | undefined, 'song_count' = undefined :: integer() | undefined, 'song_offset' = undefined :: integer() | undefined}).
+-type library_search_params() :: #library_search_params{}.
+-record(library_update_playlist_input, {'playlist_id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'comment' = undefined :: binary() | undefined, 'song_id_to_add' = undefined :: binary() | undefined, 'song_index_to_remove' = undefined :: integer() | undefined}).
+-type library_update_playlist_input() :: #library_update_playlist_input{}.
+-record(library_update_playlist_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'atproto_error' = undefined :: binary() | undefined}).
+-type library_update_playlist_output() :: #library_update_playlist_output{}.
+-record(like_record, {'created_at' = undefined :: binary() | undefined, 'subject' = undefined :: strong_ref() | undefined}).
+-type like_record() :: #like_record{}.
+-record(like_shout_input, {'uri' = undefined :: binary() | undefined}).
+-type like_shout_input() :: #like_shout_input{}.
+-record(like_song_input, {'uri' = undefined :: binary() | undefined}).
+-type like_song_input() :: #like_song_input{}.
+-record(list_notifications_output, {'notifications' = undefined :: [notification_view()] | undefined, 'unread_count' = undefined :: integer() | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type list_notifications_output() :: #list_notifications_output{}.
+-record(list_notifications_params, {'limit' = undefined :: integer() | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type list_notifications_params() :: #list_notifications_params{}.
+-record(list_presets_output, {'presets' = undefined :: [equalizer_preset_view()] | undefined}).
+-type list_presets_output() :: #list_presets_output{}.
+-record(list_presets_params, {'did' = undefined :: binary() | undefined}).
+-type list_presets_params() :: #list_presets_params{}.
+-record(match_song_params, {'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'mb_id' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined}).
+-type match_song_params() :: #match_song_params{}.
+-record(mirror_source_view, {'provider' = undefined :: binary() | undefined, 'enabled' = undefined :: boolean() | undefined, 'push_enabled' = undefined :: boolean() | undefined, 'external_username' = undefined :: binary() | undefined, 'has_credentials' = undefined :: boolean() | undefined, 'last_polled_at' = undefined :: binary() | undefined, 'last_scrobble_seen_at' = undefined :: binary() | undefined}).
+-type mirror_source_view() :: #mirror_source_view{}.
+-record(notification_actor, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined}).
+-type notification_actor() :: #notification_actor{}.
+-record(notification_subject_view, {'uri' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined}).
+-type notification_subject_view() :: #notification_subject_view{}.
+-record(notification_view, {'id' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'read' = undefined :: boolean() | undefined, 'created_at' = undefined :: binary() | undefined, 'subject_uri' = undefined :: binary() | undefined, 'shout_id' = undefined :: binary() | undefined, 'shout_content' = undefined :: binary() | undefined, 'actor' = undefined :: notification_actor() | undefined, 'subject' = undefined :: notification_subject_view() | undefined}).
+-type notification_view() :: #notification_view{}.
+-record(ping_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined}).
+-type ping_output() :: #ping_output{}.
+-record(ping_params, {}).
+-type ping_params() :: #ping_params{}.
+-record(play_directory_params, {'player_id' = undefined :: binary() | undefined, 'directory_id' = undefined :: binary() | undefined, 'shuffle' = undefined :: boolean() | undefined, 'recurse' = undefined :: boolean() | undefined, 'position' = undefined :: integer() | undefined}).
+-type play_directory_params() :: #play_directory_params{}.
+-record(player_currently_playing_view_detailed, {'title' = undefined :: binary() | undefined, 'device' = undefined :: json_value() | undefined, 'shuffle_state' = undefined :: boolean() | undefined, 'repeat_state' = undefined :: binary() | undefined, 'timestamp' = undefined :: integer() | undefined, 'context' = undefined :: json_value() | undefined, 'progress_ms' = undefined :: integer() | undefined, 'item' = undefined :: json_value() | undefined, 'currently_playing_type' = undefined :: binary() | undefined, 'actions' = undefined :: json_value() | undefined, 'is_playing' = undefined :: boolean() | undefined, 'uri' = undefined :: binary() | undefined, 'album_uri' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'liked' = undefined :: boolean() | undefined}).
+-type player_currently_playing_view_detailed() :: #player_currently_playing_view_detailed{}.
+-record(player_get_currently_playing_params, {'player_id' = undefined :: binary() | undefined, 'actor' = undefined :: binary() | undefined}).
+-type player_get_currently_playing_params() :: #player_get_currently_playing_params{}.
+-record(player_next_params, {'player_id' = undefined :: binary() | undefined}).
+-type player_next_params() :: #player_next_params{}.
+-record(player_pause_params, {'player_id' = undefined :: binary() | undefined}).
+-type player_pause_params() :: #player_pause_params{}.
+-record(player_playback_queue_view_detailed, {'tracks' = undefined :: [song_view_basic()] | undefined}).
+-type player_playback_queue_view_detailed() :: #player_playback_queue_view_detailed{}.
+-record(player_play_params, {'player_id' = undefined :: binary() | undefined}).
+-type player_play_params() :: #player_play_params{}.
+-record(player_previous_params, {'player_id' = undefined :: binary() | undefined}).
+-type player_previous_params() :: #player_previous_params{}.
+-record(player_seek_params, {'player_id' = undefined :: binary() | undefined, 'position' = undefined :: integer() | undefined}).
+-type player_seek_params() :: #player_seek_params{}.
+-record(play_file_params, {'player_id' = undefined :: binary() | undefined, 'file_id' = undefined :: binary() | undefined}).
+-type play_file_params() :: #play_file_params{}.
+-record(playlist_create_playlist_output, {'uri' = undefined :: binary() | undefined, 'cid' = undefined :: binary() | undefined}).
+-type playlist_create_playlist_output() :: #playlist_create_playlist_output{}.
+-record(playlist_create_playlist_params, {'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'picture_url' = undefined :: binary() | undefined}).
+-type playlist_create_playlist_params() :: #playlist_create_playlist_params{}.
+-record(playlist_get_playlist_params, {'uri' = undefined :: binary() | undefined, 'filter' = undefined :: binary() | undefined}).
+-type playlist_get_playlist_params() :: #playlist_get_playlist_params{}.
+-record(playlist_get_playlists_output, {'playlists' = undefined :: [playlist_view_basic()] | undefined}).
+-type playlist_get_playlists_output() :: #playlist_get_playlists_output{}.
+-record(playlist_get_playlists_params, {'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'filter' = undefined :: binary() | undefined}).
+-type playlist_get_playlists_params() :: #playlist_get_playlists_params{}.
+-record(playlist_record, {'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'picture' = undefined :: blob_ref() | undefined, 'picture_url' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined}).
+-type playlist_record() :: #playlist_record{}.
+-record(playlist_song_record, {'playlist' = undefined :: strong_ref() | undefined, 'song' = undefined :: strong_ref() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'album_art_url' = undefined :: binary() | undefined, 'added_at' = undefined :: binary() | undefined}).
+-type playlist_song_record() :: #playlist_song_record{}.
+-record(playlist_update_playlist_output, {'uri' = undefined :: binary() | undefined, 'cid' = undefined :: binary() | undefined}).
+-type playlist_update_playlist_output() :: #playlist_update_playlist_output{}.
+-record(playlist_update_playlist_params, {'uri' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'picture_url' = undefined :: binary() | undefined}).
+-type playlist_update_playlist_params() :: #playlist_update_playlist_params{}.
+-record(playlist_view_basic, {'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'curator_did' = undefined :: binary() | undefined, 'curator_handle' = undefined :: binary() | undefined, 'curator_name' = undefined :: binary() | undefined, 'curator_avatar_url' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'cover_image_url' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'track_count' = undefined :: integer() | undefined, 'track_arts' = undefined :: [binary()] | undefined, 'updated_at' = undefined :: binary() | undefined, 'curator_d_id' = undefined :: binary() | undefined}).
+-type playlist_view_basic() :: #playlist_view_basic{}.
+-record(playlist_view_detailed, {'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'curator_did' = undefined :: binary() | undefined, 'curator_handle' = undefined :: binary() | undefined, 'curator_name' = undefined :: binary() | undefined, 'curator_avatar_url' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'cover_image_url' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'tracks' = undefined :: [song_view_basic()] | undefined, 'curator_d_id' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'track_count' = undefined :: integer() | undefined}).
+-type playlist_view_detailed() :: #playlist_view_detailed{}.
+-record(profile_record, {'display_name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'avatar' = undefined :: blob_ref() | undefined, 'banner' = undefined :: blob_ref() | undefined, 'labels' = undefined :: json_value() | undefined, 'joined_via_starter_pack' = undefined :: strong_ref() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type profile_record() :: #profile_record{}.
+-record(put_audio_settings_input, {'crossfade' = undefined :: rockbox_crossfade_settings() | undefined, 'equalizer' = undefined :: rockbox_equalizer_settings() | undefined, 'replay_gain' = undefined :: rockbox_replay_gain_settings() | undefined, 'tone' = undefined :: rockbox_tone_settings() | undefined}).
+-type put_audio_settings_input() :: #put_audio_settings_input{}.
+-record(put_mirror_source_input, {'provider' = undefined :: binary() | undefined, 'enabled' = undefined :: boolean() | undefined, 'push_enabled' = undefined :: boolean() | undefined, 'external_username' = undefined :: binary() | undefined, 'api_key' = undefined :: binary() | undefined}).
+-type put_mirror_source_input() :: #put_mirror_source_input{}.
+-record(put_preset_input, {'name' = undefined :: binary() | undefined, 'precut' = undefined :: integer() | undefined, 'bands' = undefined :: [rockbox_equalizer_band()] | undefined}).
+-type put_preset_input() :: #put_preset_input{}.
+-record(radio_record, {'name' = undefined :: binary() | undefined, 'url' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'logo' = undefined :: blob_ref() | undefined, 'website' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type radio_record() :: #radio_record{}.
+-record(radio_view_basic, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type radio_view_basic() :: #radio_view_basic{}.
+-record(radio_view_detailed, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'website' = undefined :: binary() | undefined, 'url' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'logo' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type radio_view_detailed() :: #radio_view_detailed{}.
+-record(remove_apikey_params, {'id' = undefined :: binary() | undefined}).
+-type remove_apikey_params() :: #remove_apikey_params{}.
+-record(remove_playlist_params, {'uri' = undefined :: binary() | undefined}).
+-type remove_playlist_params() :: #remove_playlist_params{}.
+-record(remove_shout_params, {'id' = undefined :: binary() | undefined}).
+-type remove_shout_params() :: #remove_shout_params{}.
+-record(remove_track_params, {'uri' = undefined :: binary() | undefined, 'song_uri' = undefined :: binary() | undefined, 'index' = undefined :: integer() | undefined}).
+-type remove_track_params() :: #remove_track_params{}.
+-record(reply_shout_input, {'shout_id' = undefined :: binary() | undefined, 'message' = undefined :: binary() | undefined}).
+-type reply_shout_input() :: #reply_shout_input{}.
+-record(report_shout_input, {'shout_id' = undefined :: binary() | undefined, 'reason' = undefined :: binary() | undefined}).
+-type report_shout_input() :: #report_shout_input{}.
+-record(rockbox_crossfade_settings, {'mode' = undefined :: binary() | undefined, 'fade_in_delay' = undefined :: integer() | undefined, 'fade_in_duration' = undefined :: integer() | undefined, 'fade_out_delay' = undefined :: integer() | undefined, 'fade_out_duration' = undefined :: integer() | undefined, 'fade_out_mix_mode' = undefined :: binary() | undefined}).
+-type rockbox_crossfade_settings() :: #rockbox_crossfade_settings{}.
+-record(rockbox_equalizer_band, {'frequency' = undefined :: integer() | undefined, 'gain' = undefined :: integer() | undefined, 'q' = undefined :: integer() | undefined}).
+-type rockbox_equalizer_band() :: #rockbox_equalizer_band{}.
+-record(rockbox_equalizer_settings, {'enabled' = undefined :: boolean() | undefined, 'precut' = undefined :: integer() | undefined, 'bands' = undefined :: [rockbox_equalizer_band()] | undefined}).
+-type rockbox_equalizer_settings() :: #rockbox_equalizer_settings{}.
+-record(rockbox_replay_gain_settings, {'mode' = undefined :: binary() | undefined, 'preamp' = undefined :: integer() | undefined, 'prevent_clipping' = undefined :: boolean() | undefined}).
+-type rockbox_replay_gain_settings() :: #rockbox_replay_gain_settings{}.
+-record(rockbox_settings_view, {'crossfade' = undefined :: rockbox_crossfade_settings() | undefined, 'equalizer' = undefined :: rockbox_equalizer_settings() | undefined, 'replay_gain' = undefined :: rockbox_replay_gain_settings() | undefined, 'tone' = undefined :: rockbox_tone_settings() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type rockbox_settings_view() :: #rockbox_settings_view{}.
+-record(rockbox_tone_settings, {'bass' = undefined :: integer() | undefined, 'treble' = undefined :: integer() | undefined, 'balance' = undefined :: integer() | undefined, 'channels' = undefined :: binary() | undefined}).
+-type rockbox_tone_settings() :: #rockbox_tone_settings{}.
+-record(save_play_queue_input, {'id' = undefined :: binary() | undefined, 'current' = undefined :: binary() | undefined, 'position' = undefined :: integer() | undefined}).
+-type save_play_queue_input() :: #save_play_queue_input{}.
+-record(save_play_queue_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined}).
+-type save_play_queue_output() :: #save_play_queue_output{}.
+-record(scrobble_first_scrobble_view, {'handle' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'timestamp' = undefined :: binary() | undefined}).
+-type scrobble_first_scrobble_view() :: #scrobble_first_scrobble_view{}.
+-record(scrobble_input, {'id' = undefined :: binary() | undefined, 'time' = undefined :: integer() | undefined, 'submission' = undefined :: boolean() | undefined}).
+-type scrobble_input() :: #scrobble_input{}.
+-record(scrobble_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined}).
+-type scrobble_output() :: #scrobble_output{}.
+-record(scrobble_record, {'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artists' = undefined :: [artist_mbid()] | undefined, 'album_artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'release_date' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'composer' = undefined :: binary() | undefined, 'lyrics' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'wiki' = undefined :: binary() | undefined, 'album_art' = undefined :: blob_ref() | undefined, 'album_art_url' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined}).
+-type scrobble_record() :: #scrobble_record{}.
+-record(scrobble_view_basic, {'id' = undefined :: binary() | undefined, 'track_id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_uri' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'track_uri' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'liked' = undefined :: boolean() | undefined, 'likes_count' = undefined :: integer() | undefined, 'cover' = undefined :: binary() | undefined, 'date' = undefined :: binary() | undefined, 'user' = undefined :: binary() | undefined, 'user_display_name' = undefined :: binary() | undefined, 'user_avatar' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'mb_id' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'composer' = undefined :: binary() | undefined, 'track_number' = undefined :: integer() | undefined, 'duration' = undefined :: integer() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'disc_number' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'key' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined, 'bpm' = undefined :: float() | undefined, 'updated_at' = undefined :: json_value() | undefined}).
+-type scrobble_view_basic() :: #scrobble_view_basic{}.
+-record(scrobble_view_detailed, {'id' = undefined :: binary() | undefined, 'user' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_uri' = undefined :: binary() | undefined, 'cover' = undefined :: binary() | undefined, 'date' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'liked' = undefined :: boolean() | undefined, 'track_uri' = undefined :: binary() | undefined, 'likes_count' = undefined :: integer() | undefined, 'listeners' = undefined :: integer() | undefined, 'scrobbles' = undefined :: integer() | undefined, 'artists' = undefined :: [artist_view_basic()] | undefined, 'first_scrobble' = undefined :: scrobble_first_scrobble_view() | undefined, 'mb_id' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'track_number' = undefined :: integer() | undefined, 'duration' = undefined :: integer() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'disc_number' = undefined :: integer() | undefined, 'lyrics' = undefined :: binary() | undefined, 'composer' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'key' = undefined :: binary() | undefined, 'acoustid_fingerprint' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined, 'mbid' = undefined :: binary() | undefined, 'bpm' = undefined :: float() | undefined}).
+-type scrobble_view_detailed() :: #scrobble_view_detailed{}.
+-record(settings_record, {'crossfade' = undefined :: rockbox_crossfade_settings() | undefined, 'equalizer' = undefined :: rockbox_equalizer_settings() | undefined, 'replay_gain' = undefined :: rockbox_replay_gain_settings() | undefined, 'tone' = undefined :: rockbox_tone_settings() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type settings_record() :: #settings_record{}.
+-record(shout_author, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined}).
+-type shout_author() :: #shout_author{}.
+-record(shout_gif, {'url' = undefined :: binary() | undefined, 'preview_url' = undefined :: binary() | undefined, 'alt' = undefined :: binary() | undefined, 'width' = undefined :: integer() | undefined, 'height' = undefined :: integer() | undefined}).
+-type shout_gif() :: #shout_gif{}.
+-record(shout_mention, {'did' = undefined :: binary() | undefined, 'byte_start' = undefined :: integer() | undefined, 'byte_end' = undefined :: integer() | undefined}).
+-type shout_mention() :: #shout_mention{}.
+-record(shout_record, {'message' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'parent' = undefined :: strong_ref() | undefined, 'subject' = undefined :: strong_ref() | undefined, 'gif' = undefined :: shout_gif() | undefined, 'facets' = undefined :: [shout_mention()] | undefined}).
+-type shout_record() :: #shout_record{}.
+-record(shout_view, {'id' = undefined :: binary() | undefined, 'message' = undefined :: binary() | undefined, 'parent' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'author' = undefined :: shout_author() | undefined, 'gif' = undefined :: shout_gif() | undefined, 'facets' = undefined :: [shout_mention()] | undefined, 'content' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'likes' = undefined :: integer() | undefined, 'liked' = undefined :: boolean() | undefined}).
+-type shout_view() :: #shout_view{}.
+-record(song_first_scrobble_view, {'handle' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'timestamp' = undefined :: binary() | undefined}).
+-type song_first_scrobble_view() :: #song_first_scrobble_view{}.
+-record(song_get_song_params, {'uri' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'spotify_id' = undefined :: binary() | undefined}).
+-type song_get_song_params() :: #song_get_song_params{}.
+-record(song_match_view, {'id' = undefined :: integer() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'duration_ms' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'link' = undefined :: binary() | undefined, 'preview' = undefined :: binary() | undefined, 'rank' = undefined :: integer() | undefined, 'explicit' = undefined :: boolean() | undefined, 'score' = undefined :: integer() | undefined}).
+-type song_match_view() :: #song_match_view{}.
+-record(song_recent_listener_view, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'timestamp' = undefined :: binary() | undefined, 'scrobble_uri' = undefined :: binary() | undefined}).
+-type song_recent_listener_view() :: #song_recent_listener_view{}.
+-record(song_record, {'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'artists' = undefined :: [artist_mbid()] | undefined, 'album_artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'release_date' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'genre' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'composer' = undefined :: binary() | undefined, 'lyrics' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'wiki' = undefined :: binary() | undefined, 'album_art' = undefined :: blob_ref() | undefined, 'album_art_url' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined}).
+-type song_record() :: #song_record{}.
+-record(song_response_mb_artists_item_view, {'mbid' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type song_response_mb_artists_item_view() :: #song_response_mb_artists_item_view{}.
+-record(song_view_basic, {'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'play_count' = undefined :: integer() | undefined, 'likes_count' = undefined :: integer() | undefined, 'liked' = undefined :: boolean() | undefined, 'unique_listeners' = undefined :: integer() | undefined, 'album_uri' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'mb_id' = undefined :: binary() | undefined, 'youtube_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'lyrics' = undefined :: binary() | undefined, 'composer' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'key' = undefined :: binary() | undefined, 'acoustid_fingerprint' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined, 'bpm' = undefined :: float() | undefined}).
+-type song_view_basic() :: #song_view_basic{}.
+-record(song_view_detailed, {'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'play_count' = undefined :: integer() | undefined, 'likes_count' = undefined :: integer() | undefined, 'liked' = undefined :: boolean() | undefined, 'unique_listeners' = undefined :: integer() | undefined, 'album_uri' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'created_at' = undefined :: binary() | undefined, 'artists' = undefined :: [artist_view_basic()] | undefined, 'first_scrobble' = undefined :: song_first_scrobble_view() | undefined, 'matches' = undefined :: [song_match_view()] | undefined, 'mb_id' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined, 'release_date' = undefined :: binary() | undefined, 'year' = undefined :: integer() | undefined, 'artist_picture' = undefined :: binary() | undefined, 'genres' = undefined :: [binary()] | undefined, 'mb_artists' = undefined :: [song_response_mb_artists_item_view()] | undefined, 'youtube_link' = undefined :: binary() | undefined, 'spotify_link' = undefined :: binary() | undefined, 'apple_music_link' = undefined :: binary() | undefined, 'tidal_link' = undefined :: binary() | undefined, 'lyrics' = undefined :: binary() | undefined, 'composer' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'label' = undefined :: binary() | undefined, 'copyright_message' = undefined :: binary() | undefined, 'key' = undefined :: binary() | undefined, 'acoustid_fingerprint' = undefined :: binary() | undefined, 'xata_version' = undefined :: integer() | undefined, 'bpm' = undefined :: float() | undefined}).
+-type song_view_detailed() :: #song_view_detailed{}.
+-record(spotify_get_currently_playing_params, {'actor' = undefined :: binary() | undefined}).
+-type spotify_get_currently_playing_params() :: #spotify_get_currently_playing_params{}.
+-record(spotify_seek_params, {'position' = undefined :: integer() | undefined}).
+-type spotify_seek_params() :: #spotify_seek_params{}.
+-record(spotify_track_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'duration' = undefined :: integer() | undefined, 'preview_url' = undefined :: binary() | undefined}).
+-type spotify_track_view() :: #spotify_track_view{}.
+-record(star_input, {'id' = undefined :: binary() | undefined, 'album_id' = undefined :: binary() | undefined, 'artist_id' = undefined :: binary() | undefined}).
+-type star_input() :: #star_input{}.
+-record(star_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined}).
+-type star_output() :: #star_output{}.
+-record(start_playlist_params, {'uri' = undefined :: binary() | undefined, 'shuffle' = undefined :: boolean() | undefined, 'position' = undefined :: integer() | undefined}).
+-type start_playlist_params() :: #start_playlist_params{}.
+-record(start_scan_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'scan_status' = undefined :: json_value() | undefined}).
+-type start_scan_output() :: #start_scan_output{}.
+-record(start_scan_params, {}).
+-type start_scan_params() :: #start_scan_params{}.
+-record(stats_global_stats_view, {'scrobbles' = undefined :: integer() | undefined, 'users' = undefined :: integer() | undefined, 'artists' = undefined :: integer() | undefined, 'albums' = undefined :: integer() | undefined, 'tracks' = undefined :: integer() | undefined}).
+-type stats_global_stats_view() :: #stats_global_stats_view{}.
+-record(stats_view, {'scrobbles' = undefined :: integer() | undefined, 'artists' = undefined :: integer() | undefined, 'loved_tracks' = undefined :: integer() | undefined, 'albums' = undefined :: integer() | undefined, 'tracks' = undefined :: integer() | undefined}).
+-type stats_view() :: #stats_view{}.
+-record(stats_wrapped_album, {'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined}).
+-type stats_wrapped_album() :: #stats_wrapped_album{}.
+-record(stats_wrapped_artist, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'picture' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined}).
+-type stats_wrapped_artist() :: #stats_wrapped_artist{}.
+-record(stats_wrapped_day_count, {'date' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined}).
+-type stats_wrapped_day_count() :: #stats_wrapped_day_count{}.
+-record(stats_wrapped_genre_count, {'genre' = undefined :: binary() | undefined, 'count' = undefined :: integer() | undefined}).
+-type stats_wrapped_genre_count() :: #stats_wrapped_genre_count{}.
+-record(stats_wrapped_milestone, {'track_title' = undefined :: binary() | undefined, 'artist_name' = undefined :: binary() | undefined, 'timestamp' = undefined :: binary() | undefined, 'track_uri' = undefined :: binary() | undefined}).
+-type stats_wrapped_milestone() :: #stats_wrapped_milestone{}.
+-record(stats_wrapped_month_count, {'month' = undefined :: integer() | undefined, 'count' = undefined :: integer() | undefined}).
+-type stats_wrapped_month_count() :: #stats_wrapped_month_count{}.
+-record(stats_wrapped_track, {'id' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'artist_uri' = undefined :: binary() | undefined, 'album_uri' = undefined :: binary() | undefined, 'play_count' = undefined :: integer() | undefined}).
+-type stats_wrapped_track() :: #stats_wrapped_track{}.
+-record(stats_wrapped_view, {'year' = undefined :: integer() | undefined, 'period' = undefined :: binary() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined, 'total_scrobbles' = undefined :: integer() | undefined, 'total_listening_time_minutes' = undefined :: integer() | undefined, 'top_artists' = undefined :: [stats_wrapped_artist()] | undefined, 'top_tracks' = undefined :: [stats_wrapped_track()] | undefined, 'top_albums' = undefined :: [stats_wrapped_album()] | undefined, 'top_genres' = undefined :: [stats_wrapped_genre_count()] | undefined, 'scrobbles_per_month' = undefined :: [stats_wrapped_month_count()] | undefined, 'scrobbles_per_day' = undefined :: [stats_wrapped_day_count()] | undefined, 'most_active_day' = undefined :: stats_wrapped_day_count() | undefined, 'most_active_hour' = undefined :: integer() | undefined, 'new_artists_count' = undefined :: integer() | undefined, 'longest_streak' = undefined :: integer() | undefined, 'first_scrobble' = undefined :: stats_wrapped_milestone() | undefined, 'last_scrobble' = undefined :: stats_wrapped_milestone() | undefined}).
+-type stats_wrapped_view() :: #stats_wrapped_view{}.
+-record(status_record, {'track' = undefined :: actor_track_view() | undefined, 'started_at' = undefined :: binary() | undefined, 'expires_at' = undefined :: binary() | undefined}).
+-type status_record() :: #status_record{}.
+-record(strong_ref, {'uri' = undefined :: binary() | undefined, 'cid' = undefined :: binary() | undefined}).
+-type strong_ref() :: #strong_ref{}.
+-record(unfollow_account_output, {'subject' = undefined :: actor_profile_view_basic() | undefined, 'followers' = undefined :: [actor_profile_view_basic()] | undefined, 'cursor' = undefined :: binary() | undefined}).
+-type unfollow_account_output() :: #unfollow_account_output{}.
+-record(unfollow_account_params, {'account' = undefined :: binary() | undefined}).
+-type unfollow_account_params() :: #unfollow_account_params{}.
+-record(unstar_input, {'id' = undefined :: binary() | undefined, 'album_id' = undefined :: binary() | undefined, 'artist_id' = undefined :: binary() | undefined}).
+-type unstar_input() :: #unstar_input{}.
+-record(unstar_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined}).
+-type unstar_output() :: #unstar_output{}.
+-record(update_apikey_input, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined}).
+-type update_apikey_input() :: #update_apikey_input{}.
+-record(update_now_playing_input, {'id' = undefined :: binary() | undefined}).
+-type update_now_playing_input() :: #update_now_playing_input{}.
+-record(update_now_playing_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined}).
+-type update_now_playing_output() :: #update_now_playing_output{}.
+-record(update_seen_input, {'ids' = undefined :: [binary()] | undefined}).
+-type update_seen_input() :: #update_seen_input{}.
+-record(update_seen_output, {'unread_count' = undefined :: integer() | undefined}).
+-type update_seen_output() :: #update_seen_output{}.
+-endif.

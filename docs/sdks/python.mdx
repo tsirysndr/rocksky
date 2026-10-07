@@ -76,3 +76,35 @@ as JSON), `hydrate_from_jetstream` (live dedup off the firehose).
 Pass a `dedup_path` to `Agent.login_password` to enable the local index, then
 `agent.sync_repo()` to backfill it from the repo. With it, write verbs skip
 records that already exist.
+
+## Typed XRPC and raw calls
+
+`XrpcClient` provides generated, annotated endpoint methods. Params, request
+bodies and responses use Pydantic v2 models with snake_case attributes and
+camelCase wire aliases. Nested responses are validated recursively.
+
+```python
+from rocksky import XrpcClient
+from rocksky.models import SongGetSongParams
+
+client = XrpcClient(token="your-api-key", timeout=30)
+params = SongGetSongParams(uri="at://did:plc:example/app.rocksky.song/example")
+song = client.song_get_song(params)
+print(song.mb_id)
+
+response = client.raw("GET", "app.rocksky.song.getSong", params={"uri": params.uri})
+print(response.status, response.body)
+# POST accepts independent query parameters and a JSON-compatible body:
+# client.raw("POST", nsid, params=params, body=body)
+```
+
+Typed methods raise `rocksky.xrpc.XrpcError` for non-2xx status codes and
+Pydantic `ValidationError` for invalid data. Network failures raise
+`urllib.error.URLError`. Raw calls preserve status, headers and response
+bytes; call `response.raise_for_status()` when desired.
+
+Existing native-core APIs remain available. The typed layer uses HTTP directly
+and accepts your bearer token; it does not automatically read native-agent
+sessions. Query arrays use repeated URL parameters. Fields the lexicons
+explicitly leave open, such as provider payloads, remain JSON values.
+Regenerate with `bun tools/lexgen/generate.ts --python` from the repository root.

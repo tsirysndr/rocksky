@@ -1,5 +1,12 @@
 #!/usr/bin/env bun
-import { readdirSync, readFileSync, statSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import {
+  readdirSync,
+  readFileSync,
+  statSync,
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+} from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,9 +21,24 @@ import { emitKotlin } from "./emit-kotlin";
 import { emitRuby } from "./emit-ruby";
 import { emitElixir } from "./emit-elixir";
 import { emitClojure } from "./emit-clojure";
-import { emitGleam } from "./emit-gleam";
+import { emitGleam, emitGleamApi } from "./emit-gleam";
 
-import type { Registry, NamedType, Field, TypeRef, EndpointDef } from "./registry";
+import { emitPythonModels, emitPythonApi } from "./emit-python-xrpc";
+import {
+  emitErlangHeader,
+  emitErlangModels,
+  emitErlangApi,
+  emitElixirModels,
+  emitElixirApi,
+} from "./emit-beam-xrpc";
+
+import type {
+  Registry,
+  NamedType,
+  Field,
+  TypeRef,
+  EndpointDef,
+} from "./registry";
 
 const log = createConsola({
   level: 4,
@@ -90,7 +112,10 @@ function typeNameFor(
   return dn.toLowerCase().startsWith(ns.toLowerCase()) ? dn : ns + dn;
 }
 
-function resolveRef(currentNsid: string, ref: string): { nsid: string; def: string } {
+function resolveRef(
+  currentNsid: string,
+  ref: string,
+): { nsid: string; def: string } {
   const [maybeNsid, defPart] = ref.split("#");
   const nsid = maybeNsid && maybeNsid.length > 0 ? maybeNsid : currentNsid;
   const def = defPart && defPart.length > 0 ? defPart : "main";
@@ -115,7 +140,11 @@ interface ParseCtx {
   refMap: Map<string, string>;
 }
 
-function parseTypeRef(node: any, ctx: ParseCtx, fieldNameForHoist?: string): TypeRef {
+function parseTypeRef(
+  node: any,
+  ctx: ParseCtx,
+  fieldNameForHoist?: string,
+): TypeRef {
   if (!node || typeof node !== "object") return { kind: "unknown" };
   switch (node.type) {
     case "string": {
@@ -140,7 +169,10 @@ function parseTypeRef(node: any, ctx: ParseCtx, fieldNameForHoist?: string): Typ
     case "unknown":
       return { kind: "unknown" };
     case "array":
-      return { kind: "array", items: parseTypeRef(node.items, ctx, fieldNameForHoist) };
+      return {
+        kind: "array",
+        items: parseTypeRef(node.items, ctx, fieldNameForHoist),
+      };
     case "ref": {
       const r = resolveRef(ctx.nsid, node.ref);
       const id = `${r.nsid}#${r.def}`;
@@ -158,7 +190,9 @@ function parseTypeRef(node: any, ctx: ParseCtx, fieldNameForHoist?: string): Typ
       return { kind: "union", options: ids };
     }
     case "object": {
-      const hoistName = ctx.parentTypeName + (fieldNameForHoist ? pascal(fieldNameForHoist) : "Object");
+      const hoistName =
+        ctx.parentTypeName +
+        (fieldNameForHoist ? pascal(fieldNameForHoist) : "Object");
       const nested = buildNamedType(hoistName, node, ctx);
       ctx.hoist(hoistName, nested);
       return { kind: "ref", targetId: `__inline:${hoistName}` };
@@ -179,6 +213,7 @@ function buildNamedType(name: string, node: any, ctx: ParseCtx): NamedType {
       name: propName,
       description: propNode.description,
       required: required.includes(propName),
+      nullable: node.nullable?.includes(propName) || undefined,
       type: t,
     });
   }
@@ -303,11 +338,18 @@ function buildRegistry(): Registry {
         case "subscription": {
           const paramsName = endpointStem(nsid) + "Params";
           if (def.parameters && def.parameters.properties) {
-            const ctx: ParseCtx = { ...baseCtx, parentTypeName: paramsName, hoist };
+            const ctx: ParseCtx = {
+              ...baseCtx,
+              parentTypeName: paramsName,
+              hoist,
+            };
             const t = buildNamedType(paramsName, def.parameters, ctx);
             types.push(t);
           }
-          if (def.type === "procedure" && def.input?.schema?.type === "object") {
+          if (
+            def.type === "procedure" &&
+            def.input?.schema?.type === "object"
+          ) {
             const name = endpointStem(nsid) + "Input";
             const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
             const t = buildNamedType(name, def.input.schema, ctx);
@@ -323,11 +365,35 @@ function buildRegistry(): Registry {
               types.push(t);
               outputRef = { kind: "ref", targetId: `__inline:${name}` };
             } else {
-              const ctx: ParseCtx = { ...baseCtx, parentTypeName: endpointStem(nsid) + "Output", hoist };
+              const ctx: ParseCtx = {
+                ...baseCtx,
+                parentTypeName: endpointStem(nsid) + "Output",
+                hoist,
+              };
               outputRef = parseTypeRef(schema, ctx);
             }
           }
-          endpoints.push({ nsid, kind: def.type, output: outputRef });
+          const inputRef = def.input?.schema
+            ? def.input.schema.type === "object"
+              ? ({
+                  kind: "ref",
+                  targetId: `__inline:${endpointStem(nsid)}Input`,
+                } as TypeRef)
+              : parseTypeRef(def.input.schema, {
+                  ...baseCtx,
+                  parentTypeName: endpointStem(nsid) + "Input",
+                  hoist,
+                })
+            : undefined;
+          endpoints.push({
+            nsid,
+            kind: def.type,
+            output: outputRef,
+            params: def.parameters?.properties ? paramsName : undefined,
+            input: inputRef,
+            binaryOutput:
+              !!def.output && def.output.encoding !== "application/json",
+          });
           if (def.message?.schema?.type === "object") {
             const name = endpointStem(nsid) + "Message";
             const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
@@ -352,6 +418,7 @@ function buildRegistry(): Registry {
   }
   for (const ep of endpoints) {
     if (ep.output) ep.output = resolveTypeRef(ep.output, refMap);
+    if (ep.input) ep.input = resolveTypeRef(ep.input, refMap);
   }
 
   // Two types may legitimately arrive under one name (the same inline object
@@ -374,8 +441,12 @@ function buildRegistry(): Registry {
       );
     }
   }
-  const deduped = Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
-  const sortedEndpoints = endpoints.slice().sort((a, b) => a.nsid.localeCompare(b.nsid));
+  const deduped = Array.from(seen.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  const sortedEndpoints = endpoints
+    .slice()
+    .sort((a, b) => a.nsid.localeCompare(b.nsid));
 
   return { types: deduped, refMap, endpoints: sortedEndpoints };
 }
@@ -439,21 +510,93 @@ async function main() {
   parseLog.success(`parsed ${reg.types.length} named types`);
 
   // The Go (indigo), TypeScript (atcute) and Rust SDKs consume generated lexicon
-  // types. The rest are native-core FFI SDKs over the shared Rust engine
-  // (crates/rocksky-sdk) and have no `generated/` subtree.
+  // types. Gleam, Erlang, Elixir and Python also expose generated typed XRPC
+  // APIs alongside their existing native-core bindings.
   //
   // sdk/rust was dropped from this list at some point while its generated.rs
   // stayed in the tree — lib.rs still exposes it and models.rs re-exports from
   // it, so it silently went stale (it still carried the removed
   // app.rocksky.playlistItem). Keep it here.
   const targets = [
-    { lang: "typescript", path: join(REPO, "sdk/typescript/src/generated/types.ts"), fn: emitTypescript },
+    {
+      lang: "typescript",
+      path: join(REPO, "sdk/typescript/src/generated/types.ts"),
+      fn: emitTypescript,
+    },
     { lang: "go", path: join(REPO, "sdk/go/rocksky/gen/types.go"), fn: emitGo },
-    { lang: "rust", path: join(REPO, "sdk/rust/src/generated.rs"), fn: emitRust },
+    {
+      lang: "rust",
+      path: join(REPO, "sdk/rust/src/generated.rs"),
+      fn: emitRust,
+    },
+    {
+      lang: "gleam",
+      path: join(REPO, "sdk/gleam/src/rocksky/models.gleam"),
+      fn: emitGleam,
+    },
+    {
+      lang: "gleam",
+      path: join(REPO, "sdk/gleam/src/rocksky/api.gleam"),
+      fn: emitGleamApi,
+    },
+    {
+      lang: "erlang",
+      path: join(REPO, "sdk/erlang/include/rocksky_models.hrl"),
+      fn: emitErlangHeader,
+    },
+    {
+      lang: "erlang",
+      path: join(REPO, "sdk/erlang/src/rocksky_models.erl"),
+      fn: emitErlangModels,
+    },
+    {
+      lang: "erlang",
+      path: join(REPO, "sdk/erlang/src/rocksky_xrpc.erl"),
+      fn: emitErlangApi,
+    },
+    {
+      lang: "elixir",
+      path: join(REPO, "sdk/elixir/lib/rocksky/models.ex"),
+      fn: emitElixirModels,
+    },
+    {
+      lang: "elixir",
+      path: join(REPO, "sdk/elixir/lib/rocksky/api.ex"),
+      fn: emitElixirApi,
+    },
+    {
+      lang: "python",
+      path: join(REPO, "sdk/python/src/rocksky/models.py"),
+      fn: emitPythonModels,
+    },
+    {
+      lang: "python",
+      path: join(REPO, "sdk/python/src/rocksky/api.py"),
+      fn: emitPythonApi,
+    },
   ];
 
+  const selected = ["gleam", "erlang", "elixir", "python"].filter((lang) =>
+    process.argv.includes(`--${lang}`),
+  );
+  for (const [lang, mod, file] of [
+    ["gleam", "rocksky_gleam_http", "sdk/gleam/src/rocksky_gleam_http.erl"],
+    ["erlang", "rocksky_xrpc_http", "sdk/erlang/src/rocksky_xrpc_http.erl"],
+  ]) {
+    if (!selected.length || selected.includes(lang))
+      writeOut(
+        tag(lang),
+        join(REPO, file),
+        readFileSync(join(HERE, "xrpc-http.erl.template"), "utf8").replace(
+          "MODULE_NAME",
+          mod,
+        ),
+      );
+  }
   let totalBytes = 0;
-  for (const t of targets) {
+  for (const t of targets.filter(
+    (t) => !selected.length || selected.includes(t.lang),
+  )) {
     const langLog = tag(`${LANG_ICONS[t.lang] ?? t.lang}`);
     langLog.start(`emitting ${t.lang}`);
     const content = t.fn(reg);

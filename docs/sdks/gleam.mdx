@@ -62,3 +62,39 @@ set, `sync_repo(agent)` / `hydrate_from_jetstream(agent)` keep the dedup + realt
 store warm.
 
 **Identity hashes**: `song_hash(title, artist, album)`, `artist_hash(album_artist)`.
+
+## Typed XRPC and raw calls
+
+`rocksky/api` exposes generated endpoint functions. `rocksky/models` provides
+records, constructors, JSON encoders and validating decoders. Optional fields
+use `Option`, including optional arrays.
+
+```gleam
+import gleam/option.{None, Some}
+import rocksky/api
+import rocksky/models
+import rocksky/xrpc
+
+pub fn example() {
+  let client = xrpc.new()
+  let defaults = models.new_song_get_song_params()
+  let params = models.SongGetSongParams(..defaults,
+    uri: Some("at://did:plc:example/app.rocksky.song/example"))
+  let song = api.song_get_song(client, params)
+
+  let raw = xrpc.raw(client, xrpc.Get, "app.rocksky.song.getSong",
+    models.encode_song_get_song_params(params), None)
+  #(song, raw)
+}
+```
+
+Use `with_endpoint`, `with_token` and `with_timeout` (milliseconds) to configure
+transport. Typed calls return `HttpError`, `TransportError` or `DecodeError`.
+Raw calls preserve HTTP status and response bytes, including non-2xx responses.
+For POST, pass `Some(json.object([...]))` as the last argument for a JSON body.
+
+Existing native-core APIs remain available. The typed layer uses HTTP directly
+and accepts your bearer token; it does not automatically read native-agent
+sessions. Query arrays use repeated URL parameters. Fields the lexicons
+explicitly leave open, such as provider payloads, remain JSON values.
+Regenerate with `bun tools/lexgen/generate.ts --gleam` from the repository root.

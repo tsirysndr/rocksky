@@ -14,6 +14,8 @@ Build a Rocksky-controllable player or a remote UI with the ``RemotePlayer`` /
 
 import contextlib
 
+from .api import XrpcClient  # noqa: F401
+
 from .filter import Filter, FilterValue  # noqa: F401
 from .rocksky_uniffi import *  # noqa: F403
 from .rocksky_uniffi import AppView as _AppView

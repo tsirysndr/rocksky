@@ -72,3 +72,33 @@ Unix seconds), e.g.
 `sync_repo(agent)` / `hydrate_from_jetstream(agent)`.
 
 **Identity hashes**: `Rocksky.song_hash(title, artist, album)`.
+
+## Typed XRPC and raw calls
+
+`Rocksky.Api` exposes generated endpoint functions with typed `Rocksky.Models`
+structs and specs. Required fields are enforced, and responses are validated
+recursively, including nested Discogs data.
+
+```elixir
+alias Rocksky.{Api, Models, Xrpc}
+client = Xrpc.new(token: "your-api-key")
+params = %Models.SongGetSongParams{uri: "at://did:plc:example/app.rocksky.song/example"}
+{:ok, song} = Api.song_get_song(client, params)
+IO.inspect(song.mb_id)
+
+{:ok, response} = Xrpc.raw(client, :get, "app.rocksky.song.getSong", %{"uri" => params.uri})
+IO.inspect({response.status, response.body})
+# POST accepts independent query parameters and a JSON-compatible body:
+# Xrpc.raw(client, :post, nsid, params, body)
+```
+
+Typed calls return `{:error, {:http, status, body}}`,
+`{:error, {:transport, reason}}` or `{:error, {:decode, reason}}` on failure.
+Raw calls preserve non-2xx HTTP responses. Use `endpoint:` and `timeout:`
+(milliseconds) when creating the client to configure transport.
+
+Existing native-core APIs remain available. The typed layer uses HTTP directly
+and accepts your bearer token; it does not automatically read native-agent
+sessions. Query arrays use repeated URL parameters. Fields the lexicons
+explicitly leave open, such as provider payloads, remain JSON values.
+Regenerate with `bun tools/lexgen/generate.ts --elixir` from the repository root.

@@ -23,6 +23,7 @@ export interface Field {
   name: string;
   description?: string;
   required: boolean;
+  nullable?: boolean;
   type: TypeRef;
 }
 
@@ -37,6 +38,9 @@ export interface EndpointDef {
   kind: "query" | "procedure" | "subscription";
   /** Output type, or null if the endpoint has no output body. */
   output: TypeRef | null;
+  params?: string;
+  input?: TypeRef;
+  binaryOutput?: boolean;
 }
 
 export interface Registry {
