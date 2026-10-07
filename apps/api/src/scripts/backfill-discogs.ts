@@ -28,6 +28,7 @@ import { ctx } from "context";
 import { and, asc, count, gt, isNull } from "drizzle-orm";
 import { enrichAlbumWithDiscogs } from "lib/discogsEnrichment";
 import tables from "schema";
+import { retryPgConnection } from "lib/pgConnectionRecovery";
 
 const ALBUMS_PER_MINUTE = Number(process.env.BACKFILL_ALBUMS_PER_MINUTE ?? 18);
 const LIMIT = process.env.BACKFILL_LIMIT
@@ -50,12 +51,22 @@ const formatEta = (seconds: number) => {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
+const retryDb = <T>(label: string, run: () => PromiseLike<T>) =>
+  retryPgConnection(run, {
+    onRetry: (attempt, delayMs) =>
+      consola.warn(
+        `${label}: database connection lost, retry ${attempt}/5 in ${delayMs / 1000}s`,
+      ),
+  });
+
 async function main() {
-  const pending = await ctx.db
-    .select({ count: count() })
-    .from(tables.albums)
-    .where(isNull(tables.albums.discogsReleaseId))
-    .then((rows) => rows[0]?.count ?? 0);
+  const pending = await retryDb("Count pending albums", () =>
+    ctx.db
+      .select({ count: count() })
+      .from(tables.albums)
+      .where(isNull(tables.albums.discogsReleaseId))
+      .then((rows) => rows[0]?.count ?? 0),
+  );
 
   const target = Math.min(pending, LIMIT);
   consola.info(
@@ -73,19 +84,21 @@ async function main() {
   const startedAt = Date.now();
 
   while (processed < target) {
-    const albums = await ctx.db
-      .select()
-      .from(tables.albums)
-      .where(
-        cursor
-          ? and(
-              isNull(tables.albums.discogsReleaseId),
-              gt(tables.albums.createdAt, cursor),
-            )
-          : isNull(tables.albums.discogsReleaseId),
-      )
-      .orderBy(asc(tables.albums.createdAt))
-      .limit(PAGE_SIZE);
+    const albums = await retryDb("Read album page", () =>
+      ctx.db
+        .select()
+        .from(tables.albums)
+        .where(
+          cursor
+            ? and(
+                isNull(tables.albums.discogsReleaseId),
+                gt(tables.albums.createdAt, cursor),
+              )
+            : isNull(tables.albums.discogsReleaseId),
+        )
+        .orderBy(asc(tables.albums.createdAt))
+        .limit(PAGE_SIZE),
+    );
 
     if (albums.length === 0) {
       break;
@@ -93,21 +106,22 @@ async function main() {
 
     for (const album of albums) {
       if (processed >= target) break;
-      cursor = album.createdAt;
 
       const label = chalk.cyan(`${album.artist} - ${album.title}`);
       if (DRY_RUN) {
         consola.info(`[${processed + 1}/${target}] would ask for ${label}`);
+        cursor = album.createdAt;
         processed++;
         continue;
       }
 
-      let result = await enrichAlbumWithDiscogs(
-        ctx,
-        album.artist,
-        album.title,
-        album.id,
-      );
+      // Retrying the entire enrichment replays its upserts and transactional
+      // replacements safely; a failed transaction itself must never be reused.
+      const enrich = () =>
+        retryDb(`Discogs album ${album.id}`, () =>
+          enrichAlbumWithDiscogs(ctx, album.artist, album.title, album.id),
+        );
+      let result = await enrich();
       for (
         let attempt = 1;
         result.status === "unavailable" && attempt < MAX_ATTEMPTS;
@@ -117,14 +131,10 @@ async function main() {
           `discogs unavailable, retrying ${label} in ${formatEta(UNAVAILABLE_COOLDOWN_MS / 1000)}`,
         );
         await sleep(UNAVAILABLE_COOLDOWN_MS);
-        result = await enrichAlbumWithDiscogs(
-          ctx,
-          album.artist,
-          album.title,
-          album.id,
-        );
+        result = await enrich();
       }
 
+      cursor = album.createdAt;
       processed++;
       switch (result.status) {
         case "matched":

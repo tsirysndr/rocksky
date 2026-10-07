@@ -176,3 +176,95 @@ describe("toDiscogsCreditRows", () => {
     expect(toDiscogsCreditRows("rel_1", [])).toEqual([]);
   });
 });
+
+describe("interrupted release persistence", () => {
+  it("retries partial releases before marking their children complete", async () => {
+    const { enrichAlbumWithDiscogs } = await import("./discogsEnrichment");
+    const { retryPgConnection } = await import("./pgConnectionRecovery");
+    const { default: tables } = await import("schema");
+    let release: Record<string, unknown> = {
+      id: "release-1",
+      creditsFetchedAt: null,
+    };
+    let transactions = 0;
+    let requests = 0;
+    let completedAfter = 0;
+    const db = {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: () => ({
+            limit: async () =>
+              table === tables.discogsSearches
+                ? [{ releaseId: "release-1", searchedAt: new Date() }]
+                : table === tables.discogsReleases
+                  ? [{ ...release }]
+                  : [],
+          }),
+        }),
+      }),
+      insert: (table: unknown) => ({
+        values: (values: Record<string, unknown>) => ({
+          onConflictDoUpdate: () => {
+            if (table === tables.discogsReleases) {
+              release = { id: "release-1", ...values };
+              return { returning: async () => [{ ...release }] };
+            }
+            return Promise.resolve();
+          },
+        }),
+      }),
+      update: () => ({
+        set: (values: Record<string, unknown>) => ({
+          where: async () => {
+            completedAfter = transactions;
+            release = { ...release, ...values };
+          },
+        }),
+      }),
+      transaction: async (run: (tx: unknown) => Promise<void>) => {
+        transactions++;
+        expect(release.creditsFetchedAt).toBeNull();
+        if (transactions === 1)
+          throw new Error("Connection terminated unexpectedly");
+        await run({ delete: () => ({ where: async () => {} }) });
+      },
+    };
+    const ctx = {
+      db,
+      discogs: {
+        post: async () => {
+          requests++;
+          return {
+            data: {
+              matches: [],
+              track: { ...track, discogsMasterId: null, credits: [] },
+            },
+          };
+        },
+        get: async () => ({
+          data: {
+            id: 4570366,
+            artists: [],
+            labels: [],
+            identifiers: [],
+            tracklist: [],
+          },
+        }),
+      },
+    };
+    const result = await retryPgConnection(
+      () =>
+        enrichAlbumWithDiscogs(
+          ctx as unknown as import("context").Context,
+          "Daft Punk",
+          "Random Access Memories",
+          "album-1",
+        ),
+      { sleep: async () => {} },
+    );
+    expect(result.status).toBe("matched");
+    expect(requests).toBe(2);
+    expect(completedAfter).toBe(3);
+    expect(release.creditsFetchedAt).toBeInstanceOf(Date);
+  });
+});

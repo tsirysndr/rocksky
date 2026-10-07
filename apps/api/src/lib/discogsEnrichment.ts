@@ -166,16 +166,25 @@ export const enrichAlbumWithDiscogs = async (
 
   const release = await ctx.db
     .insert(tables.discogsReleases)
-    .values({ ...row, creditsFetchedAt: new Date() })
+    .values({ ...row, creditsFetchedAt: null })
     .onConflictDoUpdate({
       target: tables.discogsReleases.discogsId,
-      set: { ...row, creditsFetchedAt: new Date(), updatedAt: new Date() },
+      set: { ...row, creditsFetchedAt: null, updatedAt: new Date() },
     })
     .returning()
     .then((rows) => rows[0]);
 
   await storeCredits(ctx, release.id, response.track?.credits);
   await storeRelations(ctx, release.id, release.discogsId, release.masterId);
+
+  // Mark completion only after child records are persisted. A dropped
+  // connection must not make a retry accept a partially stored release.
+  const completedAt = new Date();
+  await ctx.db
+    .update(tables.discogsReleases)
+    .set({ creditsFetchedAt: completedAt, updatedAt: completedAt })
+    .where(eq(tables.discogsReleases.id, release.id));
+  release.creditsFetchedAt = completedAt;
 
   await recordSearch(ctx, {
     sha256,

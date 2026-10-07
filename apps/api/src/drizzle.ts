@@ -3,6 +3,7 @@ import { consola } from "consola";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { env } from "lib/env";
 import pg from "pg";
+import { handlePgConnectionErrors } from "./lib/pgConnectionRecovery";
 
 // index.ts and server.ts both import this module, so without a distinguishing
 // name every backend in pg_stat_activity looks identical.
@@ -34,21 +35,20 @@ const poolConfig = (url: string, name: string): pg.PoolConfig => ({
   idle_in_transaction_session_timeout: 30_000,
 });
 
-const onError = (label: string) => (err: Error) => {
-  consola.error(`Idle pg client error on ${label}:`, err.message);
-};
+const watchPool = (pool: pg.Pool, label: string) =>
+  handlePgConnectionErrors(pool, label, (message) => consola.error(message));
 
 /** Primary. Every write, and every read that must reflect one. */
 export const pool = new pg.Pool(
   poolConfig(writeUrl, `${applicationName}:primary`),
 );
-pool.on("error", onError("primary"));
+watchPool(pool, "primary");
 
 /** Read-only replica, or the primary pool itself when no replica is set. */
 export const readPool = isSplit
   ? new pg.Pool(poolConfig(readUrl, `${applicationName}:replica`))
   : pool;
-if (isSplit) readPool.on("error", onError("replica"));
+if (isSplit) watchPool(readPool, "replica");
 
 // Dedicated to issuing pg_cancel_backend (see lib/dbQuery.ts). It has to be a
 // separate pool: the whole point is to be reachable when the main pool is the
@@ -66,12 +66,12 @@ const cancelConfig = (url: string, name: string): pg.PoolConfig => ({
 export const cancelPool = new pg.Pool(
   cancelConfig(writeUrl, `${applicationName}:cancel:primary`),
 );
-cancelPool.on("error", onError("primary cancel"));
+watchPool(cancelPool, "primary cancel");
 
 export const readCancelPool = isSplit
   ? new pg.Pool(cancelConfig(readUrl, `${applicationName}:cancel:replica`))
   : cancelPool;
-if (isSplit) readCancelPool.on("error", onError("replica cancel"));
+if (isSplit) watchPool(readCancelPool, "replica cancel");
 
 /**
  * Fails unless the primary pool can actually write.
