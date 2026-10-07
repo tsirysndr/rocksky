@@ -1,3 +1,6 @@
+import { MoreButton, libraryActionStyles } from "./LibraryActions";
+import LibraryList from "./LibraryList";
+import type { ReactNode } from "react";
 import Feather from "@expo/vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -354,19 +357,6 @@ type SheetAction = {
   icon: FeatherName;
   onPress: () => void;
 };
-
-function MoreButton({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={styles.moreButton}
-      hitSlop={8}
-      accessibilityLabel="More actions"
-    >
-      <Feather name="more-horizontal" size={18} color={colors.textMuted} />
-    </TouchableOpacity>
-  );
-}
 
 function TrackActionSheet({
   title,
@@ -839,7 +829,11 @@ function ArtistDetailScreen({
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
-export default function Library() {
+export default function Library({
+  sourceSwitcher,
+}: {
+  sourceSwitcher?: ReactNode;
+}) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const signedIn = !!useAtomValue(authTokenAtom);
@@ -1066,6 +1060,7 @@ export default function Library() {
   if (!signedIn) {
     return (
       <SafeAreaView style={styles.screen} edges={["left", "right"]}>
+        {sourceSwitcher}
         <View style={styles.signInWrap}>
           <LibraryGlyph size={40} color={colors.textMuted} />
           <Text style={{ fontSize: 14, color: colors.textMuted }}>
@@ -1088,6 +1083,7 @@ export default function Library() {
   if (view) {
     return (
       <SafeAreaView style={styles.screen} edges={["left", "right"]}>
+        {sourceSwitcher}
         {view.kind === "album" ? (
           <AlbumDetailScreen
             view={view}
@@ -1122,8 +1118,9 @@ export default function Library() {
     (tab === 0 && tracksQuery.isFetchingNextPage) ||
     (tab === 1 && albumsQuery.isFetchingNextPage);
 
-  return (
-    <SafeAreaView style={styles.screen} edges={["left", "right"]}>
+  const libraryHeader = (
+    <>
+      <View style={{ marginHorizontal: -16 }}>{sourceSwitcher}</View>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Library</Text>
@@ -1135,7 +1132,10 @@ export default function Library() {
           <Text style={styles.uploadButtonText}>Upload</Text>
         </TouchableOpacity>
       </View>
-
+    </>
+  );
+  const pinnedControls = (
+    <View>
       {/* Search */}
       <View style={styles.searchBox}>
         <Feather name="search" size={14} color={colors.textMuted} />
@@ -1149,7 +1149,6 @@ export default function Library() {
           autoCorrect={false}
         />
       </View>
-
       {/* Sub-tabs. Scrollable: five pills are wider than a phone. */}
       <ScrollView
         horizontal
@@ -1171,10 +1170,15 @@ export default function Library() {
           </TouchableOpacity>
         ))}
       </ScrollView>
-
+    </View>
+  );
+  return (
+    <SafeAreaView style={styles.screen} edges={["left", "right"]}>
       {/* Lists */}
       {tab === 0 && (
-        <FlatList
+        <LibraryList
+          header={libraryHeader}
+          tabs={pinnedControls}
           data={tracks}
           keyExtractor={(item) => item.upload.id}
           renderItem={({ item, index }) => (
@@ -1187,7 +1191,6 @@ export default function Library() {
           onEndReached={loadMoreTracks}
           onMomentumScrollEnd={loadMoreTracks}
           onEndReachedThreshold={1.2}
-          getItemLayout={rowLayout}
           initialNumToRender={12}
           maxToRenderPerBatch={12}
           windowSize={9}
@@ -1209,7 +1212,9 @@ export default function Library() {
         />
       )}
       {tab === 1 && (
-        <FlatList
+        <LibraryList
+          header={libraryHeader}
+          tabs={pinnedControls}
           data={albums}
           keyExtractor={(item) => item.id}
           numColumns={3}
@@ -1238,13 +1243,14 @@ export default function Library() {
         />
       )}
       {tab === 2 && (
-        <FlatList
+        <LibraryList
+          header={libraryHeader}
+          tabs={pinnedControls}
           data={artists}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ArtistRow artist={item} onPress={() => openArtist(item)} />
           )}
-          getItemLayout={rowLayout}
           initialNumToRender={12}
           maxToRenderPerBatch={12}
           windowSize={9}
@@ -1264,7 +1270,9 @@ export default function Library() {
         />
       )}
       {tab === 3 && (
-        <FlatList
+        <LibraryList
+          header={libraryHeader}
+          tabs={pinnedControls}
           data={playlists}
           ListHeaderComponent={
             <TouchableOpacity
@@ -1313,7 +1321,9 @@ export default function Library() {
         />
       )}
       {tab === 4 && (
-        <FlatList
+        <LibraryList
+          header={libraryHeader}
+          tabs={pinnedControls}
           data={favorites}
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => (
@@ -1324,7 +1334,6 @@ export default function Library() {
               onMore={() => setSheetSong(item)}
             />
           )}
-          getItemLayout={rowLayout}
           initialNumToRender={12}
           maxToRenderPerBatch={12}
           ListEmptyComponent={
@@ -1523,42 +1532,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontVariant: ["tabular-nums"],
   },
-  moreButton: {
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-  },
-  sheetBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 28,
-  },
-  sheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingBottom: 12,
-    marginBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  sheetItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 13,
-  },
-  sheetItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-  },
+  ...libraryActionStyles,
   sheetTitle: {
     fontSize: 15,
     fontWeight: "700",

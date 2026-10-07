@@ -14,41 +14,45 @@ export default function Library() {
       if (value === "device" && Platform.OS === "android") setSource(value);
     });
   }, []);
+  const sourceSwitcher = Platform.OS === "android" && (
+    <View style={styles.switcher}>
+      {[
+        ["uploaded", "Uploaded music"],
+        ["device", "Local music"],
+      ].map(([value, label]) => (
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: source === value }}
+          key={value}
+          onPress={() => {
+            setSource(value);
+            void AsyncStorage.setItem("library-source", value);
+          }}
+          style={[styles.segment, source === value && styles.activeSegment]}
+        >
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.segmentLabel,
+              source === value && styles.activeLabel,
+            ]}
+          >
+            {label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
   return (
     <SafeAreaView
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colors.background }}
     >
-      {Platform.OS === "android" && (
-        <View style={styles.switcher}>
-          {[
-            ["uploaded", "Uploaded music"],
-            ["device", "Local music"],
-          ].map(([value, label]) => (
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected: source === value }}
-              key={value}
-              onPress={() => {
-                setSource(value);
-                void AsyncStorage.setItem("library-source", value);
-              }}
-              style={[styles.segment, source === value && styles.activeSegment]}
-            >
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.segmentLabel,
-                  source === value && styles.activeLabel,
-                ]}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+      {source === "device" ? (
+        <DeviceLibrary sourceSwitcher={sourceSwitcher} />
+      ) : (
+        <UploadedLibrary sourceSwitcher={sourceSwitcher} />
       )}
-      {source === "device" ? <DeviceLibrary /> : <UploadedLibrary />}
     </SafeAreaView>
   );
 }

@@ -1,3 +1,6 @@
+import { MoreButton, MenuAction, libraryActionStyles } from "./LibraryActions";
+import LibraryList from "./LibraryList";
+import type { ReactNode } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
@@ -19,6 +22,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -27,7 +31,6 @@ import {
 import { localMusicNative } from "../../../modules/rocksky-engine";
 import { Text } from "../../components/Text";
 import {
-  completeDeviceMetadata,
   deviceQueueTrack,
   readDeviceLibrary,
   scanDeviceMusic,
@@ -101,17 +104,21 @@ function IconButton({
   label,
   icon,
   onPress,
+  disabled = false,
 }: {
   label: string;
   icon: React.ComponentProps<typeof Feather>["name"];
   onPress: () => void;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={styles.iconButton}
+      style={[styles.iconButton, disabled && { opacity: 0.45 }]}
     >
       <Feather name={icon} size={24} color={colors.text} />
     </Pressable>
@@ -344,8 +351,10 @@ function MetadataEditor({
 
 export default function DeviceLibrary({
   album,
+  sourceSwitcher,
 }: {
   album?: RootStackParamList["LocalAlbumDetails"];
+  sourceSwitcher?: ReactNode;
 }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -376,6 +385,8 @@ export default function DeviceLibrary({
     null,
   );
   const [working, setWorking] = useState(false);
+  const [requestingScan, setRequestingScan] = useState(false);
+  const scanRequestPending = useRef(false);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [batchOpen, setBatchOpen] = useState(false);
@@ -418,6 +429,26 @@ export default function DeviceLibrary({
       setWorking(false);
     }
   };
+  const rescan = async () => {
+    if (working || scanRequestPending.current) return;
+    scanRequestPending.current = true;
+    setRequestingScan(true);
+    try {
+      await run(scanDeviceMusic);
+    } finally {
+      scanRequestPending.current = false;
+      if (mounted.current) setRequestingScan(false);
+    }
+  };
+  const refreshControl = () => (
+    <RefreshControl
+      refreshing={requestingScan || scanning}
+      onRefresh={() => void rescan()}
+      colors={[colors.primary]}
+      tintColor={colors.primary}
+      progressBackgroundColor={colors.surface2}
+    />
+  );
   const uploadIds = albumActions?.ids ?? (actions ? [actions.id] : []);
   const uploadTracks = tracks.filter((track) => uploadIds.includes(track.id));
   const uploadReason =
@@ -569,12 +600,47 @@ export default function DeviceLibrary({
   }, [tracks, tab, search]);
   const play = (list: DeviceTrack[], index = 0) =>
     void run(() => playQueue(list.map(deviceQueueTrack), index));
+  const shuffle = () => {
+    const shuffled = [...visible];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    play(shuffled);
+  };
   const queue = (track: DeviceTrack, where: "next" | "last") => {
     setActions(null);
     void run(() => queueTracks([deviceQueueTrack(track)], where));
   };
-  return (
-    <View style={styles.screen}>
+  const libraryHeader = (
+    <>
+      {sourceSwitcher}
+      {detail && (
+        <View style={styles.header}>
+          <IconButton
+            label="Back"
+            icon="chevron-left"
+            onPress={() => (album ? navigation.goBack() : setDetail(null))}
+          />
+          <Text numberOfLines={1} style={{ flex: 1 }}>
+            {detail.title}
+          </Text>
+          {tab === "Albums" && (
+            <MoreButton
+              label="Album options"
+              onPress={() => setAlbumActions(detail)}
+            />
+          )}
+          {detail.playlist && (
+            <Button
+              text="Edit"
+              onPress={() =>
+                setNaming({ id: detail.playlist!.id, name: detail.title })
+              }
+            />
+          )}
+        </View>
+      )}
       {(batch.running || batch.results.length > 0) && !batchOpen && (
         <Button
           text={
@@ -590,11 +656,11 @@ export default function DeviceLibrary({
         <>
           <View style={styles.header}>
             <Text style={styles.heading}>On this device</Text>
-            <Button
-              text={tracks.length ? "Rescan music" : "Scan music"}
+            <IconButton
+              label={tracks.length ? "Rescan music" : "Scan music"}
               icon="refresh-cw"
-              disabled={working}
-              onPress={() => void run(scanDeviceMusic)}
+              disabled={working || requestingScan}
+              onPress={() => void rescan()}
             />
           </View>
           {scanning && (
@@ -616,80 +682,68 @@ export default function DeviceLibrary({
           )}
           {library.data && !library.data.scan.permission && (
             <Text style={styles.status}>
-              Tap Scan music to allow access to audio on your phone.
+              Tap the refresh icon or pull down to allow access to music on your
+              phone.
             </Text>
           )}
-          <TextInput
-            accessibilityLabel="Search local library"
-            style={[styles.input, { marginHorizontal: 16 }]}
-            placeholder="Search your music"
-            placeholderTextColor={colors.textMuted}
-            value={search}
-            onChangeText={setSearch}
-          />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tabStrip}
-            contentContainerStyle={styles.tabs}
-          >
-            {tabs.map((item) => (
-              <Pressable
-                key={item}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: tab === item }}
-                style={[styles.tab, tab === item && styles.selected]}
-                onPress={() => {
-                  setTab(item);
-                  setDetail(null);
-                  setSearch("");
-                }}
-              >
-                <Text numberOfLines={1} style={styles.tabLabel}>
-                  {item}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
         </>
       )}
-      {detail && (
-        <View style={styles.header}>
-          <IconButton
-            label="Back"
-            icon="chevron-left"
-            onPress={() => (album ? navigation.goBack() : setDetail(null))}
-          />
-          <Text numberOfLines={1} style={{ flex: 1 }}>
-            {detail.title}
-          </Text>
-          {tab === "Albums" && (
-            <IconButton
-              label="Album options"
-              icon="more-horizontal"
-              onPress={() => setAlbumActions(detail)}
-            />
-          )}
-          {detail.playlist && (
-            <Button
-              text="Edit"
-              onPress={() =>
-                setNaming({ id: detail.playlist!.id, name: detail.title })
-              }
-            />
-          )}
-        </View>
-      )}
+    </>
+  );
+  const pinnedControls = !album ? (
+    <View>
+      <TextInput
+        accessibilityLabel="Search local library"
+        style={[styles.input, { marginHorizontal: 16 }]}
+        placeholder="Search your music"
+        placeholderTextColor={colors.textMuted}
+        value={search}
+        onChangeText={setSearch}
+      />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabStrip}
+        contentContainerStyle={styles.tabs}
+      >
+        {tabs.map((item) => (
+          <Pressable
+            key={item}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === item }}
+            style={[styles.tab, tab === item && styles.selected]}
+            onPress={() => {
+              setTab(item);
+              setDetail(null);
+              setSearch("");
+            }}
+          >
+            <Text numberOfLines={1} style={styles.tabLabel}>
+              {item}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  ) : null;
+  return (
+    <View style={styles.screen}>
       {tab === "Playlists" && !detail ? (
         <>
-          <View style={styles.header}>
-            <Button
-              text="New local playlist"
-              icon="plus"
-              onPress={() => setNaming({ name: "" })}
-            />
-          </View>
-          <FlatList
+          <LibraryList
+            header={libraryHeader}
+            tabs={pinnedControls}
+            ListHeaderComponent={
+              <View style={styles.header}>
+                <Button
+                  text="New local playlist"
+                  icon="plus"
+                  onPress={() => setNaming({ name: "" })}
+                />
+              </View>
+            }
+            refreshControl={refreshControl()}
+            alwaysBounceVertical
             data={playlists.filter((p) =>
               p.name.toLowerCase().includes(search.toLowerCase()),
             )}
@@ -723,7 +777,11 @@ export default function DeviceLibrary({
           />
         </>
       ) : !detail && (tab === "Albums" || tab === "Artists") ? (
-        <FlatList
+        <LibraryList
+          header={libraryHeader}
+          tabs={pinnedControls}
+          refreshControl={refreshControl()}
+          alwaysBounceVertical
           data={groups}
           keyExtractor={(g) => JSON.stringify([g.title, g.subtitle])}
           renderItem={({ item }) => (
@@ -750,18 +808,10 @@ export default function DeviceLibrary({
                 </Text>
               </View>
               {tab === "Albums" ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Album options"
-                  hitSlop={12}
+                <MoreButton
+                  label="Album options"
                   onPress={() => setAlbumActions(item)}
-                >
-                  <Feather
-                    name="more-horizontal"
-                    color={colors.textMuted}
-                    size={22}
-                  />
-                </Pressable>
+                />
               ) : (
                 <Feather
                   name="chevron-right"
@@ -774,72 +824,99 @@ export default function DeviceLibrary({
         />
       ) : (
         <>
-          {visible.length > 0 && (
-            <View style={styles.header}>
-              <Button
-                text="Play all"
-                icon="play"
-                disabled={working}
-                onPress={() => play(visible)}
-              />
-              <Text style={styles.muted}>{visible.length} tracks</Text>
-              <Button
-                text={selecting ? "Done" : "Select"}
-                onPress={() => {
-                  setSelecting(!selecting);
-                  setSelected(new Set());
-                }}
-              />
-            </View>
-          )}
-          {selecting && (
-            <View style={{ paddingHorizontal: 16, gap: 6 }}>
-              <Text style={styles.muted}>{selected.size} selected</Text>
-              <View style={styles.row}>
-                <Button
-                  text="Select visible"
-                  onPress={() =>
-                    setSelected(new Set(visible.map((track) => track.id)))
-                  }
-                />
-                <Button
-                  text="Identify selected"
-                  icon="search"
-                  disabled={!selected.size || batch.running}
-                  onPress={() => void startIdentification()}
-                />
-              </View>
-            </View>
-          )}
-          <FlatList
+          <LibraryList
+            header={libraryHeader}
+            tabs={pinnedControls}
+            refreshControl={refreshControl()}
+            alwaysBounceVertical
             data={visible}
             ListHeaderComponent={
-              album ? (
-                <View style={styles.albumHeader}>
-                  {visible.find((track) => track.albumArt)?.albumArt ? (
-                    <Image
-                      source={{
-                        uri: visible.find((track) => track.albumArt)!.albumArt!,
-                      }}
-                      style={styles.albumArt}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={[styles.albumArt, styles.albumPlaceholder]}>
-                      <Feather name="disc" size={64} color={colors.textMuted} />
+              <>
+                {album ? (
+                  <View style={styles.albumHeader}>
+                    {visible.find((track) => track.albumArt)?.albumArt ? (
+                      <Image
+                        source={{
+                          uri: visible.find((track) => track.albumArt)!
+                            .albumArt!,
+                        }}
+                        style={styles.albumArt}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={[styles.albumArt, styles.albumPlaceholder]}>
+                        <Feather
+                          name="disc"
+                          size={64}
+                          color={colors.textMuted}
+                        />
+                      </View>
+                    )}
+                    <Text style={styles.heading} numberOfLines={2}>
+                      {album.title}
+                    </Text>
+                    <Text style={styles.muted} numberOfLines={2}>
+                      {album.subtitle}
+                    </Text>
+                    {!!library.error && (
+                      <Text style={styles.muted}>{library.error.message}</Text>
+                    )}
+                  </View>
+                ) : null}
+                {visible.length > 0 && (
+                  <View style={styles.header}>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <IconButton
+                        label="Play all"
+                        icon="play"
+                        disabled={working}
+                        onPress={() => play(visible)}
+                      />
+                      <IconButton
+                        label="Shuffle all"
+                        icon="shuffle"
+                        disabled={working}
+                        onPress={shuffle}
+                      />
                     </View>
-                  )}
-                  <Text style={styles.heading} numberOfLines={2}>
-                    {album.title}
-                  </Text>
-                  <Text style={styles.muted} numberOfLines={2}>
-                    {album.subtitle}
-                  </Text>
-                  {!!library.error && (
-                    <Text style={styles.muted}>{library.error.message}</Text>
-                  )}
-                </View>
-              ) : null
+                    <Text style={styles.muted}>{visible.length} tracks</Text>
+                  </View>
+                )}
+                {selecting && (
+                  <View style={{ paddingHorizontal: 16, gap: 6 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Text style={styles.muted}>{selected.size} selected</Text>
+                      <Button
+                        text="Done"
+                        onPress={() => {
+                          setSelecting(false);
+                          setSelected(new Set());
+                        }}
+                      />
+                    </View>
+                    <View style={styles.row}>
+                      <Button
+                        text="Select visible"
+                        onPress={() =>
+                          setSelected(new Set(visible.map((track) => track.id)))
+                        }
+                      />
+                      <Button
+                        text="Identify selected"
+                        icon="search"
+                        disabled={!selected.size || batch.running}
+                        onPress={() => void startIdentification()}
+                      />
+                    </View>
+                  </View>
+                )}
+              </>
             }
             extraData={selected}
             keyExtractor={(t) => t.id}
@@ -857,10 +934,22 @@ export default function DeviceLibrary({
             renderItem={({ item, index }) => (
               <Pressable
                 style={styles.track}
+                accessibilityRole={selecting ? "checkbox" : "button"}
+                accessibilityState={
+                  selecting ? { checked: selected.has(item.id) } : undefined
+                }
+                accessibilityHint={
+                  selecting
+                    ? "Toggle track selection"
+                    : "Long press to select this track"
+                }
                 onPress={() =>
                   selecting ? toggleSelected(item.id) : play(visible, index)
                 }
-                onLongPress={() => setActions(item)}
+                onLongPress={() => {
+                  setSelecting(true);
+                  setSelected((previous) => new Set(previous).add(item.id));
+                }}
               >
                 {selecting && (
                   <Feather
@@ -877,23 +966,11 @@ export default function DeviceLibrary({
                   <Text numberOfLines={1} style={styles.muted}>
                     {item.artist || "Unknown artist"}
                   </Text>
-                  {!completeDeviceMetadata(item) && (
-                    <Text style={styles.incomplete}>
-                      Incomplete metadata · not scrobbled
-                    </Text>
-                  )}
                 </View>
-                <Pressable
-                  accessibilityLabel={`Options for ${item.title || item.filename}`}
-                  hitSlop={12}
+                <MoreButton
+                  label={`Options for ${item.title || item.filename}`}
                   onPress={() => setActions(item)}
-                >
-                  <Feather
-                    name="more-horizontal"
-                    size={24}
-                    color={colors.text}
-                  />
-                </Pressable>
+                />
               </Pressable>
             )}
           />
@@ -911,24 +988,49 @@ export default function DeviceLibrary({
         }}
       >
         <View style={styles.overlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            accessibilityRole="button"
+            accessibilityLabel="Close menu"
+            onPress={() => {
+              setActions(null);
+              setAlbumActions(null);
+              setAdding(null);
+              setNaming(null);
+            }}
+          />
           <View style={styles.sheet}>
             <ScrollView keyboardShouldPersistTaps="handled">
               {actions && (
-                <View style={{ gap: 10 }}>
-                  <Text style={styles.heading}>
-                    {actions.title || actions.filename}
-                  </Text>
-                  <Button
+                <View style={{ gap: 0 }}>
+                  <View style={libraryActionStyles.sheetHeader}>
+                    <Artwork uri={actions.albumArt} size={44} />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: 13, fontWeight: "500" }}
+                      >
+                        {actions.title || actions.filename}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: 11, color: colors.textMuted }}
+                      >
+                        {actions.artist || "Unknown artist"}
+                      </Text>
+                    </View>
+                  </View>
+                  <MenuAction
                     text="Play next"
                     icon="skip-forward"
                     onPress={() => queue(actions, "next")}
                   />
-                  <Button
+                  <MenuAction
                     text="Add to queue"
                     icon="list"
                     onPress={() => queue(actions, "last")}
                   />
-                  <Button
+                  <MenuAction
                     text={
                       actions.favorite
                         ? "Remove from local favorites"
@@ -947,7 +1049,7 @@ export default function DeviceLibrary({
                       );
                     }}
                   />
-                  <Button
+                  <MenuAction
                     text="Add to local playlist"
                     icon="plus"
                     onPress={() => {
@@ -956,7 +1058,7 @@ export default function DeviceLibrary({
                     }}
                   />
                   {detail?.playlist && (
-                    <Button
+                    <MenuAction
                       text="Remove from playlist"
                       icon="minus"
                       onPress={() => {
@@ -972,7 +1074,7 @@ export default function DeviceLibrary({
                       }}
                     />
                   )}
-                  <Button
+                  <MenuAction
                     text="Edit / identify this track"
                     icon="edit-2"
                     onPress={() => {
@@ -983,11 +1085,28 @@ export default function DeviceLibrary({
                 </View>
               )}
               {(actions || albumActions) && (
-                <View style={{ gap: 10 }}>
+                <View style={{ gap: 0 }}>
                   {albumActions && (
-                    <Text style={styles.heading}>{albumActions.title}</Text>
+                    <View style={libraryActionStyles.sheetHeader}>
+                      <Artwork
+                        size={44}
+                        uri={
+                          tracks.find(
+                            (track) =>
+                              albumActions.ids.includes(track.id) &&
+                              track.albumArt,
+                          )?.albumArt
+                        }
+                      />
+                      <Text
+                        numberOfLines={1}
+                        style={{ flex: 1, fontSize: 13, fontWeight: "500" }}
+                      >
+                        {albumActions.title}
+                      </Text>
+                    </View>
                   )}
-                  <Button
+                  <MenuAction
                     text={albumActions ? "Upload album" : "Upload"}
                     icon="upload"
                     disabled={working || (signedIn && !!uploadReason)}
@@ -999,10 +1118,10 @@ export default function DeviceLibrary({
                 </View>
               )}
               {adding && (
-                <View style={{ gap: 10 }}>
+                <View style={{ gap: 0 }}>
                   <Text style={styles.heading}>Add to local playlist</Text>
                   {playlists.map((p) => (
-                    <Button
+                    <MenuAction
                       key={p.id}
                       text={p.name}
                       onPress={() => {
@@ -1024,7 +1143,7 @@ export default function DeviceLibrary({
                 </View>
               )}
               {naming && (
-                <View style={{ gap: 10 }}>
+                <View style={{ gap: 0 }}>
                   <Text style={styles.heading}>
                     {naming.id ? "Edit playlist" : "New local playlist"}
                   </Text>
@@ -1035,7 +1154,7 @@ export default function DeviceLibrary({
                     value={naming.name}
                     onChangeText={(name) => setNaming({ ...naming, name })}
                   />
-                  <Button
+                  <MenuAction
                     text="Save"
                     disabled={!naming.name.trim() || working}
                     onPress={() =>
@@ -1053,7 +1172,7 @@ export default function DeviceLibrary({
                     }
                   />
                   {naming.id && (
-                    <Button
+                    <MenuAction
                       text="Delete playlist"
                       icon="trash-2"
                       onPress={() =>
@@ -1082,7 +1201,7 @@ export default function DeviceLibrary({
                   )}
                 </View>
               )}
-              <Button
+              <MenuAction
                 text="Close"
                 onPress={() => {
                   setActions(null);
@@ -1201,12 +1320,23 @@ export default function DeviceLibrary({
   );
 }
 
-function Artwork({ uri }: { uri?: string | null }) {
+function Artwork({ uri, size = 48 }: { uri?: string | null; size?: number }) {
   return uri ? (
-    <Image source={{ uri }} style={styles.art} />
+    <Image
+      source={{ uri }}
+      style={[styles.art, { width: size, height: size }]}
+    />
   ) : (
     <View
-      style={[styles.art, { alignItems: "center", justifyContent: "center" }]}
+      style={[
+        styles.art,
+        {
+          width: size,
+          height: size,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+      ]}
     >
       <Feather name="music" size={22} color={colors.textMuted} />
     </View>
@@ -1303,21 +1433,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.surface2,
   },
-  incomplete: { fontSize: 11, color: colors.genre },
   empty: { color: colors.textMuted, padding: 24, textAlign: "center" },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 36,
-    maxHeight: "85%",
-  },
+  sheet: { ...libraryActionStyles.sheet, maxHeight: "85%" },
   editor: { padding: 20, paddingTop: 60, paddingBottom: 48, gap: 14 },
   candidate: {
     backgroundColor: colors.surface2,
