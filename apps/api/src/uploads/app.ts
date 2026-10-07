@@ -702,7 +702,9 @@ app.get("/stream-token", async (c) => {
   const token = Array.from(crypto.getRandomValues(new Uint8Array(20)))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const ttl = 3600;
+  // Cast receivers preload a queue and fetch later tracks while the sender sleeps.
+  // These opaque credentials remain scoped to upload streaming, never account APIs.
+  const ttl = c.req.query("purpose") === "cast" ? 24 * 3600 : 3600;
   await ctx.redis.setEx(`stream:${token}`, ttl, user.id);
   return c.json({ token, expiresIn: ttl });
 });
