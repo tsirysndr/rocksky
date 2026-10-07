@@ -1,5 +1,5 @@
 import type { AlbumDiscogsView } from "@rocksky/sdk";
-import DiscogsDetails from "@/src/components/DiscogsDetails";
+import DiscogsDetails, { discogsUrl } from "@/src/components/DiscogsDetails";
 import Feather from "@expo/vector-icons/Feather";
 import { Image as BackgroundImage } from "expo-image";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import numeral from "numeral";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   ScrollView,
@@ -129,6 +130,23 @@ export default function AlbumDetails({ route }: Props) {
   const { data, isLoading } = useAlbumQuery(did, rkey);
   const album: AlbumDetailsData | undefined = data;
 
+  const discogs = album?.discogs;
+  const discogsLinks = discogs
+    ? [
+        {
+          label: "View on Discogs",
+          url: discogsUrl(discogs.url, discogs.releaseId),
+        },
+        {
+          label: "View master release",
+          url: discogsUrl(
+            discogs.master?.url,
+            discogs.master?.masterId ?? discogs.masterId,
+            "master",
+          ),
+        },
+      ].filter((link) => !!link.url)
+    : [];
   const tracks = album?.tracks || [];
   const maxDisc =
     tracks.length > 0 ? Math.max(...tracks.map((t) => t.discNumber || 1)) : 1;
@@ -320,6 +338,53 @@ export default function AlbumDetails({ route }: Props) {
                           #{tag}
                         </Text>
                       </View>
+                    ))}
+                  </View>
+                )}
+
+                {discogsLinks.length > 0 && (
+                  <View style={{ width: "100%", gap: 8, marginBottom: 12 }}>
+                    {discogsLinks.map((link) => (
+                      <TouchableOpacity
+                        key={link.label}
+                        accessibilityRole="link"
+                        accessibilityLabel={link.label}
+                        onPress={() =>
+                          Linking.openURL(link.url!).catch(() =>
+                            Alert.alert(
+                              "Could not open link",
+                              "Please try again.",
+                            ),
+                          )
+                        }
+                        style={{
+                          minHeight: 44,
+                          paddingVertical: 12,
+                          paddingHorizontal: 16,
+                          borderRadius: 14,
+                          backgroundColor: colors.surface2,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Feather
+                          name="external-link"
+                          size={16}
+                          color={colors.text}
+                        />
+                        <Text
+                          style={{
+                            color: colors.text,
+                            fontSize: 14,
+                            fontWeight: "600",
+                            flexShrink: 1,
+                          }}
+                        >
+                          {link.label}
+                        </Text>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 )}

@@ -24,7 +24,7 @@ import { useTimeFormat } from "../../hooks/useFormat";
 import { useAlbumQuery } from "../../hooks/useLibrary";
 import SongCover from "../../components/SongCover";
 import Main from "../../layouts/Main";
-import DiscogsDetails from "../../components/DiscogsDetails";
+import DiscogsDetails, { discogsUrl } from "../../components/DiscogsDetails";
 
 const Group = styled.div`
   display: flex;
@@ -85,6 +85,17 @@ const Album = () => {
   const { did, rkey } = useParams({ strict: false });
   const { data, isLoading, isError } = useAlbumQuery(did!, rkey!);
 
+  const discogs = data?.discogs;
+  const discogsLink = discogs
+    ? discogsUrl(discogs.url, discogs.releaseId)
+    : undefined;
+  const discogsMasterLink = discogs
+    ? discogsUrl(
+        discogs.master?.url,
+        discogs.master?.masterId ?? discogs.masterId,
+        "master",
+      )
+    : undefined;
   const [disc, setDisc] = useState(1);
   const [album, setAlbum] = useState<{
     id: string;
@@ -292,7 +303,7 @@ const Album = () => {
                   </LabelLarge>
                 </div>
               </div>
-              <div className="flex items-center gap-[12px] mt-[20px]">
+              <div className="flex flex-wrap items-center gap-[12px] mt-[20px]">
                 <PillLink
                   href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                   target="_blank"
@@ -300,6 +311,26 @@ const Album = () => {
                   <ExternalLink size={16} />
                   View on PDSls
                 </PillLink>
+                {discogsLink && (
+                  <PillLink
+                    href={discogsLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink size={16} />
+                    View on Discogs
+                  </PillLink>
+                )}
+                {discogsMasterLink && (
+                  <PillLink
+                    href={discogsMasterLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink size={16} />
+                    View master release
+                  </PillLink>
+                )}
                 <ShareOnBluesky
                   text={`${album?.title} by ${album?.artist} on Rocksky 🎵\n${window.location.href}`}
                 />

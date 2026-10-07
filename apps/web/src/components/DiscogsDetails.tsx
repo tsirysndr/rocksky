@@ -115,7 +115,7 @@ function discogsSections(d: AlbumDiscogsView): Section[] {
     },
   ].filter((section) => section.rows.length > 0);
 }
-function discogsUrl(
+export function discogsUrl(
   url?: string,
   id?: number,
   kind = "release",
