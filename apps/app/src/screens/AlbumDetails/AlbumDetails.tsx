@@ -131,6 +131,8 @@ export default function AlbumDetails({ route }: Props) {
   const album: AlbumDetailsData | undefined = data;
 
   const discogs = album?.discogs;
+  const formats =
+    discogs?.formats?.map((format) => format.trim()).filter(Boolean) ?? [];
   const discogsLinks = discogs
     ? [
         {
@@ -211,7 +213,7 @@ export default function AlbumDetails({ route }: Props) {
                     borderRadius: 16,
                     overflow: "hidden",
                     backgroundColor: colors.surface2,
-                    marginBottom: 20,
+                    marginBottom: formats.length > 0 ? 12 : 20,
                   }}
                 >
                   {album.albumArt ? (
@@ -231,6 +233,21 @@ export default function AlbumDetails({ route }: Props) {
                     </View>
                   )}
                 </View>
+
+                {formats.length > 0 && (
+                  <Text
+                    style={{
+                      color: colors.textMuted,
+                      fontSize: 13,
+                      lineHeight: 19,
+                      textAlign: "center",
+                      maxWidth: 208,
+                      marginBottom: 20,
+                    }}
+                  >
+                    {formats.join(" · ")}
+                  </Text>
+                )}
 
                 <Text
                   style={{
@@ -360,9 +377,7 @@ export default function AlbumDetails({ route }: Props) {
                         style={{
                           minHeight: 44,
                           paddingVertical: 12,
-                          paddingHorizontal: 16,
-                          borderRadius: 14,
-                          backgroundColor: colors.surface2,
+
                           flexDirection: "row",
                           alignItems: "center",
                           justifyContent: "center",
@@ -372,13 +387,13 @@ export default function AlbumDetails({ route }: Props) {
                         <Feather
                           name="external-link"
                           size={16}
-                          color={colors.text}
+                          color={colors.primary}
                         />
                         <Text
                           style={{
-                            color: colors.text,
+                            color: colors.primary,
                             fontSize: 14,
-                            fontWeight: "600",
+                            textDecorationLine: "underline",
                             flexShrink: 1,
                           }}
                         >

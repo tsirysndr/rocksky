@@ -86,6 +86,8 @@ const Album = () => {
   const { data, isLoading, isError } = useAlbumQuery(did!, rkey!);
 
   const discogs = data?.discogs;
+  const formats =
+    discogs?.formats?.map((format) => format.trim()).filter(Boolean) ?? [];
   const discogsLink = discogs
     ? discogsUrl(discogs.url, discogs.releaseId)
     : undefined;
@@ -243,14 +245,32 @@ const Album = () => {
         )}
         {album && (
           <Group>
-            {album.albumArt && <SongCover cover={album.albumArt!} size={210} />}
-            {!album.albumArt && (
-              <div className="w-[210px] h-[210px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
-                <div className="w-[165px] h-[165px]">
-                  <Disc color="rgba(66, 87, 108, 0.65)" />
+            <div style={{ width: 210, flexShrink: 0 }}>
+              {album.albumArt && (
+                <SongCover cover={album.albumArt!} size={210} />
+              )}
+              {!album.albumArt && (
+                <div className="w-[210px] h-[210px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                  <div className="w-[165px] h-[165px]">
+                    <Disc color="rgba(66, 87, 108, 0.65)" />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+              {formats.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    color: "var(--color-text-muted)",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    whiteSpace: "nowrap",
+                    overflowX: "auto",
+                  }}
+                >
+                  {formats.join(" · ")}
+                </div>
+              )}
+            </div>
             <div className="ml-[20px] flex-1">
               <HeadingMedium margin={0} className="!text-[var(--color-text)]">
                 {album.title}
@@ -311,29 +331,49 @@ const Album = () => {
                   <ExternalLink size={16} />
                   View on PDSls
                 </PillLink>
-                {discogsLink && (
-                  <PillLink
-                    href={discogsLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={16} />
-                    View on Discogs
-                  </PillLink>
-                )}
-                {discogsMasterLink && (
-                  <PillLink
-                    href={discogsMasterLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={16} />
-                    View master release
-                  </PillLink>
-                )}
                 <ShareOnBluesky
                   text={`${album?.title} by ${album?.artist} on Rocksky 🎵\n${window.location.href}`}
                 />
+                {(discogsLink || discogsMasterLink) && (
+                  <div style={{ display: "flex", alignItems: "center", flexWrap: "nowrap", gap: 20 }}>
+                    {discogsLink && (
+                      <a
+                        href={discogsLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          color: "var(--color-text)",
+                          textUnderlineOffset: 4,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <ExternalLink size={16} />
+                        View on Discogs
+                      </a>
+                    )}
+                    {discogsMasterLink && (
+                      <a
+                        href={discogsMasterLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          color: "var(--color-text)",
+                          textUnderlineOffset: 4,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <ExternalLink size={16} />
+                        View master release
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="mt-[10px]">
                 {(album?.tags || []).map((genre) => (
