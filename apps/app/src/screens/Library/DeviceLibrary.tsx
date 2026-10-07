@@ -97,6 +97,27 @@ function Button({
   );
 }
 
+function IconButton({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={styles.iconButton}
+    >
+      <Feather name={icon} size={24} color={colors.text} />
+    </Pressable>
+  );
+}
+
 function MetadataEditor({
   track,
   close,
@@ -321,7 +342,11 @@ function MetadataEditor({
   );
 }
 
-export default function DeviceLibrary() {
+export default function DeviceLibrary({
+  album,
+}: {
+  album?: RootStackParamList["LocalAlbumDetails"];
+}) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const signedIn = !!useAtomValue(authTokenAtom);
@@ -337,13 +362,13 @@ export default function DeviceLibrary() {
         ? 1500
         : 15000,
   });
-  const [tab, setTab] = useState<Tab>("Tracks");
+  const [tab, setTab] = useState<Tab>(album ? "Albums" : "Tracks");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<{
     title: string;
     ids: string[];
     playlist?: DevicePlaylist;
-  } | null>(null);
+  } | null>(album ?? null);
   const [actions, setActions] = useState<DeviceTrack | null>(null);
   const [editing, setEditing] = useState<DeviceTrack | null>(null);
   const [adding, setAdding] = useState<DeviceTrack | null>(null);
@@ -495,6 +520,15 @@ export default function DeviceLibrary() {
           .map((id) => tracks.find((t) => t.id === id))
           .filter((t): t is DeviceTrack => !!t)
       : tracks;
+    if (album) {
+      selected.sort(
+        (a, b) =>
+          (a.discNumber || 1) - (b.discNumber || 1) ||
+          (a.trackNumber || Number.MAX_SAFE_INTEGER) -
+            (b.trackNumber || Number.MAX_SAFE_INTEGER) ||
+          (a.title || a.filename).localeCompare(b.title || b.filename),
+      );
+    }
     return selected.filter(
       (t) =>
         (detail || tab !== "Favorites" || t.favorite) &&
@@ -502,7 +536,7 @@ export default function DeviceLibrary() {
           .toLowerCase()
           .includes(search.toLowerCase()),
     );
-  }, [tracks, playlists, detail, tab, search]);
+  }, [tracks, playlists, detail, tab, search, album]);
   const groups = useMemo(() => {
     const grouped = new Map<
       string,
@@ -552,78 +586,86 @@ export default function DeviceLibrary() {
           onPress={() => setBatchOpen(true)}
         />
       )}
-      <View style={styles.header}>
-        <Text style={styles.heading}>On this device</Text>
-        <Button
-          text={tracks.length ? "Rescan music" : "Scan music"}
-          icon="refresh-cw"
-          disabled={working}
-          onPress={() => void run(scanDeviceMusic)}
-        />
-      </View>
-      {scanning && (
-        <Text style={styles.status}>
-          {library.data?.scan.count ?? 0} files checked · you can keep using the
-          app
-        </Text>
-      )}
-      {library.data?.scan.rescanQueued && (
-        <Text style={styles.status}>
-          A fresh scan will start when this pass finishes.
-        </Text>
-      )}
-      {!!library.data?.scan.error && (
-        <Text style={styles.status}>{library.data.scan.error}</Text>
-      )}
-      {!!library.error && (
-        <Text style={styles.status}>{library.error.message}</Text>
-      )}
-      {library.data && !library.data.scan.permission && (
-        <Text style={styles.status}>
-          Tap Scan music to allow access to audio on your phone.
-        </Text>
-      )}
-      <TextInput
-        accessibilityLabel="Search local library"
-        style={[styles.input, { marginHorizontal: 16 }]}
-        placeholder="Search your music"
-        placeholderTextColor={colors.textMuted}
-        value={search}
-        onChangeText={setSearch}
-      />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={styles.tabs}
-      >
-        {tabs.map((item) => (
-          <Pressable
-            key={item}
-            style={[styles.tab, tab === item && styles.selected]}
-            onPress={() => {
-              setTab(item);
-              setDetail(null);
-              setSearch("");
-            }}
+      {!album && (
+        <>
+          <View style={styles.header}>
+            <Text style={styles.heading}>On this device</Text>
+            <Button
+              text={tracks.length ? "Rescan music" : "Scan music"}
+              icon="refresh-cw"
+              disabled={working}
+              onPress={() => void run(scanDeviceMusic)}
+            />
+          </View>
+          {scanning && (
+            <Text style={styles.status}>
+              {library.data?.scan.count ?? 0} files checked · you can keep using
+              the app
+            </Text>
+          )}
+          {library.data?.scan.rescanQueued && (
+            <Text style={styles.status}>
+              A fresh scan will start when this pass finishes.
+            </Text>
+          )}
+          {!!library.data?.scan.error && (
+            <Text style={styles.status}>{library.data.scan.error}</Text>
+          )}
+          {!!library.error && (
+            <Text style={styles.status}>{library.error.message}</Text>
+          )}
+          {library.data && !library.data.scan.permission && (
+            <Text style={styles.status}>
+              Tap Scan music to allow access to audio on your phone.
+            </Text>
+          )}
+          <TextInput
+            accessibilityLabel="Search local library"
+            style={[styles.input, { marginHorizontal: 16 }]}
+            placeholder="Search your music"
+            placeholderTextColor={colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabStrip}
+            contentContainerStyle={styles.tabs}
           >
-            <Text>{item}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+            {tabs.map((item) => (
+              <Pressable
+                key={item}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: tab === item }}
+                style={[styles.tab, tab === item && styles.selected]}
+                onPress={() => {
+                  setTab(item);
+                  setDetail(null);
+                  setSearch("");
+                }}
+              >
+                <Text numberOfLines={1} style={styles.tabLabel}>
+                  {item}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      )}
       {detail && (
         <View style={styles.header}>
-          <Button
-            text="Back"
+          <IconButton
+            label="Back"
             icon="chevron-left"
-            onPress={() => setDetail(null)}
+            onPress={() => (album ? navigation.goBack() : setDetail(null))}
           />
           <Text numberOfLines={1} style={{ flex: 1 }}>
             {detail.title}
           </Text>
           {tab === "Albums" && (
-            <Button
-              text="Album options"
+            <IconButton
+              label="Album options"
               icon="more-horizontal"
               onPress={() => setAlbumActions(detail)}
             />
@@ -691,8 +733,12 @@ export default function DeviceLibrary() {
                 tab === "Albums" ? () => setAlbumActions(item) : undefined
               }
               onPress={() => {
-                setDetail(item);
-                setSearch("");
+                if (tab === "Albums") {
+                  navigation.navigate("LocalAlbumDetails", item);
+                } else {
+                  setDetail(item);
+                  setSearch("");
+                }
               }}
             >
               <Artwork uri={item.art} />
@@ -767,15 +813,45 @@ export default function DeviceLibrary() {
           )}
           <FlatList
             data={visible}
+            ListHeaderComponent={
+              album ? (
+                <View style={styles.albumHeader}>
+                  {visible.find((track) => track.albumArt)?.albumArt ? (
+                    <Image
+                      source={{
+                        uri: visible.find((track) => track.albumArt)!.albumArt!,
+                      }}
+                      style={styles.albumArt}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[styles.albumArt, styles.albumPlaceholder]}>
+                      <Feather name="disc" size={64} color={colors.textMuted} />
+                    </View>
+                  )}
+                  <Text style={styles.heading} numberOfLines={2}>
+                    {album.title}
+                  </Text>
+                  <Text style={styles.muted} numberOfLines={2}>
+                    {album.subtitle}
+                  </Text>
+                  {!!library.error && (
+                    <Text style={styles.muted}>{library.error.message}</Text>
+                  )}
+                </View>
+              ) : null
+            }
             extraData={selected}
             keyExtractor={(t) => t.id}
             ListEmptyComponent={
               <Text style={styles.empty}>
                 {library.isLoading
                   ? "Loading music…"
-                  : tab === "Favorites"
-                    ? "Favorite tracks using the heart or track menu."
-                    : "No music here yet. Scan your device to build your local library."}
+                  : album
+                    ? "No tracks from this album are available on this device."
+                    : tab === "Favorites"
+                      ? "Favorite tracks using the heart or track menu."
+                      : "No music here yet. Scan your device to build your local library."}
               </Text>
             }
             renderItem={({ item, index }) => (
@@ -1170,6 +1246,26 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   buttonText: { color: colors.text, fontSize: 14 },
+  albumHeader: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+    gap: 8,
+    paddingBottom: 12,
+  },
+  albumArt: {
+    width: 160,
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: colors.surface2,
+  },
+  albumPlaceholder: { alignItems: "center", justifyContent: "center" },
+  iconButton: {
+    width: 44,
+    height: 44,
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   input: {
     color: colors.text,
     backgroundColor: colors.inputBackground,
@@ -1178,14 +1274,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   row: { flexDirection: "row", gap: 12, justifyContent: "flex-end" },
-  tabs: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  tabStrip: { flexGrow: 0, flexShrink: 0 },
+  tabs: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    alignItems: "center",
+  },
   tab: {
+    flexShrink: 0,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 20,
     backgroundColor: colors.surface,
   },
   selected: { backgroundColor: colors.primary },
+  tabLabel: { color: colors.text, fontSize: 14, lineHeight: 20 },
   track: {
     flexDirection: "row",
     alignItems: "center",

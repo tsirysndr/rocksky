@@ -26,6 +26,7 @@ import ArtistDetails from "./screens/ArtistDetails";
 import Charts from "./screens/Charts";
 import Home from "./screens/Home";
 import Library from "./screens/Library";
+import LocalAlbumDetails from "./screens/Library/LocalAlbumDetails";
 import Notifications from "./screens/Notifications";
 import Player from "./screens/Player";
 import Profile from "./screens/Profile";
@@ -58,6 +59,10 @@ function makeTabStack(name: string, RootScreen: ComponentType<any>) {
       <TabStack.Navigator screenOptions={screenOptions}>
         <TabStack.Screen name={name} component={RootScreen} />
         <TabStack.Screen name="AlbumDetails" component={AlbumDetails} />
+        <TabStack.Screen
+          name="LocalAlbumDetails"
+          component={LocalAlbumDetails}
+        />
         <TabStack.Screen name="ArtistDetails" component={ArtistDetails} />
         <TabStack.Screen name="SongDetails" component={SongDetails} />
         <TabStack.Screen name="UserProfile" component={Profile} />
@@ -217,6 +222,7 @@ export function RootStack() {
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
       <Stack.Screen name="Analytics" component={Analytics} />
       <Stack.Screen name="AlbumDetails" component={AlbumDetails} />
+      <Stack.Screen name="LocalAlbumDetails" component={LocalAlbumDetails} />
       <Stack.Screen name="Wrapped" component={Wrapped} />
       <Stack.Screen
         name="ShareCard"
@@ -264,6 +270,7 @@ export type RootStackParamList = {
   Library: undefined;
   Notifications: undefined;
   AlbumDetails: { uri: string };
+  LocalAlbumDetails: { title: string; subtitle: string; ids: string[] };
   ArtistDetails: { uri: string };
   SongDetails: { uri: string };
   Profile: { did?: string };
