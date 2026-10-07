@@ -50,7 +50,8 @@
     "apps/doc",
     "apps/spotify-proxy",
     "apps/uploads",
-    "apps/xata-proxy"
+    "apps/xata-proxy",
+    "apps/cast"
   ],
   "overrides": {
     "react": "^18.3.1",

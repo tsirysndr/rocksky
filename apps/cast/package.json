@@ -1,0 +1,33 @@
+{
+  "name": "@rocksky/cast",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5178",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4178",
+    "test": "node --experimental-strip-types --test src/receiver.test.ts",
+    "storybook": "storybook dev -p 6008 --host 0.0.0.0 --no-open",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.4.1",
+    "tailwindcss": "^4.1.4",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.6",
+    "storybook": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
+    "@storybook/react": "^8.6.14",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/test": "^8.6.14"
+  }
+}
