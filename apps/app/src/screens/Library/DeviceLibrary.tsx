@@ -1,7 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,9 @@ import {
 } from "../../lib/deviceMusic";
 import {
   identifyDeviceTrack,
+  identifyDeviceTracks,
+  enrichMetadataSuggestion,
+  type TrackIdentificationResult,
   type MetadataSuggestion,
 } from "../../lib/deviceMusicIdentification";
 import { playQueue, queueTracks } from "../../lib/libraryPlayback";
@@ -72,6 +75,7 @@ function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={text}
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={[styles.button, disabled && { opacity: 0.45 }]}
@@ -86,10 +90,14 @@ function MetadataEditor({
   track,
   close,
   save,
+  initialCandidates = [],
+  initialError = "",
 }: {
   track: DeviceTrack;
   close: () => void;
   save: (metadata: Record<string, unknown>) => Promise<void>;
+  initialCandidates?: MetadataSuggestion[];
+  initialError?: string;
 }) {
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     Object.fromEntries(fields.map((key) => [key, String(track[key] ?? "")])),
@@ -99,8 +107,41 @@ function MetadataEditor({
     [track.title, track.artist].filter(Boolean).join(" "),
   );
   const [busy, setBusy] = useState(false);
-  const [candidates, setCandidates] = useState<MetadataSuggestion[]>([]);
-  const [message, setMessage] = useState("");
+  const [candidates, setCandidates] =
+    useState<MetadataSuggestion[]>(initialCandidates);
+  const [message, setMessage] = useState(initialError);
+  const [albumArt, setAlbumArt] = useState<string | null>(
+    track.albumArt ?? null,
+  );
+  const applySuggestion = async (candidate: MetadataSuggestion) => {
+    setBusy(true);
+    try {
+      const enriched = await enrichMetadataSuggestion(candidate);
+      setDraft((previous) => ({
+        ...previous,
+        title: enriched.title,
+        artist: enriched.artist,
+        album: enriched.album,
+        albumArtist: enriched.albumArtist,
+        ...(enriched.genre ? { genre: enriched.genre } : {}),
+        ...Object.fromEntries(
+          (["year", "trackNumber", "discNumber"] as const)
+            .filter((key) => enriched[key])
+            .map((key) => [key, String(enriched[key])]),
+        ),
+      }));
+      setMbId(enriched.mbId);
+      if (enriched.albumArt) setAlbumArt(enriched.albumArt);
+      setCandidates([]);
+      setMessage(
+        `${enriched.enrichmentWarning ?? "Suggestion selected."} Review the fields and cover before saving.`,
+      );
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
   const identify = async (method: "fingerprint" | "search") => {
     setBusy(true);
     setMessage("");
@@ -121,7 +162,10 @@ function MetadataEditor({
   const confirm = async () => {
     setBusy(true);
     try {
-      const metadata: Record<string, unknown> = { mbId };
+      const metadata: Record<string, unknown> = {
+        mbId,
+        ...(albumArt !== (track.albumArt ?? null) ? { albumArt } : {}),
+      };
       for (const key of fields) {
         if (["year", "trackNumber", "discNumber"].includes(key)) {
           const value = draft[key].trim();
@@ -181,6 +225,34 @@ function MetadataEditor({
           onPress={() => void identify("search")}
           disabled={busy}
         />
+        <Button
+          text="Find cover & extra metadata"
+          icon="image"
+          disabled={busy}
+          onPress={() =>
+            void applySuggestion({
+              title: draft.title,
+              artist: draft.artist,
+              album: draft.album,
+              albumArtist: draft.albumArtist,
+              mbId,
+              source: "Rocksky",
+            })
+          }
+        />
+        {albumArt && (
+          <View style={{ gap: 8, alignItems: "center" }}>
+            <Image
+              source={{ uri: albumArt }}
+              style={{ width: 180, height: 180, borderRadius: 12 }}
+            />
+            <Button
+              text="Remove cover"
+              disabled={busy}
+              onPress={() => setAlbumArt(null)}
+            />
+          </View>
+        )}
         {busy && <ActivityIndicator color={colors.primary} />}
         {!!message && <Text style={styles.muted}>{message}</Text>}
         {candidates.length > 0 && (
@@ -193,21 +265,7 @@ function MetadataEditor({
             key={`${candidate.mbId}-${index}`}
             style={styles.candidate}
             disabled={busy}
-            onPress={() => {
-              setDraft((previous) => ({
-                ...previous,
-                title: candidate.title,
-                artist: candidate.artist,
-                album: candidate.album,
-                albumArtist: candidate.albumArtist,
-                ...(candidate.year ? { year: String(candidate.year) } : {}),
-              }));
-              setMbId(candidate.mbId);
-              setCandidates([]);
-              setMessage(
-                "Suggestion selected. Review the fields below before saving.",
-              );
-            }}
+            onPress={() => void applySuggestion(candidate)}
           >
             <Text>{candidate.title}</Text>
             <Text style={styles.muted}>
@@ -275,6 +333,30 @@ export default function DeviceLibrary() {
     null,
   );
   const [working, setWorking] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batch, setBatch] = useState<{
+    running: boolean;
+    total: number;
+    completed: number;
+    current: string;
+    results: TrackIdentificationResult[];
+    message?: string;
+  }>({ running: false, total: 0, completed: 0, current: "", results: [] });
+  const batchController = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
+  const [reviewing, setReviewing] = useState<TrackIdentificationResult | null>(
+    null,
+  );
+  const [reviewed, setReviewed] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      batchController.current?.abort();
+    };
+  }, []);
   const tracks = library.data?.tracks ?? [];
   const playlists = library.data?.playlists ?? [];
   const scanning = ["pending", "scanning"].includes(
@@ -297,6 +379,62 @@ export default function DeviceLibrary() {
     await localMusicNative.mutate(input);
     const result = await library.refetch();
     if (result.data) refreshDeviceQueueTracks(result.data.tracks);
+  };
+  const toggleSelected = (id: string) =>
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const startIdentification = async () => {
+    if (batchController.current) return;
+    const chosen = tracks.filter((track) => selected.has(track.id));
+    if (!chosen.length) return;
+    const controller = new AbortController();
+    batchController.current = controller;
+    setReviewed(new Set());
+    setBatchOpen(true);
+    setBatch({
+      running: true,
+      total: chosen.length,
+      completed: 0,
+      current: "",
+      results: [],
+    });
+    try {
+      await identifyDeviceTracks(chosen, {
+        signal: controller.signal,
+        onProgress: (progress) => {
+          if (!mounted.current) return;
+          setBatch((previous) => ({
+            ...previous,
+            total: progress.total,
+            completed: progress.completed,
+            current: progress.current
+              ? progress.current.title || progress.current.filename
+              : "",
+            results: progress.result
+              ? [...previous.results, progress.result]
+              : previous.results,
+          }));
+        },
+      });
+    } catch (e) {
+      if (mounted.current)
+        setBatch((previous) => ({
+          ...previous,
+          message: controller.signal.aborted
+            ? "Stopped. Completed results are available below."
+            : e instanceof Error
+              ? e.message
+              : String(e),
+        }));
+    } finally {
+      batchController.current = null;
+      if (mounted.current)
+        setBatch((previous) => ({ ...previous, running: false, current: "" }));
+    }
   };
   const visible = useMemo(() => {
     const ids = detail?.playlist
@@ -353,6 +491,17 @@ export default function DeviceLibrary() {
   };
   return (
     <View style={styles.screen}>
+      {(batch.running || batch.results.length > 0) && !batchOpen && (
+        <Button
+          text={
+            batch.running
+              ? `Identifying music · ${batch.completed}/${batch.total}`
+              : "Review identification results"
+          }
+          icon="check-circle"
+          onPress={() => setBatchOpen(true)}
+        />
+      )}
       <View style={styles.header}>
         <Text style={styles.heading}>On this device</Text>
         <Button
@@ -513,10 +662,37 @@ export default function DeviceLibrary() {
                 onPress={() => play(visible)}
               />
               <Text style={styles.muted}>{visible.length} tracks</Text>
+              <Button
+                text={selecting ? "Done" : "Select"}
+                onPress={() => {
+                  setSelecting(!selecting);
+                  setSelected(new Set());
+                }}
+              />
+            </View>
+          )}
+          {selecting && (
+            <View style={{ paddingHorizontal: 16, gap: 6 }}>
+              <Text style={styles.muted}>{selected.size} selected</Text>
+              <View style={styles.row}>
+                <Button
+                  text="Select visible"
+                  onPress={() =>
+                    setSelected(new Set(visible.map((track) => track.id)))
+                  }
+                />
+                <Button
+                  text="Identify selected"
+                  icon="search"
+                  disabled={!selected.size || batch.running}
+                  onPress={() => void startIdentification()}
+                />
+              </View>
             </View>
           )}
           <FlatList
             data={visible}
+            extraData={selected}
             keyExtractor={(t) => t.id}
             ListEmptyComponent={
               <Text style={styles.empty}>
@@ -530,9 +706,20 @@ export default function DeviceLibrary() {
             renderItem={({ item, index }) => (
               <Pressable
                 style={styles.track}
-                onPress={() => play(visible, index)}
+                onPress={() =>
+                  selecting ? toggleSelected(item.id) : play(visible, index)
+                }
                 onLongPress={() => setActions(item)}
               >
+                {selecting && (
+                  <Feather
+                    name={selected.has(item.id) ? "check-square" : "square"}
+                    size={22}
+                    color={
+                      selected.has(item.id) ? colors.primary : colors.textMuted
+                    }
+                  />
+                )}
                 <Artwork uri={item.albumArt} />
                 <View style={{ flex: 1, gap: 3 }}>
                   <Text numberOfLines={1}>{item.title || item.filename}</Text>
@@ -741,13 +928,106 @@ export default function DeviceLibrary() {
       </Modal>
       {editing && (
         <MetadataEditor
+          key={editing.id}
           track={editing}
-          close={() => setEditing(null)}
+          initialCandidates={reviewing?.suggestions}
+          initialError={reviewing?.error}
+          close={() => {
+            setEditing(null);
+            if (reviewing) {
+              setReviewing(null);
+              setBatchOpen(true);
+            }
+          }}
           save={async (metadata) => {
             await mutate({ action: "edit", id: editing.id, metadata });
+            if (reviewing)
+              setReviewed((previous) => new Set([...previous, editing.id]));
           }}
         />
       )}
+      <Modal
+        visible={batchOpen}
+        animationType="slide"
+        onRequestClose={() => setBatchOpen(false)}
+      >
+        <View
+          style={[
+            styles.screen,
+            {
+              paddingTop: 56,
+              paddingHorizontal: 16,
+              paddingBottom: 32,
+              gap: 12,
+            },
+          ]}
+        >
+          <Text style={styles.heading}>Identify selected tracks</Text>
+          <Text style={styles.muted}>
+            {batch.completed} / {batch.total} completed
+          </Text>
+          <Text style={styles.muted}>
+            Tracks are processed one at a time. Review each match before saving.
+          </Text>
+          {!!batch.current && <Text numberOfLines={1}>{batch.current}</Text>}
+          {!!batch.message && <Text style={styles.muted}>{batch.message}</Text>}
+          {batch.running && (
+            <>
+              <ActivityIndicator color={colors.primary} />
+              <Button
+                text="Stop identification"
+                onPress={() => {
+                  batchController.current?.abort();
+                  setBatch((previous) => ({
+                    ...previous,
+                    message:
+                      "Stopping… finishing the current local fingerprint if needed.",
+                  }));
+                }}
+              />
+            </>
+          )}
+          <FlatList
+            data={batch.results}
+            keyExtractor={(item) => item.track.id}
+            renderItem={({ item }) => (
+              <View style={styles.candidate}>
+                <Text numberOfLines={1}>
+                  {item.track.title || item.track.filename}
+                </Text>
+                <Text style={styles.muted}>
+                  {reviewed.has(item.track.id)
+                    ? "Saved"
+                    : item.error ||
+                      (item.suggestions.length
+                        ? `${item.suggestions.length} suggestions`
+                        : "No matches found")}
+                </Text>
+                <Button
+                  text={
+                    item.suggestions.length
+                      ? "Review matches"
+                      : "Edit / search manually"
+                  }
+                  disabled={batch.running}
+                  onPress={() => {
+                    setReviewing(item);
+                    setEditing(
+                      tracks.find((track) => track.id === item.track.id) ??
+                        item.track,
+                    );
+                    setBatchOpen(false);
+                  }}
+                />
+              </View>
+            )}
+          />
+          <Button
+            text={batch.running ? "Keep browsing" : "Close"}
+            onPress={() => setBatchOpen(false)}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
