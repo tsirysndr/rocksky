@@ -9,6 +9,7 @@ import { songAtom } from "../../atoms/song";
 const Link = styled.a`
   display: inline-flex;
   align-items: center;
+  gap: 10px;
   text-decoration: none;
   color: #000;
   &:hover {
@@ -31,24 +32,31 @@ function ExternalLinks() {
         (song?.spotifyLink || song?.mbId?.trim() || song?.isrc?.trim()) && (
           <div className="mt-[50px]">
             <LabelLarge
-              marginBottom={"10px"}
+              marginBottom={"20px"}
               className="!text-[var(--color-text)]"
             >
               External Links
             </LabelLarge>
-            {song?.spotifyLink && (
-              <Link
-                href={song.spotifyLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Spotify size={25} color="#1dd05d" />
-                <span className="!text-[var(--color-text)] ml-[10px]">
-                  Spotify
-                </span>
-              </Link>
-            )}
-            <RecordingMetadata mbId={song?.mbId} isrc={song?.isrc} />
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 20,
+              }}
+            >
+              {song?.spotifyLink && (
+                <Link
+                  href={song.spotifyLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Spotify size={25} color="#1dd05d" />
+                  <span className="!text-[var(--color-text)]">Spotify</span>
+                </Link>
+              )}
+              <RecordingMetadata mbId={song?.mbId} isrc={song?.isrc} />
+            </div>
           </div>
         )}
     </>

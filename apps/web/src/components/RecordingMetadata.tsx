@@ -15,25 +15,25 @@ export default function RecordingMetadata({
   const code = isrc?.trim();
   if (!recordingId && !code) return null;
   return (
-    <div
-      className="flex flex-col items-start"
-      style={{ gap: 20, marginTop: 20 }}
-    >
+    <div className="flex flex-col items-start" style={{ gap: 20 }}>
       {recordingId && (
         <a
           href={`https://musicbrainz.org/recording/${encodeURIComponent(recordingId)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full no-underline text-sm"
+          className="no-underline text-sm"
           style={{
-            backgroundColor: "var(--color-menu-hover, var(--color-surface-2))",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
             color: "var(--color-text)",
           }}
         >
           <img
             src={musicBrainzLogo}
-            width={24}
-            height={24}
+            width={25}
+            height={25}
+            style={{ flexShrink: 0 }}
             alt=""
             aria-hidden="true"
           />
