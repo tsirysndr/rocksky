@@ -1,10 +1,12 @@
 import {
   Fragment,
   isValidElement,
+  useRef,
+  useState,
   type ReactElement,
   type ReactNode,
 } from "react";
-import { SectionList, View, type FlatListProps } from "react-native";
+import { Animated, SectionList, View, type FlatListProps } from "react-native";
 import { colors } from "../../theme";
 
 type Props<T> = Pick<
@@ -52,6 +54,21 @@ export default function LibraryList<T>({
   ListEmptyComponent,
   ...props
 }: Props<T>) {
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [controlsHeight, setControlsHeight] = useState(0);
+  // Android/Fabric can draw a transformed sticky header at its new position
+  // while nested tab presses still hit its old scroll-content bounds. Keep one
+  // interactive copy outside the list and move its actual layout (top), not a
+  // native transform. The section reserves its space so rows never jump.
+  const controlsTop =
+    headerHeight > 0
+      ? scrollY.interpolate({
+          inputRange: [0, headerHeight],
+          outputRange: [headerHeight, 0],
+          extrapolate: "clamp",
+        })
+      : 0;
   type Row = { key: string; items: { item: T; index: number }[] };
   const rows: Row[] = [];
   for (let index = 0; index < (data?.length ?? 0); index += numColumns) {
@@ -68,37 +85,71 @@ export default function LibraryList<T>({
   if (ListHeaderComponent) rows.unshift({ key: "controls", items: [] });
   if (!data?.length) rows.push({ key: "empty", items: [] });
   return (
-    <SectionList<Row>
-      {...props}
-      sections={[{ data: rows }]}
-      keyExtractor={(row) => row.key}
-      ListHeaderComponent={<>{header}</>}
-      stickySectionHeadersEnabled={!!tabs}
-      removeClippedSubviews={false}
-      keyboardShouldPersistTaps="handled"
-      renderSectionHeader={() =>
-        tabs ? (
-          <View style={{ backgroundColor: colors.background }}>{tabs}</View>
-        ) : null
-      }
-      renderItem={({ item: row, separators }) => {
-        if (row.key === "controls") return content(ListHeaderComponent);
-        if (row.key === "empty") return content(ListEmptyComponent);
-        const cells = row.items.map(({ item, index }) => (
-          <Fragment key={keyExtractor?.(item, index) ?? index}>
-            {renderItem?.({ item, index, separators })}
-          </Fragment>
-        ));
-        if (numColumns === 1) return cells[0] as ReactElement;
-        return (
-          <View style={[{ flexDirection: "row" }, columnWrapperStyle]}>
-            {cells}
-            {Array.from({ length: numColumns - cells.length }, (_, index) => (
-              <View key={`spacer:${index}`} style={{ flex: 1 / numColumns }} />
-            ))}
+    <View style={{ flex: 1 }}>
+      <SectionList<Row>
+        {...props}
+        sections={[{ data: rows }]}
+        keyExtractor={(row) => row.key}
+        ListHeaderComponent={
+          <View
+            onLayout={(event) =>
+              setHeaderHeight(event.nativeEvent.layout.height)
+            }
+          >
+            {header}
           </View>
-        );
-      }}
-    />
+        }
+        stickySectionHeadersEnabled={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
+        renderSectionHeader={() =>
+          tabs ? <View style={{ height: controlsHeight }} /> : null
+        }
+        renderItem={({ item: row, separators }) => {
+          if (row.key === "controls") return content(ListHeaderComponent);
+          if (row.key === "empty") return content(ListEmptyComponent);
+          const cells = row.items.map(({ item, index }) => (
+            <Fragment key={keyExtractor?.(item, index) ?? index}>
+              {renderItem?.({ item, index, separators })}
+            </Fragment>
+          ));
+          if (numColumns === 1) return cells[0] as ReactElement;
+          return (
+            <View style={[{ flexDirection: "row" }, columnWrapperStyle]}>
+              {cells}
+              {Array.from({ length: numColumns - cells.length }, (_, index) => (
+                <View
+                  key={`spacer:${index}`}
+                  style={{ flex: 1 / numColumns }}
+                />
+              ))}
+            </View>
+          );
+        }}
+      />
+      {!!tabs && (
+        <Animated.View
+          collapsable={false}
+          onLayout={(event) =>
+            setControlsHeight(event.nativeEvent.layout.height)
+          }
+          style={{
+            position: "absolute",
+            top: controlsTop,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            backgroundColor: colors.background,
+          }}
+        >
+          {tabs}
+        </Animated.View>
+      )}
+    </View>
   );
 }
