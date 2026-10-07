@@ -8,8 +8,58 @@
         "title": {
           "type": "string",
           "description": "The title of the currently playing track"
+        },
+        "device": {
+          "type": "unknown"
+        },
+        "shuffle_state": {
+          "type": "boolean"
+        },
+        "repeat_state": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        },
+        "context": {
+          "type": "unknown"
+        },
+        "progress_ms": {
+          "type": "integer"
+        },
+        "item": {
+          "type": "unknown"
+        },
+        "currently_playing_type": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "unknown"
+        },
+        "is_playing": {
+          "type": "boolean"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "albumUri": {
+          "type": "string"
+        },
+        "artistUri": {
+          "type": "string"
+        },
+        "liked": {
+          "type": "boolean"
         }
-      }
+      },
+      "nullable": [
+        "albumUri",
+        "artistUri",
+        "context",
+        "item",
+        "progress_ms",
+        "uri"
+      ]
     },
     "playbackQueueViewDetailed": {
       "type": "object",

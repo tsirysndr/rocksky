@@ -2,12 +2,13 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.song.getSongs"
-defs = new Mapping<String, Query> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Query {
     type = "query"
     description = "Get songs"
-    parameters = new Params {
-      properties {
+    parameters = new {
+      type = "params"
+      properties = new Mapping<String, BaseType> {
         ["limit"] = new IntegerType {
           type = "integer"
           description = "The maximum number of songs to return"
@@ -41,14 +42,15 @@ defs = new Mapping<String, Query> {
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties = new Mapping<String, Array> {
-          ["songs"] = new Array {
+        properties = new Mapping<String, BaseType> {
+          ["tracks"] = new Array {
             type = "array"
             items = new Ref {
+              type = "ref"
               ref = "app.rocksky.song.defs#songViewBasic"
             }
           }

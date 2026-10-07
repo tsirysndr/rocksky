@@ -35,6 +35,25 @@
           "type": "string",
           "description": "The date and time when the actor was last updated.",
           "format": "datetime"
+        },
+        "spotifyUser": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#responseSpotifyUserView"
+        },
+        "spotifyToken": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#responseSpotifyTokenView"
+        },
+        "spotifyConnected": {
+          "type": "boolean"
+        },
+        "googledrive": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#responseGoogledriveView"
+        },
+        "dropbox": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#responseDropboxView"
         }
       }
     },
@@ -72,7 +91,11 @@
           "description": "The date and time when the actor was last updated.",
           "format": "datetime"
         }
-      }
+      },
+      "nullable": [
+        "avatar",
+        "displayName"
+      ]
     },
     "neighbourViewBasic": {
       "type": "object",
@@ -91,16 +114,11 @@
         },
         "avatar": {
           "type": "string",
-          "description": "The URL of the actor's avatar image.",
-          "format": "uri"
+          "description": "The URL of the actor's avatar image."
         },
         "sharedArtistsCount": {
           "type": "integer",
           "description": "The number of artists shared with the actor."
-        },
-        "similarityScore": {
-          "type": "integer",
-          "description": "The similarity score with the actor."
         },
         "topSharedArtistNames": {
           "type": "array",
@@ -123,9 +141,6 @@
       "type": "object",
       "properties": {
         "compatibilityLevel": {
-          "type": "integer"
-        },
-        "compatibilityPercentage": {
           "type": "integer"
         },
         "sharedArtists": {
@@ -173,9 +188,6 @@
           "type": "integer"
         },
         "user2Rank": {
-          "type": "integer"
-        },
-        "weight": {
           "type": "integer"
         }
       }
@@ -229,6 +241,105 @@
           "minimum": 1
         }
       }
+    },
+    "responseSpotifyUserView": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "isBetaUser": {
+          "type": "boolean"
+        },
+        "spotifyAppId": {
+          "type": "string"
+        }
+      },
+      "nullable": [
+        "xataVersion",
+        "userId",
+        "spotifyAppId"
+      ]
+    },
+    "responseSpotifyTokenView": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "spotifyAppId": {
+          "type": "string"
+        }
+      },
+      "nullable": [
+        "xataVersion",
+        "userId"
+      ]
+    },
+    "responseGoogledriveView": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "responseDropboxView": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "isBetaUser": {
+          "type": "boolean"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "string"
+        }
+      },
+      "nullable": [
+        "userId",
+        "xataVersion"
+      ]
     }
   }
 }

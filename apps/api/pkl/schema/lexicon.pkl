@@ -23,6 +23,10 @@ class BooleanType extends BaseType {
   type: "boolean"
 }
 
+class UnknownType extends BaseType {
+  type: "unknown"
+}
+
 class Blob extends BaseType {
   type: "blob"
   accept: List<String>
@@ -31,19 +35,20 @@ class Blob extends BaseType {
 
 class Array extends BaseType {
   type: "array"
-  items: StringType | IntegerType | Blob | Ref | Union
+  items: StringType | IntegerType | BooleanType | UnknownType | Blob | Ref | Union
 }
 
 class Params {
   type: "params"
   required: List<String>?
-  properties: Mapping<String, StringType | IntegerType | BooleanType | Blob | Ref | Array>
+  properties: Mapping<String, BaseType>
 }
 
 class ObjectType extends BaseType {
+  nullable: List<String>?
   type: "object"
   required: List<String>?
-  properties: Mapping<String, StringType | IntegerType | BooleanType | Blob | Ref | Union | Array>
+  properties: Mapping<String, BaseType>
 }
 
 class Union extends BaseType {
@@ -88,10 +93,4 @@ class Record extends BaseType {
 lexicon: Int = 1
 id: String
 description: String?
-defs: Mapping<String, Procedure>
-  | Mapping<String, Record>
-  | Mapping<String, ObjectType>
-  | Mapping<String, Query>
-  | Mapping<String, Array>
-  | Mapping<String, ObjectType | Array>
-  | Null = null
+defs: Mapping<String, BaseType>? = null

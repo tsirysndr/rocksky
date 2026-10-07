@@ -1,15 +1,29 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskySongDefs from "../song/defs";
+import * as AppRockskySongDefs from "../song/defs";
 
 export interface CurrentlyPlayingViewDetailed {
   /** The title of the currently playing track */
   title?: string;
+  device?: {};
+  shuffle_state?: boolean;
+  repeat_state?: string;
+  timestamp?: number;
+  context?: {} | null;
+  progress_ms?: number | null;
+  item?: {} | null;
+  currently_playing_type?: string;
+  actions?: {};
+  is_playing?: boolean;
+  uri?: string | null;
+  albumUri?: string | null;
+  artistUri?: string | null;
+  liked?: boolean;
   [k: string]: unknown;
 }
 

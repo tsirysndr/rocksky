@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskyArtistDefs from "../artist/defs";
+import * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface ProfileViewDetailed {
   /** The unique identifier of the actor. */
@@ -22,6 +22,11 @@ export interface ProfileViewDetailed {
   createdAt?: string;
   /** The date and time when the actor was last updated. */
   updatedAt?: string;
+  spotifyUser?: ResponseSpotifyUserView;
+  spotifyToken?: ResponseSpotifyTokenView;
+  spotifyConnected?: boolean;
+  googledrive?: ResponseGoogledriveView;
+  dropbox?: ResponseDropboxView;
   [k: string]: unknown;
 }
 
@@ -45,9 +50,9 @@ export interface ProfileViewBasic {
   /** The handle of the actor. */
   handle?: string;
   /** The display name of the actor. */
-  displayName?: string;
+  displayName?: string | null;
   /** The URL of the actor's avatar image. */
-  avatar?: string;
+  avatar?: string | null;
   /** The date and time when the actor was created. */
   createdAt?: string;
   /** The date and time when the actor was last updated. */
@@ -76,8 +81,6 @@ export interface NeighbourViewBasic {
   avatar?: string;
   /** The number of artists shared with the actor. */
   sharedArtistsCount?: number;
-  /** The similarity score with the actor. */
-  similarityScore?: number;
   /** The top shared artist names with the actor. */
   topSharedArtistNames?: string[];
   /** The top shared artist details with the actor. */
@@ -99,7 +102,6 @@ export function validateNeighbourViewBasic(v: unknown): ValidationResult {
 
 export interface CompatibilityViewBasic {
   compatibilityLevel?: number;
-  compatibilityPercentage?: number;
   sharedArtists?: number;
   topSharedArtistNames?: string[];
   topSharedDetailedArtists?: ArtistViewBasic[];
@@ -129,7 +131,6 @@ export interface ArtistViewBasic {
   uri?: string;
   user1Rank?: number;
   user2Rank?: number;
-  weight?: number;
   [k: string]: unknown;
 }
 
@@ -175,4 +176,99 @@ export function isTrackView(v: unknown): v is TrackView {
 
 export function validateTrackView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.actor.defs#trackView", v);
+}
+
+export interface ResponseSpotifyUserView {
+  createdAt?: string;
+  updatedAt?: string;
+  id?: string;
+  xataVersion?: number | null;
+  userId?: string | null;
+  isBetaUser?: boolean;
+  spotifyAppId?: string | null;
+  [k: string]: unknown;
+}
+
+export function isResponseSpotifyUserView(
+  v: unknown,
+): v is ResponseSpotifyUserView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#responseSpotifyUserView"
+  );
+}
+
+export function validateResponseSpotifyUserView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.actor.defs#responseSpotifyUserView", v);
+}
+
+export interface ResponseSpotifyTokenView {
+  createdAt?: string;
+  updatedAt?: string;
+  id?: string;
+  xataVersion?: number | null;
+  userId?: string | null;
+  spotifyAppId?: string;
+  [k: string]: unknown;
+}
+
+export function isResponseSpotifyTokenView(
+  v: unknown,
+): v is ResponseSpotifyTokenView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#responseSpotifyTokenView"
+  );
+}
+
+export function validateResponseSpotifyTokenView(v: unknown): ValidationResult {
+  return lexicons.validate(
+    "app.rocksky.actor.defs#responseSpotifyTokenView",
+    v,
+  );
+}
+
+export interface ResponseGoogledriveView {
+  createdAt?: string;
+  updatedAt?: string;
+  [k: string]: unknown;
+}
+
+export function isResponseGoogledriveView(
+  v: unknown,
+): v is ResponseGoogledriveView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#responseGoogledriveView"
+  );
+}
+
+export function validateResponseGoogledriveView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.actor.defs#responseGoogledriveView", v);
+}
+
+export interface ResponseDropboxView {
+  createdAt?: string;
+  updatedAt?: string;
+  id?: string;
+  email?: string;
+  isBetaUser?: boolean;
+  userId?: string | null;
+  xataVersion?: string | null;
+  [k: string]: unknown;
+}
+
+export function isResponseDropboxView(v: unknown): v is ResponseDropboxView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#responseDropboxView"
+  );
+}
+
+export function validateResponseDropboxView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.actor.defs#responseDropboxView", v);
 }

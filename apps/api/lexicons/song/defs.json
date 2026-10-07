@@ -98,8 +98,72 @@
           "type": "string",
           "description": "The timestamp when the song was created.",
           "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "mbId": {
+          "type": "string"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "lyrics": {
+          "type": "string"
+        },
+        "composer": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "copyrightMessage": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "acoustidFingerprint": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "acoustidFingerprint",
+        "albumArt",
+        "albumUri",
+        "appleMusicLink",
+        "artistUri",
+        "composer",
+        "copyrightMessage",
+        "discNumber",
+        "genre",
+        "isrc",
+        "key",
+        "label",
+        "lyrics",
+        "mbId",
+        "spotifyLink",
+        "tidalLink",
+        "trackNumber",
+        "uri",
+        "xataVersion",
+        "youtubeLink"
+      ]
     },
     "songViewDetailed": {
       "type": "object",
@@ -221,8 +285,96 @@
         "mbId": {
           "type": "string",
           "description": "The MusicBrainz recording ID of the track, when available."
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "releaseDate": {
+          "type": "string"
+        },
+        "year": {
+          "type": "integer"
+        },
+        "artistPicture": {
+          "type": "string"
+        },
+        "genres": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mbArtists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#responseMbArtistsItemView"
+          }
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "lyrics": {
+          "type": "string"
+        },
+        "composer": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "copyrightMessage": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "acoustidFingerprint": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "acoustidFingerprint",
+        "albumArt",
+        "albumUri",
+        "appleMusicLink",
+        "artistPicture",
+        "artistUri",
+        "composer",
+        "copyrightMessage",
+        "discNumber",
+        "genre",
+        "genres",
+        "isrc",
+        "key",
+        "label",
+        "lyrics",
+        "mbArtists",
+        "mbId",
+        "releaseDate",
+        "spotifyLink",
+        "tidalLink",
+        "trackNumber",
+        "uri",
+        "xataVersion",
+        "year",
+        "youtubeLink"
+      ]
     },
     "songMatchView": {
       "type": "object",
@@ -344,6 +496,17 @@
           "type": "string",
           "description": "The timestamp of the first scrobble.",
           "format": "datetime"
+        }
+      }
+    },
+    "responseMbArtistsItemView": {
+      "type": "object",
+      "properties": {
+        "mbid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
         }
       }
     }

@@ -19,6 +19,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
+      api_contracts: ${{ steps.filter.outputs.api_contracts }}
       cli: ${{ steps.filter.outputs.cli }}
       ts_sdk: ${{ steps.filter.outputs.ts_sdk }}
       go_sdk: ${{ steps.filter.outputs.go_sdk }}
@@ -31,6 +32,11 @@ jobs:
         id: filter
         with:
           filters: |
+            api_contracts:
+              - 'apps/api/**'
+              - 'crates/appview/tests/fixtures/**'
+              - 'bun.lock'
+              - '.github/workflows/tests.yml'
             cli:
               - 'apps/cli/**'
               - '.github/workflows/tests.yml'
@@ -49,6 +55,19 @@ jobs:
             remote_ws:
               - 'remote-ws/**'
               - '.github/workflows/tests.yml'
+
+  api-contracts:
+    needs: changes
+    if: needs.changes.outputs.api_contracts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies without native lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Audit XRPC response contracts
+        working-directory: apps/api
+        run: bun run audit:xrpc
 
   cli:
     needs: changes

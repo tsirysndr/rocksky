@@ -1,26 +1,26 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.apikey.removeApikey"
-defs = new Mapping<String, Procedure> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Procedure {
     type = "procedure"
     description = "Remove an API key for the authenticated user"
-    parameters {
+    parameters = new {
       type = "params"
       required = List("id")
-      properties {
+      properties = new Mapping<String, BaseType> {
         ["id"] = new StringType {
           type = "string"
           description = "The ID of the API key to remove."
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new Ref {
         type = "ref"
-        ref = "app.rocksky.apikey.defs#apiKey"
+        ref = "app.rocksky.apikey.defs#apiKeyView"
       }
     }
   }

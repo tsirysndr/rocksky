@@ -27,7 +27,7 @@
               "type": "array",
               "items": {
                 "type": "ref",
-                "ref": "app.rocksky.shout.defs#shoutViewBasic"
+                "ref": "app.rocksky.shout.defs#shoutView"
               }
             }
           }

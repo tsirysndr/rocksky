@@ -2,22 +2,15 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.feed.defs"
-defs = new Mapping<String, ObjectType> {
+defs = new Mapping<String, BaseType> {
   ["searchResultsView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["hits"] = new Array {
         type = "array"
-        items = new Union {
-          type = "union"
-          refs =
-            List(
-              "app.rocksky.song.defs#songViewBasic",
-              "app.rocksky.album.defs#albumViewBasic",
-              "app.rocksky.artist.defs#artistViewBasic",
-              "app.rocksky.playlist.defs#playlistViewBasic",
-              "app.rocksky.actor.defs#profileViewBasic"
-            )
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#searchHit"
         }
       }
       ["processingTimeMs"] = new IntegerType {
@@ -36,7 +29,7 @@ defs = new Mapping<String, ObjectType> {
   }
   ["storyView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["album"] = new StringType {
         type = "string"
       }
@@ -89,11 +82,17 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         format = "at-uri"
       }
+      ["liked"] = new BooleanType {
+        type = "boolean"
+      }
+      ["likesCount"] = new IntegerType {
+        type = "integer"
+      }
     }
   }
   ["storiesView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["stories"] = new Array {
         type = "array"
         items = new Ref {
@@ -105,7 +104,7 @@ defs = new Mapping<String, ObjectType> {
   }
   ["feedGeneratorsView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["feeds"] = new Array {
         type = "array"
         items = new Ref {
@@ -117,7 +116,7 @@ defs = new Mapping<String, ObjectType> {
   }
   ["feedGeneratorView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
       }
@@ -139,11 +138,15 @@ defs = new Mapping<String, ObjectType> {
         type = "ref"
         ref = "app.rocksky.actor.defs#profileViewBasic"
       }
+      ["did"] = new StringType {
+        type = "string"
+      }
     }
+    nullable = List("avatar", "description")
   }
   ["feedUriView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["uri"] = new StringType {
         type = "string"
         description = "The feed URI."
@@ -151,19 +154,18 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
-
   ["feedItemView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["scrobble"] = new Ref {
+        type = "ref"
         ref = "app.rocksky.scrobble.defs#scrobbleViewBasic"
       }
     }
   }
-
   ["feedView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["feed"] = new Array {
         type = "array"
         items = new Ref {
@@ -175,12 +177,19 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The pagination cursor for the next set of results."
       }
+      ["scrobbles"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.scrobble.defs#scrobbleViewBasic"
+        }
+        description = "Legacy empty-array error fallback; successful responses use feed."
+      }
     }
   }
-
   ["recommendationView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["title"] = new StringType {
         type = "string"
       }
@@ -212,9 +221,6 @@ defs = new Mapping<String, ObjectType> {
           type = "string"
         }
       }
-      ["recommendationScore"] = new IntegerType {
-        type = "integer"
-      }
       ["source"] = new StringType {
         type = "string"
         description = "neighbour | social | serendipity"
@@ -224,10 +230,9 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
-
   ["recommendationsView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["recommendations"] = new Array {
         type = "array"
         items = new Ref {
@@ -240,10 +245,9 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
-
   ["recommendedArtistView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
       }
@@ -264,19 +268,15 @@ defs = new Mapping<String, ObjectType> {
           type = "string"
         }
       }
-      ["recommendationScore"] = new IntegerType {
-        type = "integer"
-      }
       ["source"] = new StringType {
         type = "string"
         description = "neighbour | social | serendipity"
       }
     }
   }
-
   ["recommendedArtistsView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["artists"] = new Array {
         type = "array"
         items = new Ref {
@@ -289,10 +289,9 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
-
   ["recommendedAlbumView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
       }
@@ -317,19 +316,15 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         format = "uri"
       }
-      ["recommendationScore"] = new IntegerType {
-        type = "integer"
-      }
       ["source"] = new StringType {
         type = "string"
         description = "known-artist | new-artist | serendipity"
       }
     }
   }
-
   ["recommendedAlbumsView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["albums"] = new Array {
         type = "array"
         items = new Ref {
@@ -341,5 +336,259 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
       }
     }
+  }
+  ["searchFederation"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["indexUid"] = new StringType {
+        type = "string"
+      }
+    }
+  }
+  ["searchHit"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the song."
+      }
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the song."
+      }
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the song."
+      }
+      ["albumArtist"] = new StringType {
+        type = "string"
+        description = "The artist of the album the song belongs to."
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        description = "The URL of the album art image."
+        format = "uri"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        description = "The URI of the song."
+        format = "at-uri"
+      }
+      ["album"] = new StringType {
+        type = "string"
+        description = "The album of the song."
+      }
+      ["duration"] = new IntegerType {
+        type = "integer"
+        description = "The duration of the song in milliseconds."
+      }
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+        description = "The track number of the song in the album."
+      }
+      ["discNumber"] = new IntegerType {
+        type = "integer"
+        description = "The disc number of the song in the album."
+      }
+      ["playCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of times the song has been played."
+        minimum = 0
+      }
+      ["likesCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of users who have loved this song."
+        minimum = 0
+      }
+      ["liked"] = new BooleanType {
+        type = "boolean"
+        description = "Whether the authenticated user has loved this song. False when unauthenticated."
+      }
+      ["uniqueListeners"] = new IntegerType {
+        type = "integer"
+        description = "The number of unique listeners who have played the song."
+        minimum = 0
+      }
+      ["albumUri"] = new StringType {
+        type = "string"
+        description = "The URI of the album the song belongs to."
+        format = "at-uri"
+      }
+      ["artistUri"] = new StringType {
+        type = "string"
+        description = "The URI of the artist of the song."
+        format = "at-uri"
+      }
+      ["sha256"] = new StringType {
+        type = "string"
+        description = "The SHA256 hash of the song."
+      }
+      ["mbid"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz ID of the song."
+      }
+      ["isrc"] = new StringType {
+        type = "string"
+        description = "The International Standard Recording Code (ISRC) of the song."
+      }
+      ["tags"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+        description = "The timestamp when the song was created."
+        format = "datetime"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["mbId"] = new StringType {
+        type = "string"
+      }
+      ["youtubeLink"] = new StringType {
+        type = "string"
+      }
+      ["spotifyLink"] = new StringType {
+        type = "string"
+      }
+      ["appleMusicLink"] = new StringType {
+        type = "string"
+      }
+      ["tidalLink"] = new StringType {
+        type = "string"
+      }
+      ["lyrics"] = new StringType {
+        type = "string"
+      }
+      ["composer"] = new StringType {
+        type = "string"
+      }
+      ["genre"] = new StringType {
+        type = "string"
+      }
+      ["label"] = new StringType {
+        type = "string"
+      }
+      ["copyrightMessage"] = new StringType {
+        type = "string"
+      }
+      ["key"] = new StringType {
+        type = "string"
+      }
+      ["acoustidFingerprint"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
+      ["year"] = new IntegerType {
+        type = "integer"
+        description = "The year the album was released."
+      }
+      ["releaseDate"] = new StringType {
+        type = "string"
+        description = "The release date of the album."
+      }
+      ["discogsReleaseId"] = new StringType {
+        type = "string"
+      }
+      ["name"] = new StringType {
+        type = "string"
+        description = "The name of the artist."
+      }
+      ["picture"] = new StringType {
+        type = "string"
+        description = "The picture of the artist."
+      }
+      ["biography"] = new StringType {
+        type = "string"
+      }
+      ["born"] = new StringType {
+        type = "string"
+        format = "datetime"
+      }
+      ["bornIn"] = new StringType {
+        type = "string"
+      }
+      ["died"] = new StringType {
+        type = "string"
+        format = "datetime"
+      }
+      ["genres"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
+      ["curatorDid"] = new StringType {
+        type = "string"
+        description = "The DID of the curator of the playlist."
+        format = "at-identifier"
+      }
+      ["curatorHandle"] = new StringType {
+        type = "string"
+        description = "The handle of the curator of the playlist."
+        format = "at-identifier"
+      }
+      ["curatorName"] = new StringType {
+        type = "string"
+        description = "The name of the curator of the playlist."
+      }
+      ["curatorAvatarUrl"] = new StringType {
+        type = "string"
+        description = "The URL of the avatar image of the curator."
+        format = "uri"
+      }
+      ["description"] = new StringType {
+        type = "string"
+        description = "A description of the playlist."
+      }
+      ["coverImageUrl"] = new StringType {
+        type = "string"
+        description = "The URL of the cover image for the playlist."
+        format = "uri"
+      }
+      ["trackCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of tracks in the playlist."
+        minimum = 0
+      }
+      ["trackArts"] = new Array {
+        type = "array"
+        description = "Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own."
+        items = new StringType {
+          type = "string"
+          format = "uri"
+        }
+      }
+      ["curatorDId"] = new StringType {
+        type = "string"
+      }
+      ["did"] = new StringType {
+        type = "string"
+        description = "The DID of the actor."
+      }
+      ["handle"] = new StringType {
+        type = "string"
+        description = "The handle of the actor."
+      }
+      ["displayName"] = new StringType {
+        type = "string"
+        description = "The display name of the actor."
+      }
+      ["avatar"] = new StringType {
+        type = "string"
+        description = "The URL of the actor's avatar image."
+        format = "uri"
+      }
+      ["_federation"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.feed.defs#searchFederation"
+      }
+    }
+    nullable = List("acoustidFingerprint", "albumArt", "albumUri", "appleMusicLink", "artistUri", "avatar", "biography", "born", "bornIn", "composer", "copyrightMessage", "coverImageUrl", "died", "discNumber", "discogsReleaseId", "displayName", "genre", "genres", "isrc", "key", "label", "lyrics", "mbId", "picture", "releaseDate", "spotifyLink", "tidalLink", "trackNumber", "uri", "xataVersion", "year", "youtubeLink")
   }
 }

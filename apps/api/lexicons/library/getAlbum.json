@@ -21,7 +21,27 @@
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "properties": {}
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "album": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic album payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
         }
       }
     }

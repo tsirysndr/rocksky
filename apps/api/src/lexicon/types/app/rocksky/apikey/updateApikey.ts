@@ -1,15 +1,15 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyApikeyDefs from "./defs";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import * as AppRockskyApikeyDefs from "./defs";
 
-export type QueryParams = {};
+export interface QueryParams {}
 
 export interface InputSchema {
   /** The ID of the API key to update. */
@@ -21,7 +21,7 @@ export interface InputSchema {
   [k: string]: unknown;
 }
 
-export type OutputSchema = AppRockskyApikeyDefs.ApiKey;
+export type OutputSchema = AppRockskyApikeyDefs.ApiKeyView;
 
 export interface HandlerInput {
   encoding: "application/json";

@@ -1,26 +1,95 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.googledrive.defs"
-defs = new Mapping<String, ObjectType> {
-  ["fileView"] {
+defs = new Mapping<String, BaseType> {
+  ["fileView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the file."
       }
+      ["name"] = new StringType {
+        type = "string"
+      }
+      ["fileId"] = new StringType {
+        type = "string"
+      }
+      ["directoryId"] = new StringType {
+        type = "string"
+      }
+      ["trackId"] = new StringType {
+        type = "string"
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
     }
   }
-  ["fileListView"] {
+  ["fileListView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["files"] = new Array {
         type = "array"
         items = new Ref {
           type = "ref"
           ref = "app.rocksky.googledrive.defs#fileView"
         }
+      }
+      ["directory"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.googledrive.defs#responseDirectoryView"
+      }
+      ["parentDirectory"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.googledrive.defs#responseParentDirectoryView"
+      }
+      ["directories"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.googledrive.defs#responseDirectoriesItemView"
+        }
+      }
+    }
+  }
+  ["responseDirectoryView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+    }
+  }
+  ["responseParentDirectoryView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+    }
+  }
+  ["responseDirectoriesItemView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["name"] = new StringType {
+        type = "string"
+      }
+      ["fileId"] = new StringType {
+        type = "string"
+      }
+      ["path"] = new StringType {
+        type = "string"
+      }
+      ["parentId"] = new StringType {
+        type = "string"
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
       }
     }
   }

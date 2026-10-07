@@ -28,7 +28,11 @@
           "description": "The URL of the author's avatar image.",
           "format": "uri"
         }
-      }
+      },
+      "nullable": [
+        "avatar",
+        "displayName"
+      ]
     },
     "shoutView": {
       "type": "object",
@@ -67,8 +71,23 @@
             "type": "ref",
             "ref": "app.rocksky.shout.defs#mention"
           }
+        },
+        "content": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "likes": {
+          "type": "integer"
+        },
+        "liked": {
+          "type": "boolean"
         }
-      }
+      },
+      "nullable": [
+        "parent"
+      ]
     },
     "mention": {
       "type": "object",

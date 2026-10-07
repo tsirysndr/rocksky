@@ -1,0 +1,74 @@
+[
+  {
+    "lexicon": "app.rocksky.scrobble.defs",
+    "definition": "scrobbleViewBasic",
+    "field": "bpm",
+    "reason": "Production returns a nullable floating-point number. Lexicon has no float primitive; retained as an open extension without changing response data."
+  },
+  {
+    "lexicon": "app.rocksky.scrobble.defs",
+    "definition": "scrobbleViewDetailed",
+    "field": "bpm",
+    "reason": "Production returns a nullable floating-point number. Lexicon has no float primitive; retained as an open extension without changing response data."
+  },
+  {
+    "lexicon": "app.rocksky.song.defs",
+    "definition": "songViewBasic",
+    "field": "bpm",
+    "reason": "Production returns a nullable floating-point number. Lexicon has no float primitive; retained as an open extension without changing response data."
+  },
+  {
+    "lexicon": "app.rocksky.song.defs",
+    "definition": "songViewDetailed",
+    "field": "bpm",
+    "reason": "Production returns a nullable floating-point number. Lexicon has no float primitive; retained as an open extension without changing response data."
+  },
+  {
+    "lexicon": "app.rocksky.feed.defs",
+    "definition": "recommendationView",
+    "field": "recommendationScore",
+    "reason": "Production recommendation scores can be fractional. Retained as an open extension because Lexicon integer cannot describe this wire value."
+  },
+  {
+    "lexicon": "app.rocksky.feed.defs",
+    "definition": "recommendedArtistView",
+    "field": "recommendationScore",
+    "reason": "Production recommendation scores can be fractional. Retained as an open extension because Lexicon integer cannot describe this wire value."
+  },
+  {
+    "lexicon": "app.rocksky.feed.defs",
+    "definition": "recommendedAlbumView",
+    "field": "recommendationScore",
+    "reason": "Production recommendation scores can be fractional. Retained as an open extension because Lexicon integer cannot describe this wire value."
+  },
+  {
+    "lexicon": "app.rocksky.feed.defs",
+    "definition": "searchHit",
+    "field": "bpm",
+    "reason": "Production returns a nullable floating-point number. Lexicon has no float primitive; retained as an open extension without changing response data."
+  },
+  {
+    "lexicon": "app.rocksky.scrobble.defs",
+    "definition": "scrobbleViewBasic",
+    "field": "updatedAt",
+    "reason": "Existing response fixtures contain an empty object while other presentations use a timestamp string. Lexicon cannot express an untagged object/string union; preserve the existing open extension."
+  },
+  {
+    "lexicon": "app.rocksky.actor.defs",
+    "definition": "compatibilityViewBasic",
+    "field": "compatibilityPercentage",
+    "reason": "Production returns a fractional numeric value. Lexicon has no floating-point primitive; retain it as an open extension."
+  },
+  {
+    "lexicon": "app.rocksky.actor.defs",
+    "definition": "artistViewBasic",
+    "field": "weight",
+    "reason": "Production returns a fractional numeric value. Lexicon has no floating-point primitive; retain it as an open extension."
+  },
+  {
+    "lexicon": "app.rocksky.actor.defs",
+    "definition": "neighbourViewBasic",
+    "field": "similarityScore",
+    "reason": "Production returns shared_count / target_artist_count, a fractional ratio. Retain as an open extension because Lexicon has no float primitive."
+  }
+]

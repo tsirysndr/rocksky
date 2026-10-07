@@ -1,7 +1,7 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type LexiconDoc, Lexicons } from "@atproto/lexicon";
+import { LexiconDoc, Lexicons } from "@atproto/lexicon";
 
 export const schemaDict = {
   AppRockskyActorDefs: {
@@ -42,6 +42,25 @@ export const schemaDict = {
             description: "The date and time when the actor was last updated.",
             format: "datetime",
           },
+          spotifyUser: {
+            type: "ref",
+            ref: "lex:app.rocksky.actor.defs#responseSpotifyUserView",
+          },
+          spotifyToken: {
+            type: "ref",
+            ref: "lex:app.rocksky.actor.defs#responseSpotifyTokenView",
+          },
+          spotifyConnected: {
+            type: "boolean",
+          },
+          googledrive: {
+            type: "ref",
+            ref: "lex:app.rocksky.actor.defs#responseGoogledriveView",
+          },
+          dropbox: {
+            type: "ref",
+            ref: "lex:app.rocksky.actor.defs#responseDropboxView",
+          },
         },
       },
       profileViewBasic: {
@@ -79,6 +98,7 @@ export const schemaDict = {
             format: "datetime",
           },
         },
+        nullable: ["avatar", "displayName"],
       },
       neighbourViewBasic: {
         type: "object",
@@ -98,15 +118,10 @@ export const schemaDict = {
           avatar: {
             type: "string",
             description: "The URL of the actor's avatar image.",
-            format: "uri",
           },
           sharedArtistsCount: {
             type: "integer",
             description: "The number of artists shared with the actor.",
-          },
-          similarityScore: {
-            type: "integer",
-            description: "The similarity score with the actor.",
           },
           topSharedArtistNames: {
             type: "array",
@@ -129,9 +144,6 @@ export const schemaDict = {
         type: "object",
         properties: {
           compatibilityLevel: {
-            type: "integer",
-          },
-          compatibilityPercentage: {
             type: "integer",
           },
           sharedArtists: {
@@ -179,9 +191,6 @@ export const schemaDict = {
             type: "integer",
           },
           user2Rank: {
-            type: "integer",
-          },
-          weight: {
             type: "integer",
           },
         },
@@ -234,6 +243,95 @@ export const schemaDict = {
             minimum: 1,
           },
         },
+      },
+      responseSpotifyUserView: {
+        type: "object",
+        properties: {
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          id: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "integer",
+          },
+          userId: {
+            type: "string",
+          },
+          isBetaUser: {
+            type: "boolean",
+          },
+          spotifyAppId: {
+            type: "string",
+          },
+        },
+        nullable: ["xataVersion", "userId", "spotifyAppId"],
+      },
+      responseSpotifyTokenView: {
+        type: "object",
+        properties: {
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          id: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "integer",
+          },
+          userId: {
+            type: "string",
+          },
+          spotifyAppId: {
+            type: "string",
+          },
+        },
+        nullable: ["xataVersion", "userId"],
+      },
+      responseGoogledriveView: {
+        type: "object",
+        properties: {
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+        },
+      },
+      responseDropboxView: {
+        type: "object",
+        properties: {
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          id: {
+            type: "string",
+          },
+          email: {
+            type: "string",
+          },
+          isBetaUser: {
+            type: "boolean",
+          },
+          userId: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "string",
+          },
+        },
+        nullable: ["userId", "xataVersion"],
       },
     },
   },
@@ -379,6 +477,7 @@ export const schemaDict = {
                 ref: "lex:app.rocksky.actor.defs#compatibilityViewBasic",
               },
             },
+            nullable: ["compatibility"],
           },
         },
       },
@@ -608,7 +707,7 @@ export const schemaDict = {
           schema: {
             type: "object",
             properties: {
-              songs: {
+              tracks: {
                 type: "array",
                 items: {
                   type: "ref",
@@ -886,7 +985,46 @@ export const schemaDict = {
               "The number of unique listeners who have played the album.",
             minimum: 0,
           },
+          appleMusicLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          discogsReleaseId: {
+            type: "string",
+          },
+          createdAt: {
+            type: "string",
+            format: "datetime",
+          },
+          updatedAt: {
+            type: "string",
+            format: "datetime",
+          },
+          xataVersion: {
+            type: "integer",
+          },
         },
+        nullable: [
+          "albumArt",
+          "appleMusicLink",
+          "artistUri",
+          "discogsReleaseId",
+          "releaseDate",
+          "spotifyLink",
+          "tidalLink",
+          "uri",
+          "xataVersion",
+          "year",
+          "youtubeLink",
+        ],
       },
       albumViewDetailed: {
         type: "object",
@@ -958,7 +1096,45 @@ export const schemaDict = {
             type: "ref",
             ref: "lex:app.rocksky.album.defs#discogsView",
           },
+          createdAt: {
+            type: "string",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          discogsReleaseId: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+            format: "datetime",
+          },
+          xataVersion: {
+            type: "integer",
+          },
         },
+        nullable: [
+          "albumArt",
+          "appleMusicLink",
+          "artistUri",
+          "discogsReleaseId",
+          "releaseDate",
+          "spotifyLink",
+          "tidalLink",
+          "uri",
+          "xataVersion",
+          "year",
+          "youtubeLink",
+        ],
       },
       discogsView: {
         type: "object",
@@ -1417,7 +1593,7 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "ref",
-            ref: "lex:app.rocksky.apikey.defs#apiKey",
+            ref: "lex:app.rocksky.apikey.defs#apiKeyView",
           },
         },
       },
@@ -1482,11 +1658,11 @@ export const schemaDict = {
           schema: {
             type: "object",
             properties: {
-              apiKeys: {
+              apikeys: {
                 type: "array",
                 items: {
                   type: "ref",
-                  ref: "lex:app.rocksky.apikey.defs#apikeyView",
+                  ref: "lex:app.rocksky.apikey.defs#apiKeyView",
                 },
               },
             },
@@ -1516,7 +1692,7 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "ref",
-            ref: "lex:app.rocksky.apikey.defs#apiKey",
+            ref: "lex:app.rocksky.apikey.defs#apiKeyView",
           },
         },
       },
@@ -1554,7 +1730,7 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "ref",
-            ref: "lex:app.rocksky.apikey.defs#apiKey",
+            ref: "lex:app.rocksky.apikey.defs#apiKeyView",
           },
         },
       },
@@ -1673,7 +1849,62 @@ export const schemaDict = {
               type: "string",
             },
           },
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          biography: {
+            type: "string",
+          },
+          born: {
+            type: "string",
+            format: "datetime",
+          },
+          bornIn: {
+            type: "string",
+          },
+          died: {
+            type: "string",
+            format: "datetime",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          genres: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          xataVersion: {
+            type: "integer",
+          },
         },
+        nullable: [
+          "appleMusicLink",
+          "biography",
+          "born",
+          "bornIn",
+          "died",
+          "genres",
+          "picture",
+          "spotifyLink",
+          "tidalLink",
+          "uri",
+          "xataVersion",
+          "youtubeLink",
+        ],
       },
       artistViewDetailed: {
         type: "object",
@@ -1716,7 +1947,62 @@ export const schemaDict = {
               type: "string",
             },
           },
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          biography: {
+            type: "string",
+          },
+          born: {
+            type: "string",
+            format: "datetime",
+          },
+          bornIn: {
+            type: "string",
+          },
+          died: {
+            type: "string",
+            format: "datetime",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          genres: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          xataVersion: {
+            type: "integer",
+          },
         },
+        nullable: [
+          "appleMusicLink",
+          "biography",
+          "born",
+          "bornIn",
+          "died",
+          "genres",
+          "picture",
+          "spotifyLink",
+          "tidalLink",
+          "uri",
+          "xataVersion",
+          "youtubeLink",
+        ],
       },
       songViewBasic: {
         type: "object",
@@ -2483,6 +2769,21 @@ export const schemaDict = {
               "The last modified date and time of the file on the server.",
             format: "datetime",
           },
+          fileId: {
+            type: "string",
+          },
+          directoryId: {
+            type: "string",
+          },
+          trackId: {
+            type: "string",
+          },
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
         },
       },
       fileListView: {
@@ -2496,6 +2797,21 @@ export const schemaDict = {
               ref: "lex:app.rocksky.dropbox.defs#fileView",
             },
           },
+          directory: {
+            type: "ref",
+            ref: "lex:app.rocksky.dropbox.defs#responseDirectoryView",
+          },
+          parentDirectory: {
+            type: "ref",
+            ref: "lex:app.rocksky.dropbox.defs#responseParentDirectoryView",
+          },
+          directories: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.dropbox.defs#responseDirectoriesItemView",
+            },
+          },
         },
       },
       temporaryLinkView: {
@@ -2505,6 +2821,40 @@ export const schemaDict = {
             type: "string",
             description: "The temporary link to access the file.",
             format: "uri",
+          },
+        },
+      },
+      responseDirectoryView: {
+        type: "object",
+        properties: {},
+      },
+      responseParentDirectoryView: {
+        type: "object",
+        properties: {},
+      },
+      responseDirectoriesItemView: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+          },
+          name: {
+            type: "string",
+          },
+          fileId: {
+            type: "string",
+          },
+          path: {
+            type: "string",
+          },
+          parentId: {
+            type: "string",
+          },
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
           },
         },
       },
@@ -2579,8 +2929,14 @@ export const schemaDict = {
         output: {
           encoding: "application/json",
           schema: {
-            type: "ref",
-            ref: "lex:app.rocksky.dropbox.defs#fileView",
+            type: "object",
+            properties: {
+              metadata: {
+                type: "unknown",
+                description:
+                  "Metadata returned by the provider; currently an empty object.",
+              },
+            },
           },
         },
       },
@@ -2830,14 +3186,8 @@ export const schemaDict = {
           hits: {
             type: "array",
             items: {
-              type: "union",
-              refs: [
-                "lex:app.rocksky.song.defs#songViewBasic",
-                "lex:app.rocksky.album.defs#albumViewBasic",
-                "lex:app.rocksky.artist.defs#artistViewBasic",
-                "lex:app.rocksky.playlist.defs#playlistViewBasic",
-                "lex:app.rocksky.actor.defs#profileViewBasic",
-              ],
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#searchHit",
             },
           },
           processingTimeMs: {
@@ -2909,6 +3259,12 @@ export const schemaDict = {
             type: "string",
             format: "at-uri",
           },
+          liked: {
+            type: "boolean",
+          },
+          likesCount: {
+            type: "integer",
+          },
         },
       },
       storiesView: {
@@ -2959,7 +3315,11 @@ export const schemaDict = {
             type: "ref",
             ref: "lex:app.rocksky.actor.defs#profileViewBasic",
           },
+          did: {
+            type: "string",
+          },
         },
+        nullable: ["avatar", "description"],
       },
       feedUriView: {
         type: "object",
@@ -2993,6 +3353,15 @@ export const schemaDict = {
           cursor: {
             type: "string",
             description: "The pagination cursor for the next set of results.",
+          },
+          scrobbles: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
+            },
+            description:
+              "Legacy empty-array error fallback; successful responses use feed.",
           },
         },
       },
@@ -3029,9 +3398,6 @@ export const schemaDict = {
             items: {
               type: "string",
             },
-          },
-          recommendationScore: {
-            type: "integer",
           },
           source: {
             type: "string",
@@ -3079,9 +3445,6 @@ export const schemaDict = {
             items: {
               type: "string",
             },
-          },
-          recommendationScore: {
-            type: "integer",
           },
           source: {
             type: "string",
@@ -3131,9 +3494,6 @@ export const schemaDict = {
             type: "string",
             format: "uri",
           },
-          recommendationScore: {
-            type: "integer",
-          },
           source: {
             type: "string",
             description: "known-artist | new-artist | serendipity",
@@ -3154,6 +3514,297 @@ export const schemaDict = {
             type: "string",
           },
         },
+      },
+      searchFederation: {
+        type: "object",
+        properties: {
+          indexUid: {
+            type: "string",
+          },
+        },
+      },
+      searchHit: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the song.",
+          },
+          title: {
+            type: "string",
+            description: "The title of the song.",
+          },
+          artist: {
+            type: "string",
+            description: "The artist of the song.",
+          },
+          albumArtist: {
+            type: "string",
+            description: "The artist of the album the song belongs to.",
+          },
+          albumArt: {
+            type: "string",
+            description: "The URL of the album art image.",
+            format: "uri",
+          },
+          uri: {
+            type: "string",
+            description: "The URI of the song.",
+            format: "at-uri",
+          },
+          album: {
+            type: "string",
+            description: "The album of the song.",
+          },
+          duration: {
+            type: "integer",
+            description: "The duration of the song in milliseconds.",
+          },
+          trackNumber: {
+            type: "integer",
+            description: "The track number of the song in the album.",
+          },
+          discNumber: {
+            type: "integer",
+            description: "The disc number of the song in the album.",
+          },
+          playCount: {
+            type: "integer",
+            description: "The number of times the song has been played.",
+            minimum: 0,
+          },
+          likesCount: {
+            type: "integer",
+            description: "The number of users who have loved this song.",
+            minimum: 0,
+          },
+          liked: {
+            type: "boolean",
+            description:
+              "Whether the authenticated user has loved this song. False when unauthenticated.",
+          },
+          uniqueListeners: {
+            type: "integer",
+            description:
+              "The number of unique listeners who have played the song.",
+            minimum: 0,
+          },
+          albumUri: {
+            type: "string",
+            description: "The URI of the album the song belongs to.",
+            format: "at-uri",
+          },
+          artistUri: {
+            type: "string",
+            description: "The URI of the artist of the song.",
+            format: "at-uri",
+          },
+          sha256: {
+            type: "string",
+            description: "The SHA256 hash of the song.",
+          },
+          mbid: {
+            type: "string",
+            description: "The MusicBrainz ID of the song.",
+          },
+          isrc: {
+            type: "string",
+            description:
+              "The International Standard Recording Code (ISRC) of the song.",
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          createdAt: {
+            type: "string",
+            description: "The timestamp when the song was created.",
+            format: "datetime",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          mbId: {
+            type: "string",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          lyrics: {
+            type: "string",
+          },
+          composer: {
+            type: "string",
+          },
+          genre: {
+            type: "string",
+          },
+          label: {
+            type: "string",
+          },
+          copyrightMessage: {
+            type: "string",
+          },
+          key: {
+            type: "string",
+          },
+          acoustidFingerprint: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "integer",
+          },
+          year: {
+            type: "integer",
+            description: "The year the album was released.",
+          },
+          releaseDate: {
+            type: "string",
+            description: "The release date of the album.",
+          },
+          discogsReleaseId: {
+            type: "string",
+          },
+          name: {
+            type: "string",
+            description: "The name of the artist.",
+          },
+          picture: {
+            type: "string",
+            description: "The picture of the artist.",
+          },
+          biography: {
+            type: "string",
+          },
+          born: {
+            type: "string",
+            format: "datetime",
+          },
+          bornIn: {
+            type: "string",
+          },
+          died: {
+            type: "string",
+            format: "datetime",
+          },
+          genres: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          curatorDid: {
+            type: "string",
+            description: "The DID of the curator of the playlist.",
+            format: "at-identifier",
+          },
+          curatorHandle: {
+            type: "string",
+            description: "The handle of the curator of the playlist.",
+            format: "at-identifier",
+          },
+          curatorName: {
+            type: "string",
+            description: "The name of the curator of the playlist.",
+          },
+          curatorAvatarUrl: {
+            type: "string",
+            description: "The URL of the avatar image of the curator.",
+            format: "uri",
+          },
+          description: {
+            type: "string",
+            description: "A description of the playlist.",
+          },
+          coverImageUrl: {
+            type: "string",
+            description: "The URL of the cover image for the playlist.",
+            format: "uri",
+          },
+          trackCount: {
+            type: "integer",
+            description: "The number of tracks in the playlist.",
+            minimum: 0,
+          },
+          trackArts: {
+            type: "array",
+            description:
+              "Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own.",
+            items: {
+              type: "string",
+              format: "uri",
+            },
+          },
+          curatorDId: {
+            type: "string",
+          },
+          did: {
+            type: "string",
+            description: "The DID of the actor.",
+          },
+          handle: {
+            type: "string",
+            description: "The handle of the actor.",
+          },
+          displayName: {
+            type: "string",
+            description: "The display name of the actor.",
+          },
+          avatar: {
+            type: "string",
+            description: "The URL of the actor's avatar image.",
+            format: "uri",
+          },
+          _federation: {
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#searchFederation",
+          },
+        },
+        nullable: [
+          "acoustidFingerprint",
+          "albumArt",
+          "albumUri",
+          "appleMusicLink",
+          "artistUri",
+          "avatar",
+          "biography",
+          "born",
+          "bornIn",
+          "composer",
+          "copyrightMessage",
+          "coverImageUrl",
+          "died",
+          "discNumber",
+          "discogsReleaseId",
+          "displayName",
+          "genre",
+          "genres",
+          "isrc",
+          "key",
+          "label",
+          "lyrics",
+          "mbId",
+          "picture",
+          "releaseDate",
+          "spotifyLink",
+          "tidalLink",
+          "trackNumber",
+          "uri",
+          "xataVersion",
+          "year",
+          "youtubeLink",
+        ],
       },
     },
   },
@@ -3553,6 +4204,24 @@ export const schemaDict = {
             type: "string",
             description: "The unique identifier of the file.",
           },
+          name: {
+            type: "string",
+          },
+          fileId: {
+            type: "string",
+          },
+          directoryId: {
+            type: "string",
+          },
+          trackId: {
+            type: "string",
+          },
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
         },
       },
       fileListView: {
@@ -3564,6 +4233,55 @@ export const schemaDict = {
               type: "ref",
               ref: "lex:app.rocksky.googledrive.defs#fileView",
             },
+          },
+          directory: {
+            type: "ref",
+            ref: "lex:app.rocksky.googledrive.defs#responseDirectoryView",
+          },
+          parentDirectory: {
+            type: "ref",
+            ref: "lex:app.rocksky.googledrive.defs#responseParentDirectoryView",
+          },
+          directories: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.googledrive.defs#responseDirectoriesItemView",
+            },
+          },
+        },
+      },
+      responseDirectoryView: {
+        type: "object",
+        properties: {},
+      },
+      responseParentDirectoryView: {
+        type: "object",
+        properties: {},
+      },
+      responseDirectoriesItemView: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+          },
+          name: {
+            type: "string",
+          },
+          fileId: {
+            type: "string",
+          },
+          path: {
+            type: "string",
+          },
+          parentId: {
+            type: "string",
+          },
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
           },
         },
       },
@@ -4025,7 +4743,33 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              playlist: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+              atprotoError: {
+                type: "string",
+                description:
+                  "Non-fatal AT Protocol playlist mirror error, when available.",
+              },
+            },
           },
         },
       },
@@ -4097,7 +4841,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              atprotoError: {
+                type: "string",
+                description:
+                  "Non-fatal AT Protocol playlist mirror error, when available.",
+              },
+            },
           },
         },
       },
@@ -4166,7 +4931,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              album: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic album payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4193,7 +4979,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              albumInfo: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic albumInfo payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4242,7 +5049,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              albumList2: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic albumList2 payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4269,7 +5097,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              artist: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic artist payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4296,7 +5145,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              artistInfo2: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic artistInfo2 payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4317,7 +5187,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              artists: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic artists payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4410,7 +5301,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              genres: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic genres payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4431,7 +5343,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              indexes: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic indexes payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4452,7 +5385,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              internetRadioStations: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic internetRadioStations payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4473,7 +5427,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              license: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic license payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4503,7 +5478,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              lyrics: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic lyrics payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4530,7 +5526,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              directory: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic directory payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4551,7 +5568,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              musicFolders: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic musicFolders payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4572,7 +5610,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              nowPlaying: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic nowPlaying payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4593,7 +5652,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              playQueue: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic playQueue payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4620,7 +5700,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              playlist: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4641,7 +5742,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              playlists: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic playlists payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4680,7 +5802,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              randomSongs: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic randomSongs payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4701,7 +5844,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              scanStatus: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4732,7 +5896,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              similarSongs2: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic similarSongs2 payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4759,7 +5944,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              song: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic song payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4795,7 +6001,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              songsByGenre: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic songsByGenre payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4816,7 +6043,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              starred2: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic starred2 payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4889,7 +6137,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              topSongs: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic topSongs payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4910,7 +6179,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              user: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic user payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -4931,7 +6221,23 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+            },
           },
         },
       },
@@ -4969,7 +6275,23 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+            },
           },
         },
       },
@@ -5008,7 +6330,23 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+            },
           },
         },
       },
@@ -5062,7 +6400,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              searchResult3: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic searchResult3 payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -5100,7 +6459,23 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+            },
           },
         },
       },
@@ -5121,7 +6496,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              scanStatus: {
+                type: "unknown",
+                description:
+                  "Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved.",
+              },
+            },
           },
         },
       },
@@ -5159,7 +6555,23 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+            },
           },
         },
       },
@@ -5189,7 +6601,23 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+            },
           },
         },
       },
@@ -5235,7 +6663,28 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            properties: {
+              status: {
+                type: "string",
+              },
+              version: {
+                type: "string",
+              },
+              type: {
+                type: "string",
+              },
+              serverVersion: {
+                type: "string",
+              },
+              openSubsonic: {
+                type: "boolean",
+              },
+              atprotoError: {
+                type: "string",
+                description:
+                  "Non-fatal AT Protocol playlist mirror error, when available.",
+              },
+            },
           },
         },
       },
@@ -5822,7 +7271,57 @@ export const schemaDict = {
             type: "string",
             description: "The title of the currently playing track",
           },
+          device: {
+            type: "unknown",
+          },
+          shuffle_state: {
+            type: "boolean",
+          },
+          repeat_state: {
+            type: "string",
+          },
+          timestamp: {
+            type: "integer",
+          },
+          context: {
+            type: "unknown",
+          },
+          progress_ms: {
+            type: "integer",
+          },
+          item: {
+            type: "unknown",
+          },
+          currently_playing_type: {
+            type: "string",
+          },
+          actions: {
+            type: "unknown",
+          },
+          is_playing: {
+            type: "boolean",
+          },
+          uri: {
+            type: "string",
+          },
+          albumUri: {
+            type: "string",
+          },
+          artistUri: {
+            type: "string",
+          },
+          liked: {
+            type: "boolean",
+          },
         },
+        nullable: [
+          "albumUri",
+          "artistUri",
+          "context",
+          "item",
+          "progress_ms",
+          "uri",
+        ],
       },
       playbackQueueViewDetailed: {
         type: "object",
@@ -6203,7 +7702,17 @@ export const schemaDict = {
               ref: "lex:app.rocksky.song.defs#songViewBasic",
             },
           },
+          curatorDId: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          trackCount: {
+            type: "integer",
+          },
         },
+        nullable: ["coverImageUrl"],
       },
       playlistViewBasic: {
         type: "object",
@@ -6269,7 +7778,14 @@ export const schemaDict = {
               format: "uri",
             },
           },
+          updatedAt: {
+            type: "string",
+          },
+          curatorDId: {
+            type: "string",
+          },
         },
+        nullable: ["coverImageUrl"],
       },
     },
   },
@@ -7343,21 +8859,104 @@ export const schemaDict = {
           likesCount: {
             type: "integer",
           },
+          cover: {
+            type: "string",
+          },
+          date: {
+            type: "string",
+          },
+          user: {
+            type: "string",
+          },
+          userDisplayName: {
+            type: "string",
+          },
+          userAvatar: {
+            type: "string",
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          mbId: {
+            type: "string",
+          },
+          mbid: {
+            type: "string",
+          },
+          isrc: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          composer: {
+            type: "string",
+          },
+          trackNumber: {
+            type: "integer",
+          },
+          duration: {
+            type: "integer",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          discNumber: {
+            type: "integer",
+          },
+          genre: {
+            type: "string",
+          },
+          label: {
+            type: "string",
+          },
+          copyrightMessage: {
+            type: "string",
+          },
+          key: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "integer",
+          },
         },
+        nullable: [
+          "albumArt",
+          "albumArtist",
+          "albumUri",
+          "appleMusicLink",
+          "artistUri",
+          "composer",
+          "copyrightMessage",
+          "cover",
+          "genre",
+          "isrc",
+          "key",
+          "label",
+          "mbId",
+          "mbid",
+          "spotifyLink",
+          "tags",
+          "tidalLink",
+          "trackId",
+          "trackNumber",
+          "trackUri",
+          "uri",
+          "youtubeLink",
+        ],
       },
       scrobbleViewDetailed: {
         type: "object",
         properties: {
-          mbId: {
-            type: "string",
-            description:
-              "The MusicBrainz recording ID of the track, when available.",
-          },
-          isrc: {
-            type: "string",
-            description:
-              "The International Standard Recording Code (ISRC) of the track, when available.",
-          },
           id: {
             type: "string",
             description: "The unique identifier of the scrobble.",
@@ -7437,7 +9036,102 @@ export const schemaDict = {
             description: "The first scrobble of this song on Rocksky.",
             ref: "lex:app.rocksky.scrobble.defs#firstScrobbleView",
           },
+          mbId: {
+            type: "string",
+            description:
+              "The MusicBrainz recording ID of the track, when available.",
+          },
+          isrc: {
+            type: "string",
+            description:
+              "The International Standard Recording Code (ISRC) of the track, when available.",
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          createdAt: {
+            type: "string",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          albumArtist: {
+            type: "string",
+          },
+          trackNumber: {
+            type: "integer",
+          },
+          duration: {
+            type: "integer",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          discNumber: {
+            type: "integer",
+          },
+          lyrics: {
+            type: "string",
+          },
+          composer: {
+            type: "string",
+          },
+          genre: {
+            type: "string",
+          },
+          label: {
+            type: "string",
+          },
+          copyrightMessage: {
+            type: "string",
+          },
+          key: {
+            type: "string",
+          },
+          acoustidFingerprint: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "integer",
+          },
+          mbid: {
+            type: "string",
+          },
         },
+        nullable: [
+          "acoustidFingerprint",
+          "albumArtist",
+          "appleMusicLink",
+          "artistUri",
+          "composer",
+          "copyrightMessage",
+          "discNumber",
+          "genre",
+          "isrc",
+          "key",
+          "label",
+          "lyrics",
+          "mbId",
+          "mbid",
+          "spotifyLink",
+          "tidalLink",
+          "trackNumber",
+          "uri",
+          "xataVersion",
+          "youtubeLink",
+        ],
       },
       firstScrobbleView: {
         type: "object",
@@ -7772,6 +9466,7 @@ export const schemaDict = {
             format: "uri",
           },
         },
+        nullable: ["avatar", "displayName"],
       },
       shoutView: {
         type: "object",
@@ -7813,7 +9508,20 @@ export const schemaDict = {
               ref: "lex:app.rocksky.shout.defs#mention",
             },
           },
+          content: {
+            type: "string",
+          },
+          uri: {
+            type: "string",
+          },
+          likes: {
+            type: "integer",
+          },
+          liked: {
+            type: "boolean",
+          },
         },
+        nullable: ["parent"],
       },
       mention: {
         type: "object",
@@ -7912,7 +9620,7 @@ export const schemaDict = {
                 type: "array",
                 items: {
                   type: "ref",
-                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
+                  ref: "lex:app.rocksky.shout.defs#shoutView",
                 },
               },
             },
@@ -7959,7 +9667,7 @@ export const schemaDict = {
                 type: "array",
                 items: {
                   type: "ref",
-                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
+                  ref: "lex:app.rocksky.shout.defs#shoutView",
                 },
               },
             },
@@ -8005,7 +9713,7 @@ export const schemaDict = {
                 type: "array",
                 items: {
                   type: "ref",
-                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
+                  ref: "lex:app.rocksky.shout.defs#shoutView",
                 },
               },
             },
@@ -8052,7 +9760,7 @@ export const schemaDict = {
                 type: "array",
                 items: {
                   type: "ref",
-                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
+                  ref: "lex:app.rocksky.shout.defs#shoutView",
                 },
               },
             },
@@ -8088,7 +9796,7 @@ export const schemaDict = {
                 type: "array",
                 items: {
                   type: "ref",
-                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
+                  ref: "lex:app.rocksky.shout.defs#shoutView",
                 },
               },
             },
@@ -8433,16 +10141,75 @@ export const schemaDict = {
             description: "The timestamp when the song was created.",
             format: "datetime",
           },
+          updatedAt: {
+            type: "string",
+          },
+          mbId: {
+            type: "string",
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          lyrics: {
+            type: "string",
+          },
+          composer: {
+            type: "string",
+          },
+          genre: {
+            type: "string",
+          },
+          label: {
+            type: "string",
+          },
+          copyrightMessage: {
+            type: "string",
+          },
+          key: {
+            type: "string",
+          },
+          acoustidFingerprint: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "integer",
+          },
         },
+        nullable: [
+          "acoustidFingerprint",
+          "albumArt",
+          "albumUri",
+          "appleMusicLink",
+          "artistUri",
+          "composer",
+          "copyrightMessage",
+          "discNumber",
+          "genre",
+          "isrc",
+          "key",
+          "label",
+          "lyrics",
+          "mbId",
+          "spotifyLink",
+          "tidalLink",
+          "trackNumber",
+          "uri",
+          "xataVersion",
+          "youtubeLink",
+        ],
       },
       songViewDetailed: {
         type: "object",
         properties: {
-          mbId: {
-            type: "string",
-            description:
-              "The MusicBrainz recording ID of the track, when available.",
-          },
           id: {
             type: "string",
             description: "The unique identifier of the song.",
@@ -8561,7 +10328,100 @@ export const schemaDict = {
               ref: "lex:app.rocksky.song.defs#songMatchView",
             },
           },
+          mbId: {
+            type: "string",
+            description:
+              "The MusicBrainz recording ID of the track, when available.",
+          },
+          updatedAt: {
+            type: "string",
+          },
+          releaseDate: {
+            type: "string",
+          },
+          year: {
+            type: "integer",
+          },
+          artistPicture: {
+            type: "string",
+          },
+          genres: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          mbArtists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.song.defs#responseMbArtistsItemView",
+            },
+          },
+          youtubeLink: {
+            type: "string",
+          },
+          spotifyLink: {
+            type: "string",
+          },
+          appleMusicLink: {
+            type: "string",
+          },
+          tidalLink: {
+            type: "string",
+          },
+          lyrics: {
+            type: "string",
+          },
+          composer: {
+            type: "string",
+          },
+          genre: {
+            type: "string",
+          },
+          label: {
+            type: "string",
+          },
+          copyrightMessage: {
+            type: "string",
+          },
+          key: {
+            type: "string",
+          },
+          acoustidFingerprint: {
+            type: "string",
+          },
+          xataVersion: {
+            type: "integer",
+          },
         },
+        nullable: [
+          "acoustidFingerprint",
+          "albumArt",
+          "albumUri",
+          "appleMusicLink",
+          "artistPicture",
+          "artistUri",
+          "composer",
+          "copyrightMessage",
+          "discNumber",
+          "genre",
+          "genres",
+          "isrc",
+          "key",
+          "label",
+          "lyrics",
+          "mbArtists",
+          "mbId",
+          "releaseDate",
+          "spotifyLink",
+          "tidalLink",
+          "trackNumber",
+          "uri",
+          "xataVersion",
+          "year",
+          "youtubeLink",
+        ],
       },
       songMatchView: {
         type: "object",
@@ -8692,6 +10552,17 @@ export const schemaDict = {
             type: "string",
             description: "The timestamp of the first scrobble.",
             format: "datetime",
+          },
+        },
+      },
+      responseMbArtistsItemView: {
+        type: "object",
+        properties: {
+          mbid: {
+            type: "string",
+          },
+          name: {
+            type: "string",
           },
         },
       },
@@ -8835,7 +10706,7 @@ export const schemaDict = {
           schema: {
             type: "object",
             properties: {
-              songs: {
+              tracks: {
                 type: "array",
                 items: {
                   type: "ref",

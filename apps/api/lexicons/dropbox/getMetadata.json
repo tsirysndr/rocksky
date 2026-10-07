@@ -20,8 +20,13 @@
       "output": {
         "encoding": "application/json",
         "schema": {
-          "type": "ref",
-          "ref": "app.rocksky.dropbox.defs#fileView"
+          "type": "object",
+          "properties": {
+            "metadata": {
+              "type": "unknown",
+              "description": "Metadata returned by the provider; currently an empty object."
+            }
+          }
         }
       }
     }

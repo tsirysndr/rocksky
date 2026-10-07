@@ -2,10 +2,10 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.song.defs"
-defs = new Mapping<String, ObjectType> {
-  ["songViewBasic"] {
+defs = new Mapping<String, BaseType> {
+  ["songViewBasic"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the song."
@@ -24,13 +24,13 @@ defs = new Mapping<String, ObjectType> {
       }
       ["albumArt"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the album art image."
+        format = "uri"
       }
       ["uri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the song."
+        format = "at-uri"
       }
       ["album"] = new StringType {
         type = "string"
@@ -69,13 +69,13 @@ defs = new Mapping<String, ObjectType> {
       }
       ["albumUri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the album the song belongs to."
+        format = "at-uri"
       }
       ["artistUri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the artist of the song."
+        format = "at-uri"
       }
       ["sha256"] = new StringType {
         type = "string"
@@ -97,18 +97,57 @@ defs = new Mapping<String, ObjectType> {
       }
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The timestamp when the song was created."
+        format = "datetime"
       }
-    }
-  }
-  ["songViewDetailed"] {
-    type = "object"
-    properties {
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
       ["mbId"] = new StringType {
         type = "string"
-        description = "The MusicBrainz recording ID of the track, when available."
       }
+      ["youtubeLink"] = new StringType {
+        type = "string"
+      }
+      ["spotifyLink"] = new StringType {
+        type = "string"
+      }
+      ["appleMusicLink"] = new StringType {
+        type = "string"
+      }
+      ["tidalLink"] = new StringType {
+        type = "string"
+      }
+      ["lyrics"] = new StringType {
+        type = "string"
+      }
+      ["composer"] = new StringType {
+        type = "string"
+      }
+      ["genre"] = new StringType {
+        type = "string"
+      }
+      ["label"] = new StringType {
+        type = "string"
+      }
+      ["copyrightMessage"] = new StringType {
+        type = "string"
+      }
+      ["key"] = new StringType {
+        type = "string"
+      }
+      ["acoustidFingerprint"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
+    }
+    nullable = List("acoustidFingerprint", "albumArt", "albumUri", "appleMusicLink", "artistUri", "composer", "copyrightMessage", "discNumber", "genre", "isrc", "key", "label", "lyrics", "mbId", "spotifyLink", "tidalLink", "trackNumber", "uri", "xataVersion", "youtubeLink")
+  }
+  ["songViewDetailed"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the song."
@@ -127,13 +166,13 @@ defs = new Mapping<String, ObjectType> {
       }
       ["albumArt"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the album art image."
+        format = "uri"
       }
       ["uri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the song."
+        format = "at-uri"
       }
       ["album"] = new StringType {
         type = "string"
@@ -172,13 +211,13 @@ defs = new Mapping<String, ObjectType> {
       }
       ["albumUri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the album the song belongs to."
+        format = "at-uri"
       }
       ["artistUri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the artist of the song."
+        format = "at-uri"
       }
       ["sha256"] = new StringType {
         type = "string"
@@ -200,34 +239,101 @@ defs = new Mapping<String, ObjectType> {
       }
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The timestamp when the song was created."
+        format = "datetime"
       }
       ["artists"] = new Array {
         type = "array"
         items = new Ref {
+          type = "ref"
           ref = "app.rocksky.artist.defs#artistViewBasic"
         }
       }
       ["firstScrobble"] = new Ref {
         type = "ref"
-        ref = "app.rocksky.song.defs#firstScrobbleView"
         description = "The first scrobble of this song on Rocksky."
+        ref = "app.rocksky.song.defs#firstScrobbleView"
       }
       ["matches"] = new Array {
         type = "array"
         description = "Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty."
         items = new Ref {
+          type = "ref"
           ref = "app.rocksky.song.defs#songMatchView"
         }
       }
+      ["mbId"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz recording ID of the track, when available."
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["releaseDate"] = new StringType {
+        type = "string"
+      }
+      ["year"] = new IntegerType {
+        type = "integer"
+      }
+      ["artistPicture"] = new StringType {
+        type = "string"
+      }
+      ["genres"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
+      ["mbArtists"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.song.defs#responseMbArtistsItemView"
+        }
+      }
+      ["youtubeLink"] = new StringType {
+        type = "string"
+      }
+      ["spotifyLink"] = new StringType {
+        type = "string"
+      }
+      ["appleMusicLink"] = new StringType {
+        type = "string"
+      }
+      ["tidalLink"] = new StringType {
+        type = "string"
+      }
+      ["lyrics"] = new StringType {
+        type = "string"
+      }
+      ["composer"] = new StringType {
+        type = "string"
+      }
+      ["genre"] = new StringType {
+        type = "string"
+      }
+      ["label"] = new StringType {
+        type = "string"
+      }
+      ["copyrightMessage"] = new StringType {
+        type = "string"
+      }
+      ["key"] = new StringType {
+        type = "string"
+      }
+      ["acoustidFingerprint"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
     }
+    nullable = List("acoustidFingerprint", "albumArt", "albumUri", "appleMusicLink", "artistPicture", "artistUri", "composer", "copyrightMessage", "discNumber", "genre", "genres", "isrc", "key", "label", "lyrics", "mbArtists", "mbId", "releaseDate", "spotifyLink", "tidalLink", "trackNumber", "uri", "xataVersion", "year", "youtubeLink")
   }
-
-  ["songMatchView"] {
+  ["songMatchView"] = new ObjectType {
     type = "object"
     description = "A ranked candidate match for a song from an external metadata provider."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new IntegerType {
         type = "integer"
         description = "The provider's numeric identifier for the matched track."
@@ -246,8 +352,8 @@ defs = new Mapping<String, ObjectType> {
       }
       ["albumArt"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the matched track's album art image."
+        format = "uri"
       }
       ["isrc"] = new StringType {
         type = "string"
@@ -255,8 +361,8 @@ defs = new Mapping<String, ObjectType> {
       }
       ["durationMs"] = new IntegerType {
         type = "integer"
-        minimum = 0
         description = "The duration of the matched track in milliseconds."
+        minimum = 0
       }
       ["trackNumber"] = new IntegerType {
         type = "integer"
@@ -268,13 +374,13 @@ defs = new Mapping<String, ObjectType> {
       }
       ["link"] = new StringType {
         type = "string"
-        format = "uri"
         description = "A URL to the matched track on the provider."
+        format = "uri"
       }
       ["preview"] = new StringType {
         type = "string"
-        format = "uri"
         description = "A URL to a short audio preview of the matched track."
+        format = "uri"
       }
       ["rank"] = new IntegerType {
         type = "integer"
@@ -286,16 +392,15 @@ defs = new Mapping<String, ObjectType> {
       }
       ["score"] = new IntegerType {
         type = "integer"
-        minimum = 0
-        maximum = 100
         description = "Match confidence score in the range 0-100 (higher is better)."
+        maximum = 100
+        minimum = 0
       }
     }
   }
-
-  ["recentListenerView"] {
+  ["recentListenerView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the listener."
@@ -314,38 +419,48 @@ defs = new Mapping<String, ObjectType> {
       }
       ["avatar"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the listener's avatar image."
+        format = "uri"
       }
       ["timestamp"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The timestamp of the listener's most recent scrobble of this song."
+        format = "datetime"
       }
       ["scrobbleUri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the listener's most recent scrobble of this song."
+        format = "at-uri"
       }
     }
   }
-
-  ["firstScrobbleView"] {
+  ["firstScrobbleView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["handle"] = new StringType {
         type = "string"
         description = "The handle of the user who first scrobbled this song."
       }
       ["avatar"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The avatar URL of the user who first scrobbled this song."
+        format = "uri"
       }
       ["timestamp"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The timestamp of the first scrobble."
+        format = "datetime"
+      }
+    }
+  }
+  ["responseMbArtistsItemView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["mbid"] = new StringType {
+        type = "string"
+      }
+      ["name"] = new StringType {
+        type = "string"
       }
     }
   }

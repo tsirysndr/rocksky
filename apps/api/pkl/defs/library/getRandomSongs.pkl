@@ -2,13 +2,13 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.library.getRandomSongs"
-defs = new Mapping<String, Query> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Query {
     type = "query"
     description = "Get a list of random songs."
-    parameters {
+    parameters = new {
       type = "params"
-      properties {
+      properties = new Mapping<String, BaseType> {
         ["size"] = new IntegerType {
           type = "integer"
           description = "Number of songs to return (max 500)."
@@ -27,11 +27,31 @@ defs = new Mapping<String, Query> {
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties {}
+        properties = new Mapping<String, BaseType> {
+          ["status"] = new StringType {
+            type = "string"
+          }
+          ["version"] = new StringType {
+            type = "string"
+          }
+          ["type"] = new StringType {
+            type = "string"
+          }
+          ["serverVersion"] = new StringType {
+            type = "string"
+          }
+          ["openSubsonic"] = new BooleanType {
+            type = "boolean"
+          }
+          ["randomSongs"] = new UnknownType {
+            type = "unknown"
+            description = "Unmodified OpenSubsonic randomSongs payload from Navidrome. Its provider-defined fields are preserved."
+          }
+        }
       }
     }
   }

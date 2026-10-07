@@ -1,7 +1,7 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
@@ -10,11 +10,11 @@ export interface ArtistViewBasic {
   /** The unique identifier of the artist. */
   id?: string;
   /** The URI of the artist. */
-  uri?: string;
+  uri?: string | null;
   /** The name of the artist. */
   name?: string;
   /** The picture of the artist. */
-  picture?: string;
+  picture?: string | null;
   /** The SHA256 hash of the artist. */
   sha256?: string;
   /** The number of times the artist has been played. */
@@ -22,6 +22,18 @@ export interface ArtistViewBasic {
   /** The number of unique listeners who have played the artist. */
   uniqueListeners?: number;
   tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  biography?: string | null;
+  born?: string | null;
+  bornIn?: string | null;
+  died?: string | null;
+  appleMusicLink?: string | null;
+  spotifyLink?: string | null;
+  tidalLink?: string | null;
+  youtubeLink?: string | null;
+  genres?: string[] | null;
+  xataVersion?: number | null;
   [k: string]: unknown;
 }
 
@@ -41,11 +53,11 @@ export interface ArtistViewDetailed {
   /** The unique identifier of the artist. */
   id?: string;
   /** The URI of the artist. */
-  uri?: string;
+  uri?: string | null;
   /** The name of the artist. */
   name?: string;
   /** The picture of the artist. */
-  picture?: string;
+  picture?: string | null;
   /** The SHA256 hash of the artist. */
   sha256?: string;
   /** The number of times the artist has been played. */
@@ -53,6 +65,18 @@ export interface ArtistViewDetailed {
   /** The number of unique listeners who have played the artist. */
   uniqueListeners?: number;
   tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  biography?: string | null;
+  born?: string | null;
+  bornIn?: string | null;
+  died?: string | null;
+  appleMusicLink?: string | null;
+  spotifyLink?: string | null;
+  tidalLink?: string | null;
+  youtubeLink?: string | null;
+  genres?: string[] | null;
+  xataVersion?: number | null;
   [k: string]: unknown;
 }
 

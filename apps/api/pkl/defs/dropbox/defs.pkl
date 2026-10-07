@@ -1,64 +1,125 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.dropbox.defs"
-defs = new Mapping<String, ObjectType> {
-  ["fileView"] {
+defs = new Mapping<String, BaseType> {
+  ["fileView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the file."
       }
-
       ["name"] = new StringType {
         type = "string"
         description = "The name of the file."
       }
-
       ["pathLower"] = new StringType {
         type = "string"
         description = "The lowercased path of the file."
       }
-
       ["pathDisplay"] = new StringType {
         type = "string"
         description = "The display path of the file."
       }
-
       ["clientModified"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The last modified date and time of the file on the client."
+        format = "datetime"
       }
-
       ["serverModified"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The last modified date and time of the file on the server."
+        format = "datetime"
+      }
+      ["fileId"] = new StringType {
+        type = "string"
+      }
+      ["directoryId"] = new StringType {
+        type = "string"
+      }
+      ["trackId"] = new StringType {
+        type = "string"
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
       }
     }
   }
-  ["fileListView"] {
+  ["fileListView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["files"] = new Array {
         type = "array"
+        description = "A list of files in the Dropbox."
         items = new Ref {
           type = "ref"
           ref = "app.rocksky.dropbox.defs#fileView"
         }
-        description = "A list of files in the Dropbox."
+      }
+      ["directory"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.dropbox.defs#responseDirectoryView"
+      }
+      ["parentDirectory"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.dropbox.defs#responseParentDirectoryView"
+      }
+      ["directories"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.dropbox.defs#responseDirectoriesItemView"
+        }
       }
     }
   }
-  ["temporaryLinkView"] {
+  ["temporaryLinkView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["link"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The temporary link to access the file."
+        format = "uri"
+      }
+    }
+  }
+  ["responseDirectoryView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+    }
+  }
+  ["responseParentDirectoryView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+    }
+  }
+  ["responseDirectoriesItemView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["name"] = new StringType {
+        type = "string"
+      }
+      ["fileId"] = new StringType {
+        type = "string"
+      }
+      ["path"] = new StringType {
+        type = "string"
+      }
+      ["parentId"] = new StringType {
+        type = "string"
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
       }
     }
   }

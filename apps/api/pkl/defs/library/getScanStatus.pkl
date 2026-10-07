@@ -2,19 +2,40 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.library.getScanStatus"
-defs = new Mapping<String, Query> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Query {
     type = "query"
     description = "Get the current status of the media library scan."
-    parameters {
+    parameters = new {
       type = "params"
-      properties {}
+      properties = new Mapping<String, BaseType> {
+      }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties {}
+        properties = new Mapping<String, BaseType> {
+          ["status"] = new StringType {
+            type = "string"
+          }
+          ["version"] = new StringType {
+            type = "string"
+          }
+          ["type"] = new StringType {
+            type = "string"
+          }
+          ["serverVersion"] = new StringType {
+            type = "string"
+          }
+          ["openSubsonic"] = new BooleanType {
+            type = "boolean"
+          }
+          ["scanStatus"] = new UnknownType {
+            type = "unknown"
+            description = "Unmodified OpenSubsonic scanStatus payload from Navidrome. Its provider-defined fields are preserved."
+          }
+        }
       }
     }
   }

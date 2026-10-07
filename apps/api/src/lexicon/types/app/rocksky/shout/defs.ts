@@ -1,7 +1,7 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
@@ -14,9 +14,9 @@ export interface Author {
   /** The handle of the author. */
   handle?: string;
   /** The display name of the author. */
-  displayName?: string;
+  displayName?: string | null;
   /** The URL of the author's avatar image. */
-  avatar?: string;
+  avatar?: string | null;
   [k: string]: unknown;
 }
 
@@ -38,13 +38,17 @@ export interface ShoutView {
   /** The content of the shout. */
   message?: string;
   /** The ID of the parent shout if this is a reply, otherwise null. */
-  parent?: string;
+  parent?: string | null;
   /** The date and time when the shout was created. */
   createdAt?: string;
   author?: Author;
   gif?: Gif;
   /** Mentions of other actors within the message, anchored to UTF-8 byte ranges. */
   facets?: Mention[];
+  content?: string;
+  uri?: string;
+  likes?: number;
+  liked?: boolean;
   [k: string]: unknown;
 }
 

@@ -41,8 +41,63 @@
           "items": {
             "type": "string"
           }
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "biography": {
+          "type": "string"
+        },
+        "born": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "bornIn": {
+          "type": "string"
+        },
+        "died": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "genres": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "xataVersion": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "appleMusicLink",
+        "biography",
+        "born",
+        "bornIn",
+        "died",
+        "genres",
+        "picture",
+        "spotifyLink",
+        "tidalLink",
+        "uri",
+        "xataVersion",
+        "youtubeLink"
+      ]
     },
     "artistViewDetailed": {
       "type": "object",
@@ -83,8 +138,63 @@
           "items": {
             "type": "string"
           }
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "biography": {
+          "type": "string"
+        },
+        "born": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "bornIn": {
+          "type": "string"
+        },
+        "died": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "genres": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "xataVersion": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "appleMusicLink",
+        "biography",
+        "born",
+        "bornIn",
+        "died",
+        "genres",
+        "picture",
+        "spotifyLink",
+        "tidalLink",
+        "uri",
+        "xataVersion",
+        "youtubeLink"
+      ]
     },
     "songViewBasic": {
       "type": "object",

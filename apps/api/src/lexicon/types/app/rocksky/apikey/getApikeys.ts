@@ -1,13 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyApikeyDefs from "./defs";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import * as AppRockskyApikeyDefs from "./defs";
 
 export interface QueryParams {
   /** The number of API keys to skip before starting to collect the result set. */
@@ -19,7 +19,7 @@ export interface QueryParams {
 export type InputSchema = undefined;
 
 export interface OutputSchema {
-  apiKeys?: AppRockskyApikeyDefs.ApikeyView[];
+  apikeys?: AppRockskyApikeyDefs.ApiKeyView[];
   [k: string]: unknown;
 }
 

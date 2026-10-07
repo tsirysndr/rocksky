@@ -1,138 +1,128 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.playlist.defs"
-defs = new Mapping<String, ObjectType> {
-  ["playlistViewDetailed"] {
+defs = new Mapping<String, BaseType> {
+  ["playlistViewDetailed"] = new ObjectType {
     type = "object"
     description = "Detailed view of a playlist, including its tracks and metadata"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the playlist."
       }
-
       ["title"] = new StringType {
         type = "string"
         description = "The title of the playlist."
       }
-
       ["uri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the playlist."
+        format = "at-uri"
       }
-
       ["curatorDid"] = new StringType {
         type = "string"
         description = "The DID of the curator of the playlist."
         format = "at-identifier"
       }
-
       ["curatorHandle"] = new StringType {
         type = "string"
         description = "The handle of the curator of the playlist."
         format = "at-identifier"
       }
-
       ["curatorName"] = new StringType {
         type = "string"
         description = "The name of the curator of the playlist."
       }
-
       ["curatorAvatarUrl"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the avatar image of the curator."
+        format = "uri"
       }
-
       ["description"] = new StringType {
         type = "string"
         description = "A description of the playlist."
       }
-
       ["coverImageUrl"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the cover image for the playlist."
+        format = "uri"
       }
-
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The date and time when the playlist was created."
+        format = "datetime"
       }
-
       ["tracks"] = new Array {
+        type = "array"
         description = "A list of tracks in the playlist."
         items = new Ref {
           type = "ref"
           ref = "app.rocksky.song.defs#songViewBasic"
         }
       }
+      ["curatorDId"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["trackCount"] = new IntegerType {
+        type = "integer"
+      }
     }
+    nullable = List("coverImageUrl")
   }
-
-  ["playlistViewBasic"] {
+  ["playlistViewBasic"] = new ObjectType {
     type = "object"
     description = "Basic view of a playlist, including its metadata"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the playlist."
       }
-
       ["title"] = new StringType {
         type = "string"
         description = "The title of the playlist."
       }
-
       ["uri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the playlist."
+        format = "at-uri"
       }
-
       ["curatorDid"] = new StringType {
         type = "string"
         description = "The DID of the curator of the playlist."
         format = "at-identifier"
       }
-
       ["curatorHandle"] = new StringType {
         type = "string"
         description = "The handle of the curator of the playlist."
         format = "at-identifier"
       }
-
       ["curatorName"] = new StringType {
         type = "string"
         description = "The name of the curator of the playlist."
       }
-
       ["curatorAvatarUrl"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the avatar image of the curator."
+        format = "uri"
       }
-
       ["description"] = new StringType {
         type = "string"
         description = "A description of the playlist."
       }
-
       ["coverImageUrl"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the cover image for the playlist."
+        format = "uri"
       }
-
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The date and time when the playlist was created."
+        format = "datetime"
       }
-
       ["trackCount"] = new IntegerType {
         type = "integer"
         description = "The number of tracks in the playlist."
@@ -140,13 +130,19 @@ defs = new Mapping<String, ObjectType> {
       }
       ["trackArts"] = new Array {
         type = "array"
-        description =
-          "Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own."
+        description = "Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own."
         items = new StringType {
           type = "string"
           format = "uri"
         }
       }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["curatorDId"] = new StringType {
+        type = "string"
+      }
     }
+    nullable = List("coverImageUrl")
   }
 }

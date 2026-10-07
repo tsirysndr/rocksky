@@ -1,26 +1,15 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskySongDefs from "../song/defs";
-import type * as AppRockskyAlbumDefs from "../album/defs";
-import type * as AppRockskyArtistDefs from "../artist/defs";
-import type * as AppRockskyPlaylistDefs from "../playlist/defs";
-import type * as AppRockskyActorDefs from "../actor/defs";
-import type * as AppRockskyScrobbleDefs from "../scrobble/defs";
+import * as AppRockskyActorDefs from "../actor/defs";
+import * as AppRockskyScrobbleDefs from "../scrobble/defs";
 
 export interface SearchResultsView {
-  hits?: (
-    | AppRockskySongDefs.SongViewBasic
-    | AppRockskyAlbumDefs.AlbumViewBasic
-    | AppRockskyArtistDefs.ArtistViewBasic
-    | AppRockskyPlaylistDefs.PlaylistViewBasic
-    | AppRockskyActorDefs.ProfileViewBasic
-    | { $type: string; [k: string]: unknown }
-  )[];
+  hits?: SearchHit[];
   processingTimeMs?: number;
   limit?: number;
   offset?: number;
@@ -56,6 +45,8 @@ export interface StoryView {
   trackId?: string;
   trackUri?: string;
   uri?: string;
+  liked?: boolean;
+  likesCount?: number;
   [k: string]: unknown;
 }
 
@@ -108,10 +99,11 @@ export function validateFeedGeneratorsView(v: unknown): ValidationResult {
 export interface FeedGeneratorView {
   id?: string;
   name?: string;
-  description?: string;
+  description?: string | null;
   uri?: string;
-  avatar?: string;
+  avatar?: string | null;
   creator?: AppRockskyActorDefs.ProfileViewBasic;
+  did?: string;
   [k: string]: unknown;
 }
 
@@ -166,6 +158,8 @@ export interface FeedView {
   feed?: FeedItemView[];
   /** The pagination cursor for the next set of results. */
   cursor?: string;
+  /** Legacy empty-array error fallback; successful responses use feed. */
+  scrobbles?: AppRockskyScrobbleDefs.ScrobbleViewBasic[];
   [k: string]: unknown;
 }
 
@@ -190,7 +184,6 @@ export interface RecommendationView {
   artistUri?: string;
   albumUri?: string;
   genres?: string[];
-  recommendationScore?: number;
   /** neighbour | social | serendipity */
   source?: string;
   likesCount?: number;
@@ -233,7 +226,6 @@ export interface RecommendedArtistView {
   name?: string;
   picture?: string;
   genres?: string[];
-  recommendationScore?: number;
   /** neighbour | social | serendipity */
   source?: string;
   [k: string]: unknown;
@@ -281,7 +273,6 @@ export interface RecommendedAlbumView {
   artistUri?: string;
   year?: number;
   albumArt?: string;
-  recommendationScore?: number;
   /** known-artist | new-artist | serendipity */
   source?: string;
   [k: string]: unknown;
@@ -317,4 +308,132 @@ export function isRecommendedAlbumsView(
 
 export function validateRecommendedAlbumsView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#recommendedAlbumsView", v);
+}
+
+export interface SearchFederation {
+  indexUid?: string;
+  [k: string]: unknown;
+}
+
+export function isSearchFederation(v: unknown): v is SearchFederation {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#searchFederation"
+  );
+}
+
+export function validateSearchFederation(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#searchFederation", v);
+}
+
+export interface SearchHit {
+  /** The unique identifier of the song. */
+  id?: string;
+  /** The title of the song. */
+  title?: string;
+  /** The artist of the song. */
+  artist?: string;
+  /** The artist of the album the song belongs to. */
+  albumArtist?: string;
+  /** The URL of the album art image. */
+  albumArt?: string | null;
+  /** The URI of the song. */
+  uri?: string | null;
+  /** The album of the song. */
+  album?: string;
+  /** The duration of the song in milliseconds. */
+  duration?: number;
+  /** The track number of the song in the album. */
+  trackNumber?: number | null;
+  /** The disc number of the song in the album. */
+  discNumber?: number | null;
+  /** The number of times the song has been played. */
+  playCount?: number;
+  /** The number of users who have loved this song. */
+  likesCount?: number;
+  /** Whether the authenticated user has loved this song. False when unauthenticated. */
+  liked?: boolean;
+  /** The number of unique listeners who have played the song. */
+  uniqueListeners?: number;
+  /** The URI of the album the song belongs to. */
+  albumUri?: string | null;
+  /** The URI of the artist of the song. */
+  artistUri?: string | null;
+  /** The SHA256 hash of the song. */
+  sha256?: string;
+  /** The MusicBrainz ID of the song. */
+  mbid?: string;
+  /** The International Standard Recording Code (ISRC) of the song. */
+  isrc?: string | null;
+  tags?: string[];
+  /** The timestamp when the song was created. */
+  createdAt?: string;
+  updatedAt?: string;
+  mbId?: string | null;
+  youtubeLink?: string | null;
+  spotifyLink?: string | null;
+  appleMusicLink?: string | null;
+  tidalLink?: string | null;
+  lyrics?: string | null;
+  composer?: string | null;
+  genre?: string | null;
+  label?: string | null;
+  copyrightMessage?: string | null;
+  key?: string | null;
+  acoustidFingerprint?: string | null;
+  xataVersion?: number | null;
+  /** The year the album was released. */
+  year?: number | null;
+  /** The release date of the album. */
+  releaseDate?: string | null;
+  discogsReleaseId?: string | null;
+  /** The name of the artist. */
+  name?: string;
+  /** The picture of the artist. */
+  picture?: string | null;
+  biography?: string | null;
+  born?: string | null;
+  bornIn?: string | null;
+  died?: string | null;
+  genres?: string[] | null;
+  /** The DID of the curator of the playlist. */
+  curatorDid?: string;
+  /** The handle of the curator of the playlist. */
+  curatorHandle?: string;
+  /** The name of the curator of the playlist. */
+  curatorName?: string;
+  /** The URL of the avatar image of the curator. */
+  curatorAvatarUrl?: string;
+  /** A description of the playlist. */
+  description?: string;
+  /** The URL of the cover image for the playlist. */
+  coverImageUrl?: string | null;
+  /** The number of tracks in the playlist. */
+  trackCount?: number;
+  /** Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own. */
+  trackArts?: string[];
+  curatorDId?: string;
+  /** The DID of the actor. */
+  did?: string;
+  /** The handle of the actor. */
+  handle?: string;
+  /** The display name of the actor. */
+  displayName?: string | null;
+  /** The URL of the actor's avatar image. */
+  avatar?: string | null;
+  _federation?: SearchFederation;
+  [k: string]: unknown;
+}
+
+export function isSearchHit(v: unknown): v is SearchHit {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#searchHit"
+  );
+}
+
+export function validateSearchHit(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#searchHit", v);
 }

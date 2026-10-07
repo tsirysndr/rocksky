@@ -1,33 +1,33 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskyArtistDefs from "../artist/defs";
+import * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface ScrobbleViewBasic {
   /** The unique identifier of the scrobble. */
   id?: string;
   /** The unique identifier of the track this scrobble is of. */
-  trackId?: string;
+  trackId?: string | null;
   /** The title of the scrobble. */
   title?: string;
   /** The artist of the song. */
   artist?: string;
   /** The URI of the artist. */
-  artistUri?: string;
+  artistUri?: string | null;
   /** The album artist of the song. */
-  albumArtist?: string;
+  albumArtist?: string | null;
   /** The album of the song. */
   album?: string;
   /** The URI of the album. */
-  albumUri?: string;
+  albumUri?: string | null;
   /** The album art URL of the song. */
-  albumArt?: string;
+  albumArt?: string | null;
   /** The URI of the track (song) this scrobble is of. */
-  trackUri?: string;
+  trackUri?: string | null;
   /** The handle of the user who created the scrobble. */
   handle?: string;
   /** The DID of the user who created the scrobble. */
@@ -37,11 +37,33 @@ export interface ScrobbleViewBasic {
   /** The timestamp when the scrobble was created. */
   createdAt?: string;
   /** The URI of the scrobble. */
-  uri?: string;
+  uri?: string | null;
   /** The SHA256 hash of the scrobble data. */
   sha256?: string;
   liked?: boolean;
   likesCount?: number;
+  cover?: string | null;
+  date?: string;
+  user?: string;
+  userDisplayName?: string;
+  userAvatar?: string;
+  tags?: string[] | null;
+  mbId?: string | null;
+  mbid?: string | null;
+  isrc?: string | null;
+  spotifyLink?: string | null;
+  composer?: string | null;
+  trackNumber?: number | null;
+  duration?: number;
+  youtubeLink?: string | null;
+  appleMusicLink?: string | null;
+  tidalLink?: string | null;
+  discNumber?: number;
+  genre?: string | null;
+  label?: string | null;
+  copyrightMessage?: string | null;
+  key?: string | null;
+  xataVersion?: number;
   [k: string]: unknown;
 }
 
@@ -58,10 +80,6 @@ export function validateScrobbleViewBasic(v: unknown): ValidationResult {
 }
 
 export interface ScrobbleViewDetailed {
-  /** The MusicBrainz recording ID of the track, when available. */
-  mbId?: string;
-  /** The International Standard Recording Code (ISRC) of the track, when available. */
-  isrc?: string;
   /** The unique identifier of the scrobble. */
   id?: string;
   /** The handle of the user who created the scrobble. */
@@ -71,7 +89,7 @@ export interface ScrobbleViewDetailed {
   /** The artist of the song. */
   artist?: string;
   /** The URI of the artist. */
-  artistUri?: string;
+  artistUri?: string | null;
   /** The album of the song. */
   album?: string;
   /** The URI of the album. */
@@ -81,7 +99,7 @@ export interface ScrobbleViewDetailed {
   /** The timestamp when the scrobble was created. */
   date?: string;
   /** The URI of the scrobble. */
-  uri?: string;
+  uri?: string | null;
   /** The SHA256 hash of the scrobble data. */
   sha256?: string;
   liked?: boolean;
@@ -94,6 +112,30 @@ export interface ScrobbleViewDetailed {
   scrobbles?: number;
   artists?: AppRockskyArtistDefs.ArtistViewBasic[];
   firstScrobble?: FirstScrobbleView;
+  /** The MusicBrainz recording ID of the track, when available. */
+  mbId?: string | null;
+  /** The International Standard Recording Code (ISRC) of the track, when available. */
+  isrc?: string | null;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  albumArtist?: string | null;
+  trackNumber?: number | null;
+  duration?: number;
+  youtubeLink?: string | null;
+  spotifyLink?: string | null;
+  appleMusicLink?: string | null;
+  tidalLink?: string | null;
+  discNumber?: number | null;
+  lyrics?: string | null;
+  composer?: string | null;
+  genre?: string | null;
+  label?: string | null;
+  copyrightMessage?: string | null;
+  key?: string | null;
+  acoustidFingerprint?: string | null;
+  xataVersion?: number | null;
+  mbid?: string | null;
   [k: string]: unknown;
 }
 

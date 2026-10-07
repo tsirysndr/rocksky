@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskyArtistDefs from "../artist/defs";
+import * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface SongViewBasic {
   /** The unique identifier of the song. */
@@ -17,17 +17,17 @@ export interface SongViewBasic {
   /** The artist of the album the song belongs to. */
   albumArtist?: string;
   /** The URL of the album art image. */
-  albumArt?: string;
+  albumArt?: string | null;
   /** The URI of the song. */
-  uri?: string;
+  uri?: string | null;
   /** The album of the song. */
   album?: string;
   /** The duration of the song in milliseconds. */
   duration?: number;
   /** The track number of the song in the album. */
-  trackNumber?: number;
+  trackNumber?: number | null;
   /** The disc number of the song in the album. */
-  discNumber?: number;
+  discNumber?: number | null;
   /** The number of times the song has been played. */
   playCount?: number;
   /** The number of users who have loved this song. */
@@ -37,18 +37,32 @@ export interface SongViewBasic {
   /** The number of unique listeners who have played the song. */
   uniqueListeners?: number;
   /** The URI of the album the song belongs to. */
-  albumUri?: string;
+  albumUri?: string | null;
   /** The URI of the artist of the song. */
-  artistUri?: string;
+  artistUri?: string | null;
   /** The SHA256 hash of the song. */
   sha256?: string;
   /** The MusicBrainz ID of the song. */
   mbid?: string;
   /** The International Standard Recording Code (ISRC) of the song. */
-  isrc?: string;
+  isrc?: string | null;
   tags?: string[];
   /** The timestamp when the song was created. */
   createdAt?: string;
+  updatedAt?: string;
+  mbId?: string | null;
+  youtubeLink?: string | null;
+  spotifyLink?: string | null;
+  appleMusicLink?: string | null;
+  tidalLink?: string | null;
+  lyrics?: string | null;
+  composer?: string | null;
+  genre?: string | null;
+  label?: string | null;
+  copyrightMessage?: string | null;
+  key?: string | null;
+  acoustidFingerprint?: string | null;
+  xataVersion?: number | null;
   [k: string]: unknown;
 }
 
@@ -65,8 +79,6 @@ export function validateSongViewBasic(v: unknown): ValidationResult {
 }
 
 export interface SongViewDetailed {
-  /** The MusicBrainz recording ID of the track, when available. */
-  mbId?: string;
   /** The unique identifier of the song. */
   id?: string;
   /** The title of the song. */
@@ -76,17 +88,17 @@ export interface SongViewDetailed {
   /** The artist of the album the song belongs to. */
   albumArtist?: string;
   /** The URL of the album art image. */
-  albumArt?: string;
+  albumArt?: string | null;
   /** The URI of the song. */
-  uri?: string;
+  uri?: string | null;
   /** The album of the song. */
   album?: string;
   /** The duration of the song in milliseconds. */
   duration?: number;
   /** The track number of the song in the album. */
-  trackNumber?: number;
+  trackNumber?: number | null;
   /** The disc number of the song in the album. */
-  discNumber?: number;
+  discNumber?: number | null;
   /** The number of times the song has been played. */
   playCount?: number;
   /** The number of users who have loved this song. */
@@ -96,15 +108,15 @@ export interface SongViewDetailed {
   /** The number of unique listeners who have played the song. */
   uniqueListeners?: number;
   /** The URI of the album the song belongs to. */
-  albumUri?: string;
+  albumUri?: string | null;
   /** The URI of the artist of the song. */
-  artistUri?: string;
+  artistUri?: string | null;
   /** The SHA256 hash of the song. */
   sha256?: string;
   /** The MusicBrainz ID of the song. */
   mbid?: string;
   /** The International Standard Recording Code (ISRC) of the song. */
-  isrc?: string;
+  isrc?: string | null;
   tags?: string[];
   /** The timestamp when the song was created. */
   createdAt?: string;
@@ -112,6 +124,26 @@ export interface SongViewDetailed {
   firstScrobble?: FirstScrobbleView;
   /** Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty. */
   matches?: SongMatchView[];
+  /** The MusicBrainz recording ID of the track, when available. */
+  mbId?: string | null;
+  updatedAt?: string;
+  releaseDate?: string | null;
+  year?: number | null;
+  artistPicture?: string | null;
+  genres?: string[] | null;
+  mbArtists?: ResponseMbArtistsItemView[] | null;
+  youtubeLink?: string | null;
+  spotifyLink?: string | null;
+  appleMusicLink?: string | null;
+  tidalLink?: string | null;
+  lyrics?: string | null;
+  composer?: string | null;
+  genre?: string | null;
+  label?: string | null;
+  copyrightMessage?: string | null;
+  key?: string | null;
+  acoustidFingerprint?: string | null;
+  xataVersion?: number | null;
   [k: string]: unknown;
 }
 
@@ -222,4 +254,29 @@ export function isFirstScrobbleView(v: unknown): v is FirstScrobbleView {
 
 export function validateFirstScrobbleView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.song.defs#firstScrobbleView", v);
+}
+
+export interface ResponseMbArtistsItemView {
+  mbid?: string;
+  name?: string;
+  [k: string]: unknown;
+}
+
+export function isResponseMbArtistsItemView(
+  v: unknown,
+): v is ResponseMbArtistsItemView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.song.defs#responseMbArtistsItemView"
+  );
+}
+
+export function validateResponseMbArtistsItemView(
+  v: unknown,
+): ValidationResult {
+  return lexicons.validate(
+    "app.rocksky.song.defs#responseMbArtistsItemView",
+    v,
+  );
 }

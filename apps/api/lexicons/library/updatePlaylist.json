@@ -40,7 +40,27 @@
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "properties": {}
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "atprotoError": {
+              "type": "string",
+              "description": "Non-fatal AT Protocol playlist mirror error, when available."
+            }
+          }
         }
       }
     }

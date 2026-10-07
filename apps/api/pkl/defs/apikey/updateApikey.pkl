@@ -1,17 +1,17 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.apikey.updateApikey"
-defs = new Mapping<String, Procedure> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Procedure {
     type = "procedure"
     description = "Update an existing API key for the authenticated user"
-    input {
+    input = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
         required = List("id", "name")
-        properties {
+        properties = new Mapping<String, BaseType> {
           ["id"] = new StringType {
             type = "string"
             description = "The ID of the API key to update."
@@ -27,11 +27,11 @@ defs = new Mapping<String, Procedure> {
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new Ref {
         type = "ref"
-        ref = "app.rocksky.apikey.defs#apiKey"
+        ref = "app.rocksky.apikey.defs#apiKeyView"
       }
     }
   }

@@ -2,15 +2,15 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.library.savePlayQueue"
-defs = new Mapping<String, Procedure> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Procedure {
     type = "procedure"
     description = "Save the play queue for the user."
-    input {
+    input = new {
       encoding = "application/json"
-      schema {
+      schema = new ObjectType {
         type = "object"
-        properties {
+        properties = new Mapping<String, BaseType> {
           ["id"] = new StringType {
             type = "string"
             description = "Comma-separated song ids in the queue."
@@ -26,11 +26,27 @@ defs = new Mapping<String, Procedure> {
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties {}
+        properties = new Mapping<String, BaseType> {
+          ["status"] = new StringType {
+            type = "string"
+          }
+          ["version"] = new StringType {
+            type = "string"
+          }
+          ["type"] = new StringType {
+            type = "string"
+          }
+          ["serverVersion"] = new StringType {
+            type = "string"
+          }
+          ["openSubsonic"] = new BooleanType {
+            type = "boolean"
+          }
+        }
       }
     }
   }

@@ -82,8 +82,101 @@
         },
         "likesCount": {
           "type": "integer"
+        },
+        "cover": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "userDisplayName": {
+          "type": "string"
+        },
+        "userAvatar": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mbId": {
+          "type": "string"
+        },
+        "mbid": {
+          "type": "string"
+        },
+        "isrc": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "composer": {
+          "type": "string"
+        },
+        "trackNumber": {
+          "type": "integer"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "discNumber": {
+          "type": "integer"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "copyrightMessage": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "albumArt",
+        "albumArtist",
+        "albumUri",
+        "appleMusicLink",
+        "artistUri",
+        "composer",
+        "copyrightMessage",
+        "cover",
+        "genre",
+        "isrc",
+        "key",
+        "label",
+        "mbId",
+        "mbid",
+        "spotifyLink",
+        "tags",
+        "tidalLink",
+        "trackId",
+        "trackNumber",
+        "trackUri",
+        "uri",
+        "youtubeLink"
+      ]
     },
     "scrobbleViewDetailed": {
       "type": "object",
@@ -174,8 +267,93 @@
         "isrc": {
           "type": "string",
           "description": "The International Standard Recording Code (ISRC) of the track, when available."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "albumArtist": {
+          "type": "string"
+        },
+        "trackNumber": {
+          "type": "integer"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "discNumber": {
+          "type": "integer"
+        },
+        "lyrics": {
+          "type": "string"
+        },
+        "composer": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "copyrightMessage": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "acoustidFingerprint": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
+        },
+        "mbid": {
+          "type": "string"
         }
-      }
+      },
+      "nullable": [
+        "acoustidFingerprint",
+        "albumArtist",
+        "appleMusicLink",
+        "artistUri",
+        "composer",
+        "copyrightMessage",
+        "discNumber",
+        "genre",
+        "isrc",
+        "key",
+        "label",
+        "lyrics",
+        "mbId",
+        "mbid",
+        "spotifyLink",
+        "tidalLink",
+        "trackNumber",
+        "uri",
+        "xataVersion",
+        "youtubeLink"
+      ]
     },
     "firstScrobbleView": {
       "type": "object",

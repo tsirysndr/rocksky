@@ -1,13 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyShoutDefs from "./defs";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import * as AppRockskyShoutDefs from "./defs";
 
 export interface QueryParams {
   /** The URI of the track to retrieve shouts for */
@@ -17,7 +17,7 @@ export interface QueryParams {
 export type InputSchema = undefined;
 
 export interface OutputSchema {
-  shouts?: AppRockskyShoutDefs.ShoutViewBasic[];
+  shouts?: AppRockskyShoutDefs.ShoutView[];
   [k: string]: unknown;
 }
 

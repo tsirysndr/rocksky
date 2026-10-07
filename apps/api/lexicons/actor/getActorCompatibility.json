@@ -27,7 +27,10 @@
               "type": "ref",
               "ref": "app.rocksky.actor.defs#compatibilityViewBasic"
             }
-          }
+          },
+          "nullable": [
+            "compatibility"
+          ]
         }
       }
     }

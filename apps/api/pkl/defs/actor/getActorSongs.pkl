@@ -2,14 +2,16 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.actor.getActorSongs"
-defs = new Mapping<String, Query> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Query {
     type = "query"
     description = "Get songs for an actor"
-    parameters = new Params {
+    parameters = new {
+      type = "params"
       required = List("did")
-      properties {
+      properties = new Mapping<String, BaseType> {
         ["did"] = new StringType {
+          type = "string"
           description = "The DID or handle of the actor"
           format = "at-identifier"
         }
@@ -24,23 +26,26 @@ defs = new Mapping<String, Query> {
           minimum = 0
         }
         ["startDate"] = new StringType {
+          type = "string"
           description = "The start date to filter albums from (ISO 8601 format)"
           format = "datetime"
         }
         ["endDate"] = new StringType {
+          type = "string"
           description = "The end date to filter albums to (ISO 8601 format)"
           format = "datetime"
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties = new Mapping<String, Array> {
-          ["songs"] = new Array {
+        properties = new Mapping<String, BaseType> {
+          ["tracks"] = new Array {
             type = "array"
             items = new Ref {
+              type = "ref"
               ref = "app.rocksky.song.defs#songViewBasic"
             }
           }

@@ -1,76 +1,67 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.shout.defs"
-defs = new Mapping<String, ObjectType> {
-  ["author"] {
+defs = new Mapping<String, BaseType> {
+  ["author"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the author."
       }
-
       ["did"] = new StringType {
         type = "string"
-        format = "at-identifier"
         description = "The decentralized identifier (DID) of the author."
+        format = "at-identifier"
       }
-
       ["handle"] = new StringType {
         type = "string"
-        format = "at-identifier"
         description = "The handle of the author."
+        format = "at-identifier"
       }
-
       ["displayName"] = new StringType {
         type = "string"
         description = "The display name of the author."
       }
-
       ["avatar"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the author's avatar image."
+        format = "uri"
       }
     }
+    nullable = List("avatar", "displayName")
   }
-  ["shoutView"] {
+  ["shoutView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the shout."
       }
-
       ["message"] = new StringType {
         type = "string"
         description = "The content of the shout."
       }
-
       ["parent"] = new StringType {
         type = "string"
         description = "The ID of the parent shout if this is a reply, otherwise null."
       }
-
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The date and time when the shout was created."
+        format = "datetime"
       }
-
       ["author"] = new Ref {
         type = "ref"
         description = "The author of the shout."
         ref = "app.rocksky.shout.defs#author"
       }
-
       ["gif"] = new Ref {
         type = "ref"
         description = "An attached GIF, sticker, or clip."
         ref = "app.rocksky.shout.defs#gif"
       }
-
       ["facets"] = new Array {
         type = "array"
         description = "Mentions of other actors within the message, anchored to UTF-8 byte ranges."
@@ -79,65 +70,72 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.shout.defs#mention"
         }
       }
+      ["content"] = new StringType {
+        type = "string"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+      }
+      ["likes"] = new IntegerType {
+        type = "integer"
+      }
+      ["liked"] = new BooleanType {
+        type = "boolean"
+      }
     }
+    nullable = List("parent")
   }
-  ["mention"] {
+  ["mention"] = new ObjectType {
     type = "object"
     description = "A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message."
     required = List("did", "byteStart", "byteEnd")
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["did"] = new StringType {
         type = "string"
-        format = "did"
         description = "The DID of the mentioned actor."
+        format = "did"
       }
-
       ["byteStart"] = new IntegerType {
         type = "integer"
-        minimum = 0
         description = "Inclusive UTF-8 byte offset of the mention start."
+        minimum = 0
       }
-
       ["byteEnd"] = new IntegerType {
         type = "integer"
-        minimum = 0
         description = "Exclusive UTF-8 byte offset of the mention end."
+        minimum = 0
       }
     }
   }
-  ["gif"] {
+  ["gif"] = new ObjectType {
     type = "object"
     description = "A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension."
     required = List("url")
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["url"] = new StringType {
         type = "string"
-        format = "uri"
         description = "Direct URL of the animated GIF/MP4."
+        format = "uri"
       }
-
       ["previewUrl"] = new StringType {
         type = "string"
-        format = "uri"
         description = "Smaller still/preview image URL."
+        format = "uri"
       }
-
       ["alt"] = new StringType {
         type = "string"
-        maxLength = 512
         description = "Alternative text describing the media."
+        maxLength = 512
       }
-
       ["width"] = new IntegerType {
         type = "integer"
-        minimum = 0
         description = "The intrinsic width of the media in pixels."
+        minimum = 0
       }
-
       ["height"] = new IntegerType {
         type = "integer"
-        minimum = 0
         description = "The intrinsic height of the media in pixels."
+        minimum = 0
       }
     }
   }

@@ -1,12 +1,12 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 
 export interface QueryParams {
   /** Number of songs to return (max 500). */
@@ -22,6 +22,13 @@ export interface QueryParams {
 export type InputSchema = undefined;
 
 export interface OutputSchema {
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic randomSongs payload from Navidrome. Its provider-defined fields are preserved. */
+  randomSongs?: {};
   [k: string]: unknown;
 }
 

@@ -2,150 +2,143 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.actor.defs"
-defs = new Mapping<String, ObjectType> {
-  ["profileViewDetailed"] {
+defs = new Mapping<String, BaseType> {
+  ["profileViewDetailed"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the actor."
       }
-
       ["did"] = new StringType {
         type = "string"
         description = "The DID of the actor."
       }
-
       ["handle"] = new StringType {
         type = "string"
         description = "The handle of the actor."
       }
-
       ["displayName"] = new StringType {
         type = "string"
         description = "The display name of the actor."
       }
-
       ["avatar"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the actor's avatar image."
+        format = "uri"
       }
-
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The date and time when the actor was created."
+        format = "datetime"
       }
-
       ["updatedAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The date and time when the actor was last updated."
+        format = "datetime"
+      }
+      ["spotifyUser"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.actor.defs#responseSpotifyUserView"
+      }
+      ["spotifyToken"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.actor.defs#responseSpotifyTokenView"
+      }
+      ["spotifyConnected"] = new BooleanType {
+        type = "boolean"
+      }
+      ["googledrive"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.actor.defs#responseGoogledriveView"
+      }
+      ["dropbox"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.actor.defs#responseDropboxView"
       }
     }
   }
-  ["profileViewBasic"] {
+  ["profileViewBasic"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the actor."
       }
-
       ["did"] = new StringType {
         type = "string"
         description = "The DID of the actor."
       }
-
       ["handle"] = new StringType {
         type = "string"
         description = "The handle of the actor."
       }
-
       ["displayName"] = new StringType {
         type = "string"
         description = "The display name of the actor."
       }
-
       ["avatar"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the actor's avatar image."
+        format = "uri"
       }
-
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The date and time when the actor was created."
+        format = "datetime"
       }
-
       ["updatedAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The date and time when the actor was last updated."
+        format = "datetime"
       }
     }
+    nullable = List("avatar", "displayName")
   }
-  ["neighbourViewBasic"] {
+  ["neighbourViewBasic"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["userId"] = new StringType {
         type = "string"
       }
-
       ["did"] = new StringType {
         type = "string"
       }
-
       ["handle"] = new StringType {
         type = "string"
       }
-
       ["displayName"] = new StringType {
         type = "string"
       }
-
       ["avatar"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the actor's avatar image."
       }
-
       ["sharedArtistsCount"] = new IntegerType {
         type = "integer"
         description = "The number of artists shared with the actor."
       }
-
-      ["similarityScore"] = new IntegerType {
-        type = "integer"
-        description = "The similarity score with the actor."
-      }
-
       ["topSharedArtistNames"] = new Array {
         type = "array"
+        description = "The top shared artist names with the actor."
         items = new StringType {
           type = "string"
         }
-        description = "The top shared artist names with the actor."
       }
-
       ["topSharedArtistsDetails"] = new Array {
         type = "array"
+        description = "The top shared artist details with the actor."
         items = new Ref {
+          type = "ref"
           ref = "app.rocksky.artist.defs#artistViewBasic"
         }
-        description = "The top shared artist details with the actor."
       }
     }
   }
-  ["compatibilityViewBasic"] {
+  ["compatibilityViewBasic"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["compatibilityLevel"] = new IntegerType {
-        type = "integer"
-      }
-      ["compatibilityPercentage"] = new IntegerType {
         type = "integer"
       }
       ["sharedArtists"] = new IntegerType {
@@ -160,6 +153,7 @@ defs = new Mapping<String, ObjectType> {
       ["topSharedDetailedArtists"] = new Array {
         type = "array"
         items = new Ref {
+          type = "ref"
           ref = "app.rocksky.actor.defs#artistViewBasic"
         }
       }
@@ -171,92 +165,165 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
-  ["artistViewBasic"] {
+  ["artistViewBasic"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
       }
-
       ["name"] = new StringType {
         type = "string"
       }
-
       ["picture"] = new StringType {
         type = "string"
         format = "uri"
       }
-
       ["uri"] = new StringType {
         type = "string"
         format = "at-uri"
       }
-
       ["user1Rank"] = new IntegerType {
         type = "integer"
       }
-
       ["user2Rank"] = new IntegerType {
-        type = "integer"
-      }
-
-      ["weight"] = new IntegerType {
         type = "integer"
       }
     }
   }
-  ["trackView"] {
+  ["trackView"] = new ObjectType {
     type = "object"
     required = List("name", "artist")
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["name"] = new StringType {
         type = "string"
         description = "The name of the track."
         minLength = 1
         maxLength = 512
       }
-
       ["artist"] = new StringType {
         type = "string"
         description = "The primary artist name."
         minLength = 1
         maxLength = 256
       }
-
       ["album"] = new StringType {
         type = "string"
         description = "The album name."
         maxLength = 256
       }
-
       ["albumCoverUrl"] = new StringType {
         type = "string"
         description = "URL of the album cover image."
         format = "uri"
       }
-
       ["durationMs"] = new IntegerType {
         type = "integer"
         description = "Track duration in milliseconds."
         minimum = 0
       }
-
       ["source"] = new StringType {
         type = "string"
         description = "Music service source, e.g. 'spotify' or 'listenbrainz'."
         maxLength = 64
       }
-
       ["recordingMbId"] = new StringType {
         type = "string"
         description = "MusicBrainz recording ID, if available."
       }
-
       ["trackNumber"] = new IntegerType {
         type = "integer"
         description = "The track's position within its album, if known (>= 1)."
         minimum = 1
       }
     }
+  }
+  ["responseSpotifyUserView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
+      ["userId"] = new StringType {
+        type = "string"
+      }
+      ["isBetaUser"] = new BooleanType {
+        type = "boolean"
+      }
+      ["spotifyAppId"] = new StringType {
+        type = "string"
+      }
+    }
+    nullable = List("xataVersion", "userId", "spotifyAppId")
+  }
+  ["responseSpotifyTokenView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
+      ["userId"] = new StringType {
+        type = "string"
+      }
+      ["spotifyAppId"] = new StringType {
+        type = "string"
+      }
+    }
+    nullable = List("xataVersion", "userId")
+  }
+  ["responseGoogledriveView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+    }
+  }
+  ["responseDropboxView"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["email"] = new StringType {
+        type = "string"
+      }
+      ["isBetaUser"] = new BooleanType {
+        type = "boolean"
+      }
+      ["userId"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new StringType {
+        type = "string"
+      }
+    }
+    nullable = List("userId", "xataVersion")
   }
 }

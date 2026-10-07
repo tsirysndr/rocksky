@@ -23,11 +23,11 @@
         "schema": {
           "type": "object",
           "properties": {
-            "apiKeys": {
+            "apikeys": {
               "type": "array",
               "items": {
                 "type": "ref",
-                "ref": "app.rocksky.apikey.defs#apikeyView"
+                "ref": "app.rocksky.apikey.defs#apiKeyView"
               }
             }
           }

@@ -2,141 +2,146 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.album.defs"
-defs = new Mapping<String, ObjectType> {
-  ["albumViewBasic"] {
+defs = new Mapping<String, BaseType> {
+  ["albumViewBasic"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the album."
       }
-
       ["uri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the album."
+        format = "at-uri"
       }
-
       ["title"] = new StringType {
         type = "string"
         description = "The title of the album."
       }
-
       ["artist"] = new StringType {
         type = "string"
         description = "The artist of the album."
       }
-
       ["artistUri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the album's artist."
+        format = "at-uri"
       }
-
       ["year"] = new IntegerType {
         type = "integer"
         description = "The year the album was released."
       }
-
       ["albumArt"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the album art image."
+        format = "uri"
       }
-
       ["releaseDate"] = new StringType {
         type = "string"
         description = "The release date of the album."
       }
-
       ["sha256"] = new StringType {
         type = "string"
         description = "The SHA256 hash of the album."
       }
-
       ["playCount"] = new IntegerType {
         type = "integer"
         description = "The number of times the album has been played."
         minimum = 0
       }
-
       ["uniqueListeners"] = new IntegerType {
         type = "integer"
         description = "The number of unique listeners who have played the album."
         minimum = 0
+      }
+      ["appleMusicLink"] = new StringType {
+        type = "string"
+      }
+      ["spotifyLink"] = new StringType {
+        type = "string"
+      }
+      ["tidalLink"] = new StringType {
+        type = "string"
+      }
+      ["youtubeLink"] = new StringType {
+        type = "string"
+      }
+      ["discogsReleaseId"] = new StringType {
+        type = "string"
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
       }
     }
+    nullable = List("albumArt", "appleMusicLink", "artistUri", "discogsReleaseId", "releaseDate", "spotifyLink", "tidalLink", "uri", "xataVersion", "year", "youtubeLink")
   }
-  ["albumViewDetailed"] {
+  ["albumViewDetailed"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the album."
       }
-
       ["uri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the album."
+        format = "at-uri"
       }
-
       ["title"] = new StringType {
         type = "string"
         description = "The title of the album."
       }
-
       ["artist"] = new StringType {
         type = "string"
         description = "The artist of the album."
       }
-
       ["artistUri"] = new StringType {
         type = "string"
-        format = "at-uri"
         description = "The URI of the album's artist."
+        format = "at-uri"
       }
-
       ["year"] = new IntegerType {
         type = "integer"
         description = "The year the album was released."
       }
-
       ["albumArt"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URL of the album art image."
+        format = "uri"
       }
-
       ["releaseDate"] = new StringType {
         type = "string"
         description = "The release date of the album."
       }
-
       ["sha256"] = new StringType {
         type = "string"
         description = "The SHA256 hash of the album."
       }
-
       ["playCount"] = new IntegerType {
         type = "integer"
         description = "The number of times the album has been played."
         minimum = 0
       }
-
       ["uniqueListeners"] = new IntegerType {
         type = "integer"
         description = "The number of unique listeners who have played the album."
         minimum = 0
       }
-
       ["tags"] = new Array {
         type = "array"
         items = new StringType {
           type = "string"
         }
       }
-
       ["tracks"] = new Array {
         type = "array"
         items = new Ref {
@@ -144,78 +149,91 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.song.defs#songViewBasic"
         }
       }
-
       ["discogs"] = new Ref {
         type = "ref"
         ref = "app.rocksky.album.defs#discogsView"
       }
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["appleMusicLink"] = new StringType {
+        type = "string"
+      }
+      ["spotifyLink"] = new StringType {
+        type = "string"
+      }
+      ["tidalLink"] = new StringType {
+        type = "string"
+      }
+      ["youtubeLink"] = new StringType {
+        type = "string"
+      }
+      ["discogsReleaseId"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
     }
+    nullable = List("albumArt", "appleMusicLink", "artistUri", "discogsReleaseId", "releaseDate", "spotifyLink", "tidalLink", "uri", "xataVersion", "year", "youtubeLink")
   }
-  ["discogsView"] {
+  ["discogsView"] = new ObjectType {
     type = "object"
     description = "Release metadata matched on Discogs for this album."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["releaseId"] = new IntegerType {
         type = "integer"
         description = "The Discogs release ID."
       }
-
       ["masterId"] = new IntegerType {
         type = "integer"
         description = "The Discogs master ID, shared by every edition of the release."
       }
-
       ["title"] = new StringType {
         type = "string"
         description = "The release title as Discogs spells it."
       }
-
       ["artist"] = new StringType {
         type = "string"
         description = "The release artist as Discogs credits it."
       }
-
       ["albumArt"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The primary release image on Discogs."
+        format = "uri"
       }
-
       ["year"] = new IntegerType {
         type = "integer"
         description = "The year this pressing was released."
       }
-
       ["originalYear"] = new IntegerType {
         type = "integer"
         description = "The year the release first came out, from its master."
       }
-
       ["releaseDate"] = new StringType {
         type = "string"
         description = "The release date of this pressing."
       }
-
       ["country"] = new StringType {
         type = "string"
         description = "The country this pressing was released in."
       }
-
       ["label"] = new StringType {
         type = "string"
         description = "The record label."
       }
-
       ["catalogNumber"] = new StringType {
         type = "string"
         description = "The label's catalog number for this pressing."
       }
-
       ["barcode"] = new StringType {
         type = "string"
         description = "The barcode printed on this pressing."
       }
-
       ["formats"] = new Array {
         type = "array"
         description = "The physical or digital formats of this pressing."
@@ -223,7 +241,6 @@ defs = new Mapping<String, ObjectType> {
           type = "string"
         }
       }
-
       ["genres"] = new Array {
         type = "array"
         description = "The Discogs genres of the release."
@@ -231,7 +248,6 @@ defs = new Mapping<String, ObjectType> {
           type = "string"
         }
       }
-
       ["styles"] = new Array {
         type = "array"
         description = "The Discogs styles of the release."
@@ -239,20 +255,17 @@ defs = new Mapping<String, ObjectType> {
           type = "string"
         }
       }
-
       ["url"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The release page on Discogs."
+        format = "uri"
       }
-
       ["score"] = new IntegerType {
         type = "integer"
         description = "Confidence of the match that produced this release, from 0 to 100."
-        minimum = 0
         maximum = 100
+        minimum = 0
       }
-
       ["credits"] = new Array {
         type = "array"
         description = "Performance and production credits for the release."
@@ -261,7 +274,6 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.album.defs#discogsCreditView"
         }
       }
-
       ["tracklist"] = new Array {
         type = "array"
         description = "The release tracklist."
@@ -270,7 +282,6 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.album.defs#discogsTrackView"
         }
       }
-
       ["labels"] = new Array {
         type = "array"
         description = "Every label and company on the release."
@@ -279,7 +290,6 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.album.defs#discogsLabelView"
         }
       }
-
       ["identifiers"] = new Array {
         type = "array"
         description = "Every identifier printed on the release."
@@ -288,7 +298,6 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.album.defs#discogsIdentifierView"
         }
       }
-
       ["artists"] = new Array {
         type = "array"
         description = "Every artist credited on the release."
@@ -297,197 +306,167 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.album.defs#discogsArtistView"
         }
       }
-
       ["master"] = new Ref {
         type = "ref"
         ref = "app.rocksky.album.defs#discogsMasterView"
       }
     }
   }
-  ["discogsCreditView"] {
+  ["discogsCreditView"] = new ObjectType {
     type = "object"
     description = "One performance or production credit from Discogs."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["artistId"] = new IntegerType {
         type = "integer"
         description = "The Discogs artist ID, when the credit is linked to one."
       }
-
       ["name"] = new StringType {
         type = "string"
         description = "The credited name."
       }
-
       ["role"] = new StringType {
         type = "string"
         description = "The role as Discogs words it, such as \"Written-By\" or \"Mixed By, Engineer\"."
       }
-
       ["tracks"] = new StringType {
         type = "string"
         description = "The track positions the credit applies to, absent when it covers the whole release."
       }
     }
   }
-  ["discogsTrackView"] {
+  ["discogsTrackView"] = new ObjectType {
     type = "object"
     description = "One entry of the release tracklist, as printed on it."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["position"] = new StringType {
         type = "string"
         description = "The position Discogs prints, such as 7, 2-04 or C2."
       }
-
       ["type"] = new StringType {
         type = "string"
         description = "The entry kind: track, heading or index."
       }
-
       ["title"] = new StringType {
         type = "string"
         description = "The track title."
       }
-
       ["duration"] = new StringType {
         type = "string"
         description = "The duration as printed, m:ss."
       }
-
       ["durationMs"] = new IntegerType {
         type = "integer"
         description = "The duration in milliseconds."
       }
-
       ["discNumber"] = new IntegerType {
         type = "integer"
         description = "The disc the track sits on, parsed from the position."
       }
-
       ["trackNumber"] = new IntegerType {
         type = "integer"
         description = "The track number, side-relative for vinyl."
       }
-
     }
   }
-  ["discogsLabelView"] {
+  ["discogsLabelView"] = new ObjectType {
     type = "object"
     description = "A label or company involved in the release."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["labelId"] = new IntegerType {
         type = "integer"
         description = "The Discogs label ID."
       }
-
       ["name"] = new StringType {
         type = "string"
         description = "The label or company name."
       }
-
       ["catalogNumber"] = new StringType {
         type = "string"
         description = "The catalog number this label gave the release."
       }
-
       ["kind"] = new StringType {
         type = "string"
         description = "Either label or company."
       }
-
       ["entityType"] = new StringType {
         type = "string"
         description = "The role for a company, such as Pressed By or Distributed By."
       }
-
     }
   }
-  ["discogsIdentifierView"] {
+  ["discogsIdentifierView"] = new ObjectType {
     type = "object"
     description = "An identifier printed on the release: barcode, matrix / runout, label code, rights society."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["type"] = new StringType {
         type = "string"
         description = "The identifier type as Discogs names it."
       }
-
       ["value"] = new StringType {
         type = "string"
         description = "The identifier itself."
       }
-
       ["description"] = new StringType {
         type = "string"
         description = "What the identifier applies to, when Discogs says."
       }
-
     }
   }
-  ["discogsArtistView"] {
+  ["discogsArtistView"] = new ObjectType {
     type = "object"
     description = "An artist credited on the release itself."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["artistId"] = new IntegerType {
         type = "integer"
         description = "The Discogs artist ID."
       }
-
       ["name"] = new StringType {
         type = "string"
         description = "The artist name."
       }
-
       ["anv"] = new StringType {
         type = "string"
         description = "The name as credited on this release, when it differs."
       }
-
       ["joinPhrase"] = new StringType {
         type = "string"
         description = "What separates this artist from the next in the credit."
       }
-
       ["role"] = new StringType {
         type = "string"
         description = "The role, when the release gives one."
       }
-
     }
   }
-  ["discogsMasterView"] {
+  ["discogsMasterView"] = new ObjectType {
     type = "object"
     description = "The master that groups every edition of the release."
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["masterId"] = new IntegerType {
         type = "integer"
         description = "The Discogs master ID."
       }
-
       ["title"] = new StringType {
         type = "string"
         description = "The master title."
       }
-
       ["artist"] = new StringType {
         type = "string"
         description = "The master artist credit."
       }
-
       ["year"] = new IntegerType {
         type = "integer"
         description = "The year the release first came out."
       }
-
       ["mainReleaseId"] = new IntegerType {
         type = "integer"
         description = "The release Discogs treats as the canonical edition."
       }
-
       ["url"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The master page on Discogs."
+        format = "uri"
       }
-
       ["genres"] = new Array {
         type = "array"
         description = "The Discogs genres of the master."
@@ -495,7 +474,6 @@ defs = new Mapping<String, ObjectType> {
           type = "string"
         }
       }
-
       ["styles"] = new Array {
         type = "array"
         description = "The Discogs styles of the master."
@@ -503,7 +481,6 @@ defs = new Mapping<String, ObjectType> {
           type = "string"
         }
       }
-
     }
   }
 }

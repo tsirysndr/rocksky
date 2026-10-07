@@ -1,13 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyActorDefs from "./defs";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import * as AppRockskyActorDefs from "./defs";
 
 export interface QueryParams {
   /** DID or handle to get compatibility for */
@@ -17,7 +17,7 @@ export interface QueryParams {
 export type InputSchema = undefined;
 
 export interface OutputSchema {
-  compatibility?: AppRockskyActorDefs.CompatibilityViewBasic;
+  compatibility?: AppRockskyActorDefs.CompatibilityViewBasic | null;
   [k: string]: unknown;
 }
 

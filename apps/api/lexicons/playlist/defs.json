@@ -59,8 +59,20 @@
             "type": "ref",
             "ref": "app.rocksky.song.defs#songViewBasic"
           }
+        },
+        "curatorDId": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "trackCount": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "coverImageUrl"
+      ]
     },
     "playlistViewBasic": {
       "type": "object",
@@ -124,8 +136,17 @@
             "type": "string",
             "format": "uri"
           }
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "curatorDId": {
+          "type": "string"
         }
-      }
+      },
+      "nullable": [
+        "coverImageUrl"
+      ]
     }
   }
 }

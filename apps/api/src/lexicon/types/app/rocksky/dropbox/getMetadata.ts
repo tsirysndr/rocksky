@@ -1,13 +1,12 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyDropboxDefs from "./defs";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 
 export interface QueryParams {
   /** Path to the file or folder in Dropbox */
@@ -15,7 +14,13 @@ export interface QueryParams {
 }
 
 export type InputSchema = undefined;
-export type OutputSchema = AppRockskyDropboxDefs.FileView;
+
+export interface OutputSchema {
+  /** Metadata returned by the provider; currently an empty object. */
+  metadata?: {};
+  [k: string]: unknown;
+}
+
 export type HandlerInput = undefined;
 
 export interface HandlerSuccess {

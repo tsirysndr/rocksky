@@ -43,7 +43,7 @@
         "schema": {
           "type": "object",
           "properties": {
-            "songs": {
+            "tracks": {
               "type": "array",
               "items": {
                 "type": "ref",

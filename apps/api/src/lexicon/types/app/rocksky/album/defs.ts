@@ -1,35 +1,43 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskySongDefs from "../song/defs";
+import * as AppRockskySongDefs from "../song/defs";
 
 export interface AlbumViewBasic {
   /** The unique identifier of the album. */
   id?: string;
   /** The URI of the album. */
-  uri?: string;
+  uri?: string | null;
   /** The title of the album. */
   title?: string;
   /** The artist of the album. */
   artist?: string;
   /** The URI of the album's artist. */
-  artistUri?: string;
+  artistUri?: string | null;
   /** The year the album was released. */
-  year?: number;
+  year?: number | null;
   /** The URL of the album art image. */
-  albumArt?: string;
+  albumArt?: string | null;
   /** The release date of the album. */
-  releaseDate?: string;
+  releaseDate?: string | null;
   /** The SHA256 hash of the album. */
   sha256?: string;
   /** The number of times the album has been played. */
   playCount?: number;
   /** The number of unique listeners who have played the album. */
   uniqueListeners?: number;
+  appleMusicLink?: string | null;
+  spotifyLink?: string | null;
+  tidalLink?: string | null;
+  youtubeLink?: string | null;
+  discogsReleaseId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  xataVersion?: number | null;
   [k: string]: unknown;
 }
 
@@ -49,19 +57,19 @@ export interface AlbumViewDetailed {
   /** The unique identifier of the album. */
   id?: string;
   /** The URI of the album. */
-  uri?: string;
+  uri?: string | null;
   /** The title of the album. */
   title?: string;
   /** The artist of the album. */
   artist?: string;
   /** The URI of the album's artist. */
-  artistUri?: string;
+  artistUri?: string | null;
   /** The year the album was released. */
-  year?: number;
+  year?: number | null;
   /** The URL of the album art image. */
-  albumArt?: string;
+  albumArt?: string | null;
   /** The release date of the album. */
-  releaseDate?: string;
+  releaseDate?: string | null;
   /** The SHA256 hash of the album. */
   sha256?: string;
   /** The number of times the album has been played. */
@@ -71,6 +79,14 @@ export interface AlbumViewDetailed {
   tags?: string[];
   tracks?: AppRockskySongDefs.SongViewBasic[];
   discogs?: DiscogsView;
+  createdAt?: string;
+  appleMusicLink?: string | null;
+  spotifyLink?: string | null;
+  tidalLink?: string | null;
+  youtubeLink?: string | null;
+  discogsReleaseId?: string | null;
+  updatedAt?: string;
+  xataVersion?: number | null;
   [k: string]: unknown;
 }
 

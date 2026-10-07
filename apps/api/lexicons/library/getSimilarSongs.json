@@ -25,7 +25,27 @@
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "properties": {}
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "similarSongs2": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic similarSongs2 payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
         }
       }
     }

@@ -2,29 +2,32 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.actor.getActorCompatibility"
-defs = new Mapping<String, Query> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Query {
     type = "query"
     description = "Get compatibility for an actor"
-    parameters = new Params {
+    parameters = new {
+      type = "params"
       required = List("did")
-      properties {
+      properties = new Mapping<String, BaseType> {
         ["did"] = new StringType {
+          type = "string"
           description = "DID or handle to get compatibility for"
           format = "at-identifier"
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties = new Mapping<String, Ref> {
+        properties = new Mapping<String, BaseType> {
           ["compatibility"] = new Ref {
             type = "ref"
             ref = "app.rocksky.actor.defs#compatibilityViewBasic"
           }
         }
+        nullable = List("compatibility")
       }
     }
   }

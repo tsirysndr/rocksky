@@ -1,12 +1,12 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 
 export interface QueryParams {
   /** The album id */
@@ -16,6 +16,13 @@ export interface QueryParams {
 export type InputSchema = undefined;
 
 export interface OutputSchema {
+  status?: string;
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+  /** Unmodified OpenSubsonic album payload from Navidrome. Its provider-defined fields are preserved. */
+  album?: {};
   [k: string]: unknown;
 }
 

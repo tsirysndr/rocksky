@@ -53,8 +53,47 @@
           "type": "integer",
           "description": "The number of unique listeners who have played the album.",
           "minimum": 0
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "discogsReleaseId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "xataVersion": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "albumArt",
+        "appleMusicLink",
+        "artistUri",
+        "discogsReleaseId",
+        "releaseDate",
+        "spotifyLink",
+        "tidalLink",
+        "uri",
+        "xataVersion",
+        "year",
+        "youtubeLink"
+      ]
     },
     "albumViewDetailed": {
       "type": "object",
@@ -124,8 +163,46 @@
         "discogs": {
           "type": "ref",
           "ref": "app.rocksky.album.defs#discogsView"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "discogsReleaseId": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "xataVersion": {
+          "type": "integer"
         }
-      }
+      },
+      "nullable": [
+        "albumArt",
+        "appleMusicLink",
+        "artistUri",
+        "discogsReleaseId",
+        "releaseDate",
+        "spotifyLink",
+        "tidalLink",
+        "uri",
+        "xataVersion",
+        "year",
+        "youtubeLink"
+      ]
     },
     "discogsView": {
       "type": "object",

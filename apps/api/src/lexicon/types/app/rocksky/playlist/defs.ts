@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskySongDefs from "../song/defs";
+import * as AppRockskySongDefs from "../song/defs";
 
 /** Detailed view of a playlist, including its tracks and metadata */
 export interface PlaylistViewDetailed {
@@ -26,11 +26,14 @@ export interface PlaylistViewDetailed {
   /** A description of the playlist. */
   description?: string;
   /** The URL of the cover image for the playlist. */
-  coverImageUrl?: string;
+  coverImageUrl?: string | null;
   /** The date and time when the playlist was created. */
   createdAt?: string;
   /** A list of tracks in the playlist. */
   tracks?: AppRockskySongDefs.SongViewBasic[];
+  curatorDId?: string;
+  updatedAt?: string;
+  trackCount?: number;
   [k: string]: unknown;
 }
 
@@ -65,13 +68,15 @@ export interface PlaylistViewBasic {
   /** A description of the playlist. */
   description?: string;
   /** The URL of the cover image for the playlist. */
-  coverImageUrl?: string;
+  coverImageUrl?: string | null;
   /** The date and time when the playlist was created. */
   createdAt?: string;
   /** The number of tracks in the playlist. */
   trackCount?: number;
   /** Album-art URLs of up to four of the playlist's tracks, for rendering a cover mosaic when the playlist has no picture of its own. */
   trackArts?: string[];
+  updatedAt?: string;
+  curatorDId?: string;
   [k: string]: unknown;
 }
 

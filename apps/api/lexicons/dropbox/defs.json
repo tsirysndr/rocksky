@@ -30,6 +30,21 @@
           "type": "string",
           "description": "The last modified date and time of the file on the server.",
           "format": "datetime"
+        },
+        "fileId": {
+          "type": "string"
+        },
+        "directoryId": {
+          "type": "string"
+        },
+        "trackId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
         }
       }
     },
@@ -43,6 +58,21 @@
             "type": "ref",
             "ref": "app.rocksky.dropbox.defs#fileView"
           }
+        },
+        "directory": {
+          "type": "ref",
+          "ref": "app.rocksky.dropbox.defs#responseDirectoryView"
+        },
+        "parentDirectory": {
+          "type": "ref",
+          "ref": "app.rocksky.dropbox.defs#responseParentDirectoryView"
+        },
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.dropbox.defs#responseDirectoriesItemView"
+          }
         }
       }
     },
@@ -53,6 +83,40 @@
           "type": "string",
           "description": "The temporary link to access the file.",
           "format": "uri"
+        }
+      }
+    },
+    "responseDirectoryView": {
+      "type": "object",
+      "properties": {}
+    },
+    "responseParentDirectoryView": {
+      "type": "object",
+      "properties": {}
+    },
+    "responseDirectoriesItemView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "fileId": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
         }
       }
     }

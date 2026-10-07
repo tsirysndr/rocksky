@@ -1,11 +1,11 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.scrobble.defs"
-defs = new Mapping<String, ObjectType> {
-  ["scrobbleViewBasic"] {
+defs = new Mapping<String, BaseType> {
+  ["scrobbleViewBasic"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the scrobble."
@@ -18,101 +18,147 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The title of the scrobble."
       }
-
       ["artist"] = new StringType {
         type = "string"
         description = "The artist of the song."
       }
-
       ["artistUri"] = new StringType {
         type = "string"
         description = "The URI of the artist."
         format = "at-uri"
       }
-
       ["albumArtist"] = new StringType {
         type = "string"
         description = "The album artist of the song."
       }
-
       ["album"] = new StringType {
         type = "string"
         description = "The album of the song."
       }
-
       ["albumUri"] = new StringType {
         type = "string"
         description = "The URI of the album."
         format = "at-uri"
       }
-
       ["albumArt"] = new StringType {
         type = "string"
         description = "The album art URL of the song."
         format = "uri"
       }
-
       ["trackUri"] = new StringType {
         type = "string"
         description = "The URI of the track (song) this scrobble is of."
         format = "at-uri"
       }
-
       ["handle"] = new StringType {
         type = "string"
         description = "The handle of the user who created the scrobble."
       }
-
       ["did"] = new StringType {
         type = "string"
         description = "The DID of the user who created the scrobble."
         format = "at-identifier"
       }
-
       ["avatar"] = new StringType {
         type = "string"
         description = "The avatar URL of the user who created the scrobble."
         format = "uri"
       }
-
       ["createdAt"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The timestamp when the scrobble was created."
+        format = "datetime"
       }
-
       ["uri"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URI of the scrobble."
+        format = "uri"
       }
-
       ["sha256"] = new StringType {
         type = "string"
         description = "The SHA256 hash of the scrobble data."
       }
-
       ["liked"] = new BooleanType {
         type = "boolean"
       }
-
       ["likesCount"] = new IntegerType {
         type = "integer"
       }
-    }
-  }
-
-  ["scrobbleViewDetailed"] {
-    type = "object"
-    properties {
+      ["cover"] = new StringType {
+        type = "string"
+      }
+      ["date"] = new StringType {
+        type = "string"
+      }
+      ["user"] = new StringType {
+        type = "string"
+      }
+      ["userDisplayName"] = new StringType {
+        type = "string"
+      }
+      ["userAvatar"] = new StringType {
+        type = "string"
+      }
+      ["tags"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
       ["mbId"] = new StringType {
         type = "string"
-        description = "The MusicBrainz recording ID of the track, when available."
+      }
+      ["mbid"] = new StringType {
+        type = "string"
       }
       ["isrc"] = new StringType {
         type = "string"
-        description = "The International Standard Recording Code (ISRC) of the track, when available."
       }
+      ["spotifyLink"] = new StringType {
+        type = "string"
+      }
+      ["composer"] = new StringType {
+        type = "string"
+      }
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+      }
+      ["duration"] = new IntegerType {
+        type = "integer"
+      }
+      ["youtubeLink"] = new StringType {
+        type = "string"
+      }
+      ["appleMusicLink"] = new StringType {
+        type = "string"
+      }
+      ["tidalLink"] = new StringType {
+        type = "string"
+      }
+      ["discNumber"] = new IntegerType {
+        type = "integer"
+      }
+      ["genre"] = new StringType {
+        type = "string"
+      }
+      ["label"] = new StringType {
+        type = "string"
+      }
+      ["copyrightMessage"] = new StringType {
+        type = "string"
+      }
+      ["key"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
+    }
+    nullable = List("albumArt", "albumArtist", "albumUri", "appleMusicLink", "artistUri", "composer", "copyrightMessage", "cover", "genre", "isrc", "key", "label", "mbId", "mbid", "spotifyLink", "tags", "tidalLink", "trackId", "trackNumber", "trackUri", "uri", "youtubeLink")
+  }
+  ["scrobbleViewDetailed"] = new ObjectType {
+    type = "object"
+    properties = new Mapping<String, BaseType> {
       ["id"] = new StringType {
         type = "string"
         description = "The unique identifier of the scrobble."
@@ -125,52 +171,43 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The title of the scrobble."
       }
-
       ["artist"] = new StringType {
         type = "string"
         description = "The artist of the song."
       }
-
       ["artistUri"] = new StringType {
         type = "string"
         description = "The URI of the artist."
         format = "at-uri"
       }
-
       ["album"] = new StringType {
         type = "string"
         description = "The album of the song."
       }
-
       ["albumUri"] = new StringType {
         type = "string"
         description = "The URI of the album."
         format = "at-uri"
       }
-
       ["cover"] = new StringType {
         type = "string"
         description = "The album art URL of the song."
         format = "uri"
       }
-
       ["date"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The timestamp when the scrobble was created."
+        format = "datetime"
       }
-
       ["uri"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The URI of the scrobble."
+        format = "uri"
       }
-
       ["sha256"] = new StringType {
         type = "string"
         description = "The SHA256 hash of the scrobble data."
       }
-
       ["liked"] = new BooleanType {
         type = "boolean"
       }
@@ -178,51 +215,119 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The URI of the track (song) this scrobble is of."
       }
-
       ["likesCount"] = new IntegerType {
         type = "integer"
       }
-
       ["listeners"] = new IntegerType {
         type = "integer"
         description = "The number of listeners"
       }
-
       ["scrobbles"] = new IntegerType {
         type = "integer"
         description = "The number of scrobbles for this song"
       }
-
       ["artists"] = new Array {
         type = "array"
         items = new Ref {
+          type = "ref"
           ref = "app.rocksky.artist.defs#artistViewBasic"
         }
       }
       ["firstScrobble"] = new Ref {
         type = "ref"
-        ref = "app.rocksky.scrobble.defs#firstScrobbleView"
         description = "The first scrobble of this song on Rocksky."
+        ref = "app.rocksky.scrobble.defs#firstScrobbleView"
+      }
+      ["mbId"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz recording ID of the track, when available."
+      }
+      ["isrc"] = new StringType {
+        type = "string"
+        description = "The International Standard Recording Code (ISRC) of the track, when available."
+      }
+      ["tags"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+      }
+      ["albumArtist"] = new StringType {
+        type = "string"
+      }
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+      }
+      ["duration"] = new IntegerType {
+        type = "integer"
+      }
+      ["youtubeLink"] = new StringType {
+        type = "string"
+      }
+      ["spotifyLink"] = new StringType {
+        type = "string"
+      }
+      ["appleMusicLink"] = new StringType {
+        type = "string"
+      }
+      ["tidalLink"] = new StringType {
+        type = "string"
+      }
+      ["discNumber"] = new IntegerType {
+        type = "integer"
+      }
+      ["lyrics"] = new StringType {
+        type = "string"
+      }
+      ["composer"] = new StringType {
+        type = "string"
+      }
+      ["genre"] = new StringType {
+        type = "string"
+      }
+      ["label"] = new StringType {
+        type = "string"
+      }
+      ["copyrightMessage"] = new StringType {
+        type = "string"
+      }
+      ["key"] = new StringType {
+        type = "string"
+      }
+      ["acoustidFingerprint"] = new StringType {
+        type = "string"
+      }
+      ["xataVersion"] = new IntegerType {
+        type = "integer"
+      }
+      ["mbid"] = new StringType {
+        type = "string"
       }
     }
+    nullable = List("acoustidFingerprint", "albumArtist", "appleMusicLink", "artistUri", "composer", "copyrightMessage", "discNumber", "genre", "isrc", "key", "label", "lyrics", "mbId", "mbid", "spotifyLink", "tidalLink", "trackNumber", "uri", "xataVersion", "youtubeLink")
   }
-
-  ["firstScrobbleView"] {
+  ["firstScrobbleView"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["handle"] = new StringType {
         type = "string"
         description = "The handle of the user who first scrobbled this song."
       }
       ["avatar"] = new StringType {
         type = "string"
-        format = "uri"
         description = "The avatar URL of the user who first scrobbled this song."
+        format = "uri"
       }
       ["timestamp"] = new StringType {
         type = "string"
-        format = "datetime"
         description = "The timestamp of the first scrobble."
+        format = "datetime"
       }
     }
   }

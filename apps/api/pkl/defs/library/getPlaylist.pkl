@@ -2,25 +2,45 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.library.getPlaylist"
-defs = new Mapping<String, Query> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Query {
     type = "query"
     description = "Get a playlist and its entries."
-    parameters {
+    parameters = new {
       type = "params"
       required = List("id")
-      properties {
+      properties = new Mapping<String, BaseType> {
         ["id"] = new StringType {
           type = "string"
           description = "The playlist id"
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties {}
+        properties = new Mapping<String, BaseType> {
+          ["status"] = new StringType {
+            type = "string"
+          }
+          ["version"] = new StringType {
+            type = "string"
+          }
+          ["type"] = new StringType {
+            type = "string"
+          }
+          ["serverVersion"] = new StringType {
+            type = "string"
+          }
+          ["openSubsonic"] = new BooleanType {
+            type = "boolean"
+          }
+          ["playlist"] = new UnknownType {
+            type = "unknown"
+            description = "Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved."
+          }
+        }
       }
     }
   }

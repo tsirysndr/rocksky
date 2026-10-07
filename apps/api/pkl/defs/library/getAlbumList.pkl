@@ -2,14 +2,14 @@ amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.library.getAlbumList"
-defs = new Mapping<String, Query> {
-  ["main"] {
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Query {
     type = "query"
     description = "Get a list of albums by various criteria."
-    parameters {
+    parameters = new {
       type = "params"
       required = List("type")
-      properties {
+      properties = new Mapping<String, BaseType> {
         ["type"] = new StringType {
           type = "string"
           description = "List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred."
@@ -37,11 +37,31 @@ defs = new Mapping<String, Query> {
         }
       }
     }
-    output {
+    output = new {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        properties {}
+        properties = new Mapping<String, BaseType> {
+          ["status"] = new StringType {
+            type = "string"
+          }
+          ["version"] = new StringType {
+            type = "string"
+          }
+          ["type"] = new StringType {
+            type = "string"
+          }
+          ["serverVersion"] = new StringType {
+            type = "string"
+          }
+          ["openSubsonic"] = new BooleanType {
+            type = "boolean"
+          }
+          ["albumList2"] = new UnknownType {
+            type = "unknown"
+            description = "Unmodified OpenSubsonic albumList2 payload from Navidrome. Its provider-defined fields are preserved."
+          }
+        }
       }
     }
   }

@@ -1,13 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
+import express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskySongDefs from "../song/defs";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import * as AppRockskySongDefs from "../song/defs";
 
 export interface QueryParams {
   /** The DID or handle of the actor */
@@ -25,7 +25,7 @@ export interface QueryParams {
 export type InputSchema = undefined;
 
 export interface OutputSchema {
-  songs?: AppRockskySongDefs.SongViewBasic[];
+  tracks?: AppRockskySongDefs.SongViewBasic[];
   [k: string]: unknown;
 }
 

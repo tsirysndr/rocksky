@@ -1,20 +1,63 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.player.defs"
-defs = new Mapping<String, ObjectType> {
-  ["currentlyPlayingViewDetailed"] {
+defs = new Mapping<String, BaseType> {
+  ["currentlyPlayingViewDetailed"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["title"] = new StringType {
         type = "string"
         description = "The title of the currently playing track"
       }
+      ["device"] = new UnknownType {
+        type = "unknown"
+      }
+      ["shuffle_state"] = new BooleanType {
+        type = "boolean"
+      }
+      ["repeat_state"] = new StringType {
+        type = "string"
+      }
+      ["timestamp"] = new IntegerType {
+        type = "integer"
+      }
+      ["context"] = new UnknownType {
+        type = "unknown"
+      }
+      ["progress_ms"] = new IntegerType {
+        type = "integer"
+      }
+      ["item"] = new UnknownType {
+        type = "unknown"
+      }
+      ["currently_playing_type"] = new StringType {
+        type = "string"
+      }
+      ["actions"] = new UnknownType {
+        type = "unknown"
+      }
+      ["is_playing"] = new BooleanType {
+        type = "boolean"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+      }
+      ["albumUri"] = new StringType {
+        type = "string"
+      }
+      ["artistUri"] = new StringType {
+        type = "string"
+      }
+      ["liked"] = new BooleanType {
+        type = "boolean"
+      }
     }
+    nullable = List("albumUri", "artistUri", "context", "item", "progress_ms", "uri")
   }
-  ["playbackQueueViewDetailed"] {
+  ["playbackQueueViewDetailed"] = new ObjectType {
     type = "object"
-    properties {
+    properties = new Mapping<String, BaseType> {
       ["tracks"] = new Array {
         type = "array"
         items = new Ref {

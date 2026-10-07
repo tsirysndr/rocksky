@@ -1,18 +1,26 @@
+import { normalizeNullableArrays } from "./nullableArrays";
 import { consola } from "consola";
-import { existsSync, readdirSync, realpathSync, statSync } from "fs";
+import {
+  existsSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+  readFileSync,
+  writeFileSync,
+} from "fs";
 import { join } from "path";
 import { $ } from "zx";
 
 /**
  * Recursively collect every `.json` lexicon under `dir`.
  */
-function collectLexicons(dir: string): string[] {
+function collectLexicons(dir: string, extension = ".json"): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
-      out.push(...collectLexicons(full));
-    } else if (entry.endsWith(".json")) {
+      out.push(...collectLexicons(full, extension));
+    } else if (entry.endsWith(extension)) {
       out.push(full);
     }
   }
@@ -46,6 +54,10 @@ const lex = existsSync("node_modules/.bin/lex")
 
 consola.info(`Generating server API from ${files.length} lexicons…`);
 await $`${lex} gen-server ${OUT_DIR} --yes ${files}`;
+
+for (const path of collectLexicons(join(OUT_DIR, "types"), ".ts")) {
+  writeFileSync(path, normalizeNullableArrays(readFileSync(path, "utf8")));
+}
 
 // lex-cli emits single-quote code with plain `import`/empty `interface`.
 // Normalise to the repo's committed style: `biome format` handles quotes &

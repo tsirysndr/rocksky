@@ -21,7 +21,7 @@
         "encoding": "application/json",
         "schema": {
           "type": "ref",
-          "ref": "app.rocksky.apikey.defs#apiKey"
+          "ref": "app.rocksky.apikey.defs#apiKeyView"
         }
       }
     }
