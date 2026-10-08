@@ -20,8 +20,11 @@ class Request {
   insertBefore?: number;
   constructor(public items: QueueItem[]) {}
 }
+const timers: { callback: () => void; ms: number }[] = [];
+let refreshStatus: (() => void) | undefined;
 let mediaUpdate: ((alive: boolean) => void) | undefined;
 const media = {
+  getStatus(_request: unknown, ok: () => void) { refreshStatus?.(); ok(); },
   addUpdateListener: (fn: (alive: boolean) => void) => { mediaUpdate = fn; },
   removeUpdateListener: () => { mediaUpdate = undefined; },
   media: null as any,
@@ -45,7 +48,12 @@ const media = {
     ok();
   },
 };
+let queueRequest: any;
+let queueListener: ((namespace: string, message: string) => void) | undefined;
 const session = {
+  addMessageListener(_namespace: string, listener: typeof queueListener) { queueListener = listener; },
+  removeMessageListener() { queueListener = undefined; },
+  sendMessage: async (_namespace: string, request: unknown) => { queueRequest = request; },
   addEventListener() {},
   getMediaSession: () => media,
   getCastDevice: () => ({ friendlyName: "TV" }),
@@ -72,7 +80,7 @@ const context = {
   },
 };
 Object.assign(globalThis, {
-  window: { isSecureContext: true, setInterval: () => 0 },
+  window: { isSecureContext: true, setInterval: (callback: () => void, ms: number) => { timers.push({ callback, ms }); return 0; } },
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
   chrome: {
     cast: {
@@ -81,6 +89,7 @@ Object.assign(globalThis, {
         constructor(public url: string) {}
       },
       media: {
+        GetStatusRequest: class {},
         MediaInfo,
         QueueItem,
         QueueLoadRequest: Request,
@@ -225,5 +234,68 @@ test("resumed sessions keep their queue synchronized after later insertions", as
   mediaUpdate?.(true);
   expect(store.get(queueAtom).at(-1)?.title).toBe("Added from another sender");
   expect(store.get(queueIndexAtom)).toBe(items.length - 1);
+  webCast.disconnect();
+});
+
+test("currentItemId wins over stale media metadata during track advancement", async () => {
+  const { nowPlayingAtom } = await import("../../atoms/nowpaying");
+  const { queueIndexAtom } = await import("../../atoms/queue");
+  const store = getDefaultStore();
+  reset();
+  await webCast.load([track(0), track(1), track(2)], 0);
+  const start = Date.now();
+  while (items.length < 3 && Date.now() - start < 2500)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  // Real Cast updates may advance the current item before replacing Media.media.
+  media.currentItemId = items[2].itemId;
+  mediaUpdate?.(true);
+  expect(store.get(nowPlayingAtom)?.title).toBe("Track 2");
+  expect(store.get(queueIndexAtom)).toBe(2);
+  // Missed update events recover through a real status request, not a reread
+  // of the same cached Media object.
+  refreshStatus = () => { media.currentItemId = items[1].itemId; };
+  timers.find((t) => t.ms === 3000)!.callback();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(store.get(nowPlayingAtom)?.title).toBe("Track 1");
+  expect(store.get(queueIndexAtom)).toBe(1);
+  refreshStatus = undefined;
+  webCast.disconnect();
+});
+
+test("a limited two-item CAF status never truncates the owned full queue", async () => {
+  const { queueAtom, queueIndexAtom } = await import("../../atoms/queue");
+  reset();
+  await webCast.load(Array.from({ length: 7 }, (_, i) => track(i)), 0);
+  const start = Date.now();
+  while (items.length < 7 && Date.now() - start < 3000)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  items = items.slice(3, 5);
+  media.currentItemId = items[0].itemId;
+  mediaUpdate?.(true);
+  expect(getDefaultStore().get(queueAtom)).toHaveLength(7);
+  expect(getDefaultStore().get(queueIndexAtom)).toBe(3);
+  webCast.disconnect();
+});
+test("resumed web queue replaces two cached tracks with all receiver pages", async () => {
+  const { queueAtom, queueIndexAtom } = await import("../../atoms/queue");
+  const { nowPlayingAtom } = await import("../../atoms/nowpaying");
+  ended?.({ sessionState: "resumed" });
+  const full = Array.from({ length: 20 }, (_, i) => ({ itemId: 1000 + i,
+    media: { contentId: `https://example.com/${i}.mp3`, contentType: "audio/mpeg",
+      metadata: { title: `Receiver ${i}`, artist: "Artist" } } }));
+  const state = { media: full[17].media, currentItemId: 1017, currentTime: 42,
+    duration: 180, playerState: "PLAYING" };
+  const reply = (offset: number, page: unknown[]) => queueListener!("", JSON.stringify({
+    type: "snapshot", requestId: queueRequest.requestId, revision: 50, offset,
+    total: 20, items: page, state }));
+  reply(0, full.slice(0, 16));
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  expect(queueRequest.offset).toBe(16);
+  reply(16, full.slice(16));
+  expect(getDefaultStore().get(queueAtom)).toHaveLength(20);
+  expect(getDefaultStore().get(queueIndexAtom)).toBe(17);
+  expect(getDefaultStore().get(nowPlayingAtom)?.title).toBe("Receiver 17");
+  expect(getDefaultStore().get(nowPlayingAtom)?.progress).toBe(42000);
   webCast.disconnect();
 });

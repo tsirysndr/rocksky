@@ -79,6 +79,85 @@ function trackData(info?: chrome.cast.media.MediaInfo | null): {
     )?.rocksky ?? {}
   );
 }
+const QUEUE_SYNC_NAMESPACE = "urn:x-cast:app.rocksky.queue";
+let syncSession: cast.framework.CastSession | null = null;
+let syncRequestId = 0;
+let syncRevision: number | undefined;
+let receiverItems: chrome.cast.media.QueueItem[] | null = null;
+let pageItems: chrome.cast.media.QueueItem[] = [];
+let pageRevision: number | undefined;
+let pageTimer: ReturnType<typeof setTimeout> | undefined;
+let receiverStatus: { media: chrome.cast.media.MediaInfo; currentItemId: number;
+  playerState: chrome.cast.media.PlayerState; currentTime: number; duration: number } | null = null;
+let statusReceivedAt = 0;
+let queueRequestAt = 0;
+function requestQueue(offset?: number, revision = syncRevision) {
+  if (!syncSession) return;
+  queueRequestAt = Date.now();
+  void syncSession.sendMessage(QUEUE_SYNC_NAMESPACE, { type: "snapshot", requestId: ++syncRequestId, revision, offset }).catch(() => {});
+}
+function receiveQueue(_namespace: string, payload: string) {
+  let reply;
+  try { reply = JSON.parse(payload); } catch { return; }
+  if (reply?.type !== "snapshot" || reply.requestId !== syncRequestId || !Number.isInteger(reply.revision) ||
+      !Number.isInteger(reply.total) || reply.total < 0 || !reply.state) return;
+  receiverStatus = reply.state;
+  statusReceivedAt = Date.now();
+  if (Array.isArray(reply.items)) {
+    if (reply.offset === 0) { pageItems = []; pageRevision = reply.revision; receiverItems = null; }
+    if (reply.revision !== pageRevision || reply.offset !== pageItems.length) return;
+    pageItems.push(...reply.items);
+    clearTimeout(pageTimer);
+    if (pageItems.length < reply.total && reply.items.length) {
+      const offset = pageItems.length, revision = reply.revision;
+      pageTimer = setTimeout(() => requestQueue(offset, revision), 100);
+    } else {
+      receiverItems = pageItems;
+      syncRevision = reply.revision;
+      pageRevision = undefined;
+    }
+  }
+  mirror();
+}
+function bindQueueSync(target: cast.framework.CastSession | null) {
+  if (syncSession === target) return;
+  syncSession?.removeMessageListener(QUEUE_SYNC_NAMESPACE, receiveQueue);
+  clearTimeout(pageTimer);
+  syncSession = target;
+  syncRequestId++;
+  syncRevision = undefined;
+  pageRevision = undefined;
+  receiverItems = null;
+  receiverStatus = null;
+  pageItems = [];
+  target?.addMessageListener(QUEUE_SYNC_NAMESPACE, receiveQueue);
+  if (target) requestQueue();
+}
+let statusRequestPending = false;
+async function refreshReceiverStatus() {
+  if (statusRequestPending || store.get(playerAtom) !== "cast") return;
+  if (pageRevision !== undefined && Date.now() - queueRequestAt > 5000) {
+    clearTimeout(pageTimer);
+    pageRevision = undefined;
+  }
+  if (pageRevision === undefined) requestQueue();
+  const current = media();
+  if (!current) return;
+  statusRequestPending = true;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      call<void>((ok, fail) => current.getStatus(new chrome.cast.media.GetStatusRequest(), ok, fail)),
+      new Promise<void>((resolve) => { timeout = setTimeout(resolve, 5000); }),
+    ]);
+    if (media() === current) mirror();
+  } catch {
+    // A transient status failure must not erase the track or interrupt playback.
+  } finally {
+    clearTimeout(timeout);
+    statusRequestPending = false;
+  }
+}
 let observedMedia: chrome.cast.media.Media | null = null;
 function watchMedia() {
   const current = media() ?? null;
@@ -106,40 +185,45 @@ function mirror() {
   if (store.get(playerAtom) !== "cast") return;
   const m = media();
   if (!m?.media) return;
-  const data = trackData(m.media);
-  const md = m.media.metadata as chrome.cast.media.MusicTrackMediaMetadata;
+  const snapshot = Date.now() - statusReceivedAt < 6000 ? receiverStatus : null;
+  const currentId = snapshot?.currentItemId ?? m.currentItemId;
+  const queueItems = receiverItems ?? m.items ?? [];
+  const currentItem = queueItems.find((item) => item.itemId === currentId);
+  const info = snapshot?.media ?? currentItem?.media ?? m.media;
+  const data = trackData(info);
+  const md = info.metadata as chrome.cast.media.MusicTrackMediaMetadata;
   let tracks = store.get(queueAtom);
   let index = data.index ?? 0;
+  // A short CAF status list is a window, not evidence that tracks were removed.
+  // Only a complete receiver snapshot can replace the queue we submitted.
   if (ownedQueue && (data.queueId !== ownedQueueId ||
-      (queueFilled && m.items && (m.items.length !== ownedQueue.length ||
-        m.items.some((item, i) => trackData(item.media).index !== i))))) {
+      (queueFilled && receiverItems && (receiverItems.length !== ownedQueue.length ||
+        receiverItems.some((item, i) => trackData(item.media).index !== i))))) {
     ownedQueue = null;
     ownedQueueId = null;
   }
   if (ownedQueue) {
-    // Local engine callbacks must never replace the logical Cast queue while
-    // only a small prefix has reached the receiver.
     tracks = ownedQueue;
     if (store.get(queueAtom) !== tracks) store.set(queueAtom, tracks);
   } else {
-    // A resumed session can gain, lose or reorder items after initial attach.
-    const items = m.items?.length ? m.items : [{ media: m.media, itemId: m.currentItemId }];
+    const items = queueItems.length ? queueItems : [{ media: info, itemId: currentId }];
     const incoming = items.map((item) => receiverTrack(item.media));
     resumedIndices = items.map((item, i) => trackData(item.media).index ?? i);
     if (JSON.stringify(incoming) !== JSON.stringify(tracks)) {
       tracks = incoming;
       store.set(queueAtom, tracks);
     }
-    index = items.findIndex((item) => item.itemId === m.currentItemId);
+    index = items.findIndex((item) => item.itemId === currentId);
     if (index < 0) index = Math.max(0, resumedIndices.indexOf(data.index ?? 0));
   }
   const track = tracks[index] ?? data.track;
+  const playingState = snapshot?.playerState ?? m.playerState;
   const wasPlaying = store.get(nowPlayingAtom)?.isPlaying;
   store.set(queueIndexAtom, index);
   store.set(nowPlayingAtom, {
-    title: track?.title ?? md?.title ?? "",
-    artist: track?.artist ?? md?.artist ?? "",
-    album: track?.album ?? md?.albumName ?? "",
+    title: md?.title ?? track?.title ?? "",
+    artist: md?.artist ?? track?.artist ?? "",
+    album: md?.albumName ?? track?.album ?? "",
     artistUri: "",
     albumUri: "",
     songUri: track?.songUri ?? "",
@@ -148,10 +232,10 @@ function mirror() {
       store.get(nowPlayingAtom)?.title === (track?.title ?? md?.title)
         ? (store.get(nowPlayingAtom)?.liked ?? false)
         : false,
-    albumArt: track?.albumArt ?? md?.images?.[0]?.url,
-    duration: (m.media.duration || (track?.duration ?? 0) / 1000) * 1000,
-    progress: Math.max(0, m.getEstimatedTime()) * 1000,
-    isPlaying: m.playerState === chrome.cast.media.PlayerState.PLAYING,
+    albumArt: md?.images?.[0]?.url ?? track?.albumArt,
+    duration: (info.duration || (track?.duration ?? 0) / 1000) * 1000,
+    progress: Math.max(0, snapshot?.currentTime ?? m.getEstimatedTime()) * 1000,
+    isPlaying: playingState === chrome.cast.media.PlayerState.PLAYING,
   });
   if (
     ownedQueue === tracks &&
@@ -277,6 +361,12 @@ export const webCast = {
     if (!target) throw new Error("Select a Chromecast first.");
     if (!tracks[index]) throw new Error("This track is unavailable.");
     job?.abort();
+    syncRequestId++;
+    receiverStatus = null;
+    receiverItems = null;
+    syncRevision = undefined;
+    clearTimeout(pageTimer);
+    pageRevision = undefined;
     job = new AbortController();
     const signal = job.signal;
     const queueId = `${Date.now()}-${++queueSequence}`;
@@ -339,11 +429,13 @@ export const webCast = {
   },
   async jump(index: number) {
     const m = media();
-    const item = m?.items?.find(
+    const item = (receiverItems ?? m?.items)?.find(
       (item) =>
         trackData(item.media).index === (resumedIndices?.[index] ?? index),
     );
-    if (m && item)
+    // The legacy SDK silently ignores jumps to IDs outside its cached window.
+    // Reload the selected item when it came only from our complete snapshot.
+    if (m && item && m.items?.some((cached) => cached.itemId === item.itemId))
       await call<void>((ok, fail) => m.queueJumpToItem(item.itemId, ok, fail));
     else await this.load(store.get(queueAtom), index);
   },
@@ -438,6 +530,7 @@ export function initializeWebCast() {
           if (local.ready) local.pause();
           target.addEventListener(cast.framework.SessionEventType.MEDIA_SESSION, mirror);
           watchMedia();
+          bindQueueSync(target);
           if (
             event.sessionState === cast.framework.SessionState.SESSION_STARTED
           ) {
@@ -460,6 +553,7 @@ export function initializeWebCast() {
           event.sessionState === cast.framework.SessionState.SESSION_ENDED
         ) {
           job?.abort();
+          bindQueueSync(null);
           observedMedia?.removeUpdateListener(onMediaUpdate);
           observedMedia = null;
           ownedQueue = null;
@@ -487,6 +581,7 @@ export function initializeWebCast() {
       },
     );
     window.setInterval(mirror, 1000);
+    window.setInterval(() => { void refreshReceiverStatus(); }, 3000);
   };
   (
     window as Window & { __onGCastApiAvailable?: (available: boolean) => void }
