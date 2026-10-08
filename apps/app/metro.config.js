@@ -7,7 +7,7 @@ const config = getDefaultConfig(__dirname);
 // @rocksky/sdk is installed as a file: dependency symlinked into the monorepo;
 // Metro only serves files it watches, so the real location must be watched.
 const sdkRoot = path.resolve(__dirname, "../../sdk/typescript");
-config.watchFolders = [sdkRoot];
+config.watchFolders = [sdkRoot, path.resolve(__dirname, "../shared")];
 
 // The silent media-session anchor ships as FLAC (not in Metro's defaults).
 if (!config.resolver.assetExts.includes("flac")) {
