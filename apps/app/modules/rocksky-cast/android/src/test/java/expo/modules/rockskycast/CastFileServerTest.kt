@@ -7,6 +7,37 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class CastFileServerTest {
+  @Test fun servesScannerArtworkUsingItsActualEncoding() {
+    val server = CastFileServer("127.0.0.1")
+    server.start(5000, true)
+    val formats = listOf(
+      "image/jpeg" to byteArrayOf(0xff.toByte(), 0xd8.toByte(), 0xff.toByte(), 0),
+      "image/png" to byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a),
+      "image/webp" to "RIFF0000WEBP".toByteArray(),
+      "image/gif" to "GIF89a".toByteArray(),
+    )
+    try {
+      for ((mime, bytes) in formats) {
+        val file = File.createTempFile("cast-cover-", ".art")
+        try {
+          file.writeBytes(bytes)
+          val shared = server.share(file.path)
+          assertEquals(mime, shared["contentType"])
+          val connection = URL(shared["url"]).openConnection() as HttpURLConnection
+          try {
+            assertEquals(200, connection.responseCode)
+            assertEquals(mime, connection.contentType)
+            assertArrayEquals(bytes, connection.inputStream.use { it.readBytes() })
+          } finally { connection.disconnect() }
+        } finally { file.delete() }
+      }
+      val invalid = File.createTempFile("cast-cover-invalid-", ".art")
+      try {
+        invalid.writeText("not an image")
+        assertThrows(IllegalStateException::class.java) { server.share(invalid.path) }
+      } finally { invalid.delete() }
+    } finally { server.stop() }
+  }
   @Test fun rangeParsing() {
     assertEquals(ByteRange(2, 5), ByteRange.parse("bytes=2-5", 10))
     assertEquals(ByteRange(2, 9), ByteRange.parse("bytes=2-", 10))

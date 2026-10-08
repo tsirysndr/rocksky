@@ -26,11 +26,27 @@ class CastFileServer(private val host: String) : NanoHTTPD(host, 0) {
       "jpg", "jpeg" -> "image/jpeg"
       "png" -> "image/png"
       "webp" -> "image/webp"
-      else -> error("This file format cannot be cast: ${file.extension}")
+      else -> imageMime(file) ?: error("This file format cannot be cast: ${file.extension}")
     }
     val token = tokens.getOrPut(file.path) { UUID.randomUUID().toString() }
     files["/$token"] = Entry(file, mime)
     return mapOf("url" to "http://$host:$listeningPort/$token", "contentType" to mime)
+  }
+
+  // The local scanner preserves embedded image bytes in .art files. Their
+  // filename does not describe their encoding; never assume those bytes are JPEG.
+  private fun imageMime(file: File): String? {
+    val header = ByteArray(12)
+    val size = file.inputStream().use { it.read(header) }
+    fun matches(offset: Int, vararg bytes: Int): Boolean =
+      size >= offset + bytes.size && bytes.indices.all { (header[offset + it].toInt() and 255) == bytes[it] }
+    return when {
+      matches(0, 0xff, 0xd8, 0xff) -> "image/jpeg"
+      matches(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a) -> "image/png"
+      matches(0, 0x47, 0x49, 0x46, 0x38) -> "image/gif"
+      matches(0, 0x52, 0x49, 0x46, 0x46) && matches(8, 0x57, 0x45, 0x42, 0x50) -> "image/webp"
+      else -> null
+    }
   }
 
   override fun serve(session: IHTTPSession): Response {
@@ -63,9 +79,11 @@ class CastFileServer(private val host: String) : NanoHTTPD(host, 0) {
       }
     }
     val length = range?.length ?: size
-    val stream = FileInputStream(entry.file)
-    try { stream.channel.position(range?.start ?: 0) } catch (error: Exception) { stream.close(); throw error }
-    // NanoHTTPD suppresses the body for HEAD while retaining the real content length.
+    // NanoHTTPD 2.3.1 still writes a supplied stream for HEAD. Sending the
+    // audio body corrupts the next response on a reused connection and can
+    // make media probing/downloads stall. Keep the length, but no body.
+    val stream = if (session.method == Method.HEAD) java.io.ByteArrayInputStream(byteArrayOf()) else FileInputStream(entry.file)
+    try { if (stream is FileInputStream) stream.channel.position(range?.start ?: 0) } catch (error: Exception) { stream.close(); throw error }
     return newFixedLengthResponse(if (range == null) Response.Status.OK else Response.Status.PARTIAL_CONTENT, entry.mime, stream, length).apply {
       addHeader("Accept-Ranges", "bytes")
       if (range != null) addHeader("Content-Range", "bytes ${range.start}-${range.end}/$size")
