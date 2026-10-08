@@ -58,6 +58,11 @@ pub mod app_rocksky;
 pub mod builder_types;
 #[allow(unused_imports, dead_code, non_snake_case, clippy::all)]
 pub mod com_atproto;
+/// Generated from the `community.lexicon.*` documents vendored under
+/// `apps/api/lexicons/community`: the calendar event and RSVP an
+/// [`app_rocksky::event::music`] record builds on.
+#[allow(unused_imports, dead_code, non_snake_case, clippy::all)]
+pub mod community_lexicon;
 
 /// The generated `app.rocksky.*` lexicon bindings, under the documented name.
 pub use crate::app_rocksky as lexicons;

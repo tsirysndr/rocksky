@@ -241,7 +241,8 @@ Attach an optional bearer token for auth-gated queries with
 ## Regenerating the lexicon bindings
 
 The typed `app.rocksky.*` records under `src/app_rocksky` (plus the referenced
-`src/com_atproto` and `src/app_bsky` modules) are generated from
+`src/com_atproto`, `src/app_bsky` and `src/community_lexicon` modules) are
+generated from
 `apps/api/lexicons/` by [`jacquard-codegen`](https://crates.io/crates/jacquard-lexgen):
 
 ```sh

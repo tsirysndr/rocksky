@@ -8,6 +8,7 @@
 //! Generated bindings for the `app.rocksky.artist` Lexicon namespace/module.
 pub mod get_artist;
 pub mod get_artist_albums;
+pub mod get_artist_events;
 pub mod get_artist_listeners;
 pub mod get_artist_recent_listeners;
 pub mod get_artist_tracks;
