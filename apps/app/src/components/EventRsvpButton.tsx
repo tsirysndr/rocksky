@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   controls: { width: 84, gap: 6 },
   button: {
     minHeight: 44,
-    borderRadius: 24,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: colors.textMuted,
     paddingHorizontal: 6,

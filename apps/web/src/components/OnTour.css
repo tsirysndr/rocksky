@@ -170,7 +170,7 @@ a.on-tour__event:hover .on-tour__date {
 }
 .on-tour__rsvp > button {
   min-height: 36px;
-  border-radius: 20px;
+  border-radius: 0;
   border: 1px solid var(--color-text-muted);
   background: transparent;
   color: var(--color-text);
