@@ -250,6 +250,16 @@ async fn run_connection_worker(
 }
 
 fn build_subscribe_url(server: &str, watermark_us: i64) -> String {
+    // A fresh process has no watermark and starts live. `JETSTREAM_CURSOR`
+    // (unix microseconds) replays from a point in the past instead, which is
+    // how commits consumed by a build that could not handle them get a second
+    // pass after a deploy. Only the first connection uses it; reconnects
+    // resume from the watermark as usual.
+    let watermark_us = if watermark_us > 0 {
+        watermark_us
+    } else {
+        initial_cursor()
+    };
     let mut base = format!(
         "{}/subscribe?wantedCollections=app.rocksky.*",
         server.trim_end_matches('/')
@@ -264,6 +274,13 @@ fn build_subscribe_url(server: &str, watermark_us: i64) -> String {
     } else {
         base
     }
+}
+
+fn initial_cursor() -> i64 {
+    env::var("JETSTREAM_CURSOR")
+        .ok()
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(0)
 }
 
 fn spawn_handler(
