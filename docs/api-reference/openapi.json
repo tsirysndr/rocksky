@@ -1431,6 +1431,111 @@
         }
       }
     },
+    "/app.rocksky.artist.getArtistEvents": {
+      "get": {
+        "tags": [
+          "app.rocksky.artist"
+        ],
+        "summary": "Get the music events an artist is billed on, soonest first. Only unexpired events (ending today or later) unless `includePast` is set.",
+        "operationId": "app.rocksky.artist.getArtistEvents",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uri",
+            "in": "query",
+            "required": true,
+            "description": "The URI of the artist to retrieve events for",
+            "schema": {
+              "type": "string",
+              "description": "The URI of the artist to retrieve events for",
+              "x-lexicon-format": "at-uri"
+            }
+          },
+          {
+            "name": "includePast",
+            "in": "query",
+            "required": false,
+            "description": "Return past events too, most recent first.",
+            "schema": {
+              "type": "boolean",
+              "description": "Return past events too, most recent first."
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "The maximum number of events to return.",
+            "schema": {
+              "type": "integer",
+              "description": "The maximum number of events to return.",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "The offset for pagination.",
+            "schema": {
+              "type": "integer",
+              "description": "The offset for pagination.",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/app.rocksky.event.defs__eventView"
+                      }
+                    }
+                  },
+                  "required": [
+                    "events"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid XRPC request or parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "XRPC error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/app.rocksky.artist.getArtistListeners": {
       "get": {
         "tags": [
@@ -2730,6 +2835,335 @@
                   "name",
                   "bands"
                 ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app.rocksky.event.getEvent": {
+      "get": {
+        "tags": [
+          "app.rocksky.event"
+        ],
+        "summary": "Get a music event by the AT-URI of either its calendar event record or its app.rocksky.event.music record.",
+        "operationId": "app.rocksky.event.getEvent",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uri",
+            "in": "query",
+            "required": true,
+            "description": "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.",
+            "schema": {
+              "type": "string",
+              "description": "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.",
+              "x-lexicon-format": "at-uri"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app.rocksky.event.defs__eventView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid XRPC request or parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "XRPC error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app.rocksky.event.getEventRsvps": {
+      "get": {
+        "tags": [
+          "app.rocksky.event"
+        ],
+        "summary": "List who responded to an event, most recent first.",
+        "operationId": "app.rocksky.event.getEventRsvps",
+        "security": [],
+        "parameters": [
+          {
+            "name": "uri",
+            "in": "query",
+            "required": true,
+            "description": "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.",
+            "schema": {
+              "type": "string",
+              "description": "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.",
+              "x-lexicon-format": "at-uri"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Only responses with this status.",
+            "schema": {
+              "type": "string",
+              "description": "Only responses with this status.",
+              "x-lexicon-knownValues": [
+                "community.lexicon.calendar.rsvp#going",
+                "community.lexicon.calendar.rsvp#interested",
+                "community.lexicon.calendar.rsvp#notgoing"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rsvps": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/app.rocksky.event.defs__rsvpView"
+                      }
+                    }
+                  },
+                  "required": [
+                    "rsvps"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid XRPC request or parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "XRPC error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app.rocksky.event.getEvents": {
+      "get": {
+        "tags": [
+          "app.rocksky.event"
+        ],
+        "summary": "List indexed music events, soonest first. Without a time window only unexpired events are returned: those ending (or, with no end, starting) today or later, plus undated ones.",
+        "operationId": "app.rocksky.event.getEvents",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "artist",
+            "in": "query",
+            "required": false,
+            "description": "Only events this artist plays: the artist's AT-URI, id or sha256.",
+            "schema": {
+              "type": "string",
+              "description": "Only events this artist plays: the artist's AT-URI, id or sha256."
+            }
+          },
+          {
+            "name": "did",
+            "in": "query",
+            "required": false,
+            "description": "Only events published by this repo.",
+            "schema": {
+              "type": "string",
+              "description": "Only events published by this repo.",
+              "x-lexicon-format": "did"
+            }
+          },
+          {
+            "name": "rsvpBy",
+            "in": "query",
+            "required": false,
+            "description": "Only events this DID has RSVP'd to (going or interested).",
+            "schema": {
+              "type": "string",
+              "description": "Only events this DID has RSVP'd to (going or interested).",
+              "x-lexicon-format": "did"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Only events of this kind (concert, festival...).",
+            "schema": {
+              "type": "string",
+              "description": "Only events of this kind (concert, festival...)."
+            }
+          },
+          {
+            "name": "genre",
+            "in": "query",
+            "required": false,
+            "description": "Only events whose genre matches (case-insensitive).",
+            "schema": {
+              "type": "string",
+              "description": "Only events whose genre matches (case-insensitive)."
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Only events that end at or after this time. Defaults to the start of today (UTC) when neither `to` nor `includePast` is given.",
+            "schema": {
+              "type": "string",
+              "description": "Only events that end at or after this time. Defaults to the start of today (UTC) when neither `to` nor `includePast` is given.",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Only events that start at or before this time.",
+            "schema": {
+              "type": "string",
+              "description": "Only events that start at or before this time.",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "includePast",
+            "in": "query",
+            "required": false,
+            "description": "Return past events too, most recent first, instead of upcoming ones.",
+            "schema": {
+              "type": "boolean",
+              "description": "Return past events too, most recent first, instead of upcoming ones."
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "The maximum number of events to return.",
+            "schema": {
+              "type": "integer",
+              "description": "The maximum number of events to return.",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "The offset for pagination.",
+            "schema": {
+              "type": "integer",
+              "description": "The offset for pagination.",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/app.rocksky.event.defs__eventView"
+                      }
+                    }
+                  },
+                  "required": [
+                    "events"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid XRPC request or parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "XRPC error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
               }
             }
           }
@@ -13034,6 +13468,415 @@
           "bands",
           "createdAt"
         ]
+      },
+      "app.rocksky.event.defs__eventView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the event."
+          },
+          "uri": {
+            "type": "string",
+            "description": "AT-URI of the community.lexicon.calendar.event record.",
+            "x-lexicon-format": "at-uri"
+          },
+          "cid": {
+            "type": "string",
+            "description": "CID of the calendar event record revision that was indexed.",
+            "x-lexicon-format": "cid"
+          },
+          "musicUri": {
+            "type": "string",
+            "description": "AT-URI of the app.rocksky.event.music record.",
+            "x-lexicon-format": "at-uri"
+          },
+          "musicCid": {
+            "type": "string",
+            "description": "CID of the music record revision that was indexed.",
+            "x-lexicon-format": "cid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the event."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the event."
+          },
+          "kind": {
+            "type": "string",
+            "description": "What sort of music event this is (concert, festival...).",
+            "x-lexicon-knownValues": [
+              "concert",
+              "festival",
+              "club-night",
+              "dj-set",
+              "livestream",
+              "release-party",
+              "listening-party"
+            ]
+          },
+          "genre": {
+            "type": "string",
+            "description": "The main genre of the event."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startsAt": {
+            "type": "string",
+            "description": "When the event starts.",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "description": "When the event ends.",
+            "format": "date-time"
+          },
+          "mode": {
+            "type": "string",
+            "description": "The attendance mode, as a community.lexicon.calendar.event#mode token.",
+            "x-lexicon-knownValues": [
+              "community.lexicon.calendar.event#inperson",
+              "community.lexicon.calendar.event#virtual",
+              "community.lexicon.calendar.event#hybrid"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "The event status, as a community.lexicon.calendar.event#status token.",
+            "x-lexicon-knownValues": [
+              "community.lexicon.calendar.event#planned",
+              "community.lexicon.calendar.event#scheduled",
+              "community.lexicon.calendar.event#rescheduled",
+              "community.lexicon.calendar.event#cancelled",
+              "community.lexicon.calendar.event#postponed"
+            ]
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Poster or banner image of the event.",
+            "format": "uri"
+          },
+          "ticketsUrl": {
+            "type": "string",
+            "description": "Where tickets can be bought.",
+            "format": "uri"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/app.rocksky.event.defs__locationView"
+            },
+            "description": "Where the event takes place."
+          },
+          "uris": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/app.rocksky.event.defs__uriView"
+            },
+            "description": "Links associated with the event."
+          },
+          "artists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/app.rocksky.event.defs__artistView"
+            },
+            "description": "The lineup, in billing order."
+          },
+          "externalIds": {
+            "$ref": "#/components/schemas/app.rocksky.event.music__externalIds"
+          },
+          "organizerDid": {
+            "type": "string",
+            "description": "The DID of the repo that published the event.",
+            "x-lexicon-format": "did"
+          },
+          "organizerHandle": {
+            "type": "string",
+            "description": "The handle of the publisher."
+          },
+          "organizerName": {
+            "type": "string",
+            "description": "The display name of the publisher."
+          },
+          "organizerAvatarUrl": {
+            "type": "string",
+            "description": "The avatar of the publisher.",
+            "format": "uri"
+          },
+          "rsvpCounts": {
+            "$ref": "#/components/schemas/app.rocksky.event.defs__rsvpCounts"
+          },
+          "viewerRsvp": {
+            "type": "string",
+            "description": "The authenticated viewer's RSVP, as a community.lexicon.calendar.rsvp status token. Absent when not authenticated or when the viewer has not responded.",
+            "x-lexicon-knownValues": [
+              "community.lexicon.calendar.rsvp#going",
+              "community.lexicon.calendar.rsvp#interested",
+              "community.lexicon.calendar.rsvp#notgoing"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the event record was created.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the event was last indexed.",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "uri",
+          "musicUri",
+          "name",
+          "artists",
+          "locations",
+          "uris",
+          "rsvpCounts",
+          "organizerDid",
+          "createdAt",
+          "updatedAt"
+        ],
+        "description": "A music event: the calendar event merged with its app.rocksky.event.music annotation."
+      },
+      "app.rocksky.event.defs__artistView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the linked Rocksky artist."
+          },
+          "uri": {
+            "type": "string",
+            "description": "AT-URI of the linked artist.",
+            "x-lexicon-format": "at-uri"
+          },
+          "sha256": {
+            "type": "string",
+            "description": "The SHA256 hash of the linked artist."
+          },
+          "name": {
+            "type": "string",
+            "description": "The artist name as billed on the event."
+          },
+          "picture": {
+            "type": "string",
+            "description": "The picture of the linked artist."
+          },
+          "mbid": {
+            "type": "string",
+            "description": "MusicBrainz artist id."
+          },
+          "role": {
+            "type": "string",
+            "description": "The artist's billing on this event.",
+            "x-lexicon-knownValues": [
+              "headliner",
+              "support",
+              "opener",
+              "dj",
+              "special-guest",
+              "performer"
+            ]
+          },
+          "stage": {
+            "type": "string",
+            "description": "The stage the artist plays on."
+          },
+          "startsAt": {
+            "type": "string",
+            "description": "When this artist's set starts.",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "An artist on an event lineup, linked to the Rocksky artist when one was resolved."
+      },
+      "app.rocksky.event.defs__locationView": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "x-lexicon-knownValues": [
+              "community.lexicon.location.address",
+              "community.lexicon.location.geo",
+              "community.lexicon.location.fsq",
+              "community.lexicon.location.hthree",
+              "community.lexicon.calendar.event#uri"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the location (venue name)."
+          },
+          "country": {
+            "type": "string",
+            "description": "ISO 3166 country code."
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string",
+            "description": "City or town."
+          },
+          "street": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "string"
+          },
+          "longitude": {
+            "type": "string"
+          },
+          "altitude": {
+            "type": "string"
+          },
+          "fsqPlaceId": {
+            "type": "string",
+            "description": "Foursquare Open Source Places id."
+          },
+          "h3": {
+            "type": "string",
+            "description": "H3 encoded location."
+          },
+          "uri": {
+            "type": "string",
+            "description": "A URL standing in for the location (online events).",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "description": "One entry of the calendar event's locations, flattened: `type` says which community.lexicon.location shape it came from, and only the fields of that shape are set."
+      },
+      "app.rocksky.event.defs__uriView": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "name": {
+            "type": "string",
+            "description": "The display name of the URI."
+          }
+        },
+        "required": [
+          "uri"
+        ]
+      },
+      "app.rocksky.event.defs__rsvpCounts": {
+        "type": "object",
+        "properties": {
+          "going": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "interested": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notGoing": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "going",
+          "interested",
+          "notGoing"
+        ]
+      },
+      "app.rocksky.event.defs__rsvpView": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "AT-URI of the rsvp record.",
+            "x-lexicon-format": "at-uri"
+          },
+          "cid": {
+            "type": "string",
+            "x-lexicon-format": "cid"
+          },
+          "status": {
+            "type": "string",
+            "x-lexicon-knownValues": [
+              "community.lexicon.calendar.rsvp#going",
+              "community.lexicon.calendar.rsvp#interested",
+              "community.lexicon.calendar.rsvp#notgoing"
+            ]
+          },
+          "did": {
+            "type": "string",
+            "x-lexicon-format": "did"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "uri"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "uri",
+          "status",
+          "did",
+          "handle",
+          "displayName",
+          "createdAt"
+        ],
+        "description": "A community.lexicon.calendar.rsvp on an event, with its author."
+      },
+      "app.rocksky.event.music__externalIds": {
+        "type": "object",
+        "properties": {
+          "ticketmaster": {
+            "type": "string"
+          },
+          "songkick": {
+            "type": "string"
+          },
+          "bandsintown": {
+            "type": "string"
+          },
+          "residentAdvisor": {
+            "type": "string"
+          },
+          "setlistfm": {
+            "type": "string"
+          },
+          "dice": {
+            "type": "string"
+          },
+          "eventbrite": {
+            "type": "string"
+          }
+        },
+        "description": "Identifiers of the event on other services."
       },
       "app.rocksky.feed.defs__searchResultsView": {
         "type": "object",
