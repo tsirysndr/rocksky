@@ -107,6 +107,11 @@ function schema(s, id) {
     case "unknown":
       out = {};
       break;
+    // A token is a symbolic value: a string that is the token's own NSID
+    // fragment (e.g. `community.lexicon.calendar.rsvp#going`).
+    case "token":
+      out = { type: "string" };
+      break;
     case "blob":
       out = {
         type: "object",

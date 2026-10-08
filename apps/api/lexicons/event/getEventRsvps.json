@@ -1,0 +1,61 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.event.getEventRsvps",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List who responded to an event, most recent first.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.",
+            "format": "at-uri"
+          },
+          "status": {
+            "type": "string",
+            "description": "Only responses with this status.",
+            "knownValues": [
+              "community.lexicon.calendar.rsvp#going",
+              "community.lexicon.calendar.rsvp#interested",
+              "community.lexicon.calendar.rsvp#notgoing"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 1,
+            "default": 50
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "rsvps"
+          ],
+          "properties": {
+            "rsvps": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.event.defs#rsvpView"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

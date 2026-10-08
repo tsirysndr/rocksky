@@ -27,6 +27,7 @@ import type * as AppRockskyApikeyRemoveApikey from "./types/app/rocksky/apikey/r
 import type * as AppRockskyApikeyUpdateApikey from "./types/app/rocksky/apikey/updateApikey";
 import type * as AppRockskyArtistGetArtist from "./types/app/rocksky/artist/getArtist";
 import type * as AppRockskyArtistGetArtistAlbums from "./types/app/rocksky/artist/getArtistAlbums";
+import type * as AppRockskyArtistGetArtistEvents from "./types/app/rocksky/artist/getArtistEvents";
 import type * as AppRockskyArtistGetArtistListeners from "./types/app/rocksky/artist/getArtistListeners";
 import type * as AppRockskyArtistGetArtistRecentListeners from "./types/app/rocksky/artist/getArtistRecentListeners";
 import type * as AppRockskyArtistGetArtistTracks from "./types/app/rocksky/artist/getArtistTracks";
@@ -43,6 +44,9 @@ import type * as AppRockskyDropboxGetTemporaryLink from "./types/app/rocksky/dro
 import type * as AppRockskyEqualizerDeletePreset from "./types/app/rocksky/equalizer/deletePreset";
 import type * as AppRockskyEqualizerListPresets from "./types/app/rocksky/equalizer/listPresets";
 import type * as AppRockskyEqualizerPutPreset from "./types/app/rocksky/equalizer/putPreset";
+import type * as AppRockskyEventGetEvent from "./types/app/rocksky/event/getEvent";
+import type * as AppRockskyEventGetEventRsvps from "./types/app/rocksky/event/getEventRsvps";
+import type * as AppRockskyEventGetEvents from "./types/app/rocksky/event/getEvents";
 import type * as AppRockskyFeedDescribeFeedGenerator from "./types/app/rocksky/feed/describeFeedGenerator";
 import type * as AppRockskyFeedGetAlbumRecommendations from "./types/app/rocksky/feed/getAlbumRecommendations";
 import type * as AppRockskyFeedGetArtistRecommendations from "./types/app/rocksky/feed/getArtistRecommendations";
@@ -166,6 +170,20 @@ import type * as FmTealAlphaActorSearchActors from "./types/fm/teal/alpha/actor/
 import type * as FmTealAlphaFeedGetActorFeed from "./types/fm/teal/alpha/feed/getActorFeed";
 import type * as FmTealAlphaFeedGetPlay from "./types/fm/teal/alpha/feed/getPlay";
 
+export const COMMUNITY_LEXICON_CALENDAR = {
+  EventVirtual: "community.lexicon.calendar.event#virtual",
+  EventInperson: "community.lexicon.calendar.event#inperson",
+  EventHybrid: "community.lexicon.calendar.event#hybrid",
+  EventPlanned: "community.lexicon.calendar.event#planned",
+  EventScheduled: "community.lexicon.calendar.event#scheduled",
+  EventRescheduled: "community.lexicon.calendar.event#rescheduled",
+  EventCancelled: "community.lexicon.calendar.event#cancelled",
+  EventPostponed: "community.lexicon.calendar.event#postponed",
+  RsvpInterested: "community.lexicon.calendar.rsvp#interested",
+  RsvpGoing: "community.lexicon.calendar.rsvp#going",
+  RsvpNotgoing: "community.lexicon.calendar.rsvp#notgoing",
+};
+
 export function createServer(options?: XrpcOptions): Server {
   return new Server(options);
 }
@@ -173,12 +191,14 @@ export function createServer(options?: XrpcOptions): Server {
 export class Server {
   xrpc: XrpcServer;
   app: AppNS;
+  community: CommunityNS;
   com: ComNS;
   fm: FmNS;
 
   constructor(options?: XrpcOptions) {
     this.xrpc = createXrpcServer(schemas, options);
     this.app = new AppNS(this);
+    this.community = new CommunityNS(this);
     this.com = new ComNS(this);
     this.fm = new FmNS(this);
   }
@@ -205,6 +225,7 @@ export class AppRockskyNS {
   charts: AppRockskyChartsNS;
   dropbox: AppRockskyDropboxNS;
   equalizer: AppRockskyEqualizerNS;
+  event: AppRockskyEventNS;
   feed: AppRockskyFeedNS;
   googledrive: AppRockskyGoogledriveNS;
   graph: AppRockskyGraphNS;
@@ -230,6 +251,7 @@ export class AppRockskyNS {
     this.charts = new AppRockskyChartsNS(server);
     this.dropbox = new AppRockskyDropboxNS(server);
     this.equalizer = new AppRockskyEqualizerNS(server);
+    this.event = new AppRockskyEventNS(server);
     this.feed = new AppRockskyFeedNS(server);
     this.googledrive = new AppRockskyGoogledriveNS(server);
     this.graph = new AppRockskyGraphNS(server);
@@ -477,6 +499,17 @@ export class AppRockskyArtistNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
+  getArtistEvents<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyArtistGetArtistEvents.Handler<ExtractAuth<AV>>,
+      AppRockskyArtistGetArtistEvents.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.artist.getArtistEvents"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
   getArtistListeners<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -674,6 +707,47 @@ export class AppRockskyEqualizerNS {
     >,
   ) {
     const nsid = "app.rocksky.equalizer.putPreset"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class AppRockskyEventNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  getEvent<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyEventGetEvent.Handler<ExtractAuth<AV>>,
+      AppRockskyEventGetEvent.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.event.getEvent"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getEventRsvps<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyEventGetEventRsvps.Handler<ExtractAuth<AV>>,
+      AppRockskyEventGetEventRsvps.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.event.getEventRsvps"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getEvents<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyEventGetEvents.Handler<ExtractAuth<AV>>,
+      AppRockskyEventGetEvents.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.event.getEvents"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }
@@ -2106,6 +2180,44 @@ export class AppBskyNS {
 }
 
 export class AppBskyActorNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+}
+
+export class CommunityNS {
+  _server: Server;
+  lexicon: CommunityLexiconNS;
+
+  constructor(server: Server) {
+    this._server = server;
+    this.lexicon = new CommunityLexiconNS(server);
+  }
+}
+
+export class CommunityLexiconNS {
+  _server: Server;
+  calendar: CommunityLexiconCalendarNS;
+  location: CommunityLexiconLocationNS;
+
+  constructor(server: Server) {
+    this._server = server;
+    this.calendar = new CommunityLexiconCalendarNS(server);
+    this.location = new CommunityLexiconLocationNS(server);
+  }
+}
+
+export class CommunityLexiconCalendarNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+}
+
+export class CommunityLexiconLocationNS {
   _server: Server;
 
   constructor(server: Server) {

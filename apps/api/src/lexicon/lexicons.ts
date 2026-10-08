@@ -2155,6 +2155,61 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyArtistGetArtistEvents: {
+    lexicon: 1,
+    id: "app.rocksky.artist.getArtistEvents",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get the music events an artist is billed on, soonest first. Only unexpired events (ending today or later) unless `includePast` is set.",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the artist to retrieve events for",
+              format: "at-uri",
+            },
+            includePast: {
+              type: "boolean",
+              description: "Return past events too, most recent first.",
+            },
+            limit: {
+              type: "integer",
+              description: "The maximum number of events to return.",
+              maximum: 100,
+              minimum: 1,
+              default: 20,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination.",
+              minimum: 0,
+              default: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["events"],
+            properties: {
+              events: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.event.defs#eventView",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyArtistGetArtistListeners: {
     lexicon: 1,
     id: "app.rocksky.artist.getArtistListeners",
@@ -2706,6 +2761,313 @@ export const schemaDict = {
       },
     },
   },
+  CommunityLexiconCalendarEvent: {
+    lexicon: 1,
+    id: "community.lexicon.calendar.event",
+    defs: {
+      main: {
+        type: "record",
+        description: "A calendar event.",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["createdAt", "name"],
+          properties: {
+            name: {
+              type: "string",
+              description: "The name of the event.",
+            },
+            description: {
+              type: "string",
+              description: "The description of the event.",
+            },
+            createdAt: {
+              type: "string",
+              format: "datetime",
+              description:
+                "Client-declared timestamp when the event was created.",
+            },
+            startsAt: {
+              type: "string",
+              format: "datetime",
+              description: "Client-declared timestamp when the event starts.",
+            },
+            endsAt: {
+              type: "string",
+              format: "datetime",
+              description: "Client-declared timestamp when the event ends.",
+            },
+            mode: {
+              type: "ref",
+              ref: "lex:community.lexicon.calendar.event#mode",
+              description: "The attendance mode of the event.",
+            },
+            status: {
+              type: "ref",
+              ref: "lex:community.lexicon.calendar.event#status",
+              description: "The status of the event.",
+            },
+            locations: {
+              type: "array",
+              description: "The locations where the event takes place.",
+              items: {
+                type: "union",
+                refs: [
+                  "lex:community.lexicon.calendar.event#uri",
+                  "lex:community.lexicon.location.address",
+                  "lex:community.lexicon.location.fsq",
+                  "lex:community.lexicon.location.geo",
+                  "lex:community.lexicon.location.hthree",
+                ],
+              },
+            },
+            uris: {
+              type: "array",
+              description: "URIs associated with the event.",
+              items: {
+                type: "ref",
+                ref: "lex:community.lexicon.calendar.event#uri",
+              },
+            },
+            rsvpExpected: {
+              type: "boolean",
+              description: "Whether a response is requested from attendees.",
+            },
+          },
+        },
+      },
+      mode: {
+        type: "string",
+        description: "The mode of the event.",
+        default: "community.lexicon.calendar.event#inperson",
+        knownValues: [
+          "community.lexicon.calendar.event#hybrid",
+          "community.lexicon.calendar.event#inperson",
+          "community.lexicon.calendar.event#virtual",
+        ],
+      },
+      virtual: {
+        type: "token",
+        description: "A virtual event that takes place online.",
+      },
+      inperson: {
+        type: "token",
+        description: "An in-person event that takes place offline.",
+      },
+      hybrid: {
+        type: "token",
+        description: "A hybrid event that takes place both online and offline.",
+      },
+      status: {
+        type: "string",
+        description: "The status of the event.",
+        default: "community.lexicon.calendar.event#scheduled",
+        knownValues: [
+          "community.lexicon.calendar.event#cancelled",
+          "community.lexicon.calendar.event#planned",
+          "community.lexicon.calendar.event#postponed",
+          "community.lexicon.calendar.event#rescheduled",
+          "community.lexicon.calendar.event#scheduled",
+        ],
+      },
+      planned: {
+        type: "token",
+        description: "The event has been created, but not finalized.",
+      },
+      scheduled: {
+        type: "token",
+        description: "The event has been created and scheduled.",
+      },
+      rescheduled: {
+        type: "token",
+        description: "The event has been rescheduled.",
+      },
+      cancelled: {
+        type: "token",
+        description: "The event has been cancelled.",
+      },
+      postponed: {
+        type: "token",
+        description:
+          "The event has been postponed and a new start date has not been set.",
+      },
+      uri: {
+        type: "object",
+        description: "A URI associated with the event.",
+        required: ["uri"],
+        properties: {
+          uri: {
+            type: "string",
+            format: "uri",
+          },
+          name: {
+            type: "string",
+            description: "The display name of the URI.",
+          },
+        },
+      },
+    },
+  },
+  CommunityLexiconCalendarRsvp: {
+    lexicon: 1,
+    id: "community.lexicon.calendar.rsvp",
+    defs: {
+      main: {
+        type: "record",
+        description: "An RSVP for an event.",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["subject", "status"],
+          properties: {
+            subject: {
+              type: "ref",
+              ref: "lex:com.atproto.repo.strongRef",
+            },
+            status: {
+              type: "string",
+              default: "community.lexicon.calendar.rsvp#going",
+              knownValues: [
+                "community.lexicon.calendar.rsvp#interested",
+                "community.lexicon.calendar.rsvp#going",
+                "community.lexicon.calendar.rsvp#notgoing",
+              ],
+            },
+          },
+        },
+      },
+      interested: {
+        type: "token",
+        description: "Interested in the event",
+      },
+      going: {
+        type: "token",
+        description: "Going to the event",
+      },
+      notgoing: {
+        type: "token",
+        description: "Not going to the event",
+      },
+    },
+  },
+  CommunityLexiconLocationAddress: {
+    lexicon: 1,
+    id: "community.lexicon.location.address",
+    defs: {
+      main: {
+        type: "object",
+        description: "A physical location in the form of a street address.",
+        required: ["country"],
+        properties: {
+          country: {
+            type: "string",
+            description:
+              "The ISO 3166 country code. Preferably the 2-letter code.",
+            minLength: 2,
+            maxLength: 10,
+          },
+          postalCode: {
+            type: "string",
+            description: "The postal code of the location.",
+          },
+          region: {
+            type: "string",
+            description:
+              "The administrative region of the country. For example, a state in the USA.",
+          },
+          locality: {
+            type: "string",
+            description:
+              "The locality of the region. For example, a city in the USA.",
+          },
+          street: {
+            type: "string",
+            description: "The street address.",
+          },
+          name: {
+            type: "string",
+            description: "The name of the location.",
+          },
+        },
+      },
+    },
+  },
+  CommunityLexiconLocationFsq: {
+    lexicon: 1,
+    id: "community.lexicon.location.fsq",
+    defs: {
+      main: {
+        type: "object",
+        description:
+          "A physical location contained in the Foursquare Open Source Places dataset.",
+        required: ["fsq_place_id"],
+        properties: {
+          fsq_place_id: {
+            type: "string",
+            description: "The unique identifier of a Foursquare POI.",
+          },
+          latitude: {
+            type: "string",
+          },
+          longitude: {
+            type: "string",
+          },
+          name: {
+            type: "string",
+            description: "The name of the location.",
+          },
+        },
+      },
+    },
+  },
+  CommunityLexiconLocationGeo: {
+    lexicon: 1,
+    id: "community.lexicon.location.geo",
+    defs: {
+      main: {
+        type: "object",
+        description: "A physical location in the form of a WGS84 coordinate.",
+        required: ["latitude", "longitude"],
+        properties: {
+          latitude: {
+            type: "string",
+          },
+          longitude: {
+            type: "string",
+          },
+          altitude: {
+            type: "string",
+          },
+          name: {
+            type: "string",
+            description: "The name of the location.",
+          },
+        },
+      },
+    },
+  },
+  CommunityLexiconLocationHthree: {
+    lexicon: 1,
+    id: "community.lexicon.location.hthree",
+    defs: {
+      main: {
+        type: "object",
+        description:
+          "A physical location in the form of a H3 encoded location.",
+        required: ["value"],
+        properties: {
+          value: {
+            type: "string",
+            description: "The h3 encoded location.",
+          },
+          name: {
+            type: "string",
+            description: "The name of the location.",
+          },
+        },
+      },
+    },
+  },
   AppRockskyDropboxDefs: {
     lexicon: 1,
     id: "app.rocksky.dropbox.defs",
@@ -3143,6 +3505,728 @@ export const schemaDict = {
           schema: {
             type: "ref",
             ref: "lex:app.rocksky.equalizer.defs#presetView",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEventDefs: {
+    lexicon: 1,
+    id: "app.rocksky.event.defs",
+    defs: {
+      eventView: {
+        type: "object",
+        description:
+          "A music event: the calendar event merged with its app.rocksky.event.music annotation.",
+        required: [
+          "id",
+          "uri",
+          "musicUri",
+          "name",
+          "artists",
+          "locations",
+          "uris",
+          "rsvpCounts",
+          "organizerDid",
+          "createdAt",
+          "updatedAt",
+        ],
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the event.",
+          },
+          uri: {
+            type: "string",
+            description:
+              "AT-URI of the community.lexicon.calendar.event record.",
+            format: "at-uri",
+          },
+          cid: {
+            type: "string",
+            description:
+              "CID of the calendar event record revision that was indexed.",
+            format: "cid",
+          },
+          musicUri: {
+            type: "string",
+            description: "AT-URI of the app.rocksky.event.music record.",
+            format: "at-uri",
+          },
+          musicCid: {
+            type: "string",
+            description: "CID of the music record revision that was indexed.",
+            format: "cid",
+          },
+          name: {
+            type: "string",
+            description: "The name of the event.",
+          },
+          description: {
+            type: "string",
+            description: "The description of the event.",
+          },
+          kind: {
+            type: "string",
+            description:
+              "What sort of music event this is (concert, festival...).",
+            knownValues: [
+              "concert",
+              "festival",
+              "club-night",
+              "dj-set",
+              "livestream",
+              "release-party",
+              "listening-party",
+            ],
+          },
+          genre: {
+            type: "string",
+            description: "The main genre of the event.",
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          startsAt: {
+            type: "string",
+            description: "When the event starts.",
+            format: "datetime",
+          },
+          endsAt: {
+            type: "string",
+            description: "When the event ends.",
+            format: "datetime",
+          },
+          mode: {
+            type: "string",
+            description:
+              "The attendance mode, as a community.lexicon.calendar.event#mode token.",
+            knownValues: [
+              "community.lexicon.calendar.event#inperson",
+              "community.lexicon.calendar.event#virtual",
+              "community.lexicon.calendar.event#hybrid",
+            ],
+          },
+          status: {
+            type: "string",
+            description:
+              "The event status, as a community.lexicon.calendar.event#status token.",
+            knownValues: [
+              "community.lexicon.calendar.event#planned",
+              "community.lexicon.calendar.event#scheduled",
+              "community.lexicon.calendar.event#rescheduled",
+              "community.lexicon.calendar.event#cancelled",
+              "community.lexicon.calendar.event#postponed",
+            ],
+          },
+          imageUrl: {
+            type: "string",
+            description: "Poster or banner image of the event.",
+            format: "uri",
+          },
+          ticketsUrl: {
+            type: "string",
+            description: "Where tickets can be bought.",
+            format: "uri",
+          },
+          locations: {
+            type: "array",
+            description: "Where the event takes place.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.event.defs#locationView",
+            },
+          },
+          uris: {
+            type: "array",
+            description: "Links associated with the event.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.event.defs#uriView",
+            },
+          },
+          artists: {
+            type: "array",
+            description: "The lineup, in billing order.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.event.defs#artistView",
+            },
+          },
+          externalIds: {
+            type: "ref",
+            ref: "lex:app.rocksky.event.music#externalIds",
+          },
+          organizerDid: {
+            type: "string",
+            description: "The DID of the repo that published the event.",
+            format: "did",
+          },
+          organizerHandle: {
+            type: "string",
+            description: "The handle of the publisher.",
+          },
+          organizerName: {
+            type: "string",
+            description: "The display name of the publisher.",
+          },
+          organizerAvatarUrl: {
+            type: "string",
+            description: "The avatar of the publisher.",
+            format: "uri",
+          },
+          rsvpCounts: {
+            type: "ref",
+            ref: "lex:app.rocksky.event.defs#rsvpCounts",
+          },
+          viewerRsvp: {
+            type: "string",
+            description:
+              "The authenticated viewer's RSVP, as a community.lexicon.calendar.rsvp status token. Absent when not authenticated or when the viewer has not responded.",
+            knownValues: [
+              "community.lexicon.calendar.rsvp#going",
+              "community.lexicon.calendar.rsvp#interested",
+              "community.lexicon.calendar.rsvp#notgoing",
+            ],
+          },
+          createdAt: {
+            type: "string",
+            description: "When the event record was created.",
+            format: "datetime",
+          },
+          updatedAt: {
+            type: "string",
+            description: "When the event was last indexed.",
+            format: "datetime",
+          },
+        },
+      },
+      artistView: {
+        type: "object",
+        description:
+          "An artist on an event lineup, linked to the Rocksky artist when one was resolved.",
+        required: ["name"],
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the linked Rocksky artist.",
+          },
+          uri: {
+            type: "string",
+            description: "AT-URI of the linked artist.",
+            format: "at-uri",
+          },
+          sha256: {
+            type: "string",
+            description: "The SHA256 hash of the linked artist.",
+          },
+          name: {
+            type: "string",
+            description: "The artist name as billed on the event.",
+          },
+          picture: {
+            type: "string",
+            description: "The picture of the linked artist.",
+          },
+          mbid: {
+            type: "string",
+            description: "MusicBrainz artist id.",
+          },
+          role: {
+            type: "string",
+            description: "The artist's billing on this event.",
+            knownValues: [
+              "headliner",
+              "support",
+              "opener",
+              "dj",
+              "special-guest",
+              "performer",
+            ],
+          },
+          stage: {
+            type: "string",
+            description: "The stage the artist plays on.",
+          },
+          startsAt: {
+            type: "string",
+            description: "When this artist's set starts.",
+            format: "datetime",
+          },
+        },
+      },
+      locationView: {
+        type: "object",
+        description:
+          "One entry of the calendar event's locations, flattened: `type` says which community.lexicon.location shape it came from, and only the fields of that shape are set.",
+        required: ["type"],
+        properties: {
+          type: {
+            type: "string",
+            knownValues: [
+              "community.lexicon.location.address",
+              "community.lexicon.location.geo",
+              "community.lexicon.location.fsq",
+              "community.lexicon.location.hthree",
+              "community.lexicon.calendar.event#uri",
+            ],
+          },
+          name: {
+            type: "string",
+            description: "The name of the location (venue name).",
+          },
+          country: {
+            type: "string",
+            description: "ISO 3166 country code.",
+          },
+          postalCode: {
+            type: "string",
+          },
+          region: {
+            type: "string",
+          },
+          locality: {
+            type: "string",
+            description: "City or town.",
+          },
+          street: {
+            type: "string",
+          },
+          latitude: {
+            type: "string",
+          },
+          longitude: {
+            type: "string",
+          },
+          altitude: {
+            type: "string",
+          },
+          fsqPlaceId: {
+            type: "string",
+            description: "Foursquare Open Source Places id.",
+          },
+          h3: {
+            type: "string",
+            description: "H3 encoded location.",
+          },
+          uri: {
+            type: "string",
+            description: "A URL standing in for the location (online events).",
+            format: "uri",
+          },
+        },
+      },
+      uriView: {
+        type: "object",
+        required: ["uri"],
+        properties: {
+          uri: {
+            type: "string",
+            format: "uri",
+          },
+          name: {
+            type: "string",
+            description: "The display name of the URI.",
+          },
+        },
+      },
+      rsvpCounts: {
+        type: "object",
+        required: ["going", "interested", "notGoing"],
+        properties: {
+          going: {
+            type: "integer",
+            minimum: 0,
+          },
+          interested: {
+            type: "integer",
+            minimum: 0,
+          },
+          notGoing: {
+            type: "integer",
+            minimum: 0,
+          },
+        },
+      },
+      rsvpView: {
+        type: "object",
+        description:
+          "A community.lexicon.calendar.rsvp on an event, with its author.",
+        required: [
+          "uri",
+          "status",
+          "did",
+          "handle",
+          "displayName",
+          "createdAt",
+        ],
+        properties: {
+          uri: {
+            type: "string",
+            description: "AT-URI of the rsvp record.",
+            format: "at-uri",
+          },
+          cid: {
+            type: "string",
+            format: "cid",
+          },
+          status: {
+            type: "string",
+            knownValues: [
+              "community.lexicon.calendar.rsvp#going",
+              "community.lexicon.calendar.rsvp#interested",
+              "community.lexicon.calendar.rsvp#notgoing",
+            ],
+          },
+          did: {
+            type: "string",
+            format: "did",
+          },
+          handle: {
+            type: "string",
+          },
+          displayName: {
+            type: "string",
+          },
+          avatar: {
+            type: "string",
+            format: "uri",
+          },
+          createdAt: {
+            type: "string",
+            format: "datetime",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEventGetEvent: {
+    lexicon: 1,
+    id: "app.rocksky.event.getEvent",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get a music event by the AT-URI of either its calendar event record or its app.rocksky.event.music record.",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description:
+                "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.",
+              format: "at-uri",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.event.defs#eventView",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEventGetEventRsvps: {
+    lexicon: 1,
+    id: "app.rocksky.event.getEventRsvps",
+    defs: {
+      main: {
+        type: "query",
+        description: "List who responded to an event, most recent first.",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description:
+                "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.",
+              format: "at-uri",
+            },
+            status: {
+              type: "string",
+              description: "Only responses with this status.",
+              knownValues: [
+                "community.lexicon.calendar.rsvp#going",
+                "community.lexicon.calendar.rsvp#interested",
+                "community.lexicon.calendar.rsvp#notgoing",
+              ],
+            },
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+              default: 50,
+            },
+            offset: {
+              type: "integer",
+              minimum: 0,
+              default: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["rsvps"],
+            properties: {
+              rsvps: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.event.defs#rsvpView",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEventGetEvents: {
+    lexicon: 1,
+    id: "app.rocksky.event.getEvents",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "List indexed music events, soonest first. Without a time window only unexpired events are returned: those ending (or, with no end, starting) today or later, plus undated ones.",
+        parameters: {
+          type: "params",
+          properties: {
+            artist: {
+              type: "string",
+              description:
+                "Only events this artist plays: the artist's AT-URI, id or sha256.",
+            },
+            did: {
+              type: "string",
+              description: "Only events published by this repo.",
+              format: "did",
+            },
+            rsvpBy: {
+              type: "string",
+              description:
+                "Only events this DID has RSVP'd to (going or interested).",
+              format: "did",
+            },
+            kind: {
+              type: "string",
+              description: "Only events of this kind (concert, festival...).",
+            },
+            genre: {
+              type: "string",
+              description:
+                "Only events whose genre matches (case-insensitive).",
+            },
+            from: {
+              type: "string",
+              description:
+                "Only events that end at or after this time. Defaults to the start of today (UTC) when neither `to` nor `includePast` is given.",
+              format: "datetime",
+            },
+            to: {
+              type: "string",
+              description: "Only events that start at or before this time.",
+              format: "datetime",
+            },
+            includePast: {
+              type: "boolean",
+              description:
+                "Return past events too, most recent first, instead of upcoming ones.",
+            },
+            limit: {
+              type: "integer",
+              description: "The maximum number of events to return.",
+              maximum: 100,
+              minimum: 1,
+              default: 20,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination.",
+              minimum: 0,
+              default: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["events"],
+            properties: {
+              events: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.event.defs#eventView",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyEventMusic: {
+    lexicon: 1,
+    id: "app.rocksky.event.music",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "Marks a community.lexicon.calendar.event as a music event (concert, festival, club night...) and links it to the artists performing. The calendar event carries the name, dates and venue; this record carries what is specific to music. Rocksky only indexes calendar events that have one of these attached.",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["subject", "artists", "createdAt"],
+          properties: {
+            subject: {
+              type: "ref",
+              description:
+                "Strong reference (AT-URI + CID) to the community.lexicon.calendar.event record this annotates.",
+              ref: "lex:com.atproto.repo.strongRef",
+            },
+            kind: {
+              type: "string",
+              description: "What sort of music event this is.",
+              maxLength: 64,
+              knownValues: [
+                "concert",
+                "festival",
+                "club-night",
+                "dj-set",
+                "livestream",
+                "release-party",
+                "listening-party",
+              ],
+            },
+            artists: {
+              type: "array",
+              description: "The lineup, in billing order.",
+              items: {
+                type: "ref",
+                ref: "lex:app.rocksky.event.music#artist",
+              },
+            },
+            genre: {
+              type: "string",
+              description: "The main genre of the event.",
+              maxLength: 128,
+            },
+            tags: {
+              type: "array",
+              description: "Free-form tags (sub-genres, scene, tour name...).",
+              items: {
+                type: "string",
+                maxLength: 128,
+              },
+            },
+            externalIds: {
+              type: "ref",
+              description:
+                "Identifiers of the same event on ticketing and event-listing services.",
+              ref: "lex:app.rocksky.event.music#externalIds",
+            },
+            ticketsUrl: {
+              type: "string",
+              description: "Where tickets can be bought.",
+              format: "uri",
+            },
+            imageUrl: {
+              type: "string",
+              description: "Poster or banner image of the event.",
+              format: "uri",
+            },
+            createdAt: {
+              type: "string",
+              description:
+                "Client-declared timestamp when this record was created.",
+              format: "datetime",
+            },
+          },
+        },
+      },
+      artist: {
+        type: "object",
+        description: "An artist on the lineup.",
+        required: ["name"],
+        properties: {
+          name: {
+            type: "string",
+            description: "The artist name as billed.",
+            minLength: 1,
+            maxLength: 256,
+          },
+          uri: {
+            type: "string",
+            description:
+              "AT-URI of the app.rocksky.artist record, when the artist is known to Rocksky.",
+            format: "at-uri",
+          },
+          mbid: {
+            type: "string",
+            description: "MusicBrainz artist id.",
+          },
+          role: {
+            type: "string",
+            description: "The artist's billing on this event.",
+            maxLength: 64,
+            knownValues: [
+              "headliner",
+              "support",
+              "opener",
+              "dj",
+              "special-guest",
+              "performer",
+            ],
+          },
+          stage: {
+            type: "string",
+            description:
+              "The stage the artist plays on, for multi-stage events such as festivals.",
+            maxLength: 256,
+          },
+          startsAt: {
+            type: "string",
+            description: "When this artist's set starts.",
+            format: "datetime",
+          },
+        },
+      },
+      externalIds: {
+        type: "object",
+        description: "Identifiers of the event on other services.",
+        properties: {
+          ticketmaster: {
+            type: "string",
+          },
+          songkick: {
+            type: "string",
+          },
+          bandsintown: {
+            type: "string",
+          },
+          residentAdvisor: {
+            type: "string",
+          },
+          setlistfm: {
+            type: "string",
+          },
+          dice: {
+            type: "string",
+          },
+          eventbrite: {
+            type: "string",
           },
         },
       },
@@ -12406,6 +13490,7 @@ export const ids = {
   AppRockskyArtistDefs: "app.rocksky.artist.defs",
   AppRockskyArtistGetArtist: "app.rocksky.artist.getArtist",
   AppRockskyArtistGetArtistAlbums: "app.rocksky.artist.getArtistAlbums",
+  AppRockskyArtistGetArtistEvents: "app.rocksky.artist.getArtistEvents",
   AppRockskyArtistGetArtistListeners: "app.rocksky.artist.getArtistListeners",
   AppRockskyArtistGetArtistRecentListeners:
     "app.rocksky.artist.getArtistRecentListeners",
@@ -12417,6 +13502,12 @@ export const ids = {
   AppRockskyChartsGetTopArtists: "app.rocksky.charts.getTopArtists",
   AppRockskyChartsGetTopScrobblers: "app.rocksky.charts.getTopScrobblers",
   AppRockskyChartsGetTopTracks: "app.rocksky.charts.getTopTracks",
+  CommunityLexiconCalendarEvent: "community.lexicon.calendar.event",
+  CommunityLexiconCalendarRsvp: "community.lexicon.calendar.rsvp",
+  CommunityLexiconLocationAddress: "community.lexicon.location.address",
+  CommunityLexiconLocationFsq: "community.lexicon.location.fsq",
+  CommunityLexiconLocationGeo: "community.lexicon.location.geo",
+  CommunityLexiconLocationHthree: "community.lexicon.location.hthree",
   AppRockskyDropboxDefs: "app.rocksky.dropbox.defs",
   AppRockskyDropboxDownloadFile: "app.rocksky.dropbox.downloadFile",
   AppRockskyDropboxGetFiles: "app.rocksky.dropbox.getFiles",
@@ -12427,6 +13518,11 @@ export const ids = {
   AppRockskyEqualizer: "app.rocksky.equalizer",
   AppRockskyEqualizerListPresets: "app.rocksky.equalizer.listPresets",
   AppRockskyEqualizerPutPreset: "app.rocksky.equalizer.putPreset",
+  AppRockskyEventDefs: "app.rocksky.event.defs",
+  AppRockskyEventGetEvent: "app.rocksky.event.getEvent",
+  AppRockskyEventGetEventRsvps: "app.rocksky.event.getEventRsvps",
+  AppRockskyEventGetEvents: "app.rocksky.event.getEvents",
+  AppRockskyEventMusic: "app.rocksky.event.music",
   AppRockskyFeedDefs: "app.rocksky.feed.defs",
   AppRockskyFeedDescribeFeedGenerator: "app.rocksky.feed.describeFeedGenerator",
   AppRockskyFeedGenerator: "app.rocksky.feed.generator",

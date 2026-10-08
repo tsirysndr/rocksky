@@ -1,0 +1,135 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.event.music"
+defs = new Mapping<String, BaseType> {
+  ["main"] = new Record {
+    type = "record"
+    key = "tid"
+    description =
+      "Marks a community.lexicon.calendar.event as a music event (concert, festival, club night...) and links it to the artists performing. The calendar event carries the name, dates and venue; this record carries what is specific to music. Rocksky only indexes calendar events that have one of these attached."
+    `record` {
+      type = "object"
+      required = List("subject", "artists", "createdAt")
+      properties {
+        ["subject"] = new Ref {
+          type = "ref"
+          description = "Strong reference (AT-URI + CID) to the community.lexicon.calendar.event record this annotates."
+          ref = "com.atproto.repo.strongRef"
+        }
+        ["kind"] = new StringType {
+          type = "string"
+          description = "What sort of music event this is."
+          knownValues = List("concert", "festival", "club-night", "dj-set", "livestream", "release-party", "listening-party")
+          maxLength = 64
+        }
+        ["artists"] = new Array {
+          type = "array"
+          description = "The lineup, in billing order."
+          items = new Ref {
+            type = "ref"
+            ref = "app.rocksky.event.music#artist"
+          }
+        }
+        ["genre"] = new StringType {
+          type = "string"
+          description = "The main genre of the event."
+          maxLength = 128
+        }
+        ["tags"] = new Array {
+          type = "array"
+          description = "Free-form tags (sub-genres, scene, tour name...)."
+          items = new StringType {
+            type = "string"
+            maxLength = 128
+          }
+        }
+        ["externalIds"] = new Ref {
+          type = "ref"
+          description = "Identifiers of the same event on ticketing and event-listing services."
+          ref = "app.rocksky.event.music#externalIds"
+        }
+        ["ticketsUrl"] = new StringType {
+          type = "string"
+          description = "Where tickets can be bought."
+          format = "uri"
+        }
+        ["imageUrl"] = new StringType {
+          type = "string"
+          description = "Poster or banner image of the event."
+          format = "uri"
+        }
+        ["createdAt"] = new StringType {
+          type = "string"
+          description = "Client-declared timestamp when this record was created."
+          format = "datetime"
+        }
+      }
+    }
+  }
+  ["artist"] = new ObjectType {
+    type = "object"
+    description = "An artist on the lineup."
+    required = List("name")
+    properties {
+      ["name"] = new StringType {
+        type = "string"
+        description = "The artist name as billed."
+        minLength = 1
+        maxLength = 256
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        description = "AT-URI of the app.rocksky.artist record, when the artist is known to Rocksky."
+        format = "at-uri"
+      }
+      ["mbid"] = new StringType {
+        type = "string"
+        description = "MusicBrainz artist id."
+      }
+      ["role"] = new StringType {
+        type = "string"
+        description = "The artist's billing on this event."
+        knownValues = List("headliner", "support", "opener", "dj", "special-guest", "performer")
+        maxLength = 64
+      }
+      ["stage"] = new StringType {
+        type = "string"
+        description = "The stage the artist plays on, for multi-stage events such as festivals."
+        maxLength = 256
+      }
+      ["startsAt"] = new StringType {
+        type = "string"
+        description = "When this artist's set starts."
+        format = "datetime"
+      }
+    }
+  }
+  ["externalIds"] = new ObjectType {
+    type = "object"
+    description = "Identifiers of the event on other services."
+    properties {
+      ["ticketmaster"] = new StringType {
+        type = "string"
+      }
+      ["songkick"] = new StringType {
+        type = "string"
+      }
+      ["bandsintown"] = new StringType {
+        type = "string"
+      }
+      ["residentAdvisor"] = new StringType {
+        type = "string"
+      }
+      ["setlistfm"] = new StringType {
+        type = "string"
+      }
+      ["dice"] = new StringType {
+        type = "string"
+      }
+      ["eventbrite"] = new StringType {
+        type = "string"
+      }
+    }
+  }
+}

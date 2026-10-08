@@ -1,0 +1,52 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.artist.getArtistEvents"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get the music events an artist is billed on, soonest first. Only unexpired events (ending today or later) unless `includePast` is set."
+    parameters = new Params {
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          description = "The URI of the artist to retrieve events for"
+          format = "at-uri"
+        }
+        ["includePast"] = new BooleanType {
+          type = "boolean"
+          description = "Return past events too, most recent first."
+        }
+        ["limit"] = new IntegerType {
+          type = "integer"
+          description = "The maximum number of events to return."
+          minimum = 1
+          maximum = 100
+          default = 20
+        }
+        ["offset"] = new IntegerType {
+          type = "integer"
+          description = "The offset for pagination."
+          minimum = 0
+          default = 0
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("events")
+        properties = new Mapping<String, BaseType> {
+          ["events"] = new Array {
+            type = "array"
+            items = new Ref {
+              type = "ref"
+              ref = "app.rocksky.event.defs#eventView"
+            }
+          }
+        }
+      }
+    }
+  }
+}

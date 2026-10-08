@@ -1,0 +1,28 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.event.getEvent"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a music event by the AT-URI of either its calendar event record or its app.rocksky.event.music record."
+    parameters {
+      type = "params"
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          type = "string"
+          description = "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record."
+          format = "at-uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.event.defs#eventView"
+      }
+    }
+  }
+}

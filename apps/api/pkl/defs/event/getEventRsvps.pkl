@@ -1,0 +1,53 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.event.getEventRsvps"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "List who responded to an event, most recent first."
+    parameters {
+      type = "params"
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          type = "string"
+          description = "AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record."
+          format = "at-uri"
+        }
+        ["status"] = new StringType {
+          type = "string"
+          description = "Only responses with this status."
+          knownValues = List("community.lexicon.calendar.rsvp#going", "community.lexicon.calendar.rsvp#interested", "community.lexicon.calendar.rsvp#notgoing")
+        }
+        ["limit"] = new IntegerType {
+          type = "integer"
+          minimum = 1
+          maximum = 100
+          default = 50
+        }
+        ["offset"] = new IntegerType {
+          type = "integer"
+          minimum = 0
+          default = 0
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("rsvps")
+        properties = new Mapping<String, BaseType> {
+          ["rsvps"] = new Array {
+            type = "array"
+            items = new Ref {
+              type = "ref"
+              ref = "app.rocksky.event.defs#rsvpView"
+            }
+          }
+        }
+      }
+    }
+  }
+}
