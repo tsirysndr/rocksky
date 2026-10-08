@@ -35,6 +35,19 @@ export function attachQueueSync(context: QueueSyncContext, player: Player,
     let request;
     try { request = object(typeof event.data === "string" ? JSON.parse(event.data) : event.data); }
     catch { return; }
+    if (request.type === "control") {
+      let error: string | undefined;
+      try {
+        if (request.command === "play") player.play();
+        else if (request.command === "pause") player.pause();
+        else if (request.command === "seek" && typeof request.position === "number" &&
+          Number.isFinite(request.position) && request.position >= 0) player.seek(request.position);
+        else throw new Error("Unsupported playback command");
+      } catch { error = "Could not control playback"; }
+      context.sendCustomMessage(QUEUE_SYNC_NAMESPACE, event.senderId,
+        { type: "controlResult", requestId: request.requestId, error, state: playbackState() });
+      return;
+    }
     if (request.type !== "snapshot") return;
     const items = player.getQueueManager()?.getItems() ?? [];
     const first = object(object(items[0]).media);

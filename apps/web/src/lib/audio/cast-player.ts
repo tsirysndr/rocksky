@@ -110,9 +110,42 @@ function requestQueue(offset?: number, revision = syncRevision) {
   queueRequestAt = Date.now();
   void syncSession.sendMessage(QUEUE_SYNC_NAMESPACE, { type: "snapshot", requestId: ++syncRequestId, revision, offset }).catch(() => {});
 }
+let controlId = 0;
+const pendingControls = new Map<number, { resolve: () => void; reject: (error: Error) => void }>();
+async function control(command: "play" | "pause" | "seek", position?: number) {
+  const target = session();
+  if (!target) throw new Error("Chromecast is not connected");
+  bindQueueSync(target);
+  const requestId = ++controlId;
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pendingControls.delete(requestId);
+      reject(new Error("Chromecast did not respond. Reconnect to load the updated receiver."));
+    }, 5000);
+    pendingControls.set(requestId, {
+      resolve: () => { clearTimeout(timer); resolve(); },
+      reject: (error) => { clearTimeout(timer); reject(error); },
+    });
+    void target.sendMessage(QUEUE_SYNC_NAMESPACE, { type: "control", requestId, command, position })
+      .catch((error) => {
+        pendingControls.get(requestId)?.reject(error);
+        pendingControls.delete(requestId);
+      });
+  });
+}
 function receiveQueue(_namespace: string, payload: unknown) {
   let reply;
   try { reply = typeof payload === "string" ? JSON.parse(payload) : payload; } catch { return; }
+  if (reply?.type === "controlResult") {
+    const pending = pendingControls.get(reply.requestId);
+    if (!pending) return;
+    pendingControls.delete(reply.requestId);
+    if (reply.error) pending.reject(new Error(reply.error));
+    else pending.resolve();
+    if (reply.state?.media) { receiverStatus = reply.state; statusReceivedAt = Date.now(); mirror(); }
+    requestQueue();
+    return;
+  }
   if (reply?.type === "status" && reply.state?.media) {
     receiverStatus = reply.state;
     statusReceivedAt = Date.now();
@@ -181,6 +214,7 @@ async function refreshReceiverStatus() {
   }
 }
 let observedMedia: chrome.cast.media.Media | null = null;
+let mirroredContentId: string | null = null;
 function watchMedia() {
   const current = media() ?? null;
   if (current === observedMedia) return;
@@ -245,20 +279,22 @@ function mirror() {
   }
   const track = tracks[index] ?? data.track;
   const playingState = snapshot?.playerState ?? m?.playerState;
-  const wasPlaying = store.get(nowPlayingAtom)?.isPlaying;
+  const previous = store.get(nowPlayingAtom);
+  const wasPlaying = previous?.isPlaying;
+  const title = md?.title ?? track?.title ?? "";
+  const artist = md?.artist ?? track?.artist ?? "";
+  const album = md?.albumName ?? track?.album ?? "";
+  const sameTrack = previous?.title === title && previous.artist === artist && previous.album === album &&
+    (mirroredContentId === null || mirroredContentId === info.contentId);
+  mirroredContentId = info.contentId;
   store.set(queueIndexAtom, index);
   store.set(nowPlayingAtom, {
-    title: md?.title ?? track?.title ?? "",
-    artist: md?.artist ?? track?.artist ?? "",
-    album: md?.albumName ?? track?.album ?? "",
-    artistUri: "",
-    albumUri: "",
-    songUri: track?.songUri ?? "",
-    sha256: track?.sha256 ?? "",
-    liked:
-      store.get(nowPlayingAtom)?.title === (track?.title ?? md?.title)
-        ? (store.get(nowPlayingAtom)?.liked ?? false)
-        : false,
+    title, artist, album,
+    artistUri: sameTrack ? previous.artistUri : "",
+    albumUri: sameTrack ? previous.albumUri : "",
+    songUri: track?.songUri || (sameTrack ? previous.songUri : ""),
+    sha256: track?.sha256 || (sameTrack ? previous.sha256 : ""),
+    liked: sameTrack ? previous.liked : false,
     albumArt: md?.images?.[0]?.url ?? track?.albumArt,
     duration: (snapshot?.duration || info.duration || (track?.duration ?? 0) / 1000) * 1000,
     progress: Math.max(0, snapshot?.currentTime ?? m?.getEstimatedTime() ?? 0) * 1000,
@@ -426,27 +462,9 @@ export const webCast = {
     });
     void fill(tracks, index, target, signal, queueId);
   },
-  async play() {
-    const m = media();
-    if (m)
-      await call<void>((ok, fail) =>
-        m.play(new chrome.cast.media.PlayRequest(), ok, fail),
-      );
-  },
-  async pause() {
-    const m = media();
-    if (m)
-      await call<void>((ok, fail) =>
-        m.pause(new chrome.cast.media.PauseRequest(), ok, fail),
-      );
-  },
-  async seek(ms: number) {
-    const m = media();
-    if (!m) return;
-    const r = new chrome.cast.media.SeekRequest();
-    r.currentTime = ms / 1000;
-    await call<void>((ok, fail) => m.seek(r, ok, fail));
-  },
+  async play() { await control("play"); },
+  async pause() { await control("pause"); },
+  async seek(ms: number) { await control("seek", ms / 1000); },
   async mute(value: boolean) {
     await session()?.setMute(value);
   },

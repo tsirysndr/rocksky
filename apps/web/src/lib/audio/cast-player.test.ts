@@ -345,3 +345,54 @@ test("web authorizes the TV privately and revokes the bridge on sign-out", async
   await new Promise((resolve) => setTimeout(resolve, 0));
   webCast.disconnect();
 });
+
+test("Cast clock updates preserve resolved song metadata and likes without leaking to another artist", async () => {
+  const { nowPlayingAtom } = await import("../../atoms/nowpaying");
+  const store = getDefaultStore();
+  await webCast.load([
+    { ...track(0), title: "Same title", artist: "First artist" },
+    { ...track(1), title: "Same title", artist: "Second artist" },
+  ], 0);
+  store.set(nowPlayingAtom, (current) => ({ ...current!, liked: true,
+    sha256: "canonical-hash", songUri: "at://did:plc:test/app.rocksky.song/first",
+    artistUri: "artist-uri", albumUri: "album-uri" }));
+  mediaUpdate?.(true);
+  expect(store.get(nowPlayingAtom)?.liked).toBe(true);
+  expect(store.get(nowPlayingAtom)?.sha256).toBe("canonical-hash");
+  expect(store.get(nowPlayingAtom)?.songUri).toBe("at://did:plc:test/app.rocksky.song/first");
+  expect(store.get(nowPlayingAtom)?.artistUri).toBe("artist-uri");
+  expect(store.get(nowPlayingAtom)?.albumUri).toBe("album-uri");
+  const start = Date.now();
+  while (items.length < 2 && Date.now() - start < 2000)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  media.currentItemId = items[1].itemId;
+  media.media = items[1].media;
+  mediaUpdate?.(true);
+  expect(store.get(nowPlayingAtom)?.artist).toBe("Second artist");
+  expect(store.get(nowPlayingAtom)?.liked).toBe(false);
+  expect(store.get(nowPlayingAtom)?.songUri).toBe("");
+  webCast.disconnect();
+});
+
+test("transport controls use live receiver acknowledgments without SDK media", async () => {
+  ended?.({ sessionState: "resumed" });
+  const original = session.getMediaSession;
+  session.getMediaSession = () => null as any;
+  try {
+    for (const [command, action] of [
+      ["pause", () => webCast.pause()], ["play", () => webCast.play()],
+      ["seek", () => webCast.seek(12000)],
+    ] as const) {
+      const pending = action();
+      const request = queueRequest;
+      expect(request.type).toBe("control");
+      expect(request.command).toBe(command);
+      if (command === "seek") expect(request.position).toBe(12);
+      queueListener!("", { type: "controlResult", requestId: request.requestId });
+      await pending;
+    }
+    const rejected = webCast.pause();
+    queueListener!("", { type: "controlResult", requestId: queueRequest.requestId, error: "Playback failed" });
+    await expect(rejected).rejects.toThrow("Playback failed");
+  } finally { session.getMediaSession = original; webCast.disconnect(); }
+});

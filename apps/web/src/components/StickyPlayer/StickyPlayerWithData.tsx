@@ -140,7 +140,7 @@ function toRemoteNowPlaying(
   const title = track.title;
   const artist = track.albumArtist || track.artist;
   const incoming = track.elapsedMs ?? 0;
-  const sameTrack = !!prev && prev.title === title && prev.artist === artist;
+  const sameTrack = !!prev && prev.title === title && prev.artist === artist && prev.album === track.album;
   // Reconcile the locally-ticked estimate against the device's authoritative
   // elapsed by BENDING toward it, not by choosing one or the other. Holding the
   // local value (as this used to) leaves a permanent offset that never
@@ -156,7 +156,7 @@ function toRemoteNowPlaying(
       : Math.max(local, local + error * DEVICE_SLEW_GAIN);
   const isPlaying =
     typeof track.isPlaying === "boolean" ? track.isPlaying : (prev?.isPlaying ?? true);
-  const songUri = track.songUri ?? "";
+  const songUri = track.songUri || (sameTrack ? prev.songUri : "") || "";
   return {
     title,
     artist,
@@ -168,7 +168,7 @@ function toRemoteNowPlaying(
     progress,
     albumArt: track.albumArt,
     isPlaying,
-    sha256: track.sha256 ?? "",
+    sha256: track.sha256 || (sameTrack ? prev.sha256 : "") || "",
     liked: liked[songUri] !== undefined ? liked[songUri] : !!track.liked,
     codec: track.codec,
     sampleRate: track.sampleRate,
@@ -208,6 +208,8 @@ function StickyPlayerWithData() {
   const queryClient = useQueryClient();
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
+  const [likeError, setLikeError] = useState("");
+  const likePending = useRef(false);
   // Initial heart state for local/upload playback: the engine only knows the
   // file, not whether the viewer loved the song. Fetch the loved set once
   // (sha256-keyed) and seed nowPlaying.liked from it; explicit heart clicks
@@ -808,28 +810,45 @@ function StickyPlayerWithData() {
 
   useEffect(() => {
     if (!lovedByHash) return;
-    if (player !== "rockbox") return;
+    if (player !== "rockbox" && player !== "cast" && player !== "device") return;
     setNowPlaying((prev) => {
       if (!prev?.sha256) return prev;
-      const key = prev.songUri || prev.sha256;
-      // A manual heart click on this song wins over the fetched snapshot.
-      if (liked[key] !== undefined) return prev;
-      const isLoved = lovedByHash.has(prev.sha256);
       // Adopt the resolved uri so the heart can act on this track.
       const uri = prev.songUri || lovedByHash.get(prev.sha256) || "";
+      // Reapply manual choices when revisiting a track as well as on first load.
+      const isLoved = liked[uri] ?? liked[prev.sha256] ?? (lovedByHash.has(prev.sha256) || [...lovedByHash.values()].includes(uri));
       if (prev.liked === isLoved && prev.songUri === uri) return prev;
       return { ...prev, liked: isLoved, songUri: uri };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lovedByHash, player, nowPlaying?.sha256]);
+  }, [lovedByHash, player, nowPlaying?.sha256, nowPlaying?.songUri, liked]);
+
+  // Resolve this song's authenticated like state directly. Uploaded file hashes
+  // are not necessarily the canonical catalog hashes used by lovedSongs.
+  const currentSongUri = nowPlaying?.songUri || "";
+  const { data: currentSong } = useQuery({
+    queryKey: ["playerSong", localStorage.getItem("did"), currentSongUri],
+    queryFn: () => rocksky().song({ uri: currentSongUri }),
+    enabled: !!currentSongUri && !!localStorage.getItem("token") &&
+      (player === "cast" || player === "device" || player === "rockbox"),
+    staleTime: 30_000,
+  });
+  useEffect(() => {
+    if (!currentSong || typeof currentSong.liked !== "boolean") return;
+    const value = currentSong.liked;
+    likedRef.current = { ...likedRef.current, [currentSongUri]: value };
+    setLiked((prev) => ({ ...prev, [currentSongUri]: value }));
+    setNowPlaying((prev) => prev?.songUri === currentSongUri
+      ? { ...prev, liked: value } : prev);
+  }, [currentSong, currentSongUri, setNowPlaying]);
 
   // Library tracks streamed from Navidrome have no at:// URIs, so the
   // miniplayer can't link the title/artist/album (and the heart has no
   // subject). Resolve them once per track from the canonical record.
   const resolvedUriRef = useRef<string | null>(null);
   useEffect(() => {
-    if (player !== "rockbox") return;
-    const np = nowPlayingRef.current;
+    if (player !== "rockbox" && player !== "cast" && player !== "device") return;
+    const np = nowPlaying;
     if (!np?.title || !np.artist) return;
     if (np.songUri && np.artistUri && np.albumUri) return;
     const key = np.sha256 || `${np.title}::${np.artist}`;
@@ -857,6 +876,7 @@ function StickyPlayerWithData() {
       });
     return () => {
       cancelled = true;
+      if (resolvedUriRef.current === key) resolvedUriRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, nowPlaying?.title, nowPlaying?.artist, nowPlaying?.songUri]);
@@ -881,28 +901,36 @@ function StickyPlayerWithData() {
     }
   };
 
-  const onLike = async (uri: string) => {
-    const resolved = await resolveSongUri(uri);
-    if (!resolved) return;
-    setLiked({ ...liked, [resolved]: true });
-    like(resolved);
-    setNowPlaying((prev) =>
-      prev ? { ...prev, liked: true, songUri: prev.songUri || resolved } : prev,
-    );
-    await queryClient.invalidateQueries({ queryKey: ["infiniteFeed", feedUri] });
-    await queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] });
+  const changeLike = async (uri: string, value: boolean) => {
+    if (likePending.current) return;
+    const original = nowPlayingRef.current;
+    if (!original) return;
+    likePending.current = true;
+    setLikeError("");
+    try {
+      const resolved = await resolveSongUri(uri);
+      if (!resolved) throw new Error("Could not identify this song. Please try again.");
+      await (value ? like(resolved) : unlike(resolved));
+      likedRef.current = { ...likedRef.current, [resolved]: value };
+      setLiked((current) => ({ ...current, [resolved]: value }));
+      setNowPlaying((current) => {
+        // A request for the previous song must never change the new song's heart.
+        if (!current || current.title !== original.title || current.artist !== original.artist || current.album !== original.album) return current;
+        return { ...current, liked: value, songUri: current.songUri || resolved };
+      });
+      queryClient.setQueryData(["playerSong", localStorage.getItem("did"), resolved], (song: typeof currentSong) => song ? { ...song, liked: value } : song);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["infiniteFeed", feedUri] }),
+        queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] }),
+      ]);
+    } catch {
+      setLikeError("Could not save your like. Please try again.");
+    } finally {
+      likePending.current = false;
+    }
   };
-
-  const onDislike = async (uri: string) => {
-    const resolved = await resolveSongUri(uri);
-    if (!resolved) return;
-    setLiked({ ...liked, [resolved]: false });
-    unlike(resolved);
-    setNowPlaying((prev) =>
-      prev ? { ...prev, liked: false, songUri: prev.songUri || resolved } : prev,
-    );
-    await queryClient.invalidateQueries({ queryKey: ["lovedSha256s"] });
-  };
+  const onLike = (uri: string) => changeLike(uri, true);
+  const onDislike = (uri: string) => changeLike(uri, false);
 
   // ── Media Session API — lock-screen / OS media controls ───────────────────
   // Mirrors the sticky player: title, artist, album + artwork, live play/pause
@@ -1033,7 +1061,7 @@ function StickyPlayerWithData() {
 
   return (
     <>
-      {isCast && castState.error && <div role="alert" style={{ position: "fixed", bottom: 100, left: 20, zIndex: 1000, background: "#251632", color: "white", padding: 12, borderRadius: 8 }}>{castState.error}</div>}
+      {(likeError || (isCast && castState.error)) && <div role="alert" style={{ position: "fixed", bottom: 100, left: 20, zIndex: 1000, background: "#251632", color: "white", padding: 12, borderRadius: 8 }}>{likeError || castState.error}</div>}
       {/* Silent Media Session anchor for the Web Audio (engine) playback path. */}
       <audio ref={silentRef} src={SILENT_AUDIO_DATA_URI} loop preload="auto" />
 

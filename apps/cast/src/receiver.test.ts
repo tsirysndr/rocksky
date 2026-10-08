@@ -306,3 +306,29 @@ test("receiver accepts string requests and broadcasts track changes without poll
   } finally { detach(); }
   assert.equal(events.size, 0);
 });
+
+test("receiver executes transport controls on its current player and reports errors", () => {
+  let listener: ((event: { senderId: string; data: unknown }) => void) | undefined;
+  let response: any;
+  const actions: unknown[] = [];
+  const player = {
+    getQueueManager: () => undefined, getMediaInformation: () => ({}),
+    getPlayerState: () => "PLAYING", getCurrentTimeSec: () => 3, getDurationSec: () => 180,
+    play: () => { actions.push("play"); }, pause: () => { actions.push("pause"); },
+    seek: (position: number) => { actions.push(position); },
+  } as Player;
+  const detach = attachQueueSync({
+    addCustomMessageListener: (_ns, fn) => { listener = fn; },
+    removeCustomMessageListener: () => {},
+    sendCustomMessage: (_ns, sender, message) => { assert.equal(sender, "web"); response = message; },
+  }, player);
+  try {
+    for (const command of ["pause", "play", "seek", "unsupported"]) {
+      listener!({ senderId: "web", data: JSON.stringify({ type: "control", requestId: 42, command, position: 12 }) });
+      assert.equal(response.type, "controlResult");
+      assert.equal(response.requestId, 42);
+      assert.equal(!!response.error, command === "unsupported");
+    }
+    assert.deepEqual(actions, ["pause", "play", 12]);
+  } finally { detach(); }
+});
