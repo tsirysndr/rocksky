@@ -4,6 +4,8 @@
 // the EVENT_PUBLISHER_DIDS for jetstream to index them.
 //
 //   bun event -- <handle|did>
+//
+// A worked example is in event.md next to this file.
 
 import chalk from "chalk";
 import { consola } from "consola";
