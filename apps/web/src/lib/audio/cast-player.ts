@@ -157,7 +157,7 @@ async function itemFor(track: QueueTrack, index: number, signal: AbortSignal) {
   };
   const item = new chrome.cast.media.QueueItem(info);
   item.autoplay = true;
-  item.preloadTime = 5;
+  item.preloadTime = 20;
   return item;
 }
 async function fill(
@@ -179,7 +179,8 @@ async function fill(
       if (prepend && start < end && !anchor)
         throw new Error("Could not restore the start of the Cast queue.");
       for (let offset = start; offset < end; ) {
-        const count = offset === start ? 1 : 5;
+        // Prepare the next three individually before filling larger batches.
+        const count = offset - start < 3 ? 1 : 5;
         const items: chrome.cast.media.QueueItem[] = [];
         for (let i = offset; i < Math.min(end, offset + count); i++) {
           if (signal.aborted) return;
@@ -188,7 +189,7 @@ async function fill(
         await serialize(async () => {
           if (signal.aborted || session() !== target) return;
           const m = target.getMediaSession();
-          if (!m) throw new Error("Chromecast playback has ended.");
+          if (!m) throw castCancelled();
           const request = new chrome.cast.media.QueueInsertItemsRequest(items);
           if (anchor) request.insertBefore = anchor;
           await call<void>((ok, fail) => m.queueInsertItems(request, ok, fail));

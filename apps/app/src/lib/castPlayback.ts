@@ -231,8 +231,8 @@ async function fillQueue(
           throw new Error("Could not restore earlier Chromecast queue items.");
       }
       for (let offset = 0; offset < part.length; ) {
-        // Insert the very next song first; never wait for a whole batch of HTTP probes.
-        const size = offset === 0 ? 1 : 5;
+        // Prepare the next three individually; never hold them behind a batch of probes.
+        const size = offset < 3 ? 1 : 5;
         const batch: MediaQueueItem[] = [];
         for (const i of part.slice(offset, offset + size)) {
           if (signal.aborted) return;
@@ -379,7 +379,7 @@ export const castPlayback = {
       }
       items.push({
         autoplay: true,
-        preloadTime: 5,
+        preloadTime: 20,
         mediaInfo: {
           contentUrl: media.url,
           contentId: media.url,

@@ -158,17 +158,19 @@ test("web Cast sends only the selected track from 10,000 entries; disconnect can
   await new Promise((r) => setTimeout(r, 300));
   expect(urls).toEqual(["4321"]);
 });
-test("web Cast fills upcoming then earlier tracks without reloading", async () => {
+test("web Cast prioritizes the next three before filling the remaining queue", async () => {
   reset();
-  await webCast.load([track(0), track(1), track(2), track(3)], 1);
+  await webCast.load(Array.from({ length: 9 }, (_, i) => track(i)), 1);
   const start = Date.now();
-  while (items.length < 4 && Date.now() - start < 2500)
+  while (items.length < 9 && Date.now() - start < 3000)
     await new Promise((r) => setTimeout(r, 20));
   expect(items.map((i) => i.media.customData.rocksky.index)).toEqual([
-    0, 1, 2, 3,
+    0, 1, 2, 3, 4, 5, 6, 7, 8,
   ]);
   expect(loads).toHaveLength(1);
-  expect(urls).toEqual(["1", "2", "3", "0"]);
+  expect(urls).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "0"]);
+  expect(inserts.slice(0, 3).map((r) => r.items.length)).toEqual([1, 1, 1]);
+  expect(inserts[0].items[0].preloadTime).toBe(20);
   webCast.disconnect();
 });
 test("replacing a queue cancels stale background inserts", async () => {
