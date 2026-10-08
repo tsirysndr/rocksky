@@ -1,5 +1,6 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   index,
   integer,
   jsonb,
@@ -41,6 +42,14 @@ const events = pgTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
+    // Fingerprint of the show (headliner, day, venue); null for undated events.
+    sha256: text("sha256"),
+    // Set when another indexed event describes the same show, by fingerprint
+    // or a shared external id. Readers list rows where this is null and pool
+    // RSVPs across the group; the FK clears it when the canonical row goes.
+    duplicateOf: text("duplicate_of").references((): AnyPgColumn => events.id, {
+      onDelete: "set null",
+    }),
     // The calendar record's own createdAt.
     createdAt: timestamp("created_at", { withTimezone: true }),
     xataCreatedAt: timestamp("xata_createdat").defaultNow().notNull(),
@@ -50,6 +59,8 @@ const events = pgTable(
   (table) => [
     index("events_starts_at_idx").on(table.startsAt),
     index("events_created_by_idx").on(table.createdBy),
+    index("events_sha256_idx").on(table.sha256),
+    index("events_duplicate_of_idx").on(table.duplicateOf),
   ],
 );
 
