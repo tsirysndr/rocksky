@@ -1,4 +1,4 @@
-import Feather from "@expo/vector-icons/Feather";
+import { useState } from "react";
 import {
   Alert,
   Linking,
@@ -19,70 +19,110 @@ export default function OnTour({
   artistName?: string;
 }) {
   const query = useArtistEvents(artistUri);
+  const [expandedArtist, setExpandedArtist] = useState<string>();
+  const expanded = expandedArtist === artistUri;
   const events = [
     ...new Map(
       query.data?.pages.flat().map((event) => [event.uri, event]),
     ).values(),
   ];
   if (!events.length) return null;
+  const visibleEvents = expanded ? events : events.slice(0, 9);
 
   return (
     <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.heading}>
-        On tour
-      </Text>
-      <Text style={styles.subtitle}>
-        {artistName ? `See ${artistName} live` : "Upcoming events"}
-      </Text>
-      {events.map((event) => {
+      <View style={styles.header}>
+        <Text
+          accessibilityRole="header"
+          accessibilityLabel={artistName ? `On tour: ${artistName}` : "On tour"}
+          style={styles.heading}
+        >
+          On Tour
+        </Text>
+        {(events.length > 9 || query.hasNextPage) && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: query.isFetchingNextPage,
+              expanded,
+            }}
+            disabled={query.isFetchingNextPage}
+            style={styles.more}
+            onPress={() => {
+              if (!expanded) setExpandedArtist(artistUri);
+              if (query.hasNextPage) void query.fetchNextPage();
+              else if (expanded) setExpandedArtist(undefined);
+            }}
+          >
+            <Text style={styles.moreText}>
+              {query.isFetchingNextPage
+                ? "Loading concerts…"
+                : query.isFetchNextPageError
+                  ? "Try again"
+                  : expanded
+                    ? query.hasNextPage
+                      ? "View more upcoming concerts"
+                      : "Show fewer concerts"
+                    : `View all upcoming concerts (${events.length}${query.hasNextPage ? "+" : ""})`}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {visibleEvents.map((event) => {
         const details = eventDetails(event);
-        const href = eventLink(event);
-        return (
-          <View key={event.uri} style={styles.card}>
+        const href =
+          details.status === "cancelled" || details.status === "postponed"
+            ? undefined
+            : eventLink(event);
+        const content = (
+          <>
             <View
               style={styles.dateTile}
               accessible={false}
               importantForAccessibility="no-hide-descendants"
             >
-              <Text style={styles.month}>{details.month.toUpperCase()}</Text>
+              <Text style={styles.month}>{details.month}</Text>
               <Text style={styles.day}>{details.day}</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.meta}>{details.date}</Text>
-              <Text style={styles.name}>{event.name}</Text>
-              <Text style={styles.meta}>{details.location}</Text>
+            <View style={styles.info}>
+              <Text numberOfLines={1} style={styles.city}>
+                {details.city}
+              </Text>
+              <Text numberOfLines={1} style={styles.meta}>
+                {details.lineup}
+              </Text>
+              <Text numberOfLines={1} style={styles.meta}>
+                {details.schedule}
+              </Text>
               {details.status && (
                 <Text style={styles.status}>{details.status}</Text>
               )}
-              {href &&
-                details.status !== "cancelled" &&
-                details.status !== "postponed" && (
-                  <TouchableOpacity
-                    accessibilityRole="link"
-                    accessibilityLabel={`${event.ticketsUrl === href ? "Find tickets" : "Event details"} for ${event.name}`}
-                    style={styles.link}
-                    onPress={() =>
-                      Linking.openURL(href).catch(() =>
-                        Alert.alert(
-                          "Unable to open link",
-                          "Please try again later.",
-                        ),
-                      )
-                    }
-                  >
-                    <Text style={styles.linkText}>
-                      {event.ticketsUrl === href
-                        ? "Find tickets"
-                        : "Event details"}
-                    </Text>
-                    <Feather
-                      name="external-link"
-                      size={14}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
-                )}
             </View>
+          </>
+        );
+        const label = `${details.city}: ${event.name}, ${details.date}, ${details.location}. Times shown in your local timezone.`;
+        return href ? (
+          <TouchableOpacity
+            key={event.uri}
+            accessibilityRole="link"
+            accessibilityLabel={label}
+            style={styles.event}
+            onPress={() =>
+              Linking.openURL(href).catch(() =>
+                Alert.alert("Unable to open link", "Please try again later."),
+              )
+            }
+          >
+            {content}
+          </TouchableOpacity>
+        ) : (
+          <View
+            key={event.uri}
+            accessible
+            accessibilityLabel={label}
+            style={styles.event}
+          >
+            {content}
           </View>
         );
       })}
@@ -91,82 +131,65 @@ export default function OnTour({
           Couldn’t load more events. Please try again.
         </Text>
       )}
-      {query.hasNextPage && (
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{ disabled: query.isFetchingNextPage }}
-          disabled={query.isFetchingNextPage}
-          onPress={() => query.fetchNextPage()}
-          style={styles.more}
-        >
-          <Text style={styles.linkText}>
-            {query.isFetchingNextPage
-              ? "Loading…"
-              : query.isFetchNextPageError
-                ? "Try again"
-                : "Show more events"}
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { marginVertical: 24, paddingHorizontal: 16 },
-  heading: { color: colors.text, fontSize: 20, fontWeight: "800" },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 13,
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  card: {
+  section: { marginVertical: 28, paddingHorizontal: 16 },
+  header: {
     flexDirection: "row",
-    gap: 14,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: colors.surface2,
-    marginBottom: 10,
-  },
-  dateTile: {
-    width: 54,
-    alignSelf: "flex-start",
     alignItems: "center",
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: colors.background,
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 20,
   },
-  month: { color: colors.text, fontSize: 11, fontWeight: "600" },
-  day: { color: colors.text, fontSize: 24, fontWeight: "800" },
-  name: {
+  heading: {
     color: colors.text,
-    fontSize: 15,
-    fontWeight: "700",
-    marginVertical: 5,
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.6,
   },
-  meta: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
-  status: {
-    color: colors.text,
-    fontSize: 12,
-    textTransform: "capitalize",
-    marginTop: 8,
-  },
-  link: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    minHeight: 44,
-    marginTop: 4,
-  },
-  linkText: { color: colors.text, fontSize: 13, fontWeight: "600" },
   more: {
     minHeight: 44,
+    justifyContent: "center",
+    maxWidth: 180,
+    flexShrink: 1,
+  },
+  moreText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  event: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 24,
+  },
+  dateTile: {
+    width: 80,
+    height: 80,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.textMuted,
-    marginTop: 6,
+    borderRadius: 5,
+    backgroundColor: "#282828",
+    gap: 6,
+  },
+  month: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  day: { color: "#fff", fontSize: 32, lineHeight: 34, fontWeight: "800" },
+  info: { flex: 1, minWidth: 0 },
+  city: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  meta: { color: colors.textMuted, fontSize: 16, lineHeight: 23 },
+  status: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textTransform: "capitalize",
   },
 });

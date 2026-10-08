@@ -41,9 +41,24 @@ describe("On tour", () => {
     expect(html).toContain("On tour");
     expect(html).toContain("Olympia, Paris");
     expect(html).toContain("Second show");
-    expect(html).toContain("Show more events");
-    expect(html.match(/<li /g)).toHaveLength(2);
+    expect(html).toContain("View all upcoming concerts (2+)");
+    expect(html.match(/<li>/g)).toHaveLength(2);
     expect(html).toContain('href="https://example.com/tickets"');
+  });
+
+  it("previews nine concerts and shows the full available count", () => {
+    const html = render([
+      Array.from({ length: 13 }, (_, i) => ({
+        ...event,
+        uri: `show-${i}`,
+        artists: [{ name: "Headliner" }, { name: "Support" }],
+      })),
+    ]);
+    expect(html.match(/<li>/g)).toHaveLength(9);
+    expect(html).toContain("View all upcoming concerts (13)");
+    expect(html).toContain("Headliner, Support");
+    expect(html).toContain('title="Paris"');
+    expect(html).not.toContain("Find tickets");
   });
 
   it("labels cancelled shows and omits ticket links", () => {

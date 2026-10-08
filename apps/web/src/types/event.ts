@@ -2,6 +2,7 @@
 export interface ArtistEvent {
   uri: string;
   name: string;
+  artists?: { name: string }[];
   startsAt?: string;
   status?: string;
   mode?: string;
@@ -32,7 +33,26 @@ export function eventDetails(event: ArtistEvent) {
     .filter(Boolean)
     .join(" · ");
   const status = event.status?.split("#").pop();
+  const venue = event.locations.find((place) => place.name)?.name;
+  const city = event.locations.find((place) => place.locality)?.locality;
+  const weekday = validDate?.toLocaleDateString(undefined, {
+    weekday: "short",
+  });
+  const time = validDate?.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
   return {
+    city:
+      city ||
+      (event.mode?.endsWith("#virtual") ? "Online" : venue || event.name),
+    lineup:
+      event.artists?.map((artist) => artist.name).join(", ") || event.name,
+    schedule: [
+      validDate ? `${weekday} ${time}` : "Date to be announced",
+      venue || "Venue to be announced",
+    ].join(" • "),
     month:
       validDate?.toLocaleDateString(undefined, { month: "short" }) ?? "TBA",
     day: validDate?.getDate().toString() ?? "—",

@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useArtistEvents } from "../hooks/useArtistEvents";
 import { eventDetails, eventLink } from "../types/event";
+import "./OnTour.css";
 
 export default function OnTour({
   artistUri,
@@ -9,107 +11,98 @@ export default function OnTour({
   artistName?: string;
 }) {
   const query = useArtistEvents(artistUri);
+  const [expandedArtist, setExpandedArtist] = useState<string>();
+  const expanded = expandedArtist === artistUri;
   const events = [
     ...new Map(
       query.data?.pages.flat().map((event) => [event.uri, event]),
     ).values(),
   ];
   if (!events.length) return null;
+  const visibleEvents = expanded ? events : events.slice(0, 9);
+  const canExpand = events.length > 9 || query.hasNextPage;
 
   return (
     <section
-      aria-label="On tour"
-      className="my-8"
-      style={{ color: "var(--color-text)" }}
+      aria-label={artistName ? `On tour: ${artistName}` : "On tour"}
+      className="on-tour"
     >
-      <h2 className="text-xl font-bold m-0">On tour</h2>
-      <p
-        className="text-sm mt-1 mb-4"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        {artistName ? `See ${artistName} live` : "Upcoming events"}
-      </p>
-      <ul className="list-none p-0 m-0 flex flex-col gap-3">
-        {events.map((event) => {
+      <header className="on-tour__header">
+        <h2>On Tour</h2>
+        {canExpand && (
+          <button
+            type="button"
+            disabled={query.isFetchingNextPage}
+            aria-expanded={expanded}
+            onClick={() => {
+              if (!expanded) setExpandedArtist(artistUri);
+              if (query.hasNextPage) void query.fetchNextPage();
+              else if (expanded) setExpandedArtist(undefined);
+            }}
+          >
+            {query.isFetchingNextPage
+              ? "Loading concerts…"
+              : query.isFetchNextPageError
+                ? "Try again"
+                : expanded
+                  ? query.hasNextPage
+                    ? "View more upcoming concerts"
+                    : "Show fewer concerts"
+                  : `View all upcoming concerts (${events.length}${query.hasNextPage ? "+" : ""})`}
+          </button>
+        )}
+      </header>
+      <ul className="on-tour__grid">
+        {visibleEvents.map((event) => {
           const details = eventDetails(event);
-          const href = eventLink(event);
-          return (
-            <li
-              key={event.uri}
-              className="flex gap-4 items-start rounded-xl p-4"
-              style={{ backgroundColor: "var(--color-input-background)" }}
-            >
-              <div
-                aria-hidden="true"
-                className="shrink-0 w-14 rounded-lg py-2 text-center"
-                style={{ backgroundColor: "var(--color-background)" }}
-              >
-                <div className="text-xs uppercase font-semibold">
-                  {details.month}
-                </div>
-                <div className="text-2xl font-bold">{details.day}</div>
+          const href =
+            details.status === "cancelled" || details.status === "postponed"
+              ? undefined
+              : eventLink(event);
+          const content = (
+            <>
+              <div aria-hidden="true" className="on-tour__date">
+                <span>{details.month}</span>
+                <strong>{details.day}</strong>
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="on-tour__info">
+                <h3 title={details.city}>{details.city}</h3>
+                <p title={details.lineup}>{details.lineup}</p>
                 <p
-                  className="text-xs m-0 mb-1"
-                  style={{ color: "var(--color-text-muted)" }}
+                  title={`${details.date} · ${details.location} · Times shown in your local timezone`}
                 >
-                  {details.date}
-                </p>
-                <h3 className="text-base font-semibold m-0 break-words">
-                  {event.name}
-                </h3>
-                <p
-                  className="text-sm mt-1 mb-0 break-words"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  {details.location}
+                  {details.schedule}
                 </p>
                 {details.status && (
-                  <p className="text-xs capitalize mt-2 mb-0 font-semibold">
-                    {details.status}
-                  </p>
+                  <p className="on-tour__status">{details.status}</p>
                 )}
-                {href &&
-                  details.status !== "cancelled" &&
-                  details.status !== "postponed" && (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center min-h-11 mt-2 text-sm font-semibold underline underline-offset-4"
-                      style={{ color: "var(--color-text)" }}
-                      aria-label={`${event.ticketsUrl === href ? "Find tickets" : "Event details"} for ${event.name} (opens in new tab)`}
-                    >
-                      {event.ticketsUrl === href
-                        ? "Find tickets"
-                        : "Event details"}{" "}
-                      ↗
-                    </a>
-                  )}
               </div>
+            </>
+          );
+          const label = `${details.city}: ${event.name}, ${details.date}, ${details.location}`;
+          return (
+            <li key={event.uri}>
+              {href ? (
+                <a
+                  className="on-tour__event"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${label} (opens in new tab)`}
+                >
+                  {content}
+                </a>
+              ) : (
+                <div className="on-tour__event" aria-label={label}>
+                  {content}
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
       {query.isFetchNextPageError && (
-        <p role="status" className="text-sm">
-          Couldn’t load more events. Please try again.
-        </p>
-      )}
-      {query.hasNextPage && (
-        <button
-          type="button"
-          disabled={query.isFetchingNextPage}
-          onClick={() => query.fetchNextPage()}
-          className="mt-4 min-h-11 px-5 rounded-full border border-current text-sm font-semibold cursor-pointer disabled:opacity-50"
-        >
-          {query.isFetchingNextPage
-            ? "Loading…"
-            : query.isFetchNextPageError
-              ? "Try again"
-              : "Show more events"}
-        </button>
+        <p role="status">Couldn’t load more events. Please try again.</p>
       )}
     </section>
   );
