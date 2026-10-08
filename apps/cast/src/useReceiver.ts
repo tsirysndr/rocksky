@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { idleState, type ReceiverState } from "./receiver";
 import { observeReceiver, type Player } from "./receiverUpdates";
-interface ReceiverContext {
+import { attachQueueSync, type QueueSyncContext } from "./queueSync";
+interface ReceiverContext extends QueueSyncContext {
   getPlayerManager(): Player;
   start(options?: {
     disableIdleTimeout?: boolean;
@@ -41,6 +42,7 @@ export function useReceiver() {
       const mediaElement =
         document.querySelector<HTMLAudioElement>("#receiver-audio") ??
         undefined;
+      const detachQueueSync = attachQueueSync(context, player, mediaElement);
       if (!contextStarted) {
         context.start({ disableIdleTimeout: false, mediaElement });
         contextStarted = true;
@@ -61,6 +63,7 @@ export function useReceiver() {
         clearInterval(timer);
         clearInterval(queueTimer);
         observer.dispose();
+        detachQueueSync();
         if (activePlayer === player) activePlayer = null;
       };
     } catch {

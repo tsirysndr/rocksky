@@ -238,3 +238,39 @@ test("queue position uses full sender totals during progressive loading", () => 
   assert.deepEqual(queuePosition({ customData: { rocksky: { queuePosition: -1, queueTotal: 0 } } }, 0, 1),
     { queuePosition: 1, queueTotal: 1 });
 });
+
+import { attachQueueSync } from "./queueSync.ts";
+test("receiver sync pages its real queue and returns the real current item", () => {
+  let listener: ((event: { senderId: string; data: unknown }) => void) | undefined;
+  let response: any;
+  const items = Array.from({ length: 40 }, (_, i) => ({ itemId: i + 1, media: {
+    contentId: `track-${i}`, metadata: { title: `Track ${i}` },
+  } }));
+  const player = {
+    getQueueManager: () => ({ getItems: () => items, getCurrentItemIndex: () => 25 }),
+    getMediaInformation: () => ({ metadata: { title: "Stale" } }),
+    getPlayerState: () => "PLAYING", getCurrentTimeSec: () => 13, getDurationSec: () => 180,
+  } as Player;
+  const detach = attachQueueSync({
+    addCustomMessageListener: (_namespace, fn) => { listener = fn; },
+    removeCustomMessageListener: () => { listener = undefined; },
+    sendCustomMessage: (_namespace, sender, message) => {
+      assert.equal(sender, "web-sender"); response = message;
+    },
+  }, player);
+  listener!({ senderId: "web-sender", data: { type: "snapshot", requestId: 1 } });
+  assert.equal(response.total, 40);
+  assert.equal(response.items.length, 16);
+  assert.equal(response.state.media.metadata.title, "Track 25");
+  const revision = response.revision;
+  listener!({ senderId: "web-sender", data: { type: "snapshot", revision, offset: 16 } });
+  assert.equal(response.items[0].itemId, 17);
+  listener!({ senderId: "web-sender", data: { type: "snapshot", revision } });
+  assert.equal(response.items, undefined);
+  items.splice(0, 1);
+  listener!({ senderId: "web-sender", data: { type: "snapshot", revision, offset: 32 } });
+  assert.notEqual(response.revision, revision);
+  assert.equal(response.offset, 0);
+  detach();
+  assert.equal(listener, undefined);
+});
