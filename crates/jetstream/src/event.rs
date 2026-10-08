@@ -115,11 +115,13 @@ fn parse_timestamp(value: Option<&str>) -> Option<DateTime<Utc>> {
 
 /// A JSON document for a `jsonb` column: a cast on Postgres, plain text on
 /// SQLite, NULL for `None` on both.
+///
+/// The cast wraps the NULL too. sqlx binds `Option<String>` as a text
+/// parameter either way, and Postgres rejects a bare text parameter for a
+/// jsonb column ("column is of type jsonb but expression is of type text")
+/// whether or not it carries a value.
 fn json_value(dialect: Dialect, value: Option<Value>) -> SimpleExpr {
-    let Some(value) = value else {
-        return Option::<String>::None.into();
-    };
-    let text = value.to_string();
+    let text = value.map(|v| v.to_string());
     match dialect {
         Dialect::Postgres => Expr::val(text).cast_as(Alias::new("jsonb")),
         Dialect::Sqlite => text.into(),
@@ -1014,6 +1016,30 @@ mod tests {
             { "$type": "community.lexicon.location.address", "name": "Le Trianon", "country": "FR" }
         ]);
         assert_eq!(venue_name(&raw).as_deref(), Some("Le Trianon"));
+    }
+
+    /// Postgres infers the parameter type from the cast, so a NULL arrives as
+    /// jsonb rather than as text; without the cast the insert is rejected.
+    #[test]
+    fn json_values_are_cast_on_postgres_even_when_null() {
+        use sea_query::PostgresQueryBuilder;
+        let (sql, _) = Query::update()
+            .table(Events::Table)
+            .value(Events::ExternalIds, json_value(Dialect::Postgres, None))
+            .value(
+                Events::Locations,
+                json_value(Dialect::Postgres, Some(serde_json::json!([]))),
+            )
+            .build(PostgresQueryBuilder);
+        assert_eq!(
+            sql,
+            r#"UPDATE "events" SET "external_ids" = CAST($1 AS jsonb), "locations" = CAST($2 AS jsonb)"#
+        );
+        let (sql, _) = Query::update()
+            .table(Events::Table)
+            .value(Events::ExternalIds, json_value(Dialect::Sqlite, None))
+            .build(sea_query::SqliteQueryBuilder);
+        assert_eq!(sql, r#"UPDATE "events" SET "external_ids" = ?"#);
     }
 
     #[test]
