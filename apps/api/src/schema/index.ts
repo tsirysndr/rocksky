@@ -15,6 +15,9 @@ import discogsReleases from "./discogs-releases";
 import discogsSearches from "./discogs-searches";
 import discogsTracks from "./discogs-tracks";
 import dropbox from "./dropbox";
+import eventArtists from "./event-artists";
+import eventRsvps from "./event-rsvps";
+import events from "./events";
 import dropboxAccounts from "./dropbox-accounts";
 import dropboxDirectories from "./dropbox-directories";
 import dropboxPaths from "./dropbox-paths";
@@ -106,4 +109,7 @@ export default {
   discogsReleaseLabels,
   discogsIdentifiers,
   discogsTracks,
+  events,
+  eventArtists,
+  eventRsvps,
 };
