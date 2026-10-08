@@ -15,6 +15,12 @@
 //!
 //! RSVPs (`community.lexicon.calendar.rsvp`) are accepted from any repo and
 //! kept only when their subject is an indexed event.
+//!
+//! The same show can be published twice (both allowed repos, a re-run of the
+//! script, a record re-created under a new rkey). Rows are record-backed so
+//! the second one is kept, but it is marked `duplicate_of` the first when the
+//! two share a fingerprint (headliner, day, venue) or an external id, and
+//! readers only list canonical rows.
 
 use std::{env, future::Future, sync::OnceLock};
 
@@ -22,9 +28,9 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use owo_colors::OwoColorize;
 use rocksky_db::exec as sql;
-use rocksky_db::models::{now_sql, text_array_value};
+use rocksky_db::models::{cast_text_expr, now_sql, text_array_value};
 use rocksky_db::{Backend, Dialect};
-use sea_query::{Alias, Cond, Expr, OnConflict, Query, SimpleExpr};
+use sea_query::{Alias, Cond, Expr, OnConflict, Order, Query, SimpleExpr};
 use serde_json::Value;
 
 use crate::{
@@ -122,6 +128,66 @@ fn json_value(dialect: Dialect, value: Option<Value>) -> SimpleExpr {
 
 fn json_array(items: Option<&Vec<Value>>) -> Option<Value> {
     items.map(|v| Value::Array(v.clone()))
+}
+
+/// The external id providers the music lexicon names; only these take part in
+/// duplicate matching, and only they are ever interpolated into SQL.
+pub const EXTERNAL_ID_PROVIDERS: [&str; 7] = [
+    "ticketmaster",
+    "songkick",
+    "bandsintown",
+    "residentAdvisor",
+    "setlistfm",
+    "dice",
+    "eventbrite",
+];
+
+/// What identifies a show: who headlines, on which day, where. Undated events
+/// get no fingerprint, since two announcements by the same artist with no
+/// date are not known to be the same show.
+pub fn fingerprint(headliner: &str, day: Option<&str>, venue: Option<&str>) -> Option<String> {
+    let day = day?;
+    Some(sha256::digest(
+        format!(
+            "{} | {} | {}",
+            headliner.trim(),
+            day.trim(),
+            venue.unwrap_or("").trim()
+        )
+        .to_lowercase(),
+    ))
+}
+
+/// The first named location of a calendar event: the venue, for an in-person
+/// show.
+fn venue_name(locations: &Value) -> Option<String> {
+    locations
+        .as_array()?
+        .iter()
+        .find_map(|l| l.get("name").and_then(Value::as_str))
+        .map(str::to_string)
+}
+
+/// The `(provider, id)` pairs of an `externalIds` object, known providers only.
+fn external_ids(raw: &Value) -> Vec<(&'static str, String)> {
+    EXTERNAL_ID_PROVIDERS
+        .iter()
+        .filter_map(|provider| {
+            raw.get(provider)
+                .and_then(Value::as_str)
+                .filter(|v| !v.trim().is_empty())
+                .map(|v| (*provider, v.trim().to_string()))
+        })
+        .collect()
+}
+
+/// `external_ids -> provider` as text, per dialect. `provider` is one of
+/// [`EXTERNAL_ID_PROVIDERS`], never user input.
+fn external_id_expr(dialect: Dialect, provider: &str) -> SimpleExpr {
+    match dialect {
+        Dialect::Postgres => Expr::cust(format!("\"external_ids\" ->> '{provider}'")),
+        Dialect::Sqlite => Expr::cust(format!("json_extract(\"external_ids\", '$.{provider}')")),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +378,7 @@ where
     };
 
     replace_lineup(&mut tx, &event_id, &record.artists).await?;
+    reconcile_duplicates(&mut tx, &event_id).await?;
 
     tx.commit().await?;
 
@@ -562,6 +629,101 @@ async fn resolve_artist(
         .ok_or_else(|| anyhow::anyhow!("the artist insert returned no row"))
 }
 
+/// Recomputes the event's fingerprint from what is now in the row and points
+/// it at the earliest canonical event describing the same show, if any. Runs
+/// after every write of either record, since a date, venue, headliner or
+/// external id change can make or break a match. An event that already has
+/// duplicates folded onto it stays canonical.
+async fn reconcile_duplicates(
+    tx: &mut rocksky_db::tx::Tx<'_>,
+    event_id: &str,
+) -> Result<(), Error> {
+    let dialect = tx.dialect();
+
+    let row = Query::select()
+        .expr(cast_text_expr(dialect, Expr::col(Events::StartsAt)))
+        .expr(cast_text_expr(dialect, Expr::col(Events::Locations)))
+        .expr(cast_text_expr(dialect, Expr::col(Events::ExternalIds)))
+        .from(Events::Table)
+        .and_where(Expr::col(Events::XataId).eq(event_id))
+        .take();
+    let Some((starts_at, locations, external)) = tx
+        .fetch_optional::<(Option<String>, Option<String>, Option<String>)>(&row)
+        .await?
+    else {
+        return Ok(());
+    };
+
+    let headliner_query = Query::select()
+        .column(EventArtists::Name)
+        .from(EventArtists::Table)
+        .and_where(Expr::col(EventArtists::EventId).eq(event_id))
+        .order_by(EventArtists::Position, Order::Asc)
+        .limit(1)
+        .take();
+    let headliner: Option<String> = tx.fetch_scalar(&headliner_query).await?;
+
+    // Both backends render the timestamp with the date first; the day is all
+    // the fingerprint wants.
+    let day = starts_at.as_deref().and_then(|s| s.get(..10));
+    let venue = locations
+        .as_deref()
+        .and_then(|l| serde_json::from_str::<Value>(l).ok())
+        .and_then(|l| venue_name(&l));
+    let fp = headliner
+        .as_deref()
+        .and_then(|h| fingerprint(h, day, venue.as_deref()));
+    let ids = external
+        .as_deref()
+        .and_then(|e| serde_json::from_str::<Value>(e).ok())
+        .map(|e| external_ids(&e))
+        .unwrap_or_default();
+
+    let mut matches = Cond::any();
+    if let Some(fp) = &fp {
+        matches = matches.add(Expr::col(Events::Sha256).eq(fp.as_str()));
+    }
+    for (provider, value) in &ids {
+        matches = matches.add(external_id_expr(dialect, provider).eq(value.as_str()));
+    }
+
+    let canonical: Option<String> = if fp.is_none() && ids.is_empty() {
+        None
+    } else {
+        let find = Query::select()
+            .column(Events::XataId)
+            .from(Events::Table)
+            .and_where(Expr::col(Events::XataId).ne(event_id))
+            .and_where(Expr::col(Events::DuplicateOf).is_null())
+            .cond_where(matches)
+            .order_by(Events::XataCreatedat, Order::Asc)
+            .limit(1)
+            .take();
+        tx.fetch_scalar(&find).await?
+    };
+
+    let dependents = Query::select()
+        .expr(Expr::col(Events::XataId).count())
+        .from(Events::Table)
+        .and_where(Expr::col(Events::DuplicateOf).eq(event_id))
+        .take();
+    let has_dependents = tx.fetch_scalar::<i64>(&dependents).await?.unwrap_or(0) > 0;
+    let duplicate_of = if has_dependents { None } else { canonical };
+
+    if let Some(target) = &duplicate_of {
+        tracing::info!(event = %event_id, canonical = %target, "Event folded onto an existing one");
+    }
+
+    let update = Query::update()
+        .table(Events::Table)
+        .value(Events::Sha256, fp)
+        .value(Events::DuplicateOf, duplicate_of)
+        .and_where(Expr::col(Events::XataId).eq(event_id))
+        .to_owned();
+    tx.execute(&update).await?;
+    Ok(())
+}
+
 /// Loads a calendar event record from the repo's PDS.
 async fn fetch_calendar_event(
     did: String,
@@ -650,6 +812,7 @@ async fn refresh_calendar_event(
         .and_where(Expr::col(Events::XataId).eq(&event.id))
         .to_owned();
     tx.execute(&update).await?;
+    reconcile_duplicates(&mut tx, &event.id).await?;
     tx.commit().await?;
 
     tracing::info!(name = %record.name.magenta(), uri = %uri, "Refreshed event");
@@ -824,6 +987,30 @@ mod tests {
     }
 
     #[test]
+    fn the_fingerprint_ignores_case_and_needs_a_day() {
+        let a = fingerprint("Calvin Harris", Some("2026-12-01"), Some("Le Trianon"));
+        let b = fingerprint("calvin harris ", Some("2026-12-01"), Some("LE TRIANON"));
+        assert_eq!(a, b);
+        assert_ne!(a, fingerprint("Calvin Harris", Some("2026-12-02"), Some("Le Trianon")));
+        assert_eq!(fingerprint("Calvin Harris", None, Some("Le Trianon")), None);
+    }
+
+    #[test]
+    fn only_known_external_id_providers_take_part() {
+        let raw = serde_json::json!({ "ticketmaster": " tm-1 ", "unknown": "x", "dice": "" });
+        assert_eq!(external_ids(&raw), vec![("ticketmaster", "tm-1".to_string())]);
+    }
+
+    #[test]
+    fn the_venue_is_the_first_named_location() {
+        let raw = serde_json::json!([
+            { "$type": "community.lexicon.location.geo", "latitude": "1", "longitude": "2" },
+            { "$type": "community.lexicon.location.address", "name": "Le Trianon", "country": "FR" }
+        ]);
+        assert_eq!(venue_name(&raw).as_deref(), Some("Le Trianon"));
+    }
+
+    #[test]
     fn splits_an_at_uri() {
         assert_eq!(
             split_at_uri("at://did:plc:abc/community.lexicon.calendar.event/3kx1"),
@@ -951,6 +1138,35 @@ mod sqlite_behaviour {
 
     fn event_uri() -> String {
         calendar_event_uri(ORGANIZER, "ev1")
+    }
+
+    fn fetching(
+        name: &'static str,
+        day: &'static str,
+    ) -> impl FnOnce(String, String) -> std::pin::Pin<Box<dyn Future<Output = Result<Option<(Option<String>, CalendarEventRecord)>, Error>>>>
+    {
+        move |_, _| {
+            Box::pin(async move {
+                let mut record = calendar(name);
+                record.starts_at = Some(format!("{day}T20:00:00.000Z"));
+                record.ends_at = None;
+                Ok(Some((None, record)))
+            })
+        }
+    }
+
+    async fn duplicate_of(db: &Backend, uri: &str) -> Option<String> {
+        sql::fetch_one::<(Option<String>,)>(
+            db,
+            &SqQuery::select()
+                .column(Events::DuplicateOf)
+                .from(Events::Table)
+                .and_where(Expr::col(Events::Uri).eq(uri))
+                .take(),
+        )
+        .await
+        .unwrap()
+        .0
     }
 
     #[tokio::test]
@@ -1188,6 +1404,78 @@ mod sqlite_behaviour {
             "an annotation cannot pull in a stranger's event"
         );
         assert_eq!(count(&db, "events").await, 0);
+    }
+
+    /// The fixture's music record carries a Ticketmaster id; these tests are
+    /// about the fingerprint alone.
+    fn music_without_ids(subject: &str, artists: &[&str]) -> EventMusicRecord {
+        let mut record = music(subject, artists);
+        record.external_ids = None;
+        record
+    }
+
+    #[tokio::test]
+    async fn a_second_record_for_the_same_show_is_folded_onto_the_first() {
+        let db = db().await;
+        let first = calendar_event_uri(ORGANIZER, "ev1");
+        let second = calendar_event_uri(DEFAULT_PUBLISHER_DIDS[1], "ev7");
+
+        let a = index_music_event(&db, ORGANIZER, "mu1", None, music_without_ids(&first, &["Calvin Harris"]), fetching("CH live", "2026-12-01"))
+            .await
+            .unwrap()
+            .unwrap();
+        index_music_event(&db, DEFAULT_PUBLISHER_DIDS[1], "mu2", None, music_without_ids(&second, &["calvin harris"]), fetching("Calvin Harris @ Trianon", "2026-12-01"))
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(duplicate_of(&db, &first).await, None);
+        assert_eq!(duplicate_of(&db, &second).await, Some(a.clone()));
+
+        // A different night is a different show.
+        let third = calendar_event_uri(ORGANIZER, "ev8");
+        index_music_event(&db, ORGANIZER, "mu3", None, music_without_ids(&third, &["Calvin Harris"]), fetching("CH live", "2026-12-02"))
+            .await
+            .unwrap();
+        assert_eq!(duplicate_of(&db, &third).await, None);
+    }
+
+    #[tokio::test]
+    async fn a_shared_external_id_folds_even_when_the_fingerprints_differ() {
+        let db = db().await;
+        let first = calendar_event_uri(ORGANIZER, "ev1");
+        let second = calendar_event_uri(ORGANIZER, "ev2");
+
+        let a = index_music_event(&db, ORGANIZER, "mu1", None, music(&first, &["A"]), fetching("Night one", "2026-12-01"))
+            .await
+            .unwrap()
+            .unwrap();
+        // Different headliner spelling and venue, same Ticketmaster listing.
+        index_music_event(&db, ORGANIZER, "mu2", None, music(&second, &["A & friends"]), fetching("Night one (resale)", "2026-12-01"))
+            .await
+            .unwrap();
+        assert_eq!(duplicate_of(&db, &second).await, Some(a));
+    }
+
+    #[tokio::test]
+    async fn a_calendar_change_can_undo_a_match() {
+        let db = db().await;
+        let first = calendar_event_uri(ORGANIZER, "ev1");
+        let second = calendar_event_uri(ORGANIZER, "ev2");
+        index_music_event(&db, ORGANIZER, "mu1", None, music_without_ids(&first, &["A"]), fetching("One", "2026-12-01"))
+            .await
+            .unwrap();
+        index_music_event(&db, ORGANIZER, "mu2", None, music_without_ids(&second, &["A"]), fetching("One again", "2026-12-01"))
+            .await
+            .unwrap();
+        assert!(duplicate_of(&db, &second).await.is_some());
+
+        let mut moved = calendar("One again");
+        moved.starts_at = Some("2026-12-09T20:00:00.000Z".into());
+        refresh_calendar_event(&db, ORGANIZER, "ev2", None, moved)
+            .await
+            .unwrap();
+        assert_eq!(duplicate_of(&db, &second).await, None);
     }
 
     fn rsvp(subject: &str, status: Option<&str>) -> RsvpRecord {

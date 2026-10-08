@@ -429,6 +429,12 @@ pub enum Events {
     CreatedBy,
     #[iden = "created_at"]
     CreatedAt,
+    #[iden = "sha256"]
+    Sha256,
+    #[iden = "duplicate_of"]
+    DuplicateOf,
+    #[iden = "xata_createdat"]
+    XataCreatedat,
     #[iden = "xata_updatedat"]
     XataUpdatedat,
 }
