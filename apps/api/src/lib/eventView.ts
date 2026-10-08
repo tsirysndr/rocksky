@@ -162,6 +162,11 @@ export function toEventView(
   });
 }
 
+// The canonical event an RSVP belongs to: its own event, or the one that
+// event was folded onto as a duplicate. RSVPs posted against either record of
+// the same show count together.
+const rsvpGroup = sql<string>`coalesce(${tables.events.duplicateOf}, ${tables.events.id})`;
+
 // Builds the views for a page of events in three queries (lineups, rsvp
 // tallies, the viewer's own rsvps) rather than three per event.
 export async function hydrateEvents(
@@ -185,31 +190,31 @@ export async function hydrateEvents(
       .execute(),
     ctx.db
       .select({
-        eventId: tables.eventRsvps.eventId,
+        eventId: rsvpGroup.as("event_id"),
         status: tables.eventRsvps.status,
         count: sql<number>`count(*)::int`,
       })
       .from(tables.eventRsvps)
-      .where(inArray(tables.eventRsvps.eventId, ids))
-      .groupBy(tables.eventRsvps.eventId, tables.eventRsvps.status)
+      .innerJoin(tables.events, eq(tables.eventRsvps.eventId, tables.events.id))
+      .where(inArray(rsvpGroup, ids))
+      .groupBy(rsvpGroup, tables.eventRsvps.status)
       .execute(),
     viewerDid
       ? ctx.db
           .select({
-            eventId: tables.eventRsvps.eventId,
+            eventId: rsvpGroup.as("event_id"),
             status: tables.eventRsvps.status,
           })
           .from(tables.eventRsvps)
           .innerJoin(
+            tables.events,
+            eq(tables.eventRsvps.eventId, tables.events.id),
+          )
+          .innerJoin(
             tables.users,
             eq(tables.eventRsvps.userId, tables.users.id),
           )
-          .where(
-            and(
-              inArray(tables.eventRsvps.eventId, ids),
-              eq(tables.users.did, viewerDid),
-            ),
-          )
+          .where(and(inArray(rsvpGroup, ids), eq(tables.users.did, viewerDid)))
           .execute()
       : Promise.resolve([]),
   ]);
@@ -269,13 +274,14 @@ export async function canonicalAtUri(
   return user ? `at://${user.did}/${collection}/${rkey}` : uri;
 }
 
-// An event is addressed by either of its records.
+// An event is addressed by either of its records. A record that was folded
+// onto another event as a duplicate resolves to that canonical event.
 export async function findEvent(
   ctx: Context,
   uri: string,
 ): Promise<EventRow | undefined> {
   const canonical = await canonicalAtUri(ctx, uri);
-  return ctx.db
+  const row = await ctx.db
     .select({ events: tables.events, users: tables.users })
     .from(tables.events)
     .innerJoin(tables.users, eq(tables.events.createdBy, tables.users.id))
@@ -284,6 +290,21 @@ export async function findEvent(
     )
     .limit(1)
     .then((rows) => rows[0]);
+  if (!row?.events.duplicateOf) return row;
+  return ctx.db
+    .select({ events: tables.events, users: tables.users })
+    .from(tables.events)
+    .innerJoin(tables.users, eq(tables.events.createdBy, tables.users.id))
+    .where(eq(tables.events.id, row.events.duplicateOf))
+    .limit(1)
+    .then((rows) => rows[0] ?? row);
+}
+
+// Every row of the show: the canonical event and the duplicates folded onto it.
+export function eventGroupIds(eventId: string) {
+  return sql`(SELECT ${tables.events.id} FROM ${tables.events}
+              WHERE ${tables.events.id} = ${eventId}
+                 OR ${tables.events.duplicateOf} = ${eventId})`;
 }
 
 export type EventFilters = {
@@ -343,17 +364,21 @@ function eventConditions(filters: EventFilters) {
                OR ${tables.artists.sha256} = ${artist}))`,
     );
 
+  // An RSVP against a duplicate record counts for the canonical event.
   const rsvpBy = (did: string) =>
     exists(
       sql`(SELECT 1 FROM ${tables.eventRsvps}
+            JOIN ${tables.events} AS attended ON attended.xata_id = ${tables.eventRsvps.eventId}
             JOIN ${tables.users} AS attendee ON attendee.xata_id = ${tables.eventRsvps.userId}
-           WHERE ${tables.eventRsvps.eventId} = ${tables.events.id}
+           WHERE coalesce(attended.duplicate_of, attended.xata_id) = ${tables.events.id}
              AND attendee.did = ${did}
              AND ${tables.eventRsvps.status} IN (${RSVP_GOING}, ${RSVP_INTERESTED}))`,
     );
 
   return {
     where: and(
+      // Duplicates are reachable through getEvent but never listed.
+      isNull(tables.events.duplicateOf),
       filters.artist ? artistMatches(filters.artist) : undefined,
       filters.did ? eq(tables.users.did, filters.did) : undefined,
       filters.rsvpBy ? rsvpBy(filters.rsvpBy) : undefined,

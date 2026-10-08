@@ -1,9 +1,9 @@
 import { InvalidRequestError } from "@atproto/xrpc-server";
 import type { Context } from "context";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Server } from "lexicon";
 import type { OutputSchema } from "lexicon/types/app/rocksky/event/getEventRsvps";
-import { findEvent, toRsvpView } from "lib/eventView";
+import { eventGroupIds, findEvent, toRsvpView } from "lib/eventView";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -19,7 +19,7 @@ export default function (server: Server, ctx: Context) {
         .innerJoin(tables.users, eq(tables.eventRsvps.userId, tables.users.id))
         .where(
           and(
-            eq(tables.eventRsvps.eventId, row.events.id),
+            inArray(tables.eventRsvps.eventId, eventGroupIds(row.events.id)),
             params.status
               ? eq(tables.eventRsvps.status, params.status)
               : undefined,
