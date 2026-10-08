@@ -8,7 +8,7 @@
 import chalk from "chalk";
 import { consola } from "consola";
 import { ctx } from "context";
-import { sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type * as CalendarEvent from "lexicon/types/community/lexicon/calendar/event";
 import type * as EventMusic from "lexicon/types/app/rocksky/event/music";
 import { createAgent } from "lib/agent";
@@ -218,6 +218,44 @@ for (const [key, label] of [
 }
 const ticketsUrl = optional(await text("Tickets URL (optional)"));
 const imageUrl = optional(await text("Poster image URL (optional)"));
+
+// --- likely duplicates -----------------------------------------------------
+
+// The appview folds a second record for the same show onto the first, so this
+// is a courtesy rather than a guard: the same headliner on the same day is
+// usually the same concert.
+const day = startsAt.slice(0, 10);
+const similar = await ctx.db
+  .select({ name: tables.events.name, uri: tables.events.uri })
+  .from(tables.events)
+  .innerJoin(
+    tables.eventArtists,
+    eq(tables.eventArtists.eventId, tables.events.id),
+  )
+  .where(
+    and(
+      isNull(tables.events.duplicateOf),
+      eq(tables.eventArtists.position, 0),
+      sql`lower(${tables.eventArtists.name}) = lower(${artists[0].name})`,
+      sql`to_char(${tables.events.startsAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD') = ${day}`,
+    ),
+  )
+  .limit(5)
+  .execute();
+if (similar.length > 0) {
+  consola.warn(
+    `${artists[0].name} already has an event on ${day}; this one will be folded onto it as a duplicate:`,
+  );
+  for (const event of similar) {
+    consola.warn(`  ${event.name}  ${chalk.cyan(event.uri)}`);
+  }
+  const anyway = await ask<boolean>({
+    type: "confirm",
+    message: "Publish anyway?",
+    initial: false,
+  });
+  if (!anyway) onCancel();
+}
 
 // --- confirm and publish ---------------------------------------------------
 
