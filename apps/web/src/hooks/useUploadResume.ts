@@ -120,7 +120,7 @@ export function useUploadResume() {
       : -1;
     const idx = located >= 0 ? located : Math.min(Math.max(0, r.index), queue.length - 1);
     const t = queue[idx];
-    if (!t) return;
+    if (!t || playerRef.current === "cast") return;
     registerTracks(queue); // so the engine can map URLs → metadata on play
     setQueue(queue);
     setQueueIndex(idx);

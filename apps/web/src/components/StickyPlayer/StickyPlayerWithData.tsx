@@ -1,3 +1,4 @@
+import { webCast, webCastAtom, initializeWebCast, castAction } from "../../lib/audio/cast-player";
 import styled from "@emotion/styled";
 import axios from "axios";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -192,6 +193,8 @@ function toRemoteQueueTrack(q: SdkRemoteQueueItem) {
 }
 
 function StickyPlayerWithData() {
+  const castState = useAtomValue(webCastAtom);
+  useEffect(() => { initializeWebCast(); }, []);
   useUploadScrobble();
   // Bridge the in-browser rockbox-wasm engine → jotai atoms (track/progress/
   // status/queue events). Replaces the old GraphQL polling entirely.
@@ -322,12 +325,14 @@ function StickyPlayerWithData() {
     // A device's shuffle is its own state, mirrored from its pushes and driven
     // by onToggleShuffle — don't impose the local atom on it.
     if (playerRef.current === "device") return;
+    if (playerRef.current === "cast") return;
     publishShuffle(shuffle);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shuffle, player]);
 
   useEffect(() => {
     if (playerRef.current === "device") return;
+    if (playerRef.current === "cast") { castAction(webCast.setRepeat(repeatMode)); return; }
     publishRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repeatMode, player]);
@@ -365,7 +370,7 @@ function StickyPlayerWithData() {
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     const currentPlayer = playerRef.current;
-    if (currentPlayer === "rockbox" || currentPlayer === "device") return;
+    if (currentPlayer === "rockbox" || currentPlayer === "device" || currentPlayer === "cast") return;
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
       headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
     });
@@ -590,6 +595,7 @@ function StickyPlayerWithData() {
    *  separate process that a webview reload doesn't repopulate). Rebuild it
    *  in that case; otherwise a plain skip is enough. */
   const startAtIndex = async (idx: number, seekMs = 0) => {
+    if (player === "cast") return webCast.jump(idx);
     if (!queue.length) return;
     const p = await ensureRockboxReady();
     await ensureStreamToken();
@@ -619,6 +625,7 @@ function StickyPlayerWithData() {
   // ── Playback controls ─────────────────────────────────────────────────────
 
   const onPlay = async () => {
+    if (player === "cast") { castAction(webCast.play()); return; }
     if (player === "device") {
       sendDeviceCommand("play");
       setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
@@ -642,6 +649,7 @@ function StickyPlayerWithData() {
   };
 
   const onPause = () => {
+    if (player === "cast") { castAction(webCast.pause()); return; }
     if (player === "device") {
       sendDeviceCommand("pause");
       setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
@@ -656,6 +664,7 @@ function StickyPlayerWithData() {
   };
 
   const onNext = () => {
+    if (player === "cast") { castAction(webCast.next(1)); return; }
     if (player === "device") {
       sendDeviceCommand("next");
       return;
@@ -668,6 +677,7 @@ function StickyPlayerWithData() {
   };
 
   const onPrevious = () => {
+    if (player === "cast") { castAction(webCast.next(-1)); return; }
     if (player === "device") {
       sendDeviceCommand("previous");
       return;
@@ -680,6 +690,7 @@ function StickyPlayerWithData() {
   };
 
   const onSeek = (position: number) => {
+    if (player === "cast") { castAction(webCast.seek(position)); return; }
     if (player === "device") {
       sendDeviceCommand("seek", { position });
       setNowPlaying((prev) => prev ? { ...prev, progress: position } : prev);
@@ -696,6 +707,7 @@ function StickyPlayerWithData() {
   // ── Volume ────────────────────────────────────────────────────────────────
 
   const onVolumeChange = (v: number) => {
+    if (player === "cast") { setVolumeState(v); castAction(webCast.volume(v)); return; }
     setVolumeState(v);
     if (v > 0 && muted) setMutedState(false);
     // A remote device has its own output — drive it over the protocol rather
@@ -736,6 +748,7 @@ function StickyPlayerWithData() {
   const onToggleMute = () => {
     const nextMuted = !muted;
     setMutedState(nextMuted);
+    if (player === "cast") { castAction(webCast.volume(nextMuted ? 0 : volume)); return; }
     if (player === "device") {
       lastLocalVolumeAt.current = Date.now();
       sendDeviceCommand("volume", { volume: nextMuted ? 0 : (deviceVolume ?? volume) });
@@ -964,7 +977,7 @@ function StickyPlayerWithData() {
     const el = silentRef.current;
     if (!el) return;
     if (
-      (player === "rockbox" || player === "device") &&
+      (player === "rockbox" || player === "device" || player === "cast") &&
       nowPlaying?.isPlaying
     ) {
       el.play().catch(() => {});
@@ -1006,7 +1019,8 @@ function StickyPlayerWithData() {
   // The "…" track menu belongs to the players this app drives. Spotify is
   // controlled by Spotify — its queue is not ours to reorder, and the library
   // ids the menu's entries need do not exist for it.
-  const showTrackMenu = isRockbox || player === "device";
+  const isCast = player === "cast";
+  const showTrackMenu = isRockbox || isCast || player === "device";
   // The queue entry for what is playing. A remote device's queue is its own —
   // the local atom is not the source of truth then — so pick the same way the
   // album name above does.
@@ -1015,14 +1029,15 @@ function StickyPlayerWithData() {
       ? activeDevice?.queue[activeDevice.queueIndex]
       : queue[queueIndex];
   // Show the queue button for the local engine OR a remote device with a queue.
-  const showQueue = isRockbox || (player === "device" && !!activeDevice?.queue.length);
+  const showQueue = isRockbox || isCast || (player === "device" && !!activeDevice?.queue.length);
 
   return (
     <>
+      {isCast && castState.error && <div role="alert" style={{ position: "fixed", bottom: 100, left: 20, zIndex: 1000, background: "#251632", color: "white", padding: 12, borderRadius: 8 }}>{castState.error}</div>}
       {/* Silent Media Session anchor for the Web Audio (engine) playback path. */}
       <audio ref={silentRef} src={SILENT_AUDIO_DATA_URI} loop preload="auto" />
 
-      {queuePanelOpen && isRockbox && (
+      {queuePanelOpen && (isRockbox || isCast) && (
         <>
           <QueueOverlay onClick={() => setQueuePanelOpen(false)} />
           <QueuePanel
@@ -1053,11 +1068,13 @@ function StickyPlayerWithData() {
               void startAtIndex(idx);
             }}
             onRemove={(idx) => {
+              if (isCast) { castAction(webCast.remove(idx)); return; }
               getRockboxPlayer().removeAt(idx);
             }}
             onReorder={(newQueue, from, to) => {
               // Optimistic UI; the engine applies the same move (remove +
               // indexed re-insert), so its next `queue` event confirms it.
+              if (isCast) { castAction(webCast.reorder(newQueue, from, to)); return; }
               moveInQueue(from, to);
               setQueue(newQueue);
             }}
@@ -1111,10 +1128,10 @@ function StickyPlayerWithData() {
           queuePanelOpen={queuePanelOpen}
           onPlaylist={() => setQueuePanelOpen((o) => !o)}
           onClose={() => setFullscreenOpen(false)}
-          isUploadPlayer={isRockbox}
-          showVolume={isRockbox || (player === "device" && deviceVolume !== null)}
+          isUploadPlayer={isRockbox || isCast}
+          showVolume={isRockbox || isCast || (player === "device" && deviceVolume !== null)}
           showShuffle={isRockbox || (player === "device" && deviceShuffle !== null)}
-          showRepeat={isRockbox || (player === "device" && deviceRepeat !== null)}
+          showRepeat={isRockbox || isCast || (player === "device" && deviceRepeat !== null)}
           showTrackMenu={showTrackMenu}
           trackQueued={trackQueued}
           volume={player === "device" ? (deviceVolume ?? volume) : volume}
@@ -1151,6 +1168,7 @@ function StickyPlayerWithData() {
               <PlayerSelectorItem
                 active={isRockbox}
                 onClick={() => {
+                  if (castState.connected) webCast.disconnect();
                   setPlayer("rockbox");
                   setPlayerSelectorOpen(false);
                 }}
@@ -1158,6 +1176,21 @@ function StickyPlayerWithData() {
                 <PlayerDot active={isRockbox} />
                 This Device
               </PlayerSelectorItem>
+              {(castState.available && (isRockbox || isCast || player === null)) && (
+                <PlayerSelectorItem active={isCast} onClick={() => {
+                  castAction(webCast.connect());
+                  setPlayerSelectorOpen(false);
+                }}>
+                  <PlayerDot active={isCast} />
+                  {castState.connected ? castState.name : "Chromecast"}
+                </PlayerSelectorItem>
+              )}
+              {castState.connected && (
+                <PlayerSelectorItem active={false} onClick={() => { webCast.disconnect(); setPlayerSelectorOpen(false); }}>
+                  Stop casting
+                </PlayerSelectorItem>
+              )}
+              {castState.error && <div role="alert" style={{ padding: 12, maxWidth: 280 }}>{castState.error}</div>}
               {/* One entry per connected player device. Several can be playing
                   at once — selecting one shows/controls it and makes it the
                   primary (scrobble source), synced across the user's clients. */}
@@ -1207,10 +1240,10 @@ function StickyPlayerWithData() {
         queuePanelOpen={queuePanelOpen}
         fullscreenOpen={fullscreenOpen}
         onOpenFullscreen={() => setFullscreenOpen(true)}
-        isUploadPlayer={isRockbox}
-          showVolume={isRockbox || (player === "device" && deviceVolume !== null)}
+        isUploadPlayer={isRockbox || isCast}
+          showVolume={isRockbox || isCast || (player === "device" && deviceVolume !== null)}
           showShuffle={isRockbox || (player === "device" && deviceShuffle !== null)}
-          showRepeat={isRockbox || (player === "device" && deviceRepeat !== null)}
+          showRepeat={isRockbox || isCast || (player === "device" && deviceRepeat !== null)}
         showTrackMenu={showTrackMenu}
         trackQueued={trackQueued}
         shuffle={player === "device" ? (deviceShuffle ?? false) : shuffle}

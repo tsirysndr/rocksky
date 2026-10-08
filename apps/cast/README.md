@@ -36,6 +36,14 @@ Queue startup resolves and loads only the selected track. The sender adds the ne
 
 The receiver does not transcode. Playback depends on the target device's [supported audio codecs](https://developers.google.com/cast/docs/media). Unsupported formats may need conversion. Receiver hosting/registration and playback on real Cast hardware still require verification; the repository checks cover the native server, sender queue and receiver build/state parsing.
 
+## Web sender
+
+In the web app, play an uploaded/library track on **This Device**, then choose **Chromecast** from the player's source picker. The option appears when the browser's Cast SDK discovers a receiver and This Device is selected. Existing miniplayer, fullscreen, keyboard, queue, and media-session controls target the selected TV. Choose **Stop casting** to return to paused local playback.
+
+The web sender uses receiver `833D8703` by default (`VITE_GOOGLE_CAST_RECEIVER_APP_ID` overrides it). Serve the app over HTTPS, or localhost for development, in a browser supported by the [Google Cast Web Sender SDK](https://developers.google.com/cast/docs/web_sender/integrate). It loads the selected track first and fills the remaining queue in small background batches. Its token and MIME requests share the Android sender's request-pacing implementation in `apps/shared/castRequests.ts`. Uploaded stream URLs carry scoped streaming tokens; they never fall back to the account sign-in JWT.
+
+Sender regression tests: `bun test ./src/lib/audio/cast-player.test.ts` from `apps/web`.
+
 ## Checks
 
 ```sh

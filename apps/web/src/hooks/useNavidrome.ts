@@ -70,6 +70,7 @@ export function songToQueueTrack(
         : null;
   return {
     uploadId: song.id,
+    mimeType: song.contentType,
     title: song.title,
     artist: song.artist,
     albumArtist: song.albumArtist ?? song.artist,

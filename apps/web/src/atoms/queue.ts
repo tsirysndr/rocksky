@@ -16,6 +16,7 @@ export interface QueueTrack {
   releaseDate?: string | null;
   year?: number | null;
   streamUrl?: string;
+  mimeType?: string;
 }
 
 export const queueAtom = atom<QueueTrack[]>([]);

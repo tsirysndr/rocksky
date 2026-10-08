@@ -47,7 +47,7 @@ export function useUploadScrobble() {
   }, [currentTrackKey]);
 
   useEffect(() => {
-    if (player !== "rockbox" || !nowPlaying) return;
+    if ((player !== "rockbox" && player !== "cast") || !nowPlaying) return;
 
     const { sha256, title, artist, albumArt, duration, progress } = nowPlaying;
     const album = queue[queueIndex]?.album;

@@ -1,3 +1,4 @@
+import { webCast } from "../lib/audio/cast-player";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback } from "react";
 import { InsertMode } from "rockbox-wasm";
@@ -85,6 +86,10 @@ export function useUploadPlayer() {
         : input;
       const startIndex = shuffle ? 0 : (from ?? 0);
 
+      if (webCast.active()) {
+        await webCast.load(tracks, startIndex);
+        return;
+      }
       if (deviceCommand.active) {
         deviceCommand.send("enqueue", {
           tracks: tracks.map(toDescriptor),
@@ -123,53 +128,81 @@ export function useUploadPlayer() {
     [setNowPlaying, setPlayer, deviceCommand, shuffle],
   );
 
-  const playNext = useCallback(async (track: QueueTrack) => {
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "next" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks([track]);
-    p.insert(streamUrlFor(track), InsertMode.PlayNext);
-  }, [deviceCommand]);
+  const playNext = useCallback(
+    async (track: QueueTrack) => {
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: [toDescriptor(track)],
+          mode: "next",
+        });
+        return;
+      }
+      if (webCast.active()) return webCast.enqueue([track], "next");
+      const p = await ensureRockboxReady();
+      await ensureStreamToken();
+      registerTracks([track]);
+      p.insert(streamUrlFor(track), InsertMode.PlayNext);
+    },
+    [deviceCommand],
+  );
 
-  const playNextAll = useCallback(async (tracks: QueueTrack[]) => {
-    if (!tracks.length) return;
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "next" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks(tracks);
-    // insert() with an array keeps the batch's order directly after the
-    // current track (Rockbox's PlayNext), so no manual reversal is needed.
-    p.insert(tracks.map(streamUrlFor), InsertMode.PlayNext);
-  }, [deviceCommand]);
+  const playNextAll = useCallback(
+    async (tracks: QueueTrack[]) => {
+      if (!tracks.length) return;
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: tracks.map(toDescriptor),
+          mode: "next",
+        });
+        return;
+      }
+      if (webCast.active()) return webCast.enqueue(tracks, "next");
+      const p = await ensureRockboxReady();
+      await ensureStreamToken();
+      registerTracks(tracks);
+      // insert() with an array keeps the batch's order directly after the
+      // current track (Rockbox's PlayNext), so no manual reversal is needed.
+      p.insert(tracks.map(streamUrlFor), InsertMode.PlayNext);
+    },
+    [deviceCommand],
+  );
 
-  const playLast = useCallback(async (track: QueueTrack) => {
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "last" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks([track]);
-    p.insert(streamUrlFor(track), InsertMode.PlayLast);
-  }, [deviceCommand]);
+  const playLast = useCallback(
+    async (track: QueueTrack) => {
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: [toDescriptor(track)],
+          mode: "last",
+        });
+        return;
+      }
+      if (webCast.active()) return webCast.enqueue([track], "last");
+      const p = await ensureRockboxReady();
+      await ensureStreamToken();
+      registerTracks([track]);
+      p.insert(streamUrlFor(track), InsertMode.PlayLast);
+    },
+    [deviceCommand],
+  );
 
-  const playLastAll = useCallback(async (tracks: QueueTrack[]) => {
-    if (!tracks.length) return;
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "last" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks(tracks);
-    p.insert(tracks.map(streamUrlFor), InsertMode.PlayLast);
-  }, [deviceCommand]);
+  const playLastAll = useCallback(
+    async (tracks: QueueTrack[]) => {
+      if (!tracks.length) return;
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: tracks.map(toDescriptor),
+          mode: "last",
+        });
+        return;
+      }
+      if (webCast.active()) return webCast.enqueue(tracks, "last");
+      const p = await ensureRockboxReady();
+      await ensureStreamToken();
+      registerTracks(tracks);
+      p.insert(tracks.map(streamUrlFor), InsertMode.PlayLast);
+    },
+    [deviceCommand],
+  );
 
   return {
     queue,

@@ -27,6 +27,7 @@ export interface NavidromeSong {
   discNumber?: number;
   genre?: string;
   suffix?: string;
+  contentType?: string;
 }
 
 export interface NavidromeAlbum {

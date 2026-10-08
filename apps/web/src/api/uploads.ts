@@ -1,5 +1,45 @@
 import axios from "axios";
 import { API_URL } from "../consts";
+import { castRequests } from "../../../shared/castRequests";
+
+let castToken: { owner: string; token: string; expiresAt: number } | null =
+  null;
+export async function getCastStreamUrl(
+  uploadId: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const owner = localStorage.getItem("token");
+  if (!owner) throw new Error("Sign in to cast uploaded music.");
+  if (
+    !castToken ||
+    castToken.owner !== owner ||
+    castToken.expiresAt < Date.now() + 300000
+  ) {
+    const response = await castRequests.fetch(
+      `${API_URL}/uploads/stream-token?purpose=cast`,
+      {
+        headers: { authorization: `Bearer ${owner}` },
+        signal,
+      },
+    );
+    if (!response.ok)
+      throw new Error("Could not authorize Chromecast playback.");
+    const data = (await response.json()) as {
+      token?: string;
+      expiresIn?: number;
+    };
+    if (!data.token || !data.expiresIn || !Number.isFinite(data.expiresIn))
+      throw new Error("Invalid streaming token.");
+    if (signal?.aborted || localStorage.getItem("token") !== owner)
+      throw new Error("Cast session changed.");
+    castToken = {
+      owner,
+      token: data.token,
+      expiresAt: Date.now() + data.expiresIn * 1000,
+    };
+  }
+  return `${API_URL}/uploads/${encodeURIComponent(uploadId)}/stream?token=${encodeURIComponent(castToken.token)}`;
+}
 
 const headers = () => ({
   authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -85,7 +125,9 @@ export const deleteAlbum = async (params: {
   return { deleted: response.data.deleted };
 };
 
-export const deleteAlbumById = async (albumId: string): Promise<{ deleted: number }> => {
+export const deleteAlbumById = async (
+  albumId: string,
+): Promise<{ deleted: number }> => {
   const response = await axios.delete<{ status: string; deleted: number }>(
     `${API_URL}/uploads/by-album/${albumId}`,
     { headers: headers() },
@@ -101,7 +143,10 @@ export const ensureStreamToken = async (): Promise<void> => {
   const exp = parseInt(localStorage.getItem(STREAM_TOKEN_EXP_KEY) ?? "0", 10);
   if (Date.now() < exp - 5 * 60 * 1000) return;
 
-  if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null; }
+  if (_refreshTimer) {
+    clearTimeout(_refreshTimer);
+    _refreshTimer = null;
+  }
 
   try {
     const response = await axios.get<{ token: string; expiresIn: number }>(
@@ -121,7 +166,10 @@ export const ensureStreamToken = async (): Promise<void> => {
 export const getStreamUrl = (uploadId: string): string => {
   const streamToken = localStorage.getItem(STREAM_TOKEN_KEY);
   const exp = parseInt(localStorage.getItem(STREAM_TOKEN_EXP_KEY) ?? "0", 10);
-  const token = (streamToken && Date.now() < exp) ? streamToken : localStorage.getItem("token");
+  const token =
+    streamToken && Date.now() < exp
+      ? streamToken
+      : localStorage.getItem("token");
   return `${API_URL}/uploads/${uploadId}/stream?token=${token}`;
 };
 
@@ -146,10 +194,10 @@ export const getQueueState = async (): Promise<{
   queue: PersistedQueueTrack[];
   currentIndex: number;
 }> => {
-  const response = await axios.get<{ queue: PersistedQueueTrack[]; currentIndex: number }>(
-    `${API_URL}/uploads/queue`,
-    { headers: headers() },
-  );
+  const response = await axios.get<{
+    queue: PersistedQueueTrack[];
+    currentIndex: number;
+  }>(`${API_URL}/uploads/queue`, { headers: headers() });
   return response.data;
 };
 
