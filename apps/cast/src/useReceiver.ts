@@ -1,22 +1,12 @@
-import { useEffect, useState } from "react";
-import { idleState, snapshot, type ReceiverState } from "./receiver";
-interface Player {
-  getMediaInformation(): unknown;
-  getCurrentTimeSec(): number;
-  getDurationSec(): number;
-  getPlayerState(): string;
-  getQueueManager():
-    | { getItems(): unknown[]; getCurrentItemIndex(): number }
-    | undefined;
-  addEventListener(type: string, callback: (event: unknown) => void): void;
-  removeEventListener(type: string, callback: (event: unknown) => void): void;
-  play(): void;
-  pause(): void;
-  seek(position: number): void;
-}
+import { useCallback, useEffect, useState } from "react";
+import { idleState, type ReceiverState } from "./receiver";
+import { observeReceiver, type Player } from "./receiverUpdates";
 interface ReceiverContext {
   getPlayerManager(): Player;
-  start(options?: { disableIdleTimeout?: boolean }): void;
+  start(options?: {
+    disableIdleTimeout?: boolean;
+    mediaElement?: HTMLMediaElement;
+  }): void;
 }
 declare global {
   interface Window {
@@ -48,41 +38,26 @@ export function useReceiver() {
       const context = framework.CastReceiverContext.getInstance();
       const player = context.getPlayerManager();
       activePlayer = player;
-      let playbackError: string | undefined;
-      const update = () => {
-        const queue = player.getQueueManager();
-        const next = snapshot({
-          playerState: player.getPlayerState(),
-          media: player.getMediaInformation(),
-          position: player.getCurrentTimeSec(),
-          duration: player.getDurationSec(),
-          items: queue?.getItems() ?? [],
-          index: queue?.getCurrentItemIndex() ?? -1,
-        });
-        if (next.phase === "playing" || next.phase === "loading")
-          playbackError = undefined;
-        setState(
-          playbackError
-            ? { ...next, phase: "error", error: playbackError }
-            : next,
-        );
-      };
-      const onError = () => {
-        playbackError =
-          "This track could not be played. Check your Wi-Fi connection or try another audio format.";
-        update();
-      };
-      const errorEvent = framework.events.EventType.ERROR;
-      player.addEventListener(errorEvent, onError);
+      const mediaElement =
+        document.querySelector<HTMLAudioElement>("#receiver-audio") ??
+        undefined;
       if (!contextStarted) {
-        context.start({ disableIdleTimeout: false });
+        context.start({ disableIdleTimeout: false, mediaElement });
         contextStarted = true;
       }
-      const timer = window.setInterval(update, 500);
-      update();
+      const observer = observeReceiver(
+        player,
+        framework.events.EventType,
+        setState,
+        mediaElement,
+      );
+      // Backup for receivers that emit sparse TIME_UPDATE events. This reads only
+      // the real media clock, never extrapolates while buffering, and skips duplicates.
+      const timer = window.setInterval(observer.progress, 1000);
       cleanup = () => {
         clearInterval(timer);
-        player.removeEventListener(errorEvent, onError);
+        observer.dispose();
+        if (activePlayer === player) activePlayer = null;
       };
     } catch {
       setState({
@@ -93,10 +68,13 @@ export function useReceiver() {
     }
     return cleanup;
   }, []);
-  const toggle = () => {
-    if (state.phase === "playing") activePlayer?.pause();
+  const toggle = useCallback(() => {
+    if (activePlayer?.getPlayerState() === "PLAYING") activePlayer.pause();
     else activePlayer?.play();
-  };
-  const seek = (position: number) => activePlayer?.seek(position);
+  }, []);
+  const seek = useCallback(
+    (position: number) => activePlayer?.seek(position),
+    [],
+  );
   return { state, toggle, seek };
 }

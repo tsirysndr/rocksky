@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { artworkUrl, clock, type ReceiverState, type Track } from "./receiver";
 
 function Icon({
@@ -68,10 +68,12 @@ function Icon({
     </svg>
   );
 }
-function Artwork({
+const Artwork = memo(function Artwork({
   track,
   className = "",
+  onArtworkLoad,
 }: {
+  onArtworkLoad?: (image: HTMLImageElement) => void;
   track: Track | null;
   className?: string;
 }) {
@@ -83,6 +85,8 @@ function Artwork({
         <img
           src={artworkUrl(track.artwork)}
           alt={`${track.album} album artwork`}
+          decoding="async"
+          onLoad={(event) => onArtworkLoad?.(event.currentTarget)}
           onError={() => setFailed(true)}
         />
       ) : (
@@ -106,7 +110,7 @@ function Artwork({
       )}
     </div>
   );
-}
+});
 export type NowPlayingProps = {
   state: ReceiverState;
   onToggle?: () => void;
@@ -118,38 +122,28 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
   const percent =
     duration > 0 ? Math.min(100, Math.max(0, (position / duration) * 100)) : 0;
   const [hue, setHue] = useState("#895343");
-  useEffect(() => {
-    if (!track?.artwork) {
+  useEffect(() => setHue("#6f39a5"), [track?.artwork]);
+  const artworkLoaded = useCallback((image: HTMLImageElement) => {
+    // Sample the image already decoded for the cover instead of downloading and
+    // decoding a second full-size image solely for its background color.
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.drawImage(image, 0, 0, 1, 1);
+      const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+      setHue(`rgb(${r},${g},${b})`);
+    } catch {
       setHue("#6f39a5");
-      return;
     }
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = canvas.height = 1;
-        const context = canvas.getContext("2d");
-        if (!context) return;
-        context.drawImage(image, 0, 0, 1, 1);
-        const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
-        setHue(`rgb(${r},${g},${b})`);
-      } catch {
-        setHue("#6f39a5");
-      }
-    };
-    image.src = artworkUrl(track.artwork);
-    return () => {
-      image.onload = null;
-    };
-  }, [track?.artwork]);
+  }, []);
   return (
     <main
       className={`tv-shell phase-${phase}`}
       style={{ "--art-color": hue } as React.CSSProperties}
     >
       <div className="ambient" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
       <header className="tv-header flex items-center justify-between">
         <div className="brand flex items-center">
           <span>Rocksky</span>
@@ -162,7 +156,11 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
       {active ? (
         <>
           <section className="listening-layout">
-            <Artwork track={track} className="hero-art" />
+            <Artwork
+              track={track}
+              className="hero-art"
+              onArtworkLoad={artworkLoaded}
+            />
             <div className="track-details">
               <div className="eyebrow flex items-center">
                 <span
@@ -235,7 +233,7 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
                 >
                   <div
                     className="timeline-fill"
-                    style={{ width: `${percent}%` }}
+                    style={{ transform: `scaleX(${percent / 100})` }}
                   />
                 </div>
                 <div className="time-labels flex justify-between">
@@ -270,39 +268,7 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
               )}
             </div>
           </section>
-          <section className="queue-section" aria-label="Up next">
-            <div className="queue-heading flex items-center justify-between">
-              <span>UP NEXT</span>
-              <span>
-                {queue.length
-                  ? `${queue.length} more ${queue.length === 1 ? "track" : "tracks"}`
-                  : "Enjoy the moment"}
-              </span>
-            </div>
-            <div className="queue-rail">
-              {queue.slice(0, 3).map((item, index) => (
-                <article
-                  key={`${item.id}-${index}`}
-                  className="queue-track flex items-center"
-                >
-                  <span className="queue-rank">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <Artwork track={item} />
-                  <div className="queue-copy">
-                    <h2 title={item.title}>{item.title}</h2>
-                    <p title={item.artist}>{item.artist}</p>
-                  </div>
-                  <span className="queue-duration">{clock(item.duration)}</span>
-                </article>
-              ))}
-              {!queue.length && (
-                <p className="queue-empty">
-                  Add something you love from Rocksky on your phone.
-                </p>
-              )}
-            </div>
-          </section>
+          <Queue queue={queue} count={state.queueCount ?? queue.length} />
         </>
       ) : (
         <section className="idle-scene">
@@ -342,3 +308,47 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
     </main>
   );
 }
+
+const Queue = memo(function Queue({
+  queue,
+  count,
+}: {
+  queue: Track[];
+  count: number;
+}) {
+  return (
+    <section className="queue-section" aria-label="Up next">
+      <div className="queue-heading flex items-center justify-between">
+        <span>UP NEXT</span>
+        <span>
+          {count
+            ? `${count} more ${count === 1 ? "track" : "tracks"}`
+            : "Enjoy the moment"}
+        </span>
+      </div>
+      <div className="queue-rail">
+        {queue.slice(0, 3).map((item, index) => (
+          <article
+            key={`${item.id}-${index}`}
+            className="queue-track flex items-center"
+          >
+            <span className="queue-rank">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <Artwork track={item} />
+            <div className="queue-copy">
+              <h2 title={item.title}>{item.title}</h2>
+              <p title={item.artist}>{item.artist}</p>
+            </div>
+            <span className="queue-duration">{clock(item.duration)}</span>
+          </article>
+        ))}
+        {!queue.length && (
+          <p className="queue-empty">
+            Add something you love from Rocksky on your phone.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+});

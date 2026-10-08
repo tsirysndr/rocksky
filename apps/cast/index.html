@@ -1,3 +1,15 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#130825"/><title>Rocksky · Listen together</title></head>
-<body><cast-media-player></cast-media-player><div id="root"></div><script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script><script type="module" src="/src/main.tsx"></script></body></html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#130825" />
+    <title>Rocksky · Listen together</title>
+  </head>
+  <body>
+    <audio id="receiver-audio" class="castMediaElement"></audio>
+    <div id="root"></div>
+    <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

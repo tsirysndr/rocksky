@@ -1,4 +1,16 @@
 @import "tailwindcss";
+/* Older Chromecast engines ignore Tailwind v4's cascade layers. Keep the
+   receiver's essential layout utilities outside layers so clock labels don't
+   run together and the footer/queue retain their alignment on those TVs. */
+.flex {
+  display: flex;
+}
+.items-center {
+  align-items: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
 @font-face {
   font-family: RockfordSansLight;
   src: url("/fonts/RockfordSans-Light.otf") format("opentype");
@@ -43,7 +55,7 @@ button:focus-visible,
   outline: 3px solid #ff84b0;
   outline-offset: 8px;
 }
-cast-media-player {
+#receiver-audio {
   position: fixed;
   width: 1px;
   height: 1px;
@@ -68,7 +80,7 @@ button:disabled {
 }
 .ambient {
   position: absolute;
-  inset: -20%;
+  inset: 0;
   z-index: -2;
   background:
     radial-gradient(
@@ -79,14 +91,7 @@ button:disabled {
     radial-gradient(ellipse at 91% 3%, #653453 0%, transparent 55%),
     linear-gradient(130deg, #271235, #130825 56%, #0e0918);
   opacity: 0.68;
-  filter: blur(70px);
-}
-.grain {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.75' filter='url(%23n)'/%3E%3C/svg%3E");
+  contain: strict;
   pointer-events: none;
 }
 .tv-header {
@@ -115,17 +120,17 @@ button:disabled {
 .listening-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr);
-  gap: 6vw;
+  gap: 3vw;
   align-items: center;
   flex: 1;
   min-height: 0;
-  padding: 4.5vh 0 4vh;
+  padding: 6.5vh 0 4vh;
 }
 .artwork {
   overflow: hidden;
   flex-shrink: 0;
   background: #2c1c3e;
-  border-radius: 0.5vw;
+  border-radius: 0;
   aspect-ratio: 1;
 }
 .artwork img {
@@ -135,13 +140,9 @@ button:disabled {
 }
 .hero-art {
   width: 100%;
-  max-width: 54vh;
-  justify-self: center;
-  border-radius: 1.05vw;
-  box-shadow:
-    0 2.1vw 5vw #0007,
-    0 0 0 1px #ffffff10;
-  transform: rotate(-1deg);
+  max-width: 50vh;
+  justify-self: end;
+  box-shadow: 0 0 0 1px #ffffff10;
 }
 .artwork-fallback {
   height: 100%;
@@ -186,7 +187,7 @@ button:disabled {
   height: 55%;
 }
 .equalizer.animated i {
-  animation: equalize 0.85s ease-in-out infinite alternate;
+  animation: equalize 1s steps(3) infinite alternate;
 }
 .equalizer.animated i:nth-child(2) {
   animation-delay: -0.4s;
@@ -250,18 +251,30 @@ button:disabled {
   border-radius: inherit;
   background: #ff528b;
   position: relative;
-  transition: width 0.45s linear;
+  width: 100%;
+  transform-origin: left center;
+  will-change: transform;
 }
 .time-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  line-height: 1.5;
   color: #c6b6ca;
   font-size: 0.85vw;
   letter-spacing: 0.04em;
   margin-top: 1.2vh;
   font-variant-numeric: tabular-nums;
 }
+.time-labels > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .playback-caption {
-  gap: 1.1vw;
   margin-top: 2.3vh;
+}
+.playback-caption > .source-caption {
+  margin-left: 1.6vw;
 }
 .play-toggle {
   border: 1px solid #ffffff30;
@@ -289,9 +302,7 @@ button:disabled {
   width: 1vw;
   height: 1vw;
 }
-.phase-loading .hero-art {
-  animation: breathe 2s ease-in-out infinite;
-}
+
 .error-message {
   color: #ffb6c7;
   font-size: 1vw;
@@ -323,6 +334,7 @@ button:disabled {
 .queue-track {
   min-width: 0;
   gap: 1vw;
+  padding: 1vh 0;
 }
 .queue-rank {
   font-size: 0.75vw;
@@ -333,7 +345,6 @@ button:disabled {
 .queue-track > .artwork {
   width: 3.3vw;
   height: 3.3vw;
-  border-radius: 0.35vw;
 }
 .queue-copy {
   min-width: 0;
@@ -477,11 +488,6 @@ button:disabled {
     transform: scaleY(1);
   }
 }
-@keyframes breathe {
-  50% {
-    opacity: 0.55;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   *,
   *:before,
@@ -499,10 +505,11 @@ button:disabled {
   .listening-layout {
     grid-template-columns: 1fr;
     gap: 4vh;
-    padding: 5vh 0;
+    padding: 6.5vh 0 5vh;
   }
   .hero-art {
-    max-width: 44vh;
+    max-width: 42vh;
+    justify-self: center;
   }
   .track-details {
     width: 100%;
@@ -580,7 +587,6 @@ button:disabled {
   background: radial-gradient(ellipse, #ffce9a80, transparent 65%);
   left: 10%;
   top: -35%;
-  filter: blur(15px);
 }
 .fallback-orbit {
   position: absolute;

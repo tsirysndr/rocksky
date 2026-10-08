@@ -14,6 +14,7 @@ export type ReceiverState = {
   position: number;
   duration: number;
   queue: Track[];
+  queueCount?: number;
   volume: number;
   error?: string;
 };
@@ -76,11 +77,15 @@ export function snapshot(input: {
         : ["BUFFERING", "LOADING"].includes(input.playerState)
           ? "loading"
           : "idle";
-  const duration = finite(input.duration, track?.duration || 0);
+  const { position, duration } = playbackTime(
+    input.position,
+    input.duration,
+    track?.duration || 0,
+  );
   return {
     phase,
     track: phase === "idle" ? null : track,
-    position: Math.min(finite(input.position), duration || Infinity),
+    position: phase === "idle" ? 0 : position,
     duration,
     queue: input.items
       .slice(Math.max(0, input.index + 1))
@@ -98,4 +103,17 @@ export function clock(seconds: number): string {
   return hours
     ? `${hours}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
     : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** CAF reports seconds. A zero/unknown player duration must not erase sender metadata. */
+export function playbackTime(
+  position: number,
+  measuredDuration: number,
+  metadataDuration: number,
+) {
+  const duration = finite(measuredDuration) || finite(metadataDuration);
+  return {
+    position: Math.floor(Math.min(finite(position), duration || Infinity)),
+    duration,
+  };
 }
