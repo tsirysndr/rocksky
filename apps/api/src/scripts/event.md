@@ -81,7 +81,7 @@ optional answer empty to skip it.
 ? DICE event id (optional) ›
 ? Eventbrite event id (optional) ›
 ? Tickets URL (optional) › https://www.ticketmaster.co.uk/slipknot-tickets
-? Poster image URL (optional) ›
+? Poster image URL (optional) › https://media.bandsintown.com/900x900/26140291.webp
 ```
 
 When a billed name matches an artist Rocksky already knows, the script
@@ -116,6 +116,8 @@ Both records are then printed as JSON for a last look:
   "genre": "Metal",
   "artists": [{ "name": "Slipknot", "role": "headliner", ... }],
   "externalIds": { "ticketmaster": "1A00ZK9GDF1234" },
+  "ticketsUrl": "https://www.ticketmaster.co.uk/slipknot-tickets",
+  "imageUrl": "https://media.bandsintown.com/900x900/26140291.webp",
   ...
 }
 ? Do you want to proceed? › yes
