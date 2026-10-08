@@ -3,6 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import OnTour from "./OnTour";
 import { useArtistEvents } from "../hooks/useArtistEvents";
 
+vi.mock("./EventRsvpButton", () => ({
+  default: () => <div>RSVP controls</div>,
+}));
+
 vi.mock("../hooks/useArtistEvents", () => ({ useArtistEvents: vi.fn() }));
 
 const event = {
@@ -42,7 +46,7 @@ describe("On tour", () => {
     expect(html).toContain("Olympia, Paris");
     expect(html).toContain("Second show");
     expect(html).toContain("View all upcoming concerts (2+)");
-    expect(html.match(/<li>/g)).toHaveLength(2);
+    expect(html.match(/<li /g)).toHaveLength(2);
     expect(html).toContain('href="https://example.com/tickets"');
   });
 
@@ -54,7 +58,7 @@ describe("On tour", () => {
         artists: [{ name: "Headliner" }, { name: "Support" }],
       })),
     ]);
-    expect(html.match(/<li>/g)).toHaveLength(9);
+    expect(html.match(/<li /g)).toHaveLength(9);
     expect(html).toContain("View all upcoming concerts (13)");
     expect(html).toContain("Headliner, Support");
     expect(html).toContain('title="Paris"');

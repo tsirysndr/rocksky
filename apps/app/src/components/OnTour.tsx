@@ -1,3 +1,4 @@
+import EventRsvpButton from "./EventRsvpButton";
 import { useState } from "react";
 import {
   Alert,
@@ -101,28 +102,38 @@ export default function OnTour({
           </>
         );
         const label = `${details.city}: ${event.name}, ${details.date}, ${details.location}. Times shown in your local timezone.`;
-        return href ? (
-          <TouchableOpacity
-            key={event.uri}
-            accessibilityRole="link"
-            accessibilityLabel={label}
-            style={styles.event}
-            onPress={() =>
-              Linking.openURL(href).catch(() =>
-                Alert.alert("Unable to open link", "Please try again later."),
-              )
-            }
-          >
-            {content}
-          </TouchableOpacity>
-        ) : (
-          <View
-            key={event.uri}
-            accessible
-            accessibilityLabel={label}
-            style={styles.event}
-          >
-            {content}
+        return (
+          <View key={event.uri} style={styles.row}>
+            {href ? (
+              <TouchableOpacity
+                key={event.uri}
+                accessibilityRole="link"
+                accessibilityLabel={label}
+                style={styles.event}
+                onPress={() =>
+                  Linking.openURL(href).catch(() =>
+                    Alert.alert(
+                      "Unable to open link",
+                      "Please try again later.",
+                    ),
+                  )
+                }
+              >
+                {content}
+              </TouchableOpacity>
+            ) : (
+              <View
+                key={event.uri}
+                accessible
+                accessibilityLabel={label}
+                style={styles.event}
+              >
+                {content}
+              </View>
+            )}
+            {details.status !== "cancelled" && (
+              <EventRsvpButton event={event} />
+            )}
           </View>
         );
       })}
@@ -162,23 +173,24 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "right",
   },
+  row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24 },
   event: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    marginBottom: 24,
+    gap: 12,
   },
   dateTile: {
-    width: 80,
-    height: 80,
+    width: 64,
+    height: 72,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 5,
-    backgroundColor: "#282828",
+    backgroundColor: colors.surface2,
     gap: 6,
   },
-  month: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  day: { color: "#fff", fontSize: 32, lineHeight: 34, fontWeight: "800" },
+  month: { color: colors.text, fontSize: 16, fontWeight: "700" },
+  day: { color: colors.text, fontSize: 32, lineHeight: 34, fontWeight: "800" },
   info: { flex: 1, minWidth: 0 },
   city: {
     color: colors.text,

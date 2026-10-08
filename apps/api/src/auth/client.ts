@@ -27,6 +27,7 @@ export const SCOPES = [
   "repo:app.rocksky.actor.status",
   "repo:app.rocksky.rockbox.audio.settings",
   "repo:app.rocksky.equalizer",
+  "repo:community.lexicon.calendar.rsvp",
 ];
 
 export const createClient = async (db: Database) => {

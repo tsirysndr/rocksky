@@ -1,0 +1,46 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.event.putRsvp"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Set the authenticated user's RSVP on an event. Reuses their existing RSVP record."
+    input {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("uri", "status")
+        properties {
+          ["uri"] = new StringType {
+            type = "string"
+            format = "at-uri"
+            description = "The calendar or music event URI."
+          }
+          ["status"] = new StringType {
+            type = "string"
+            knownValues = List("community.lexicon.calendar.rsvp#going", "community.lexicon.calendar.rsvp#interested", "community.lexicon.calendar.rsvp#notgoing")
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("uri", "status")
+        properties {
+          ["uri"] = new StringType {
+            type = "string"
+            format = "at-uri"
+            description = "The RSVP record URI."
+          }
+          ["status"] = new StringType {
+            type = "string"
+            knownValues = List("community.lexicon.calendar.rsvp#going", "community.lexicon.calendar.rsvp#interested", "community.lexicon.calendar.rsvp#notgoing")
+          }
+        }
+      }
+    }
+  }
+}

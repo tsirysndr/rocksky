@@ -1,6 +1,12 @@
+export type RsvpStatus =
+  | "community.lexicon.calendar.rsvp#going"
+  | "community.lexicon.calendar.rsvp#interested"
+  | "community.lexicon.calendar.rsvp#notgoing";
+
 /** Fields used from app.rocksky.event.defs#eventView. */
 export interface ArtistEvent {
   uri: string;
+  viewerRsvp?: RsvpStatus;
   name: string;
   artists?: { name: string }[];
   startsAt?: string;

@@ -61,7 +61,7 @@ a.on-tour__event:hover h3 {
   text-decoration: underline;
 }
 a.on-tour__event:hover .on-tour__date {
-  background: #383838;
+  background: var(--color-menu-hover);
 }
 .on-tour__event:focus-visible,
 .on-tour__header button:focus-visible {
@@ -76,8 +76,8 @@ a.on-tour__event:hover .on-tour__date {
   flex: 0 0 88px;
   height: 88px;
   border-radius: 5px;
-  background: #282828;
-  color: #fff;
+  background: var(--color-input-background);
+  color: var(--color-text);
   gap: 6px;
 }
 .on-tour__date span {
@@ -151,5 +151,75 @@ a.on-tour__event:hover .on-tour__date {
   }
   .on-tour__info p {
     font-size: 16px;
+  }
+}
+
+.on-tour__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.on-tour__row > .on-tour__event {
+  flex: 1;
+}
+.on-tour__rsvp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 88px;
+}
+.on-tour__rsvp > button {
+  min-height: 36px;
+  border-radius: 20px;
+  border: 1px solid var(--color-text-muted);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.on-tour__rsvp > button:hover {
+  background: var(--color-menu-hover);
+}
+.on-tour__rsvp > button[aria-pressed="true"] {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-input-background);
+}
+.on-tour__rsvp > button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.on-tour__rsvp > button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+.on-tour__rsvp span[role="alert"] {
+  font-size: 11px;
+  color: var(--color-text);
+}
+@container (min-width: 521px) and (max-width: 1100px) {
+  .on-tour__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 520px) {
+  .on-tour__rsvp {
+    flex-basis: 84px;
+  }
+  .on-tour__rsvp > button {
+    min-height: 44px;
+  }
+  .on-tour__row {
+    gap: 8px;
+  }
+  .on-tour__row .on-tour__event {
+    gap: 12px;
+  }
+  .on-tour__row .on-tour__date {
+    flex-basis: 64px;
+    height: 72px;
   }
 }

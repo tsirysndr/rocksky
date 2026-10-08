@@ -47,6 +47,7 @@ import type * as AppRockskyEqualizerPutPreset from "./types/app/rocksky/equalize
 import type * as AppRockskyEventGetEvent from "./types/app/rocksky/event/getEvent";
 import type * as AppRockskyEventGetEventRsvps from "./types/app/rocksky/event/getEventRsvps";
 import type * as AppRockskyEventGetEvents from "./types/app/rocksky/event/getEvents";
+import type * as AppRockskyEventPutRsvp from "./types/app/rocksky/event/putRsvp";
 import type * as AppRockskyFeedDescribeFeedGenerator from "./types/app/rocksky/feed/describeFeedGenerator";
 import type * as AppRockskyFeedGetAlbumRecommendations from "./types/app/rocksky/feed/getAlbumRecommendations";
 import type * as AppRockskyFeedGetArtistRecommendations from "./types/app/rocksky/feed/getArtistRecommendations";
@@ -748,6 +749,17 @@ export class AppRockskyEventNS {
     >,
   ) {
     const nsid = "app.rocksky.event.getEvents"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  putRsvp<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyEventPutRsvp.Handler<ExtractAuth<AV>>,
+      AppRockskyEventPutRsvp.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.event.putRsvp"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

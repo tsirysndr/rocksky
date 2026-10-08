@@ -1,3 +1,4 @@
+import EventRsvpButton from "./EventRsvpButton";
 import { useState } from "react";
 import { useArtistEvents } from "../hooks/useArtistEvents";
 import { eventDetails, eventLink } from "../types/event";
@@ -81,7 +82,7 @@ export default function OnTour({
           );
           const label = `${details.city}: ${event.name}, ${details.date}, ${details.location}`;
           return (
-            <li key={event.uri}>
+            <li key={event.uri} className="on-tour__row">
               {href ? (
                 <a
                   className="on-tour__event"
@@ -96,6 +97,9 @@ export default function OnTour({
                 <div className="on-tour__event" aria-label={label}>
                   {content}
                 </div>
+              )}
+              {details.status !== "cancelled" && (
+                <EventRsvpButton event={event} />
               )}
             </li>
           );

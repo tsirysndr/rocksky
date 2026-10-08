@@ -4232,6 +4232,61 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyEventPutRsvp: {
+    lexicon: 1,
+    id: "app.rocksky.event.putRsvp",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Set the authenticated user's RSVP on an event. Reuses their existing RSVP record.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["uri", "status"],
+            properties: {
+              uri: {
+                type: "string",
+                format: "at-uri",
+                description: "The calendar or music event URI.",
+              },
+              status: {
+                type: "string",
+                knownValues: [
+                  "community.lexicon.calendar.rsvp#going",
+                  "community.lexicon.calendar.rsvp#interested",
+                  "community.lexicon.calendar.rsvp#notgoing",
+                ],
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["uri", "status"],
+            properties: {
+              uri: {
+                type: "string",
+                format: "at-uri",
+                description: "The RSVP record URI.",
+              },
+              status: {
+                type: "string",
+                knownValues: [
+                  "community.lexicon.calendar.rsvp#going",
+                  "community.lexicon.calendar.rsvp#interested",
+                  "community.lexicon.calendar.rsvp#notgoing",
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyFeedDefs: {
     lexicon: 1,
     id: "app.rocksky.feed.defs",
@@ -13523,6 +13578,7 @@ export const ids = {
   AppRockskyEventGetEventRsvps: "app.rocksky.event.getEventRsvps",
   AppRockskyEventGetEvents: "app.rocksky.event.getEvents",
   AppRockskyEventMusic: "app.rocksky.event.music",
+  AppRockskyEventPutRsvp: "app.rocksky.event.putRsvp",
   AppRockskyFeedDefs: "app.rocksky.feed.defs",
   AppRockskyFeedDescribeFeedGenerator: "app.rocksky.feed.describeFeedGenerator",
   AppRockskyFeedGenerator: "app.rocksky.feed.generator",

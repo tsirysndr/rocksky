@@ -34,6 +34,7 @@ import getMetadataFromDropbox from "./app/rocksky/dropbox/getMetadata";
 import getTemporaryLinkFromDropbox from "./app/rocksky/dropbox/getTemporaryLink";
 import getEvent from "./app/rocksky/event/getEvent";
 import getEventRsvps from "./app/rocksky/event/getEventRsvps";
+import putRsvp from "./app/rocksky/event/putRsvp";
 import getEvents from "./app/rocksky/event/getEvents";
 import getAlbumRecommendations from "./app/rocksky/feed/getAlbumRecommendations";
 import getArtistRecommendations from "./app/rocksky/feed/getArtistRecommendations";
@@ -144,6 +145,7 @@ export default function (server: Server, ctx: Context) {
   getTemporaryLinkFromDropbox(server, ctx);
   getEvent(server, ctx);
   getEventRsvps(server, ctx);
+  putRsvp(server, ctx);
   getEvents(server, ctx);
   search(server, ctx);
   downloadFileFromGoogleDrive(server, ctx);
