@@ -1,3 +1,4 @@
+import OnTour from "../../components/OnTour";
 import UserAvatar from "../../components/UserAvatar";
 import styled from "@emotion/styled";
 import { uriToPath } from "../../lib/uri";
@@ -460,6 +461,7 @@ const Song = () => {
               isLoading={songRecentListenersResult.isLoading}
             />
 
+            <OnTour artistUri={song?.artistUri} artistName={song?.artist} />
             {song?.artistUri &&
               song?.albumArtist?.toLowerCase() !== "various artists" && (
                 <>

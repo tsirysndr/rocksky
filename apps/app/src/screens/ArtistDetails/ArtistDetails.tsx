@@ -1,3 +1,4 @@
+import OnTour from "@/src/components/OnTour";
 import Feather from "@expo/vector-icons/Feather";
 import { Image as BackgroundImage } from "expo-image";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
@@ -270,6 +271,7 @@ export default function ArtistDetails({ route }: Props) {
                 </TouchableOpacity>
               </View>
 
+              <OnTour artistUri={artist?.uri || uri} artistName={artist.name} />
               {/* Tabs */}
               <View style={{ flexDirection: "row" }}>
                 {(["tracks", "albums"] as const).map((t) => (

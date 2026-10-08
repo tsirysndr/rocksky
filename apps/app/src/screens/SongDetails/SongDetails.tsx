@@ -1,3 +1,4 @@
+import OnTour from "@/src/components/OnTour";
 import RecordingMetadata from "@/src/components/RecordingMetadata";
 import TrackLikeButton from "@/src/components/TrackLikeButton";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -525,6 +526,7 @@ export default function SongDetails({ route }: Props) {
                 </View>
               )}
 
+              <OnTour artistUri={song.artistUri} artistName={song.artist} />
               {/* Popular Tracks */}
               {tracks && tracks.length > 0 && (
                 <View style={{ marginBottom: 24 }}>

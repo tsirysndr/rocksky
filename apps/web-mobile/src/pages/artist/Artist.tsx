@@ -1,3 +1,4 @@
+import OnTour from "../../components/OnTour";
 import { useParams, Link } from "react-router-dom";
 import ContentLoader from "react-content-loader";
 import numeral from "numeral";
@@ -114,6 +115,7 @@ export default function Artist() {
               />
             </div>
 
+            <div className="px-4"><OnTour artistUri={artistUri} artistName={artist?.name} /></div>
             {/* Tabs */}
             <div className="flex border-b" style={{ borderColor: "var(--color-border)" }}>
               {(["tracks", "albums"] as const).map((t) => (

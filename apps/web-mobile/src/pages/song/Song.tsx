@@ -1,3 +1,4 @@
+import OnTour from "../../components/OnTour";
 import RecordingMetadata from "../../components/RecordingMetadata";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -218,6 +219,7 @@ export default function Song() {
               isLoading={recentListenersLoading}
             />
 
+            <div className="px-4"><OnTour artistUri={song?.artistUri} artistName={song?.artist} /></div>
             {/* Popular Tracks by Artist */}
             {tracks && tracks.length > 0 && (
               <div className="mb-6">
