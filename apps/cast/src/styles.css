@@ -83,7 +83,7 @@ button:disabled {
   inset: 0;
   z-index: -2;
   background:
-    linear-gradient(#130825cc, #130825cc),
+    linear-gradient(#130825eb, #130825eb),
     radial-gradient(ellipse at 16% 44%, #6f39a5 0%, transparent 52%),
     radial-gradient(ellipse at 91% 3%, #653453 0%, transparent 55%),
     linear-gradient(130deg, #271235, #130825 56%, #0e0918);
