@@ -54,8 +54,12 @@ export function useReceiver() {
       // Backup for receivers that emit sparse TIME_UPDATE events. This reads only
       // the real media clock, never extrapolates while buffering, and skips duplicates.
       const timer = window.setInterval(observer.progress, 1000);
+      // Queue inserts need not emit a playback event. Decode only the three
+      // visible upcoming items and retain references when nothing has changed.
+      const queueTimer = window.setInterval(observer.refresh, 2000);
       cleanup = () => {
         clearInterval(timer);
+        clearInterval(queueTimer);
         observer.dispose();
         if (activePlayer === player) activePlayer = null;
       };

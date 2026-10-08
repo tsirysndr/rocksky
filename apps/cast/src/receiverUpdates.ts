@@ -43,6 +43,8 @@ export function observeReceiver(
   >,
 ) {
   let state = idleState;
+  let disposed = false;
+  let queueRefresh: ReturnType<typeof setTimeout> | undefined;
   const listeners: [string, (event: unknown) => void][] = [];
   function commit(next: ReceiverState) {
     if (sameTrack(state.track, next.track)) next.track = state.track;
@@ -128,6 +130,21 @@ export function observeReceiver(
     listen(event, recover);
   for (const event of ["TIME_UPDATE", "SEEKING", "SEEKED", "DURATION_CHANGE"])
     listen(event, progress);
+  // Request events precede CAF's queue mutation. Defer the read until after
+  // processing; the periodic refresh also covers asynchronously applied changes.
+  for (const event of [
+    "REQUEST_QUEUE_LOAD",
+    "REQUEST_QUEUE_INSERT",
+    "REQUEST_QUEUE_UPDATE",
+    "REQUEST_QUEUE_REMOVE",
+    "REQUEST_QUEUE_REORDER",
+  ])
+    listen(event, () => {
+      clearTimeout(queueRefresh);
+      queueRefresh = setTimeout(() => {
+        if (!disposed) refresh();
+      }, 100);
+    });
   listen("ERROR", () =>
     commit({
       ...state,
@@ -139,9 +156,13 @@ export function observeReceiver(
   refresh();
   return {
     progress,
-    dispose: () =>
+    refresh,
+    dispose: () => {
+      disposed = true;
+      clearTimeout(queueRefresh);
       listeners.forEach(([type, callback]) =>
         player.removeEventListener(type, callback),
-      ),
+      );
+    },
   };
 }

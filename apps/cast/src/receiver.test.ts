@@ -76,9 +76,10 @@ test("clock supports unknown durations and hour-long mixes", () => {
 // inaccurate sender clock; progress must not repeatedly walk the queue.
 import { observeReceiver, type Player } from "./receiverUpdates.ts";
 import type { ReceiverState } from "./receiver.ts";
-function receiverHarness() {
+function receiverHarness(queueSize = 10_000) {
   const events = Object.fromEntries(
     [
+      "REQUEST_QUEUE_INSERT",
       "MEDIA_INFORMATION_CHANGED",
       "MEDIA_STATUS",
       "PAUSE",
@@ -105,7 +106,7 @@ function receiverHarness() {
       return media;
     },
   };
-  const queue = Array(10_000).fill(item);
+  const queue = Array(queueSize).fill(item);
   const audio = { readyState: 1, currentTime: 12.8, duration: 240.5 };
   const states: ReceiverState[] = [];
   const player: Player = {
@@ -137,6 +138,7 @@ function receiverHarness() {
     audio,
   );
   return {
+    append: () => queue.push(item),
     audio,
     states,
     observer,
@@ -203,4 +205,27 @@ test("unknown player duration falls back to track metadata without dropping elap
   });
   assert.equal(state.duration, 369);
   assert.equal(state.position, 20);
+});
+
+test("background queue insertion updates Up next without a playback event", async () => {
+  const h = receiverHarness(1);
+  assert.equal(h.states.at(-1)!.queue.length, 0);
+  h.emit("REQUEST_QUEUE_INSERT");
+  h.append();
+  h.append();
+  h.append();
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  assert.equal(h.states.at(-1)!.queue.length, 3);
+  assert.equal(h.states.at(-1)!.queueCount, 3);
+  const count = h.states.length;
+  h.observer.refresh();
+  assert.equal(h.states.length, count);
+  h.observer.dispose();
+});
+test("periodic refresh recovers queue changes without a request event", () => {
+  const h = receiverHarness(1);
+  h.append();
+  h.observer.refresh();
+  assert.equal(h.states.at(-1)!.queueCount, 1);
+  h.observer.dispose();
 });
