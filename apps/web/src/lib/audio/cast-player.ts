@@ -350,17 +350,10 @@ export function initializeWebCast() {
         import.meta.env.VITE_GOOGLE_CAST_RECEIVER_APP_ID || "833D8703",
       autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
     });
-    const availability = () =>
-      store.set(webCastAtom, (s) => ({
-        ...s,
-        available:
-          context!.getCastState() !==
-          cast.framework.CastState.NO_DEVICES_AVAILABLE,
-      }));
-    context.addEventListener(
-      cast.framework.CastContextEventType.CAST_STATE_CHANGED,
-      availability,
-    );
+    // SDK readiness and receiver discovery are different. Keep the chooser
+    // accessible even before discovery finds a device, so Chrome can show its
+    // device selection / network permission UI when the user clicks Cast.
+    store.set(webCastAtom, (s) => ({ ...s, available: true }));
     context.addEventListener(
       cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
       (event) => {
@@ -433,7 +426,6 @@ export function initializeWebCast() {
       mirror,
     );
     window.setInterval(mirror, 1000);
-    availability();
   };
   (
     window as Window & { __onGCastApiAvailable?: (available: boolean) => void }

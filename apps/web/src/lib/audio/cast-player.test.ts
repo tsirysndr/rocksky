@@ -1,4 +1,5 @@
 import { expect, mock, test } from "bun:test";
+import { getDefaultStore } from "jotai";
 import type { QueueTrack } from "../../atoms/queue";
 const loads: any[] = [],
   inserts: any[] = [],
@@ -57,7 +58,8 @@ const session = {
 const context = {
   setOptions() {},
   getCurrentSession: () => session,
-  getCastState: () => "CONNECTED",
+  getCastState: () => "none",
+  requestSession: mock(async () => {}),
   addEventListener(type: string, fn: typeof ended) {
     if (type === "session") ended = fn;
   },
@@ -116,8 +118,13 @@ mock.module("../../api/uploads", () => ({
 mock.module("./rockbox-engine", () => ({
   getRockboxPlayer: () => ({ ready: false }),
 }));
-const { webCast, initializeWebCast } = await import("./cast-player");
+const { webCast, webCastAtom, initializeWebCast } = await import("./cast-player");
 initializeWebCast();
+test("Cast chooser stays accessible when no receivers have been discovered", async () => {
+  expect(getDefaultStore().get(webCastAtom).available).toBe(true);
+  await webCast.connect();
+  expect(context.requestSession).toHaveBeenCalledTimes(1);
+});
 const track = (i: number): QueueTrack => ({
   uploadId: String(i),
   title: `Track ${i}`,
