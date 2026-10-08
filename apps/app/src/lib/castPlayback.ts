@@ -9,6 +9,7 @@ import type {
 import { castFiles } from "../../modules/rocksky-cast";
 import type { EngineCommand, EngineStatus } from "../../modules/rocksky-engine";
 import type { UploadQueueTrack } from "./uploadEngine";
+import { mapConcurrent } from "./mapConcurrent";
 
 export const castStateAtom = atom({
   connected: false,
@@ -40,6 +41,7 @@ let lastPositionAt = Date.now();
 let onDisconnected = () => {};
 let pending = Promise.resolve();
 let generation = 0;
+const contentTypes = new Map<string, Promise<string>>();
 
 function report(error: unknown) {
   Alert.alert(
@@ -91,6 +93,16 @@ async function remoteContentType(
   url: string,
 ): Promise<string> {
   if (track.mimeType) return track.mimeType;
+  const existing = contentTypes.get(url);
+  if (existing) return existing;
+  const request = probeContentType(url);
+  contentTypes.set(url, request);
+  void request.catch(() => {
+    if (contentTypes.get(url) === request) contentTypes.delete(url);
+  });
+  return request;
+}
+async function probeContentType(url: string): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -164,6 +176,7 @@ async function reload(
 
 export const castPlayback = {
   connected: () => !!client,
+  hasLoadedQueue: () => entries.length > 0 && status.index !== null,
   available: () => isCastAvailable,
   status(): EngineStatus {
     const elapsed =
@@ -180,23 +193,32 @@ export const castPlayback = {
     tracks: UploadQueueTrack[],
     paths: string[],
   ): Promise<MediaQueueItem[]> {
-    const prepared: MediaQueueItem[] = [];
-    for (let i = 0; i < tracks.length; i++) {
-      const track = tracks[i];
+    // Album artwork is commonly shared by hundreds of queue entries. Register
+    // it once per preparation, rather than once per track across the bridge.
+    const files = new Map<string, ReturnType<typeof castFiles.share>>();
+    const share = (path: string) => {
+      let pendingFile = files.get(path);
+      if (!pendingFile) {
+        pendingFile = castFiles.share(path);
+        files.set(path, pendingFile);
+      }
+      return pendingFile;
+    };
+    return mapConcurrent(tracks, async (track, i): Promise<MediaQueueItem> => {
       const path = paths[i];
       if (!path) throw new Error("Audio file is unavailable.");
       const media = /^https?:\/\//i.test(path)
         ? { url: path, contentType: await remoteContentType(track, path) }
-        : await castFiles.share(path);
+        : await share(path);
       let cover = track.albumArt || "";
       if (cover && !/^https?:\/\//i.test(cover)) {
         try {
-          cover = (await castFiles.share(cover)).url;
+          cover = (await share(cover)).url;
         } catch {
           cover = "";
         }
       }
-      prepared.push({
+      return {
         autoplay: true,
         preloadTime: 5,
         mediaInfo: {
@@ -218,9 +240,8 @@ export const castPlayback = {
             rocksky: { index: i, source: track.localId ? "local" : "uploaded" },
           },
         },
-      });
-    }
-    return prepared;
+      };
+    });
   },
   async load(
     tracks: UploadQueueTrack[],
@@ -311,6 +332,7 @@ export const castPlayback = {
     const end = () => {
       generation++;
       client = null;
+      contentTypes.clear();
       subscriptions.forEach((s) => s.remove());
       subscriptions = [];
       store.set(castStateAtom, {

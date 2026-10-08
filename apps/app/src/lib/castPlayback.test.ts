@@ -1,10 +1,11 @@
-import { expect, mock, test } from "bun:test";
+import { expect, mock, spyOn, test } from "bun:test";
 const loads: any[] = [];
 const seeks: unknown[] = [];
 let started: ((session: unknown) => void) | undefined;
 let ended: (() => void) | undefined;
 let stopped = 0;
 let fail = false;
+const shared: string[] = [];
 const subscription = { remove() {} };
 const remote = {
   async loadMedia(data: unknown) {
@@ -64,6 +65,7 @@ mock.module("react-native-google-cast", () => ({
 mock.module("expo", () => ({
   requireOptionalNativeModule: () => ({
     async shareFile(path: string) {
+      shared.push(path);
       return {
         url: `http://192.168.1.2:9999/${path.split("/").pop()}`,
         contentType: "audio/flac",
@@ -158,4 +160,56 @@ test("mixed queue preserves URLs, MIME, metadata, time units, and queue after a 
   expect(stopped).toBe(1);
   expect(castPlayback.command({ cmd: "play" }).ok).toBe(false);
   cleanup();
+});
+
+test("queue MIME checks overlap with bounded concurrency and are reused; shared album artwork is registered once", async () => {
+  const gate = Promise.withResolvers<void>();
+  const firstBatch = Promise.withResolvers<void>();
+  let requests = 0;
+  let active = 0;
+  let peak = 0;
+  const fetchResponse = async () => {
+    requests++;
+    active++;
+    peak = Math.max(peak, active);
+    if (active === 6) firstBatch.resolve();
+    await gate.promise;
+    active--;
+    return new Response(null, { headers: { "content-type": "audio/mpeg" } });
+  };
+  const fetchMock = spyOn(globalThis, "fetch").mockImplementation(
+    Object.assign(fetchResponse, { preconnect: fetch.preconnect }),
+  );
+  const tracks = Array.from({ length: 18 }, (_, index) => ({
+    uploadId: `startup:${index}`,
+    title: `Track ${index}`,
+    artist: "Artist",
+    album: "Album",
+    albumArtist: "Artist",
+    songUri: "",
+    albumUri: "",
+    artistUri: "",
+    sha256: "",
+    durationMs: 180000,
+    albumArt: "file:///music/shared-cover.jpg",
+  }));
+  const paths = tracks.map((track) => `https://example.test/${track.uploadId}`);
+  try {
+    const preparing = castPlayback.prepare(tracks, paths);
+    await firstBatch.promise;
+    expect(requests).toBe(6);
+    gate.resolve();
+    const items = await preparing;
+    expect(peak).toBe(6);
+    expect(requests).toBe(18);
+    expect(items.map((item) => item.mediaInfo?.contentUrl)).toEqual(paths);
+    expect(
+      shared.filter((path) => path === "/music/shared-cover.jpg"),
+    ).toHaveLength(1);
+    await castPlayback.prepare(tracks, paths);
+    expect(requests).toBe(18);
+  } finally {
+    gate.resolve();
+    fetchMock.mockRestore();
+  }
 });

@@ -51,6 +51,7 @@ import { createQueueSnapshotWriter } from "./queueSnapshotWriter";
 import { remoteBridge, type TransportAction } from "./remoteBridge";
 import { deviceQueueTrack, type DeviceTrack } from "./deviceMusicModel";
 import { castPlayback } from "./castPlayback";
+import { mapConcurrent } from "./mapConcurrent";
 
 // Local playback of uploads through the native Rust engine: owns the queue
 // metadata (the engine only knows URLs), mirrors engine state into the shared
@@ -136,13 +137,14 @@ export function startCastPlayback() {
       store.set(selectedSourceAtom, { kind: "cast" });
       nativeEngineCommand({ cmd: "pause" });
       if (queue.length > 0) {
-        await openPlayback(
-          queue,
-          await resolvePaths(queue),
-          index,
-          position,
-          playing,
-        );
+        if (!resumed || !castPlayback.hasLoadedQueue())
+          await openPlayback(
+            queue,
+            await resolvePaths(queue),
+            index,
+            position,
+            playing,
+          );
         resumePending = false;
         if (lastIndex !== index) lastTrack = null;
         lastIndex = index;
@@ -920,17 +922,15 @@ async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
   const needsToken = tracks.some(
     (t) => !t.localId && !t.streamUrl && !t.navidromeId,
   );
-  if (needsToken) await ensureStreamToken();
-  const paths: string[] = [];
-  for (const track of tracks)
-    paths.push(
-      track.localId
-        ? await localMusicNative.path(track.localId)
-        : castPlayback.connected() && !track.navidromeId && !track.streamUrl
-          ? await getCastStreamUrl(track.uploadId)
-          : streamUrlFor(track),
-    );
-  return paths;
+  const casting = castPlayback.connected();
+  if (needsToken && !casting) await ensureStreamToken();
+  return mapConcurrent(tracks, async (track) =>
+    track.localId
+      ? await localMusicNative.path(track.localId)
+      : casting && !track.navidromeId && !track.streamUrl
+        ? await getCastStreamUrl(track.uploadId)
+        : streamUrlFor(track),
+  );
 }
 
 /** Replace the queue with `tracks` and start playing at `startIndex`. */
