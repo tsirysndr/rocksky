@@ -660,6 +660,9 @@ button:disabled {
 
 .queue-position {
   margin-left: auto;
+  font-size: clamp(18px, 1.4vw, 36px);
+  font-weight: 600;
+  line-height: 1.3;
   color: #c9b9cf;
   letter-spacing: normal;
   white-space: nowrap;
