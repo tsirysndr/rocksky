@@ -64,3 +64,28 @@ Storybook uses real metadata and album covers from the Apple Music catalog, stor
 - [Gorillaz — On Melancholy Hill](https://music.apple.com/us/album/on-melancholy-hill/850569437?i=850569480)
 
 No-artwork and failed-image states use a CSS gradient/vinyl illustration.
+
+## Rocksky remote player
+
+Signed-in web and Android senders authorize the TV over `urn:x-cast:app.rocksky.remote`.
+The receiver registers its own `RemotePlayer` connection to `wss://api.rocksky.app/ws`,
+using the Chromecast friendly name (for example, Salon TV). Other Rocksky clients
+can select that device and control play/pause, next/previous, seek, volume, repeat,
+queue jump/remove/reorder, and enqueue uploaded tracks. Uploaded enqueue starts the
+selected track first and prepares the remainder with paced requests in the background.
+Local files already in the Cast queue can be controlled remotely; adding new local
+files still requires the phone's file server. Navidrome-only IDs cannot be enqueued
+by the receiver without upload IDs.
+
+The account token is held only in receiver memory. It is never included in media
+metadata, stream URLs, published queue data, or browser storage. Signing out in the
+authorizing sender disconnects the remote registration while that sender is connected.
+Closing a sender leaves the TV's remote connection alive until the receiver exits;
+local streaming still requires the phone to remain reachable. Stream URLs use the
+existing scoped upload-stream token. The SDK provides heartbeat and reconnection.
+
+After deploying receiver and web changes, restart the Cast session. Web must be
+built using `bun run build:prod`. Android needs a build containing the new sender
+handshake; once the receiver acknowledges registration, the phone stops advertising
+that same playback under its own device name. Receiver build/test scripts build the
+SDK workspace dependency first so a clean checkout works.

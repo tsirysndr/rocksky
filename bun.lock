@@ -116,6 +116,7 @@
       "name": "@rocksky/cast",
       "version": "0.1.0",
       "dependencies": {
+        "@rocksky/sdk": "workspace:*",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
       },

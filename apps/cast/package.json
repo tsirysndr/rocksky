@@ -5,15 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5178",
-    "build": "tsc --noEmit && vite build",
+    "build": "bun run build:sdk && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4178",
-    "test": "node --experimental-strip-types --test src/receiver.test.ts",
+    "test": "bun run build:sdk && node --experimental-transform-types --test src/*.test.ts",
     "storybook": "storybook dev -p 6008 --host 0.0.0.0 --no-open",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "build:sdk": "bun run --cwd ../../sdk/typescript build"
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "@rocksky/sdk": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.4",
