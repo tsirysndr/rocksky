@@ -27,11 +27,12 @@ fn user_id_cache() -> &'static RwLock<HashMap<String, String>> {
 }
 
 use crate::{
-    like, playlist,
+    event, like, playlist,
     profile::did_to_profile,
     subscriber::{
-        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, LIKE_NSID, PLAYLIST_NSID,
-        PLAYLIST_SONG_NSID, SCROBBLE_NSID, SONG_NSID,
+        ALBUM_NSID, ARTIST_NSID, CALENDAR_EVENT_NSID, CALENDAR_RSVP_NSID, EVENT_MUSIC_NSID,
+        FEED_GENERATOR_NSID, FOLLOW_NSID, LIKE_NSID, PLAYLIST_NSID, PLAYLIST_SONG_NSID,
+        SCROBBLE_NSID, SONG_NSID,
     },
     types::{
         AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, LikeRecord,
@@ -67,6 +68,9 @@ pub async fn save_scrobble(
         PLAYLIST_NSID,
         PLAYLIST_SONG_NSID,
         LIKE_NSID,
+        EVENT_MUSIC_NSID,
+        CALENDAR_EVENT_NSID,
+        CALENDAR_RSVP_NSID,
     ]
     .contains(&commit.collection.as_str())
     {
@@ -289,13 +293,41 @@ pub async fn save_scrobble(
                     record,
                 )
                 .await?;
+            } else if event::is_event_collection(&commit.collection) {
+                event::save_event_commit(
+                    &pool,
+                    &nc,
+                    did,
+                    &commit.collection,
+                    &commit.rkey,
+                    commit.cid.as_deref(),
+                    record,
+                )
+                .await?;
             }
         }
-        // Playlists are the only collection whose records are edited in place —
-        // renaming one, or re-adding a song, republishes the same AT-URI. The
-        // rest are append-only, so an update event on them is nothing to act on.
+        // Playlists and events are the collections whose records are edited in
+        // place — renaming one, or re-adding a song, republishes the same
+        // AT-URI. The rest are append-only, so an update event on them is
+        // nothing to act on.
         "update" => {
-            if commit.collection == PLAYLIST_NSID || commit.collection == PLAYLIST_SONG_NSID {
+            if event::is_event_collection(&commit.collection) {
+                let Some(record) = commit.record.clone() else {
+                    tracing::warn!(collection = %commit.collection, "Update commit carried no record");
+                    return Ok(());
+                };
+                event::save_event_commit(
+                    &pool,
+                    &nc,
+                    did,
+                    &commit.collection,
+                    &commit.rkey,
+                    commit.cid.as_deref(),
+                    record,
+                )
+                .await?;
+            } else if commit.collection == PLAYLIST_NSID || commit.collection == PLAYLIST_SONG_NSID
+            {
                 let Some(record) = commit.record.clone() else {
                     tracing::warn!(collection = %commit.collection, "Update commit carried no record");
                     return Ok(());
@@ -337,6 +369,9 @@ pub async fn save_scrobble(
                 playlist::delete_playlist_song(&pool, &uri).await?;
             } else if commit.collection == LIKE_NSID {
                 like::delete_like(&pool, &nc, did, &commit.rkey).await?;
+            } else if event::is_event_collection(&commit.collection) {
+                event::delete_event_commit(&pool, &nc, did, &commit.collection, &commit.rkey)
+                    .await?;
             } else {
                 tracing::warn!(operation = %commit.operation, collection = %commit.collection, "Delete operation not implemented for this collection");
             }
@@ -474,7 +509,7 @@ pub async fn publish_user(nc: &async_nats::Client, pool: &Backend, id: &str) -> 
 /// whose only job is to make `RETURNING` fire on conflict, so a concurrent
 /// insert of the same row gives us back its id instead of needing a follow-up
 /// SELECT.
-fn keep_existing(
+pub(crate) fn keep_existing(
     table: impl sea_query::IntoIden + Copy + 'static,
     key: impl sea_query::IntoIden + Copy + 'static,
 ) -> OnConflict {
@@ -492,7 +527,7 @@ fn keep_existing(
 /// result — a `text[]` on Postgres and a JSON array in TEXT on SQLite, which
 /// decodes into `Vec<String>` from neither, so selecting it at all would tie
 /// this lookup to one backend.
-fn id_by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatement {
+pub(crate) fn id_by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> SelectStatement {
     Query::select()
         .column(Alias::new("xata_id"))
         .from(table)

@@ -306,3 +306,56 @@ pub struct PlaylistSongRecord {
     pub album_art_url: Option<String>,
     pub added_at: String,
 }
+
+/// `community.lexicon.calendar.event` — the generic calendar event a music
+/// event is built on. `locations` and `uris` are kept as raw JSON: the
+/// location union has five member shapes and the appview stores them verbatim.
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarEventRecord {
+    pub name: String,
+    pub description: Option<String>,
+    pub created_at: String,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub mode: Option<String>,
+    pub status: Option<String>,
+    pub locations: Option<Vec<Value>>,
+    pub uris: Option<Vec<Value>>,
+}
+
+/// `app.rocksky.event.music` — marks a calendar event as a music event and
+/// carries the lineup.
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EventMusicRecord {
+    pub subject: StrongRef,
+    pub kind: Option<String>,
+    pub artists: Vec<EventArtistRecord>,
+    pub genre: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub external_ids: Option<Value>,
+    pub tickets_url: Option<String>,
+    pub image_url: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EventArtistRecord {
+    pub name: String,
+    pub uri: Option<String>,
+    pub mbid: Option<String>,
+    pub role: Option<String>,
+    pub stage: Option<String>,
+    pub starts_at: Option<String>,
+}
+
+/// `community.lexicon.calendar.rsvp`. `status` defaults to `#going` in the
+/// lexicon, so a record may omit it.
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RsvpRecord {
+    pub subject: StrongRef,
+    pub status: Option<String>,
+}

@@ -381,3 +381,100 @@ mod tests {
         assert_eq!(rendered(PlaylistTracks::Table), "playlist_tracks");
     }
 }
+
+/// `events` (table).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Iden)]
+#[iden = "events"]
+pub enum Events {
+    Table,
+    #[iden = "xata_id"]
+    XataId,
+    #[iden = "uri"]
+    Uri,
+    #[iden = "cid"]
+    Cid,
+    #[iden = "music_uri"]
+    MusicUri,
+    #[iden = "music_cid"]
+    MusicCid,
+    #[iden = "name"]
+    Name,
+    #[iden = "description"]
+    Description,
+    #[iden = "starts_at"]
+    StartsAt,
+    #[iden = "ends_at"]
+    EndsAt,
+    #[iden = "mode"]
+    Mode,
+    #[iden = "status"]
+    Status,
+    #[iden = "locations"]
+    Locations,
+    #[iden = "uris"]
+    Uris,
+    #[iden = "kind"]
+    Kind,
+    #[iden = "genre"]
+    Genre,
+    #[iden = "tags"]
+    Tags,
+    #[iden = "external_ids"]
+    ExternalIds,
+    #[iden = "tickets_url"]
+    TicketsUrl,
+    #[iden = "image_url"]
+    ImageUrl,
+    #[iden = "created_by"]
+    CreatedBy,
+    #[iden = "created_at"]
+    CreatedAt,
+    #[iden = "xata_updatedat"]
+    XataUpdatedat,
+}
+
+/// `event_artists` (table).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Iden)]
+#[iden = "event_artists"]
+pub enum EventArtists {
+    Table,
+    #[iden = "xata_id"]
+    XataId,
+    #[iden = "event_id"]
+    EventId,
+    #[iden = "artist_id"]
+    ArtistId,
+    #[iden = "name"]
+    Name,
+    #[iden = "role"]
+    Role,
+    #[iden = "stage"]
+    Stage,
+    #[iden = "mbid"]
+    Mbid,
+    #[iden = "starts_at"]
+    StartsAt,
+    #[iden = "position"]
+    Position,
+}
+
+/// `event_rsvps` (table).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Iden)]
+#[iden = "event_rsvps"]
+pub enum EventRsvps {
+    Table,
+    #[iden = "xata_id"]
+    XataId,
+    #[iden = "event_id"]
+    EventId,
+    #[iden = "user_id"]
+    UserId,
+    #[iden = "uri"]
+    Uri,
+    #[iden = "cid"]
+    Cid,
+    #[iden = "status"]
+    Status,
+    #[iden = "xata_updatedat"]
+    XataUpdatedat,
+}

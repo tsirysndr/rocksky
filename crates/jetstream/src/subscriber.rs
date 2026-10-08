@@ -33,6 +33,14 @@ pub const LIKE_NSID: &str = "app.rocksky.like";
 pub const SHOUT_NSID: &str = "app.rocksky.shout";
 pub const FEED_GENERATOR_NSID: &str = "app.rocksky.feed.generator";
 pub const FOLLOW_NSID: &str = "app.rocksky.graph.follow";
+pub const EVENT_MUSIC_NSID: &str = "app.rocksky.event.music";
+pub const CALENDAR_EVENT_NSID: &str = "community.lexicon.calendar.event";
+pub const CALENDAR_RSVP_NSID: &str = "community.lexicon.calendar.rsvp";
+
+/// The collections outside `app.rocksky.*` the firehose subscription asks for.
+/// Jetstream takes one `wantedCollections` per collection and does not accept
+/// a prefix wildcard for a foreign namespace, so each is spelled out.
+pub const EXTRA_COLLECTIONS: [&str; 2] = [CALENDAR_EVENT_NSID, CALENDAR_RSVP_NSID];
 
 /// Slack subtracted from the watermark when building a reconnect cursor.
 /// Jetstream cursors are unix microseconds; 5s ensures we don't miss events
@@ -242,10 +250,14 @@ async fn run_connection_worker(
 }
 
 fn build_subscribe_url(server: &str, watermark_us: i64) -> String {
-    let base = format!(
+    let mut base = format!(
         "{}/subscribe?wantedCollections=app.rocksky.*",
         server.trim_end_matches('/')
     );
+    for collection in EXTRA_COLLECTIONS {
+        base.push_str("&wantedCollections=");
+        base.push_str(collection);
+    }
     if watermark_us > 0 {
         let cursor = watermark_us.saturating_sub(RECONNECT_SLACK_US).max(0);
         format!("{}&cursor={}", base, cursor)
@@ -320,4 +332,26 @@ fn spawn_handler(
             }
         }
     }.instrument(span));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_subscription_asks_for_the_calendar_collections() {
+        let url = build_subscribe_url("wss://jetstream.example/", 0);
+        assert_eq!(
+            url,
+            "wss://jetstream.example/subscribe?wantedCollections=app.rocksky.*\
+             &wantedCollections=community.lexicon.calendar.event\
+             &wantedCollections=community.lexicon.calendar.rsvp"
+        );
+    }
+
+    #[test]
+    fn the_cursor_is_appended_with_slack() {
+        let url = build_subscribe_url("wss://jetstream.example", 10_000_000);
+        assert!(url.ends_with("&cursor=5000000"), "{url}");
+    }
 }
