@@ -96,9 +96,15 @@ function requestQueue(offset?: number, revision = syncRevision) {
   queueRequestAt = Date.now();
   void syncSession.sendMessage(QUEUE_SYNC_NAMESPACE, { type: "snapshot", requestId: ++syncRequestId, revision, offset }).catch(() => {});
 }
-function receiveQueue(_namespace: string, payload: string) {
+function receiveQueue(_namespace: string, payload: unknown) {
   let reply;
-  try { reply = JSON.parse(payload); } catch { return; }
+  try { reply = typeof payload === "string" ? JSON.parse(payload) : payload; } catch { return; }
+  if (reply?.type === "status" && reply.state?.media) {
+    receiverStatus = reply.state;
+    statusReceivedAt = Date.now();
+    mirror();
+    return;
+  }
   if (reply?.type !== "snapshot" || reply.requestId !== syncRequestId || !Number.isInteger(reply.revision) ||
       !Number.isInteger(reply.total) || reply.total < 0 || !reply.state) return;
   receiverStatus = reply.state;
@@ -184,12 +190,16 @@ function mirror() {
   watchMedia();
   if (store.get(playerAtom) !== "cast") return;
   const m = media();
-  if (!m?.media) return;
   const snapshot = Date.now() - statusReceivedAt < 6000 ? receiverStatus : null;
-  const currentId = snapshot?.currentItemId ?? m.currentItemId;
-  const queueItems = receiverItems ?? m.items ?? [];
+  if (!snapshot?.media && !m?.media) return;
+  const currentId = snapshot?.currentItemId ?? m?.currentItemId;
+  // Show pages as they arrive; a large resumed queue can take many requests.
+  // Until it completes, do not keep displaying Chrome's old two-item window.
+  const queueItems = receiverItems ?? (pageRevision !== undefined && pageItems.length
+    ? pageItems : m?.items ?? []);
   const currentItem = queueItems.find((item) => item.itemId === currentId);
-  const info = snapshot?.media ?? currentItem?.media ?? m.media;
+  const info = snapshot?.media ?? currentItem?.media ?? m?.media;
+  if (!info) return;
   const data = trackData(info);
   const md = info.metadata as chrome.cast.media.MusicTrackMediaMetadata;
   let tracks = store.get(queueAtom);
@@ -206,7 +216,8 @@ function mirror() {
     tracks = ownedQueue;
     if (store.get(queueAtom) !== tracks) store.set(queueAtom, tracks);
   } else {
-    const items = queueItems.length ? queueItems : [{ media: info, itemId: currentId }];
+    const items = currentItem ? queueItems
+      : [...queueItems, { media: info, itemId: currentId }];
     const incoming = items.map((item) => receiverTrack(item.media));
     resumedIndices = items.map((item, i) => trackData(item.media).index ?? i);
     if (JSON.stringify(incoming) !== JSON.stringify(tracks)) {
@@ -217,7 +228,7 @@ function mirror() {
     if (index < 0) index = Math.max(0, resumedIndices.indexOf(data.index ?? 0));
   }
   const track = tracks[index] ?? data.track;
-  const playingState = snapshot?.playerState ?? m.playerState;
+  const playingState = snapshot?.playerState ?? m?.playerState;
   const wasPlaying = store.get(nowPlayingAtom)?.isPlaying;
   store.set(queueIndexAtom, index);
   store.set(nowPlayingAtom, {
@@ -233,15 +244,15 @@ function mirror() {
         ? (store.get(nowPlayingAtom)?.liked ?? false)
         : false,
     albumArt: md?.images?.[0]?.url ?? track?.albumArt,
-    duration: (info.duration || (track?.duration ?? 0) / 1000) * 1000,
-    progress: Math.max(0, snapshot?.currentTime ?? m.getEstimatedTime()) * 1000,
+    duration: (snapshot?.duration || info.duration || (track?.duration ?? 0) / 1000) * 1000,
+    progress: Math.max(0, snapshot?.currentTime ?? m?.getEstimatedTime() ?? 0) * 1000,
     isPlaying: playingState === chrome.cast.media.PlayerState.PLAYING,
   });
   if (
     ownedQueue === tracks &&
     wasPlaying &&
     !advancing &&
-    m.playerState === chrome.cast.media.PlayerState.IDLE &&
+    m?.playerState === chrome.cast.media.PlayerState.IDLE &&
     m.idleReason === chrome.cast.media.IdleReason.FINISHED &&
     tracks[index + 1] &&
     !m.items?.some((item) => trackData(item.media).index === index + 1)

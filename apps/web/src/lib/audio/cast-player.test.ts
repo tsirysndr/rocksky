@@ -49,7 +49,7 @@ const media = {
   },
 };
 let queueRequest: any;
-let queueListener: ((namespace: string, message: string) => void) | undefined;
+let queueListener: ((namespace: string, message: unknown) => void) | undefined;
 const session = {
   addMessageListener(_namespace: string, listener: typeof queueListener) { queueListener = listener; },
   removeMessageListener() { queueListener = undefined; },
@@ -290,6 +290,9 @@ test("resumed web queue replaces two cached tracks with all receiver pages", asy
     type: "snapshot", requestId: queueRequest.requestId, revision: 50, offset,
     total: 20, items: page, state }));
   reply(0, full.slice(0, 16));
+  expect(getDefaultStore().get(queueAtom)[0].title).toBe("Receiver 0");
+  expect(getDefaultStore().get(queueAtom).at(-1)?.title).toBe("Receiver 17");
+  expect(getDefaultStore().get(nowPlayingAtom)?.title).toBe("Receiver 17");
   await new Promise((resolve) => setTimeout(resolve, 150));
   expect(queueRequest.offset).toBe(16);
   reply(16, full.slice(16));
@@ -297,5 +300,34 @@ test("resumed web queue replaces two cached tracks with all receiver pages", asy
   expect(getDefaultStore().get(queueIndexAtom)).toBe(17);
   expect(getDefaultStore().get(nowPlayingAtom)?.title).toBe("Receiver 17");
   expect(getDefaultStore().get(nowPlayingAtom)?.progress).toBe(42000);
+  webCast.disconnect();
+});
+
+test("decoded receiver messages update the full queue without a cached SDK media session", async () => {
+  const { queueAtom, queueIndexAtom } = await import("../../atoms/queue");
+  const { nowPlayingAtom } = await import("../../atoms/nowpaying");
+  ended?.({ sessionState: "resumed" });
+  const cached = media.media;
+  media.media = null;
+  const full = Array.from({ length: 8 }, (_, i) => ({ itemId: 2000 + i,
+    media: { contentId: `https://example.com/${i}.mp3`, contentType: "audio/mpeg",
+      metadata: { title: `Live ${i}`, artist: "Artist" } } }));
+  const state = { media: full[3].media, currentItemId: 2003, currentTime: 21,
+    duration: 205, playerState: "PLAYING" };
+  queueListener!("", { type: "snapshot", requestId: queueRequest.requestId,
+    revision: 70, offset: 0, total: 8, items: full, state });
+  expect(getDefaultStore().get(queueAtom)).toHaveLength(8);
+  expect(getDefaultStore().get(queueIndexAtom)).toBe(3);
+  expect(getDefaultStore().get(nowPlayingAtom)?.title).toBe("Live 3");
+  // The TV advances while Chrome still has no usable media object. A broadcast
+  // must not be discarded just because it has no outstanding request ID.
+  queueListener!("", JSON.stringify({ type: "status", state: {
+    ...state, media: full[4].media, currentItemId: 2004, currentTime: 2,
+  } }));
+  expect(getDefaultStore().get(queueIndexAtom)).toBe(4);
+  expect(getDefaultStore().get(nowPlayingAtom)?.title).toBe("Live 4");
+  expect(getDefaultStore().get(nowPlayingAtom)?.progress).toBe(2000);
+  expect(getDefaultStore().get(nowPlayingAtom)?.duration).toBe(205000);
+  media.media = cached;
   webCast.disconnect();
 });
