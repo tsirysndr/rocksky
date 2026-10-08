@@ -127,7 +127,7 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
         style={
           backgroundArtwork
             ? {
-                backgroundImage: `linear-gradient(#13082599, #13082599), url(${JSON.stringify(backgroundArtwork)})`,
+                backgroundImage: `linear-gradient(#130825cc, #130825cc), url(${JSON.stringify(backgroundArtwork)})`,
               }
             : undefined
         }

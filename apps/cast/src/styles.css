@@ -73,7 +73,7 @@ button:disabled {
   min-height: 100svh;
   height: 100vh;
   overflow: hidden;
-  padding: 4.7vh 5.2vw 3.3vh;
+  padding: 4.7vh 3vw 3.3vh;
   background: #10091d;
   display: flex;
   flex-direction: column;
@@ -83,7 +83,7 @@ button:disabled {
   inset: 0;
   z-index: -2;
   background:
-    linear-gradient(#13082599, #13082599),
+    linear-gradient(#130825cc, #130825cc),
     radial-gradient(ellipse at 16% 44%, #6f39a5 0%, transparent 52%),
     radial-gradient(ellipse at 91% 3%, #653453 0%, transparent 55%),
     linear-gradient(130deg, #271235, #130825 56%, #0e0918);
@@ -118,8 +118,8 @@ button:disabled {
 }
 .listening-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr);
-  gap: 3vw;
+  grid-template-columns: minmax(0, 50vh) minmax(0, 1fr);
+  gap: 2.5vw;
   align-items: center;
   flex: 1;
   min-height: 0;
@@ -156,7 +156,7 @@ button:disabled {
 }
 .track-details {
   min-width: 0;
-  padding-right: 1vw;
+  padding-right: 0;
 }
 .eyebrow {
   color: #efb4c6;
