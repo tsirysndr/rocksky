@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_URL } from "../consts";
 import { storage } from "../storage";
+import { castRequests } from "../lib/castRequests";
 
 const authHeaders = () => ({
   authorization: `Bearer ${storage.getToken()}`,
@@ -168,7 +169,11 @@ export const getStreamUrl = (uploadId: string): string => {
 let castToken: { token: string; expiresAt: number } | null = null;
 let castTokenOwner: string | null = null;
 let castTokenRequest: Promise<void> | null = null;
-export async function getCastStreamUrl(uploadId: string): Promise<string> {
+let castTokenSignal: AbortSignal | undefined;
+export async function getCastStreamUrl(
+  uploadId: string,
+  signal?: AbortSignal,
+): Promise<string> {
   const owner = storage.getToken();
   if (!owner) throw new Error("Sign in to cast uploaded music.");
   if (castTokenOwner !== owner) {
@@ -176,16 +181,22 @@ export async function getCastStreamUrl(uploadId: string): Promise<string> {
     castTokenOwner = owner;
   }
   if (!castToken || Date.now() >= castToken.expiresAt - 300_000) {
-    if (!castTokenRequest)
+    if (!castTokenRequest) {
+      castTokenSignal = signal;
       castTokenRequest = (async () => {
-        const { data } = await axios.get<{ token: string; expiresIn: number }>(
-          `${API_URL}/uploads/stream-token`,
+        const response = await castRequests.fetch(
+          `${API_URL}/uploads/stream-token?purpose=cast`,
           {
             headers: authHeaders(),
-            params: { purpose: "cast" },
-            timeout: 15_000,
+            signal,
           },
         );
+        if (!response.ok)
+          throw new Error("Could not authorize Chromecast playback.");
+        const data = (await response.json()) as {
+          token: string;
+          expiresIn: number;
+        };
         if (
           !data.token ||
           !Number.isFinite(data.expiresIn) ||
@@ -199,9 +210,24 @@ export async function getCastStreamUrl(uploadId: string): Promise<string> {
       })().finally(() => {
         castTokenRequest = null;
       });
-    await castTokenRequest;
+    }
+    const requestSignal = castTokenSignal;
+    try {
+      await castTokenRequest;
+    } catch (error) {
+      // A new selection can arrive while the old queue's token request is
+      // being aborted. Let the new selection acquire its own request.
+      if (
+        !signal?.aborted &&
+        storage.getToken() === owner &&
+        requestSignal?.aborted
+      )
+        return getCastStreamUrl(uploadId, signal);
+      throw error;
+    }
   }
-  if (!castToken) throw new Error("Could not authorize Chromecast playback.");
+  if (signal?.aborted || storage.getToken() !== owner || !castToken)
+    throw new Error("Could not authorize Chromecast playback.");
   return `${API_URL}/uploads/${encodeURIComponent(uploadId)}/stream?token=${encodeURIComponent(castToken.token)}`;
 }
 

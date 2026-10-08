@@ -9,7 +9,7 @@ import type {
 import { castFiles } from "../../modules/rocksky-cast";
 import type { EngineCommand, EngineStatus } from "../../modules/rocksky-engine";
 import type { UploadQueueTrack } from "./uploadEngine";
-import { mapConcurrent } from "./mapConcurrent";
+import { abortableDelay, castCancelled, castRequests } from "./castRequests";
 
 export const castStateAtom = atom({
   connected: false,
@@ -25,7 +25,25 @@ export const castSdk: typeof import("react-native-google-cast") | null =
 
 let client: RemoteMediaClient | null = null;
 let subscriptions: { remove(): void }[] = [];
-let entries: MediaQueueItem[] = [];
+export type CastPathResolver = (
+  track: UploadQueueTrack,
+  index: number,
+  signal: AbortSignal,
+) => Promise<string>;
+type QueueSource = {
+  tracks: UploadQueueTrack[];
+  paths: string[] | CastPathResolver;
+  prepared: Map<number, MediaQueueItem>;
+  inserted: Set<number>;
+  files: Map<string, ReturnType<typeof castFiles.share>>;
+  order: number[];
+};
+let source: QueueSource | null = null;
+let loading: AbortController | null = null;
+function cancelPreparation() {
+  loading?.abort();
+  loading = null;
+}
 let status: EngineStatus = {
   ok: true,
   state: "paused",
@@ -41,9 +59,11 @@ let lastPositionAt = Date.now();
 let onDisconnected = () => {};
 let pending = Promise.resolve();
 let generation = 0;
-const contentTypes = new Map<string, Promise<string>>();
+let advancing = false;
+const contentTypes = new Map<string, string>();
 
 function report(error: unknown) {
+  if (error instanceof Error && error.name === "AbortError") return;
   Alert.alert(
     "Chromecast",
     error instanceof Error
@@ -53,6 +73,7 @@ function report(error: unknown) {
 }
 function update(media: MediaStatus | null) {
   if (!media) return;
+  const previous = status;
   const data = media.mediaInfo?.customData as
     | { rocksky?: { index?: number } }
     | undefined;
@@ -72,6 +93,27 @@ function update(media: MediaStatus | null) {
     volume: media.volume,
   };
   lastPositionAt = Date.now();
+  // A very short song can finish before its successor has been inserted.
+  // Prioritize that successor instead of leaving a partially prepared queue idle.
+  if (
+    media.playerState === "idle" &&
+    media.idleReason === "finished" &&
+    previous.state !== "stopped" &&
+    source &&
+    previous.index !== null &&
+    !advancing
+  ) {
+    const at = source.order.indexOf(previous.index);
+    const next = source.order[at + 1];
+    if (next !== undefined && !source.inserted.has(next)) {
+      advancing = true;
+      void reload(next, 0, true)
+        .catch(report)
+        .finally(() => {
+          advancing = false;
+        });
+    }
+  }
 }
 function transaction<T>(work: () => Promise<T>): Promise<T> {
   const current = generation;
@@ -91,25 +133,13 @@ function enqueue(work: () => Promise<unknown>) {
 async function remoteContentType(
   track: UploadQueueTrack,
   url: string,
+  signal?: AbortSignal,
 ): Promise<string> {
   if (track.mimeType) return track.mimeType;
   const existing = contentTypes.get(url);
   if (existing) return existing;
-  const request = probeContentType(url);
-  contentTypes.set(url, request);
-  void request.catch(() => {
-    if (contentTypes.get(url) === request) contentTypes.delete(url);
-  });
-  return request;
-}
-async function probeContentType(url: string): Promise<string> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
-  try {
-    const response = await fetch(url, {
-      method: "HEAD",
-      signal: controller.signal,
-    });
+  const request = (async () => {
+    const response = await castRequests.fetch(url, { method: "HEAD", signal });
     const mime = response.headers.get("content-type")?.split(";")[0];
     if (
       response.ok &&
@@ -120,9 +150,10 @@ async function probeContentType(url: string): Promise<string> {
     throw new Error(
       "Could not identify this track's audio format for Chromecast.",
     );
-  } finally {
-    clearTimeout(timeout);
-  }
+  })();
+  const mime = await request;
+  contentTypes.set(url, mime);
+  return mime;
 }
 function repeatMode() {
   if (!castSdk) return undefined;
@@ -132,51 +163,172 @@ function repeatMode() {
       ? castSdk.MediaRepeatMode.ALL
       : castSdk.MediaRepeatMode.OFF;
 }
-async function reload(
-  index = status.index ?? 0,
-  positionMs = castPlayback.status().positionMs,
-  autoplay = status.state === "playing",
-) {
-  const target = client;
-  if (!target || entries.length === 0) return;
-  const order = entries.map((_, i) => i);
+function queueOrder(length: number, index: number) {
+  const order = Array.from({ length }, (_, i) => i);
   if (status.shuffle) {
-    // Keep the selected track first, then randomize the remainder once per load.
-    order.splice(order.indexOf(index), 1);
+    order.splice(index, 1);
     for (let i = order.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [order[i], order[j]] = [order[j], order[i]];
     }
     order.unshift(index);
   }
-  await target.loadMedia({
-    autoplay,
-    startTime: positionMs / 1000,
-    queueData: {
-      name: "Rocksky",
-      items: order.map((i) => ({
-        ...entries[i],
-        autoplay: i === index ? autoplay : true,
-      })),
-      startIndex: order.indexOf(index),
-      startTime: positionMs / 1000,
-      repeatMode: repeatMode(),
-    },
-  });
-  if (client !== target) return;
-  status = {
-    ...status,
-    index,
-    positionMs,
-    state: autoplay ? "playing" : "paused",
-    queueLen: entries.length,
+  return order;
+}
+async function prepareOne(
+  queue: QueueSource,
+  index: number,
+  signal: AbortSignal,
+) {
+  const cached = queue.prepared.get(index);
+  if (cached) return cached;
+  const track = queue.tracks[index];
+  const path =
+    typeof queue.paths === "function"
+      ? await queue.paths(track, index, signal)
+      : queue.paths[index];
+  if (signal.aborted) throw castCancelled();
+  const [item] = await castPlayback.prepare(
+    [track],
+    [path],
+    signal,
+    queue.files,
+  );
+  item.mediaInfo!.customData = {
+    rocksky: { index, source: track.localId ? "local" : "uploaded" },
   };
-  lastPositionAt = Date.now();
+  if (signal.aborted) throw castCancelled();
+  queue.prepared.set(index, item);
+  return item;
+}
+async function fillQueue(
+  queue: QueueSource,
+  index: number,
+  target: RemoteMediaClient,
+  signal: AbortSignal,
+) {
+  try {
+    // Yield playback to the receiver before doing any work for other tracks.
+    await abortableDelay(250, signal);
+    const at = queue.order.indexOf(index);
+    const append = queue.order
+      .slice(at + 1)
+      .filter((i) => !queue.inserted.has(i));
+    const prepend = queue.order
+      .slice(0, at)
+      .filter((i) => !queue.inserted.has(i));
+    for (const part of [append, prepend]) {
+      let before: number | undefined;
+      if (part === prepend && part.length) {
+        const media = await target.getMediaStatus();
+        before = media?.queueItems?.find(
+          (item) =>
+            (item.mediaInfo?.customData as { rocksky?: { index?: number } })
+              ?.rocksky?.index === index,
+        )?.itemId;
+        if (!before && status.index === index) before = media?.currentItemId;
+        if (!before)
+          throw new Error("Could not restore earlier Chromecast queue items.");
+      }
+      for (let offset = 0; offset < part.length; ) {
+        // Insert the very next song first; never wait for a whole batch of HTTP probes.
+        const size = offset === 0 ? 1 : 5;
+        const batch: MediaQueueItem[] = [];
+        for (const i of part.slice(offset, offset + size)) {
+          if (signal.aborted) return;
+          batch.push(await prepareOne(queue, i, signal));
+        }
+        await transaction(async () => {
+          if (signal.aborted || client !== target) return;
+          await target.queueInsertItems(batch, before);
+          for (const i of part.slice(offset, offset + size))
+            queue.inserted.add(i);
+        });
+        offset += batch.length;
+        await abortableDelay(250, signal);
+      }
+    }
+  } catch (error) {
+    if (!signal.aborted && client === target) report(error);
+  }
+}
+async function loadSource(
+  queue: QueueSource,
+  index: number,
+  positionMs: number,
+  autoplay: boolean,
+) {
+  if (!Number.isInteger(index) || index < 0 || index >= queue.tracks.length)
+    throw new Error("Invalid Chromecast queue index.");
+  const target = client;
+  if (!target) throw new Error("Select a Chromecast first.");
+  cancelPreparation();
+  const controller = new AbortController();
+  loading = controller;
+  const signal = controller.signal;
+  const previous = source;
+  try {
+    const selected = await prepareOne(queue, index, signal);
+    await transaction(async () => {
+      if (signal.aborted || client !== target) throw castCancelled();
+      await target.loadMedia({
+        autoplay,
+        startTime: positionMs / 1000,
+        queueData: {
+          name: "Rocksky",
+          items: [{ ...selected, autoplay }],
+          startIndex: 0,
+          startTime: positionMs / 1000,
+          repeatMode: repeatMode(),
+        },
+      });
+      if (signal.aborted || client !== target) throw castCancelled();
+      source = queue;
+      queue.inserted = new Set([index]);
+      status = {
+        ...status,
+        index,
+        positionMs,
+        durationMs: queue.tracks[index].durationMs,
+        state: autoplay ? "playing" : "paused",
+        queueLen: queue.tracks.length,
+      };
+      lastPositionAt = Date.now();
+    });
+    void fillQueue(queue, index, target, signal);
+  } catch (error) {
+    if (
+      !signal.aborted &&
+      source === previous &&
+      previous &&
+      status.index !== null
+    ) {
+      loading = new AbortController();
+      void fillQueue(previous, status.index, target, loading.signal);
+    }
+    throw error;
+  }
+}
+async function reload(
+  index = status.index ?? 0,
+  positionMs = castPlayback.status().positionMs,
+  autoplay = status.state === "playing",
+) {
+  if (source) await loadSource(source, index, positionMs, autoplay);
+}
+function jump(direction: number) {
+  if (!source) return;
+  const at = source.order.indexOf(status.index ?? 0);
+  let next = at + direction;
+  if (status.repeat === "all")
+    next = (next + source.order.length) % source.order.length;
+  if (next >= 0 && next < source.order.length)
+    void reload(source.order[next], 0, true).catch(report);
 }
 
 export const castPlayback = {
   connected: () => !!client,
-  hasLoadedQueue: () => entries.length > 0 && status.index !== null,
+  hasLoadedQueue: () => source !== null && status.index !== null,
   available: () => isCastAvailable,
   status(): EngineStatus {
     const elapsed =
@@ -192,10 +344,11 @@ export const castPlayback = {
   async prepare(
     tracks: UploadQueueTrack[],
     paths: string[],
+    signal?: AbortSignal,
+    files = new Map<string, ReturnType<typeof castFiles.share>>(),
   ): Promise<MediaQueueItem[]> {
     // Album artwork is commonly shared by hundreds of queue entries. Register
     // it once per preparation, rather than once per track across the bridge.
-    const files = new Map<string, ReturnType<typeof castFiles.share>>();
     const share = (path: string) => {
       let pendingFile = files.get(path);
       if (!pendingFile) {
@@ -204,11 +357,17 @@ export const castPlayback = {
       }
       return pendingFile;
     };
-    return mapConcurrent(tracks, async (track, i): Promise<MediaQueueItem> => {
+    const items: MediaQueueItem[] = [];
+    for (let i = 0; i < tracks.length; i++) {
+      if (signal?.aborted) throw castCancelled();
+      const track = tracks[i];
       const path = paths[i];
       if (!path) throw new Error("Audio file is unavailable.");
       const media = /^https?:\/\//i.test(path)
-        ? { url: path, contentType: await remoteContentType(track, path) }
+        ? {
+            url: path,
+            contentType: await remoteContentType(track, path, signal),
+          }
         : await share(path);
       let cover = track.albumArt || "";
       if (cover && !/^https?:\/\//i.test(cover)) {
@@ -218,7 +377,7 @@ export const castPlayback = {
           cover = "";
         }
       }
-      return {
+      items.push({
         autoplay: true,
         preloadTime: 5,
         mediaInfo: {
@@ -240,31 +399,30 @@ export const castPlayback = {
             rocksky: { index: i, source: track.localId ? "local" : "uploaded" },
           },
         },
-      };
-    });
+      });
+    }
+    return items;
   },
   async load(
     tracks: UploadQueueTrack[],
-    paths: string[],
+    paths: string[] | CastPathResolver,
     index: number,
     positionMs = 0,
     autoplay = true,
   ) {
-    if (!client) throw new Error("Select a Chromecast first.");
-    const target = client;
-    await transaction(async () => {
-      const prepared = await this.prepare(tracks, paths);
-      if (client !== target)
-        throw new Error("Chromecast disconnected while preparing music.");
-      const previous = entries;
-      entries = prepared;
-      try {
-        await reload(index, positionMs, autoplay);
-      } catch (error) {
-        entries = previous;
-        throw error;
-      }
-    });
+    await loadSource(
+      {
+        tracks,
+        paths,
+        prepared: new Map(),
+        inserted: new Set(),
+        files: new Map(),
+        order: queueOrder(tracks.length, index),
+      },
+      index,
+      positionMs,
+      autoplay,
+    );
   },
   command(command: EngineCommand) {
     if (command.cmd === "status") return this.status();
@@ -278,18 +436,19 @@ export const castPlayback = {
         enqueue(() => client!.pause());
         break;
       case "next":
-        enqueue(() => client!.queueNext());
+        jump(1);
         break;
       case "previous":
-        enqueue(() => client!.queuePrev());
+        jump(-1);
         break;
       case "seek":
         enqueue(() => client!.seek({ position: command.positionMs / 1000 }));
         break;
       case "skipTo":
-        enqueue(() => reload(command.index, 0, true));
+        void reload(command.index, 0, true).catch(report);
         break;
       case "stop":
+        cancelPreparation();
         enqueue(() => client!.stop());
         status = { ...status, state: "stopped", index: null };
         break;
@@ -299,12 +458,14 @@ export const castPlayback = {
       case "setShuffle":
         status = { ...this.status(), shuffle: command.enabled };
         lastPositionAt = Date.now();
-        enqueue(() => reload());
+        if (source)
+          source.order = queueOrder(source.tracks.length, status.index ?? 0);
+        void reload().catch(report);
         break;
       case "setRepeat":
         status = { ...this.status(), repeat: command.mode };
         lastPositionAt = Date.now();
-        enqueue(() => reload());
+        void reload().catch(report);
         break;
       case "setAudioSettings":
         return {
@@ -331,6 +492,7 @@ export const castPlayback = {
     const manager = castSdk.default.getSessionManager();
     const end = () => {
       generation++;
+      cancelPreparation();
       client = null;
       contentTypes.clear();
       subscriptions.forEach((s) => s.remove());
@@ -341,7 +503,7 @@ export const castPlayback = {
         name: "Chromecast",
       });
       onDisconnected();
-      entries = [];
+      source = null;
       status = {
         ...status,
         state: "paused",
@@ -358,6 +520,8 @@ export const castPlayback = {
       subscriptions.forEach((s) => s.remove());
       subscriptions = [];
       generation++;
+      cancelPreparation();
+      if (!resumed) source = null;
       client = session.client;
       const [device, media] = await Promise.all([
         session.getCastDevice(),
@@ -382,6 +546,10 @@ export const castPlayback = {
         }, 1),
       ];
       await onConnected(resumed);
+      if (resumed && source && status.index !== null && !loading) {
+        loading = new AbortController();
+        void fillQueue(source, status.index, session.client, loading.signal);
+      }
     };
     const failed = async (error: unknown) => {
       report(error);

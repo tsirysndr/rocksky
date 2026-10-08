@@ -50,7 +50,7 @@ import { queryClient } from "./queryClient";
 import { createQueueSnapshotWriter } from "./queueSnapshotWriter";
 import { remoteBridge, type TransportAction } from "./remoteBridge";
 import { deviceQueueTrack, type DeviceTrack } from "./deviceMusicModel";
-import { castPlayback } from "./castPlayback";
+import { castPlayback, type CastPathResolver } from "./castPlayback";
 import { mapConcurrent } from "./mapConcurrent";
 
 // Local playback of uploads through the native Rust engine: owns the queue
@@ -106,7 +106,7 @@ function engineCommand(
 
 async function openPlayback(
   tracks: UploadQueueTrack[],
-  paths: string[],
+  paths: string[] | CastPathResolver,
   index: number,
   positionMs = 0,
   autoplay = true,
@@ -116,6 +116,11 @@ async function openPlayback(
     nativeEngineCommand({ cmd: "pause" });
     return { ok: true };
   }
+  if (!Array.isArray(paths))
+    return {
+      ok: false,
+      error: "Chromecast disconnected while preparing music.",
+    };
   return nativeEngineCommand({ cmd: "open", paths, startIndex: index });
 }
 
@@ -140,7 +145,7 @@ export function startCastPlayback() {
         if (!resumed || !castPlayback.hasLoadedQueue())
           await openPlayback(
             queue,
-            await resolvePaths(queue),
+            await playbackPaths(queue),
             index,
             position,
             playing,
@@ -435,7 +440,7 @@ async function resumeRestoredQueue(): Promise<boolean> {
   resumeInFlight = true;
   const restoringQueue = queue;
   try {
-    const paths = await resolvePaths(restoringQueue);
+    const paths = await playbackPaths(restoringQueue);
     // A stop or another queue replacement invalidates this delayed open.
     if (!resumePending || queue !== restoringQueue) return false;
     await applyLocalPlaybackModes();
@@ -509,7 +514,7 @@ export function removeLocalAt(index: number) {
     void (async () => {
       await castPlayback.load(
         next,
-        await resolvePaths(next),
+        await playbackPaths(next),
         nextIndex,
         current.positionMs,
         current.state === "playing",
@@ -884,6 +889,39 @@ function streamUrlFor(track: UploadQueueTrack): string {
   return getStreamUrl(track.uploadId);
 }
 
+async function playbackPaths(
+  tracks: UploadQueueTrack[],
+): Promise<string[] | CastPathResolver> {
+  if (!castPlayback.connected()) return resolvePaths(tracks);
+  const owner = storage.getToken();
+  let localTracks: Promise<Map<string, DeviceTrack>> | undefined;
+  const resolve: CastPathResolver = async (track, _index, signal) => {
+    if (signal.aborted || storage.getToken() !== owner)
+      throw new Error("Chromecast queue changed.");
+    if (track.localId) {
+      localTracks ??= localMusicNative
+        .library()
+        .then(
+          (library) =>
+            new Map<string, DeviceTrack>(
+              library.tracks.map((item: DeviceTrack) => [item.id, item]),
+            ),
+        );
+      const current = (await localTracks).get(track.localId);
+      if (!current)
+        throw new Error(`Local file is no longer available: ${track.title}`);
+      Object.assign(track, deviceQueueTrack(current));
+      if (signal.aborted) throw new Error("Chromecast queue changed.");
+      return localMusicNative.path(track.localId);
+    }
+    if (track.streamUrl) return track.streamUrl;
+    if (!track.navidromeId) return getCastStreamUrl(track.uploadId, signal);
+    // Resolve Navidrome credentials once on demand; subsequent tracks reuse them.
+    return (await resolvePaths([track]))[0];
+  };
+  return resolve;
+}
+
 async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
   if (tracks.some((track) => track.localId)) {
     const library = await localMusicNative.library();
@@ -942,7 +980,7 @@ export async function playUploads(
   if (!session && tracks.some((track) => !track.localId)) return false;
   if (!isEngineAvailable() || tracks.length === 0) return false;
   const casting = castPlayback.connected();
-  const paths = await resolvePaths(tracks);
+  const paths = await playbackPaths(tracks);
   if (casting !== castPlayback.connected()) return false;
   await applyLocalPlaybackModes();
   if (storage.getToken() !== session) return false;
@@ -1003,7 +1041,7 @@ async function enqueueLocalTracks(
     const next = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
     await castPlayback.load(
       next,
-      await resolvePaths(next),
+      await playbackPaths(next),
       index,
       current.positionMs,
       current.state === "playing",

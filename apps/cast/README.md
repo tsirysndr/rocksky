@@ -32,6 +32,8 @@ Local files are served from the phone's Wi-Fi/Ethernet IPv4 address using ungues
 
 Uploaded files use scoped opaque stream tokens, never the user's sign-in JWT. Deploy the accompanying API change to enable the `purpose=cast` 24-hour token lifetime (older APIs retain their one-hour lifetime). URLs for other sources must also be directly accessible from the Chromecast.
 
+Queue startup resolves and loads only the selected track. The sender adds the next track first, then fills the remaining queue in batches of at most five, with a 250 ms pause between batches. Earlier tracks are inserted before the selected item to preserve queue order. Replacing, skipping, stopping, or disconnecting cancels stale preparation; transport controls do not wait for background metadata requests. Token and missing-MIME HTTP requests share a single request lane, spaced at least one second apart, and respect `Retry-After` or the API's `X-RateLimit-Reset` TTL on HTTP 429. Known MIME types and cached tokens need no per-track HTTP lookup.
+
 The receiver does not transcode. Playback depends on the target device's [supported audio codecs](https://developers.google.com/cast/docs/media). Unsupported formats may need conversion. Receiver hosting/registration and playback on real Cast hardware still require verification; the repository checks cover the native server, sender queue and receiver build/state parsing.
 
 ## Checks
@@ -42,7 +44,7 @@ bun run build
 bun run build-storybook
 ```
 
-The Android module has JUnit HTTP/range tests (`:rocksky-cast:testDebugUnitTest`). The app's sender test runs with `bun test ./src/lib/castPlayback.test.ts` from `apps/app`.
+The Android module has JUnit HTTP/range tests (`:rocksky-cast:testDebugUnitTest`). The app's sender and request-pacing tests run with `bun test ./src/lib/castPlayback.test.ts ./src/lib/castRequests.test.ts` from `apps/app`.
 
 ## Preview artwork
 
