@@ -17,7 +17,6 @@ import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MirrorsRouteImport } from './routes/mirrors'
 import { Route as LoadingRouteImport } from './routes/loading'
-import { Route as ImportRouteImport } from './routes/import'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
@@ -88,11 +87,6 @@ const MirrorsRoute = MirrorsRouteImport.update({
 const LoadingRoute = LoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImportRoute = ImportRouteImport.update({
-  id: '/import',
-  path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -258,7 +252,6 @@ export interface FileRoutesByFullPath {
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/explore': typeof ExploreRoute
-  '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/mirrors': typeof MirrorsRoute
   '/privacy': typeof PrivacyRoute
@@ -300,7 +293,6 @@ export interface FileRoutesByTo {
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/explore': typeof ExploreRoute
-  '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/mirrors': typeof MirrorsRoute
   '/privacy': typeof PrivacyRoute
@@ -343,7 +335,6 @@ export interface FileRoutesById {
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/explore': typeof ExploreRoute
-  '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/mirrors': typeof MirrorsRoute
   '/privacy': typeof PrivacyRoute
@@ -387,7 +378,6 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/charts'
     | '/explore'
-    | '/import'
     | '/loading'
     | '/mirrors'
     | '/privacy'
@@ -429,7 +419,6 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/charts'
     | '/explore'
-    | '/import'
     | '/loading'
     | '/mirrors'
     | '/privacy'
@@ -471,7 +460,6 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/charts'
     | '/explore'
-    | '/import'
     | '/loading'
     | '/mirrors'
     | '/privacy'
@@ -514,7 +502,6 @@ export interface RootRouteChildren {
   ApikeysRoute: typeof ApikeysRoute
   ChartsRoute: typeof ChartsRoute
   ExploreRoute: typeof ExploreRoute
-  ImportRoute: typeof ImportRoute
   LoadingRoute: typeof LoadingRoute
   MirrorsRoute: typeof MirrorsRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -606,13 +593,6 @@ declare module '@tanstack/react-router' {
       path: '/loading'
       fullPath: '/loading'
       preLoaderRoute: typeof LoadingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/import': {
-      id: '/import'
-      path: '/import'
-      fullPath: '/import'
-      preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -842,7 +822,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApikeysRoute: ApikeysRoute,
   ChartsRoute: ChartsRoute,
   ExploreRoute: ExploreRoute,
-  ImportRoute: ImportRoute,
   LoadingRoute: LoadingRoute,
   MirrorsRoute: MirrorsRoute,
   PrivacyRoute: PrivacyRoute,
