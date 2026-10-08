@@ -80,6 +80,20 @@ function trackData(info?: chrome.cast.media.MediaInfo | null): {
   );
 }
 const QUEUE_SYNC_NAMESPACE = "urn:x-cast:app.rocksky.queue";
+const REMOTE_NAMESPACE = "urn:x-cast:app.rocksky.remote";
+let authorizedToken: string | null | undefined;
+function authorizeRemotePlayer() {
+  const target = syncSession;
+  if (!target) return;
+  const token = localStorage.getItem("token");
+  if (token === authorizedToken) return;
+  authorizedToken = token;
+  void target.sendMessage(REMOTE_NAMESPACE, token
+    ? { type: "authorize", token, name: target.getCastDevice().friendlyName || "Chromecast" }
+    : { type: "disconnect" }).catch(() => {
+      if (syncSession === target && authorizedToken === token) authorizedToken = undefined;
+    });
+}
 let syncSession: cast.framework.CastSession | null = null;
 let syncRequestId = 0;
 let syncRevision: number | undefined;
@@ -130,6 +144,7 @@ function bindQueueSync(target: cast.framework.CastSession | null) {
   syncSession?.removeMessageListener(QUEUE_SYNC_NAMESPACE, receiveQueue);
   clearTimeout(pageTimer);
   syncSession = target;
+  authorizedToken = undefined;
   syncRequestId++;
   syncRevision = undefined;
   pageRevision = undefined;
@@ -137,10 +152,11 @@ function bindQueueSync(target: cast.framework.CastSession | null) {
   receiverStatus = null;
   pageItems = [];
   target?.addMessageListener(QUEUE_SYNC_NAMESPACE, receiveQueue);
-  if (target) requestQueue();
+  if (target) { requestQueue(); authorizeRemotePlayer(); }
 }
 let statusRequestPending = false;
 async function refreshReceiverStatus() {
+  authorizeRemotePlayer();
   if (statusRequestPending || store.get(playerAtom) !== "cast") return;
   if (pageRevision !== undefined && Date.now() - queueRequestAt > 5000) {
     clearTimeout(pageTimer);

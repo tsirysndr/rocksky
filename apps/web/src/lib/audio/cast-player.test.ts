@@ -49,11 +49,13 @@ const media = {
   },
 };
 let queueRequest: any;
+let authToken: string | null = null;
+let remoteAuthorization: any;
 let queueListener: ((namespace: string, message: unknown) => void) | undefined;
 const session = {
   addMessageListener(_namespace: string, listener: typeof queueListener) { queueListener = listener; },
   removeMessageListener() { queueListener = undefined; },
-  sendMessage: async (_namespace: string, request: unknown) => { queueRequest = request; },
+  sendMessage: async (namespace: string, request: unknown) => { if (namespace.endsWith(".queue")) queueRequest = request; else remoteAuthorization = request; },
   addEventListener() {},
   getMediaSession: () => media,
   getCastDevice: () => ({ friendlyName: "TV" }),
@@ -81,7 +83,7 @@ const context = {
 };
 Object.assign(globalThis, {
   window: { isSecureContext: true, setInterval: (callback: () => void, ms: number) => { timers.push({ callback, ms }); return 0; } },
-  localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+  localStorage: { getItem: () => authToken, setItem() {}, removeItem() {} },
   chrome: {
     cast: {
       AutoJoinPolicy: { ORIGIN_SCOPED: "origin" },
@@ -329,5 +331,17 @@ test("decoded receiver messages update the full queue without a cached SDK media
   expect(getDefaultStore().get(nowPlayingAtom)?.progress).toBe(2000);
   expect(getDefaultStore().get(nowPlayingAtom)?.duration).toBe(205000);
   media.media = cached;
+  webCast.disconnect();
+});
+
+test("web authorizes the TV privately and revokes the bridge on sign-out", async () => {
+  authToken = "test-web-access-token";
+  ended?.({ sessionState: "resumed" });
+  expect(remoteAuthorization).toEqual({ type: "authorize", token: authToken, name: "TV" });
+  expect(JSON.stringify(loads)).not.toContain(authToken);
+  authToken = null;
+  timers.find((timer) => timer.ms === 3000)!.callback();
+  expect(remoteAuthorization).toEqual({ type: "disconnect" });
+  await new Promise((resolve) => setTimeout(resolve, 0));
   webCast.disconnect();
 });
