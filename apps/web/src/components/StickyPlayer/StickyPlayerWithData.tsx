@@ -746,9 +746,9 @@ function StickyPlayerWithData() {
   };
 
   const onToggleMute = () => {
+    if (player === "cast") { castAction(webCast.mute(!castState.muted)); return; }
     const nextMuted = !muted;
     setMutedState(nextMuted);
-    if (player === "cast") { castAction(webCast.volume(nextMuted ? 0 : volume)); return; }
     if (player === "device") {
       lastLocalVolumeAt.current = Date.now();
       sendDeviceCommand("volume", { volume: nextMuted ? 0 : (deviceVolume ?? volume) });
@@ -1045,6 +1045,7 @@ function StickyPlayerWithData() {
             queueIndex={queueIndex}
             onClose={() => setQueuePanelOpen(false)}
             onPlayIndex={(idx) => {
+              if (isCast) { castAction(webCast.jump(idx)); return; }
               const track = queue[idx];
               if (!track) return;
               // Optimistic UI: flip the index + now-playing immediately, and
@@ -1134,8 +1135,8 @@ function StickyPlayerWithData() {
           showRepeat={isRockbox || isCast || (player === "device" && deviceRepeat !== null)}
           showTrackMenu={showTrackMenu}
           trackQueued={trackQueued}
-          volume={player === "device" ? (deviceVolume ?? volume) : volume}
-          muted={muted}
+          volume={isCast ? castState.volume : player === "device" ? (deviceVolume ?? volume) : volume}
+          muted={isCast ? castState.muted : muted}
           onVolumeChange={onVolumeChange}
           onToggleMute={onToggleMute}
           shuffle={player === "device" ? (deviceShuffle ?? false) : shuffle}
@@ -1250,8 +1251,8 @@ function StickyPlayerWithData() {
         repeatMode={player === "device" ? (deviceRepeat ?? "off") : repeatMode}
         onShuffle={onToggleShuffle}
         onRepeat={onCycleRepeat}
-        volume={player === "device" ? (deviceVolume ?? volume) : volume}
-        muted={muted}
+        volume={isCast ? castState.volume : player === "device" ? (deviceVolume ?? volume) : volume}
+        muted={isCast ? castState.muted : muted}
         onVolumeChange={onVolumeChange}
         onToggleMute={onToggleMute}
       />

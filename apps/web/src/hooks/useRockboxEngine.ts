@@ -1,4 +1,4 @@
-import { useAtomValue, useSetAtom } from "jotai";
+import { getDefaultStore, useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
@@ -62,6 +62,7 @@ export function useRockboxEngine() {
         sample_rate?: number;
       } | null;
     }) => {
+      if (getDefaultStore().get(playerAtom) !== "rockbox") return;
       const known = trackForUrl(e.url);
       const md = e.metadata;
       setNowPlaying((prev) => ({
@@ -94,6 +95,7 @@ export function useRockboxEngine() {
       elapsed_ms: number;
       duration_ms: number;
     }) => {
+      if (getDefaultStore().get(playerAtom) !== "rockbox") return;
       setNowPlaying((prev) =>
         prev
           ? {
@@ -118,6 +120,7 @@ export function useRockboxEngine() {
       index: number;
       queue_len: number;
     }) => {
+      if (getDefaultStore().get(playerAtom) !== "rockbox") return;
       if (e.index >= 0) setQueueIndex(effectiveQueueIndex(e.index));
       setNowPlaying((prev) =>
         prev ? { ...prev, isPlaying: e.state === "playing" } : prev,
@@ -126,10 +129,12 @@ export function useRockboxEngine() {
 
     // queue: the URL list changed — rebuild the queue atom from metadata.
     const onQueue = (e: { urls: string[]; index: number }) => {
+      if (getDefaultStore().get(playerAtom) !== "rockbox") return;
       setQueue(e.urls.map(urlToQueueTrack));
       // Same guard as onStatus: a stopped engine reports index -1 — keep the
       // last known index (e.g. the restored resume position) instead of
       // regressing, which also protected the persisted resume snapshot.
+      if (getDefaultStore().get(playerAtom) !== "rockbox") return;
       if (e.index >= 0) setQueueIndex(effectiveQueueIndex(e.index));
     };
 

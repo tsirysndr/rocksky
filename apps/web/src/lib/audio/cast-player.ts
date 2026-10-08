@@ -16,6 +16,8 @@ export const webCastAtom = atom({
   connected: false,
   name: "Chromecast",
   error: "",
+  volume: 1,
+  muted: false,
 });
 const store = getDefaultStore();
 let context: cast.framework.CastContext | null = null;
@@ -24,6 +26,9 @@ let initialized = false;
 let advancing = false;
 const mimeCache = new Map<string, string>();
 let ownedQueue: QueueTrack[] | null = null;
+let ownedQueueId: string | null = null;
+let queueSequence = 0;
+let queueFilled = false;
 let resumedIndices: number[] | null = null;
 let commands: Promise<unknown> = Promise.resolve();
 const call = <T>(
@@ -63,6 +68,7 @@ function repeat(mode: RepeatMode) {
 }
 function trackData(info?: chrome.cast.media.MediaInfo | null): {
   index?: number;
+  queueId?: string;
   track?: QueueTrack;
 } {
   return (
@@ -73,18 +79,61 @@ function trackData(info?: chrome.cast.media.MediaInfo | null): {
     )?.rocksky ?? {}
   );
 }
+let observedMedia: chrome.cast.media.Media | null = null;
+function watchMedia() {
+  const current = media() ?? null;
+  if (current === observedMedia) return;
+  observedMedia?.removeUpdateListener(onMediaUpdate);
+  observedMedia = current;
+  observedMedia?.addUpdateListener(onMediaUpdate);
+}
+function onMediaUpdate(alive: boolean) {
+  if (alive) mirror();
+}
+function receiverTrack(info: chrome.cast.media.MediaInfo): QueueTrack {
+  const saved = trackData(info).track;
+  const md = info.metadata as chrome.cast.media.MusicTrackMediaMetadata;
+  return {
+    uploadId: "", title: md?.title ?? "", artist: md?.artist ?? "",
+    album: md?.albumName ?? "", albumArtist: md?.albumArtist ?? "",
+    albumArt: md?.images?.[0]?.url ?? null, duration: (info.duration || 0) * 1000,
+    sha256: "", songUri: "", ...saved,
+    streamUrl: info.contentId, mimeType: info.contentType,
+  };
+}
 function mirror() {
+  watchMedia();
   if (store.get(playerAtom) !== "cast") return;
   const m = media();
   if (!m?.media) return;
   const data = trackData(m.media);
   const md = m.media.metadata as chrome.cast.media.MusicTrackMediaMetadata;
-  const tracks = store.get(queueAtom);
-  const rawIndex = data.index ?? 0;
-  const index = resumedIndices
-    ? Math.max(0, resumedIndices.indexOf(rawIndex))
-    : rawIndex;
-  const track = ownedQueue === tracks ? tracks[index] : data.track;
+  let tracks = store.get(queueAtom);
+  let index = data.index ?? 0;
+  if (ownedQueue && (data.queueId !== ownedQueueId ||
+      (queueFilled && m.items && (m.items.length !== ownedQueue.length ||
+        m.items.some((item, i) => trackData(item.media).index !== i))))) {
+    ownedQueue = null;
+    ownedQueueId = null;
+  }
+  if (ownedQueue) {
+    // Local engine callbacks must never replace the logical Cast queue while
+    // only a small prefix has reached the receiver.
+    tracks = ownedQueue;
+    if (store.get(queueAtom) !== tracks) store.set(queueAtom, tracks);
+  } else {
+    // A resumed session can gain, lose or reorder items after initial attach.
+    const items = m.items?.length ? m.items : [{ media: m.media, itemId: m.currentItemId }];
+    const incoming = items.map((item) => receiverTrack(item.media));
+    resumedIndices = items.map((item, i) => trackData(item.media).index ?? i);
+    if (JSON.stringify(incoming) !== JSON.stringify(tracks)) {
+      tracks = incoming;
+      store.set(queueAtom, tracks);
+    }
+    index = items.findIndex((item) => item.itemId === m.currentItemId);
+    if (index < 0) index = Math.max(0, resumedIndices.indexOf(data.index ?? 0));
+  }
+  const track = tracks[index] ?? data.track;
   const wasPlaying = store.get(nowPlayingAtom)?.isPlaying;
   store.set(queueIndexAtom, index);
   store.set(nowPlayingAtom, {
@@ -121,7 +170,7 @@ function mirror() {
     );
   }
 }
-async function itemFor(track: QueueTrack, index: number, signal: AbortSignal) {
+async function itemFor(track: QueueTrack, index: number, total: number, queueId: string, signal: AbortSignal) {
   const url =
     track.streamUrl ?? (await getCastStreamUrl(track.uploadId, signal));
   if (signal.aborted) throw castCancelled();
@@ -153,7 +202,7 @@ async function itemFor(track: QueueTrack, index: number, signal: AbortSignal) {
   info.metadata = metadata;
   const { streamUrl: _url, ...safeTrack } = track;
   info.customData = {
-    rocksky: { source: "uploaded", index, track: safeTrack },
+    rocksky: { source: "uploaded", index, queueId, queuePosition: index + 1, queueTotal: total, track: safeTrack },
   };
   const item = new chrome.cast.media.QueueItem(info);
   item.autoplay = true;
@@ -165,6 +214,7 @@ async function fill(
   index: number,
   target: cast.framework.CastSession,
   signal: AbortSignal,
+  queueId: string,
 ) {
   try {
     await abortableDelay(250, signal);
@@ -184,10 +234,10 @@ async function fill(
         const items: chrome.cast.media.QueueItem[] = [];
         for (let i = offset; i < Math.min(end, offset + count); i++) {
           if (signal.aborted) return;
-          items.push(await itemFor(tracks[i], i, signal));
+          items.push(await itemFor(tracks[i], i, tracks.length, queueId, signal));
         }
         await serialize(async () => {
-          if (signal.aborted || session() !== target) return;
+          if (signal.aborted || session() !== target || ownedQueue !== tracks) throw castCancelled();
           const m = target.getMediaSession();
           if (!m) throw castCancelled();
           const request = new chrome.cast.media.QueueInsertItemsRequest(items);
@@ -198,7 +248,10 @@ async function fill(
         await abortableDelay(250, signal);
       }
     }
-    if (!signal.aborted) await webCast.setRepeat(store.get(repeatModeAtom));
+    if (!signal.aborted && ownedQueue === tracks) {
+      queueFilled = true;
+      await webCast.setRepeat(store.get(repeatModeAtom));
+    }
   } catch (error) {
     if (!signal.aborted) report(error);
   }
@@ -226,7 +279,8 @@ export const webCast = {
     job?.abort();
     job = new AbortController();
     const signal = job.signal;
-    const selected = await itemFor(tracks[index], index, signal);
+    const queueId = `${Date.now()}-${++queueSequence}`;
+    const selected = await itemFor(tracks[index], index, tracks.length, queueId, signal);
     selected.autoplay = autoplay && positionMs === 0;
     await serialize(async () => {
       if (signal.aborted || session() !== target) throw castCancelled();
@@ -240,6 +294,8 @@ export const webCast = {
       );
       if (signal.aborted || session() !== target) throw castCancelled();
       ownedQueue = tracks;
+      ownedQueueId = queueId;
+      queueFilled = false;
       resumedIndices = null;
       store.set(queueAtom, tracks);
       store.set(queueIndexAtom, index);
@@ -248,9 +304,10 @@ export const webCast = {
         await this.seek(positionMs);
         if (autoplay) await this.play();
       }
+      watchMedia();
       mirror();
     });
-    void fill(tracks, index, target, signal);
+    void fill(tracks, index, target, signal, queueId);
   },
   async play() {
     const m = media();
@@ -273,8 +330,12 @@ export const webCast = {
     r.currentTime = ms / 1000;
     await call<void>((ok, fail) => m.seek(r, ok, fail));
   },
+  async mute(value: boolean) {
+    await session()?.setMute(value);
+  },
   async volume(value: number) {
     await session()?.setVolume(Math.max(0, Math.min(1, value)));
+    if (value > 0 && store.get(webCastAtom).muted) await this.mute(false);
   },
   async jump(index: number) {
     const m = media();
@@ -364,16 +425,19 @@ export function initializeWebCast() {
           event.sessionState === cast.framework.SessionState.SESSION_RESUMED
         ) {
           if (!target) return;
-          store.set(webCastAtom, {
+          store.set(webCastAtom, (previous) => ({
+            ...previous,
             available: true,
             connected: true,
             name: target.getCastDevice().friendlyName,
             error: "",
-          });
+          }));
           const np = store.get(nowPlayingAtom);
           const local = getRockboxPlayer();
-          if (local.ready) local.pause();
           store.set(playerAtom, "cast");
+          if (local.ready) local.pause();
+          target.addEventListener(cast.framework.SessionEventType.MEDIA_SESSION, mirror);
+          watchMedia();
           if (
             event.sessionState === cast.framework.SessionState.SESSION_STARTED
           ) {
@@ -388,23 +452,16 @@ export function initializeWebCast() {
                 ),
               );
           } else {
-            const items = target.getMediaSession()?.items ?? [];
-            const tracks: QueueTrack[] = [];
-            resumedIndices = [];
-            for (const item of items) {
-              const data = trackData(item.media);
-              if (!data.track) continue;
-              tracks.push({ ...data.track, streamUrl: item.media.contentId });
-              resumedIndices.push(data.index ?? tracks.length - 1);
-            }
-            store.set(queueAtom, tracks);
             ownedQueue = null;
+            resumedIndices = null;
             mirror();
           }
         } else if (
           event.sessionState === cast.framework.SessionState.SESSION_ENDED
         ) {
           job?.abort();
+          observedMedia?.removeUpdateListener(onMediaUpdate);
+          observedMedia = null;
           ownedQueue = null;
           resumedIndices = null;
           mimeCache.clear();
@@ -424,7 +481,10 @@ export function initializeWebCast() {
     const controller = new cast.framework.RemotePlayerController(remote);
     controller.addEventListener(
       cast.framework.RemotePlayerEventType.ANY_CHANGE,
-      mirror,
+      () => {
+        store.set(webCastAtom, (s) => ({ ...s, volume: remote.volumeLevel, muted: remote.isMuted }));
+        mirror();
+      },
     );
     window.setInterval(mirror, 1000);
   };

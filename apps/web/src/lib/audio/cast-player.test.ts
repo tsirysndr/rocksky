@@ -20,7 +20,10 @@ class Request {
   insertBefore?: number;
   constructor(public items: QueueItem[]) {}
 }
+let mediaUpdate: ((alive: boolean) => void) | undefined;
 const media = {
+  addUpdateListener: (fn: (alive: boolean) => void) => { mediaUpdate = fn; },
+  removeUpdateListener: () => { mediaUpdate = undefined; },
   media: null as any,
   playerState: "PLAYING",
   currentItemId: 0,
@@ -43,6 +46,7 @@ const media = {
   },
 };
 const session = {
+  addEventListener() {},
   getMediaSession: () => media,
   getCastDevice: () => ({ friendlyName: "TV" }),
   getSessionObj: () => ({
@@ -95,6 +99,7 @@ Object.assign(globalThis, {
         CAST_STATE_CHANGED: "state",
         SESSION_STATE_CHANGED: "session",
       },
+      SessionEventType: { MEDIA_SESSION: "media" },
       CastState: { NO_DEVICES_AVAILABLE: "none" },
       SessionState: {
         SESSION_STARTED: "started",
@@ -154,6 +159,8 @@ test("web Cast sends only the selected track from 10,000 entries; disconnect can
   expect(info.contentId).toContain("token=scoped");
   expect(info.duration).toBe(180);
   expect(info.customData.rocksky.index).toBe(4321);
+  expect(info.customData.rocksky.queuePosition).toBe(4322);
+  expect(info.customData.rocksky.queueTotal).toBe(10000);
   webCast.disconnect();
   await new Promise((r) => setTimeout(r, 300));
   expect(urls).toEqual(["4321"]);
@@ -181,5 +188,42 @@ test("replacing a queue cancels stale background inserts", async () => {
   expect(urls).toEqual(["0", "99"]);
   expect(inserts).toHaveLength(0);
   expect(items[0].media.metadata.title).toBe("Track 99");
+  webCast.disconnect();
+});
+
+test("receiver updates synchronize the current track, pause state and progress", async () => {
+  const { nowPlayingAtom } = await import("../../atoms/nowpaying");
+  const { queueIndexAtom, queueAtom } = await import("../../atoms/queue");
+  const store = getDefaultStore();
+  reset();
+  await webCast.load([track(0), track(1), track(2)], 0);
+  const start = Date.now();
+  while (items.length < 3 && Date.now() - start < 2500)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  media.media = items[1].media;
+  media.currentItemId = items[1].itemId;
+  media.playerState = "PAUSED";
+  store.set(queueAtom, [track(99)]); // late local engine snapshot
+  mediaUpdate?.(true);
+  expect(store.get(queueAtom).map((t) => t.title)).toEqual(["Track 0", "Track 1", "Track 2"]);
+  expect(store.get(queueIndexAtom)).toBe(1);
+  expect(store.get(nowPlayingAtom)?.title).toBe("Track 1");
+  expect(store.get(nowPlayingAtom)?.progress).toBe(12000);
+  expect(store.get(nowPlayingAtom)?.isPlaying).toBe(false);
+  media.playerState = "PLAYING";
+  webCast.disconnect();
+});
+test("resumed sessions keep their queue synchronized after later insertions", async () => {
+  const { queueAtom, queueIndexAtom } = await import("../../atoms/queue");
+  const store = getDefaultStore();
+  ended?.({ sessionState: "resumed" });
+  const added = new MediaInfo("https://example.com/new.mp3", "audio/mpeg") as any;
+  added.metadata = { title: "Added from another sender", artist: "Artist" };
+  items.push({ itemId: 900, media: added });
+  media.media = added;
+  media.currentItemId = 900;
+  mediaUpdate?.(true);
+  expect(store.get(queueAtom).at(-1)?.title).toBe("Added from another sender");
+  expect(store.get(queueIndexAtom)).toBe(items.length - 1);
   webCast.disconnect();
 });
