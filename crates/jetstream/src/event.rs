@@ -991,14 +991,20 @@ mod tests {
         let a = fingerprint("Calvin Harris", Some("2026-12-01"), Some("Le Trianon"));
         let b = fingerprint("calvin harris ", Some("2026-12-01"), Some("LE TRIANON"));
         assert_eq!(a, b);
-        assert_ne!(a, fingerprint("Calvin Harris", Some("2026-12-02"), Some("Le Trianon")));
+        assert_ne!(
+            a,
+            fingerprint("Calvin Harris", Some("2026-12-02"), Some("Le Trianon"))
+        );
         assert_eq!(fingerprint("Calvin Harris", None, Some("Le Trianon")), None);
     }
 
     #[test]
     fn only_known_external_id_providers_take_part() {
         let raw = serde_json::json!({ "ticketmaster": " tm-1 ", "unknown": "x", "dice": "" });
-        assert_eq!(external_ids(&raw), vec![("ticketmaster", "tm-1".to_string())]);
+        assert_eq!(
+            external_ids(&raw),
+            vec![("ticketmaster", "tm-1".to_string())]
+        );
     }
 
     #[test]
@@ -1143,8 +1149,12 @@ mod sqlite_behaviour {
     fn fetching(
         name: &'static str,
         day: &'static str,
-    ) -> impl FnOnce(String, String) -> std::pin::Pin<Box<dyn Future<Output = Result<Option<(Option<String>, CalendarEventRecord)>, Error>>>>
-    {
+    ) -> impl FnOnce(
+        String,
+        String,
+    ) -> std::pin::Pin<
+        Box<dyn Future<Output = Result<Option<(Option<String>, CalendarEventRecord)>, Error>>>,
+    > {
         move |_, _| {
             Box::pin(async move {
                 let mut record = calendar(name);
@@ -1420,23 +1430,44 @@ mod sqlite_behaviour {
         let first = calendar_event_uri(ORGANIZER, "ev1");
         let second = calendar_event_uri(DEFAULT_PUBLISHER_DIDS[1], "ev7");
 
-        let a = index_music_event(&db, ORGANIZER, "mu1", None, music_without_ids(&first, &["Calvin Harris"]), fetching("CH live", "2026-12-01"))
-            .await
-            .unwrap()
-            .unwrap();
-        index_music_event(&db, DEFAULT_PUBLISHER_DIDS[1], "mu2", None, music_without_ids(&second, &["calvin harris"]), fetching("Calvin Harris @ Trianon", "2026-12-01"))
-            .await
-            .unwrap()
-            .unwrap();
+        let a = index_music_event(
+            &db,
+            ORGANIZER,
+            "mu1",
+            None,
+            music_without_ids(&first, &["Calvin Harris"]),
+            fetching("CH live", "2026-12-01"),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        index_music_event(
+            &db,
+            DEFAULT_PUBLISHER_DIDS[1],
+            "mu2",
+            None,
+            music_without_ids(&second, &["calvin harris"]),
+            fetching("Calvin Harris @ Trianon", "2026-12-01"),
+        )
+        .await
+        .unwrap()
+        .unwrap();
 
         assert_eq!(duplicate_of(&db, &first).await, None);
         assert_eq!(duplicate_of(&db, &second).await, Some(a.clone()));
 
         // A different night is a different show.
         let third = calendar_event_uri(ORGANIZER, "ev8");
-        index_music_event(&db, ORGANIZER, "mu3", None, music_without_ids(&third, &["Calvin Harris"]), fetching("CH live", "2026-12-02"))
-            .await
-            .unwrap();
+        index_music_event(
+            &db,
+            ORGANIZER,
+            "mu3",
+            None,
+            music_without_ids(&third, &["Calvin Harris"]),
+            fetching("CH live", "2026-12-02"),
+        )
+        .await
+        .unwrap();
         assert_eq!(duplicate_of(&db, &third).await, None);
     }
 
@@ -1446,14 +1477,28 @@ mod sqlite_behaviour {
         let first = calendar_event_uri(ORGANIZER, "ev1");
         let second = calendar_event_uri(ORGANIZER, "ev2");
 
-        let a = index_music_event(&db, ORGANIZER, "mu1", None, music(&first, &["A"]), fetching("Night one", "2026-12-01"))
-            .await
-            .unwrap()
-            .unwrap();
+        let a = index_music_event(
+            &db,
+            ORGANIZER,
+            "mu1",
+            None,
+            music(&first, &["A"]),
+            fetching("Night one", "2026-12-01"),
+        )
+        .await
+        .unwrap()
+        .unwrap();
         // Different headliner spelling and venue, same Ticketmaster listing.
-        index_music_event(&db, ORGANIZER, "mu2", None, music(&second, &["A & friends"]), fetching("Night one (resale)", "2026-12-01"))
-            .await
-            .unwrap();
+        index_music_event(
+            &db,
+            ORGANIZER,
+            "mu2",
+            None,
+            music(&second, &["A & friends"]),
+            fetching("Night one (resale)", "2026-12-01"),
+        )
+        .await
+        .unwrap();
         assert_eq!(duplicate_of(&db, &second).await, Some(a));
     }
 
@@ -1462,12 +1507,26 @@ mod sqlite_behaviour {
         let db = db().await;
         let first = calendar_event_uri(ORGANIZER, "ev1");
         let second = calendar_event_uri(ORGANIZER, "ev2");
-        index_music_event(&db, ORGANIZER, "mu1", None, music_without_ids(&first, &["A"]), fetching("One", "2026-12-01"))
-            .await
-            .unwrap();
-        index_music_event(&db, ORGANIZER, "mu2", None, music_without_ids(&second, &["A"]), fetching("One again", "2026-12-01"))
-            .await
-            .unwrap();
+        index_music_event(
+            &db,
+            ORGANIZER,
+            "mu1",
+            None,
+            music_without_ids(&first, &["A"]),
+            fetching("One", "2026-12-01"),
+        )
+        .await
+        .unwrap();
+        index_music_event(
+            &db,
+            ORGANIZER,
+            "mu2",
+            None,
+            music_without_ids(&second, &["A"]),
+            fetching("One again", "2026-12-01"),
+        )
+        .await
+        .unwrap();
         assert!(duplicate_of(&db, &second).await.is_some());
 
         let mut moved = calendar("One again");
