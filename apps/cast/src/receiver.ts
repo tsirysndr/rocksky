@@ -15,6 +15,8 @@ export type ReceiverState = {
   duration: number;
   queue: Track[];
   queueCount?: number;
+  queuePosition?: number;
+  queueTotal?: number;
   volume: number;
   error?: string;
 };
@@ -116,4 +118,16 @@ export function playbackTime(
     position: Math.floor(Math.min(finite(position), duration || Infinity)),
     duration,
   };
+}
+
+/** Sender totals remain stable while the receiver queue is filled progressively. */
+export function queuePosition(media: unknown, index: number, total: number) {
+  const custom = record(record(record(media).customData).rocksky);
+  const position = custom.queuePosition;
+  const count = custom.queueTotal;
+  if (typeof position === "number" && Number.isInteger(position) && position > 0 &&
+      typeof count === "number" && Number.isInteger(count) && count >= position) {
+    return { queuePosition: position, queueTotal: count };
+  }
+  return { queuePosition: Math.max(0, index + 1), queueTotal: total };
 }

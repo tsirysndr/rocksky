@@ -229,3 +229,12 @@ test("periodic refresh recovers queue changes without a request event", () => {
   assert.equal(h.states.at(-1)!.queueCount, 1);
   h.observer.dispose();
 });
+
+import { queuePosition } from "./receiver.ts";
+test("queue position uses full sender totals during progressive loading", () => {
+  assert.deepEqual(queuePosition({ customData: { rocksky: { queuePosition: 12, queueTotal: 250 } } }, 0, 1),
+    { queuePosition: 12, queueTotal: 250 });
+  assert.deepEqual(queuePosition({}, 2, 8), { queuePosition: 3, queueTotal: 8 });
+  assert.deepEqual(queuePosition({ customData: { rocksky: { queuePosition: -1, queueTotal: 0 } } }, 0, 1),
+    { queuePosition: 1, queueTotal: 1 });
+});

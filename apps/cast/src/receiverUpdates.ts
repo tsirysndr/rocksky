@@ -2,6 +2,7 @@ import {
   idleState,
   snapshot,
   playbackTime,
+  queuePosition,
   type ReceiverState,
   type Track,
 } from "./receiver.ts";
@@ -57,6 +58,8 @@ export function observeReceiver(
       state.track === next.track &&
       state.queue === next.queue &&
       state.queueCount === next.queueCount &&
+      state.queuePosition === next.queuePosition &&
+      state.queueTotal === next.queueTotal &&
       state.phase === next.phase &&
       state.position === next.position &&
       state.duration === next.duration &&
@@ -88,6 +91,7 @@ export function observeReceiver(
       items: items.slice(start, start + 3),
       index: -1,
     });
+    Object.assign(next, queuePosition(player.getMediaInformation(), start - 1, items.length));
     next.queueCount = Math.max(0, items.length - start);
     if (state.error) {
       next.phase = "error";

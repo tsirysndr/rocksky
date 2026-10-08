@@ -657,3 +657,11 @@ button:disabled {
 .queue-track .fallback-vinyl {
   box-shadow: 0 2px 5px #190c3b60;
 }
+
+.queue-position {
+  margin-left: auto;
+  color: #c9b9cf;
+  letter-spacing: normal;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

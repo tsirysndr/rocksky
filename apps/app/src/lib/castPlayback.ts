@@ -195,7 +195,7 @@ async function prepareOne(
     queue.files,
   );
   item.mediaInfo!.customData = {
-    rocksky: { index, source: track.localId ? "local" : "uploaded" },
+    rocksky: { index, queuePosition: queue.order.indexOf(index) + 1, queueTotal: queue.tracks.length, source: track.localId ? "local" : "uploaded" },
   };
   if (signal.aborted) throw castCancelled();
   queue.prepared.set(index, item);

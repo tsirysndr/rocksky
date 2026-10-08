@@ -44,5 +44,7 @@ export const demoState: ReceiverState = {
   position: 126,
   duration: tracks[0].duration,
   queue: tracks.slice(1),
+  queuePosition: 1,
+  queueTotal: tracks.length,
   volume: 0.65,
 };

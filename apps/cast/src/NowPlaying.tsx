@@ -162,6 +162,9 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
                     : phase === "error"
                       ? "PLAYBACK INTERRUPTED"
                       : "NOW PLAYING"}
+                {!!state.queuePosition && !!state.queueTotal && (
+                  <span className="queue-position">{state.queuePosition} of {state.queueTotal}</span>
+                )}
               </div>
               <h1 className="track-title" title={track.title}>
                 {track.title}
