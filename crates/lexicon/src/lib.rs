@@ -30,4 +30,5 @@ pub struct BlobRef {
 
 pub mod app;
 pub mod com;
+pub mod community;
 pub mod methods;

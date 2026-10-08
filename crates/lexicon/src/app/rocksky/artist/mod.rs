@@ -49,6 +49,7 @@ pub struct Artist {
 pub mod defs;
 pub mod get_artist;
 pub mod get_artist_albums;
+pub mod get_artist_events;
 pub mod get_artist_listeners;
 pub mod get_artist_recent_listeners;
 pub mod get_artist_tracks;

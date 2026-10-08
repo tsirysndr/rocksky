@@ -41,10 +41,19 @@ pub enum Def {
     StringDef(StringType),
     Union(Union),
     Array(Array),
+    /// A symbolic value: the def's own `nsid#name` is the value, used where a
+    /// string's `knownValues` list it (e.g. an event status).
+    Token(Token),
     /// Anything this generator does not model. Kept as a variant rather than
     /// a parse failure so the error names the def and the file.
     #[serde(other)]
     Unsupported,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Token {
+    #[serde(default)]
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

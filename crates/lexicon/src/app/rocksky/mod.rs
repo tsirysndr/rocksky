@@ -8,6 +8,7 @@ pub mod artist;
 pub mod charts;
 pub mod dropbox;
 pub mod equalizer;
+pub mod event;
 pub mod feed;
 pub mod googledrive;
 pub mod graph;

@@ -44,7 +44,7 @@ impl Method {
     }
 }
 
-/// Every method, sorted by NSID. 151 of them.
+/// Every method, sorted by NSID. 155 of them.
 pub const METHODS: &[Method] = &[
     // Get albums for an actor
     Method {
@@ -190,6 +190,14 @@ pub const METHODS: &[Method] = &[
         has_input: false,
         has_output: true,
     },
+    // Get the music events an artist is billed on, soonest first. Only unexpired events (ending today or later) unless `includePast` is set.
+    Method {
+        nsid: "app.rocksky.artist.getArtistEvents",
+        kind: MethodKind::Query,
+        has_parameters: true,
+        has_input: false,
+        has_output: true,
+    },
     // Get artist listeners
     Method {
         nsid: "app.rocksky.artist.getArtistListeners",
@@ -316,6 +324,30 @@ pub const METHODS: &[Method] = &[
         kind: MethodKind::Procedure,
         has_parameters: false,
         has_input: true,
+        has_output: true,
+    },
+    // Get a music event by the AT-URI of either its calendar event record or its app.rocksky.event.music record.
+    Method {
+        nsid: "app.rocksky.event.getEvent",
+        kind: MethodKind::Query,
+        has_parameters: true,
+        has_input: false,
+        has_output: true,
+    },
+    // List who responded to an event, most recent first.
+    Method {
+        nsid: "app.rocksky.event.getEventRsvps",
+        kind: MethodKind::Query,
+        has_parameters: true,
+        has_input: false,
+        has_output: true,
+    },
+    // List indexed music events, soonest first. Without a time window only unexpired events are returned: those ending (or, with no end, starting) today or later, plus undated ones.
+    Method {
+        nsid: "app.rocksky.event.getEvents",
+        kind: MethodKind::Query,
+        has_parameters: true,
+        has_input: false,
         has_output: true,
     },
     // Get information about a feed generator

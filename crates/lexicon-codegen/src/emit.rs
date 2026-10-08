@@ -286,6 +286,18 @@ fn emit_def(out: &mut String, context: &Context, name: &str, def: &Def) -> Resul
             )?;
             Ok(())
         }
+        Def::Token(token) => {
+            // The token's value is its fully qualified name; a const is what
+            // a caller compares a `knownValues` string against.
+            doc_comment(out, token.description.as_deref(), 0);
+            writeln!(
+                out,
+                "pub const {}: &str = \"{}#{name}\";",
+                snake_case(name).to_uppercase(),
+                context.nsid
+            )?;
+            Ok(())
+        }
         Def::Unsupported => bail!(
             "{}: def `{name}` uses a construct this generator does not model",
             context.nsid
@@ -575,9 +587,23 @@ fn emit_union(out: &mut String, context: &Context, type_name: &str, union: &Unio
     )?;
     writeln!(out, "#[serde(untagged)]")?;
     writeln!(out, "pub enum {type_name} {{")?;
+    let mut seen: Vec<String> = Vec::new();
     for target in &union.refs {
         let reference = parse_ref(target);
-        let variant = type_ident(&reference.def);
+        // A ref to another lexicon's `main` is named after that lexicon —
+        // `community.lexicon.location.geo` is `Geo` — since several `Main`s in
+        // one union would collide.
+        let mut variant = match (&reference.nsid, reference.def.as_str()) {
+            (Some(nsid), "main") => record_ident(nsid),
+            _ => type_ident(&reference.def),
+        };
+        let base = variant.clone();
+        let mut n = 2;
+        while seen.contains(&variant) {
+            variant = format!("{base}{n}");
+            n += 1;
+        }
+        seen.push(variant.clone());
         writeln!(out, "    {variant}({}),", context.resolve(target))?;
     }
     if !union.closed {
