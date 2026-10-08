@@ -42,7 +42,7 @@ export function useReceiver() {
       const mediaElement =
         document.querySelector<HTMLAudioElement>("#receiver-audio") ??
         undefined;
-      const detachQueueSync = attachQueueSync(context, player, mediaElement);
+      const detachQueueSync = attachQueueSync(context, player, mediaElement, framework.events.EventType);
       if (!contextStarted) {
         context.start({ disableIdleTimeout: false, mediaElement });
         contextStarted = true;

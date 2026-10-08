@@ -274,3 +274,35 @@ test("receiver sync pages its real queue and returns the real current item", () 
   detach();
   assert.equal(listener, undefined);
 });
+
+test("receiver accepts string requests and broadcasts track changes without polling", () => {
+  let listener: ((event: { senderId: string; data: unknown }) => void) | undefined;
+  const events = new Map<string, (event: unknown) => void>();
+  const sent: any[] = [];
+  let index = 0;
+  const items = [0, 1].map((i) => ({ itemId: i + 1, media: { metadata: { title: `Track ${i}` } } }));
+  const player = {
+    getQueueManager: () => ({ getItems: () => items, getCurrentItemIndex: () => index }),
+    getMediaInformation: () => items[0].media,
+    getPlayerState: () => "PLAYING", getCurrentTimeSec: () => 3, getDurationSec: () => 180,
+    addEventListener: (type: string, fn: (event: unknown) => void) => events.set(type, fn),
+    removeEventListener: (type: string) => events.delete(type),
+  } as Player;
+  const detach = attachQueueSync({
+    addCustomMessageListener: (_ns, fn) => { listener = fn; },
+    removeCustomMessageListener: () => { listener = undefined; },
+    sendCustomMessage: (_ns, sender, message) => sent.push({ sender, message }),
+  }, player, undefined, { PLAYING: "playing" });
+  try {
+    listener!({ senderId: "web", data: JSON.stringify({ type: "snapshot", requestId: 4 }) });
+    assert.equal(sent[0].message.items.length, 2);
+    index = 1;
+    events.get("playing")!({});
+    assert.equal(sent[1].sender, undefined);
+    assert.equal(sent[1].message.type, "status");
+    assert.equal(sent[1].message.state.media.metadata.title, "Track 1");
+    assert.equal(sent[1].message.state.currentItemId, 2);
+    assert.equal(sent[1].message.items, undefined);
+  } finally { detach(); }
+  assert.equal(events.size, 0);
+});
