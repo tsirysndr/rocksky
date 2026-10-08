@@ -83,14 +83,13 @@ button:disabled {
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(
-      ellipse at 16% 44%,
-      var(--art-color, #614269) 0%,
-      transparent 52%
-    ),
+    linear-gradient(#13082599, #13082599),
+    radial-gradient(ellipse at 16% 44%, #6f39a5 0%, transparent 52%),
     radial-gradient(ellipse at 91% 3%, #653453 0%, transparent 55%),
     linear-gradient(130deg, #271235, #130825 56%, #0e0918);
-  opacity: 0.68;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   contain: strict;
   pointer-events: none;
 }
@@ -332,6 +331,9 @@ button:disabled {
   min-height: 5.7vh;
 }
 .queue-track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   min-width: 0;
   gap: 1vw;
   padding: 1vh 0;
@@ -343,8 +345,9 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 .queue-track > .artwork {
-  width: 3.3vw;
-  height: 3.3vw;
+  /* Title line (0.94 × 1.3), line gap, artist line (0.75 × 1.5). */
+  width: calc(1.222vw + 0.25vw + 1.125vw);
+  height: calc(1.222vw + 0.25vw + 1.125vw);
 }
 .queue-copy {
   min-width: 0;
@@ -361,6 +364,7 @@ button:disabled {
 }
 .queue-copy p {
   font-size: 0.75vw;
+  line-height: 1.5;
   color: #a999b0;
   white-space: nowrap;
   overflow: hidden;
@@ -550,8 +554,8 @@ button:disabled {
     gap: 2vh;
   }
   .queue-track > .artwork {
-    width: 7vw;
-    height: 7vw;
+    width: calc(2.6vw + 0.25vw + 2.25vw);
+    height: calc(2.6vw + 0.25vw + 2.25vw);
   }
   .queue-copy h2 {
     font-size: 2vw;

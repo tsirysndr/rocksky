@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { artworkUrl, clock, type ReceiverState, type Track } from "./receiver";
 
 function Icon({
@@ -71,9 +71,7 @@ function Icon({
 const Artwork = memo(function Artwork({
   track,
   className = "",
-  onArtworkLoad,
 }: {
-  onArtworkLoad?: (image: HTMLImageElement) => void;
   track: Track | null;
   className?: string;
 }) {
@@ -86,7 +84,6 @@ const Artwork = memo(function Artwork({
           src={artworkUrl(track.artwork)}
           alt={`${track.album} album artwork`}
           decoding="async"
-          onLoad={(event) => onArtworkLoad?.(event.currentTarget)}
           onError={() => setFailed(true)}
         />
       ) : (
@@ -121,29 +118,20 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
   const active = !!track && phase !== "idle";
   const percent =
     duration > 0 ? Math.min(100, Math.max(0, (position / duration) * 100)) : 0;
-  const [hue, setHue] = useState("#895343");
-  useEffect(() => setHue("#6f39a5"), [track?.artwork]);
-  const artworkLoaded = useCallback((image: HTMLImageElement) => {
-    // Sample the image already decoded for the cover instead of downloading and
-    // decoding a second full-size image solely for its background color.
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 1;
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      context.drawImage(image, 0, 0, 1, 1);
-      const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
-      setHue(`rgb(${r},${g},${b})`);
-    } catch {
-      setHue("#6f39a5");
-    }
-  }, []);
+  const backgroundArtwork = active ? artworkUrl(track?.artwork) : "";
   return (
-    <main
-      className={`tv-shell phase-${phase}`}
-      style={{ "--art-color": hue } as React.CSSProperties}
-    >
-      <div className="ambient" aria-hidden="true" />
+    <main className={`tv-shell phase-${phase}`}>
+      <div
+        className="ambient"
+        aria-hidden="true"
+        style={
+          backgroundArtwork
+            ? {
+                backgroundImage: `linear-gradient(#13082599, #13082599), url(${JSON.stringify(backgroundArtwork)})`,
+              }
+            : undefined
+        }
+      />
       <header className="tv-header flex items-center justify-between">
         <div className="brand flex items-center">
           <span>Rocksky</span>
@@ -156,11 +144,7 @@ export function NowPlaying({ state, onToggle, onSeek }: NowPlayingProps) {
       {active ? (
         <>
           <section className="listening-layout">
-            <Artwork
-              track={track}
-              className="hero-art"
-              onArtworkLoad={artworkLoaded}
-            />
+            <Artwork track={track} className="hero-art" />
             <div className="track-details">
               <div className="eyebrow flex items-center">
                 <span
