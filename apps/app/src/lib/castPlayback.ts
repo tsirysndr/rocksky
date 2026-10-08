@@ -10,11 +10,13 @@ import { castFiles } from "../../modules/rocksky-cast";
 import type { EngineCommand, EngineStatus } from "../../modules/rocksky-engine";
 import type { UploadQueueTrack } from "./uploadEngine";
 import { abortableDelay, castCancelled, castRequests } from "./castRequests";
+import { storage } from "../storage";
 
 export const castStateAtom = atom({
   connected: false,
   suspended: false,
   name: "Chromecast",
+  remoteDeviceId: "",
 });
 const store = getDefaultStore();
 // Do not load a native-only package in Expo Go, iOS, or older installed binaries.
@@ -195,7 +197,12 @@ async function prepareOne(
     queue.files,
   );
   item.mediaInfo!.customData = {
-    rocksky: { index, queuePosition: queue.order.indexOf(index) + 1, queueTotal: queue.tracks.length, source: track.localId ? "local" : "uploaded" },
+    rocksky: {
+      index, queuePosition: queue.order.indexOf(index) + 1, queueTotal: queue.tracks.length,
+      source: track.localId ? "local" : "uploaded",
+      track: { uploadId: track.localId ? undefined : track.uploadId,
+        navidromeId: track.navidromeId, songUri: track.songUri, albumUri: track.albumUri },
+    },
   };
   if (signal.aborted) throw castCancelled();
   queue.prepared.set(index, item);
@@ -490,7 +497,9 @@ export const castPlayback = {
     if (!castSdk) return () => {};
     onDisconnected = disconnected;
     const manager = castSdk.default.getSessionManager();
+    let detachRemote = () => {};
     const end = () => {
+      detachRemote();
       generation++;
       cancelPreparation();
       client = null;
@@ -501,6 +510,7 @@ export const castPlayback = {
         connected: false,
         suspended: false,
         name: "Chromecast",
+        remoteDeviceId: "",
       });
       onDisconnected();
       source = null;
@@ -517,6 +527,7 @@ export const castPlayback = {
     };
     let running = true;
     const connect = async (session: CastSession, resumed: boolean) => {
+      detachRemote();
       subscriptions.forEach((s) => s.remove());
       subscriptions = [];
       generation++;
@@ -533,7 +544,32 @@ export const castPlayback = {
         connected: true,
         suspended: false,
         name: device?.friendlyName || "Chromecast",
+        remoteDeviceId: "",
       });
+      // Authorize the receiver itself. Credentials stay on a private Cast
+      // channel, never in queue metadata or local-file URLs.
+      const connectionGeneration = generation;
+      void session.addChannel("urn:x-cast:app.rocksky.remote").then((channel) => {
+        if (!running || connectionGeneration !== generation) { void channel.remove(); return; }
+        let sentToken: string | null | undefined;
+        channel.onMessage((payload) => {
+          let message;
+          try { message = typeof payload === "string" ? JSON.parse(payload) : payload; } catch { return; }
+          if (message?.type === "registered" && typeof message.deviceId === "string")
+            store.set(castStateAtom, (state) => ({ ...state, remoteDeviceId: message.deviceId }));
+        });
+        const authorize = () => {
+          const token = storage.getToken();
+          if (token === sentToken) return;
+          sentToken = token;
+          void channel.sendMessage(token
+            ? { type: "authorize", token, name: device?.friendlyName || "Chromecast" }
+            : { type: "disconnect" }).catch(() => { sentToken = undefined; });
+        };
+        authorize();
+        const timer = setInterval(authorize, 5000);
+        detachRemote = () => { clearInterval(timer); void channel.remove().catch(() => {}); };
+      }).catch(() => { /* Older receivers still support ordinary Cast controls. */ });
       subscriptions = [
         client.onMediaStatusUpdated(update),
         client.onMediaProgressUpdated((progress, duration) => {
@@ -583,6 +619,7 @@ export const castPlayback = {
       .catch(failed);
     return () => {
       running = false;
+      detachRemote();
       listeners.forEach((s) => s.remove());
       subscriptions.forEach((s) => s.remove());
       subscriptions = [];

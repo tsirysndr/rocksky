@@ -30,6 +30,7 @@ import {
   syncMediaSession,
 } from "@/src/lib/mediaSession";
 import { remoteBridge } from "@/src/lib/remoteBridge";
+import { castStateAtom } from "@/src/lib/castPlayback";
 import {
   restoreLocalQueue,
   startCastPlayback,
@@ -177,16 +178,17 @@ function useMediaSessionSync(
 // closed (paused — the engine only reopens on a play).
 function useLocalPlayerBroadcast() {
   const token = useAtomValue(authTokenAtom);
+  const { remoteDeviceId } = useAtomValue(castStateAtom);
 
   useEffect(() => {
     void restoreLocalQueue();
-    if (!token) {
+    if (!token || remoteDeviceId) {
       stopLocalRemotePlayer();
       return;
     }
     startLocalRemotePlayer();
     return () => stopLocalRemotePlayer();
-  }, [token]);
+  }, [token, remoteDeviceId]);
 }
 
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {

@@ -98,6 +98,8 @@ mock.module("expo", () => ({
     },
   }),
 }));
+const authorizations: any[] = [];
+mock.module("../storage", () => ({ storage: { getToken: () => "test-access-token" } }));
 const { castPlayback } = await import("./castPlayback");
 const track = (index: number) => ({
   uploadId: `upload:${index}`,
@@ -125,6 +127,10 @@ async function connect() {
   );
   started?.({
     client: remote,
+    async addChannel(namespace: string) {
+      expect(namespace).toBe("urn:x-cast:app.rocksky.remote");
+      return { onMessage() {}, async remove() {}, async sendMessage(message: unknown) { authorizations.push(message); } };
+    },
     async getCastDevice() {
       return { friendlyName: "TV" };
     },
@@ -277,4 +283,13 @@ test("a track ending before background insertion immediately starts its successo
   } finally {
     await cleanup();
   }
+});
+
+test("Android authorizes the TV through a custom channel without putting credentials in media", async () => {
+  authorizations.length = 0;
+  const cleanup = await connect();
+  try {
+    expect(authorizations[0]).toEqual({ type: "authorize", token: "test-access-token", name: "TV" });
+    expect(JSON.stringify(loads)).not.toContain("test-access-token");
+  } finally { await cleanup(); }
 });
