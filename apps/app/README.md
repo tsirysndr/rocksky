@@ -11,6 +11,19 @@ Native [Expo](https://expo.dev) app for [Rocksky](https://rocksky.app), aligned 
 - **Profile** — overview, library, followers/following, circles, loved tracks
 - Album / artist / song detail pages, story viewer, shout editor
 - **MiniPlayer** — live now-playing via the remote-control WebSocket plus Rockbox/Spotify polling
+- **Library** — local files, uploaded music, and native Rust clients for Navidrome/Subsonic, Jellyfin, Plex, Kodi, and UPnP/DLNA. Remote libraries work without a Rocksky login.
+
+Remote track menus include **Add to playlist**, targeting the connected server. The **Playlists** tab opens playlist management with pagination and cached queries. Search and tabs remain pinned; Play and Shuffle scroll with the content.
+
+| Server | Playlist operations |
+| --- | --- |
+| Navidrome/Subsonic | Create, rename, delete, add/remove tracks, reorder; read-only and other users' playlists are excluded from the picker when identified by the server. |
+| Jellyfin | Create, rename, delete, add/remove tracks, reorder, subject to the connected user's server permissions. |
+| Plex | Create, rename, delete, add/remove tracks, reorder for regular audio playlists; smart playlists are excluded from the editor. |
+| Kodi | Add, remove, reorder, and clear the current music playlist. Kodi's remote API does not save or rename playlist files. |
+| UPnP/DLNA | Browse writable playlist containers; create, rename, delete, and add/remove references when the server advertises the corresponding ContentDirectory actions. Removing original media is blocked; reordering is unavailable. |
+
+Playlist writes use the credentials stored on the device and update the server directly. Deleting a playlist requires confirmation. Track removal uses playlist-entry identifiers where available, preserving duplicate-song occurrences. Provider protocol tests use local mock servers; compatibility with individual server versions still requires device testing.
 
 ## Get started
 

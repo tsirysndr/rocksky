@@ -1,16 +1,24 @@
+import Feather from "@expo/vector-icons/Feather";
 import {
   Fragment,
   isValidElement,
-  useRef,
-  useState,
   type ReactElement,
   type ReactNode,
+  useRef,
+  useState,
 } from "react";
-import { Animated, SectionList, View, type FlatListProps } from "react-native";
+import {
+  Animated,
+  type FlatListProps,
+  SectionList,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { colors } from "../../theme";
 
 type Props<T> = Pick<
   FlatListProps<T>,
+  | "contentContainerStyle"
   | "data"
   | "renderItem"
   | "keyExtractor"
@@ -55,6 +63,7 @@ export default function LibraryList<T>({
   ...props
 }: Props<T>) {
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [controlsHeight, setControlsHeight] = useState(0);
   // Android/Fabric can draw a transformed sticky header at its new position
@@ -70,11 +79,13 @@ export default function LibraryList<T>({
         })
       : 0;
   type Row = { key: string; items: { item: T; index: number }[] };
+  const list = useRef<SectionList<Row>>(null);
   const rows: Row[] = [];
-  for (let index = 0; index < (data?.length ?? 0); index += numColumns) {
+  const entries = data ?? [];
+  for (let index = 0; index < entries.length; index += numColumns) {
     const items = Array.from(
-      { length: Math.min(numColumns, data!.length - index) },
-      (_, column) => ({ item: data![index + column], index: index + column }),
+      { length: Math.min(numColumns, entries.length - index) },
+      (_, column) => ({ item: entries[index + column], index: index + column }),
     );
     rows.push({
       key: `row:${keyExtractor?.(items[0].item, index) ?? index}`,
@@ -88,6 +99,7 @@ export default function LibraryList<T>({
     <View style={{ flex: 1 }}>
       <SectionList<Row>
         {...props}
+        ref={list}
         sections={[{ data: rows }]}
         keyExtractor={(row) => row.key}
         ListHeaderComponent={
@@ -103,7 +115,12 @@ export default function LibraryList<T>({
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
+          {
+            useNativeDriver: false,
+            listener: (event: {
+              nativeEvent: { contentOffset: { y: number } };
+            }) => setShowScrollTop(event.nativeEvent.contentOffset.y > 300),
+          },
         )}
         removeClippedSubviews={false}
         keyboardShouldPersistTaps="handled"
@@ -122,16 +139,43 @@ export default function LibraryList<T>({
           return (
             <View style={[{ flexDirection: "row" }, columnWrapperStyle]}>
               {cells}
-              {Array.from({ length: numColumns - cells.length }, (_, index) => (
+              {cells.length < numColumns && (
                 <View
-                  key={`spacer:${index}`}
-                  style={{ flex: 1 / numColumns }}
+                  style={{ flex: (numColumns - cells.length) / numColumns }}
                 />
-              ))}
+              )}
             </View>
           );
         }}
       />
+      {showScrollTop && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Scroll to top"
+          onPress={() =>
+            list.current
+              ?.getScrollResponder()
+              ?.scrollTo({ y: 0, animated: true })
+          }
+          style={{
+            position: "absolute",
+            right: 20,
+            bottom: 24,
+            zIndex: 30,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: colors.surface3,
+            borderWidth: 1,
+            borderColor: colors.border,
+            elevation: 6,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="arrow-up" size={23} color={colors.text} />
+        </TouchableOpacity>
+      )}
       {!!tabs && (
         <Animated.View
           collapsable={false}

@@ -8,13 +8,13 @@ import Constants from "expo-constants";
 import { atom, getDefaultStore } from "jotai";
 import { Alert, AppState, Platform } from "react-native";
 import {
-  type EngineStatus,
-  engineCommand as nativeEngineCommand,
-  type EngineCommand,
   type EngineAck,
+  type EngineCommand,
   type EngineError,
+  type EngineStatus,
   isEngineAvailable,
   localMusicNative,
+  engineCommand as nativeEngineCommand,
 } from "../../modules/rocksky-engine";
 import { getSongLikeState, like, unlike } from "../api/likes";
 import {
@@ -26,6 +26,7 @@ import {
   unstarNavidromeSong,
 } from "../api/navidrome";
 import { getProfileByDid } from "../api/profile";
+import { remoteLibraries } from "../api/remoteLibraries";
 import {
   ensureStreamToken,
   getCastStreamUrl,
@@ -42,22 +43,25 @@ import {
 } from "../atoms/nowplaying";
 import { profileAtom } from "../atoms/profile";
 import { storage } from "../storage";
+import { enrichRemoteTrack } from "./remoteTrackMetadata";
+import { type CastPathResolver, castPlayback } from "./castPlayback";
+import { type DeviceTrack, deviceQueueTrack } from "./deviceMusicModel";
 import {
   createLocalPlaybackModes,
   type PlaybackModes,
 } from "./localPlaybackModes";
+import { mapConcurrent } from "./mapConcurrent";
 import { queryClient } from "./queryClient";
 import { createQueueSnapshotWriter } from "./queueSnapshotWriter";
 import { remoteBridge, type TransportAction } from "./remoteBridge";
-import { deviceQueueTrack, type DeviceTrack } from "./deviceMusicModel";
-import { castPlayback, type CastPathResolver } from "./castPlayback";
-import { mapConcurrent } from "./mapConcurrent";
 
 // Local playback of uploads through the native Rust engine: owns the queue
 // metadata (the engine only knows URLs), mirrors engine state into the shared
 // now-playing atoms, routes transport actions, and scrobbles.
 
 export type UploadQueueTrack = {
+  remoteLibraryId?: string;
+  remoteTrackId?: string;
   localId?: string;
   scrobbleEligible?: boolean;
   uploadId: string;
@@ -333,7 +337,10 @@ const queueWriter = createQueueSnapshotWriter<PersistedQueue | null>(
       ? null
       : {
           // Never persist credentialed or short-lived stream URLs.
-          tracks: queue.map(({ streamUrl: _streamUrl, ...track }) => track),
+          tracks: queue.map(({ streamUrl: _streamUrl, ...track }) => ({
+            ...track,
+            albumArt: track.remoteLibraryId && !track.albumArt?.startsWith("file://") ? null : track.albumArt,
+          })),
           index: lastIndex ?? resumeIndex,
           positionMs: resumePositionMs,
         },
@@ -383,7 +390,10 @@ export async function restoreLocalQueue(): Promise<boolean> {
   if (
     storage.getToken() !== session ||
     !snapshot?.tracks?.length ||
-    (!session && snapshot.tracks.some((track) => !track.localId)) ||
+    (!session &&
+      snapshot.tracks.some(
+        (track) => !track.localId && !track.remoteLibraryId,
+      )) ||
     queue.length > 0
   )
     return false;
@@ -618,9 +628,10 @@ function maybeScrobble(track: UploadQueueTrack, status: EngineStatus) {
     artist: track.artist,
     albumArtist: track.albumArtist || track.artist,
     album: track.album,
-    albumArt: track.albumArt?.startsWith("https://")
-      ? track.albumArt
-      : undefined,
+    albumArt:
+      !track.remoteLibraryId && track.albumArt?.startsWith("https://")
+        ? track.albumArt
+        : undefined,
     duration,
     timestamp: Math.floor(startedAt / 1000),
   }).catch(() => {
@@ -817,6 +828,16 @@ function pollOnce() {
     likedResolved = track.liked ?? null;
     resolvedUri = null;
     resolveLikeState(track, index);
+    if (track.remoteLibraryId && track.remoteTrackId) {
+      void enrichRemoteTrack(track).then((metadata) => {
+        if (!metadata) return;
+        Object.assign(track, metadata);
+        if (queue.includes(track)) {
+          notifyQueue();
+          void saveQueueSnapshot();
+        }
+      }).catch(() => {});
+    }
   } else if (Date.now() >= nextLikeRefreshAt) {
     void resolveLikeState(track, index);
   }
@@ -928,6 +949,8 @@ async function playbackPaths(
       if (signal.aborted) throw new Error("Chromecast queue changed.");
       return localMusicNative.path(track.localId);
     }
+    if (track.remoteLibraryId && track.remoteTrackId)
+      return remoteLibraries.stream(track.remoteLibraryId, track.remoteTrackId);
     if (track.streamUrl) return track.streamUrl;
     if (!track.navidromeId) return getCastStreamUrl(track.uploadId, signal);
     // Resolve Navidrome credentials once on demand; subsequent tracks reuse them.
@@ -972,16 +995,18 @@ async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
   // Only the upload-backed path needs the token; a navidrome queue carries its
   // own credentialed URLs.
   const needsToken = tracks.some(
-    (t) => !t.localId && !t.streamUrl && !t.navidromeId,
+    (t) => !t.localId && !t.remoteLibraryId && !t.streamUrl && !t.navidromeId,
   );
   const casting = castPlayback.connected();
   if (needsToken && !casting) await ensureStreamToken();
   return mapConcurrent(tracks, async (track) =>
-    track.localId
-      ? await localMusicNative.path(track.localId)
-      : casting && !track.navidromeId && !track.streamUrl
-        ? await getCastStreamUrl(track.uploadId)
-        : streamUrlFor(track),
+    track.remoteLibraryId && track.remoteTrackId
+      ? await remoteLibraries.stream(track.remoteLibraryId, track.remoteTrackId)
+      : track.localId
+        ? await localMusicNative.path(track.localId)
+        : casting && !track.navidromeId && !track.streamUrl
+          ? await getCastStreamUrl(track.uploadId)
+          : streamUrlFor(track),
   );
 }
 
@@ -991,9 +1016,13 @@ export async function playUploads(
   startIndex: number,
 ): Promise<boolean> {
   const session = storage.getToken();
-  if (!session && tracks.some((track) => !track.localId)) return false;
-  if (!isEngineAvailable() || tracks.length === 0) return false;
+  if (
+    !session &&
+    tracks.some((track) => !track.localId && !track.remoteLibraryId)
+  )
+    return false;
   const casting = castPlayback.connected();
+  if ((!casting && !isEngineAvailable()) || tracks.length === 0) return false;
   const paths = await playbackPaths(tracks);
   if (casting !== castPlayback.connected()) return false;
   await applyLocalPlaybackModes();
@@ -1031,36 +1060,58 @@ export async function playUploads(
 export async function queueUploadsNext(
   tracks: UploadQueueTrack[],
 ): Promise<boolean> {
-  return enqueueLocalTracks(tracks, "next");
+  return enqueueTracksInOrder(tracks, "next");
 }
 
 /** Queue tracks at the end without replacing a paused restored queue. */
 export async function queueUploadsLast(
   tracks: UploadQueueTrack[],
 ): Promise<boolean> {
-  return enqueueLocalTracks(tracks, "last");
+  return enqueueTracksInOrder(tracks, "last");
+}
+
+// Context menus in different screens can resolve URLs concurrently. Preserve
+// their insertion order and never let a later operation overwrite the queue.
+let pendingEnqueue: Promise<unknown> = Promise.resolve();
+function enqueueTracksInOrder(tracks: UploadQueueTrack[], where: "next" | "last") {
+  const castSession = castPlayback.connected() ? castPlayback.sessionGeneration() : null;
+  const result = pendingEnqueue.then(() => {
+    if (castSession !== null && (!castPlayback.connected() || castPlayback.sessionGeneration() !== castSession)) {
+      throw new Error("Chromecast disconnected. Reconnect and try again.");
+    }
+    return enqueueLocalTracks(tracks, where);
+  });
+  pendingEnqueue = result.catch(() => {});
+  return result;
 }
 
 async function enqueueLocalTracks(
   tracks: UploadQueueTrack[],
   where: "next" | "last",
 ): Promise<boolean> {
-  if (!isEngineAvailable() || tracks.length === 0) return false;
-  if (queue.length === 0) return playUploads(tracks, 0);
+  if (tracks.length === 0) return false;
+  if (!castPlayback.connected() && !isEngineAvailable()) return false;
+  if (queue.length === 0 || (castPlayback.connected() && !castPlayback.hasLoadedQueue())) return playUploads(tracks, 0);
   let index = lastIndex ?? resumeIndex;
   if (castPlayback.connected()) {
+    const session = castPlayback.sessionGeneration();
+    const paths = await playbackPaths(queue);
+    if (!castPlayback.connected() || session !== castPlayback.sessionGeneration()) {
+      throw new Error("Chromecast disconnected. Reconnect and try again.");
+    }
     const current = castPlayback.status();
     index = current.index ?? index;
     const at = where === "next" ? index + 1 : queue.length;
     const next = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
     await castPlayback.load(
       next,
-      await playbackPaths(next),
+      paths,
       index,
       current.positionMs,
       current.state === "playing",
     );
     queue = next;
+    store.set(selectedSourceAtom, { kind: "cast" });
     notifyQueue();
     advertiseQueue();
     await saveQueueSnapshot();
@@ -1068,6 +1119,7 @@ async function enqueueLocalTracks(
   }
   if (!resumePending) {
     const paths = await resolvePaths(tracks);
+    if (castPlayback.connected()) return enqueueLocalTracks(tracks, where);
     // URL resolution can take time: read the current track after it completes.
     const status = engineCommand({ cmd: "status" });
     if (!status.ok || status.queueLen !== queue.length) return false;
@@ -1131,13 +1183,19 @@ const deviceLabel = (): string =>
 const toRemoteQueueItem = (track: UploadQueueTrack): RemoteQueueItem => ({
   // A navidrome song is addressed by its Subsonic id, an upload by its id;
   // sending the right one is what lets a controller re-enqueue it.
-  uploadId: track.localId || track.navidromeId ? undefined : track.uploadId,
+  uploadId:
+    track.localId || track.navidromeId || track.remoteLibraryId
+      ? undefined
+      : track.uploadId,
   trackId: track.navidromeId,
   title: track.title,
   artist: track.artist,
   album: track.album,
   albumArtist: track.albumArtist,
-  albumArt: track.albumArt?.startsWith("https://") ? track.albumArt : undefined,
+  albumArt:
+    !track.remoteLibraryId && track.albumArt?.startsWith("https://")
+      ? track.albumArt
+      : undefined,
   durationMs: track.durationMs,
   songUri: track.songUri ?? undefined,
   albumUri: track.albumUri ?? undefined,
@@ -1161,9 +1219,10 @@ function advertiseNowPlaying(force = false) {
     artist: track.artist,
     album: track.album,
     albumArtist: track.albumArtist,
-    albumArt: track.albumArt?.startsWith("https://")
-      ? track.albumArt
-      : undefined,
+    albumArt:
+      !track.remoteLibraryId && track.albumArt?.startsWith("https://")
+        ? track.albumArt
+        : undefined,
     durationMs: np.duration,
     elapsedMs: np.progress,
     isPlaying: np.isPlaying,

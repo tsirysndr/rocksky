@@ -82,16 +82,13 @@ const SearchStackScreen = makeTabStack("Search", Search);
 const ProfileStackScreen = makeTabStack("Profile", Profile);
 
 function CustomTabBar(props: BottomTabBarProps) {
-  const token = useAtomValue(authTokenAtom);
   return (
     <View style={{ backgroundColor: colors.surface }}>
-      {token && (
-        <MiniPlayer
-          onOpenPlayer={() =>
-            props.navigation.getParent()?.navigate("Player" as never)
-          }
-        />
-      )}
+      <MiniPlayer
+        onOpenPlayer={() =>
+          props.navigation.getParent()?.navigate("Player" as never)
+        }
+      />
       <BottomTabBar {...props} />
     </View>
   );
@@ -99,7 +96,6 @@ function CustomTabBar(props: BottomTabBarProps) {
 
 function HomeTabs() {
   const insets = useSafeAreaInsets();
-  const token = useAtomValue(authTokenAtom);
   const { data: unread } = useUnreadCountQuery();
   const unreadCount = unread?.count ?? 0;
   const profile = useAtomValue(profileAtom);
@@ -192,18 +188,7 @@ function HomeTabs() {
               : undefined,
         }}
       />
-      <Tab.Screen
-        name="LibraryTab"
-        component={LibraryStackScreen}
-        listeners={({ navigation }) => ({
-          tabPress: (event) => {
-            if (!token) {
-              event.preventDefault();
-              navigation.getParent()?.navigate("SignIn");
-            }
-          },
-        })}
-      />
+      <Tab.Screen name="LibraryTab" component={LibraryStackScreen} />
       <Tab.Screen name="SearchTab" component={SearchStackScreen} />
       <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
     </Tab.Navigator>

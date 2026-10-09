@@ -1,5 +1,6 @@
 import { Alert } from "react-native";
 import type { UploadedTrack } from "../api/uploads";
+import { castPlayback } from "./castPlayback";
 import {
   isLocalEngineAvailable,
   playUploads,
@@ -26,7 +27,7 @@ export function uploadToQueueTrack(item: UploadedTrack): UploadQueueTrack {
 }
 
 export async function playQueue(tracks: UploadQueueTrack[], index: number) {
-  if (!isLocalEngineAvailable()) {
+  if (!castPlayback.connected() && !isLocalEngineAvailable()) {
     Alert.alert(
       "Playback unavailable",
       "The native playback engine is not in this build. Rebuild the app with the Rust toolchain installed.",
@@ -47,7 +48,7 @@ export async function queueTracks(
   tracks: UploadQueueTrack[],
   where: "next" | "last",
 ) {
-  if (!isLocalEngineAvailable()) {
+  if (!castPlayback.connected() && !isLocalEngineAvailable()) {
     Alert.alert(
       "Playback unavailable",
       "The native playback engine is not in this build. Rebuild the app with the Rust toolchain installed.",

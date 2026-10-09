@@ -30,12 +30,14 @@ import { Text } from "./Text";
 export function PickerSheet({
   title,
   artwork,
+  headerArtwork,
   subtitle,
   onClose,
   children,
 }: {
   title: string;
   artwork?: string | null;
+  headerArtwork?: ReactNode;
   subtitle?: string;
   onClose: () => void;
   children: ReactNode;
@@ -54,9 +56,9 @@ export function PickerSheet({
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
         >
           <View style={styles.row}>
-            {artwork !== undefined ? (
+            {headerArtwork || artwork !== undefined ? (
               <>
-                <PlaylistCover picture={artwork} size={44} />
+                {headerArtwork ?? <PlaylistCover picture={artwork} size={44} />}
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text
                     numberOfLines={1}

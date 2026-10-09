@@ -200,7 +200,7 @@ async function prepareOne(
     rocksky: {
       index, queuePosition: queue.order.indexOf(index) + 1, queueTotal: queue.tracks.length,
       source: track.localId ? "local" : "uploaded",
-      track: { uploadId: track.localId ? undefined : track.uploadId,
+      track: { uploadId: track.localId || track.remoteLibraryId ? undefined : track.uploadId,
         navidromeId: track.navidromeId, songUri: track.songUri, albumUri: track.albumUri },
     },
   };
@@ -335,6 +335,7 @@ function jump(direction: number) {
 
 export const castPlayback = {
   connected: () => !!client,
+  sessionGeneration: () => generation,
   hasLoadedQueue: () => source !== null && status.index !== null,
   available: () => isCastAvailable,
   status(): EngineStatus {
