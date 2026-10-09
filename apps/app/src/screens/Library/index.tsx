@@ -57,6 +57,14 @@ export default function Library() {
         <Feather name="chevron-down" size={20} color={colors.text} />
       </TouchableOpacity>
       <TouchableOpacity
+        onPress={() => navigation.navigate("RendererSettings")}
+        accessibilityRole="button"
+        accessibilityLabel="Media receiver settings"
+        style={styles.add}
+      >
+        <Feather name="radio" size={22} color={colors.textMuted} />
+      </TouchableOpacity>
+      <TouchableOpacity
         onPress={() => setPicker("add")}
         accessibilityRole="button"
         accessibilityLabel="Connect a library"

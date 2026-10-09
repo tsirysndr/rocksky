@@ -71,6 +71,14 @@ export default function ProfileDrawer({ onClose }: { onClose: () => void }) {
               <Feather name="activity" size={22} color={colors.textMuted} />
               <Text>Analytics</Text>
             </TouchableOpacity>
+            {Platform.OS === "android" && (
+              <TouchableOpacity style={styles.item} onPress={() => {
+                onClose(); navigation.navigate("RendererSettings");
+              }}>
+                <Feather name="radio" size={22} color={colors.textMuted} />
+                <Text>Media receiver</Text>
+              </TouchableOpacity>
+            )}
             {items.map(({ title, icon }) => (
               <TouchableOpacity
                 key={title}

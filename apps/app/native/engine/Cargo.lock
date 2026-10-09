@@ -1441,6 +1441,7 @@ dependencies = [
  "rockbox-metadata",
  "rockbox-playback",
  "rocksky-libraries",
+ "rocksky-renderer",
  "rusty-chromaprint",
  "serde",
  "serde_json",
@@ -1460,6 +1461,17 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "rocksky-renderer"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "roxmltree",
+ "serde",
+ "serde_json",
+ "socket2 0.5.10",
 ]
 
 [[package]]

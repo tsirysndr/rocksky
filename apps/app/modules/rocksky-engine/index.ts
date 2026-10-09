@@ -2,6 +2,7 @@ import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { requireOptionalNativeModule } from "expo";
 
 type RockskyEngineNativeModule = {
+  mediaRenderer(json: string): Promise<string>;
   remoteLibrary(json: string): Promise<string>;
   localLibrary(): Promise<string>;
   scanLocalMusic(): Promise<void>;
@@ -27,12 +28,14 @@ export type EngineStatus = {
   shuffle: boolean;
   repeat: EngineRepeat;
   volume: number;
+  rendererTrack?: RendererTrack;
 };
 
 export type EngineAck = { ok: true };
 export type EngineError = { ok: false; error: string };
 
 export type EngineCommand =
+  | { cmd: "rendererRelease" }
   | { cmd: "open"; paths: string[]; startIndex: number }
   | { cmd: "play" }
   | { cmd: "pause" }
@@ -134,3 +137,27 @@ export async function remoteLibraryRequest<T>(
   if (!result.ok) throw new Error(result.error || "Library request failed");
   return result as T;
 }
+
+export type RendererTrack = {
+  uri: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  durationMs: number;
+  generation: number;
+};
+export type RendererStatus = {
+  enabled: boolean;
+  running: boolean;
+  name: string;
+  location: string | null;
+  error: string | null;
+  track?: RendererTrack | null;
+};
+export const mediaRenderer = {
+  async request(input: { action?: "status"; enabled?: boolean } = {}): Promise<RendererStatus> {
+    if (!native) throw new Error("Media receiver requires an Android native build.");
+    return JSON.parse(await native.mediaRenderer(JSON.stringify(input)));
+  },
+};

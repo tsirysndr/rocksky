@@ -1,3 +1,5 @@
+import RendererSettings from "./screens/Account/RendererSettings";
+import { mediaRenderer } from "../modules/rocksky-engine";
 import RemoteLibraryDetails from "./screens/Library/RemoteLibraryDetails";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -206,6 +208,7 @@ export function RootStack() {
     if (Platform.OS !== "android") return;
     const resume = () => {
       void remoteLibraries.list().catch(() => {});
+      void mediaRenderer.request().catch(() => {});
     };
     resume();
     const listener = AppState.addEventListener("change", (state) => {
@@ -222,6 +225,7 @@ export function RootStack() {
       }}
     >
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
+      <Stack.Screen name="RendererSettings" component={RendererSettings} />
       <Stack.Screen name="Analytics" component={Analytics} />
       <Stack.Screen name="AlbumDetails" component={AlbumDetails} />
       <Stack.Screen name="LocalAlbumDetails" component={LocalAlbumDetails} />
@@ -272,6 +276,7 @@ export type RootStackParamList = {
   Wrapped: { did: string; name?: string; year?: number };
   Analytics: undefined;
   Account: { section: AccountSection };
+  RendererSettings: undefined;
   Upload: undefined;
   Home: undefined;
   HomeTabs: undefined;

@@ -2,4 +2,5 @@
 # Keep only this JNI entry point's class and native method names stable.
 -keep,allowoptimization class expo.modules.rockskyengine.NativeEngine {
     native <methods>;
+    public static boolean rendererFocus();
 }

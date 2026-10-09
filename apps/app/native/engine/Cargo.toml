@@ -11,6 +11,7 @@ name = "rocksky_engine"
 crate-type = ["cdylib"]
 
 [dependencies]
+rocksky-renderer = { path = "../renderer" }
 rocksky-libraries = { path = "../libraries" }
 rockbox-metadata = "0.1"
 lofty = "0.22"

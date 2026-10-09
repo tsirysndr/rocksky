@@ -34,6 +34,7 @@ import { castStateAtom } from "@/src/lib/castPlayback";
 import {
   restoreLocalQueue,
   startCastPlayback,
+  startMediaRendererPlayback,
   startLocalRemotePlayer,
   stopLocalRemotePlayer,
 } from "@/src/lib/uploadEngine";
@@ -195,6 +196,7 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const token = useAtomValue(authTokenAtom);
   const did = token ? storage.getDid() || "" : "";
   useEffect(() => startCastPlayback(), []);
+  useEffect(() => startMediaRendererPlayback(), []);
   useRemoteDevicesConnection();
   useLocalPlayerBroadcast();
   useNavidromeCredentials();

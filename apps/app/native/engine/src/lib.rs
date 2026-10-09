@@ -17,6 +17,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
+    RendererConfigure {
+        config: Option<rocksky_renderer::Config>,
+    },
+    RendererStatus,
+    RendererRelease,
     ReadRemoteMetadata {
         url: String,
         cache_path: String,
@@ -90,6 +95,8 @@ struct StatusResponse {
     shuffle: bool,
     repeat: &'static str,
     volume: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    renderer_track: Option<rocksky_renderer::Track>,
 }
 
 #[derive(Serialize)]
@@ -326,11 +333,79 @@ fn parse_repeat(mode: &str) -> RepeatMode {
 }
 
 /// Dispatch one JSON command and return the JSON response.
+static RENDERER: Mutex<Option<rocksky_renderer::Renderer>> = Mutex::new(None);
+
 pub fn handle(input: &str) -> String {
+    handle_internal(input, false)
+}
+
+fn handle_internal(input: &str, from_renderer: bool) -> String {
     let request: Request = match serde_json::from_str(input) {
         Ok(r) => r,
         Err(e) => return err(format!("bad command: {e}")),
     };
+    if let Request::RendererConfigure { config } = &request {
+        let previous = {
+            let mut renderer = RENDERER.lock().unwrap();
+            if let Some(previous) = renderer.as_ref() {
+                previous.cancel();
+            }
+            renderer.take()
+        };
+        // Slow controller sockets must not block synchronous JS status reads.
+        if let Some(previous) = previous {
+            previous.stop();
+        }
+        if let Some(config) = config {
+            let backend: rocksky_renderer::Backend = Arc::new(|command| {
+                #[cfg(target_os = "android")]
+                if matches!(command["cmd"].as_str(), Some("open" | "play"))
+                    && !android::renderer_focus()
+                {
+                    return serde_json::json!({"ok":false,"error":"Audio focus unavailable"});
+                }
+                serde_json::from_str(&handle_internal(&command.to_string(), true))
+                    .unwrap_or(serde_json::json!({"ok":false}))
+            });
+            match rocksky_renderer::Renderer::start(config.clone(), backend) {
+                Ok(started) => *RENDERER.lock().unwrap() = Some(started),
+                Err(error) => return err(error),
+            }
+        }
+        return ok();
+    }
+    if let Request::RendererRelease = &request {
+        if let Some(renderer) = RENDERER.lock().unwrap().as_ref() {
+            if renderer.track().is_some() {
+                if let Ok(engine) = engine() {
+                    engine.send(EngineCmd::Stop);
+                }
+            }
+            renderer.release();
+        }
+        return ok();
+    }
+    if let Request::RendererStatus = &request {
+        let renderer = RENDERER.lock().unwrap();
+        return serde_json::json!({"ok":true,"running":renderer.is_some(),"location":renderer.as_ref().map(|r| &r.location),"track":renderer.as_ref().and_then(|r|r.track())}).to_string();
+    }
+    if !from_renderer
+        && matches!(
+            request,
+            Request::Open { .. }
+                | Request::Append { .. }
+                | Request::InsertNext { .. }
+                | Request::Remove { .. }
+                | Request::SkipTo { .. }
+                | Request::Next
+                | Request::Previous
+                | Request::Stop
+        )
+    {
+        if let Some(renderer) = RENDERER.lock().unwrap().as_ref() {
+            renderer.release();
+        }
+    }
     if let Request::ReadRemoteMetadata {
         url,
         cache_path,
@@ -384,7 +459,10 @@ pub fn handle(input: &str) -> String {
         Err(e) => return err(e),
     };
     match request {
-        Request::ReadRemoteMetadata { .. }
+        Request::RendererConfigure { .. }
+        | Request::RendererRelease
+        | Request::RendererStatus
+        | Request::ReadRemoteMetadata { .. }
         | Request::CacheRemoteArtwork { .. }
         | Request::ReadMetadata { .. }
         | Request::Fingerprint { .. }
@@ -401,6 +479,11 @@ pub fn handle(input: &str) -> String {
                 shuffle: snap.status.shuffle,
                 repeat: repeat_name(snap.status.repeat),
                 volume: snap.volume,
+                renderer_track: if from_renderer {
+                    None
+                } else {
+                    RENDERER.lock().unwrap().as_ref().and_then(|r| r.track())
+                },
             })
             .unwrap_or_else(|e| err(e.to_string()))
         }
@@ -409,6 +492,18 @@ pub fn handle(input: &str) -> String {
             ok()
         }
         Request::Play => {
+            #[cfg(target_os = "android")]
+            if !from_renderer
+                && RENDERER
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .and_then(|r| r.track())
+                    .is_some()
+                && !android::renderer_focus()
+            {
+                return err("Audio focus unavailable");
+            }
             engine.send(EngineCmd::Play);
             ok()
         }
@@ -445,6 +540,11 @@ pub fn handle(input: &str) -> String {
             ok()
         }
         Request::SetVolume { volume } => {
+            if !from_renderer {
+                if let Some(renderer) = RENDERER.lock().unwrap().as_ref() {
+                    renderer.local_volume(volume);
+                }
+            }
             engine.send(EngineCmd::SetVolume(volume));
             ok()
         }
@@ -475,14 +575,35 @@ mod android {
     use jni::sys::jstring;
     use jni::JNIEnv;
 
+    static JAVA: OnceLock<(jni::JavaVM, jni::objects::GlobalRef)> = OnceLock::new();
+    pub(super) fn renderer_focus() -> bool {
+        let Some((vm, class)) = JAVA.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let class: &JClass = class.as_obj().into();
+        match env.call_static_method(class, "rendererFocus", "()Z", &[]) {
+            Ok(value) => value.z().unwrap_or(false),
+            Err(_) => {
+                let _ = env.exception_clear();
+                false
+            }
+        }
+    }
+
     /// Hands the JavaVM + application context to `ndk-context` — cpal's oboe
     /// backend needs it, and plain `System.loadLibrary` leaves it unset.
     #[no_mangle]
     pub extern "system" fn Java_expo_modules_rockskyengine_NativeEngine_nativeInit(
         env: JNIEnv,
-        _class: JClass,
+        class: JClass,
         context: JObject,
     ) {
+        if let (Ok(vm), Ok(class)) = (env.get_java_vm(), env.new_global_ref(class)) {
+            let _ = JAVA.set((vm, class));
+        }
         static INIT: OnceLock<()> = OnceLock::new();
         INIT.get_or_init(|| {
             if let (Ok(vm), Ok(global)) = (env.get_java_vm(), env.new_global_ref(&context)) {

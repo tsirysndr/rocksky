@@ -37,6 +37,9 @@ object NativeEngine {
   }
 
   @JvmStatic
+  fun rendererFocus(): Boolean = MediaRendererService.requestFocus()
+
+  @JvmStatic
   external fun nativeInit(context: Context)
 
   @JvmStatic
@@ -57,6 +60,10 @@ class RockskyEngineModule : Module() {
   // control it. Silence it when the Activity or the module goes.
   private fun stopPlayback() {
     if (!NativeEngine.isLoaded) return
+    if (MediaRendererService.active) {
+      val receiver = runCatching { org.json.JSONObject(NativeEngine.command("{\"cmd\":\"rendererStatus\"}")) }.getOrNull()
+      if (receiver?.optJSONObject("track") != null) return
+    }
     try {
       NativeEngine.command("{\"cmd\":\"stop\"}")
     } catch (t: Throwable) {
@@ -90,6 +97,13 @@ class RockskyEngineModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("RockskyEngine")
+
+    AsyncFunction("mediaRenderer") { json: String ->
+      val context = requireNotNull(appContext.reactContext).applicationContext
+      val input = org.json.JSONObject(json)
+      if (input.optString("action") == "status") MediaRendererService.status(context)
+      else MediaRendererService.configure(context, input)
+    }
 
     AsyncFunction("remoteLibrary") { json: String ->
       check(ensureLoaded()) { "Native library clients are unavailable" }

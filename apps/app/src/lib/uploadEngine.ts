@@ -13,6 +13,8 @@ import {
   type EngineError,
   type EngineStatus,
   isEngineAvailable,
+  mediaRenderer,
+  type RendererTrack,
   localMusicNative,
   engineCommand as nativeEngineCommand,
 } from "../../modules/rocksky-engine";
@@ -60,6 +62,7 @@ import { remoteBridge, type TransportAction } from "./remoteBridge";
 // now-playing atoms, routes transport actions, and scrobbles.
 
 export type UploadQueueTrack = {
+  renderer?: boolean;
   remoteLibraryId?: string;
   remoteTrackId?: string;
   localId?: string;
@@ -102,7 +105,8 @@ function engineCommand(
 function engineCommand(
   command: EngineCommand,
 ): EngineStatus | EngineAck | EngineError {
-  if (castPlayback.connected()) return castPlayback.command(command);
+  if (castPlayback.connected() && !rendererActive)
+    return castPlayback.command(command);
   return command.cmd === "status"
     ? nativeEngineCommand(command)
     : nativeEngineCommand(command);
@@ -129,7 +133,10 @@ async function openPlayback(
   positionMs = 0,
   autoplay = true,
 ): Promise<EngineAck | EngineError> {
+  rendererActive = false;
+  rendererKey = null;
   if (castPlayback.connected()) {
+    nativeEngineCommand({ cmd: "rendererRelease" });
     await castPlayback.load(tracks, paths, index, positionMs, autoplay);
     nativeEngineCommand({ cmd: "pause" });
     return { ok: true };
@@ -146,6 +153,8 @@ async function openPlayback(
 export function startCastPlayback() {
   return castPlayback.start(
     async (resumed) => {
+      rendererActive = false; rendererKey = null;
+      nativeEngineCommand({ cmd: "rendererRelease" });
       if (queue.length === 0) await restoreLocalQueue();
       const index = Math.min(
         castPlayback.status().index ?? lastIndex ?? resumeIndex,
@@ -182,6 +191,12 @@ export function startCastPlayback() {
       }
     },
     () => {
+      if (rendererActive) {
+        resumePending = false;
+        store.set(selectedSourceAtom, { kind: "local" });
+        activate(); pollOnce();
+        return;
+      }
       const previous = castPlayback.status();
       resumeIndex = previous.index ?? lastIndex ?? 0;
       resumePositionMs = previous.positionMs;
@@ -239,6 +254,69 @@ export function refreshDeviceQueueTracks(tracks: DeviceTrack[]) {
     void resolveLikeState(lastTrack, lastIndex ?? 0);
   }
 }
+let rendererActive = false;
+let rendererKey: string | null = null;
+
+function adoptRendererTrack(track: RendererTrack) {
+  const key = `${track.generation}:${track.uri}`;
+  if (rendererActive && rendererKey === key) {
+    if (!pollTimer) activate();
+    return;
+  }
+  // An incoming stream plays on this phone; pause an existing Cast stream so
+  // accepting it does not leave two outputs playing at once.
+  if (castPlayback.connected()) {
+    castPlayback.command({ cmd: "pause" });
+    void castPlayback.disconnect().catch(() => {});
+  }
+  rendererActive = true;
+  rendererKey = key;
+  queue = [{
+    renderer: true, uploadId: `renderer:${track.generation}`, streamUrl: track.uri,
+    title: track.title, artist: track.artist, albumArtist: track.artist,
+    album: track.album, albumArt: track.albumArt, durationMs: track.durationMs,
+    songUri: null, albumUri: null, artistUri: null, sha256: "", scrobbleEligible: !!track.artist.trim() && track.title !== "Network audio",
+  }];
+  resumePending = false; resumeIndex = 0; resumePositionMs = 0;
+  lastIndex = null; lastTrack = null; pendingSeek = null;
+  openedAt = Date.now(); sawPlaying = false;
+  store.set(selectedSourceAtom, { kind: "local" });
+  store.set(playbackLockedUntilAtom, 0);
+  notifyQueue(); activate();
+}
+
+/** Observe the native receiver even when there was no JS-owned player queue.
+ * The foreground service and Rust continue receiving while JS is suspended. */
+export function startMediaRendererPlayback() {
+  if (Platform.OS !== "android") return () => {};
+  let disposed = false;
+  let pending = false;
+  const refresh = async () => {
+    if (pending || disposed) return;
+    pending = true;
+    try {
+      const status = await mediaRenderer.request({ action: "status" });
+      if (disposed) return;
+      if (status.track) {
+        adoptRendererTrack(status.track);
+        pollOnce();
+      } else if (rendererActive) {
+        rendererActive = false; rendererKey = null;
+        if (queue.every((track) => track.renderer)) {
+          queue = []; notifyQueue(); deactivate();
+        }
+      }
+    } catch { /* Native module absent in development builds. */ }
+    finally { pending = false; }
+  };
+  void refresh();
+  const timer = setInterval(() => void refresh(), 1000);
+  const listener = AppState.addEventListener("change", (state) => {
+    if (state === "active") void refresh();
+  });
+  return () => { disposed = true; clearInterval(timer); listener.remove(); };
+}
+
 let lastTrack: UploadQueueTrack | null = null;
 let pendingSeek: { position: number; until: number } | null = null;
 let queue: UploadQueueTrack[] = [];
@@ -345,6 +423,7 @@ const queueWriter = createQueueSnapshotWriter<PersistedQueue | null>(
           positionMs: resumePositionMs,
         },
   async (snapshot) => {
+    if (snapshot?.tracks.some((track) => track.renderer)) return;
     if (snapshot)
       await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(snapshot));
     else await AsyncStorage.removeItem(QUEUE_KEY);
@@ -399,6 +478,10 @@ export async function restoreLocalQueue(): Promise<boolean> {
     return false;
 
   const nativeStatus = engineCommand({ cmd: "status" });
+  if (nativeStatus.ok && nativeStatus.rendererTrack) {
+    adoptRendererTrack(nativeStatus.rendererTrack);
+    return true;
+  }
   const nativeStillOpen =
     nativeStatus.ok &&
     nativeStatus.index !== null &&
@@ -530,7 +613,7 @@ export function localQueueIndex(): number | null {
 export function removeLocalAt(index: number) {
   if (!Number.isInteger(index) || index < 0 || index >= queue.length) return;
   if (index === (lastIndex ?? resumeIndex)) return;
-  if (castPlayback.connected()) {
+  if (castPlayback.connected() && !rendererActive) {
     const current = castPlayback.status();
     const next = queue.filter((_, i) => i !== index);
     const nextIndex =
@@ -616,7 +699,10 @@ function handleTransport(action: TransportAction, positionMs?: number) {
 
 function maybeScrobble(track: UploadQueueTrack, status: EngineStatus) {
   if (scrobbled || status.state !== "playing") return;
-  if (!storage.getToken() || (track.localId && track.scrobbleEligible !== true))
+  if (
+    !storage.getToken() ||
+    ((track.localId || track.renderer) && track.scrobbleEligible !== true)
+  )
     return;
   const duration = track.durationMs || status.durationMs;
   if (duration < MIN_TRACK_MS) return;
@@ -629,7 +715,9 @@ function maybeScrobble(track: UploadQueueTrack, status: EngineStatus) {
     albumArtist: track.albumArtist || track.artist,
     album: track.album,
     albumArt:
-      !track.remoteLibraryId && track.albumArt?.startsWith("https://")
+      !track.remoteLibraryId &&
+      !track.renderer &&
+      track.albumArt?.startsWith("https://")
         ? track.albumArt
         : undefined,
     duration,
@@ -797,6 +885,7 @@ function pollOnce() {
   if (resumePending) return;
   const status = engineCommand({ cmd: "status" });
   if (!status.ok) return;
+  if (status.rendererTrack) adoptRendererTrack(status.rendererTrack);
   // Metadata is already updated optimistically; wait for the native queue to catch up.
   if (status.queueLen !== queue.length) return;
 
@@ -872,9 +961,9 @@ function pollOnce() {
       album: track.album,
       artistUri: track.artistUri ?? undefined,
       albumUri: track.albumUri ?? undefined,
-      ...localModes.get(),
+      ...(rendererActive ? { shuffle: status.shuffle, repeat: status.repeat } : localModes.get()),
     });
-    store.set(playerAtom, castPlayback.connected() ? "cast" : "local");
+    store.set(playerAtom, castPlayback.connected() && !rendererActive ? "cast" : "local");
     store.set(progressAtom, positionMs);
   }
 
@@ -1184,7 +1273,7 @@ const toRemoteQueueItem = (track: UploadQueueTrack): RemoteQueueItem => ({
   // A navidrome song is addressed by its Subsonic id, an upload by its id;
   // sending the right one is what lets a controller re-enqueue it.
   uploadId:
-    track.localId || track.navidromeId || track.remoteLibraryId
+    track.localId || track.navidromeId || track.remoteLibraryId || track.renderer
       ? undefined
       : track.uploadId,
   trackId: track.navidromeId,
@@ -1193,7 +1282,9 @@ const toRemoteQueueItem = (track: UploadQueueTrack): RemoteQueueItem => ({
   album: track.album,
   albumArtist: track.albumArtist,
   albumArt:
-    !track.remoteLibraryId && track.albumArt?.startsWith("https://")
+    !track.remoteLibraryId &&
+      !track.renderer &&
+      track.albumArt?.startsWith("https://")
       ? track.albumArt
       : undefined,
   durationMs: track.durationMs,
@@ -1220,7 +1311,9 @@ function advertiseNowPlaying(force = false) {
     album: track.album,
     albumArtist: track.albumArtist,
     albumArt:
-      !track.remoteLibraryId && track.albumArt?.startsWith("https://")
+      !track.remoteLibraryId &&
+      !track.renderer &&
+      track.albumArt?.startsWith("https://")
         ? track.albumArt
         : undefined,
     durationMs: np.duration,
