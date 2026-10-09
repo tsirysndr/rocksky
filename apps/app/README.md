@@ -2,6 +2,10 @@
 
 Native [Expo](https://expo.dev) app for [Rocksky](https://rocksky.app), aligned with the [`web-mobile`](../web-mobile) app's features and design (same dark theme, same API surface).
 
+<a href="https://play.google.com/store/apps/details?id=app.rocksky">
+  <img src="../landing/public/google-play-badge.png" alt="Get Rocksky on Google Play" width="200" />
+</a>
+
 ## Screens
 
 - **Home** — stories row, feed-generator genre chips, scrobble feed (infinite scroll, likes)
