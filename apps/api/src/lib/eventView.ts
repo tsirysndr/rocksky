@@ -5,6 +5,7 @@ import type {
   ArtistView,
   EventView,
   LocationView,
+  MediaView,
   RsvpCounts,
   RsvpView,
   UriView,
@@ -81,6 +82,34 @@ export function toLocationView(raw: unknown): LocationView | null {
   }
 }
 
+const asInt = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : undefined;
+
+// A media entry is a blob in the publisher's repo; the Bluesky CDN serves any
+// PDS blob by DID and CID, which spares clients a PDS lookup.
+export function toMediaView(raw: unknown, did: string): MediaView | null {
+  if (!raw || typeof raw !== "object") return null;
+  const value = raw as Record<string, unknown>;
+  const content = value.content as Record<string, unknown> | undefined;
+  const ref = content?.ref as Record<string, unknown> | undefined;
+  const cid = asString(ref?.$link);
+  const role = asString(value.role);
+  if (!cid || !role) return null;
+  const ratio = value.aspect_ratio as Record<string, unknown> | undefined;
+  return compact({
+    role,
+    url: `https://cdn.bsky.app/img/feed_fullsize/plain/${did}/${cid}@jpeg`,
+    cid,
+    mimeType: asString(content?.mimeType) ?? "application/octet-stream",
+    size: asInt(content?.size),
+    width: asInt(ratio?.width),
+    height: asInt(ratio?.height),
+    alt: asString(value.alt),
+  });
+}
+
 function toUriView(raw: unknown): UriView | null {
   if (!raw || typeof raw !== "object") return null;
   const uri = asString((raw as Record<string, unknown>).uri);
@@ -126,6 +155,10 @@ export function toEventView(
   viewerRsvp?: string,
 ): EventView {
   const { events: event, users: organizer } = row;
+  const media = (event.media ?? [])
+    .map((m) => toMediaView(m, organizer.did))
+    .filter((m): m is MediaView => m !== null);
+  const thumbnail = media.find((m) => m.role === "thumbnail") ?? media[0];
   return compact({
     id: event.id,
     uri: event.uri,
@@ -141,7 +174,8 @@ export function toEventView(
     endsAt: event.endsAt?.toISOString(),
     mode: event.mode ?? undefined,
     status: event.status ?? undefined,
-    imageUrl: event.imageUrl ?? undefined,
+    imageUrl: event.imageUrl ?? thumbnail?.url,
+    media,
     ticketsUrl: event.ticketsUrl ?? undefined,
     locations: (event.locations ?? [])
       .map(toLocationView)

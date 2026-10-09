@@ -3624,8 +3624,18 @@ export const schemaDict = {
           },
           imageUrl: {
             type: "string",
-            description: "Poster or banner image of the event.",
+            description:
+              "Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none.",
             format: "uri",
+          },
+          media: {
+            type: "array",
+            description:
+              "Images attached to the calendar event record (poster, header), as blobs in the publisher's repo.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.event.defs#mediaView",
+            },
           },
           ticketsUrl: {
             type: "string",
@@ -3816,6 +3826,48 @@ export const schemaDict = {
             type: "string",
             description: "A URL standing in for the location (online events).",
             format: "uri",
+          },
+        },
+      },
+      mediaView: {
+        type: "object",
+        description:
+          "One entry of the calendar event's media array, with a URL the blob can be fetched from.",
+        required: ["role", "url", "cid", "mimeType"],
+        properties: {
+          role: {
+            type: "string",
+            description: "What the image is for.",
+            knownValues: ["thumbnail", "header"],
+          },
+          url: {
+            type: "string",
+            description: "Where to load the image from.",
+            format: "uri",
+          },
+          cid: {
+            type: "string",
+            description: "CID of the blob in the publisher's repo.",
+            format: "cid",
+          },
+          mimeType: {
+            type: "string",
+          },
+          size: {
+            type: "integer",
+            description: "Blob size in bytes.",
+            minimum: 0,
+          },
+          width: {
+            type: "integer",
+            minimum: 1,
+          },
+          height: {
+            type: "integer",
+            minimum: 1,
+          },
+          alt: {
+            type: "string",
           },
         },
       },
@@ -4248,8 +4300,8 @@ export const schemaDict = {
             properties: {
               uri: {
                 type: "string",
-                format: "at-uri",
                 description: "The calendar or music event URI.",
+                format: "at-uri",
               },
               status: {
                 type: "string",
@@ -4270,8 +4322,8 @@ export const schemaDict = {
             properties: {
               uri: {
                 type: "string",
-                format: "at-uri",
                 description: "The RSVP record URI.",
+                format: "at-uri",
               },
               status: {
                 type: "string",

@@ -77,8 +77,16 @@ defs = new Mapping<String, BaseType> {
       }
       ["imageUrl"] = new StringType {
         type = "string"
-        description = "Poster or banner image of the event."
+        description = "Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none."
         format = "uri"
+      }
+      ["media"] = new Array {
+        type = "array"
+        description = "Images attached to the calendar event record (poster, header), as blobs in the publisher's repo."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.event.defs#mediaView"
+        }
       }
       ["ticketsUrl"] = new StringType {
         type = "string"
@@ -249,6 +257,47 @@ defs = new Mapping<String, BaseType> {
         type = "string"
         description = "A URL standing in for the location (online events)."
         format = "uri"
+      }
+    }
+  }
+  ["mediaView"] = new ObjectType {
+    type = "object"
+    description = "One entry of the calendar event's media array, with a URL the blob can be fetched from."
+    required = List("role", "url", "cid", "mimeType")
+    properties {
+      ["role"] = new StringType {
+        type = "string"
+        description = "What the image is for."
+        knownValues = List("thumbnail", "header")
+      }
+      ["url"] = new StringType {
+        type = "string"
+        description = "Where to load the image from."
+        format = "uri"
+      }
+      ["cid"] = new StringType {
+        type = "string"
+        description = "CID of the blob in the publisher's repo."
+        format = "cid"
+      }
+      ["mimeType"] = new StringType {
+        type = "string"
+      }
+      ["size"] = new IntegerType {
+        type = "integer"
+        description = "Blob size in bytes."
+        minimum = 0
+      }
+      ["width"] = new IntegerType {
+        type = "integer"
+        minimum = 1
+      }
+      ["height"] = new IntegerType {
+        type = "integer"
+        minimum = 1
+      }
+      ["alt"] = new StringType {
+        type = "string"
       }
     }
   }

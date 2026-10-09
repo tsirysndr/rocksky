@@ -54,8 +54,10 @@ export interface EventView {
     | "community.lexicon.calendar.event#cancelled"
     | "community.lexicon.calendar.event#postponed"
     | (string & {});
-  /** Poster or banner image of the event. */
+  /** Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none. */
   imageUrl?: string;
+  /** Images attached to the calendar event record (poster, header), as blobs in the publisher's repo. */
+  media?: MediaView[];
   /** Where tickets can be bought. */
   ticketsUrl?: string;
   /** Where the event takes place. */
@@ -181,6 +183,35 @@ export function isLocationView(v: unknown): v is LocationView {
 
 export function validateLocationView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.event.defs#locationView", v);
+}
+
+/** One entry of the calendar event's media array, with a URL the blob can be fetched from. */
+export interface MediaView {
+  /** What the image is for. */
+  role: "thumbnail" | "header" | (string & {});
+  /** Where to load the image from. */
+  url: string;
+  /** CID of the blob in the publisher's repo. */
+  cid: string;
+  mimeType: string;
+  /** Blob size in bytes. */
+  size?: number;
+  width?: number;
+  height?: number;
+  alt?: string;
+  [k: string]: unknown;
+}
+
+export function isMediaView(v: unknown): v is MediaView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.event.defs#mediaView"
+  );
+}
+
+export function validateMediaView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.event.defs#mediaView", v);
 }
 
 export interface UriView {

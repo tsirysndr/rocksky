@@ -3170,6 +3170,101 @@
         }
       }
     },
+    "/app.rocksky.event.putRsvp": {
+      "post": {
+        "tags": [
+          "app.rocksky.event"
+        ],
+        "summary": "Set the authenticated user's RSVP on an event. Reuses their existing RSVP record.",
+        "operationId": "app.rocksky.event.putRsvp",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uri": {
+                      "type": "string",
+                      "description": "The RSVP record URI.",
+                      "x-lexicon-format": "at-uri"
+                    },
+                    "status": {
+                      "type": "string",
+                      "x-lexicon-knownValues": [
+                        "community.lexicon.calendar.rsvp#going",
+                        "community.lexicon.calendar.rsvp#interested",
+                        "community.lexicon.calendar.rsvp#notgoing"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "uri",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid XRPC request or parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "XRPC error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XrpcError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uri": {
+                    "type": "string",
+                    "description": "The calendar or music event URI.",
+                    "x-lexicon-format": "at-uri"
+                  },
+                  "status": {
+                    "type": "string",
+                    "x-lexicon-knownValues": [
+                      "community.lexicon.calendar.rsvp#going",
+                      "community.lexicon.calendar.rsvp#interested",
+                      "community.lexicon.calendar.rsvp#notgoing"
+                    ]
+                  }
+                },
+                "required": [
+                  "uri",
+                  "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/app.rocksky.feed.getAlbumRecommendations": {
       "get": {
         "tags": [
@@ -13559,8 +13654,15 @@
           },
           "imageUrl": {
             "type": "string",
-            "description": "Poster or banner image of the event.",
+            "description": "Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none.",
             "format": "uri"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/app.rocksky.event.defs__mediaView"
+            },
+            "description": "Images attached to the calendar event record (poster, header), as blobs in the publisher's repo."
           },
           "ticketsUrl": {
             "type": "string",
@@ -13763,6 +13865,55 @@
           "type"
         ],
         "description": "One entry of the calendar event's locations, flattened: `type` says which community.lexicon.location shape it came from, and only the fields of that shape are set."
+      },
+      "app.rocksky.event.defs__mediaView": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "What the image is for.",
+            "x-lexicon-knownValues": [
+              "thumbnail",
+              "header"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Where to load the image from.",
+            "format": "uri"
+          },
+          "cid": {
+            "type": "string",
+            "description": "CID of the blob in the publisher's repo.",
+            "x-lexicon-format": "cid"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Blob size in bytes.",
+            "minimum": 0
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "alt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "url",
+          "cid",
+          "mimeType"
+        ],
+        "description": "One entry of the calendar event's media array, with a URL the blob can be fetched from."
       },
       "app.rocksky.event.defs__uriView": {
         "type": "object",

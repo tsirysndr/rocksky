@@ -18,7 +18,7 @@ test("generated OpenAPI is current", () => {
   ]);
 });
 test("documents only registered endpoints, including the uploaded library", () => {
-  assert.equal(Object.keys(spec.paths).length, 152);
+  assert.equal(Object.keys(spec.paths).length, 153);
   for (const name of [
     "library.getAlbum",
     "notification.listNotifications",
