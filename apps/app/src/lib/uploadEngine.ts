@@ -104,6 +104,20 @@ function engineCommand(
     : nativeEngineCommand(command);
 }
 
+/** The native engine and Cast both expose normalized volume (0–1). */
+export function getLocalVolume(): number | null {
+  const status = engineCommand({ cmd: "status" });
+  return status.ok && Number.isFinite(status.volume) ? status.volume : null;
+}
+export function setLocalVolume(volume: number) {
+  if (!Number.isFinite(volume)) return;
+  const result = engineCommand({
+    cmd: "setVolume",
+    volume: Math.max(0, Math.min(1, volume)),
+  });
+  if (!result.ok) throw new Error(result.error);
+}
+
 async function openPlayback(
   tracks: UploadQueueTrack[],
   paths: string[] | CastPathResolver,

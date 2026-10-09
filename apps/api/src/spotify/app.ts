@@ -766,4 +766,117 @@ app.put("/seek", async (c) => {
   return c.json(await response.json());
 });
 
+app.on(["GET", "PUT"], "/volume", async (c) => {
+  requestCounter.add(1, { method: c.req.method, route: "/spotify/volume" });
+  const rawVolume = c.req.query("volume_percent");
+  const volume = rawVolume === undefined ? NaN : Number(rawVolume);
+  if (
+    c.req.method === "PUT" &&
+    (!Number.isInteger(volume) || volume < 0 || volume > 100)
+  ) {
+    return c.json({ error: "Volume must be an integer from 0 to 100" }, 400);
+  }
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  const { did } = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
+
+  if (!did) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const spotifyToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId),
+    )
+    .where(eq(spotifyTokens.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!spotifyToken) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const refreshToken = decrypt(
+    spotifyToken.spotify_tokens.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY,
+  );
+
+  // get new access token
+  const newAccessToken = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: spotifyToken.spotify_apps.spotifyAppId,
+      client_secret: decrypt(
+        spotifyToken.spotify_apps.spotifySecret,
+        env.SPOTIFY_ENCRYPTION_KEY,
+      ),
+    }),
+  });
+
+  if (!newAccessToken.ok)
+    return c.json({ error: "Spotify authorization failed" }, 401);
+
+  const { access_token } = (await newAccessToken.json()) as {
+    access_token: string;
+  };
+
+  if (!access_token)
+    return c.json({ error: "Spotify authorization failed" }, 401);
+  const response = await fetch(
+    c.req.method === "GET"
+      ? `${env.SPOTIFY_API_URL}/me/player`
+      : `${env.SPOTIFY_API_URL}/me/player/volume?volume_percent=${volume}`,
+    {
+      method: c.req.method,
+      headers: { Authorization: `Bearer ${access_token}` },
+    },
+  );
+  if (!response.ok) {
+    return new Response(await response.text(), {
+      status: response.status,
+      headers: {
+        "Content-Type": response.headers.get("Content-Type") || "text/plain",
+      },
+    });
+  }
+  if (c.req.method === "PUT") return c.body(null, 204);
+  if (response.status === 204)
+    return c.json({ volume: null, supported: false });
+  const playback = (await response.json()) as {
+    device?: {
+      volume_percent?: number | null;
+      supports_volume?: boolean;
+      is_restricted?: boolean;
+    };
+  };
+  const device = playback.device;
+  return c.json({
+    volume:
+      typeof device?.volume_percent === "number" ? device.volume_percent : null,
+    supported: device?.supports_volume === true && !device.is_restricted,
+  });
+});
+
 export default app;

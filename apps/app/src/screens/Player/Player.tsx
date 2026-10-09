@@ -1,3 +1,4 @@
+import PlayerVolume from "@/src/components/PlayerVolume";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Slider from "@react-native-community/slider";
@@ -93,7 +94,8 @@ export default function Player() {
   } = usePlaybackSource();
 
   const isSpotify = player === "spotify";
-  const isLocal = currentSource?.kind === "local" || currentSource?.kind === "cast";
+  const isLocal =
+    currentSource?.kind === "local" || currentSource?.kind === "cast";
   const activeDevice =
     !isSpotify && !isLocal && activeDeviceId
       ? devices[activeDeviceId]
@@ -224,6 +226,9 @@ export default function Player() {
         {/* Top bar */}
         <View style={styles.topBar}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Close player"
+            style={styles.actionButton}
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -236,68 +241,11 @@ export default function Player() {
             </Text>
           </View>
           <View style={styles.topActions}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Share now playing"
-              accessibilityState={{ disabled: !nowPlaying }}
-              disabled={!nowPlaying}
-              style={!nowPlaying && styles.disabledAction}
-              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-              onPress={() => {
-                if (!nowPlaying) return;
-                const uri =
-                  /^at:\/\/[^/\s?#]+\/app\.rocksky\.(song|scrobble)\/[^/\s?#]+$/.test(
-                    nowPlaying.uri,
-                  )
-                    ? nowPlaying.uri
-                    : "";
-                navigation.navigate("ShareCard", {
-                  item: {
-                    kind: uri.includes("/app.rocksky.scrobble/")
-                      ? "scrobble"
-                      : "track",
-                    uri,
-                    title: nowPlaying.title,
-                    subtitle: nowPlaying.artist,
-                    artwork: nowPlaying.cover,
-                  },
-                });
-              }}
-            >
-              <Feather
-                name="share-2"
-                size={20}
-                color={nowPlaying ? colors.text : colors.textMuted}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setSourceOpen(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-            >
-              <MaterialIcons
-                name={thisDeviceActive ? "cellphone" : "speaker-wireless"}
-                size={22}
-                color={currentSource ? colors.primary : colors.textMuted}
-              />
-            </TouchableOpacity>
-            {/* Off for a source that can take no DSP — Spotify plays in its
-                own client — rather than opening a sheet that goes nowhere. */}
-            <TouchableOpacity
-              onPress={() => setAudioSettingsOpen(true)}
-              disabled={!supportsAudioSettings}
-              accessibilityState={{ disabled: !supportsAudioSettings }}
-              accessibilityLabel="Audio settings"
-              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-              style={!supportsAudioSettings && styles.disabledAction}
-            >
-              <Feather
-                name="sliders"
-                size={20}
-                color={supportsAudioSettings ? colors.text : colors.textMuted}
-              />
-            </TouchableOpacity>
             {!isSpotify && queueRows.length > 0 ? (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Play queue"
+                style={styles.actionButton}
                 onPress={() => setQueueOpen(true)}
                 hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
               >
@@ -344,57 +292,73 @@ export default function Player() {
             </View>
 
             {/* Track info */}
-            <View style={styles.info}>
-              <MarqueeText
-                enabled={focused}
-                centered
-                containerStyle={{ alignSelf: "stretch" }}
-                style={styles.title}
-              >
-                {nowPlaying.title}
-              </MarqueeText>
-              <MarqueeText
-                enabled={focused}
-                centered
-                containerStyle={{ alignSelf: "stretch" }}
-                style={[
-                  styles.subtitle,
-                  !!nowPlaying.artistUri && styles.subtitleLink,
-                ]}
-                onPress={
-                  nowPlaying.artistUri
-                    ? () =>
-                        openDetails(
-                          nowPlaying.artistUri as string,
-                          "ArtistDetails",
-                        )
-                    : undefined
-                }
-              >
-                {nowPlaying.artist}
-              </MarqueeText>
-              {!!nowPlaying.album && (
+            <View style={styles.infoRow}>
+              <View style={styles.info}>
                 <MarqueeText
                   enabled={focused}
-                  centered
+                  containerStyle={{ alignSelf: "stretch" }}
+                  style={styles.title}
+                >
+                  {nowPlaying.title}
+                </MarqueeText>
+                <MarqueeText
+                  enabled={focused}
                   containerStyle={{ alignSelf: "stretch" }}
                   style={[
                     styles.subtitle,
-                    !!nowPlaying.albumUri && styles.subtitleLink,
+                    !!nowPlaying.artistUri && styles.subtitleLink,
                   ]}
                   onPress={
-                    nowPlaying.albumUri
+                    nowPlaying.artistUri
                       ? () =>
                           openDetails(
-                            nowPlaying.albumUri as string,
-                            "AlbumDetails",
+                            nowPlaying.artistUri as string,
+                            "ArtistDetails",
                           )
                       : undefined
                   }
                 >
-                  {nowPlaying.album}
+                  {nowPlaying.artist}
                 </MarqueeText>
-              )}
+                {!!nowPlaying.album && (
+                  <MarqueeText
+                    enabled={focused}
+                    containerStyle={{ alignSelf: "stretch" }}
+                    style={[
+                      styles.subtitle,
+                      !!nowPlaying.albumUri && styles.subtitleLink,
+                    ]}
+                    onPress={
+                      nowPlaying.albumUri
+                        ? () =>
+                            openDetails(
+                              nowPlaying.albumUri as string,
+                              "AlbumDetails",
+                            )
+                        : undefined
+                    }
+                  >
+                    {nowPlaying.album}
+                  </MarqueeText>
+                )}
+              </View>
+
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={
+                  nowPlaying.liked ? "Unlike track" : "Like track"
+                }
+                accessibilityState={{ selected: !!nowPlaying.liked }}
+                style={styles.actionButton}
+                onPress={toggleLike}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialIcons
+                  name={nowPlaying.liked ? "heart" : "heart-outline"}
+                  size={24}
+                  color={nowPlaying.liked ? colors.primary : colors.textMuted}
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Seek */}
@@ -475,22 +439,86 @@ export default function Player() {
                 </TouchableOpacity>
               )}
             </View>
-
-            {/* Like */}
-            <View style={styles.secondaryRow}>
-              <TouchableOpacity
-                onPress={toggleLike}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <MaterialIcons
-                  name={nowPlaying.liked ? "heart" : "heart-outline"}
-                  size={24}
-                  color={nowPlaying.liked ? colors.primary : colors.textMuted}
-                />
-              </TouchableOpacity>
-            </View>
           </View>
         )}
+        <View style={styles.bottomActions}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Share now playing"
+            accessibilityState={{ disabled: !nowPlaying }}
+            disabled={!nowPlaying}
+            style={[styles.actionButton, !nowPlaying && styles.disabledAction]}
+            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+            onPress={() => {
+              if (!nowPlaying) return;
+              const uri =
+                /^at:\/\/[^/\s?#]+\/app\.rocksky\.(song|scrobble)\/[^/\s?#]+$/.test(
+                  nowPlaying.uri,
+                )
+                  ? nowPlaying.uri
+                  : "";
+              navigation.navigate("ShareCard", {
+                item: {
+                  kind: uri.includes("/app.rocksky.scrobble/")
+                    ? "scrobble"
+                    : "track",
+                  uri,
+                  title: nowPlaying.title,
+                  subtitle: nowPlaying.artist,
+                  artwork: nowPlaying.cover,
+                },
+              });
+            }}
+          >
+            <Feather
+              name="share-2"
+              size={20}
+              color={nowPlaying ? colors.text : colors.textMuted}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Playback source"
+            style={styles.actionButton}
+            onPress={() => setSourceOpen(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+          >
+            <MaterialIcons
+              name={thisDeviceActive ? "cellphone" : "speaker-wireless"}
+              size={22}
+              color={currentSource ? colors.primary : colors.textMuted}
+            />
+          </TouchableOpacity>
+          {/* Off for a source that can take no DSP — Spotify plays in its
+                own client — rather than opening a sheet that goes nowhere. */}
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => setAudioSettingsOpen(true)}
+            disabled={!supportsAudioSettings}
+            accessibilityState={{ disabled: !supportsAudioSettings }}
+            accessibilityLabel="Audio settings"
+            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+            style={[
+              styles.actionButton,
+              !supportsAudioSettings && styles.disabledAction,
+            ]}
+          >
+            <Feather
+              name="sliders"
+              size={20}
+              color={supportsAudioSettings ? colors.text : colors.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
+        <PlayerVolume
+          key={
+            currentSource?.kind === "device"
+              ? currentSource.id
+              : (currentSource?.kind ?? "none")
+          }
+          source={currentSource}
+          focused={focused}
+        />
       </SafeAreaView>
 
       {/* Queue panel */}
@@ -625,9 +653,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   topActions: {
-    flexDirection: "row",
+    width: 44,
     alignItems: "center",
-    gap: 14,
+  },
+  actionButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
   disabledAction: {
     opacity: 0.4,
@@ -675,16 +709,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  info: {
+  infoRow: {
     alignSelf: "stretch",
+    flexDirection: "row",
     alignItems: "center",
+    gap: 16,
+  },
+  info: {
+    flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   title: {
     fontSize: 24,
     fontFamily: "RockfordSansBold",
-    color: "#fff",
-    textAlign: "center",
+    color: colors.text,
+    textAlign: "left",
   },
   subtitle: {
     fontSize: 14,
@@ -724,10 +764,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  secondaryRow: {
+  bottomActions: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 24,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   backdrop: {
     flex: 1,
