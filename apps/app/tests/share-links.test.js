@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseSharePath, shareUrl, shareText } from "../src/lib/shareLinks.ts";
+import { parseSharePath, shareUrl, shareText, composePostText } from "../src/lib/shareLinks.ts";
 const did = "did:plc:abc123";
 for (const [kind, collection, screen] of [
   ["track", "song", "SongDetails"],
@@ -95,6 +95,16 @@ test("unmatched now-playing tracks can share text without inventing a public lin
       title: "Local song",
       subtitle: "Local artist",
     }),
-    "Local song — Local artist\nListening on Rocksky",
+    "Local song — Local artist\nListening on Rocksky\nhttps://rocksky.app",
   );
+});
+
+test("composer truncates long captions without dropping or breaking the Rocksky link", () => {
+  const item = {kind: "track", uri: `at://${did}/app.rocksky.song/3abc`, title: "🎵".repeat(500), subtitle: "Artist"};
+  for (const limit of [280, 300]) {
+    const text = composePostText(item, limit);
+    assert.ok(Array.from(text).length <= limit);
+    assert.ok(text.endsWith(shareUrl(item)));
+    assert.ok(!text.includes("\ufffd"));
+  }
 });

@@ -19,8 +19,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { captureRef, releaseCapture } from "react-native-view-shot";
+import { sharePost } from "../../../modules/rocksky-engine";
 import { Text } from "../../components/Text";
-import { shareText, shareUrl } from "../../lib/shareLinks";
+import { composePostText, shareText, shareUrl } from "../../lib/shareLinks";
 import type { RootStackParamList } from "../../Navigation";
 import { colors } from "../../theme";
 
@@ -118,12 +119,20 @@ export default function ShareCard({
       setBusy(false);
     }
   };
-  const exportCard = () =>
+  const cardReady = imageReady && rankingImagesReady && laidOut;
+  const composeFallback = (app: "Bluesky" | "X" | "Facebook", text: string) =>
+    Linking.openURL(
+      app === "Bluesky"
+        ? `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`
+        : app === "X"
+          ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
+          : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link || "https://rocksky.app")}`,
+    );
+  const exportCard = (target?: "Bluesky" | "X" | "Facebook") =>
     run(async () => {
-      if (!(await Sharing.isAvailableAsync()))
-        throw new Error(
-          "Image sharing isn't available on this device. You can still share the text.",
-        );
+      const text = composePostText(item, target === "X" ? 280 : 300);
+      if (!cardReady)
+        throw new Error("The card is still loading. Please try again.");
       let uri: string | undefined;
       try {
         uri = await captureRef(card, {
@@ -133,15 +142,41 @@ export default function ShareCard({
           width: 1080,
           height: format === "story" ? 1920 : 1080,
         });
-        // Stories can add the copied URL as a link sticker; image attachments
-        // alone do not provide a tappable link on social platforms.
-        if (link) await Clipboard.setStringAsync(link);
-        await Sharing.shareAsync(uri, {
-          mimeType: "image/png",
-          UTI: "public.png",
-          dialogTitle: `Share ${item.title}`,
-        });
+        // Some receivers (notably Facebook) ignore captions on image shares.
+        // Keep the complete draft available without losing its public link.
+        await Clipboard.setStringAsync(text);
+        if (Platform.OS === "android") {
+          const opened = await sharePost({
+            imageUri: uri,
+            text,
+            title: item.title,
+            target,
+          });
+          if (!opened) {
+            if (target) await composeFallback(target, text);
+            else throw new Error("No app is available to compose this post.");
+          }
+        } else if (target) {
+          if (target === "Bluesky") {
+            try {
+              await Linking.openURL(
+                `bluesky://intent/compose?text=${encodeURIComponent(text)}`,
+              );
+            } catch {
+              await composeFallback(target, text);
+            }
+          } else await composeFallback(target, text);
+        } else {
+          if (!(await Sharing.isAvailableAsync()))
+            throw new Error("Image sharing is unavailable on this device.");
+          await Sharing.shareAsync(uri, {
+            mimeType: "image/png",
+            UTI: "public.png",
+            dialogTitle: `Share ${item.title}`,
+          });
+        }
       } finally {
+        // Android has already copied the attachment to a retained share cache.
         if (uri) releaseCapture(uri);
       }
     });
@@ -156,18 +191,6 @@ export default function ShareCard({
           : { message: shareText(item), title: item.title },
       ),
     );
-  const social = (app: "Bluesky" | "X" | "Facebook") =>
-    run(() => {
-      const text = encodeURIComponent(shareText(item));
-      const url = encodeURIComponent(link || "");
-      return Linking.openURL(
-        app === "Bluesky"
-          ? `https://bsky.app/intent/compose?text=${text}`
-          : app === "X"
-            ? `https://twitter.com/intent/tweet?text=${text}`
-            : `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-      );
-    });
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.header}>
@@ -465,7 +488,7 @@ export default function ShareCard({
         <TouchableOpacity
           accessibilityRole="button"
           disabled={busy || !imageReady || !rankingImagesReady || !laidOut}
-          onPress={exportCard}
+          onPress={() => exportCard()}
           style={[
             styles.primary,
             (busy || !imageReady || !rankingImagesReady || !laidOut) && {
@@ -483,10 +506,8 @@ export default function ShareCard({
           )}
         </TouchableOpacity>
         <Text style={styles.note}>
-          Choose Instagram, Facebook Stories, Discord, or another installed app.
-          {link
-            ? "The link is copied for a story link sticker."
-            : "This track has no public link yet; you can share its card or text."}
+          Share a card with a caption and Rocksky link. The caption is also
+          copied for apps that do not accept text with images.
         </Text>
         <View style={styles.row}>
           <TouchableOpacity
@@ -512,18 +533,16 @@ export default function ShareCard({
           )}
         </View>
         <View style={styles.row}>
-          {(["Bluesky", "X", "Facebook"] as const)
-            .filter((app) => app !== "Facebook" || !!link)
-            .map((app) => (
-              <TouchableOpacity
-                key={app}
-                disabled={busy}
-                style={styles.pill}
-                onPress={() => social(app)}
-              >
-                <Text>{app}</Text>
-              </TouchableOpacity>
-            ))}
+          {(["Bluesky", "X", "Facebook"] as const).map((app) => (
+            <TouchableOpacity
+              key={app}
+              disabled={busy || !cardReady}
+              style={[styles.pill, !cardReady && { opacity: 0.5 }]}
+              onPress={() => exportCard(app)}
+            >
+              <Text>{app}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>

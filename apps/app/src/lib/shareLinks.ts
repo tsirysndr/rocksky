@@ -67,8 +67,19 @@ export function shareUrl(
 
 export function shareText(item: ShareItem): string {
   if (item.kind === "track" && !item.uri)
-    return `${item.title}${item.subtitle ? ` — ${item.subtitle}` : ""}\nListening on Rocksky`;
+    return `${item.title}${item.subtitle ? ` — ${item.subtitle}` : ""}\nListening on Rocksky\nhttps://rocksky.app`;
   return `${item.kind === "scrobble" ? "Just scrobbled: " : ""}${item.title}${item.subtitle ? ` — ${item.subtitle}` : ""}\n${shareUrl(item)}`;
+}
+
+/** Preserve the public URL when long titles need to fit a social composer. */
+export function composePostText(item: ShareItem, limit = 300): string {
+  const text = shareText(item);
+  if (Array.from(text).length <= limit) return text;
+  const split = text.lastIndexOf("\n");
+  const link = text.slice(split + 1);
+  const available = limit - Array.from(link).length - 2;
+  if (available <= 0) return link;
+  return `${Array.from(text.slice(0, split)).slice(0, available).join("").trimEnd()}…\n${link}`;
 }
 
 /** Parses canonical web paths and the same paths under rocksky://. */

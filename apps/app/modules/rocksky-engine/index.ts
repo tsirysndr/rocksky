@@ -2,6 +2,7 @@ import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { requireOptionalNativeModule } from "expo";
 
 type RockskyEngineNativeModule = {
+  sharePost(json: string): Promise<boolean>;
   mediaRenderer(json: string): Promise<string>;
   remoteLibrary(json: string): Promise<string>;
   localLibrary(): Promise<string>;
@@ -161,3 +162,13 @@ export const mediaRenderer = {
     return JSON.parse(await native.mediaRenderer(JSON.stringify(input)));
   },
 };
+
+export async function sharePost(input: {
+  text: string;
+  title: string;
+  imageUri?: string;
+  target?: "Bluesky" | "X" | "Facebook";
+}): Promise<boolean> {
+  if (!native?.sharePost) throw new Error("Sharing posts requires an updated Android build.");
+  return native.sharePost(JSON.stringify(input));
+}

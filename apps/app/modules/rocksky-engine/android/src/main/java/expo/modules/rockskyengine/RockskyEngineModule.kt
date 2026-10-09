@@ -1,6 +1,7 @@
 package expo.modules.rockskyengine
 
 import android.content.Context
+import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -97,6 +98,10 @@ class RockskyEngineModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("RockskyEngine")
+
+    AsyncFunction("sharePost") { json: String ->
+      PostShare.share(requireNotNull(appContext.currentActivity) { "Open Rocksky to share a post" }, org.json.JSONObject(json))
+    }.runOnQueue(Queues.MAIN)
 
     AsyncFunction("mediaRenderer") { json: String ->
       val context = requireNotNull(appContext.reactContext).applicationContext

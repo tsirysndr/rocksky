@@ -9,7 +9,15 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+  <queries>
+    <package android:name="xyz.blueskyweb.app" />
+    <package android:name="com.twitter.android" />
+    <package android:name="com.facebook.katana" />
+  </queries>
   <application android:usesCleartextTraffic="true">
+    <provider android:name=".PostShareFileProvider" android:authorities="${applicationId}.postshare" android:exported="false" android:grantUriPermissions="true">
+      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/rocksky_share_paths" />
+    </provider>
     <service android:name=".MediaRendererService" android:exported="false" android:foregroundServiceType="connectedDevice|mediaPlayback" />
     <service android:name=".LocalMusicScanJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
   </application>
