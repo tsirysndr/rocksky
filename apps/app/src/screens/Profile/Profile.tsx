@@ -2308,6 +2308,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
         uri={`at://${did}`}
         type="profile"
         title={profileData?.displayName}
+        picture={displayProfile?.avatar}
       />
     </SafeAreaView>
   );

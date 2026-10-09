@@ -263,7 +263,10 @@ function ShoutItem({
 export default function ShoutEditor({ route }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { uri = "", type = "song", title } = route?.params || {};
+  const { uri = "", type = "song", title, picture } = route?.params || {};
+
+  const [failedPicture, setFailedPicture] = useState<string | null>(null);
+  const roundPicture = type === "artist" || type === "profile";
 
   const profile = useAtomValue(profileAtom);
   const shouts = useAtomValue(shoutsAtom);
@@ -339,6 +342,35 @@ export default function ShoutEditor({ route }: Props) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={{ color: colors.primary, fontSize: 15 }}>← Back</Text>
         </TouchableOpacity>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: roundPicture ? 20 : 6,
+            overflow: "hidden",
+            backgroundColor: colors.surface2,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          accessible
+          accessibilityLabel={`${title || type} ${roundPicture ? "picture" : "album art"}`}
+        >
+          {picture && failedPicture !== picture ? (
+            <ExpoImage
+              source={{ uri: picture }}
+              style={{ width: 40, height: 40 }}
+              contentFit="cover"
+              recyclingKey={picture}
+              onError={() => setFailedPicture(picture)}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name={roundPicture ? "account" : "music"}
+              size={22}
+              color={colors.textMuted}
+            />
+          )}
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>
             Shoutbox

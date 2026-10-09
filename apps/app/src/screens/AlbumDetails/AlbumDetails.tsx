@@ -543,7 +543,12 @@ export default function AlbumDetails({ route }: Props) {
             </View>
           )}
         </ScrollView>
-        <FloatingShoutBar uri={uri} type="album" title={album?.title} />
+        <FloatingShoutBar
+          uri={uri}
+          type="album"
+          title={album?.title}
+          picture={album?.albumArt}
+        />
       </SafeAreaView>
     </View>
   );

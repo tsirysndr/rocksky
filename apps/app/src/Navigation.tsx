@@ -225,6 +225,11 @@ export function RootStack() {
         options={{ presentation: "modal", animation: "slide_from_bottom" }}
       />
       <Stack.Screen
+        name="ShoutEditor"
+        component={ShoutEditor}
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
         name="Story"
         component={Story}
         options={{ presentation: "fullScreenModal", animation: "fade" }}
@@ -266,5 +271,6 @@ export type RootStackParamList = {
     uri: string;
     type: "song" | "album" | "artist" | "profile" | "scrobble";
     title?: string;
+    picture?: string | null;
   };
 };

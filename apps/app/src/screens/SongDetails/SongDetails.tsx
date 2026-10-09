@@ -711,6 +711,7 @@ export default function SongDetails({ route }: Props) {
           uri={uri}
           type={isScrobble ? "scrobble" : "song"}
           title={song?.title}
+          picture={song?.cover}
         />
       </SafeAreaView>
     </View>

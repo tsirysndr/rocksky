@@ -481,7 +481,12 @@ export default function ArtistDetails({ route }: Props) {
             </View>
           )}
         </ScrollView>
-        <FloatingShoutBar uri={uri} type="artist" title={artist?.name} />
+        <FloatingShoutBar
+          uri={uri}
+          type="artist"
+          title={artist?.name}
+          picture={artist?.picture}
+        />
       </SafeAreaView>
     </View>
   );

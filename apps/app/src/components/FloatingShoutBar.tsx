@@ -11,12 +11,14 @@ interface FloatingShoutBarProps {
   uri: string;
   type: "song" | "album" | "artist" | "profile" | "scrobble";
   title?: string;
+  picture?: string | null;
 }
 
 export default function FloatingShoutBar({
   uri,
   type,
   title,
+  picture,
 }: FloatingShoutBarProps) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -35,7 +37,7 @@ export default function FloatingShoutBar({
       <TouchableOpacity
         onPress={() =>
           storage.getToken()
-            ? navigation.navigate("ShoutEditor", { uri, type, title })
+            ? navigation.navigate("ShoutEditor", { uri, type, title, picture })
             : navigation.navigate("SignIn")
         }
         activeOpacity={0.85}

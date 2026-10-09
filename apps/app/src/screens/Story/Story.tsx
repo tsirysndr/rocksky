@@ -20,7 +20,10 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Text } from "@/src/components/Text";
 import UserAvatar from "@/src/components/UserAvatar";
 import { useStoryLike } from "@/src/hooks/useStoryLike";
@@ -41,6 +44,7 @@ export type StoryProps = {
   onPressTrack: (trackUri: string) => void;
   onClose: () => void;
   onShare: (story: StoryItem) => void;
+  onAddShout: (story: StoryItem) => void;
   active: boolean;
 };
 
@@ -52,9 +56,11 @@ const Story: FC<StoryProps> = ({
   onPressTrack,
   onClose,
   onShare,
+  onAddShout,
   active,
 }) => {
   const layout = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(
     Math.min(Math.max(startIndex ?? 0, 0), Math.max(stories.length - 1, 0)),
   );
@@ -62,7 +68,7 @@ const Story: FC<StoryProps> = ({
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const current = stories[index];
   const { liked, pending, toggle } = useStoryLike(current);
-  const artSize = Math.min(layout.width * 0.8, 380);
+  const artSize = Math.min(layout.width * 0.8, layout.height * 0.45, 380);
 
   const startProgress = useCallback(() => {
     progress.setValue(0);
@@ -301,7 +307,7 @@ const Story: FC<StoryProps> = ({
         <View
           style={{
             paddingHorizontal: 24,
-            paddingBottom: 40,
+            paddingBottom: 96,
             paddingTop: 16,
             alignItems: "center",
           }}
@@ -374,6 +380,42 @@ const Story: FC<StoryProps> = ({
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Add a shout"
+        disabled={
+          !current.trackUri && !current.uri?.includes("/app.rocksky.scrobble/")
+        }
+        onPress={() => {
+          animRef.current?.stop();
+          onAddShout(current);
+        }}
+        activeOpacity={0.75}
+        style={{
+          position: "absolute",
+          bottom: insets.bottom + 16,
+          left: 24,
+          right: 24,
+          minHeight: 52,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.2)",
+          backgroundColor: "rgba(255,255,255,0.12)",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          opacity:
+            current.trackUri || current.uri?.includes("/app.rocksky.scrobble/")
+              ? 1
+              : 0.4,
+        }}
+      >
+        <Feather name="message-circle" size={21} color="#fff" />
+        <Text style={{ color: "#fff", fontSize: 15, fontWeight: "600" }}>
+          Add a shout
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
