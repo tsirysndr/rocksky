@@ -256,6 +256,35 @@ export function refreshDeviceQueueTracks(tracks: DeviceTrack[]) {
 }
 let rendererActive = false;
 let rendererKey: string | null = null;
+const rendererArtworkCache = new Map<string, string | null>();
+const rendererArtworkPending = new Set<string>();
+
+function extractRendererArtwork(track: RendererTrack) {
+  if (track.albumArt) return;
+  const key = `${track.generation}:${track.uri}`;
+  if (rendererArtworkCache.has(key) || rendererArtworkPending.has(key)) return;
+  rendererArtworkPending.add(key);
+  void mediaRenderer.extractArtwork(track.uri).then((albumArt) => {
+    rendererArtworkCache.set(key, albumArt);
+    if (!albumArt) return;
+    const current = queue.find(
+      (item) => item.renderer && item.uploadId === `renderer:${track.generation}`,
+    );
+    if (!current) return;
+    current.albumArt = albumArt;
+    notifyQueue();
+    if (lastTrack === current && engineOwnsDisplay()) {
+      store.set(nowPlayingAtom, (previous) =>
+        previous ? { ...previous, cover: albumArt } : previous,
+      );
+      advertiseNowPlaying(true);
+    }
+  }).catch(() => {
+    rendererArtworkCache.set(key, null);
+  }).finally(() => {
+    rendererArtworkPending.delete(key);
+  });
+}
 
 function adoptRendererTrack(track: RendererTrack) {
   const key = `${track.generation}:${track.uri}`;
@@ -299,6 +328,7 @@ export function startMediaRendererPlayback() {
       if (disposed) return;
       if (status.track) {
         adoptRendererTrack(status.track);
+        extractRendererArtwork(status.track);
         pollOnce();
       } else if (rendererActive) {
         rendererActive = false; rendererKey = null;

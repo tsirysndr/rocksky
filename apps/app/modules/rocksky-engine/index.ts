@@ -4,6 +4,7 @@ import { requireOptionalNativeModule } from "expo";
 type RockskyEngineNativeModule = {
   sharePost(json: string): Promise<boolean>;
   mediaRenderer(json: string): Promise<string>;
+  rendererArtwork(url: string): Promise<string>;
   remoteLibrary(json: string): Promise<string>;
   localLibrary(): Promise<string>;
   scanLocalMusic(): Promise<void>;
@@ -160,6 +161,13 @@ export const mediaRenderer = {
   async request(input: { action?: "status"; enabled?: boolean } = {}): Promise<RendererStatus> {
     if (!native) throw new Error("Media receiver requires an Android native build.");
     return JSON.parse(await native.mediaRenderer(JSON.stringify(input)));
+  },
+  async extractArtwork(url: string): Promise<string | null> {
+    if (!native) return null;
+    const result = JSON.parse(await native.rendererArtwork(url));
+    return result.ok && typeof result.albumArt === "string"
+      ? result.albumArt
+      : null;
   },
 };
 

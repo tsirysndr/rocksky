@@ -1,6 +1,7 @@
 package expo.modules.rockskyengine
 
 import android.content.Context
+import android.net.Uri
 import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
@@ -96,6 +97,45 @@ class RockskyEngineModule : Module() {
 
   private val identifying = java.util.concurrent.atomic.AtomicBoolean(false)
 
+  private fun rendererArtwork(url: String): String {
+    val uri = Uri.parse(url)
+    require(uri.scheme == "http" || uri.scheme == "https") { "Invalid audio URL" }
+    require(!uri.host.isNullOrBlank() && uri.userInfo == null) { "Invalid audio URL" }
+    val context = requireNotNull(appContext.reactContext).applicationContext
+    val directory = java.io.File(context.cacheDir, "renderer-artwork").apply { mkdirs() }
+    val key = java.security.MessageDigest.getInstance("SHA-256")
+      .digest(url.toByteArray(Charsets.UTF_8))
+      .joinToString("") { "%02x".format(it) }
+    val artwork = java.io.File(directory, "$key.image")
+    if (!artwork.isFile || artwork.length() == 0L || artwork.length() > 20L * 1024 * 1024) {
+      artwork.delete()
+      val audioCache = java.io.File(directory, "$key.audio")
+      val result = try {
+        org.json.JSONObject(
+          NativeEngine.command(
+            org.json.JSONObject()
+              .put("cmd", "readRemoteMetadata")
+              .put("url", url)
+              .put("cachePath", audioCache.absolutePath)
+              .put("artPath", artwork.absolutePath)
+              .toString(),
+          ),
+        )
+      } finally {
+        audioCache.delete()
+      }
+      if (!result.optBoolean("ok")) return result.toString()
+    }
+    if (!artwork.isFile || artwork.length() == 0L || artwork.length() > 20L * 1024 * 1024) {
+      artwork.delete()
+      return org.json.JSONObject().put("ok", false).put("error", "No embedded album art").toString()
+    }
+    return org.json.JSONObject()
+      .put("ok", true)
+      .put("albumArt", Uri.fromFile(artwork).toString())
+      .toString()
+  }
+
   override fun definition() = ModuleDefinition {
     Name("RockskyEngine")
 
@@ -108,6 +148,11 @@ class RockskyEngineModule : Module() {
       val input = org.json.JSONObject(json)
       if (input.optString("action") == "status") MediaRendererService.status(context)
       else MediaRendererService.configure(context, input)
+    }
+
+    AsyncFunction("rendererArtwork") { url: String ->
+      check(ensureLoaded()) { "Native audio engine is unavailable" }
+      rendererArtwork(url)
     }
 
     AsyncFunction("remoteLibrary") { json: String ->
