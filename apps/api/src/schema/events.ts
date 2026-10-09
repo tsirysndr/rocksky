@@ -30,9 +30,10 @@ const events = pgTable(
     endsAt: timestamp("ends_at", { withTimezone: true }),
     mode: text("mode"),
     status: text("status"),
-    // The record's `locations` and `uris` arrays, verbatim.
+    // The record's `locations`, `uris` and `media` arrays, verbatim.
     locations: jsonb("locations").$type<Array<Record<string, unknown>>>(),
     uris: jsonb("uris").$type<Array<{ uri: string; name?: string }>>(),
+    media: jsonb("media").$type<Array<Record<string, unknown>>>(),
     kind: text("kind"),
     genre: text("genre"),
     tags: text("tags").array(),
