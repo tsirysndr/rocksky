@@ -98,7 +98,7 @@ export default function RendererSettings() {
                 {
                   backgroundColor:
                     state?.running && enabled
-                      ? colors.primary
+                      ? "#22C55E"
                       : colors.textMuted,
                 },
               ]}
