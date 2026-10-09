@@ -1,8 +1,9 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -34,6 +35,30 @@ type Props = {
 
 export default function SignIn({ onSuccess, onCancel }: Props) {
   const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const scroll = useRef<ScrollView>(null);
+  const handleFieldY = useRef(0);
+  const handleFocused = useRef(false);
+  const revealHandle = () => {
+    if (handleFocused.current) {
+      scroll.current?.scrollTo({
+        y: Math.max(0, handleFieldY.current - insets.top - 56),
+        animated: false,
+      });
+    }
+  };
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const [handle, setHandle] = useState("");
   const [showWebView, setShowWebView] = useState(false);
   const [authUrl, setAuthUrl] = useState("");
@@ -183,18 +208,22 @@ export default function SignIn({ onSuccess, onCancel }: Props) {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <LoginStars />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
+          ref={scroll}
+          onContentSizeChange={() => {
+            if (keyboardVisible) revealHandle();
+          }}
           style={{ flex: 1 }}
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: "center",
+            justifyContent: keyboardVisible ? "flex-start" : "center",
             paddingHorizontal: 32,
-            paddingTop: insets.top + 48,
+            paddingTop: insets.top + (keyboardVisible ? 16 : 48),
             paddingBottom: insets.bottom + 32,
           }}
         >
@@ -221,9 +250,16 @@ export default function SignIn({ onSuccess, onCancel }: Props) {
             Your music, your community
           </Text>
 
-          <LoginTour />
+          {!keyboardVisible && <LoginTour />}
 
-          {/* Handle input */}
+          {/* Android's adjustResize provides the keyboard viewport. Collapse the
+              tour and anchor the form so suggestions remain scrollable above it. */}
+          <View
+            onLayout={(event) => {
+              handleFieldY.current = event.nativeEvent.layout.y;
+              if (keyboardVisible) revealHandle();
+            }}
+          />
           <Text
             style={{
               fontSize: 12,
@@ -250,7 +286,14 @@ export default function SignIn({ onSuccess, onCancel }: Props) {
             <TextInput
               value={handle}
               onChangeText={editHandle}
-              onFocus={() => setSuggestionsOpen(true)}
+              onFocus={() => {
+                handleFocused.current = true;
+                setSuggestionsOpen(true);
+                if (keyboardVisible) revealHandle();
+              }}
+              onBlur={() => {
+                handleFocused.current = false;
+              }}
               autoComplete="username"
               textContentType="username"
               accessibilityLabel="ATProto handle"

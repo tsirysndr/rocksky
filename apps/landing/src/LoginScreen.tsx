@@ -1,15 +1,18 @@
+import { useQuery } from "@tanstack/react-query";
+import {
+  searchHandleSuggestions,
+  type HandleSuggestion,
+} from "../../shared/handle-lookup";
+import LoginTour from "./LoginTour";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@heroui/react";
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  AudioLines,
   Eye,
   EyeOff,
   LockKeyhole,
-  Globe2,
-  Headphones,
   LoaderCircle,
   ShieldCheck,
 } from "lucide-react";
@@ -34,6 +37,10 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const passwordInput = useRef<HTMLInputElement>(null);
   const [handle, setHandle] = useState("");
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [debouncedHandle, setDebouncedHandle] = useState("");
+  const normalizedHandle = normalizeHandle(handle);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState<
     "signin" | "create" | "atpassport" | null
@@ -41,6 +48,33 @@ export default function LoginScreen() {
   const input = useRef<HTMLInputElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const callbackHandled = useRef(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDebouncedHandle(normalizedHandle),
+      300,
+    );
+    return () => window.clearTimeout(timer);
+  }, [normalizedHandle]);
+  const suggestions = useQuery({
+    queryKey: ["signin", "handle-suggestions", debouncedHandle],
+    queryFn: ({ signal }) => searchHandleSuggestions(debouncedHandle, signal),
+    enabled: debouncedHandle.length >= 2 && suggestionsOpen && !pending,
+    retry: false,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+  const suggestionsSettled = normalizedHandle === debouncedHandle;
+  const actors = suggestionsSettled ? (suggestions.data ?? []) : [];
+  const showSuggestions =
+    suggestionsOpen && normalizedHandle.length >= 2 && !pending;
+
+  function chooseHandle(actor: HandleSuggestion) {
+    setHandle(actor.handle);
+    setSuggestionsOpen(false);
+    setActiveSuggestion(-1);
+    setError(undefined);
+  }
 
   useEffect(() => {
     if (
@@ -188,61 +222,9 @@ export default function LoginScreen() {
         </div>
       </header>
       <main className="login-layout container">
-        <section className="login-story" aria-labelledby="login-story-title">
-          <div className="eyebrow">
-            <span className="live-dot" /> YOUR ROCKSKY ACCOUNT
-          </div>
-          <h2 id="login-story-title">
-            Put another
-            <br />
-            record <em>on.</em>
-          </h2>
-          <p>
-            Sign in to check your recent listens,
-            <br />
-            see your stats, and catch up with
-            <br />
-            the people you follow.
-          </p>
-          <div className="login-record-scene" aria-hidden="true">
-            <div className="login-record-orbit" />
-            <span className="login-spark spark-a">✦</span>
-            <span className="login-spark spark-b">✧</span>
-            <div className="login-record">
-              <div className="vinyl">
-                <div className="vinyl-label">
-                  <AudioLines size={32} />
-                  <span>Rocksky</span>
-                  <div className="spindle" />
-                  <small>SIDE A</small>
-                </div>
-              </div>
-            </div>
-            <div className="login-record-caption">
-              <Headphones size={20} />
-              <div>
-                <strong>Your listening history</strong>
-                <span>Scrobbles, albums, and artists.</span>
-              </div>
-              <span className="equalizer">
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
-            </div>
-          </div>
-          <div className="login-story-note">
-            <span>SCROBBLES.</span>
-            <span>STATS.</span>
-            <span>FRIENDS.</span>
-          </div>
-        </section>
+        <LoginTour />
         <section className="login-form-section" aria-labelledby="login-title">
           <div className="login-form-content">
-            <span className="login-account-icon">
-              <Globe2 size={26} />
-            </span>
             <div className="eyebrow">SIGN IN</div>
             <h1 id="login-title" ref={heading} tabIndex={-1}>
               Welcome to Rocksky.
@@ -327,9 +309,63 @@ export default function LoginScreen() {
                   value={handle}
                   onChange={(event) => {
                     setHandle(event.target.value);
+                    setSuggestionsOpen(true);
+                    setActiveSuggestion(-1);
                     setError(undefined);
                   }}
-                  onBlur={() => setHandle(normalizeHandle(handle))}
+                  onFocus={() => {
+                    setSuggestionsOpen(true);
+                    setActiveSuggestion(-1);
+                  }}
+                  onBlur={() => {
+                    setHandle(normalizeHandle(handle));
+                    setSuggestionsOpen(false);
+                  }}
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded={showSuggestions}
+                  aria-controls={
+                    showSuggestions ? "login-handle-suggestions" : undefined
+                  }
+                  aria-activedescendant={
+                    showSuggestions && actors[activeSuggestion]
+                      ? `login-handle-option-${activeSuggestion}`
+                      : undefined
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      setSuggestionsOpen(false);
+                      setActiveSuggestion(-1);
+                    } else if (
+                      event.key === "ArrowDown" ||
+                      event.key === "ArrowUp"
+                    ) {
+                      event.preventDefault();
+                      setSuggestionsOpen(true);
+                      if (actors.length) {
+                        const next =
+                          (activeSuggestion +
+                            (event.key === "ArrowDown"
+                              ? 1
+                              : activeSuggestion < 0
+                                ? 0
+                                : -1) +
+                            actors.length) %
+                          actors.length;
+                        setActiveSuggestion(next);
+                        document
+                          .getElementById(`login-handle-option-${next}`)
+                          ?.scrollIntoView({ block: "nearest" });
+                      }
+                    } else if (
+                      event.key === "Enter" &&
+                      showSuggestions &&
+                      actors[activeSuggestion]
+                    ) {
+                      event.preventDefault();
+                      chooseHandle(actors[activeSuggestion]);
+                    }
+                  }}
                   placeholder="you.bsky.social"
                   autoComplete="username"
                   autoCapitalize="none"
@@ -344,6 +380,64 @@ export default function LoginScreen() {
                   }
                 />
               </div>
+              {showSuggestions && (
+                <div className="login-suggestions">
+                  <ul
+                    id="login-handle-suggestions"
+                    role="listbox"
+                    aria-label="Suggested accounts"
+                  >
+                    {actors.map((actor, index) => (
+                      <li
+                        key={actor.did}
+                        id={`login-handle-option-${index}`}
+                        role="option"
+                        aria-selected={activeSuggestion === index}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => chooseHandle(actor)}
+                      >
+                        {actor.avatar ? (
+                          <img
+                            src={actor.avatar}
+                            alt=""
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <span
+                            className="login-suggestion-avatar"
+                            aria-hidden="true"
+                          >
+                            @
+                          </span>
+                        )}
+                        <span className="login-suggestion-text">
+                          {actor.displayName && (
+                            <strong>{actor.displayName}</strong>
+                          )}
+                          <span>@{actor.handle}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div role="status" className="login-suggestion-status">
+                    {!suggestionsSettled || suggestions.isFetching ? (
+                      "Finding accounts…"
+                    ) : suggestions.isError ? (
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => void suggestions.refetch()}
+                      >
+                        Suggestions unavailable. Retry or enter your full
+                        handle.
+                      </button>
+                    ) : actors.length === 0 ? (
+                      "No suggestions found. You can still enter your full handle."
+                    ) : null}
+                  </div>
+                </div>
+              )}
               <p id="login-hint" className="login-hint">
                 Your Bluesky handle or a custom domain works here.
               </p>
