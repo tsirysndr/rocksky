@@ -16,9 +16,22 @@ import type * as EventMusic from "lexicon/types/app/rocksky/event/music";
 import { createAgent } from "lib/agent";
 import prompts from "prompts";
 import tables from "schema";
+import sharp from "sharp";
 
 const CALENDAR_EVENT = "community.lexicon.calendar.event";
 const EVENT_MUSIC = "app.rocksky.event.music";
+
+// The `media` array is not in the published calendar lexicon yet, but it is
+// what Smoke Signal and the other calendar apps read and write: a blob per
+// role ("thumbnail", "header") with its aspect ratio.
+type EventMedia = {
+  $type: "community.lexicon.calendar.event#media";
+  role: "thumbnail" | "header";
+  alt?: string;
+  content: unknown;
+  aspect_ratio: { width: number; height: number };
+};
+type CalendarRecord = CalendarEvent.Record & { media?: EventMedia[] };
 
 const args = process.argv.slice(2);
 
@@ -54,6 +67,56 @@ const datetime = async (message: string, required: boolean) => {
     const date = new Date(value);
     if (!Number.isNaN(date.getTime())) return date.toISOString();
     consola.warn("Not a date. Use ISO-8601, e.g. 2026-12-01T20:00:00+01:00");
+  }
+};
+
+const IMAGE_TYPES: Record<string, string> = {
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  avif: "image/avif",
+};
+const ACCEPTED_TYPES = new Set(Object.values(IMAGE_TYPES));
+
+// What the server says the URL serves, or what its extension says when the
+// host refuses HEAD. Only a known picture type passes: the file is downloaded
+// and uploaded as a blob, so anything else would end up in the record.
+async function imageType(url: string): Promise<string | undefined> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return undefined;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return undefined;
+  }
+  try {
+    const head = await fetch(url, { method: "HEAD", redirect: "follow" });
+    const type = head.headers
+      .get("content-type")
+      ?.split(";")[0]
+      .trim()
+      .toLowerCase();
+    if (type && ACCEPTED_TYPES.has(type)) return type;
+    if (head.ok && type) return undefined;
+  } catch {
+    // Fall through to the extension.
+  }
+  const ext = parsed.pathname.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  return ext ? IMAGE_TYPES[ext] : undefined;
+}
+
+const pictureUrl = async (message: string): Promise<string | undefined> => {
+  for (;;) {
+    const value = await text(message);
+    if (!value) return undefined;
+    if (await imageType(value)) return value;
+    consola.warn(
+      "Not a picture URL. Expected a jpeg, png, webp, gif or avif image.",
+    );
   }
 };
 
@@ -219,7 +282,7 @@ for (const [key, label] of [
   if (id) externalIds[key] = id;
 }
 const ticketsUrl = optional(await text("Tickets URL (optional)"));
-const imageUrl = optional(await text("Poster image URL (optional)"));
+const imageUrl = await pictureUrl("Poster image URL (optional)");
 
 // --- likely duplicates -----------------------------------------------------
 
@@ -262,7 +325,7 @@ if (similar.length > 0) {
 // --- confirm and publish ---------------------------------------------------
 
 const createdAt = new Date().toISOString();
-const calendarRecord: CalendarEvent.Record = {
+const calendarRecord: CalendarRecord = {
   $type: CALENDAR_EVENT,
   name,
   description,
@@ -308,6 +371,48 @@ if (!publisherDid.startsWith("did:")) {
 }
 
 const agent = await createAgent(ctx.oauthClient, publisherDid);
+
+// The poster goes into the publisher's repo as a blob, so calendar apps show
+// it from the record itself; the URL stays on the music record for Rocksky.
+if (imageUrl) {
+  const media = await uploadPoster(imageUrl);
+  if (media) calendarRecord.media = [media];
+}
+
+async function uploadPoster(url: string): Promise<EventMedia | undefined> {
+  consola.info(`Downloading poster ${chalk.cyan(url)}...`);
+  const response = await fetch(url);
+  if (!response.ok) {
+    consola.warn(
+      `Poster download failed (${response.status}); publishing without it.`,
+    );
+    return undefined;
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const { width, height, format } = await sharp(bytes).metadata();
+  if (!width || !height || !format) {
+    consola.warn(
+      "Poster is not an image sharp can read; publishing without it.",
+    );
+    return undefined;
+  }
+  const mimeType =
+    response.headers.get("content-type")?.split(";")[0].trim() ||
+    `image/${format === "jpg" ? "jpeg" : format}`;
+  const upload = await agent.com.atproto.repo.uploadBlob(bytes, {
+    encoding: mimeType,
+  });
+  consola.info(
+    `Uploaded poster: ${width}x${height} ${mimeType}, ${(bytes.byteLength / 1024).toFixed(0)} KiB`,
+  );
+  return {
+    $type: "community.lexicon.calendar.event#media",
+    role: "thumbnail",
+    alt: name,
+    content: upload.data.blob,
+    aspect_ratio: { width, height },
+  };
+}
 
 consola.info(`Writing ${chalk.greenBright(CALENDAR_EVENT)} record...`);
 const calendar = await agent.com.atproto.repo.createRecord({

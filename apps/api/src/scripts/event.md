@@ -88,6 +88,12 @@ When a billed name matches an artist Rocksky already knows, the script
 fills in the artist's AT-URI, which is what links the event to that
 artist's page. For a festival, each artist is also asked for a stage.
 
+A poster URL is used twice: it stays on the music record as `imageUrl`,
+and the image is downloaded and uploaded to the publisher's repo as a
+blob in the calendar record's `media` array (role `thumbnail`, with its
+aspect ratio), the shape Smoke Signal and the other calendar apps read.
+The API serves it as `media[]` and falls back to it for `imageUrl`.
+
 Both records are then printed as JSON for a last look:
 
 ```
@@ -121,6 +127,8 @@ Both records are then printed as JSON for a last look:
   ...
 }
 ? Do you want to proceed? › yes
+ℹ Downloading poster https://media.bandsintown.com/900x900/26140291.webp...
+ℹ Uploaded poster: 900x900 image/webp, 61 KiB
 ℹ Writing community.lexicon.calendar.event record...
 ℹ Record created at: at://did:plc:…/community.lexicon.calendar.event/3m2…
 ℹ Writing app.rocksky.event.music record...
