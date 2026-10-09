@@ -1,8 +1,10 @@
 package expo.modules.rockskyscrobbler
 
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import expo.modules.kotlin.modules.Module
@@ -48,7 +50,27 @@ class RockskyScrobblerModule : Module() {
       )
     }
     AsyncFunction("openNotificationAccess") {
-      context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      val c = context
+      val component = ComponentName(c, ScrobbleListener::class.java)
+      val detail = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+          .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, component.flattenToString())
+      } else null
+      var opened = false
+      if (detail != null) {
+        try {
+          c.startActivity(detail.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+          opened = true
+        } catch (_: ActivityNotFoundException) {
+          // Some manufacturers do not provide an app-specific access page.
+        } catch (_: SecurityException) {
+          // Fall back to the public notification-listener settings activity.
+        }
+      }
+      if (!opened) {
+        c.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+          .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      }
     }
     AsyncFunction("openBatterySettings") {
       context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))

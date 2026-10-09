@@ -9,9 +9,10 @@ import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { authTokenAtom } from "./atoms/auth";
 import StarrySplash from "./components/StarrySplash";
+import { useNotificationAccess } from "./hooks/useNotificationAccess";
 import { useCurrentUserProfile } from "./hooks/useProfile";
-import { queryClient } from "./lib/queryClient";
 import { linking } from "./lib/linking";
+import { queryClient } from "./lib/queryClient";
 import { RootStack } from "./Navigation";
 import { NowPlayingProvider } from "./providers/NowPlayingProvider";
 import { storage } from "./storage";
@@ -53,6 +54,7 @@ function AppInner({ fontsLoaded }: { fontsLoaded: boolean }) {
   }, [setAuthToken]);
 
   const showSplash = !storageReady || !fontsLoaded || !minTimeDone;
+  useNotificationAccess(!showSplash && !!token);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
