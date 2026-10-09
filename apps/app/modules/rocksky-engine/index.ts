@@ -2,6 +2,7 @@ import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { requireOptionalNativeModule } from "expo";
 
 type RockskyEngineNativeModule = {
+  remoteLibrary(json: string): Promise<string>;
   localLibrary(): Promise<string>;
   scanLocalMusic(): Promise<void>;
   mutateLocalMusic(json: string): Promise<string>;
@@ -120,4 +121,16 @@ export function engineCommand(
   } catch (e) {
     return { ok: false, error: String(e) };
   }
+}
+
+export async function remoteLibraryRequest<T>(
+  request: Record<string, unknown>,
+): Promise<T> {
+  if (!native)
+    throw new Error("Server libraries require a native Android build.");
+  const result = JSON.parse(
+    await native.remoteLibrary(JSON.stringify(request)),
+  );
+  if (!result.ok) throw new Error(result.error || "Library request failed");
+  return result as T;
 }

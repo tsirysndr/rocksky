@@ -41,6 +41,9 @@ object NativeEngine {
 
   @JvmStatic
   external fun command(json: String): String
+
+  @JvmStatic
+  external fun libraryCommand(json: String): String
 }
 
 class RockskyEngineModule : Module() {
@@ -87,6 +90,11 @@ class RockskyEngineModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("RockskyEngine")
+
+    AsyncFunction("remoteLibrary") { json: String ->
+      check(ensureLoaded()) { "Native library clients are unavailable" }
+      RemoteLibraries(requireNotNull(appContext.reactContext).applicationContext).request(json)
+    }
 
     AsyncFunction("localLibrary") {
       val context = requireNotNull(appContext.reactContext).applicationContext

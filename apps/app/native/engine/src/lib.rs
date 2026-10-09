@@ -5,6 +5,7 @@
 mod audio;
 mod fingerprint;
 mod metadata;
+mod remote_metadata;
 
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -16,6 +17,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
+    ReadRemoteMetadata {
+        url: String,
+        cache_path: String,
+        art_path: String,
+    },
+    CacheRemoteArtwork {
+        url: String,
+        path: String,
+    },
     WriteUploadMetadata {
         path: String,
         metadata: serde_json::Value,
@@ -321,6 +331,27 @@ pub fn handle(input: &str) -> String {
         Ok(r) => r,
         Err(e) => return err(format!("bad command: {e}")),
     };
+    if let Request::ReadRemoteMetadata {
+        url,
+        cache_path,
+        art_path,
+    } = &request
+    {
+        return match remote_metadata::read(
+            url,
+            std::path::Path::new(cache_path),
+            std::path::Path::new(art_path),
+        ) {
+            Ok(metadata) => serde_json::json!({"ok":true,"metadata":metadata}).to_string(),
+            Err(e) => err(e),
+        };
+    }
+    if let Request::CacheRemoteArtwork { url, path } = &request {
+        return match remote_metadata::artwork(url, std::path::Path::new(path)) {
+            Ok(()) => ok(),
+            Err(e) => err(e),
+        };
+    }
     if let Request::WriteUploadMetadata {
         path,
         metadata,
@@ -353,7 +384,9 @@ pub fn handle(input: &str) -> String {
         Err(e) => return err(e),
     };
     match request {
-        Request::ReadMetadata { .. }
+        Request::ReadRemoteMetadata { .. }
+        | Request::CacheRemoteArtwork { .. }
+        | Request::ReadMetadata { .. }
         | Request::Fingerprint { .. }
         | Request::WriteUploadMetadata { .. } => unreachable!(),
         Request::Status => {
@@ -463,6 +496,19 @@ mod android {
                 std::mem::forget(global);
             }
         });
+    }
+
+    #[no_mangle]
+    pub extern "system" fn Java_expo_modules_rockskyengine_NativeEngine_libraryCommand<'local>(
+        mut env: JNIEnv<'local>,
+        _class: JClass<'local>,
+        json: JString<'local>,
+    ) -> jstring {
+        let input: String = env.get_string(&json).map(|s| s.into()).unwrap_or_default();
+        let output = rocksky_libraries::handle(&input);
+        env.new_string(output)
+            .map(|s| s.into_raw())
+            .unwrap_or(std::ptr::null_mut())
     }
 
     #[no_mangle]
