@@ -165,15 +165,15 @@ export default function LibraryList<T>({
             width: 48,
             height: 48,
             borderRadius: 24,
-            backgroundColor: colors.surface3,
+            backgroundColor: colors.primary,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: colors.primary,
             elevation: 6,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Feather name="arrow-up" size={23} color={colors.text} />
+          <Feather name="arrow-up" size={23} color="#fff" />
         </TouchableOpacity>
       )}
       {!!tabs && (
