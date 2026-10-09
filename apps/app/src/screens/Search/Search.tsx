@@ -1,3 +1,4 @@
+import RemoteSearchResults from "./RemoteSearchResults";
 import { Alert } from "react-native";
 import type { DeviceTrack } from "@/src/lib/deviceMusicModel";
 import {
@@ -176,6 +177,7 @@ export default function Search() {
   const token = useAtomValue(authTokenAtom);
   const [libraryOnly, setLibraryOnly] = useState(false);
   const library = libraryOnly;
+  const [remoteOnly, setRemoteOnly] = useState(false);
   const [localMenuTrack, setLocalMenuTrack] = useState<DeviceTrack | null>(
     null,
   );
@@ -201,10 +203,13 @@ export default function Search() {
     };
   }, [query]);
 
-  const { data, isLoading } = useSearchQuery(debouncedQuery, !library);
+  const { data, isLoading } = useSearchQuery(
+    debouncedQuery,
+    !library && !remoteOnly,
+  );
   const libraryQuery = useUploadsInfiniteQuery(
     debouncedQuery,
-    library && !!token && !!debouncedQuery.trim(),
+    library && !remoteOnly && !!token && !!debouncedQuery.trim(),
   );
   const libraryTracks = libraryQuery.data?.pages.flat() ?? [];
   const results: ResultItem[] = data?.hits || [];
@@ -248,6 +253,13 @@ export default function Search() {
       ))}
     </View>
   ) : null;
+
+  const remoteResults = (
+    <RemoteSearchResults
+      query={debouncedQuery}
+      onViewAll={() => setRemoteOnly(true)}
+    />
+  );
 
   const handlePressItem = (item: ResultItem) => {
     const table = item._federation?.indexUid ?? "tracks";
@@ -308,9 +320,11 @@ export default function Search() {
                   fontFamily: "RockfordSansRegular",
                 }}
                 placeholder={
-                  library
-                    ? "Search tracks in your library"
-                    : "Songs, artists, albums..."
+                  remoteOnly
+                    ? "Search remote libraries"
+                    : library
+                      ? "Search tracks in your library"
+                      : "Songs, artists, albums..."
                 }
                 placeholderTextColor={colors.textMuted}
                 value={query}
@@ -346,14 +360,39 @@ export default function Search() {
               <ThemedSwitch
                 accessibilityLabel="Search only my library"
                 value={library}
-                onValueChange={setLibraryOnly}
+                onValueChange={(value) => {
+                  setLibraryOnly(value);
+                  setRemoteOnly(false);
+                }}
               />
             </View>
           )}
-          {library && (
+          {Platform.OS === "android" && (
+            <TouchableOpacity
+              onPress={() => setRemoteOnly((v) => !v)}
+              style={{ paddingHorizontal: 20, paddingBottom: 12 }}
+            >
+              <Text style={{ color: colors.primary }}>
+                {remoteOnly ? "Back to search results" : "Remote libraries"}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {remoteOnly && (
+            <RemoteSearchResults
+              query={debouncedQuery}
+              full
+              onViewAll={() => {}}
+            />
+          )}
+          {library && !remoteOnly && (
             <FlatList
               data={libraryTracks}
-              ListHeaderComponent={localResults}
+              ListHeaderComponent={
+                <>
+                  {remoteResults}
+                  {localResults}
+                </>
+              }
               keyExtractor={(item) => item.upload.id}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{
@@ -395,7 +434,9 @@ export default function Search() {
                       ? "Search tracks in your library"
                       : libraryQuery.isError
                         ? "Could not search your library"
-                        : "No tracks found in your library"}
+                        : token
+                          ? "No uploaded tracks found"
+                          : "No local tracks found"}
                   </Text>
                 )
               }
@@ -410,74 +451,21 @@ export default function Search() {
               }
             />
           )}
-          {!library && (
+          {!library && !remoteOnly && (
             <>
-              {/* Loading */}
-              {isLoading && localTracks.length === 0 && (
-                <View style={{ alignItems: "center", paddingVertical: 48 }}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                </View>
-              )}
-
-              {/* Empty state */}
-              {!isLoading && !debouncedQuery && (
-                <View
+              {!debouncedQuery.trim() && (
+                <Text
                   style={{
-                    alignItems: "center",
-                    paddingVertical: 64,
-                    paddingHorizontal: 32,
+                    color: colors.textMuted,
+                    textAlign: "center",
+                    padding: 32,
                   }}
                 >
-                  <Text
-                    style={{ fontSize: 48, opacity: 0.2, marginBottom: 12 }}
-                  >
-                    🎵
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: colors.textMuted,
-                      textAlign: "center",
-                    }}
-                  >
-                    Search for songs, artists, and albums
-                  </Text>
-                </View>
+                  Search for songs, artists, albums, and connected libraries
+                </Text>
               )}
-
-              {/* No results */}
-              {!isLoading &&
-                debouncedQuery &&
-                results.length === 0 &&
-                localTracks.length === 0 && (
-                  <View
-                    style={{
-                      alignItems: "center",
-                      paddingVertical: 64,
-                      paddingHorizontal: 32,
-                    }}
-                  >
-                    <Feather
-                      name="search"
-                      size={48}
-                      color={colors.textMuted}
-                      style={{ opacity: 0.2, marginBottom: 12 }}
-                    />
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: colors.textMuted,
-                        textAlign: "center",
-                      }}
-                    >
-                      No results for "{debouncedQuery}"
-                    </Text>
-                  </View>
-                )}
-
               {/* Results */}
-              {(localTracks.length > 0 ||
-                (!isLoading && results.length > 0)) && (
+              {!!debouncedQuery.trim() && (
                 <ScrollView
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
@@ -486,8 +474,16 @@ export default function Search() {
                     paddingBottom: 20,
                   }}
                 >
+                  {remoteResults}
                   {localResults}
                   {isLoading && <ActivityIndicator color={colors.primary} />}
+                  {!isLoading && !results.length && (
+                    <Text
+                      style={{ color: colors.textMuted, paddingVertical: 16 }}
+                    >
+                      No Rocksky results for this search.
+                    </Text>
+                  )}
                   {!isLoading &&
                     results.map((item, i) => (
                       <SearchResultRow

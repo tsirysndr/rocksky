@@ -56,7 +56,7 @@ export function serverQueueTrack(
     sha256: "",
   };
 }
-function EntryArtwork({ item }: { item: LibraryEntry }) {
+export function EntryArtwork({ item }: { item: LibraryEntry }) {
   const [failed, setFailed] = useState(false);
   const round = item.kind === "artist";
   return (
@@ -101,12 +101,15 @@ function EntryArtwork({ item }: { item: LibraryEntry }) {
 export default function RemoteLibrary({
   source,
   sourceSwitcher,
+  initialPath = [],
 }: {
   source: LibrarySource;
   sourceSwitcher: ReactNode;
+  initialPath?: { id: string; title: string }[];
 }) {
   const cache = useQueryClient();
-  const [path, setPath] = useState<{ id: string; title: string }[]>([]);
+  const [path, setPath] =
+    useState<{ id: string; title: string }[]>(initialPath);
   const [tab, setTab] = useState("Tracks");
   const [section, setSection] = useState<{ id: string; title: string } | null>(
     null,

@@ -1,3 +1,4 @@
+import RemoteLibraryDetails from "./screens/Library/RemoteLibraryDetails";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
@@ -8,8 +9,9 @@ import {
 import { PlatformPressable } from "@react-navigation/elements";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
-import type { ComponentType } from "react";
-import { View } from "react-native";
+import { type ComponentType, useEffect } from "react";
+import { AppState, Platform, View } from "react-native";
+import { remoteLibraries } from "./api/remoteLibraries";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authTokenAtom } from "./atoms/auth";
 import { profileAtom } from "./atoms/profile";
@@ -62,6 +64,10 @@ function makeTabStack(name: string, RootScreen: ComponentType<any>) {
         <TabStack.Screen
           name="LocalAlbumDetails"
           component={LocalAlbumDetails}
+        />
+        <TabStack.Screen
+          name="RemoteLibraryDetails"
+          component={RemoteLibraryDetails}
         />
         <TabStack.Screen name="ArtistDetails" component={ArtistDetails} />
         <TabStack.Screen name="SongDetails" component={SongDetails} />
@@ -196,6 +202,17 @@ function HomeTabs() {
 }
 
 export function RootStack() {
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const resume = () => {
+      void remoteLibraries.list().catch(() => {});
+    };
+    resume();
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") resume();
+    });
+    return () => listener.remove();
+  }, []);
   const token = useAtomValue(authTokenAtom);
   return (
     <Stack.Navigator
@@ -208,6 +225,10 @@ export function RootStack() {
       <Stack.Screen name="Analytics" component={Analytics} />
       <Stack.Screen name="AlbumDetails" component={AlbumDetails} />
       <Stack.Screen name="LocalAlbumDetails" component={LocalAlbumDetails} />
+      <Stack.Screen
+        name="RemoteLibraryDetails"
+        component={RemoteLibraryDetails}
+      />
       <Stack.Screen name="Wrapped" component={Wrapped} />
       <Stack.Screen
         name="ShareCard"
@@ -258,6 +279,10 @@ export type RootStackParamList = {
   SignIn: undefined;
   Charts: undefined;
   Library: undefined;
+  RemoteLibraryDetails: {
+    sourceId: string;
+    entry: { id: string; title: string };
+  };
   Notifications: undefined;
   AlbumDetails: { uri: string };
   LocalAlbumDetails: { title: string; subtitle: string; ids: string[] };

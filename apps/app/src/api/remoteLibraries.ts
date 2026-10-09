@@ -82,7 +82,31 @@ export type PlaylistItem = {
   artist: string;
   position: number;
 };
+export type RemoteSearchEntry = LibraryEntry & {
+  sourceId: string;
+  sourceName: string;
+  sourceKind: LibraryKind;
+};
+export type RemoteIndexStatus = {
+  sourceId: string;
+  name: string;
+  state: "idle" | "indexing" | "ready" | "error" | "removed";
+  updated: number;
+  completed: number;
+  count: number;
+};
 export const remoteLibraries = {
+  search: (query: string, offset = 0, kind = "") =>
+    remoteLibraryRequest<{
+      entries: RemoteSearchEntry[];
+      nextOffset: number | null;
+    }>({ cmd: "searchIndex", query, offset, kind }),
+  indexStatus: () =>
+    remoteLibraryRequest<{ sources: RemoteIndexStatus[] }>({
+      cmd: "indexStatus",
+    }),
+  reindex: (sourceId: string) =>
+    remoteLibraryRequest({ cmd: "indexStart", sourceId, force: true }),
   playlistCapabilities: (sourceId: string) =>
     remoteLibraryRequest<{
       create: boolean;

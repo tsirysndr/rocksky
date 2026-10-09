@@ -1088,3 +1088,7 @@ pub fn playlist_operation(c: &Config, input: &Value) -> Result<Value> {
     }
     Ok(json!({}))
 }
+
+pub fn indexed_cover(c: &Config, id: &str) -> Result<String> {
+    Ok(sub_url(c, "getCoverArt", &[("id", id), ("size", "300")])?.into())
+}

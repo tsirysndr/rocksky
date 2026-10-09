@@ -49,6 +49,13 @@ class RemoteLibraries(private val context: Context) {
       throw error
     }
   }
+  private val indexPath get() = File(context.noBackupFilesDir, "remote-search.sqlite").absolutePath
+  private fun startIndex(config: JSONObject, force: Boolean = false, reset: Boolean = false): JSONObject = synchronized(lock) {
+    // Re-read under the same lock as save/remove: stale callers must never
+    // restart a disconnected library or index with superseded credentials.
+    val current = read().optJSONObject(config.getString("id")) ?: return@synchronized JSONObject()
+    native(JSONObject().put("cmd", "indexStart").put("config", current).put("indexPath", indexPath).put("force", force).put("reset", reset))
+  }
   private fun publicConfig(config: JSONObject) = JSONObject().apply {
     for (field in listOf("id", "name", "kind", "baseUrl", "username")) put(field, config.optString(field))
   }
@@ -61,9 +68,28 @@ class RemoteLibraries(private val context: Context) {
     try {
       val request = JSONObject(input)
       val result = when (request.getString("cmd")) {
-        "list" -> synchronized(lock) {
-          val data = read()
-          JSONObject().put("sources", JSONArray(data.keys().asSequence().map { publicConfig(data.getJSONObject(it)) }.toList()))
+        "list" -> {
+          val data = synchronized(lock) { read() }
+          val configs = data.keys().asSequence().map { data.getJSONObject(it) }.toList()
+          configs.forEach { runCatching { startIndex(it) } }
+          JSONObject().put("sources", JSONArray(configs.map { publicConfig(it) }))
+        }
+        "searchIndex", "indexStatus" -> {
+          val data = synchronized(lock) { read() }
+          val configs = data.keys().asSequence().map { data.getJSONObject(it) }.toList()
+          val result = native(request.put("configs", JSONArray(configs)).put("indexPath", indexPath))
+          result.optJSONArray("entries")?.let { entries ->
+            val caches = configs.associate { it.getString("id") to RemoteMetadataCache(context, it.getString("id")) }
+            for (i in 0 until entries.length()) {
+              val entry = entries.getJSONObject(i)
+              caches[entry.optString("sourceId")]?.merge(JSONObject().put("entries", JSONArray().put(entry)))
+            }
+          }
+          result
+        }
+        "indexStart" -> {
+          val config = synchronized(lock) { read().optJSONObject(request.getString("sourceId")) } ?: error("Library was disconnected")
+          startIndex(config, request.optBoolean("force"))
         }
         "save" -> {
           val config = request.getJSONObject("config")
@@ -83,10 +109,14 @@ class RemoteLibraries(private val context: Context) {
             if (previous != null && (previous.optString("baseUrl") != connected.optString("baseUrl") || previous.optString("username") != connected.optString("username"))) RemoteMetadataCache(context, id).clear()
             val data = read(); data.put(id, connected); write(data)
           }
+          val changed = previous == null || listOf("baseUrl", "username", "password", "token", "userId").any { previous.optString(it) != connected.optString(it) }
+          // Index failures must not prevent connecting or playing from the server.
+          runCatching { startIndex(connected, force = true, reset = changed) }
           JSONObject().put("source", publicConfig(connected))
         }
         "remove" -> synchronized(lock) {
           val sourceId = request.getString("sourceId")
+          native(JSONObject().put("cmd", "removeIndex").put("sourceId", sourceId).put("indexPath", indexPath))
           val data = read(); data.remove(sourceId); write(data)
           RemoteMetadataCache(context, sourceId).clear(); JSONObject()
         }
@@ -111,7 +141,11 @@ class RemoteLibraries(private val context: Context) {
             }
             "cacheArtwork" -> JSONObject().put("metadata", cache.cacheLookup(request.getString("id"), request.optString("artist"), request.optString("artistUrl"), request.optString("albumUrl")))
             "browse" -> cache.merge(native(request.put("config", config)))
-            else -> native(request.put("config", config))
+            else -> native(request.put("config", config)).also {
+              if (request.getString("cmd") == "addToPlaylist" || (request.getString("cmd") == "playlistOperation" && request.optString("operation") in listOf("create", "rename", "delete"))) {
+                runCatching { startIndex(config, force = true) }
+              }
+            }
           }
         }
         else -> error("Unknown library operation")

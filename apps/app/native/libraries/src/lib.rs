@@ -1,6 +1,7 @@
 //! Device-side library clients. Protocol patterns follow music-player/provider
 //! and rockbox-zig/upnp. No server requests or credentials pass through Rocksky.
 mod http;
+mod index;
 mod kodi_discovery;
 mod upnp;
 use reqwest::{blocking::Client, Url};
@@ -128,6 +129,25 @@ fn json_response(request: reqwest::blocking::RequestBuilder) -> Result<Value> {
 }
 fn run(input: Value) -> Result<Value> {
     let cmd = text(&input, "cmd");
+    if cmd == "searchIndex" || cmd == "indexStatus" {
+        let configs: Vec<Config> = serde_json::from_value(input["configs"].clone())
+            .map_err(|_| "Invalid search libraries")?;
+        let path = text(&input, "indexPath");
+        return if cmd == "indexStatus" {
+            index::status(&path, &configs)
+        } else {
+            index::search(
+                &path,
+                &configs,
+                &text(&input, "query"),
+                &text(&input, "kind"),
+                input["offset"].as_u64().unwrap_or(0).min(10_000_000) as usize,
+            )
+        };
+    }
+    if cmd == "removeIndex" {
+        return index::remove(&text(&input, "indexPath"), &text(&input, "sourceId"));
+    }
     if cmd == "discover" {
         let devices = match input["kind"].as_str().unwrap_or("upnp") {
             "upnp" => upnp::discover()?,
@@ -140,6 +160,14 @@ fn run(input: Value) -> Result<Value> {
         serde_json::from_value(input["config"].clone()).map_err(|_| "Invalid library settings")?;
     if !["navidrome", "jellyfin", "upnp", "kodi", "plex"].contains(&c.kind.as_str()) {
         return Err("Unsupported library type".into());
+    }
+    if cmd == "indexStart" {
+        return index::start(
+            &text(&input, "indexPath"),
+            c,
+            input["force"].as_bool().unwrap_or(false),
+            input["reset"].as_bool().unwrap_or(false),
+        );
     }
     if cmd == "artistArtwork" {
         return Ok(
@@ -249,7 +277,7 @@ mod protocol_tests {
     use super::*;
     use std::io::{BufRead, BufReader, Read, Write};
     use std::net::TcpListener;
-    fn server(bodies: Vec<&str>) -> (String, std::thread::JoinHandle<Vec<String>>) {
+    pub(super) fn server(bodies: Vec<&str>) -> (String, std::thread::JoinHandle<Vec<String>>) {
         let socket = TcpListener::bind("127.0.0.1:0").unwrap();
         let base = format!("http://{}", socket.local_addr().unwrap());
         let origin = base.clone();

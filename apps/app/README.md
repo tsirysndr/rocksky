@@ -25,6 +25,12 @@ Remote track menus include **Add to playlist**, targeting the connected server. 
 
 Playlist writes use the credentials stored on the device and update the server directly. Deleting a playlist requires confirmation. Track removal uses playlist-entry identifiers where available, preserving duplicate-song occurrences. Provider protocol tests use local mock servers; compatibility with individual server versions still requires device testing.
 
+The **Search** tab also searches connected remote libraries using an on-device SQLite FTS5 index. Results include tracks, albums, artists, and playlists with their library names. Tap a track to play, use its bottom-sheet actions to queue it or add it to a server playlist, or open a matching album/artist/playlist to browse the server. The remote results list supports pagination and works without a Rocksky account. Uploaded music keeps its existing online search.
+
+Indexing starts after connecting a server and checks for unfinished or stale indexes when the app opens or returns to the foreground. Rust uses a bounded Tokio blocking pool for the existing synchronous clients, fetches metadata in pages, and makes each completed page searchable. Successful refreshes remove stale entries; failed refreshes retain cached results. Indexes refresh after six hours or manually from Search → Remote libraries, with a five-minute retry cooldown after failures. The index is stored in Android's private no-backup directory; server credentials remain in the encrypted connection store and artwork authentication is reconstructed when reading results.
+
+The worker runs while the app process is alive, including ordinary backgrounding. Android may terminate that process; the next foreground visit restarts the scan while retaining cached results. This is not a foreground service or a WorkManager job. Searching cached metadata works offline; streaming and browsing uncached server content still require a connection.
+
 ## Get started
 
 1. Install dependencies
