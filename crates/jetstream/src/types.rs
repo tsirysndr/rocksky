@@ -308,8 +308,10 @@ pub struct PlaylistSongRecord {
 }
 
 /// `community.lexicon.calendar.event` — the generic calendar event a music
-/// event is built on. `locations` and `uris` are kept as raw JSON: the
-/// location union has five member shapes and the appview stores them verbatim.
+/// event is built on. `locations`, `uris` and `media` are kept as raw JSON:
+/// the location union has five member shapes, `media` (poster blobs with an
+/// aspect ratio) is an ecosystem extension not in the published lexicon yet,
+/// and the appview stores all three verbatim.
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CalendarEventRecord {
@@ -322,6 +324,7 @@ pub struct CalendarEventRecord {
     pub status: Option<String>,
     pub locations: Option<Vec<Value>>,
     pub uris: Option<Vec<Value>>,
+    pub media: Option<Vec<Value>>,
 }
 
 /// `app.rocksky.event.music` — marks a calendar event as a music event and

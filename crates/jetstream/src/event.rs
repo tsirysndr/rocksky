@@ -1120,6 +1120,12 @@ mod sqlite_behaviour {
                 "locality": "Paris"
             })]),
             uris: None,
+            media: Some(vec![serde_json::json!({
+                "$type": "community.lexicon.calendar.event#media",
+                "role": "thumbnail",
+                "content": { "$type": "blob", "ref": { "$link": "bafkposter" }, "mimeType": "image/webp", "size": 1 },
+                "aspect_ratio": { "width": 900, "height": 900 }
+            })]),
         }
     }
 

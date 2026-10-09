@@ -413,6 +413,8 @@ pub enum Events {
     Locations,
     #[iden = "uris"]
     Uris,
+    #[iden = "media"]
+    Media,
     #[iden = "kind"]
     Kind,
     #[iden = "genre"]
