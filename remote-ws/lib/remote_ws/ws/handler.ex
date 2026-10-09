@@ -158,12 +158,17 @@ defmodule RemoteWs.Ws.Handler do
     case Auth.verify_token(token) do
       {:ok, %{did: did}} when is_binary(did) ->
         out = Jason.encode!(command_out(msg["type"], action, msg["args"]))
-        target = msg["target"]
+        # A stale/disconnected target must never turn a one-device command
+        # into a broadcast. Only the legacy, explicitly untargeted form fans out.
+        case Map.fetch(msg, "target") do
+          :error ->
+            Devices.broadcast(did, out)
 
-        if is_binary(target) and Devices.send_to(did, target, out) == :ok do
-          :ok
-        else
-          Devices.broadcast(did, out)
+          {:ok, target} when is_binary(target) and byte_size(target) > 0 ->
+            Devices.send_to(did, target, out)
+
+          {:ok, _invalid_target} ->
+            :ok
         end
 
         {[], state}

@@ -192,7 +192,9 @@ The server enriches each item's `album_art` from the library where possible.
 ```
 
 - `target` (optional) — send only to that device. Omit to broadcast to **all**
-  the user's devices.
+  the user's devices. If a supplied target is disconnected, unknown, malformed,
+  or belongs to another user, the command is dropped; it never falls back to a
+  broadcast. UI transport controls should always include the selected device ID.
 - `args` (optional) — action-specific (see §6).
 
 The server relays `{ "type": "command", "action": …, "args": … }` to the

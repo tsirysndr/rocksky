@@ -58,6 +58,26 @@ defmodule RemoteWs.Ws.HandlerTest do
     assert Jason.decode!(f2)["action"] == "next"
   end
 
+  test "missing, malformed and other-user targets never fall back to broadcast" do
+    did = new_did()
+    token = Token.sign(%{"did" => did})
+    a = FakeDevice.start(did, "a", "A", self())
+    b = FakeDevice.start(did, "b", "B", self())
+    foreign = FakeDevice.start(new_did(), "foreign", "Foreign", self())
+
+    for target <- ["disconnected", "foreign", "", " ", nil, 123, %{}],
+        action <- ["play", "pause", "next", "previous", "seek"] do
+      Handler.handle(
+        %{"type" => "command", "action" => action, "target" => target, "token" => token},
+        state()
+      )
+    end
+
+    refute_receive {:pushed, ^a, _}, 100
+    refute_receive {:pushed, ^b, _}, 100
+    refute_receive {:pushed, ^foreign, _}, 100
+  end
+
   test "seek command carries its position in args" do
     did = new_did()
     token = Token.sign(%{"did" => did})

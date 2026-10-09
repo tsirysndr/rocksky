@@ -4,11 +4,12 @@ import {
   type RemoteQueueItem,
   type RemoteDevice as SdkRemoteDevice,
 } from "@rocksky/sdk/remote";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { authTokenAtom } from "../atoms/auth";
 import {
   activeDeviceIdAtom,
+  selectedSourceAtom,
   type DeviceQueueTrack,
   type DeviceTrack,
   devicesAtom,
@@ -182,7 +183,16 @@ export function useRemoteDevicesConnection() {
 
     setCommands({
       send: (action, args, target) => {
-        controller.command(action, target, args);
+        const selected = getDefaultStore().get(selectedSourceAtom);
+        const destination =
+          target ??
+          (selected?.kind === "device"
+            ? selected.id
+            : selected
+              ? null
+              : getDefaultStore().get(activeDeviceIdAtom));
+        if (!destination?.trim()) return;
+        controller.command(action, destination, args);
       },
       setPrimary: (deviceId) => {
         controller.setPrimary(deviceId);

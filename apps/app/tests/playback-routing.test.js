@@ -147,3 +147,22 @@ test("notification controls with no route do not send or fake playback changes",
   expect(command).not.toHaveBeenCalled();
   expect(reflectPlaying).not.toHaveBeenCalled();
 });
+
+test("notification targets survive the real SDK websocket serialization", async () => {
+  const { RemoteController } = await import("../../../sdk/typescript/src/remote-controller.ts");
+  const frames = [];
+  const controller = new RemoteController({ token: "test", name: "Rocksky Test" });
+  controller.ws = { readyState: WebSocket.OPEN, send: (frame) => frames.push(JSON.parse(frame)) };
+  remoteBridge.setController(controller);
+  await playbackService();
+  for (const target of ["speaker-a", "speaker-b"]) {
+    store.set(selectedSourceAtom, { kind: "device", id: target });
+    events.get("pause")();
+    events.get("play")();
+    expect(frames.at(-2)).toEqual({ type: "command", action: "pause", token: "test", target });
+    expect(frames.at(-1)).toEqual({ type: "command", action: "play", token: "test", target });
+  }
+  store.set(selectedSourceAtom, { kind: "device", id: "" });
+  events.get("pause")();
+  expect(frames.length).toBe(4);
+});
