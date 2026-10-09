@@ -11,6 +11,10 @@ Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify,
 
 **[rocksky.app](https://rocksky.app)** • **[Docs](https://docs.rocksky.app)** • **[Discord](https://discord.gg/EVcBy2fVa3)**
 
+<a href="https://play.google.com/store/apps/details?id=app.rocksky">
+  <img src="./apps/landing/public/google-play-badge.png" alt="Get Rocksky on Google Play" width="200" />
+</a>
+
 ![Preview](./.github/assets/preview.png)
 
 ## Contents
@@ -92,6 +96,8 @@ Tap or insert a card and the album, playlist or your favorites starts playing.
 ### 💻 Apps & clients
 
 - **Web** — [rocksky.app](https://rocksky.app), with a dedicated mobile build
+- **Android** — [native client on Google Play](https://play.google.com/store/apps/details?id=app.rocksky),
+  with automatic scrobbling, local and uploaded music playback, and listening stats
 - **Desktop** — native app for macOS, Linux and Windows
 - **CLI** — scrobble, search, browse, upload and import from the terminal,
   including a full **TUI** player
@@ -119,6 +125,16 @@ Tap or insert a card and the album, playlist or your favorites starts playing.
 3. Start scrobbling — your data stays under your control
 
 **Self-hosting** and advanced usage instructions are below.
+
+### Android app
+
+Install **[Rocksky from Google Play](https://play.google.com/store/apps/details?id=app.rocksky)**
+and sign in with your Bluesky account. Allow notification access when prompted
+to scrobble music from other apps. Play local files and your uploaded music,
+browse your listening history and stats, and keep up with friends.
+
+The Android client lives in [`apps/app`](apps/app), built with React Native,
+Expo and a native Rust playback engine.
 
 ### Desktop app
 
