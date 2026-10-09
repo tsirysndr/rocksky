@@ -1,7 +1,7 @@
 {
   "name": "@rocksky/app",
   "main": "index.js",
-  "version": "2.2.6",
+  "version": "2.2.7",
   "scripts": {
     "assets:brand": "node scripts/generate-brand-assets.cjs",
     "start": "expo start",

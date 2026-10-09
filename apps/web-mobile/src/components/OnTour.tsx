@@ -1,5 +1,6 @@
+import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import EventRsvpButton from "./EventRsvpButton";
-import { useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { useArtistEvents } from "../hooks/useArtistEvents";
 import { eventDetails, eventLink } from "../types/event";
 import "./OnTour.css";
@@ -19,9 +20,27 @@ export default function OnTour({
       query.data?.pages.flat().map((event) => [event.uri, event]),
     ).values(),
   ];
+  useEffect(() => {
+    if (
+      expanded &&
+      query.hasNextPage &&
+      !query.isFetching &&
+      !query.isFetchNextPageError
+    ) {
+      void query.fetchNextPage();
+    }
+  }, [
+    expanded,
+    query.hasNextPage,
+    query.isFetching,
+    query.isFetchNextPageError,
+    query.fetchNextPage,
+  ]);
+  const previewLimit = 3;
+  const listId = useId();
   if (!events.length) return null;
-  const visibleEvents = expanded ? events : events.slice(0, 9);
-  const canExpand = events.length > 9 || query.hasNextPage;
+  const visibleEvents = expanded ? events : events.slice(0, previewLimit);
+  const canExpand = events.length > previewLimit || query.hasNextPage;
 
   return (
     <section
@@ -30,30 +49,8 @@ export default function OnTour({
     >
       <header className="on-tour__header">
         <h2>On Tour</h2>
-        {canExpand && (
-          <button
-            type="button"
-            disabled={query.isFetchingNextPage}
-            aria-expanded={expanded}
-            onClick={() => {
-              if (!expanded) setExpandedArtist(artistUri);
-              if (query.hasNextPage) void query.fetchNextPage();
-              else if (expanded) setExpandedArtist(undefined);
-            }}
-          >
-            {query.isFetchingNextPage
-              ? "Loading concerts…"
-              : query.isFetchNextPageError
-                ? "Try again"
-                : expanded
-                  ? query.hasNextPage
-                    ? "View more upcoming concerts"
-                    : "Show fewer concerts"
-                  : `View all upcoming concerts (${events.length}${query.hasNextPage ? "+" : ""})`}
-          </button>
-        )}
       </header>
-      <ul className="on-tour__grid">
+      <ul id={listId} className="on-tour__grid">
         {visibleEvents.map((event) => {
           const details = eventDetails(event);
           const href =
@@ -105,8 +102,38 @@ export default function OnTour({
           );
         })}
       </ul>
-      {query.isFetchNextPageError && (
-        <p role="status">Couldn’t load more events. Please try again.</p>
+      {canExpand && (
+        <button
+          type="button"
+          className="on-tour__toggle"
+          aria-expanded={expanded}
+          aria-controls={listId}
+          onClick={() => setExpandedArtist(expanded ? undefined : artistUri)}
+        >
+          <span>
+            {expanded ? "Show fewer concerts" : "View all upcoming concerts"}
+          </span>
+          {expanded ? (
+            <IconChevronUp size={20} aria-hidden="true" />
+          ) : (
+            <IconChevronDown size={20} aria-hidden="true" />
+          )}
+        </button>
+      )}
+      {expanded && query.isFetchingNextPage && (
+        <p role="status">Loading more concerts…</p>
+      )}
+      {expanded && query.isFetchNextPageError && (
+        <p role="status">
+          Couldn’t load more events.{" "}
+          <button
+            type="button"
+            className="on-tour__retry"
+            onClick={() => query.fetchNextPage()}
+          >
+            Try again
+          </button>
+        </p>
       )}
     </section>
   );

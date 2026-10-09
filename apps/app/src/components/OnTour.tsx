@@ -1,5 +1,6 @@
+import Feather from "@expo/vector-icons/Feather";
 import EventRsvpButton from "./EventRsvpButton";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Linking,
@@ -27,8 +28,25 @@ export default function OnTour({
       query.data?.pages.flat().map((event) => [event.uri, event]),
     ).values(),
   ];
+  useEffect(() => {
+    if (
+      expanded &&
+      query.hasNextPage &&
+      !query.isFetching &&
+      !query.isFetchNextPageError
+    ) {
+      void query.fetchNextPage();
+    }
+  }, [
+    expanded,
+    query.hasNextPage,
+    query.isFetching,
+    query.isFetchNextPageError,
+    query.fetchNextPage,
+  ]);
+  const previewLimit = 3;
   if (!events.length) return null;
-  const visibleEvents = expanded ? events : events.slice(0, 9);
+  const visibleEvents = expanded ? events : events.slice(0, previewLimit);
 
   return (
     <View style={styles.section}>
@@ -40,34 +58,6 @@ export default function OnTour({
         >
           On Tour
         </Text>
-        {(events.length > 9 || query.hasNextPage) && (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityState={{
-              disabled: query.isFetchingNextPage,
-              expanded,
-            }}
-            disabled={query.isFetchingNextPage}
-            style={styles.more}
-            onPress={() => {
-              if (!expanded) setExpandedArtist(artistUri);
-              if (query.hasNextPage) void query.fetchNextPage();
-              else if (expanded) setExpandedArtist(undefined);
-            }}
-          >
-            <Text style={styles.moreText}>
-              {query.isFetchingNextPage
-                ? "Loading concerts…"
-                : query.isFetchNextPageError
-                  ? "Try again"
-                  : expanded
-                    ? query.hasNextPage
-                      ? "View more upcoming concerts"
-                      : "Show fewer concerts"
-                    : `View all upcoming concerts (${events.length}${query.hasNextPage ? "+" : ""})`}
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
       {visibleEvents.map((event) => {
         const details = eventDetails(event);
@@ -137,10 +127,41 @@ export default function OnTour({
           </View>
         );
       })}
-      {query.isFetchNextPageError && (
+      {(events.length > previewLimit || query.hasNextPage) && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          style={styles.more}
+          onPress={() => setExpandedArtist(expanded ? undefined : artistUri)}
+        >
+          <Text style={styles.moreText}>
+            {expanded ? "Show fewer concerts" : "View all upcoming concerts"}
+          </Text>
+          <Feather
+            name={expanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.text}
+          />
+        </TouchableOpacity>
+      )}
+      {expanded && query.isFetchingNextPage && (
         <Text accessibilityLiveRegion="polite" style={styles.meta}>
-          Couldn’t load more events. Please try again.
+          Loading more concerts…
         </Text>
+      )}
+      {expanded && query.isFetchNextPageError && (
+        <View>
+          <Text accessibilityLiveRegion="polite" style={styles.meta}>
+            Couldn’t load more events.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={styles.more}
+            onPress={() => query.fetchNextPage()}
+          >
+            <Text style={styles.moreText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -162,16 +183,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
   },
   more: {
-    minHeight: 44,
-    justifyContent: "center",
-    maxWidth: 180,
-    flexShrink: 1,
+    minHeight: 48,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
   moreText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
-    textAlign: "right",
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24 },
   event: {

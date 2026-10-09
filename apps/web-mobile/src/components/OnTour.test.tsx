@@ -50,7 +50,7 @@ describe("On tour", () => {
     expect(html).toContain('href="https://example.com/tickets"');
   });
 
-  it("previews two rows and offers an accordion with a chevron", () => {
+  it("previews three rows and offers an accordion with a chevron", () => {
     const html = render([
       Array.from({ length: 13 }, (_, i) => ({
         ...event,
@@ -58,7 +58,7 @@ describe("On tour", () => {
         artists: [{ name: "Headliner" }, { name: "Support" }],
       })),
     ]);
-    expect(html.match(/<li /g)).toHaveLength(6);
+    expect(html.match(/<li /g)).toHaveLength(3);
     expect(html).toContain("View all upcoming concerts");
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("tabler-icon-chevron-down");
