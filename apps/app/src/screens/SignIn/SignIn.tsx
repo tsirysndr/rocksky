@@ -20,6 +20,7 @@ import {
   searchHandleSuggestions,
 } from "@/src/api/handleLookup";
 import LoginStars from "@/src/components/LoginStars";
+import LoginTour from "@/src/components/LoginTour";
 import { Text } from "@/src/components/Text";
 import UserAvatar from "@/src/components/UserAvatar";
 import { API_URL } from "@/src/consts";
@@ -193,7 +194,7 @@ export default function SignIn({ onSuccess, onCancel }: Props) {
             flexGrow: 1,
             justifyContent: "center",
             paddingHorizontal: 32,
-            paddingTop: insets.top + 56,
+            paddingTop: insets.top + 48,
             paddingBottom: insets.bottom + 32,
           }}
         >
@@ -214,11 +215,13 @@ export default function SignIn({ onSuccess, onCancel }: Props) {
               fontSize: 15,
               color: colors.textMuted,
               textAlign: "center",
-              marginBottom: 48,
+              marginBottom: 8,
             }}
           >
             Your music, your community
           </Text>
+
+          <LoginTour />
 
           {/* Handle input */}
           <Text
