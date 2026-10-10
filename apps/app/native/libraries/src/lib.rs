@@ -190,6 +190,10 @@ fn run(input: Value) -> Result<Value> {
         let path = text(&input, "indexPath");
         if input["queue"].as_bool().unwrap_or(false) {
             artwork::queue_page(&path, &c, &input["page"])?;
+        }
+        if input["queue"].as_bool().unwrap_or(false)
+            || input["resume"].as_bool().unwrap_or(false)
+        {
             artwork::start(&path, &text(&input, "artworkRoot"), c.clone())?;
         }
         return artwork::merge(&path, &c, input["page"].clone());

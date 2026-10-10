@@ -3,7 +3,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   type InfiniteData,
   useInfiniteQuery,
-  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -30,6 +29,7 @@ import {
 } from "../../api/remoteLibraries";
 import { PickerSheet } from "../../components/PlaylistSheets";
 import { Text } from "../../components/Text";
+import { refreshRemoteArtwork } from "../../lib/remoteLibraryArtwork";
 import { RemoteLibraryPaging } from "../../lib/remoteLibraryPaging";
 import { playQueue, queueTracks } from "../../lib/libraryPlayback";
 import type { UploadQueueTrack } from "../../lib/uploadEngine";
@@ -113,15 +113,6 @@ export default function RemoteLibrary({
 }) {
   const cache = useQueryClient();
   const focused = useIsFocused();
-  const artworkStatus = useQuery({
-    queryKey: ["remote-index-status"],
-    queryFn: remoteLibraries.indexStatus,
-    enabled: focused,
-    refetchInterval: focused ? 2000 : false,
-  });
-  const artworkRevision = artworkStatus.data?.sources.find(
-    (s) => s.sourceId === source.id,
-  )?.artworkRevision;
   const [path, setPath] =
     useState<{ id: string; title: string }[]>(initialPath);
   const [tab, setTab] = useState("Tracks");
@@ -236,29 +227,27 @@ export default function RemoteLibrary({
   ]);
 
   useEffect(() => {
-    if (!focused || !artworkRevision || query.isFetching) return;
+    if (!focused) return;
     let cancelled = false;
-    const snapshot = cache.getQueryData<InfiniteData<LibraryPage, number>>(queryKey);
-    if (!snapshot) return;
-    // Read local artwork only. Re-browsing every loaded page here competes with
-    // pagination and can cancel the next page while a user is scrolling.
-    void (async () => {
-      for (const page of snapshot.pages) {
-        const updated = await remoteLibraries.refreshArtwork(source.id, page);
-        if (cancelled) return;
-        cache.setQueryData<InfiniteData<LibraryPage, number>>(queryKey, (current) =>
-          current ? {
-            ...current,
-            // Preserve appended pages and ignore responses for replaced pages.
-            pages: current.pages.map((p) => p === page ? updated : p),
-          } : current,
-        );
+    let timer: ReturnType<typeof setTimeout>;
+    // Poll even at revision zero or after a stopped worker. The native cache
+    // read resumes extraction without re-browsing or re-queueing enriched rows.
+    const tick = async () => {
+      try {
+        await refreshRemoteArtwork(cache, queryKey, source.id,
+          remoteLibraries.refreshArtwork, () => cancelled);
+      } catch {
+        // Retry next tick, even if no new artwork revision was published.
+      } finally {
+        if (!cancelled) timer = setTimeout(() => void tick(), 2000);
       }
-    })().catch(() => {
-      // Artwork is best effort; browsing remains available.
-    });
-    return () => { cancelled = true; };
-  }, [focused, artworkRevision, listKey, cache, source.id, query.isFetching]);
+    };
+    void tick();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [focused, listKey, cache, source.id]);
   const refresh = async () => {
     await cache.cancelQueries({ queryKey, exact: true });
     cache.setQueryData<InfiniteData<LibraryPage, number>>(queryKey, (data) =>

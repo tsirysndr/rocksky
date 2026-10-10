@@ -987,6 +987,40 @@ mod tests {
         assert!(matched_artist(&[json!({"uri":"at://did/app.rocksky.song/a","name":"Singer","picture":"https://images.test/a"})],"Singer").is_none());
     }
     #[test]
+    fn foreground_refresh_resumes_stopped_worker_without_reindexing_display_rows() {
+        let (temp, path, db, c, dir) = setup();
+        let mut entry = track();
+        entry.artist.clear();
+        entry.art = Some("http://127.0.0.1:1/cover.jpg".into());
+        put(&db, &c.id, &provider_key(entry.art.as_ref().unwrap()),
+            &json!({"available":false}), index::now() + WEEK, 0).unwrap();
+        let image = dir.join("cover.img");
+        std::fs::write(&image, b"cached cover").unwrap();
+        let cover = format!("file://{}", image.display());
+        put(&db, &c.id, &album_key("", &entry.album),
+            &json!({"art":cover}), index::now() + WEEK, 0).unwrap();
+        queue_page(&path, &c, &json!({"entries":[entry]})).unwrap();
+        stop(&path, &c.id);
+        assert_eq!(revision(&db, &c.id), 0);
+        let original = indexed_payload(&db, &c, &entry.id).unwrap();
+        let mut displayed = entry.clone();
+        displayed.title = "Enriched display title".into();
+        let result = super::super::run(json!({
+            "cmd":"artworkMerge", "config":c, "indexPath":path,
+            "artworkRoot":temp.path().to_str().unwrap(), "resume":true,
+            "page":{"entries":[displayed],"nextOffset":100}
+        })).unwrap();
+        assert_eq!(result["nextOffset"], 100);
+        assert_eq!(result["entries"][0]["art"], cover);
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while active(&path, &c.id) && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(revision(&db, &c.id), 1);
+        assert_eq!(indexed_payload(&db, &c, &entry.id).unwrap(), original);
+        assert_eq!(metadata(&path, &c, &entry.id).unwrap()["albumArt"], cover);
+    }
+    #[test]
     fn tokio_worker_skips_supplied_cover_and_remembers_progress() {
         let (temp, path, db, mut c, dir) = setup();
         let mut entry = track();

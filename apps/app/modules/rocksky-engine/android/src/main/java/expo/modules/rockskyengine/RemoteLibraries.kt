@@ -83,8 +83,8 @@ class RemoteLibraries(private val context: Context) {
       source.optString("state") == "indexing" || source.optBoolean("artworkActive")
     } }
   }
-  private fun mergeArtwork(config: JSONObject, page: JSONObject, queue: Boolean = false): JSONObject = native(JSONObject()
-    .put("cmd", "artworkMerge").put("config", config).put("page", page).put("queue", queue))
+  private fun mergeArtwork(config: JSONObject, page: JSONObject, queue: Boolean = false, resume: Boolean = false): JSONObject = native(JSONObject()
+    .put("cmd", "artworkMerge").put("config", config).put("page", page).put("queue", queue).put("resume", resume))
   fun request(input: String): String {
     try {
       val request = JSONObject(input)
@@ -169,7 +169,7 @@ class RemoteLibraries(private val context: Context) {
               JSONObject().put("metadata", metadata)
             }
             "cacheArtwork" -> JSONObject().put("metadata", cache.cacheLookup(request.getString("id"), request.optString("artist"), request.optString("artistUrl"), request.optString("albumUrl")))
-            "artworkMerge" -> cache.merge(mergeArtwork(config, request.getJSONObject("page")))
+            "artworkMerge" -> cache.merge(mergeArtwork(config, request.getJSONObject("page"), resume = request.optBoolean("resume", true)))
             "browse" -> cache.merge(mergeArtwork(config, native(request.put("config", config)), queue = true))
             else -> native(request.put("config", config)).also {
               if (request.getString("cmd") == "addToPlaylist" || (request.getString("cmd") == "playlistOperation" && request.optString("operation") in listOf("create", "rename", "delete"))) {
