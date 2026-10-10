@@ -34,6 +34,7 @@
     "feed": "tsx ./src/scripts/feed.ts",
     "event": "tsx ./src/scripts/event.ts",
     "dedup": "bun ./src/scripts/dedup.ts",
+    "dedup:records": "tsx ./src/scripts/dedup-records.ts",
     "seed:feed": "tsx ./src/scripts/seed-feed.ts",
     "likes": "tsx ./src/scripts/likes.ts",
     "backfill:likes": "tsx ./src/scripts/backfill-likes.ts",
