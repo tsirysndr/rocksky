@@ -68,7 +68,10 @@ export default function RemoteSearchResults({
   });
   // Refresh once more after the final page (or source removal) changes the index.
   const version = status.data?.sources
-    .map((s) => `${s.sourceId}:${s.state}:${s.completed}`)
+    .map(
+      (s) =>
+        `${s.sourceId}:${s.state}:${s.completed}:${s.artworkRevision ?? 0}`,
+    )
     .join("|");
   useEffect(() => {
     if (enabled && query.trim() && version) void results.refetch();

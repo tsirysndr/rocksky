@@ -34,10 +34,7 @@ class ScrobbleUploadJob : JobService() {
             val auth = ScrobbleStore.auth(this) ?: return@upload "done"
             if (!ScrobbleStore.settings(this).enabled) return@upload "done"
             val db = ScrobbleStore.db(this)
-            val row = db.rawQuery("SELECT id,payload FROM queue WHERE did=? AND failed=0 ORDER BY created LIMIT 1",
-              arrayOf(auth.getString("did"))).use {
-              if (it.moveToFirst()) it.getString(0) to it.getString(1) else null
-            } ?: return@upload "done"
+            val row = ScrobbleStore.nextQueued(this, auth.getString("did")) ?: return@upload "done"
             if (stop.get()) return@upload "done"
             val conn = (URL(auth.getString("endpoint").trimEnd('/') + "/xrpc/app.rocksky.scrobble.createScrobble")
               .openConnection() as HttpURLConnection).apply {

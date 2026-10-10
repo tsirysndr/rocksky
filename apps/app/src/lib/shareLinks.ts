@@ -13,6 +13,8 @@ export type ShareItem = {
   subtitle?: string;
   artwork?: string;
   year?: number;
+  owner?: { did: string; displayName?: string; handle?: string };
+  period?: string;
   stats?: { label: string; value: string }[];
   rankings?: {
     label: string;

@@ -24,6 +24,8 @@ const knownApps = [
   { packageName: "com.spotify.music", label: "Spotify" },
   { packageName: "com.aspiro.tidal", label: "Tidal" },
   { packageName: "deezer.android.app", label: "Deezer" },
+  { packageName: "com.google.android.youtube", label: "YouTube" },
+  { packageName: "fm.atradio.app", label: "atradio.fm" },
   {
     packageName: "com.google.android.apps.youtube.music",
     label: "YouTube Music",
@@ -360,7 +362,8 @@ export default function Scrobbling() {
         <Text style={styles.note}>
           New media players are enabled automatically and appear here when
           detected. Switch any app off to stop collecting its listens. Rocksky’s
-          own player is excluded.
+          own player, YouTube, and atradio.fm are excluded. YouTube Music is
+          supported.
         </Text>
         {apps.map((app) => (
           <View key={app.packageName} style={styles.appRow}>
@@ -370,7 +373,7 @@ export default function Scrobbling() {
             </View>
             <ThemedSwitch
               accessibilityLabel={`Scrobble ${app.label}`}
-              disabled={busy}
+              disabled={busy || !!status.excluded?.includes(app.packageName)}
               value={!status.blocked.includes(app.packageName)}
               onValueChange={(enabled) =>
                 void configure({

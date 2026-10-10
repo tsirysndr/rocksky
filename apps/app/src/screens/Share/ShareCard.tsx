@@ -3,6 +3,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
+import { useAtomValue } from "jotai";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,9 +21,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { captureRef, releaseCapture } from "react-native-view-shot";
 import { sharePost } from "../../../modules/rocksky-engine";
+import { profileAtom } from "../../atoms/profile";
 import { Text } from "../../components/Text";
+import { useProfileByDidQuery } from "../../hooks/useProfile";
+import { shareCardActor, shareCardIdentity } from "../../lib/shareCardIdentity";
 import { composePostText, shareText, shareUrl } from "../../lib/shareLinks";
 import type { RootStackParamList } from "../../Navigation";
+import { storage } from "../../storage";
 import { colors } from "../../theme";
 
 const palettes = [
@@ -77,6 +82,23 @@ export default function ShareCard({
   navigation,
 }: NativeStackScreenProps<RootStackParamList, "ShareCard">) {
   const item = route.params.item;
+  const viewer = useAtomValue(profileAtom);
+  const actor = shareCardActor(item, storage.getDid() || "");
+  const profile = useProfileByDidQuery(actor);
+  const identity = shareCardIdentity(
+    actor,
+    profile.data
+      ? { ...profile.data, displayName: profile.data.displayName ?? "" }
+      : undefined,
+    item.owner,
+    viewer,
+  );
+  const identityKey = JSON.stringify([
+    actor,
+    identity.displayName,
+    identity.handle,
+  ]);
+  const [identityLayout, setIdentityLayout] = useState("");
   const link = item.uri ? shareUrl(item) : undefined;
   const { width } = useWindowDimensions();
   const card = useRef<View>(null);
@@ -119,7 +141,12 @@ export default function ShareCard({
       setBusy(false);
     }
   };
-  const cardReady = imageReady && rankingImagesReady && laidOut;
+  const cardReady =
+    imageReady &&
+    rankingImagesReady &&
+    laidOut &&
+    identity.ready &&
+    identityLayout === identityKey;
   const composeFallback = (app: "Bluesky" | "X" | "Facebook", text: string) =>
     Linking.openURL(
       app === "Bluesky"
@@ -274,11 +301,13 @@ export default function ShareCard({
                   </Text>
                 </View>
                 {wrapped || chart ? (
-                  <View style={{ gap: format === "story" ? 20 : 8 }}>
+                  <View style={{ gap: format === "story" ? 20 : 6 }}>
                     <Text
                       style={[
                         styles.cardTitle,
-                        { fontSize: format === "story" ? 40 : 26 },
+                        {
+                          fontSize: format === "story" ? 40 : wrapped ? 24 : 26,
+                        },
                       ]}
                     >
                       {wrapped ? "Your year.\nOn repeat." : item.title}
@@ -393,8 +422,8 @@ export default function ShareCard({
                   <View style={{ gap: format === "story" ? 24 : 12 }}>
                     <View
                       style={{
-                        width: format === "story" ? 304 : 120,
-                        height: format === "story" ? 304 : 120,
+                        width: format === "story" ? 304 : 112,
+                        height: format === "story" ? 304 : 112,
                         alignSelf: "center",
                         borderRadius:
                           item.kind === "profile" || item.kind === "artist"
@@ -443,7 +472,11 @@ export default function ShareCard({
                     </View>
                   </View>
                 )}
-                <View style={{ gap: 5 }}>
+                <View
+                  key={identityKey}
+                  onLayout={() => setIdentityLayout(identityKey)}
+                  style={{ gap: 3 }}
+                >
                   <View
                     style={{
                       height: 2,
@@ -454,11 +487,25 @@ export default function ShareCard({
                   />
                   <Text
                     numberOfLines={1}
-                    style={{ color: "#fff", fontSize: 12 }}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{
+                      color: "#fff",
+                      fontSize: 14,
+                      lineHeight: 18,
+                      fontWeight: "700",
+                    }}
                   >
-                    {wrapped || chart
-                      ? item.subtitle
-                      : "A little closer to the music."}
+                    {identity.displayName || "Loading profile…"}
+                    {chart && item.period ? ` · ${item.period}` : ""}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.5}
+                    style={{ color: "#ffffffe0", fontSize: 11, lineHeight: 14 }}
+                  >
+                    {identity.handle}
                   </Text>
                   <Text style={styles.label}>ROCKSKY.APP</Text>
                 </View>
@@ -485,13 +532,34 @@ export default function ShareCard({
             />
           ))}
         </View>
+        {!identity.ready && (
+          <View style={{ alignItems: "center", gap: 8 }}>
+            <Text style={styles.note}>
+              {!actor
+                ? "Sign in to include your display name and handle on the card."
+                : profile.isError
+                  ? "Couldn't load the card owner's profile. Please retry."
+                  : "Loading the display name and handle…"}
+            </Text>
+            {(!actor || profile.isError) && (
+              <TouchableOpacity
+                style={styles.pill}
+                onPress={() =>
+                  actor ? void profile.refetch() : navigation.navigate("SignIn")
+                }
+              >
+                <Text>{actor ? "Retry profile" : "Sign in"}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
         <TouchableOpacity
           accessibilityRole="button"
-          disabled={busy || !imageReady || !rankingImagesReady || !laidOut}
+          disabled={busy || !cardReady}
           onPress={() => exportCard()}
           style={[
             styles.primary,
-            (busy || !imageReady || !rankingImagesReady || !laidOut) && {
+            (busy || !cardReady) && {
               opacity: 0.5,
             },
           ]}

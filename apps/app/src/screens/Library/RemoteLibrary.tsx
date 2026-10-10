@@ -3,9 +3,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   type InfiniteData,
   useInfiniteQuery,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import { useIsFocused } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
@@ -58,6 +60,7 @@ export function serverQueueTrack(
 }
 export function EntryArtwork({ item }: { item: LibraryEntry }) {
   const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [item.art]);
   const round = item.kind === "artist";
   return (
     <View style={[styles.art, round && { borderRadius: 23 }]}>
@@ -108,6 +111,16 @@ export default function RemoteLibrary({
   initialPath?: { id: string; title: string }[];
 }) {
   const cache = useQueryClient();
+  const focused = useIsFocused();
+  const artworkStatus = useQuery({
+    queryKey: ["remote-index-status"],
+    queryFn: remoteLibraries.indexStatus,
+    enabled: focused,
+    refetchInterval: focused ? 2000 : false,
+  });
+  const artworkRevision = artworkStatus.data?.sources.find(
+    (s) => s.sourceId === source.id,
+  )?.artworkRevision;
   const [path, setPath] =
     useState<{ id: string; title: string }[]>(initialPath);
   const [tab, setTab] = useState("Tracks");
@@ -206,6 +219,9 @@ export default function RemoteLibrary({
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
+  useEffect(() => {
+    if (focused && artworkRevision) void query.refetch();
+  }, [focused, artworkRevision, query.refetch]);
   const refresh = async () => {
     await cache.cancelQueries({ queryKey, exact: true });
     cache.setQueryData<InfiniteData<LibraryPage, number>>(queryKey, (data) =>

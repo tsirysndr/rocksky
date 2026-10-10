@@ -1,5 +1,6 @@
 //! Device-side library clients. Protocol patterns follow music-player/provider
 //! and rockbox-zig/upnp. No server requests or credentials pass through Rocksky.
+mod artwork;
 mod http;
 mod index;
 mod kodi_discovery;
@@ -146,7 +147,14 @@ fn run(input: Value) -> Result<Value> {
         };
     }
     if cmd == "removeIndex" {
-        return index::remove(&text(&input, "indexPath"), &text(&input, "sourceId"));
+        return index::remove_with_artwork(
+            &text(&input, "indexPath"),
+            &text(&input, "sourceId"),
+            &text(&input, "artworkRoot"),
+        );
+    }
+    if cmd == "stopIndex" {
+        return index::stop(&text(&input, "indexPath"), &text(&input, "sourceId"));
     }
     if cmd == "discover" {
         let devices = match input["kind"].as_str().unwrap_or("upnp") {
@@ -162,11 +170,33 @@ fn run(input: Value) -> Result<Value> {
         return Err("Unsupported library type".into());
     }
     if cmd == "indexStart" {
-        return index::start(
+        let path = text(&input, "indexPath");
+        if input["reset"].as_bool().unwrap_or(false) {
+            index::remove_with_artwork(&path, &c.id, &text(&input, "artworkRoot"))?;
+        }
+        let result = index::start(
             &text(&input, "indexPath"),
-            c,
+            c.clone(),
             input["force"].as_bool().unwrap_or(false),
             input["reset"].as_bool().unwrap_or(false),
+        )?;
+        if result["started"] == true {
+            artwork::stop(&path, &c.id);
+        }
+        artwork::start(&path, &text(&input, "artworkRoot"), c)?;
+        return Ok(result);
+    }
+    if cmd == "artworkMerge" {
+        let path = text(&input, "indexPath");
+        if input["queue"].as_bool().unwrap_or(false) {
+            artwork::queue_page(&path, &c, &input["page"])?;
+            artwork::start(&path, &text(&input, "artworkRoot"), c.clone())?;
+        }
+        return artwork::merge(&path, &c, input["page"].clone());
+    }
+    if cmd == "artworkMetadata" {
+        return Ok(
+            json!({"metadata":artwork::metadata(&text(&input,"indexPath"),&c,&text(&input,"id"))?}),
         );
     }
     if cmd == "artistArtwork" {

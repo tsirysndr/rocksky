@@ -61,6 +61,7 @@ export default function Wrapped({
         year,
         title: `${year} Wrapped`,
         subtitle: name || did,
+        owner: { did },
         stats: [
           { label: "scrobbles", value: total.toLocaleString() },
           { label: "listening days", value: String(active) },

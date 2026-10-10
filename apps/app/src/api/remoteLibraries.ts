@@ -94,6 +94,8 @@ export type RemoteIndexStatus = {
   updated: number;
   completed: number;
   count: number;
+  artworkActive?: boolean;
+  artworkRevision?: number;
 };
 export const remoteLibraries = {
   search: (query: string, offset = 0, kind = "") =>

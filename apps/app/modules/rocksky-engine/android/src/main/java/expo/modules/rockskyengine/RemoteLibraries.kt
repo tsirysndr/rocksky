@@ -60,10 +60,31 @@ class RemoteLibraries(private val context: Context) {
     for (field in listOf("id", "name", "kind", "baseUrl", "username")) put(field, config.optString(field))
   }
   private fun native(request: JSONObject): JSONObject {
-    val result = JSONObject(NativeEngine.libraryCommand(request.toString()))
+    val result = JSONObject(NativeEngine.libraryCommand(request.put("indexPath", indexPath)
+      .put("artworkRoot", File(context.cacheDir, "remote-artwork").absolutePath).toString()))
     check(result.optBoolean("ok")) { result.optString("error", "Library request failed") }
     return result
   }
+  fun resumeBackground() = synchronized(lock) {
+    val data = read()
+    data.keys().asSequence().forEach { runCatching { startIndex(data.getJSONObject(it)) } }
+  }
+  fun stopBackground() = synchronized(lock) {
+    val data = read()
+    data.keys().asSequence().forEach { id ->
+      runCatching { native(JSONObject().put("cmd", "stopIndex").put("sourceId", id)) }
+    }
+  }
+  fun backgroundActive(): Boolean {
+    val data = synchronized(lock) { read() }
+    val configs = data.keys().asSequence().map { data.getJSONObject(it) }.toList()
+    val sources = native(JSONObject().put("cmd", "indexStatus").put("configs", JSONArray(configs))).getJSONArray("sources")
+    return (0 until sources.length()).any { sources.getJSONObject(it).let { source ->
+      source.optString("state") == "indexing" || source.optBoolean("artworkActive")
+    } }
+  }
+  private fun mergeArtwork(config: JSONObject, page: JSONObject, queue: Boolean = false): JSONObject = native(JSONObject()
+    .put("cmd", "artworkMerge").put("config", config).put("page", page).put("queue", queue))
   fun request(input: String): String {
     try {
       val request = JSONObject(input)
@@ -72,6 +93,7 @@ class RemoteLibraries(private val context: Context) {
           val data = synchronized(lock) { read() }
           val configs = data.keys().asSequence().map { data.getJSONObject(it) }.toList()
           configs.forEach { runCatching { startIndex(it) } }
+          if (configs.isNotEmpty()) RemoteArtworkJob.ensureScheduled(context)
           JSONObject().put("sources", JSONArray(configs.map { publicConfig(it) }))
         }
         "searchIndex", "indexStatus" -> {
@@ -82,14 +104,19 @@ class RemoteLibraries(private val context: Context) {
             val caches = configs.associate { it.getString("id") to RemoteMetadataCache(context, it.getString("id")) }
             for (i in 0 until entries.length()) {
               val entry = entries.getJSONObject(i)
-              caches[entry.optString("sourceId")]?.merge(JSONObject().put("entries", JSONArray().put(entry)))
+              val sourceId = entry.optString("sourceId")
+              val page = JSONObject().put("entries", JSONArray().put(entry))
+              caches[sourceId]?.merge(page)
+              configs.find { it.optString("id") == sourceId }?.let { config ->
+                entries.put(i, mergeArtwork(config, page).getJSONArray("entries").getJSONObject(0))
+              }
             }
           }
           result
         }
         "indexStart" -> {
           val config = synchronized(lock) { read().optJSONObject(request.getString("sourceId")) } ?: error("Library was disconnected")
-          startIndex(config, request.optBoolean("force"))
+          startIndex(config, request.optBoolean("force")).also { RemoteArtworkJob.ensureScheduled(context) }
         }
         "save" -> {
           val config = request.getJSONObject("config")
@@ -112,6 +139,7 @@ class RemoteLibraries(private val context: Context) {
           val changed = previous == null || listOf("baseUrl", "username", "password", "token", "userId").any { previous.optString(it) != connected.optString(it) }
           // Index failures must not prevent connecting or playing from the server.
           runCatching { startIndex(connected, force = true, reset = changed) }
+          RemoteArtworkJob.ensureScheduled(context)
           JSONObject().put("source", publicConfig(connected))
         }
         "remove" -> synchronized(lock) {
@@ -134,13 +162,14 @@ class RemoteLibraries(private val context: Context) {
           when (request.getString("cmd")) {
             "metadata" -> {
               val id = request.getString("id")
-              val metadata = cache.enrich(id, request.getJSONObject("seed"), {
+              val background = native(JSONObject().put("cmd", "artworkMetadata").put("config", config).put("id", id)).optJSONObject("metadata")
+              val metadata = background?.put("nativeEnrichment", true) ?: cache.enrich(id, request.getJSONObject("seed"), {
                 native(JSONObject().put("cmd", "stream").put("id", id).put("config", config)).getString("url")
               }, { data -> native(JSONObject().put("cmd", "artistArtwork").put("id", id).put("artist", data.optString("artist")).put("config", config)).optString("url") })
               JSONObject().put("metadata", metadata)
             }
             "cacheArtwork" -> JSONObject().put("metadata", cache.cacheLookup(request.getString("id"), request.optString("artist"), request.optString("artistUrl"), request.optString("albumUrl")))
-            "browse" -> cache.merge(native(request.put("config", config)))
+            "browse" -> cache.merge(mergeArtwork(config, native(request.put("config", config)), queue = true))
             else -> native(request.put("config", config)).also {
               if (request.getString("cmd") == "addToPlaylist" || (request.getString("cmd") == "playlistOperation" && request.optString("operation") in listOf("create", "rename", "delete"))) {
                 runCatching { startIndex(config, force = true) }

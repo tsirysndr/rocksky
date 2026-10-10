@@ -10,6 +10,7 @@ export type ScrobbleSettings = {
   blocked: string[];
 };
 export type ScrobbleStatus = ScrobbleSettings & {
+  excluded?: string[];
   notificationAccess: boolean;
   connected: boolean;
   signedIn: boolean;

@@ -403,6 +403,12 @@ function OverviewTab({
               uri: did,
               title,
               subtitle: `${owner?.displayName || owner?.handle || did} · ${period}`,
+              owner: {
+                did,
+                displayName: owner?.displayName,
+                handle: owner?.handle,
+              },
+              period,
               rankings: [
                 {
                   label: period,
@@ -2200,6 +2206,11 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                       item: {
                         kind: "profile",
                         uri: resolvedDid,
+                        owner: {
+                          did: resolvedDid,
+                          displayName: displayProfile?.displayName,
+                          handle: displayProfile?.handle,
+                        },
                         title:
                           displayProfile?.displayName ||
                           displayProfile?.handle ||

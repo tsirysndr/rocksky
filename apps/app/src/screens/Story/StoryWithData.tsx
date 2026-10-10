@@ -69,7 +69,8 @@ const StoryWithData: FC<StoryWithDataProps> = ({ route }) => {
             kind: isScrobble ? "scrobble" : "track",
             uri: isScrobble ? story.uri : story.trackUri || "",
             title: story.title,
-            subtitle: `${story.albumArtist || story.artist} · @${story.handle}`,
+            subtitle: story.albumArtist || story.artist,
+            owner: { did: story.did, handle: story.handle },
             artwork: story.albumArt,
           },
         });

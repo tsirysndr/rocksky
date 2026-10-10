@@ -4,8 +4,7 @@
 
 mod audio;
 mod fingerprint;
-mod metadata;
-mod remote_metadata;
+use rocksky_metadata::{metadata, remote_metadata};
 
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex, OnceLock};

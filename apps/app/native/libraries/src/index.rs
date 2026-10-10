@@ -17,7 +17,7 @@ static JOBS: OnceLock<Mutex<HashMap<String, Arc<AtomicBool>>>> = OnceLock::new()
 fn jobs() -> &'static Mutex<HashMap<String, Arc<AtomicBool>>> {
     JOBS.get_or_init(Default::default)
 }
-fn now() -> i64 {
+pub(crate) fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -26,7 +26,7 @@ fn now() -> i64 {
 fn db_error(_: rusqlite::Error) -> String {
     "Could not access the remote search index".into()
 }
-fn open(path: &str) -> Result<Connection> {
+pub(crate) fn open(path: &str) -> Result<Connection> {
     if let Some(parent) = Path::new(path).parent() {
         std::fs::create_dir_all(parent).map_err(|_| "Could not create search index")?;
     }
@@ -40,12 +40,13 @@ fn open(path: &str) -> Result<Connection> {
       CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries BEGIN INSERT INTO search(rowid,title,artist,album) VALUES(new.rowid,new.title,new.artist,new.album); END;
       CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries BEGIN INSERT INTO search(search,rowid,title,artist,album) VALUES('delete',old.rowid,old.title,old.artist,old.album); END;
       CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries BEGIN INSERT INTO search(search,rowid,title,artist,album) VALUES('delete',old.rowid,old.title,old.artist,old.album); INSERT INTO search(rowid,title,artist,album) VALUES(new.rowid,new.title,new.artist,new.album); END;") .map_err(db_error)?;
+    super::artwork::schema(&db)?;
     Ok(db)
 }
-fn key(path: &str, id: &str) -> String {
+pub(crate) fn key(path: &str, id: &str) -> String {
     format!("{path}\n{id}")
 }
-fn generation(db: &Connection, id: &str) -> Result<i64> {
+pub(crate) fn generation(db: &Connection, id: &str) -> Result<i64> {
     db.query_row("SELECT generation FROM sources WHERE id=?", [id], |r| {
         r.get(0)
     })
@@ -129,11 +130,32 @@ pub fn start(path: &str, c: Config, force: bool, reset: bool) -> Result<Value> {
     });
     Ok(json!({"started":true}))
 }
-pub fn remove(path: &str, id: &str) -> Result<Value> {
+pub fn active(path: &str, id: &str) -> bool {
+    jobs()
+        .lock()
+        .map(|j| j.contains_key(&key(path, id)))
+        .unwrap_or(false)
+}
+pub fn stop(path: &str, id: &str) -> Result<Value> {
     let mut running = jobs().lock().map_err(|_| "Search worker unavailable")?;
     if let Some(job) = running.remove(&key(path, id)) {
         job.store(true, Ordering::Relaxed);
     }
+    super::artwork::stop(path, id);
+    let db = open(path)?;
+    db.execute("UPDATE sources SET generation=generation+1,state=CASE WHEN state='indexing' THEN 'idle' ELSE state END WHERE id=?",[id]).map_err(db_error)?;
+    Ok(json!({}))
+}
+#[cfg(test)]
+pub fn remove(path: &str, id: &str) -> Result<Value> {
+    remove_with_artwork(path, id, "")
+}
+pub fn remove_with_artwork(path: &str, id: &str, root: &str) -> Result<Value> {
+    let mut running = jobs().lock().map_err(|_| "Search worker unavailable")?;
+    if let Some(job) = running.remove(&key(path, id)) {
+        job.store(true, Ordering::Relaxed);
+    }
+    super::artwork::stop(path, id);
     let mut db = open(path)?;
     let tx = db
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -142,10 +164,11 @@ pub fn remove(path: &str, id: &str) -> Result<Value> {
         .map_err(db_error)?;
     // Keep a generation tombstone so an in-flight page cannot resurrect data.
     tx.execute("INSERT INTO sources(id,generation,state) VALUES(?,1,'removed') ON CONFLICT(id) DO UPDATE SET generation=generation+1,state='removed'",[id]).map_err(db_error)?;
+    super::artwork::remove(&tx, root, id)?;
     tx.commit().map_err(db_error)?;
     Ok(json!({}))
 }
-fn sanitized_art(c: &Config, art: Option<String>) -> Option<String> {
+pub(crate) fn sanitized_art(c: &Config, art: Option<String>) -> Option<String> {
     let mut u = Url::parse(art.as_deref()?).ok()?;
     if !matches!(u.scheme(), "http" | "https") {
         return None;
@@ -162,7 +185,7 @@ fn sanitized_art(c: &Config, art: Option<String>) -> Option<String> {
     u.set_fragment(None);
     Some(u.to_string())
 }
-fn hydrate_art(c: &Config, art: Option<String>) -> Option<String> {
+pub(crate) fn hydrate_art(c: &Config, art: Option<String>) -> Option<String> {
     let art = art?;
     if let Some(id) = art.strip_prefix("cover:") {
         return super::http::indexed_cover(c, id).ok();
@@ -186,7 +209,7 @@ fn hydrate_art(c: &Config, art: Option<String>) -> Option<String> {
     }
     Some(u.to_string())
 }
-fn store_page(
+pub(crate) fn store_page(
     db: &mut Connection,
     c: &Config,
     generation_id: i64,
@@ -206,6 +229,8 @@ fn store_page(
             }
             entry.art = sanitized_art(c, entry.art);
             let payload = serde_json::to_string(&entry).map_err(|_| "Invalid indexed metadata")?;
+            // Changed server metadata invalidates the old track enrichment.
+            tx.execute("DELETE FROM artwork WHERE source=? AND key=? AND EXISTS(SELECT 1 FROM entries WHERE source=? AND kind='track' AND id=? AND payload<>?)",params![c.id,format!("track:{}",entry.id),c.id,entry.id,payload]).map_err(db_error)?;
             insert
                 .execute(params![
                     c.id,
@@ -235,6 +260,9 @@ fn finish(db: &mut Connection, id: &str, gen: i64, success: bool) -> Result<()> 
             params![id, gen],
         )
         .map_err(db_error)?;
+    }
+    if success {
+        tx.execute("DELETE FROM artwork WHERE source=? AND key LIKE 'track:%' AND NOT EXISTS(SELECT 1 FROM entries WHERE source=? AND kind='track' AND 'track:'||id=artwork.key)",params![id,id]).map_err(db_error)?;
     }
     tx.execute("UPDATE sources SET state=?,updated=?,completed=CASE WHEN ? THEN ? ELSE completed END WHERE id=?",params![if success{"ready"}else{"error"},now(),success,now(),id]).map_err(db_error)?;
     tx.commit().map_err(db_error)
@@ -391,7 +419,7 @@ pub fn status(path: &str, configs: &[Config]) -> Result<Value> {
                 |r| r.get(0),
             )
             .map_err(db_error)?;
-        sources.push(json!({"sourceId":c.id,"name":c.name,"state":state,"updated":updated,"completed":completed,"count":count}));
+        sources.push(json!({"sourceId":c.id,"name":c.name,"state":state,"updated":updated,"completed":completed,"count":count,"artworkActive":super::artwork::active(path,&c.id),"artworkRevision":super::artwork::revision(&db,&c.id)}));
     }
     Ok(json!({"sources":sources}))
 }

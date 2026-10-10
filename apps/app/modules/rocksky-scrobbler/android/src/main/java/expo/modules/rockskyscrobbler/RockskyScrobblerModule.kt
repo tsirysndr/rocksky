@@ -42,6 +42,7 @@ class RockskyScrobblerModule : Module() {
         "enabled" to s.enabled, "mode" to s.mode, "seconds" to s.seconds,
         "percent" to s.percent, "minimum" to s.minimum, "recognize" to s.recognize,
         "blocked" to s.blocked.toList(), "notificationAccess" to allowed,
+        "excluded" to ScrobbleSources.excluded.toList(),
         "connected" to ScrobbleListener.connected, "signedIn" to (auth != null),
         "queued" to queued, "failed" to failed, "lastUpload" to p.getLong("lastUpload", 0),
         "error" to (p.getString("authError", null) ?: p.getString("uploadError", null) ?: p.getString("serviceError", null)),

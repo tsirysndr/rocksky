@@ -114,11 +114,12 @@ class ScrobbleListener : NotificationListenerService() {
       controllers.clear()
       return
     }
-    val tokens = active.map { it.sessionToken }.toSet()
+    val eligible = active.filter { it.packageName !in ScrobbleSources.excluded }
+    val tokens = eligible.map { it.sessionToken }.toSet()
     controllers.keys.filter { it !in tokens }.forEach { token ->
       controllers.remove(token)?.let { it.first.unregisterCallback(it.second) }
     }
-    active.filter { it.packageName !in setOf(packageName, "app.rocksky", "app.rocksky.test") }.forEach { controller ->
+    eligible.filter { it.packageName !in setOf(packageName, "app.rocksky", "app.rocksky.test") }.forEach { controller ->
       rememberApp(controller.packageName)
       if (controller.sessionToken !in controllers) {
         val callback = object : MediaController.Callback() {

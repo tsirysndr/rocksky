@@ -112,7 +112,8 @@ export function enrichRemoteTrack(
       Date.now() - (data.artistLookupAt || 0) > 7 * 86400000;
     const needsAlbum =
       !data.albumArt && Date.now() - (data.artworkLookupAt || 0) > 7 * 86400000;
-    const needsArtwork = data.artist && (needsArtist || needsAlbum);
+    const needsArtwork =
+      !data.nativeEnrichment && data.artist && (needsArtist || needsAlbum);
     if (needsArtwork) {
       try {
         const lookup = (query: string) =>

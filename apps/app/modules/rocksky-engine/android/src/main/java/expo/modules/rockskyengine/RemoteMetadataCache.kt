@@ -30,19 +30,31 @@ class RemoteMetadataCache(context: Context, sourceId: String) {
     return if (result.optBoolean("ok")) "file://${path.absolutePath}" else null
   }
   fun enrich(id: String, seed: JSONObject, stream: () -> String, artistArtwork: (JSONObject) -> String): JSONObject {
+    val suppliedCover = seed.optString("albumArt").ifBlank { seed.optString("art") }
+      .takeIf { it.startsWith("http://") || it.startsWith("https://") }
+    if (suppliedCover != null) {
+      val suppliedArtist = seed.optString("artistPicture").ifBlank {
+        runCatching { artistArtwork(seed) }.getOrDefault("")
+      }
+      if (suppliedArtist.startsWith("http://") || suppliedArtist.startsWith("https://")) {
+        // Return provider URLs directly; never persist credentialed image URLs.
+        return JSONObject(seed.toString()).put("albumArt", suppliedCover)
+          .put("artistPicture", suppliedArtist).put("nativeEnrichment", true)
+      }
+    }
     val key = "track:$id"
     val cached = read(key)
     if (System.currentTimeMillis() - cached.optLong("cachedAt") < 7L * 86400000) {
-      if (localImage(cached.optString("albumArt")) == null) image(seed.optString("albumArt", seed.optString("art")), key)?.let {
+      if (suppliedCover == null && localImage(cached.optString("albumArt")) == null) image(seed.optString("albumArt", seed.optString("art")), key)?.let {
         cached.put("albumArt", it); write(key, cached); cacheAlbum(cached)
       }
-      return decorate(cached)
+      return decorate(cached).also { if (suppliedCover != null) it.put("albumArt", suppliedCover) }
     }
     val data = JSONObject(seed.toString())
     data.remove("art"); data.remove("albumArt"); data.remove("streamUrl")
     data.put("id", id).put("kind", "track")
     val art = File(root, "${hash(key)}.img")
-    try {
+    if (suppliedCover == null) try {
       val response = JSONObject(NativeEngine.command(JSONObject().put("cmd", "readRemoteMetadata")
         .put("url", stream()).put("cachePath", File(root, "${hash(key)}.audio").absolutePath)
         .put("artPath", art.absolutePath).toString()))
@@ -53,7 +65,7 @@ class RemoteMetadataCache(context: Context, sourceId: String) {
         }
       }
     } catch (_: Exception) { /* Server-provided metadata still remains usable. */ }
-    val cover = localImage(data.optString("albumArt")) ?: image(seed.optString("albumArt", seed.optString("art")), key)
+    val cover = localImage(data.optString("albumArt")) ?: if (suppliedCover == null) image(seed.optString("albumArt", seed.optString("art")), key) else null
     data.put("albumArt", cover ?: JSONObject.NULL)
     data.put("cachedAt", System.currentTimeMillis())
     write(key, data)
@@ -65,7 +77,7 @@ class RemoteMetadataCache(context: Context, sourceId: String) {
       } } catch (_: Exception) { /* Public lookup can supply missing artist artwork. */ }
     }
     pruneImages()
-    return decorate(data)
+    return decorate(data).also { if (suppliedCover != null) it.put("albumArt", suppliedCover) }
   }
   private fun cacheAlbum(data: JSONObject) {
     val artist = data.optString("albumArtist").ifBlank { data.optString("artist") }
@@ -100,6 +112,7 @@ class RemoteMetadataCache(context: Context, sourceId: String) {
     val entries = page.optJSONArray("entries") ?: return page
     for (index in 0 until entries.length()) {
       val entry = entries.getJSONObject(index)
+      val suppliedArt = entry.optString("art").takeIf { it.startsWith("http://") || it.startsWith("https://") }
       when (entry.optString("kind")) {
         "track" -> {
           val cached = read("track:${entry.optString("id")}")
@@ -112,7 +125,7 @@ class RemoteMetadataCache(context: Context, sourceId: String) {
         "album" -> localImage(read(albumKey(entry.optString("artist"), entry.optString("title"))).optString("art"))?.let { entry.put("art", it) }
         "artist" -> localImage(read(artistKey(entry.optString("title"))).optString("art"))?.let { entry.put("art", it) }
       }
-
+      if (suppliedArt != null) entry.put("art", suppliedArt)
     }
     return page
   }

@@ -13,8 +13,7 @@ crate-type = ["cdylib"]
 [dependencies]
 rocksky-renderer = { path = "../renderer" }
 rocksky-libraries = { path = "../libraries" }
-rockbox-metadata = "0.1"
-lofty = "0.22"
+rocksky-metadata = { path = "../metadata" }
 rusty-chromaprint = "0.3"
 base64 = "0.22"
 symphonia = { version = "0.5", default-features = false, features = ["flac", "mp3", "pcm", "aac", "alac", "isomp4", "vorbis", "ogg", "wav", "adpcm"] }

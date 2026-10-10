@@ -21,7 +21,7 @@ data class ScrobbleSettings(
   val percent: Int = 50,
   val minimum: Int = 30,
   val recognize: Boolean = true,
-  val blocked: Set<String> = emptySet(),
+  val blocked: Set<String> = ScrobbleSources.excluded,
 )
 
 object ScrobbleStore {
@@ -32,7 +32,7 @@ object ScrobbleStore {
   fun settings(c: Context): ScrobbleSettings = prefs(c).let {
     ScrobbleSettings(it.getBoolean("enabled", true), it.getString("mode", "listened")!!,
       it.getInt("seconds", 240), it.getInt("percent", 50), it.getInt("minimum", 30),
-      it.getBoolean("recognize", true), it.getStringSet("blocked", emptySet())!!.toSet())
+      it.getBoolean("recognize", true), it.getStringSet("blocked", emptySet())!!.toSet() + ScrobbleSources.excluded)
   }
   fun configure(c: Context, json: String) {
     val j = JSONObject(json)
@@ -91,6 +91,7 @@ object ScrobbleStore {
   }).writableDatabase
 
   fun enqueue(c: Context, did: String, source: String, track: JSONObject) {
+    if (source in ScrobbleSources.excluded) return
     val identity = ScrobbleIdentity.key(did, track.getString("title"), track.getString("artist"), track.getLong("timestamp"))
     val db = db(c)
     db.beginTransaction()
@@ -107,9 +108,18 @@ object ScrobbleStore {
     } finally { db.endTransaction() }
   }
 
+  private val eligibleSource = "source NOT IN (${ScrobbleSources.excluded.joinToString(",") { "?" }})"
+  private fun queueArgs(did: String) = arrayOf(did, *ScrobbleSources.excluded.toTypedArray())
+
+  // Apply exclusions to existing offline rows too, without deleting history.
+  fun nextQueued(c: Context, did: String): Pair<String, String>? = db(c).rawQuery(
+    "SELECT id,payload FROM queue WHERE did=? AND failed=0 AND $eligibleSource ORDER BY created LIMIT 1",
+    queueArgs(did)
+  ).use { if (it.moveToFirst()) it.getString(0) to it.getString(1) else null }
+
   fun counts(c: Context, did: String?): Pair<Int, Int> {
     if (did == null) return 0 to 0
-    return db(c).rawQuery("SELECT COUNT(*), COALESCE(SUM(failed),0) FROM queue WHERE did=?", arrayOf(did)).use {
+    return db(c).rawQuery("SELECT COUNT(*), COALESCE(SUM(failed),0) FROM queue WHERE did=? AND $eligibleSource", queueArgs(did)).use {
       it.moveToFirst(); it.getInt(0) to it.getInt(1)
     }
   }
