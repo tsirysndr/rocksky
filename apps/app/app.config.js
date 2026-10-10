@@ -35,23 +35,17 @@ module.exports = {
     versionCode: 36,
     intentFilters: isTestBuild
       ? []
-      : [
-          {
-            action: "VIEW",
-            autoVerify: true,
-            category: ["BROWSABLE", "DEFAULT"],
-            data: [
-              { scheme: "https", host: "rocksky.app", pathPrefix: "/profile/" },
-              ...["song", "track", "album", "artist", "scrobble"].map(
-                (type) => ({
-                  scheme: "https",
-                  host: "rocksky.app",
-                  pathPattern: `/.*/${type}/.*`,
-                }),
-              ),
-            ],
-          },
-        ],
+      : ["rocksky.app", "m.rocksky.app"].map((host) => ({
+          action: "VIEW",
+          autoVerify: true,
+          category: ["BROWSABLE", "DEFAULT"],
+          data: ["https", "http"].flatMap((scheme) => [
+            { scheme, host, pathPrefix: "/profile/" },
+            ...["song", "track", "album", "artist", "scrobble"].map(
+              (type) => ({ scheme, host, pathPattern: `/.*/${type}/.*` }),
+            ),
+          ]),
+        })),
   },
   web: {
     bundler: "metro",

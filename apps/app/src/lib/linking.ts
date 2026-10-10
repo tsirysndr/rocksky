@@ -8,6 +8,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
     "rocksky-test://",
     "https://rocksky.app",
     "https://m.rocksky.app",
+    "http://rocksky.app",
+    "http://m.rocksky.app",
   ],
   getStateFromPath(path) {
     const destination = parseSharePath(path);

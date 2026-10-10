@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.rocksky",
+      "sha256_cert_fingerprints": [
+        "6D:87:91:43:C4:24:41:00:32:2E:F3:6E:91:9F:40:2C:DD:41:65:C6:9E:E2:49:03:0D:8C:0C:F7:13:36:76:54",
+        "DD:B3:B5:D6:8E:F2:0B:09:86:58:BC:74:3A:B5:55:4B:81:BB:6A:68:D4:DB:F7:76:0D:A0:3A:23:7C:09:15:3B"
+      ]
+    }
+  }
+]

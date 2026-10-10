@@ -39,3 +39,11 @@ test("iOS associations use the configured team and restrict the supported routes
   expect(data.applinks.details[0].paths).not.toContain("/*");
   expect(appLinkResponse("/oauth/callback", {})).toBeUndefined();
 });
+
+test("mobile site's static association matches production signing certificates", async () => {
+  const mobile = await Bun.file(
+    new URL("../../web-mobile/public/.well-known/assetlinks.json", import.meta.url),
+  ).json();
+  const canonical = await appLinkResponse("/.well-known/assetlinks.json", {})!.json();
+  expect(mobile).toEqual(canonical);
+});
