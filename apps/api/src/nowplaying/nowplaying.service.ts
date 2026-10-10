@@ -5,7 +5,7 @@ import chalk from "chalk";
 import { consola } from "consola";
 import type { Context } from "context";
 import dayjs from "dayjs";
-import { and, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
@@ -15,6 +15,7 @@ import { decrypt } from "lib/crypto";
 import { enrichWithDeezer } from "lib/deezer";
 import { env } from "lib/env";
 import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
+import { ownsRecord, putRecordOnce } from "lib/recordOwnership";
 import {
   assertNotBotFlagged,
   assertNotScrobbleBlocked,
@@ -895,21 +896,40 @@ export async function scrobbleTrack(
   // the Last.fm placeholder when we already know the real art.
   if (existingTrack && !track.albumArt) track.albumArt = existingTrack.albumArt;
 
-  if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
-    await putSongRecord(track, agent);
+  const songSha = createHash("sha256")
+    .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
+    .digest("hex");
+  const artistSha = createHash("sha256")
+    .update(track.albumArtist.toLowerCase())
+    .digest("hex");
+  const albumSha = createHash("sha256")
+    .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
+    .digest("hex");
+
+  if (!ownsRecord(userTrack?.userTrack.uri, userDid)) {
+    await putRecordOnce(ctx.redis, userDid, "app.rocksky.song", songSha, () =>
+      putSongRecord(track, agent),
+    );
+  } else if (existingTrack && !existingTrack.uri) {
+    // Ingest lost the global uri (see scripts/backfill-track-uri.ts). This
+    // used to be healed by publishing the song again, i.e. a duplicate; the
+    // user's own record is the uri we want, so copy it instead.
+    await ctx.db
+      .update(tracks)
+      .set({ uri: userTrack.userTrack.uri })
+      .where(and(eq(tracks.id, existingTrack.id), isNull(tracks.uri)))
+      .catch((e) =>
+        consola.warn(
+          `Could not backfill tracks.uri for ${existingTrack.id}`,
+          e,
+        ),
+      );
   }
 
   const existingAlbum = await ctx.db
     .select()
     .from(albums)
-    .where(
-      eq(
-        albums.sha256,
-        createHash("sha256")
-          .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex"),
-      ),
-    )
+    .where(eq(albums.sha256, albumSha))
     .limit(1)
     .then((rows) => rows[0]);
 
@@ -937,81 +957,61 @@ export async function scrobbleTrack(
     );
   }
 
-  const existingArtist = await ctx.db
-    .select()
-    .from(artists)
-    .where(
-      or(
-        eq(
-          artists.sha256,
-          createHash("sha256")
-            .update(track.albumArtist.toLowerCase())
-            .digest("hex"),
-        ),
-        eq(
-          artists.sha256,
-          createHash("sha256").update(track.artist.toLowerCase()).digest("hex"),
-        ),
-      ),
-    )
-    .limit(1)
-    .then((rows) => rows[0]);
-
+  // The artist record is named after the album artist, and that is the row
+  // ingest links the user to. Matching the track artist here as well used to
+  // pick e.g. "SG Lewis, Clairo" over "SG Lewis", whose link the user never
+  // has — so every play of a featuring track published one more "SG Lewis".
   const userArtist = await ctx.db
-    .select({
-      userArtist: userArtists,
-      artist: artists,
-      user: users,
-    })
+    .select({ uri: userArtists.uri })
     .from(userArtists)
     .innerJoin(artists, eq(userArtists.artistId, artists.id))
     .innerJoin(users, eq(userArtists.userId, users.id))
-    .where(
-      and(eq(artists.id, existingArtist?.id || ""), eq(users.did, userDid)),
-    )
+    .where(and(eq(artists.sha256, artistSha), eq(users.did, userDid)))
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!existingArtist?.uri || !userArtist?.userArtist.uri?.includes(userDid)) {
+  if (!ownsRecord(userArtist?.uri, userDid)) {
     if (importCache) {
-      const artistSha = createHash("sha256")
-        .update(track.albumArtist.toLowerCase())
-        .digest("hex");
       if (!importCache.artistOps.has(artistSha)) {
         importCache.artistOps.set(artistSha, putArtistRecord(track, agent));
       }
       await importCache.artistOps.get(artistSha);
     } else {
-      await putArtistRecord(track, agent);
+      await putRecordOnce(
+        ctx.redis,
+        userDid,
+        "app.rocksky.artist",
+        artistSha,
+        () => putArtistRecord(track, agent),
+      );
     }
   }
 
   const userAlbum = await ctx.db
-    .select({
-      userAlbum: userAlbums,
-      album: albums,
-      user: users,
-    })
+    .select({ uri: userAlbums.uri })
     .from(userAlbums)
     .innerJoin(albums, eq(userAlbums.albumId, albums.id))
     .innerJoin(users, eq(userAlbums.userId, users.id))
-    .where(and(eq(albums.id, existingAlbum?.id || ""), eq(users.did, userDid)))
+    .where(and(eq(albums.sha256, albumSha), eq(users.did, userDid)))
     .limit(1)
     .then((rows) => rows[0]);
 
   if (existingAlbum && !track.albumArt) track.albumArt = existingAlbum.albumArt;
 
-  if (!existingAlbum?.uri || !userAlbum?.userAlbum.uri?.includes(userDid)) {
+  if (!ownsRecord(userAlbum?.uri, userDid)) {
     if (importCache) {
-      const albumSha = createHash("sha256")
-        .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-        .digest("hex");
       if (!importCache.albumOps.has(albumSha)) {
         importCache.albumOps.set(albumSha, putAlbumRecord(track, agent));
       }
       await importCache.albumOps.get(albumSha);
     } else {
-      await putAlbumRecord(track, agent);
+      await putRecordOnce(
+        ctx.redis,
+        userDid,
+        "app.rocksky.album",
+        albumSha,
+        () => putAlbumRecord(track, agent),
+      );
     }
   }
 
