@@ -10,6 +10,8 @@ import {
 import {
   Animated,
   type FlatListProps,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
   SectionList,
   TouchableOpacity,
   View,
@@ -30,6 +32,9 @@ type Props<T> = Pick<
   | "initialNumToRender"
   | "maxToRenderPerBatch"
   | "windowSize"
+  | "onScroll"
+  | "onLayout"
+  | "onContentSizeChange"
   | "onEndReached"
   | "onMomentumScrollEnd"
   | "onEndReachedThreshold"
@@ -60,6 +65,7 @@ export default function LibraryList<T>({
   columnWrapperStyle,
   ListHeaderComponent,
   ListEmptyComponent,
+  onScroll,
   ...props
 }: Props<T>) {
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -117,9 +123,10 @@ export default function LibraryList<T>({
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           {
             useNativeDriver: false,
-            listener: (event: {
-              nativeEvent: { contentOffset: { y: number } };
-            }) => setShowScrollTop(event.nativeEvent.contentOffset.y > 300),
+            listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+              setShowScrollTop(event.nativeEvent.contentOffset.y > 300);
+              onScroll?.(event);
+            },
           },
         )}
         removeClippedSubviews={false}

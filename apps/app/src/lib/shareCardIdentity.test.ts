@@ -4,11 +4,13 @@ import type { ShareItem } from "./shareLinks";
 
 const viewer = {
   did: "did:plc:viewer",
+  avatar: "",
   displayName: "Tsiry",
   handle: "tsiry-sandratraina.com",
 };
 const other = {
   did: "did:plc:other",
+  avatar: "",
   displayName: "Other listener",
   handle: "other.test",
 };
@@ -57,6 +59,7 @@ test("display name and handle are separate, trimmed and contain exactly one @", 
       handle: " @tsiry-sandratraina.com ",
     }),
   ).toEqual({
+    avatar: "",
     displayName: "Tsiry",
     handle: "@tsiry-sandratraina.com",
     ready: true,
@@ -75,6 +78,7 @@ test("waits for a handle-only story profile and never substitutes the viewer", (
     ).ready,
   ).toBe(false);
   expect(shareCardIdentity(other.did, undefined, undefined, viewer)).toEqual({
+    avatar: "",
     displayName: "",
     handle: "",
     ready: false,
@@ -90,4 +94,21 @@ test("waits for a handle-only story profile and never substitutes the viewer", (
     ).displayName,
   ).toBe("New name");
   expect(shareCardIdentity("", viewer).ready).toBe(false);
+});
+
+test("avatars belong to the owner and a removed photo does not reuse stale profile data", () => {
+  const mine = { ...viewer, avatar: "https://images.test/mine.jpg" };
+  const theirs = { ...other, avatar: "https://images.test/theirs.jpg" };
+  expect(shareCardIdentity(other.did, undefined, mine).avatar).toBe("");
+  expect(shareCardIdentity(other.did, theirs, mine).avatar).toBe(theirs.avatar);
+  expect(
+    shareCardIdentity(viewer.did, { ...viewer, avatar: null }, mine).avatar,
+  ).toBe("");
+  expect(
+    shareCardIdentity(viewer.did, {
+      did: viewer.did,
+      displayName: "Tsiry",
+      handle: viewer.handle,
+    }).ready,
+  ).toBe(false);
 });

@@ -88,15 +88,27 @@ export default function ShareCard({
   const identity = shareCardIdentity(
     actor,
     profile.data
-      ? { ...profile.data, displayName: profile.data.displayName ?? "" }
+      ? {
+          ...profile.data,
+          displayName: profile.data.displayName ?? "",
+          avatar: profile.data.avatar ?? "",
+        }
       : undefined,
     item.owner,
     viewer,
   );
+  const avatarKey = JSON.stringify([actor, identity.avatar]);
+  const [avatars, setAvatars] = useState<Record<string, "ready" | "failed">>(
+    {},
+  );
+  const avatarFailed = avatars[avatarKey] === "failed";
+  const avatarReady = !identity.avatar || !!avatars[avatarKey];
   const identityKey = JSON.stringify([
     actor,
     identity.displayName,
     identity.handle,
+    identity.avatar,
+    avatarFailed,
   ]);
   const [identityLayout, setIdentityLayout] = useState("");
   const link = item.uri ? shareUrl(item) : undefined;
@@ -146,6 +158,7 @@ export default function ShareCard({
     rankingImagesReady &&
     laidOut &&
     identity.ready &&
+    avatarReady &&
     identityLayout === identityKey;
   const composeFallback = (app: "Bluesky" | "X" | "Facebook", text: string) =>
     Linking.openURL(
@@ -485,28 +498,85 @@ export default function ShareCard({
                       marginBottom: 8,
                     }}
                   />
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
+                  <View
                     style={{
-                      color: "#fff",
-                      fontSize: 14,
-                      lineHeight: 18,
-                      fontWeight: "700",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
                     }}
                   >
-                    {identity.displayName || "Loading profile…"}
-                    {chart && item.period ? ` · ${item.period}` : ""}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.5}
-                    style={{ color: "#ffffffe0", fontSize: 11, lineHeight: 14 }}
-                  >
-                    {identity.handle}
-                  </Text>
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        overflow: "hidden",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "#ffffff18",
+                        borderWidth: 1,
+                        borderColor: "#ffffff70",
+                      }}
+                    >
+                      {identity.avatar && !avatarFailed ? (
+                        <Image
+                          key={avatarKey}
+                          testID="share-card-avatar"
+                          accessibilityLabel={`${identity.displayName}'s profile picture`}
+                          source={{ uri: identity.avatar }}
+                          resizeMode="cover"
+                          style={{ width: 36, height: 36, borderRadius: 18 }}
+                          onLoad={() =>
+                            setAvatars((previous) => ({
+                              ...previous,
+                              [avatarKey]: "ready",
+                            }))
+                          }
+                          onError={() =>
+                            setAvatars((previous) => ({
+                              ...previous,
+                              [avatarKey]: "failed",
+                            }))
+                          }
+                        />
+                      ) : (
+                        <Feather
+                          testID="share-card-avatar-placeholder"
+                          name="user"
+                          size={22}
+                          color="#fff"
+                        />
+                      )}
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.7}
+                        style={{
+                          color: "#fff",
+                          fontSize: 14,
+                          lineHeight: 18,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {identity.displayName || "Loading profile…"}
+                        {chart && item.period ? ` · ${item.period}` : ""}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.5}
+                        style={{
+                          color: "#ffffffe0",
+                          fontSize: 11,
+                          lineHeight: 14,
+                        }}
+                      >
+                        {identity.handle}
+                      </Text>
+                    </View>
+                  </View>
                   <Text style={styles.label}>ROCKSKY.APP</Text>
                 </View>
               </LinearGradient>

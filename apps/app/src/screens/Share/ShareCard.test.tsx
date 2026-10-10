@@ -3,6 +3,7 @@ import * as React from "react";
 import type { ShareItem, ShareKind } from "../../lib/shareLinks";
 
 const listener = {
+  avatar: "",
   did: "did:plc:listener",
   displayName: "Tsiry",
   handle: "tsiry-sandratraina.com",
@@ -23,7 +24,8 @@ mock.module("react", () => ({
     return [
       state[index],
       (value: unknown) => {
-        state[index] = value;
+        state[index] =
+          typeof value === "function" ? value(state[index]) : value;
       },
     ];
   },
@@ -131,6 +133,13 @@ for (const kind of [
       const captured = elements(tree).find(
         (e) => e.props.collapsable === false,
       )!;
+      expect(
+        elements(captured).some(
+          (e) =>
+            e.props.testID === "share-card-avatar-placeholder" &&
+            e.props.name === "user",
+        ),
+      ).toBe(true);
       expect(text(captured)).toContain("Tsiry");
       expect(text(captured)).toContain("@tsiry-sandratraina.com");
       expect(text(captured)).not.toContain("A little closer to the music.");
@@ -155,6 +164,7 @@ test("a scrobble stays unexportable until its owner's profile and layout are rea
     text(elements(tree).find((e) => e.props.collapsable === false)),
   ).not.toContain("Tsiry");
   fetched = {
+    avatar: "",
     did: "did:plc:other",
     displayName: "Another listener",
     handle: "other.test",
@@ -167,4 +177,84 @@ test("a scrobble stays unexportable until its owner's profile and layout are rea
   expect(
     text(elements(tree).find((e) => e.props.collapsable === false)),
   ).toContain("@other.test");
+});
+
+for (const kind of [
+  "scrobble",
+  "track",
+  "album",
+  "artist",
+  "profile",
+  "wrapped",
+  "chart",
+] as ShareKind[]) {
+  for (const size of ["story", "square"] as const) {
+    test(`${kind} ${size} captures the owner's circular avatar after it loads`, async () => {
+      format = size;
+      fetched = { ...listener, avatar: "https://images.test/avatar.jpg" };
+      const item: ShareItem = {
+        kind,
+        uri: listener.did,
+        owner: fetched,
+        title: "Music",
+        year: 2025,
+      };
+      if (!["profile", "wrapped", "chart"].includes(kind))
+        item.uri = `at://${listener.did}/app.rocksky.${kind === "track" ? "song" : kind}/abc`;
+      let tree = render(item);
+      for (const e of elements(tree)) e.props.onLayout?.();
+      tree = render(item);
+      expect(shareButton(tree).props.disabled).toBe(true);
+      const captured = elements(tree).find(
+        (e) => e.props.collapsable === false,
+      )!;
+      const avatar = elements(captured).find(
+        (e) => e.props.testID === "share-card-avatar",
+      )!;
+      expect(avatar.props.source.uri).toBe(fetched.avatar);
+      expect(avatar.props.style.borderRadius * 2).toBe(
+        avatar.props.style.width,
+      );
+      expect(
+        elements(captured).some(
+          (e) => e.props.testID === "share-card-avatar-placeholder",
+        ),
+      ).toBe(false);
+      avatar.props.onLoad();
+      tree = render(item);
+      expect(shareButton(tree).props.disabled).toBe(false);
+      await shareButton(tree).props.onPress();
+      expect(captures).toBe(1);
+    });
+  }
+}
+
+test("failed avatar renders an outlined user placeholder before export and resets for a new URL", () => {
+  fetched = { ...listener, avatar: "https://images.test/broken.jpg" };
+  const item: ShareItem = {
+    kind: "profile",
+    uri: listener.did,
+    title: "Profile",
+  };
+  let tree = render(item);
+  for (const e of elements(tree)) e.props.onLayout?.();
+  elements(tree)
+    .find((e) => e.props.testID === "share-card-avatar")!
+    .props.onError();
+  tree = render(item);
+  expect(shareButton(tree).props.disabled).toBe(true);
+  expect(
+    elements(tree).find(
+      (e) => e.props.testID === "share-card-avatar-placeholder",
+    )?.props.name,
+  ).toBe("user");
+  for (const e of elements(tree)) e.props.onLayout?.();
+  expect(shareButton(render(item)).props.disabled).toBe(false);
+  fetched = { ...listener, avatar: "https://images.test/new.jpg" };
+  tree = render(item);
+  expect(shareButton(tree).props.disabled).toBe(true);
+  expect(
+    elements(tree).find((e) => e.props.testID === "share-card-avatar")?.props
+      .source.uri,
+  ).toBe(fetched.avatar);
 });

@@ -407,6 +407,7 @@ function OverviewTab({
                 did,
                 displayName: owner?.displayName,
                 handle: owner?.handle,
+                avatar: owner?.avatar,
               },
               period,
               rankings: [
@@ -2210,6 +2211,7 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                           did: resolvedDid,
                           displayName: displayProfile?.displayName,
                           handle: displayProfile?.handle,
+                          avatar: displayProfile?.avatar,
                         },
                         title:
                           displayProfile?.displayName ||

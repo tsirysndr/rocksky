@@ -156,7 +156,7 @@ class RemoteLibraries(private val context: Context) {
             JSONObject().put("devices", JSONArray((0 until found.length()).map { publicConfig(found.getJSONObject(it)) }))
           } finally { if (multicast.isHeld) multicast.release() }
         }
-        "metadata", "cacheArtwork", "browse", "stream", "writablePlaylists", "addToPlaylist", "playlistOperation" -> {
+        "metadata", "cacheArtwork", "artworkMerge", "browse", "stream", "writablePlaylists", "addToPlaylist", "playlistOperation" -> {
           val config = synchronized(lock) { read().optJSONObject(request.getString("sourceId")) } ?: error("Library was disconnected. Connect it again to play.")
           val cache = RemoteMetadataCache(context, request.getString("sourceId"))
           when (request.getString("cmd")) {
@@ -169,6 +169,7 @@ class RemoteLibraries(private val context: Context) {
               JSONObject().put("metadata", metadata)
             }
             "cacheArtwork" -> JSONObject().put("metadata", cache.cacheLookup(request.getString("id"), request.optString("artist"), request.optString("artistUrl"), request.optString("albumUrl")))
+            "artworkMerge" -> cache.merge(mergeArtwork(config, request.getJSONObject("page")))
             "browse" -> cache.merge(mergeArtwork(config, native(request.put("config", config)), queue = true))
             else -> native(request.put("config", config)).also {
               if (request.getString("cmd") == "addToPlaylist" || (request.getString("cmd") == "playlistOperation" && request.optString("operation") in listOf("create", "rename", "delete"))) {

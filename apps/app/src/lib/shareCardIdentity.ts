@@ -1,6 +1,11 @@
 import type { ShareItem } from "./shareLinks";
 
-type Profile = { did: string; displayName?: string; handle?: string };
+type Profile = {
+  did: string;
+  displayName?: string;
+  handle?: string;
+  avatar?: string | null;
+};
 const handleOf = (value?: string) => value?.trim().replace(/^@+/, "") || "";
 
 /** Catalog records belong to an indexer, not necessarily the person sharing. */
@@ -26,10 +31,12 @@ export function shareCardIdentity(
   );
   const handle = matching.map((p) => handleOf(p.handle)).find(Boolean) || "";
   const resolved = matching.find((p) => p.displayName !== undefined);
+  const picture = matching.find((p) => p.avatar !== undefined);
   return {
+    avatar: picture?.avatar?.trim() || "",
     displayName: resolved?.displayName?.trim() || handle,
     handle: handle ? `@${handle}` : "",
-    // A handle-only story must finish loading the display name before export.
-    ready: !!handle && !!resolved,
+    // Wait for the owner’s name and avatar (including a known missing avatar).
+    ready: !!handle && !!resolved && !!picture,
   };
 }

@@ -30,6 +30,7 @@ import {
 } from "../../api/remoteLibraries";
 import { PickerSheet } from "../../components/PlaylistSheets";
 import { Text } from "../../components/Text";
+import { RemoteLibraryPaging } from "../../lib/remoteLibraryPaging";
 import { playQueue, queueTracks } from "../../lib/libraryPlayback";
 import type { UploadQueueTrack } from "../../lib/uploadEngine";
 import { colors } from "../../theme";
@@ -214,14 +215,50 @@ export default function RemoteLibrary({
       page.nextOffset != null && page.nextOffset > previousOffset
         ? page.nextOffset
         : undefined,
-    retry: false,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 2000),
     staleTime: 2 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
+  const listKey = JSON.stringify(queryKey);
+  const paging = useMemo(() => new RemoteLibraryPaging(), [listKey]);
+  const [pagingRevision, updatePaging] = useState(0);
+  const checkPaging = () => updatePaging((revision) => revision + 1);
   useEffect(() => {
-    if (focused && artworkRevision) void query.refetch();
-  }, [focused, artworkRevision, query.refetch]);
+    if (
+      focused &&
+      paging.take(!!query.hasNextPage, query.isFetching, query.isFetchNextPageError)
+    ) void query.fetchNextPage({ cancelRefetch: false });
+  }, [
+    paging, pagingRevision, focused, query.hasNextPage, query.isFetching,
+    query.isFetchNextPageError, query.data?.pages.length, query.fetchNextPage,
+  ]);
+
+  useEffect(() => {
+    if (!focused || !artworkRevision || query.isFetching) return;
+    let cancelled = false;
+    const snapshot = cache.getQueryData<InfiniteData<LibraryPage, number>>(queryKey);
+    if (!snapshot) return;
+    // Read local artwork only. Re-browsing every loaded page here competes with
+    // pagination and can cancel the next page while a user is scrolling.
+    void (async () => {
+      for (const page of snapshot.pages) {
+        const updated = await remoteLibraries.refreshArtwork(source.id, page);
+        if (cancelled) return;
+        cache.setQueryData<InfiniteData<LibraryPage, number>>(queryKey, (current) =>
+          current ? {
+            ...current,
+            // Preserve appended pages and ignore responses for replaced pages.
+            pages: current.pages.map((p) => p === page ? updated : p),
+          } : current,
+        );
+      }
+    })().catch(() => {
+      // Artwork is best effort; browsing remains available.
+    });
+    return () => { cancelled = true; };
+  }, [focused, artworkRevision, listKey, cache, source.id, query.isFetching]);
   const refresh = async () => {
     await cache.cancelQueries({ queryKey, exact: true });
     cache.setQueryData<InfiniteData<LibraryPage, number>>(queryKey, (data) =>
@@ -235,8 +272,8 @@ export default function RemoteLibrary({
     await query.refetch();
   };
   const loadMore = () => {
-    if (query.hasNextPage && !query.isFetching)
-      void query.fetchNextPage({ cancelRefetch: false });
+    paging.request();
+    checkPaging();
   };
   const items = useMemo(
     () => [
@@ -552,15 +589,21 @@ export default function RemoteLibrary({
             )}
           </TouchableOpacity>
         )}
-        onEndReached={() => {
-          if (
-            query.hasNextPage &&
-            !query.isFetching &&
-            !query.isFetchNextPageError
-          )
-            loadMore();
+        onScroll={({ nativeEvent: event }) => {
+          if (paging.scroll(event.contentOffset.y, event.layoutMeasurement.height,
+            event.contentSize.height)) checkPaging();
         }}
-        onEndReachedThreshold={0.4}
+        onLayout={(event) => {
+          if (paging.layout(event.nativeEvent.layout.height)) checkPaging();
+        }}
+        onContentSizeChange={(_width, height) => {
+          if (paging.contentSize(height)) checkPaging();
+        }}
+        onEndReached={() => {
+          paging.endReached();
+          checkPaging();
+        }}
+        onEndReachedThreshold={1}
         ListEmptyComponent={
           query.isPending ? (
             <ActivityIndicator color={colors.primary} style={{ margin: 32 }} />
@@ -585,7 +628,7 @@ export default function RemoteLibrary({
           )
         }
         ListFooterComponent={
-          query.isFetchingNextPage ? (
+          query.isFetching && query.hasNextPage ? (
             <ActivityIndicator color={colors.primary} />
           ) : query.hasNextPage ? (
             <TouchableOpacity
