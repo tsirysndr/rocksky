@@ -63,6 +63,7 @@ import { remoteBridge, type TransportAction } from "./remoteBridge";
 // now-playing atoms, routes transport actions, and scrobbles.
 
 export type UploadQueueTrack = {
+  plyrTrackId?: string;
   audioUrl?: string;
   renderer?: boolean;
   remoteLibraryId?: string;

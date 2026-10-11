@@ -5,7 +5,7 @@ export const connectionSchema = (existing?: LibrarySource) =>
   z
     .object({
       id: z.string().optional(),
-      kind: z.enum(["navidrome", "jellyfin", "upnp", "kodi", "plex"]),
+      kind: z.enum(["navidrome", "jellyfin", "upnp", "kodi", "plex", "plyr"]),
       name: z.string().trim().min(1, "Enter a library name."),
       baseUrl: z
         .string()

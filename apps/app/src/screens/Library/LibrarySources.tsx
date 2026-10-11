@@ -27,6 +27,7 @@ import { Text } from "../../components/Text";
 import { colors } from "../../theme";
 import { type ConnectionForm, connectionSchema } from "./connectionSchema";
 import LibraryLogo from "./LibraryLogo";
+import { PLYR_ID } from "../../api/plyr";
 
 export default function LibrarySources({
   selected,
@@ -96,6 +97,24 @@ export default function LibrarySources({
     } else onClose();
   };
   const connect = (kind: LibraryKind, existing?: LibrarySource) => {
+    if (kind === "plyr") {
+      if (busy) return;
+      setBusy(true);
+      setError("");
+      void remoteLibraries
+        .connectPlyr()
+        .then(async () => {
+          await cache.invalidateQueries({ queryKey: ["remote-libraries"] });
+          if (alive.current) onSelect(PLYR_ID);
+        })
+        .catch((e) => {
+          if (alive.current) setError(String(e));
+        })
+        .finally(() => {
+          if (alive.current) setBusy(false);
+        });
+      return;
+    }
     setExisting(existing);
     reset(
       existing
@@ -398,18 +417,20 @@ export default function LibrarySources({
                         />
                       )}
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      accessibilityLabel={`Edit ${source.name}`}
-                      accessibilityRole="button"
-                      onPress={() => connect(source.kind, source)}
-                      style={styles.icon}
-                    >
-                      <Feather
-                        name="edit-2"
-                        size={18}
-                        color={colors.textMuted}
-                      />
-                    </TouchableOpacity>
+                    {source.kind !== "plyr" && (
+                      <TouchableOpacity
+                        accessibilityLabel={`Edit ${source.name}`}
+                        accessibilityRole="button"
+                        onPress={() => connect(source.kind, source)}
+                        style={styles.icon}
+                      >
+                        <Feather
+                          name="edit-2"
+                          size={18}
+                          color={colors.textMuted}
+                        />
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityLabel={`Disconnect ${source.name}`}

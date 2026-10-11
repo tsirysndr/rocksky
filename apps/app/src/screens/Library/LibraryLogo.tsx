@@ -5,6 +5,7 @@ import type { LibraryKind } from "../../api/remoteLibraries";
 import { colors } from "../../theme";
 
 const logos = {
+  plyr: require("../../../assets/libraries/plyr.png"),
   navidrome: require("../../../assets/libraries/navidrome.png"),
   jellyfin: require("../../../assets/libraries/jellyfin.png"),
   kodi: require("../../../assets/libraries/kodi.png"),
@@ -38,7 +39,7 @@ export default function LibraryLogo({
           source={logos[kind]}
           style={{ width: size * 0.7, height: size * 0.7 }}
           contentFit="contain"
-          tintColor={colors.textMuted}
+          tintColor={kind === "plyr" ? undefined : colors.textMuted}
         />
       )}
     </View>

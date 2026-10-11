@@ -1,3 +1,5 @@
+import { plyrTrack } from "../api/plyr";
+import { mapConcurrent } from "./mapConcurrent";
 import { remoteLibraries } from "../api/remoteLibraries";
 import { remoteBridge } from "./remoteBridge";
 import { Alert } from "react-native";
@@ -68,7 +70,30 @@ export async function sendToSelectedPlayer(
   return true;
 }
 
+async function resolvePlyrTracks(tracks: UploadQueueTrack[]) {
+  return mapConcurrent(
+    tracks,
+    async (track) => {
+      if (!track.plyrTrackId) return track;
+      const { entry, url } = await plyrTrack(track.plyrTrackId);
+      return {
+        ...track,
+        title: entry.title,
+        artist: entry.artist,
+        albumArtist: entry.artist,
+        album: entry.album,
+        albumArt: entry.art,
+        durationMs: entry.durationMs,
+        audioUrl: url,
+        streamUrl: url,
+      };
+    },
+    4,
+  );
+}
+
 async function playQueueInternal(tracks: UploadQueueTrack[], index: number) {
+  tracks = await resolvePlyrTracks(tracks);
   if (await sendToSelectedPlayer(tracks, "now", index)) return;
   if (!castPlayback.connected() && !isLocalEngineAvailable()) {
     Alert.alert(
@@ -91,6 +116,7 @@ async function queueTracksInternal(
   tracks: UploadQueueTrack[],
   where: "next" | "last",
 ) {
+  tracks = await resolvePlyrTracks(tracks);
   if (await sendToSelectedPlayer(tracks, where)) return;
   if (!castPlayback.connected() && !isLocalEngineAvailable()) {
     Alert.alert(

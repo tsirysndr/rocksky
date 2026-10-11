@@ -1,6 +1,14 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { browsePlyr, PLYR_ID, plyrSource } from "./plyr";
 import { remoteLibraryRequest } from "../../modules/rocksky-engine";
 
-export type LibraryKind = "navidrome" | "jellyfin" | "upnp" | "kodi" | "plex";
+export type LibraryKind =
+  | "navidrome"
+  | "jellyfin"
+  | "upnp"
+  | "kodi"
+  | "plex"
+  | "plyr";
 export type LibrarySource = {
   id: string;
   kind: LibraryKind;
@@ -43,6 +51,12 @@ export type LibraryPage = {
   nextOffset: number | null;
 };
 export const libraryProviders = [
+  {
+    kind: "plyr",
+    title: "plyr.fm",
+    hint: "Discover independent music and radio",
+    placeholder: "https://api.plyr.fm",
+  },
   {
     kind: "navidrome",
     title: "Navidrome / Subsonic",
@@ -167,30 +181,48 @@ export const remoteLibraries = {
         albumUrl,
       })
     ).metadata,
-  list: () =>
-    remoteLibraryRequest<{ sources: LibrarySource[] }>({ cmd: "list" }),
+  list: async () => {
+    const result = await remoteLibraryRequest<{ sources: LibrarySource[] }>({
+      cmd: "list",
+    });
+    if (await AsyncStorage.getItem("library:plyr.fm"))
+      result.sources.push(plyrSource);
+    return result;
+  },
+  connectPlyr: () => AsyncStorage.setItem("library:plyr.fm", "true"),
   save: (config: LibraryConnection) =>
     remoteLibraryRequest<{ source: LibrarySource }>({ cmd: "save", config }),
   remove: (sourceId: string) =>
-    remoteLibraryRequest({ cmd: "remove", sourceId }),
+    sourceId === PLYR_ID
+      ? AsyncStorage.removeItem("library:plyr.fm")
+      : remoteLibraryRequest({ cmd: "remove", sourceId }),
   discover: (kind: "upnp" | "kodi") =>
     remoteLibraryRequest<{ devices: LibrarySource[] }>({
       cmd: "discover",
       kind,
     }),
   browse: (sourceId: string, id: string, query: string, offset: number) =>
-    remoteLibraryRequest<LibraryPage>({
-      cmd: "browse",
-      sourceId,
-      id,
-      query,
-      offset,
-      limit: 100,
-    }),
+    sourceId === PLYR_ID
+      ? browsePlyr(id, query, offset)
+      : remoteLibraryRequest<LibraryPage>({
+          cmd: "browse",
+          sourceId,
+          id,
+          query,
+          offset,
+          limit: 100,
+        }),
   artworkFailed: (sourceId: string, entry: LibraryEntry) =>
-    remoteLibraryRequest({ cmd: "artworkFailed", sourceId, entry }),
+    sourceId === PLYR_ID
+      ? Promise.resolve({})
+      : remoteLibraryRequest({ cmd: "artworkFailed", sourceId, entry }),
   refreshArtwork: (sourceId: string, page: LibraryPage, resume = true) =>
-    remoteLibraryRequest<LibraryPage>({ cmd: "artworkMerge", sourceId, page, resume }),
+    remoteLibraryRequest<LibraryPage>({
+      cmd: "artworkMerge",
+      sourceId,
+      page,
+      resume,
+    }),
   stream: async (sourceId: string, id: string) =>
     (
       await remoteLibraryRequest<{ url: string }>({

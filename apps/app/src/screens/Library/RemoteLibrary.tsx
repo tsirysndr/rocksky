@@ -1,3 +1,4 @@
+import { PLYR_ID, plyrTabs } from "../../api/plyr";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
@@ -44,8 +45,9 @@ export function serverQueueTrack(
   item: LibraryEntry,
 ): UploadQueueTrack {
   return {
-    remoteLibraryId: sourceId,
-    remoteTrackId: item.id,
+    remoteLibraryId: sourceId === PLYR_ID ? undefined : sourceId,
+    remoteTrackId: sourceId === PLYR_ID ? undefined : item.id,
+    plyrTrackId: sourceId === PLYR_ID ? item.id : undefined,
     uploadId: `server:${sourceId}:${item.id}`,
     title: item.title,
     artist: item.artist,
@@ -59,7 +61,13 @@ export function serverQueueTrack(
     sha256: "",
   };
 }
-export function EntryArtwork({ item, sourceId }: { item: LibraryEntry; sourceId?: string }) {
+export function EntryArtwork({
+  item,
+  sourceId,
+}: {
+  item: LibraryEntry;
+  sourceId?: string;
+}) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [item.art]);
   const round = item.kind === "artist";
@@ -74,7 +82,9 @@ export function EntryArtwork({ item, sourceId }: { item: LibraryEntry; sourceId?
           onError={() => {
             setFailed(true);
             if (sourceId && !failed)
-              void remoteLibraries.artworkFailed(sourceId, item).catch(() => {});
+              void remoteLibraries
+                .artworkFailed(sourceId, item)
+                .catch(() => {});
           }}
         />
       ) : (
@@ -92,9 +102,11 @@ export function EntryArtwork({ item, sourceId }: { item: LibraryEntry; sourceId?
                 name={
                   item.kind === "album"
                     ? "disc"
-                    : item.kind === "track"
-                      ? "music"
-                      : "folder"
+                    : item.kind === "station"
+                      ? "radio"
+                      : item.kind === "track"
+                        ? "music"
+                        : "folder"
                 }
                 size={22}
                 color={colors.textMuted}
@@ -136,32 +148,36 @@ export default function RemoteLibrary({
   } | null>(null);
   const folder = path.at(-1);
   const categories =
-    source.kind === "upnp"
-      ? upnpCategories.length
-        ? upnpCategories
-        : [
-            { label: "Tracks", id: "" },
-            { label: "Playlists", id: "" },
-          ]
-      : source.kind === "plex" && !section
-        ? []
-        : [
-            "Tracks",
-            "Albums",
-            "Artists",
-            ...(["navidrome", "jellyfin", "plex", "kodi"].includes(source.kind)
-              ? ["Playlists"]
-              : []),
-            ...(["navidrome", "jellyfin"].includes(source.kind)
-              ? ["Favorites"]
-              : []),
-          ].map((label) => ({
-            label,
-            id:
-              source.kind === "plex"
-                ? `${label === "Albums" ? "section" : label.toLowerCase()}:${section?.id}`
-                : label.toLowerCase(),
-          }));
+    source.kind === "plyr"
+      ? plyrTabs.map((label) => ({ label, id: label.toLowerCase() }))
+      : source.kind === "upnp"
+        ? upnpCategories.length
+          ? upnpCategories
+          : [
+              { label: "Tracks", id: "" },
+              { label: "Playlists", id: "" },
+            ]
+        : source.kind === "plex" && !section
+          ? []
+          : [
+              "Tracks",
+              "Albums",
+              "Artists",
+              ...(["navidrome", "jellyfin", "plex", "kodi"].includes(
+                source.kind,
+              )
+                ? ["Playlists"]
+                : []),
+              ...(["navidrome", "jellyfin"].includes(source.kind)
+                ? ["Favorites"]
+                : []),
+            ].map((label) => ({
+              label,
+              id:
+                source.kind === "plex"
+                  ? `${label === "Albums" ? "section" : label.toLowerCase()}:${section?.id}`
+                  : label.toLowerCase(),
+            }));
   const category =
     categories.find((item) => item.label === tab) ?? categories[0];
   const browseId = folder?.id ?? category?.id ?? "";
@@ -223,23 +239,39 @@ export default function RemoteLibrary({
   useEffect(() => {
     if (
       focused &&
-      paging.take(!!query.hasNextPage, query.isFetching, query.isFetchNextPageError)
-    ) void query.fetchNextPage({ cancelRefetch: false });
+      paging.take(
+        !!query.hasNextPage,
+        query.isFetching,
+        query.isFetchNextPageError,
+      )
+    )
+      void query.fetchNextPage({ cancelRefetch: false });
   }, [
-    paging, pagingRevision, focused, query.hasNextPage, query.isFetching,
-    query.isFetchNextPageError, query.data?.pages.length, query.fetchNextPage,
+    paging,
+    pagingRevision,
+    focused,
+    query.hasNextPage,
+    query.isFetching,
+    query.isFetchNextPageError,
+    query.data?.pages.length,
+    query.fetchNextPage,
   ]);
 
   useEffect(() => {
-    if (!focused) return;
+    if (!focused || source.kind === "plyr") return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     // Poll even at revision zero or after a stopped worker. The native cache
     // read resumes extraction without re-browsing or re-queueing enriched rows.
     const tick = async () => {
       try {
-        await refreshRemoteArtwork(cache, queryKey, source.id,
-          remoteLibraries.refreshArtwork, () => cancelled);
+        await refreshRemoteArtwork(
+          cache,
+          queryKey,
+          source.id,
+          remoteLibraries.refreshArtwork,
+          () => cancelled,
+        );
       } catch {
         // Retry next tick, even if no new artwork revision was published.
       } finally {
@@ -384,24 +416,31 @@ export default function RemoteLibrary({
           />
         }
         header={
-          (folder || section || busy) ? <View style={{ paddingBottom: 12 }}>
-            <View style={styles.heading}>
-              {(folder || section) && (
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="Back to parent folder"
-                  onPress={goBack}
-                  style={styles.icon}
-                >
-                  <Feather name="arrow-left" size={22} color={colors.text} />
-                </TouchableOpacity>
+          folder || section || busy ? (
+            <View style={{ paddingBottom: 12 }}>
+              <View style={styles.heading}>
+                {(folder || section) && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Back to parent folder"
+                    onPress={goBack}
+                    style={styles.icon}
+                  >
+                    <Feather name="arrow-left" size={22} color={colors.text} />
+                  </TouchableOpacity>
+                )}
+                <Text numberOfLines={2} style={styles.title}>
+                  {folder?.title ?? section?.title}
+                </Text>
+                {busy && <ActivityIndicator color={colors.primary} />}
+              </View>
+              {source.kind === "plyr" && folder?.id.startsWith("station:") && (
+                <Text style={styles.note}>
+                  Station rotation · pull down to refresh
+                </Text>
               )}
-              <Text numberOfLines={2} style={styles.title}>
-                {folder?.title ?? section?.title}
-              </Text>
-              {busy && <ActivityIndicator color={colors.primary} />}
             </View>
-          </View> : undefined
+          ) : undefined
         }
         tabs={
           <View style={{ gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -584,8 +623,14 @@ export default function RemoteLibrary({
           </TouchableOpacity>
         )}
         onScroll={({ nativeEvent: event }) => {
-          if (paging.scroll(event.contentOffset.y, event.layoutMeasurement.height,
-            event.contentSize.height)) checkPaging();
+          if (
+            paging.scroll(
+              event.contentOffset.y,
+              event.layoutMeasurement.height,
+              event.contentSize.height,
+            )
+          )
+            checkPaging();
         }}
         onLayout={(event) => {
           if (paging.layout(event.nativeEvent.layout.height)) checkPaging();
@@ -661,21 +706,25 @@ export default function RemoteLibrary({
           }
           onClose={() => setMenuTrack(null)}
         >
-          <MenuAction
-            text="Add to playlist"
-            icon="plus"
-            onPress={() => {
-              setPlaylistSheet({ track: menuTrack });
-              setMenuTrack(null);
-            }}
-          />
+          {source.kind !== "plyr" && (
+            <MenuAction
+              text="Add to playlist"
+              icon="plus"
+              onPress={() => {
+                setPlaylistSheet({ track: menuTrack });
+                setMenuTrack(null);
+              }}
+            />
+          )}
           <MenuAction
             text="Play now"
             icon="play"
             onPress={() => {
               const track = menuTrack;
               setMenuTrack(null);
-              void run(() => playQueue([serverQueueTrack(source.id, track)], 0));
+              void run(() =>
+                playQueue([serverQueueTrack(source.id, track)], 0),
+              );
             }}
           />
           <MenuAction
