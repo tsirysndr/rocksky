@@ -4,6 +4,10 @@ import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { atom } from "jotai";
 
 export type DeviceTrack = {
+  /** Source audio sample rate in Hz and bitrate in kbps. */
+  sampleRate?: number;
+  bitrate?: number;
+  codec?: string;
   title: string;
   artist: string;
   album?: string;

@@ -380,6 +380,7 @@ function trackFromJson(d: Json): RemoteNowPlaying {
     isPlaying: d.is_playing,
     codec: d.codec,
     sampleRate: d.sample_rate,
+    bitrate: d.bitrate,
     // Transport state the player chose to advertise. Absent means the player
     // has no such control — keep it undefined so a controller can hide the
     // matching UI instead of rendering a wrong default.

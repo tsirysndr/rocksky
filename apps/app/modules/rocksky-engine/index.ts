@@ -27,6 +27,9 @@ export type EngineStatus = {
   index: number | null;
   positionMs: number;
   durationMs: number;
+  sampleRate?: number;
+  bitrate?: number;
+  codec?: string;
   queueLen: number;
   shuffle: boolean;
   repeat: EngineRepeat;

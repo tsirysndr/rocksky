@@ -96,6 +96,9 @@ function useActiveDeviceTrack() {
         track.liked ??
         (prev?.uri && prev.uri === track.songUri ? prev.liked : false),
       uri: track.songUri ?? "",
+      sampleRate: track.sampleRate,
+      bitrate: track.bitrate,
+      codec: track.codec,
       album: track.album,
       artistUri: track.artistUri,
       albumUri: track.albumUri,

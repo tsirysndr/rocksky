@@ -49,6 +49,16 @@ type QueueRow = {
   albumArt?: string;
 };
 
+function audioFormat(track: { sampleRate?: number; bitrate?: number; codec?: string }): string {
+  return [
+    track.sampleRate && Number.isFinite(track.sampleRate) && track.sampleRate > 0
+      ? `${Number((track.sampleRate / 1000).toFixed(3))} kHz` : null,
+    track.bitrate && Number.isFinite(track.bitrate) && track.bitrate > 0
+      ? `${Math.round(track.bitrate)} kbps` : null,
+    track.codec?.trim().toUpperCase(),
+  ].filter(Boolean).join("  ");
+}
+
 function formatTime(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
@@ -440,6 +450,9 @@ export default function Player() {
                 </TouchableOpacity>
               )}
             </View>
+            {!!audioFormat(nowPlaying) && (
+              <Text style={styles.audioFormat}>{audioFormat(nowPlaying)}</Text>
+            )}
           </View>
         )}
         <View style={styles.bottomActions}>
@@ -755,6 +768,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 28,
+  },
+  audioFormat: {
+    fontFamily: "JetBrainsMonoRegular",
+    textAlign: "center",
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 14,
+    fontVariant: ["tabular-nums"],
   },
   playButton: {
     width: 72,

@@ -983,6 +983,9 @@ function pollOnce() {
       artist: track.artist,
       cover: track.albumArt ?? "",
       duration: durationMs,
+      sampleRate: status.sampleRate,
+      bitrate: status.bitrate,
+      codec: status.codec,
       progress: positionMs,
       isPlaying:
         Date.now() < store.get(playbackLockedUntilAtom)
@@ -1371,6 +1374,9 @@ function advertiseNowPlaying(force = false) {
         : undefined,
     durationMs: np.duration,
     elapsedMs: np.progress,
+    sampleRate: np.sampleRate,
+    bitrate: np.bitrate,
+    codec: np.codec,
     isPlaying: np.isPlaying,
     shuffle: np.shuffle,
     repeat: np.repeat,

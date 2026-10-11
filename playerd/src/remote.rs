@@ -301,6 +301,7 @@ pub fn push_state(shared: &Shared) {
         np.album_artist = m.albumartist.clone();
         np.codec = Some(m.codec.to_lowercase());
         np.sample_rate = Some(m.sample_rate);
+        np.bitrate = Some(m.bitrate);
     }
     // Remote enqueues know their album art; file tags don't carry a URL.
     if let Some(item) = current {

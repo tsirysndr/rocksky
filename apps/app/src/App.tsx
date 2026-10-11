@@ -72,6 +72,7 @@ function AppInner({ fontsLoaded }: { fontsLoaded: boolean }) {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
+    JetBrainsMonoRegular: require("../assets/fonts/JetBrainsMono-Regular.ttf"),
     RockfordSansLight: require("../assets/fonts/RockfordSans-Light.otf"),
     RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
     RockfordSansMedium: require("../assets/fonts/RockfordSans-Medium.otf"),

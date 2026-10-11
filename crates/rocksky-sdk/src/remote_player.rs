@@ -93,6 +93,8 @@ pub struct RemoteNowPlaying {
     pub codec: Option<String>,
     /// Audio sample rate in Hz (e.g. 44100), when the player knows it.
     pub sample_rate: Option<u32>,
+    /// Source audio bitrate in kilobits per second.
+    pub bitrate: Option<u32>,
     /// Queue shuffle state. `None` from a player that has no shuffle, which is
     /// how a controller knows to hide the toggle rather than show it wrong.
     pub shuffle: Option<bool>,
@@ -438,6 +440,9 @@ where
             }
             if let Some(sample_rate) = t.sample_rate {
                 data["sample_rate"] = json!(sample_rate);
+            }
+            if let Some(bitrate) = t.bitrate {
+                data["bitrate"] = json!(bitrate);
             }
             // Omitted, not defaulted: a controller must be able to tell "this
             // player has no shuffle" from "shuffle is off".
