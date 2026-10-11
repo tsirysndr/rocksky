@@ -537,6 +537,15 @@ fn track_from_value(v: &Value) -> RemoteNowPlaying {
             .and_then(|x| x.as_bool())
             .unwrap_or(false),
         bitrate: v.get("bitrate").and_then(|x| x.as_u64()).map(|n| n as u32),
+        waveform: v
+            .get("waveform")
+            .and_then(|v| serde_json::from_value::<Vec<u8>>(v.clone()).ok())
+            .filter(|v| v.len() == 256),
+        waveform_status: v
+            .get("waveform_status")
+            .and_then(|v| v.as_str())
+            .filter(|s| matches!(*s, "pending" | "ready" | "unavailable"))
+            .map(str::to_owned),
         codec: v.get("codec").and_then(|x| x.as_str()).map(str::to_string),
         sample_rate: v
             .get("sample_rate")
@@ -609,6 +618,25 @@ fn str_field(v: &Value, key: &str) -> String {
 #[cfg(test)]
 mod audio_url_tests {
     use super::*;
+    #[test]
+    fn waveform_metadata_accepts_only_bounded_byte_peaks() {
+        let track =
+            track_from_value(&json!({"waveform": vec![42; 256], "waveform_status":"ready"}));
+        assert_eq!(track.waveform, Some(vec![42; 256]));
+        assert_eq!(track.waveform_status.as_deref(), Some("ready"));
+        for invalid in [
+            json!([]),
+            json!(vec![42; 257]),
+            json!(vec![-1; 256]),
+            json!(vec![256; 256]),
+        ] {
+            assert!(track_from_value(&json!({"waveform":invalid}))
+                .waveform
+                .is_none());
+        }
+        assert!(track_from_value(&json!({})).waveform.is_none());
+    }
+
     #[test]
     fn target_error_preserves_device_identity() {
         let events = parse_events(

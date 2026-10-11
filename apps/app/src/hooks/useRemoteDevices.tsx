@@ -30,6 +30,8 @@ function toDeviceTrack(track: RemoteNowPlaying): DeviceTrack | null {
     artist: track.albumArtist || track.artist,
     sampleRate: track.sampleRate,
     bitrate: track.bitrate,
+    waveform: track.waveform,
+    waveformStatus: track.waveformStatus,
     codec: track.codec,
     album: track.album,
     albumArtist: track.albumArtist,

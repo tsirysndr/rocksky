@@ -4,6 +4,8 @@ export type NowPlaying = {
   /** Source audio sample rate in Hz and bitrate in kbps. */
   sampleRate?: number;
   bitrate?: number;
+  waveform?: number[];
+  waveformStatus?: "pending" | "ready" | "unavailable";
   codec?: string;
   title: string;
   artist: string;

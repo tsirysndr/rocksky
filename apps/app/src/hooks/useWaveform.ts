@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { validWaveform, waveformFallbackDelay } from "../lib/waveformPolicy";
 import { requestWaveform } from "../../modules/rocksky-engine";
 
-export function useWaveform(key: string, enabled: boolean, source: () => Promise<string | null>) {
+export function useWaveform(key: string, enabled: boolean, source: () => Promise<string | null>, remotePeaks?: number[], remoteStatus?: string) {
+  const hasRemoteWaveform = validWaveform(remotePeaks);
   const [result, setResult] = useState<{ key: string; peaks: number[] } | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -9,7 +11,7 @@ export function useWaveform(key: string, enabled: boolean, source: () => Promise
     setResult(null);
     // Cancels obsolete Rust analysis, including when switching to live radio.
     void requestWaveform("").catch(() => {});
-    if (enabled) {
+    const generate = () => {
       void source().then(async (url) => {
         if (cancelled || !url) return;
         const poll = async () => {
@@ -26,6 +28,11 @@ export function useWaveform(key: string, enabled: boolean, source: () => Promise
         };
         await poll();
       }).catch(() => {});
+    };
+    const delay = waveformFallbackDelay(remotePeaks, remoteStatus);
+    if (enabled && delay !== null) {
+      if (delay > 0) timer = setTimeout(generate, delay);
+      else generate();
     }
     return () => {
       cancelled = true;
@@ -35,6 +42,7 @@ export function useWaveform(key: string, enabled: boolean, source: () => Promise
     // Source is a snapshot resolver. Its identity changes on progress renders;
     // key includes device, queue position and track identity instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, enabled]);
-  return result?.key === key ? result.peaks : null;
+  }, [key, enabled, hasRemoteWaveform, remoteStatus]);
+  if (!enabled) return null;
+  return hasRemoteWaveform ? remotePeaks! : result?.key === key ? result.peaks : null;
 }

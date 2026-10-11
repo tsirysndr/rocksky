@@ -43,6 +43,9 @@ export interface RemoteNowPlaying {
   sampleRate?: number;
   /** Source audio bitrate in kilobits per second. */
   bitrate?: number;
+  /** 256 normalized amplitude peaks (0..255), in track-time order. */
+  waveform?: number[];
+  waveformStatus?: "pending" | "ready" | "unavailable";
   /** Queue shuffle state. Leave undefined when the player has no shuffle —
    *  that is how a controller tells "no such control" from "off", and hides
    *  the toggle instead of rendering it wrong. */
@@ -302,6 +305,8 @@ export class RemotePlayer {
         codec: track.codec,
         sample_rate: track.sampleRate,
         bitrate: track.bitrate,
+        waveform: track.waveform,
+        waveform_status: track.waveformStatus,
         // Omitted when undefined, so "no such control" stays distinguishable
         // from "off" on the wire.
         ...(track.shuffle !== undefined ? { shuffle: track.shuffle } : {}),

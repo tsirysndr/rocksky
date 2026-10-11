@@ -216,7 +216,7 @@ export default function Player() {
       return getStreamUrl(track.uploadId);
     }
     return null;
-  });
+  }, isLocal ? undefined : nowPlaying?.waveform, isLocal ? undefined : nowPlaying?.waveformStatus);
 
   const repeatMode = nowPlaying?.repeat ?? "off";
 

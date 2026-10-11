@@ -381,6 +381,8 @@ function trackFromJson(d: Json): RemoteNowPlaying {
     codec: d.codec,
     sampleRate: d.sample_rate,
     bitrate: d.bitrate,
+    waveform: Array.isArray(d.waveform) && d.waveform.length === 256 && d.waveform.every((n: unknown) => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 255) ? d.waveform : undefined,
+    waveformStatus: ["pending", "ready", "unavailable"].includes(d.waveform_status) ? d.waveform_status : undefined,
     // Transport state the player chose to advertise. Absent means the player
     // has no such control — keep it undefined so a controller can hide the
     // matching UI instead of rendering a wrong default.

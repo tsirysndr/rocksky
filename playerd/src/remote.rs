@@ -317,6 +317,33 @@ pub fn push_state(shared: &Shared) {
         np.album_art = item.album_art.clone();
     }
 
+    // Analyze the actual engine URI, never a controller's queue position or URL.
+    // The shared worker returns immediately and reuses its bounded disk cache.
+    let source = if status.state != PlaybackState::Stopped && np.duration_ms > 0 {
+        status
+            .index
+            .and_then(|i| snapshot.queue.get(i))
+            .map(String::as_str)
+            .unwrap_or("")
+    } else {
+        ""
+    };
+    let directory = dirs::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("rocksky/playerd/waveforms");
+    let waveform = rocksky_metadata::waveform::request(source, &directory);
+    np.waveform_status = Some(
+        waveform["status"]
+            .as_str()
+            .filter(|s| *s != "idle")
+            .unwrap_or("unavailable")
+            .to_owned(),
+    );
+    np.waveform = waveform
+        .get("peaks")
+        .and_then(|v| serde_json::from_value::<Vec<u8>>(v.clone()).ok())
+        .filter(|v| v.len() == 256);
+
     shared.remote.set_now_playing(np);
     shared.remote.set_status(match status.state {
         PlaybackState::Playing => RemoteStatus::Playing,

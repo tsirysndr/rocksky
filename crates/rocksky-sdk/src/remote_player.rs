@@ -95,6 +95,10 @@ pub struct RemoteNowPlaying {
     pub sample_rate: Option<u32>,
     /// Source audio bitrate in kilobits per second.
     pub bitrate: Option<u32>,
+    /// 256 normalized amplitude peaks (0..255), in track-time order.
+    pub waveform: Option<Vec<u8>>,
+    /// "pending", "ready", or "unavailable". Omitted by older players.
+    pub waveform_status: Option<String>,
     /// Queue shuffle state. `None` from a player that has no shuffle, which is
     /// how a controller knows to hide the toggle rather than show it wrong.
     pub shuffle: Option<bool>,
@@ -444,6 +448,14 @@ where
             if let Some(bitrate) = t.bitrate {
                 data["bitrate"] = json!(bitrate);
             }
+            if let Some(peaks) = &t.waveform {
+                if peaks.len() == 256 {
+                    data["waveform"] = json!(peaks);
+                }
+            }
+            if let Some(status) = &t.waveform_status {
+                data["waveform_status"] = json!(status);
+            }
             // Omitted, not defaulted: a controller must be able to tell "this
             // player has no shuffle" from "shuffle is off".
             if let Some(shuffle) = t.shuffle {
@@ -637,6 +649,40 @@ struct Inbound {
 #[cfg(test)]
 mod audio_url_tests {
     use super::*;
+    #[tokio::test]
+    async fn waveform_is_sent_with_current_track_and_cleared_on_next_track() {
+        let (mut tx, mut rx) = futures::channel::mpsc::unbounded();
+        let config = RemotePlayerConfig::new("test", "Player");
+        let peaks = vec![128; 256];
+        for track in [
+            RemoteNowPlaying {
+                title: "First".into(),
+                waveform: Some(peaks.clone()),
+                waveform_status: Some("ready".into()),
+                ..Default::default()
+            },
+            RemoteNowPlaying {
+                title: "Second".into(),
+                waveform_status: Some("pending".into()),
+                ..Default::default()
+            },
+        ] {
+            send_out(&mut tx, &config, "device", &OutMsg::Track(track))
+                .await
+                .unwrap();
+        }
+        let first: serde_json::Value =
+            serde_json::from_str(rx.next().await.unwrap().to_text().unwrap()).unwrap();
+        assert_eq!(first["data"]["waveform"], json!(peaks));
+        assert_eq!(first["data"]["waveform_status"], "ready");
+        assert!(first.to_string().len() < 2048);
+        let next: serde_json::Value =
+            serde_json::from_str(rx.next().await.unwrap().to_text().unwrap()).unwrap();
+        assert_eq!(next["data"]["title"], "Second");
+        assert!(next["data"].get("waveform").is_none());
+        assert_eq!(next["data"]["waveform_status"], "pending");
+    }
+
     #[test]
     fn direct_url_survives_queue_serialization() {
         let item = RemoteQueueItem {

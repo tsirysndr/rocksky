@@ -98,6 +98,8 @@ function useActiveDeviceTrack() {
       uri: track.songUri ?? "",
       sampleRate: track.sampleRate,
       bitrate: track.bitrate,
+      waveform: track.waveform,
+      waveformStatus: track.waveformStatus,
       codec: track.codec,
       album: track.album,
       artistUri: track.artistUri,
