@@ -85,7 +85,7 @@
 
         playerd = rustPlatform.buildRustPackage {
           pname = "playerd";
-          version = "0.3.0";
+          version = "0.3.1";
 
           src = fs.toSource {
             root = ./.;
@@ -339,7 +339,7 @@
 
         desktopFrontend = pkgs.stdenvNoCC.mkDerivation {
           pname = "rocksky-desktop-frontend";
-          version = "0.1.0";
+          version = "0.1.1";
 
           src = fs.toSource {
             root = ./.;
@@ -399,7 +399,7 @@
 
         rocksky-desktop = rustPlatform.buildRustPackage {
           pname = "rocksky-desktop";
-          version = "0.1.0";
+          version = "0.1.1";
 
           src = fs.toSource {
             root = ./.;
