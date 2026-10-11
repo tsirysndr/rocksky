@@ -44,6 +44,7 @@ mock.module("react-native", () => ({
   View: "View",
 }));
 mock.module("@expo/vector-icons/Feather", () => ({ default: "Feather" }));
+mock.module("../../components/ShareIcon", () => ({ default: "ShareIcon" }));
 mock.module("expo-linear-gradient", () => ({
   LinearGradient: "LinearGradient",
 }));
@@ -109,7 +110,6 @@ for (const kind of [
   "track",
   "album",
   "artist",
-  "profile",
   "wrapped",
   "chart",
 ] as ShareKind[]) {
@@ -184,7 +184,6 @@ for (const kind of [
   "track",
   "album",
   "artist",
-  "profile",
   "wrapped",
   "chart",
 ] as ShareKind[]) {
@@ -232,9 +231,10 @@ for (const kind of [
 test("failed avatar renders an outlined user placeholder before export and resets for a new URL", () => {
   fetched = { ...listener, avatar: "https://images.test/broken.jpg" };
   const item: ShareItem = {
-    kind: "profile",
+    kind: "wrapped",
     uri: listener.did,
-    title: "Profile",
+    title: "Wrapped",
+    year: 2025,
   };
   let tree = render(item);
   for (const e of elements(tree)) e.props.onLayout?.();
@@ -258,3 +258,40 @@ test("failed avatar renders an outlined user placeholder before export and reset
       .source.uri,
   ).toBe(fetched.avatar);
 });
+
+for (const size of ["story", "square"] as const) {
+  for (const artwork of [undefined, "https://images.test/profile.jpg"]) {
+    test(`profile ${size} has one identity and exports without a miniature footer (${!!artwork})`, async () => {
+      format = size;
+      fetched = undefined;
+      viewer = null;
+      const item: ShareItem = {
+        kind: "profile",
+        uri: listener.did,
+        title: listener.displayName,
+        subtitle: `@${listener.handle}`,
+        artwork,
+      };
+      let tree = render(item);
+      for (const e of elements(tree)) e.props.onLayout?.();
+      tree = render(item);
+      expect(shareButton(tree).props.disabled).toBe(!!artwork);
+      if (artwork) {
+        elements(tree).find((e) => e.props.source?.uri === artwork)!.props.onLoad();
+        tree = render(item);
+      }
+      const captured = elements(tree).find((e) => e.props.collapsable === false)!;
+      expect(elements(captured).some((e) =>
+        e.props.testID === "share-card-avatar" ||
+        e.props.testID === "share-card-avatar-placeholder",
+      )).toBe(false);
+      expect(text(captured).split(listener.displayName).length - 1).toBe(1);
+      expect(text(captured).split(`@${listener.handle}`).length - 1).toBe(1);
+      expect(text(captured)).toContain("ROCKSKY.APP");
+      expect(text(tree)).not.toContain("Sign in to include");
+      expect(shareButton(tree).props.disabled).toBe(false);
+      await shareButton(tree).props.onPress();
+      expect(captures).toBe(1);
+    });
+  }
+}

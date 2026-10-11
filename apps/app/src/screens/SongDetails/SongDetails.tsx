@@ -1,3 +1,4 @@
+import ShareIcon from "../../components/ShareIcon";
 import OnTour from "@/src/components/OnTour";
 import RecordingMetadata from "@/src/components/RecordingMetadata";
 import TrackLikeButton from "@/src/components/TrackLikeButton";
@@ -430,8 +431,7 @@ export default function SongDetails({ route }: Props) {
                     paddingVertical: 14,
                   }}
                 >
-                  <MaterialCommunityIcons
-                    name="share-variant"
+                  <ShareIcon
                     size={18}
                     color={colors.text}
                   />

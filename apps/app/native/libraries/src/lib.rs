@@ -186,17 +186,22 @@ fn run(input: Value) -> Result<Value> {
         artwork::start(&path, &text(&input, "artworkRoot"), c)?;
         return Ok(result);
     }
+    if cmd == "artworkFailed" {
+        let path = text(&input, "indexPath");
+        artwork::failed(&path, &c, &input["entry"])?;
+        artwork::start(&path, &text(&input, "artworkRoot"), c)?;
+        return Ok(json!({}));
+    }
     if cmd == "artworkMerge" {
         let path = text(&input, "indexPath");
         if input["queue"].as_bool().unwrap_or(false) {
             artwork::queue_page(&path, &c, &input["page"])?;
         }
-        if input["queue"].as_bool().unwrap_or(false)
-            || input["resume"].as_bool().unwrap_or(false)
-        {
+        let page = artwork::merge(&path, &c, input["page"].clone())?;
+        if input["queue"].as_bool().unwrap_or(false) || input["resume"].as_bool().unwrap_or(false) {
             artwork::start(&path, &text(&input, "artworkRoot"), c.clone())?;
         }
-        return artwork::merge(&path, &c, input["page"].clone());
+        return Ok(page);
     }
     if cmd == "artworkMetadata" {
         return Ok(

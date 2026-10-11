@@ -131,6 +131,8 @@ export default function Charts() {
           Charts
         </h1>
 
+        <Link to="/analytics" className="block px-4 mb-4 text-sm" style={{ color: "var(--color-primary)" }}>Listening analytics →</Link>
+
         {/* Tabs */}
         <div className="flex gap-2 px-4 mb-4">
           {(["tracks", "artists"] as const).map((t) => (

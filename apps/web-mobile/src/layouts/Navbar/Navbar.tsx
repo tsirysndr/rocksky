@@ -157,6 +157,14 @@ function Navbar() {
                 </Link>
               )}
               <Link
+                to="/analytics"
+                className="py-3.5 px-2 no-underline font-medium text-base block"
+                style={{ color: "var(--color-text)" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Analytics
+              </Link>
+              <Link
                 to="/wrapped"
                 className="py-3.5 px-2 no-underline font-medium text-base block"
                 style={{ color: "var(--color-text)" }}

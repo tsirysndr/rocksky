@@ -1,3 +1,4 @@
+import ShareIcon from "../../components/ShareIcon";
 import OnTour from "@/src/components/OnTour";
 import Feather from "@expo/vector-icons/Feather";
 import { Image as BackgroundImage } from "expo-image";
@@ -258,7 +259,7 @@ export default function ArtistDetails({ route }: Props) {
                     gap: 8,
                   }}
                 >
-                  <Feather name="share-2" size={18} color={colors.text} />
+                  <ShareIcon size={18} color={colors.text} />
                   <Text
                     style={{
                       color: colors.text,

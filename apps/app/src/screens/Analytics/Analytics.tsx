@@ -34,7 +34,8 @@ import UserAvatar from "../../components/UserAvatar";
 import type { RootStackParamList } from "../../Navigation";
 import { storage } from "../../storage";
 import { colors } from "../../theme";
-import { Bars, ListeningCalendar, palette, Trend } from "./Charts";
+import { Bars, ListeningCalendar, ListeningPie, palette, Trend } from "./Charts";
+import { listeningShare } from "../../../../shared/listeningShare";
 import {
   chartPoints,
   dailyPoints,
@@ -306,6 +307,7 @@ export default function Analytics() {
     [daily.data, range],
   );
   const totals = useMemo(() => summarize(points), [points]);
+  const artistShares = listeningShare(artists.data ?? [], totals.total);
   const chart = useMemo(() => chartPoints(points), [points]);
   const hasData = totals.total > 0;
   const rankQuery = ranking === "artists" ? artists : tracks;
@@ -529,6 +531,18 @@ export default function Analytics() {
             points={chart.points}
             unit={chart.unit}
           />
+        </Panel>
+        <Panel
+          title="Listening share"
+          note={did ? "Top 5 artists + Other · Share of scrobbles in this period." : "Top 5 artists by listeners + Other · Share of scrobbles."}
+          query={{
+            isPending: daily.isPending || artists.isPending,
+            isError: daily.isError || artists.isError,
+            refetch: () => Promise.all([daily.refetch(), artists.refetch()]),
+          }}
+          empty={!hasData}
+        >
+          {artistShares.length ? <ListeningPie key={`${did}-${range.from}-${range.to}`} slices={artistShares} /> : <Text style={styles.note}>Listening totals are updating. Pull to refresh.</Text>}
         </Panel>
         <Panel
           title="Listening rhythm"

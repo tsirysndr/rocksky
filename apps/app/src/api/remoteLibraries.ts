@@ -187,6 +187,8 @@ export const remoteLibraries = {
       offset,
       limit: 100,
     }),
+  artworkFailed: (sourceId: string, entry: LibraryEntry) =>
+    remoteLibraryRequest({ cmd: "artworkFailed", sourceId, entry }),
   refreshArtwork: (sourceId: string, page: LibraryPage, resume = true) =>
     remoteLibraryRequest<LibraryPage>({ cmd: "artworkMerge", sourceId, page, resume }),
   stream: async (sourceId: string, id: string) =>

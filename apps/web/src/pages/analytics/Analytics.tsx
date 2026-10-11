@@ -1,3 +1,5 @@
+import ListeningPie from "../../../../shared/browser/ListeningPie";
+import { listeningShare } from "../../../../shared/listeningShare";
 import UserAvatar from "../../components/UserAvatar";
 import styled from "@emotion/styled";
 import { useQuery } from "@tanstack/react-query";
@@ -392,8 +394,8 @@ function Analytics() {
         10,
         0,
         {
-          startDate: dayjs(range.from).toISOString(),
-          endDate: dayjs(range.to).endOf("day").toISOString(),
+          startDate: `${range.from}T00:00:00.000Z`,
+          endDate: `${range.to}T23:59:59.999Z`,
         },
         did,
       ),
@@ -406,8 +408,8 @@ function Analytics() {
         10,
         0,
         {
-          startDate: dayjs(range.from).toISOString(),
-          endDate: dayjs(range.to).endOf("day").toISOString(),
+          startDate: `${range.from}T00:00:00.000Z`,
+          endDate: `${range.to}T23:59:59.999Z`,
         },
         did,
       ),
@@ -418,8 +420,8 @@ function Analytics() {
     queryFn: () =>
       rocksky().decades(
         {
-          startDate: dayjs(range.from).toISOString(),
-          endDate: dayjs(range.to).endOf("day").toISOString(),
+          startDate: `${range.from}T00:00:00.000Z`,
+          endDate: `${range.to}T23:59:59.999Z`,
         },
         did,
       ),
@@ -434,8 +436,8 @@ function Analytics() {
         allTime
           ? {}
           : {
-              startDate: dayjs(range.from).toISOString(),
-              endDate: dayjs(range.to).endOf("day").toISOString(),
+              startDate: `${range.from}T00:00:00.000Z`,
+              endDate: `${range.to}T23:59:59.999Z`,
             },
       ),
   });
@@ -658,6 +660,14 @@ function Analytics() {
               </AreaChart>
             </ResponsiveContainer>
           )}
+        </Panel>
+
+        <Panel>
+          <PanelTitle>Listening share</PanelTitle>
+          <PanelNote>{did ? "Top 5 artists + Other · Share of scrobbles in this period." : "Top 5 artists by listeners + Other · Share of scrobbles."}</PanelNote>
+          {daily.isLoading || topArtists.isLoading ? <Empty>Loading…</Empty> : daily.isError || topArtists.isError ? <Empty>This chart could not load. <button type="button" onClick={() => { void daily.refetch(); void topArtists.refetch(); }}>Try again</button></Empty> : !totals.scrobbles ? <Empty>Nothing scrobbled in this range.</Empty> : listeningShare(topArtists.data ?? [], totals.scrobbles).length ? (
+            <ListeningPie key={`${did}-${range.from}-${range.to}`} slices={listeningShare(topArtists.data ?? [], totals.scrobbles)} />
+          ) : <Empty>Listening totals are updating. <button type="button" onClick={() => { void daily.refetch(); void topArtists.refetch(); }}>Refresh</button></Empty>}
         </Panel>
 
         <Grid2>

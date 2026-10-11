@@ -1,3 +1,4 @@
+import ShareIcon from "../../components/ShareIcon";
 import PlayerVolume from "@/src/components/PlayerVolume";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -470,8 +471,7 @@ export default function Player() {
               });
             }}
           >
-            <Feather
-              name="share-2"
+            <ShareIcon
               size={20}
               color={nowPlaying ? colors.text : colors.textMuted}
             />

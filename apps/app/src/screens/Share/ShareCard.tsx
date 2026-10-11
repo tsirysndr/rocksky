@@ -1,3 +1,4 @@
+import ShareIcon from "../../components/ShareIcon";
 import Feather from "@expo/vector-icons/Feather";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
@@ -97,6 +98,7 @@ export default function ShareCard({
     item.owner,
     viewer,
   );
+  const showIdentityFooter = item.kind !== "profile";
   const avatarKey = JSON.stringify([actor, identity.avatar]);
   const [avatars, setAvatars] = useState<Record<string, "ready" | "failed">>(
     {},
@@ -157,9 +159,8 @@ export default function ShareCard({
     imageReady &&
     rankingImagesReady &&
     laidOut &&
-    identity.ready &&
-    avatarReady &&
-    identityLayout === identityKey;
+    (!showIdentityFooter ||
+      (identity.ready && avatarReady && identityLayout === identityKey));
   const composeFallback = (app: "Bluesky" | "X" | "Facebook", text: string) =>
     Linking.openURL(
       app === "Bluesky"
@@ -498,85 +499,87 @@ export default function ShareCard({
                       marginBottom: 8,
                     }}
                   />
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
+                  {showIdentityFooter && (
                     <View
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        overflow: "hidden",
+                        flexDirection: "row",
                         alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: "#ffffff18",
-                        borderWidth: 1,
-                        borderColor: "#ffffff70",
+                        gap: 10,
                       }}
                     >
-                      {identity.avatar && !avatarFailed ? (
-                        <Image
-                          key={avatarKey}
-                          testID="share-card-avatar"
-                          accessibilityLabel={`${identity.displayName}'s profile picture`}
-                          source={{ uri: identity.avatar }}
-                          resizeMode="cover"
-                          style={{ width: 36, height: 36, borderRadius: 18 }}
-                          onLoad={() =>
-                            setAvatars((previous) => ({
-                              ...previous,
-                              [avatarKey]: "ready",
-                            }))
-                          }
-                          onError={() =>
-                            setAvatars((previous) => ({
-                              ...previous,
-                              [avatarKey]: "failed",
-                            }))
-                          }
-                        />
-                      ) : (
-                        <Feather
-                          testID="share-card-avatar-placeholder"
-                          name="user"
-                          size={22}
-                          color="#fff"
-                        />
-                      )}
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                      <Text
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.7}
+                      <View
                         style={{
-                          color: "#fff",
-                          fontSize: 14,
-                          lineHeight: 18,
-                          fontWeight: "700",
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          overflow: "hidden",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: "#ffffff18",
+                          borderWidth: 1,
+                          borderColor: "#ffffff70",
                         }}
                       >
-                        {identity.displayName || "Loading profile…"}
-                        {chart && item.period ? ` · ${item.period}` : ""}
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.5}
-                        style={{
-                          color: "#ffffffe0",
-                          fontSize: 11,
-                          lineHeight: 14,
-                        }}
-                      >
-                        {identity.handle}
-                      </Text>
+                        {identity.avatar && !avatarFailed ? (
+                          <Image
+                            key={avatarKey}
+                            testID="share-card-avatar"
+                            accessibilityLabel={`${identity.displayName}'s profile picture`}
+                            source={{ uri: identity.avatar }}
+                            resizeMode="cover"
+                            style={{ width: 36, height: 36, borderRadius: 18 }}
+                            onLoad={() =>
+                              setAvatars((previous) => ({
+                                ...previous,
+                                [avatarKey]: "ready",
+                              }))
+                            }
+                            onError={() =>
+                              setAvatars((previous) => ({
+                                ...previous,
+                                [avatarKey]: "failed",
+                              }))
+                            }
+                          />
+                        ) : (
+                          <Feather
+                            testID="share-card-avatar-placeholder"
+                            name="user"
+                            size={22}
+                            color="#fff"
+                          />
+                        )}
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                        <Text
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                          style={{
+                            color: "#fff",
+                            fontSize: 14,
+                            lineHeight: 18,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {identity.displayName || "Loading profile…"}
+                          {chart && item.period ? ` · ${item.period}` : ""}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.5}
+                          style={{
+                            color: "#ffffffe0",
+                            fontSize: 11,
+                            lineHeight: 14,
+                          }}
+                        >
+                          {identity.handle}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
+                  )}
                   <Text style={styles.label}>ROCKSKY.APP</Text>
                 </View>
               </LinearGradient>
@@ -602,7 +605,7 @@ export default function ShareCard({
             />
           ))}
         </View>
-        {!identity.ready && (
+        {showIdentityFooter && !identity.ready && (
           <View style={{ alignItems: "center", gap: 8 }}>
             <Text style={styles.note}>
               {!actor
@@ -638,7 +641,7 @@ export default function ShareCard({
             <ActivityIndicator color="white" />
           ) : (
             <>
-              <Feather name="image" color="white" size={20} />
+              <ShareIcon color="white" size={20} />
               <Text style={styles.buttonText}>Share card</Text>
             </>
           )}
@@ -650,9 +653,10 @@ export default function ShareCard({
         <View style={styles.row}>
           <TouchableOpacity
             disabled={busy}
-            style={styles.pill}
+            style={[styles.pill, { flexDirection: "row", alignItems: "center", gap: 8 }]}
             onPress={shareLink}
           >
+            <ShareIcon color={colors.text} size={18} />
             <Text>{link ? "Share link…" : "Share text…"}</Text>
           </TouchableOpacity>
           {link && (

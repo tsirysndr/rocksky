@@ -1,9 +1,9 @@
 import Feather from "@expo/vector-icons/Feather";
-import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   type FC,
   useCallback,
@@ -14,6 +14,8 @@ import {
 } from "react";
 import {
   Alert,
+  AppState,
+  Linking,
   Animated,
   PanResponder,
   TouchableOpacity,
@@ -25,16 +27,18 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Text } from "@/src/components/Text";
+import MarqueeText from "@/src/components/MarqueeText";
 import UserAvatar from "@/src/components/UserAvatar";
-import { useStoryLike } from "@/src/hooks/useStoryLike";
-import { storage } from "@/src/storage";
+import TrackLikeButton from "@/src/components/TrackLikeButton";
 import { colors } from "@/src/theme";
 import type { Story as StoryItem } from "@/src/types/feed";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
 
-const STORY_DURATION = 5000;
+import StoryLinks from "./StoryLinks";
+
+const STORY_DURATION = 15000;
 
 export type StoryProps = {
   stories: StoryItem[];
@@ -60,6 +64,11 @@ const Story: FC<StoryProps> = ({
   active,
 }) => {
   const layout = useWindowDimensions();
+  const [foreground, setForeground] = useState(AppState.currentState === "active");
+  useEffect(() => {
+    const listener = AppState.addEventListener("change", (state) => setForeground(state === "active"));
+    return () => listener.remove();
+  }, []);
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(
     Math.min(Math.max(startIndex ?? 0, 0), Math.max(stories.length - 1, 0)),
@@ -67,7 +76,6 @@ const Story: FC<StoryProps> = ({
   const progress = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const current = stories[index];
-  const { liked, pending, toggle } = useStoryLike(current);
   const artSize = Math.min(layout.width * 0.8, layout.height * 0.45, 380);
 
   const startProgress = useCallback(() => {
@@ -87,10 +95,10 @@ const Story: FC<StoryProps> = ({
   }, [index, stories.length, onClose, progress]);
 
   useEffect(() => {
-    if (active) startProgress();
+    if (active && foreground) startProgress();
     else animRef.current?.stop();
     return () => animRef.current?.stop();
-  }, [startProgress, active]);
+  }, [startProgress, active, foreground]);
 
   const goNext = useCallback(() => {
     setIndex((i) => {
@@ -148,47 +156,28 @@ const Story: FC<StoryProps> = ({
         />
       )}
       <SafeAreaView style={{ flex: 1 }}>
-        {/* Progress bars */}
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 3,
-            paddingHorizontal: 12,
-            paddingTop: 8,
-            paddingBottom: 6,
-          }}
-        >
-          {stories.map((story, i) => (
-            <View
-              key={`${story.trackId}-${story.did}-${story.createdAt}-${i}`}
+        <View style={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6 }}>
+          <View
+            style={{
+              height: 2,
+              borderRadius: 1,
+              backgroundColor: "rgba(255,255,255,0.3)",
+              overflow: "hidden",
+            }}
+          >
+            <Animated.View
               style={{
-                flex: 1,
-                height: 2,
+                height: "100%",
+                backgroundColor: "#fff",
                 borderRadius: 1,
-                backgroundColor: "rgba(255,255,255,0.3)",
-                overflow: "hidden",
+                width: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "100%"],
+                }),
               }}
-            >
-              <Animated.View
-                style={{
-                  height: "100%",
-                  backgroundColor: "#fff",
-                  borderRadius: 1,
-                  width:
-                    i < index
-                      ? "100%"
-                      : i === index
-                        ? progress.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ["0%", "100%"],
-                          })
-                        : "0%",
-                }}
-              />
-            </View>
-          ))}
+            />
+          </View>
         </View>
-
         {/* Header */}
         <View
           style={{
@@ -223,21 +212,6 @@ const Story: FC<StoryProps> = ({
             <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
               {dayjs.utc(current.createdAt).local().fromNow()}
             </Text>
-          </TouchableOpacity>
-          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
-            {index + 1}/{stories.length}
-          </Text>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Share this story"
-            accessibilityHint="Opens the card customization screen"
-            onPress={() => {
-              animRef.current?.stop();
-              onShare(current);
-            }}
-            style={{ padding: 6 }}
-          >
-            <Feather name="share-2" size={21} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={{ padding: 6 }}>
             <Text style={{ color: "#fff", fontSize: 18 }}>✕</Text>
@@ -301,6 +275,40 @@ const Story: FC<StoryProps> = ({
               </View>
             )}
           </TouchableOpacity>
+          {/* Above the story tap zones; only the heart receives touches. */}
+          <View
+            pointerEvents="box-none"
+            style={{
+              position: "absolute",
+              width: artSize,
+              height: artSize,
+              borderRadius: 16,
+              overflow: "hidden",
+              zIndex: 20,
+            }}
+          >
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.75)"]}
+              pointerEvents="box-none"
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                flexDirection: "row",
+                alignItems: "flex-end",
+                paddingHorizontal: 10,
+                paddingTop: 28,
+                paddingBottom: 8,
+              }}
+            >
+              <TrackLikeButton
+                track={current}
+                showCount
+                color="rgba(255,255,255,0.9)"
+              />
+            </LinearGradient>
+          </View>
         </View>
 
         {/* Track info */}
@@ -312,56 +320,28 @@ const Story: FC<StoryProps> = ({
             alignItems: "center",
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View style={{ width: 44 }} />
-            <TouchableOpacity
-              style={{ flexShrink: 1 }}
-              onPress={() => current.trackUri && onPressTrack(current.trackUri)}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: 20,
-                  fontWeight: "700",
-                  textAlign: "center",
-                  marginBottom: 4,
-                }}
-              >
-                {current.title}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={liked ? "Unlike track" : "Like track"}
-              accessibilityState={{
-                selected: liked,
-                disabled: pending || !current.trackUri,
-              }}
-              disabled={pending || !current.trackUri}
-              onPress={() => {
-                if (!storage.getToken()) {
-                  Alert.alert(
-                    "Sign in to like tracks",
-                    "Sign in from your profile to save this track.",
-                  );
-                  return;
-                }
-                toggle();
-              }}
+          <View
+            style={{
+              width: "100%",
+              minHeight: 44,
+              justifyContent: "center",
+            }}
+          >
+            <MarqueeText
+              key={current.trackUri || current.uri || current.title}
+              centered
+              enabled={active && foreground}
+              containerStyle={{ width: "100%" }}
+              onPress={current.trackUri ? () => onPressTrack(current.trackUri!) : undefined}
               style={{
-                width: 44,
-                height: 44,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pending ? 0.6 : 1,
+                color: "#fff",
+                fontSize: 20,
+                lineHeight: 28,
+                fontWeight: "700",
               }}
             >
-              <MaterialIcons
-                name={liked ? "heart" : "heart-outline"}
-                size={26}
-                color={liked ? colors.primary : "#fff"}
-              />
-            </TouchableOpacity>
+              {current.title}
+            </MarqueeText>
           </View>
           <TouchableOpacity
             onPress={() =>
@@ -378,6 +358,22 @@ const Story: FC<StoryProps> = ({
               {current.artist}
             </Text>
           </TouchableOpacity>
+          <StoryLinks
+            key={current.trackUri || current.uri}
+            story={current}
+            active={active && foreground}
+            onShare={() => {
+              animRef.current?.stop();
+              onShare(current);
+            }}
+            onOpen={(url) => {
+              animRef.current?.stop();
+              void Linking.openURL(url).catch(() => {
+                Alert.alert("Could not open link", "Please try again.");
+                startProgress();
+              });
+            }}
+          />
         </View>
       </SafeAreaView>
       <TouchableOpacity

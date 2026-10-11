@@ -13,6 +13,71 @@ import Svg, {
 import { Text } from "../../components/Text";
 import { colors } from "../../theme";
 import type { Point } from "./data";
+import {
+  sharePath,
+  sharePercent,
+  type ListeningSlice,
+} from "../../../../shared/listeningShare";
+
+export function ListeningPie({ slices }: { slices: ListeningSlice[] }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const active = slices.find((slice) => slice.key === selected);
+  return (
+    <View>
+      <View style={{ alignItems: "center" }}>
+        <Svg width={220} height={220} accessible={false}>
+          {slices.map((slice) => (
+            <Path
+              key={slice.key}
+              d={sharePath(slice)}
+              fill={slice.color}
+              stroke={colors.surface}
+              strokeWidth={0.5}
+              opacity={active && active.key !== slice.key ? 0.35 : 1}
+              onPress={() => setSelected(slice.key)}
+            />
+          ))}
+        </Svg>
+      </View>
+      {slices.map((slice) => (
+        <Pressable
+          key={slice.key}
+          accessibilityRole="button"
+          accessibilityState={{ selected: selected === slice.key }}
+          accessibilityLabel={`${slice.name}: ${slice.count.toLocaleString()} scrobbles, ${sharePercent(slice.fraction)}`}
+          onPress={() => setSelected(selected === slice.key ? null : slice.key)}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            paddingVertical: 10,
+            opacity: active && active.key !== slice.key ? 0.5 : 1,
+          }}
+        >
+          <View
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: slice.color,
+            }}
+          />
+          <Text style={{ flex: 1, color: colors.text, fontSize: 13 }}>
+            {slice.name}
+          </Text>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ color: colors.text, fontSize: 13 }}>
+              {sharePercent(slice.fraction)}
+            </Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+              {slice.count.toLocaleString()} scrobbles
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 export const palette = ["#fb3d80", "#24bfd3", "#a77aff", "#f0b852"];
 const muted = "#b4a4c5";

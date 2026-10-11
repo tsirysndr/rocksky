@@ -1,3 +1,4 @@
+import ShareIcon from "../../components/ShareIcon";
 import type { AlbumDiscogsView } from "@rocksky/sdk";
 import DiscogsDetails, { discogsUrl } from "@/src/components/DiscogsDetails";
 import Feather from "@expo/vector-icons/Feather";
@@ -430,7 +431,7 @@ export default function AlbumDetails({ route }: Props) {
                     gap: 8,
                   }}
                 >
-                  <Feather name="share-2" size={18} color={colors.text} />
+                  <ShareIcon size={18} color={colors.text} />
                   <Text
                     style={{
                       color: colors.text,

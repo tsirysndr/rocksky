@@ -45,8 +45,9 @@ fn local(v: &Value) -> Option<String> {
 }
 // Provider references are stored without credentials and hydrated on read.
 // Existing provider images need neither downloading nor replacement.
-fn available_art(c: &Config, data: &Value, field: &str) -> Option<String> {
+fn available_art(db: &Connection, c: &Config, data: &Value, field: &str) -> Option<String> {
     index::hydrate_art(c, data["providerArt"].as_str().map(str::to_owned))
+        .filter(|url| !rejected_provider(db, c, url))
         .or_else(|| local(&data[field]))
 }
 // A URL in DIDL is only a reference: some servers advertise /art URLs
@@ -461,7 +462,7 @@ fn enrich(
             artist_update = Some((index::now() + WEEK, 0));
         }
         if !artist.trim().is_empty()
-            && available_art(c, &artist_data, "art").is_none()
+            && available_art(db, c, &artist_data, "art").is_none()
             && artist_due <= index::now()
         {
             let provider = http::artist_artwork(c, &entry.id, &artist)
@@ -513,7 +514,7 @@ fn enrich(
         } else {
             index::now() + retry(attempts)
         };
-        if !artist.trim().is_empty() && available_art(c, &artist_data, "art").is_none() {
+        if !artist.trim().is_empty() && available_art(&tx, c, &artist_data, "art").is_none() {
             let artist_retry = artist_update.map(|v| v.0).unwrap_or(artist_due);
             if artist_retry > index::now() {
                 due = due.min(artist_retry);
@@ -604,9 +605,9 @@ pub fn metadata(path: &str, c: &Config, id: &str) -> Result<Value> {
     {
         data["providerArt"] = Value::Null;
     }
-    data["albumArt"] = json!(available_art(c, &data, "albumArt"));
+    data["albumArt"] = json!(available_art(&db, c, &data, "albumArt"));
     let (artist, _, _) = record(&db, &c.id, &artist_key(&text(&data, "artist")))?;
-    data["artistPicture"] = json!(available_art(c, &artist, "art"));
+    data["artistPicture"] = json!(available_art(&db, c, &artist, "art"));
     Ok(data)
 }
 /// Browsed tracks enter the queue immediately, ahead of the full crawl.
@@ -652,8 +653,57 @@ pub fn queue_page(path: &str, c: &Config, page: &Value) -> Result<()> {
     }
     tx.commit().map_err(error)
 }
+/// A renderer failure invalidates stale provider checks and prioritizes repair.
+/// Never write enriched display metadata back into the server index.
+pub fn failed(path: &str, c: &Config, entry: &Value) -> Result<()> {
+    let mut db = index::open(path)?;
+    let tx = db.transaction().map_err(error)?;
+    if index::generation(&tx, &c.id)? < 0 {
+        return Ok(());
+    }
+    if let Some(reference) = index::sanitized_art(c, entry["art"].as_str().map(str::to_owned)) {
+        put(
+            &tx,
+            &c.id,
+            &provider_key(&reference),
+            &json!({"available":false}),
+            index::now() + 300,
+            0,
+        )?;
+    }
+    let kind = text(entry, "kind");
+    let id = text(entry, "id");
+    let (column, value) = match kind.as_str() {
+        "track" => ("id", id),
+        "album" => ("album", text(entry, "title")),
+        "artist" => ("artist", text(entry, "title")),
+        _ => return Ok(()),
+    };
+    let mut statement = tx
+        .prepare(&format!(
+            "SELECT id FROM entries WHERE source=? AND kind='track' AND {column}=? COLLATE NOCASE"
+        ))
+        .map_err(error)?;
+    let ids = statement
+        .query_map(params![c.id, value], |r| r.get::<_, String>(0))
+        .map_err(error)?
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(error)?;
+    drop(statement);
+    for id in ids {
+        tx.execute(
+            "UPDATE artwork SET due=0 WHERE source=? AND key=?",
+            params![c.id, format!("track:{id}")],
+        )
+        .map_err(error)?;
+        tx.execute("INSERT INTO artwork_priority(source,id,requested) VALUES(?,?,?) ON CONFLICT(source,id) DO UPDATE SET requested=excluded.requested", params![c.id,id,index::now()]).map_err(error)?;
+    }
+    tx.commit().map_err(error)
+}
+
 pub fn merge(path: &str, c: &Config, mut page: Value) -> Result<Value> {
-    let db = index::open(path)?;
+    let mut db = index::open(path)?;
+    repair_missing_files(&mut db, c, &page)?;
     if let Some(entries) = page["entries"].as_array_mut() {
         for entry in entries {
             // Keep artwork explicitly returned by the server on browse/search.
@@ -663,6 +713,12 @@ pub fn merge(path: &str, c: &Config, mut page: Value) -> Result<Value> {
             }) {
                 continue;
             }
+            if entry["art"].as_str().is_some_and(|url| {
+                rejected_provider(&db, c, url)
+                    || (url.starts_with("file://") && local(&entry["art"]).is_none())
+            }) {
+                entry["art"] = Value::Null;
+            }
             let kind = text(entry, "kind");
             if kind == "track" {
                 let (data, _, _) = record(&db, &c.id, &format!("track:{}", text(entry, "id")))?;
@@ -671,7 +727,7 @@ pub fn merge(path: &str, c: &Config, mut page: Value) -> Result<Value> {
                         entry[field] = data[field].clone();
                     }
                 }
-                if let Some(art) = available_art(c, &data, "albumArt") {
+                if let Some(art) = available_art(&db, c, &data, "albumArt") {
                     entry["art"] = json!(art);
                     continue;
                 }
@@ -685,12 +741,69 @@ pub fn merge(path: &str, c: &Config, mut page: Value) -> Result<Value> {
                 )
             };
             let (data, _, _) = record(&db, &c.id, &key)?;
-            if let Some(art) = available_art(c, &data, "art") {
+            if let Some(art) = available_art(&db, c, &data, "art") {
                 entry["art"] = json!(art);
             }
         }
     }
     Ok(page)
+}
+
+/// Cache eviction must not leave displayed artwork waiting for a successful
+/// lookup's week-long TTL. Clear only missing files, preserving negative lookup
+/// backoff and healthy server artwork; the worker repairs these rows first.
+fn repair_missing_files(db: &mut Connection, c: &Config, page: &Value) -> Result<()> {
+    let tx = db.transaction().map_err(error)?;
+    if index::generation(&tx, &c.id)? < 0 {
+        return Ok(());
+    }
+    for entry in page["entries"].as_array().into_iter().flatten() {
+        let kind = text(entry, "kind");
+        let id = text(entry, "id");
+        let mut keys = Vec::new();
+        if kind == "track" {
+            let key = format!("track:{id}");
+            let (data, _, _) = record(&tx, &c.id, &key)?;
+            keys.push((key, "albumArt"));
+            keys.push((artist_key(&text(&data, "artist")), "art"));
+            keys.push((
+                album_key(&text(&data, "artist"), &text(&data, "album")),
+                "art",
+            ));
+        } else if kind == "album" {
+            keys.push((
+                album_key(&text(entry, "artist"), &text(entry, "title")),
+                "art",
+            ));
+        } else if kind == "artist" {
+            keys.push((artist_key(&text(entry, "title")), "art"));
+        } else {
+            continue;
+        }
+        let mut missing = false;
+        for (key, field) in keys {
+            let (mut data, _, _) = record(&tx, &c.id, &key)?;
+            if data[field]
+                .as_str()
+                .is_some_and(|s| s.starts_with("file://"))
+                && available_art(&tx, c, &data, field).is_none()
+            {
+                data[field] = Value::Null;
+                put(&tx, &c.id, &key, &data, 0, 0)?;
+                missing = true;
+            }
+        }
+        if missing {
+            let (column, value) = match kind.as_str() {
+                "track" => ("id", id),
+                "album" => ("album", text(entry, "title")),
+                _ => ("artist", text(entry, "title")),
+            };
+            tx.execute(&format!("UPDATE artwork SET due=0 WHERE source=? AND key IN (SELECT 'track:'||id FROM entries WHERE source=? AND kind='track' AND {column}=? COLLATE NOCASE)"), params![c.id,c.id,value]).map_err(error)?;
+            tx.execute(&format!("INSERT INTO artwork_priority(source,id,requested) SELECT source,id,? FROM entries WHERE source=? AND kind='track' AND {column}=? COLLATE NOCASE ON CONFLICT(source,id) DO UPDATE SET requested=excluded.requested"), params![index::now(),c.id,value]).map_err(error)?;
+        }
+    }
+    tx.commit().map_err(error)
 }
 
 #[cfg(test)]
@@ -769,6 +882,64 @@ mod tests {
             0,
         )
         .unwrap();
+    }
+    #[test]
+    fn displayed_evicted_cover_is_requeued_before_success_ttl() {
+        let (_temp, path, db, c, dir) = setup();
+        let entry = track();
+        let page = json!({"entries":[entry]});
+        queue_page(&path, &c, &page).unwrap();
+        let data = json!({"title":"Song","artist":"Singer","album":"Album","albumArt":format!("file://{}",dir.join("evicted.img").display())});
+        put(&db, &c.id, "track:track", &data, index::now() + WEEK, 0).unwrap();
+        merge(&path, &c, page.clone()).unwrap();
+        let (repaired, due, _) = record(&db, &c.id, "track:track").unwrap();
+        assert_eq!(due, 0);
+        assert!(repaired["albumArt"].is_null());
+        assert_eq!(
+            db.query_row(
+                "SELECT COUNT(*) FROM artwork_priority WHERE source=? AND id='track'",
+                [&c.id],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+            1
+        );
+        // If extraction fails, subsequent polls must respect its retry backoff.
+        put(&db, &c.id, "track:track", &repaired, index::now() + 300, 1).unwrap();
+        merge(&path, &c, page).unwrap();
+        assert!(record(&db, &c.id, "track:track").unwrap().1 > index::now());
+    }
+    #[test]
+    fn displayed_evicted_artist_requeues_lookup_and_its_tracks() {
+        let (_temp, path, db, c, dir) = setup();
+        queue_page(&path, &c, &json!({"entries":[track()]})).unwrap();
+        put(
+            &db,
+            &c.id,
+            "track:track",
+            &json!({}),
+            index::now() + WEEK,
+            0,
+        )
+        .unwrap();
+        let key = artist_key("Singer");
+        put(
+            &db,
+            &c.id,
+            &key,
+            &json!({"art":format!("file://{}",dir.join("evicted.img").display())}),
+            index::now() + WEEK,
+            0,
+        )
+        .unwrap();
+        merge(
+            &path,
+            &c,
+            json!({"entries":[{"kind":"artist","id":"artist","title":"Singer"}]}),
+        )
+        .unwrap();
+        assert_eq!(record(&db, &c.id, &key).unwrap().1, 0);
+        assert_eq!(record(&db, &c.id, "track:track").unwrap().1, 0);
     }
     #[test]
     fn missing_provider_cover_falls_back_and_replaces_broken_browse_url() {
@@ -870,6 +1041,24 @@ mod tests {
         server.join().unwrap();
         assert!(updated, "Visible cover must publish before crawl finishes");
         assert!(scanning);
+    }
+    #[test]
+    #[ignore = "requires ROCKSKY_UPNP_URL on the local network"]
+    fn live_upnp_browse_worker_merge() {
+        let (temp, path, db, mut c, _dir) = setup();
+        c.base_url = std::env::var("ROCKSKY_UPNP_URL").unwrap();
+        upnp::connect(&mut c).unwrap();
+        let page = serde_json::to_value(upnp::browse(&c, "4", 0, 2).unwrap()).unwrap();
+        queue_page(&path, &c, &page).unwrap();
+        start(&path, temp.path().to_str().unwrap(), c.clone()).unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(90);
+        while active(&path, &c.id) && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        let merged = merge(&path, &c, page).unwrap();
+        println!("revision={} merged={merged}", revision(&db, &c.id));
+        assert!(local(&merged["entries"][0]["art"]).is_some());
+        stop(&path, &c.id);
     }
     #[test]
     #[ignore = "requires ROCKSKY_UPNP_URL and ROCKSKY_UPNP_TRACK on the local network"]
@@ -987,18 +1176,75 @@ mod tests {
         assert!(matched_artist(&[json!({"uri":"at://did/app.rocksky.song/a","name":"Singer","picture":"https://images.test/a"})],"Singer").is_none());
     }
     #[test]
+    fn renderer_failure_overrides_success_ttl_and_cached_provider_reference() {
+        let (_temp, path, db, c, dir) = setup();
+        let mut entry = track();
+        entry.art = Some("http://127.0.0.1:1/missing.jpg".into());
+        queue_page(&path, &c, &json!({"entries":[entry]})).unwrap();
+        healthy_provider(&db, &c, entry.art.as_ref().unwrap());
+        cached_cover(&db, &c, &dir);
+        put(
+            &db,
+            &c.id,
+            "track:track",
+            &json!({"providerArt":entry.art}),
+            index::now() + WEEK,
+            0,
+        )
+        .unwrap();
+        failed(&path, &c, &serde_json::to_value(&entry).unwrap()).unwrap();
+        assert_eq!(record(&db, &c.id, "track:track").unwrap().1, 0);
+        let merged = merge(&path, &c, json!({"entries":[entry],"nextOffset":100})).unwrap();
+        assert!(local(&merged["entries"][0]["art"]).is_some());
+        assert_eq!(merged["nextOffset"], 100);
+        assert!(rejected_provider(&db, &c, entry.art.as_ref().unwrap()));
+    }
+    #[test]
+    fn rejected_provider_is_not_sent_back_to_renderer_while_extraction_is_pending() {
+        let (_temp, path, db, c, _dir) = setup();
+        let mut entry = track();
+        entry.art = Some("http://127.0.0.1:1/missing.jpg".into());
+        queue_page(&path, &c, &json!({"entries":[entry]})).unwrap();
+        put(
+            &db,
+            &c.id,
+            "track:track",
+            &json!({"providerArt":entry.art}),
+            index::now() + WEEK,
+            0,
+        )
+        .unwrap();
+        failed(&path, &c, &serde_json::to_value(&entry).unwrap()).unwrap();
+        let merged = merge(&path, &c, json!({"entries":[entry]})).unwrap();
+        assert!(merged["entries"][0]["art"].is_null());
+    }
+    #[test]
     fn foreground_refresh_resumes_stopped_worker_without_reindexing_display_rows() {
         let (temp, path, db, c, dir) = setup();
         let mut entry = track();
         entry.artist.clear();
         entry.art = Some("http://127.0.0.1:1/cover.jpg".into());
-        put(&db, &c.id, &provider_key(entry.art.as_ref().unwrap()),
-            &json!({"available":false}), index::now() + WEEK, 0).unwrap();
+        put(
+            &db,
+            &c.id,
+            &provider_key(entry.art.as_ref().unwrap()),
+            &json!({"available":false}),
+            index::now() + WEEK,
+            0,
+        )
+        .unwrap();
         let image = dir.join("cover.img");
         std::fs::write(&image, b"cached cover").unwrap();
         let cover = format!("file://{}", image.display());
-        put(&db, &c.id, &album_key("", &entry.album),
-            &json!({"art":cover}), index::now() + WEEK, 0).unwrap();
+        put(
+            &db,
+            &c.id,
+            &album_key("", &entry.album),
+            &json!({"art":cover}),
+            index::now() + WEEK,
+            0,
+        )
+        .unwrap();
         queue_page(&path, &c, &json!({"entries":[entry]})).unwrap();
         stop(&path, &c.id);
         assert_eq!(revision(&db, &c.id), 0);
@@ -1009,7 +1255,8 @@ mod tests {
             "cmd":"artworkMerge", "config":c, "indexPath":path,
             "artworkRoot":temp.path().to_str().unwrap(), "resume":true,
             "page":{"entries":[displayed],"nextOffset":100}
-        })).unwrap();
+        }))
+        .unwrap();
         assert_eq!(result["nextOffset"], 100);
         assert_eq!(result["entries"][0]["art"], cover);
         let deadline = std::time::Instant::now() + Duration::from_secs(5);

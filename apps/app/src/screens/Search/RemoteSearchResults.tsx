@@ -132,6 +132,7 @@ export default function RemoteSearchResults({
       <EntryArtwork
         key={`${item.sourceId}:${item.id}:${item.art}`}
         item={item}
+        sourceId={item.sourceId}
       />
       <View style={{ flex: 1, gap: 3 }}>
         <Text numberOfLines={1} style={{ fontWeight: "600" }}>
@@ -292,7 +293,7 @@ export default function RemoteSearchResults({
         <PickerSheet
           title={menu.title}
           subtitle={menu.sourceName}
-          headerArtwork={<EntryArtwork item={menu} />}
+          headerArtwork={<EntryArtwork item={menu} sourceId={menu.sourceId} />}
           onClose={() => setMenu(null)}
         >
           <MenuAction

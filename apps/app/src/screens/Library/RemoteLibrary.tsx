@@ -59,7 +59,7 @@ export function serverQueueTrack(
     sha256: "",
   };
 }
-export function EntryArtwork({ item }: { item: LibraryEntry }) {
+export function EntryArtwork({ item, sourceId }: { item: LibraryEntry; sourceId?: string }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [item.art]);
   const round = item.kind === "artist";
@@ -71,7 +71,11 @@ export function EntryArtwork({ item }: { item: LibraryEntry }) {
           cachePolicy="memory"
           contentFit="cover"
           style={{ width: 46, height: 46, borderRadius: round ? 23 : 0 }}
-          onError={() => setFailed(true)}
+          onError={() => {
+            setFailed(true);
+            if (sourceId && !failed)
+              void remoteLibraries.artworkFailed(sourceId, item).catch(() => {});
+          }}
         />
       ) : (
         <LinearGradient
@@ -380,7 +384,7 @@ export default function RemoteLibrary({
           />
         }
         header={
-          <View style={{ paddingBottom: 12 }}>
+          (folder || section || busy) ? <View style={{ paddingBottom: 12 }}>
             <View style={styles.heading}>
               {(folder || section) && (
                 <TouchableOpacity
@@ -393,11 +397,11 @@ export default function RemoteLibrary({
                 </TouchableOpacity>
               )}
               <Text numberOfLines={2} style={styles.title}>
-                {folder?.title ?? section?.title ?? source.name}
+                {folder?.title ?? section?.title}
               </Text>
               {busy && <ActivityIndicator color={colors.primary} />}
             </View>
-          </View>
+          </View> : undefined
         }
         tabs={
           <View style={{ gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -542,6 +546,7 @@ export default function RemoteLibrary({
             <EntryArtwork
               key={`${source.id}:${item.id}:${item.art}`}
               item={item}
+              sourceId={source.id}
             />
             <View style={{ flex: 1, gap: 3 }}>
               <Text
@@ -651,6 +656,7 @@ export default function RemoteLibrary({
             <EntryArtwork
               key={`${source.id}:${menuTrack.id}:${menuTrack.art}`}
               item={menuTrack}
+              sourceId={source.id}
             />
           }
           onClose={() => setMenuTrack(null)}

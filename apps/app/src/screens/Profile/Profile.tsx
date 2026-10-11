@@ -1,3 +1,4 @@
+import ShareIcon from "../../components/ShareIcon";
 import TrackLikeButton from "@/src/components/TrackLikeButton";
 import Feather from "@expo/vector-icons/Feather";
 import { type RouteProp, useNavigation } from "@react-navigation/native";
@@ -432,7 +433,7 @@ function OverviewTab({
           opacity: pending ? 0.4 : 1,
         }}
       >
-        <Feather name="share-2" size={14} color={colors.primary} />
+        <ShareIcon size={14} color={colors.primary} />
         <Text style={{ color: colors.primary, fontSize: 12 }}>Share top 5</Text>
       </TouchableOpacity>
     </View>
@@ -2225,12 +2226,16 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
                     })
                   }
                   style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
                     paddingHorizontal: 20,
                     paddingVertical: 8,
                     borderRadius: 20,
                     backgroundColor: colors.surface2,
                   }}
                 >
+                  <ShareIcon color={colors.text} size={16} />
                   <Text
                     style={{
                       color: colors.text,

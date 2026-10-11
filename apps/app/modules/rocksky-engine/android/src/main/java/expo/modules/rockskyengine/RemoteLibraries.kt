@@ -156,7 +156,7 @@ class RemoteLibraries(private val context: Context) {
             JSONObject().put("devices", JSONArray((0 until found.length()).map { publicConfig(found.getJSONObject(it)) }))
           } finally { if (multicast.isHeld) multicast.release() }
         }
-        "metadata", "cacheArtwork", "artworkMerge", "browse", "stream", "writablePlaylists", "addToPlaylist", "playlistOperation" -> {
+        "metadata", "cacheArtwork", "artworkMerge", "artworkFailed", "browse", "stream", "writablePlaylists", "addToPlaylist", "playlistOperation" -> {
           val config = synchronized(lock) { read().optJSONObject(request.getString("sourceId")) } ?: error("Library was disconnected. Connect it again to play.")
           val cache = RemoteMetadataCache(context, request.getString("sourceId"))
           when (request.getString("cmd")) {
