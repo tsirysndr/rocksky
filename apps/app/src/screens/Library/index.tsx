@@ -1,4 +1,3 @@
-import OpenAudioUrl from "./OpenAudioUrl";
 import Feather from "@expo/vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -41,7 +40,6 @@ export default function Library() {
     remote?.name ?? (selected === "device" ? "Local music" : "Uploaded music");
   const sourceSwitcher = Platform.OS === "android" && (
     <View style={styles.switcher}>
-      <OpenAudioUrl />
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel={`Select library, current library: ${name}`}
