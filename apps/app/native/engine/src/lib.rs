@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
+    Waveform { source: String, cache_dir: String },
     PrepareAudioUrl {
         url: String,
         cache_dir: String,
@@ -412,6 +413,9 @@ fn handle_internal(input: &str, from_renderer: bool) -> String {
             renderer.release();
         }
     }
+    if let Request::Waveform { source, cache_dir } = &request {
+        return rocksky_metadata::waveform::request(source, std::path::Path::new(cache_dir)).to_string();
+    }
     if let Request::PrepareAudioUrl { url, cache_dir } = &request {
         return match rocksky_metadata::audio_url::prepare(url, std::path::Path::new(cache_dir)) {
             Ok(metadata) => serde_json::json!({"ok":true,"metadata":metadata}).to_string(),
@@ -471,7 +475,8 @@ fn handle_internal(input: &str, from_renderer: bool) -> String {
         Err(e) => return err(e),
     };
     match request {
-        Request::PrepareAudioUrl { .. }
+        Request::Waveform { .. }
+        | Request::PrepareAudioUrl { .. }
         | Request::RendererConfigure { .. }
         | Request::RendererRelease
         | Request::RendererStatus

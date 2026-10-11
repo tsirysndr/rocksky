@@ -1557,3 +1557,14 @@ export async function playAudioUrl(url: string, mode: "now" | "next" | "last") {
   const accepted = mode === "next" ? await queueUploadsNext([track]) : mode === "last" ? await queueUploadsLast([track]) : await playUploads([track], 0);
   if (!accepted) throw new Error("Could not start audio playback. Please try again.");
 }
+
+/** Resolve only the current track for background waveform analysis, without
+ * revalidating or loading any queue entries into the playback engine. */
+export async function localWaveformSource(): Promise<string | null> {
+  const track = lastIndex === null ? undefined : queue[lastIndex];
+  if (!track) return null;
+  if (track.localId) return localMusicNative.path(track.localId);
+  if (track.remoteLibraryId && track.remoteTrackId)
+    return remoteLibraries.stream(track.remoteLibraryId, track.remoteTrackId);
+  return track.audioUrl || streamUrlFor(track);
+}

@@ -2,6 +2,7 @@ import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { requireOptionalNativeModule } from "expo";
 
 type RockskyEngineNativeModule = {
+  waveform(source: string): Promise<string>;
   prepareAudioUrl(url: string): Promise<string>;
   sharePost(json: string): Promise<boolean>;
   mediaRenderer(json: string): Promise<string>;
@@ -194,4 +195,9 @@ export async function prepareAudioUrl(url: string): Promise<AudioUrlMetadata> {
   const result = JSON.parse(await native.prepareAudioUrl(url));
   if (!result.ok) throw new Error(result.error || "Could not validate audio URL");
   return result.metadata;
+}
+
+export async function requestWaveform(source: string): Promise<{ status: "idle" | "pending" | "ready" | "unavailable"; peaks?: number[] }> {
+  if (!native?.waveform) return { status: "unavailable" };
+  return JSON.parse(await native.waveform(source));
 }

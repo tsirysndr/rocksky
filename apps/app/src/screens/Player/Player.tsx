@@ -2,7 +2,9 @@ import ShareIcon from "../../components/ShareIcon";
 import PlayerVolume from "@/src/components/PlayerVolume";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import Slider from "@react-native-community/slider";
+import WaveformSeek from "@/src/components/WaveformSeek";
+import { useWaveform } from "@/src/hooks/useWaveform";
+import { getStreamUrl, ensureStreamToken } from "@/src/api/uploads";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Image } from "expo-image";
@@ -31,6 +33,7 @@ import { Text } from "@/src/components/Text";
 import { usePlaybackControls } from "@/src/hooks/usePlaybackControls";
 import { usePlaybackSource } from "@/src/hooks/usePlaybackSource";
 import {
+  localWaveformSource,
   localQueue,
   localQueueIndex,
   localQueueRevisionAtom,
@@ -202,6 +205,19 @@ export default function Player() {
 
   const duration = nowPlaying?.duration ?? 0;
   const position = scrubbing ? scrubValue : Math.min(progress, duration);
+  const finiteTrack = Number.isFinite(duration) && duration > 0;
+  const waveformKey = `${isLocal ? "local" : activeDeviceId}:${queueCurrentIndex}:${nowPlaying?.uri}:${nowPlaying?.title}:${nowPlaying?.artist}`;
+  const waveform = useWaveform(waveformKey, focused && finiteTrack && !isSpotify, async () => {
+    if (isLocal) return localWaveformSource();
+    const track = activeDevice?.queue[queueCurrentIndex];
+    if (track?.url) return track.url;
+    if (track?.uploadId) {
+      await ensureStreamToken();
+      return getStreamUrl(track.uploadId);
+    }
+    return null;
+  });
+
   const repeatMode = nowPlaying?.repeat ?? "off";
 
   const cycleRepeat = () => {
@@ -373,23 +389,19 @@ export default function Player() {
             </View>
 
             {/* Seek */}
-            <View style={styles.seekBlock}>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={Math.max(duration, 1)}
-                value={position}
-                minimumTrackTintColor={colors.primary}
-                maximumTrackTintColor="rgba(255,255,255,0.35)"
-                thumbTintColor="#fff"
-                onSlidingStart={() => {
+            {finiteTrack && <View style={styles.seekBlock}>
+              <WaveformSeek
+                peaks={waveform}
+                duration={duration}
+                position={position}
+                onStart={() => {
                   setScrubValue(Math.min(progress, duration));
                   setScrubbing(true);
                 }}
-                onValueChange={(value) => {
+                onChange={(value) => {
                   if (scrubbing) setScrubValue(value);
                 }}
-                onSlidingComplete={(value) => {
+                onComplete={(value) => {
                   setScrubbing(false);
                   seek(value);
                 }}
@@ -398,7 +410,7 @@ export default function Player() {
                 <Text style={styles.time}>{formatTime(position)}</Text>
                 <Text style={styles.time}>{formatTime(duration)}</Text>
               </View>
-            </View>
+            </View>}
 
             {/* Transport */}
             <View style={styles.controlsRow}>
