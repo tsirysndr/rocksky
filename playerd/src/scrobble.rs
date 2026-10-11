@@ -120,6 +120,31 @@ fn current_track(shared: &Shared) -> Option<Current> {
     })
 }
 
+// Artwork extracted from remote audio is a data URI for local playback. The
+// scrobble API expects a URL, not image bytes; embedding it can exceed its JSON
+// body limit. Keep the queue artwork intact and omit non-web art only here.
+fn scrobble_artwork(art: &str) -> Option<String> {
+    if art.len() > 8 * 1024 {
+        return None;
+    }
+    let url = reqwest::Url::parse(art).ok()?;
+    matches!(url.scheme(), "http" | "https").then(|| art.to_owned())
+}
+
+fn scrobble_input(current: &Current, started_at: i64) -> ScrobbleInput {
+    ScrobbleInput {
+        title: current.title.clone(),
+        artist: current.artist.clone(),
+        album_artist: current.album_artist.clone(),
+        album: Some(current.album.clone()).filter(|a| !a.is_empty()),
+        duration: Some(current.duration_ms).filter(|d| *d > 0),
+        album_art: scrobble_artwork(&current.album_art),
+        timestamp: Some(started_at),
+        track_number: current.track_number,
+        ..Default::default()
+    }
+}
+
 fn unix_now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -190,17 +215,7 @@ pub async fn scrobble_loop(shared: Arc<Shared>, api_url: String, token: String) 
             continue;
         }
 
-        let input = ScrobbleInput {
-            title: current.title.clone(),
-            artist: current.artist.clone(),
-            album_artist: current.album_artist.clone(),
-            album: Some(current.album.clone()).filter(|a| !a.is_empty()),
-            duration: Some(current.duration_ms).filter(|d| *d > 0),
-            album_art: Some(current.album_art.clone()).filter(|a| !a.is_empty()),
-            timestamp: Some(watcher.started_at),
-            track_number: current.track_number,
-            ..Default::default()
-        };
+        let input = scrobble_input(&current, watcher.started_at);
         match appview.create_scrobble(&input).await {
             Ok(_) => {
                 watcher.submitted = true;
@@ -214,5 +229,58 @@ pub async fn scrobble_loop(shared: Arc<Shared>, api_url: String, token: String) 
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn embedded_remote_art_does_not_inflate_scrobble_or_change_playback_metadata() {
+        let art = format!("data:image/jpeg;base64,{}", "A".repeat(700_000));
+        let current = Current {
+            key: "remote-track".into(),
+            title: "Track".into(),
+            artist: "Artist".into(),
+            album_artist: "Artist".into(),
+            album: "Album".into(),
+            album_art: art.clone(),
+            duration_ms: 180_000,
+            position_ms: 90_000,
+            track_number: Some(3),
+        };
+        let input = scrobble_input(&current, 1_700_000_000);
+        let json = serde_json::to_value(&input).unwrap();
+        assert!(json.get("albumArt").is_none());
+        assert!(serde_json::to_vec(&input).unwrap().len() < 1024);
+        assert_eq!(json["title"], "Track");
+        assert_eq!(json["timestamp"], 1_700_000_000_i64);
+        assert_eq!(json["duration"], 180_000);
+        assert_eq!(json["trackNumber"], 3);
+        assert_eq!(current.album_art, art);
+    }
+
+    #[test]
+    fn scrobble_art_only_accepts_bounded_web_urls() {
+        for art in [
+            "https://cdn.example.com/cover.jpg",
+            "http://192.168.1.161/cover.jpg",
+        ] {
+            assert_eq!(scrobble_artwork(art).as_deref(), Some(art));
+        }
+        for art in [
+            "",
+            "data:image/png;base64,AAAA",
+            "file:///cache/cover.jpg",
+            "/cache/cover.jpg",
+            "not a url",
+        ] {
+            assert_eq!(scrobble_artwork(art), None);
+        }
+        assert_eq!(
+            scrobble_artwork(&format!("https://example.com/{}", "a".repeat(8192))),
+            None
+        );
     }
 }
