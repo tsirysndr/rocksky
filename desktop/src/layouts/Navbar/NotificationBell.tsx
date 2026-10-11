@@ -1,8 +1,8 @@
 import styled from "@emotion/styled";
-import { IconMusic, IconUser } from "@tabler/icons-react";
+import { IconMusic } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import BellIcon from "./BellIcon";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../components/UserAvatar";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { useState } from "react";
 import ContentLoader from "react-content-loader";
@@ -101,17 +101,6 @@ const RowTime = styled.div`
   font-size: 12px;
 `;
 
-const AvatarFallback = styled.div`
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  background: var(--color-avatar-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-`;
-
 const AvatarStack = styled.div`
   display: flex;
   flex-shrink: 0;
@@ -204,7 +193,10 @@ const CONTENT_COLLECTIONS = new Set([
   "app.rocksky.artist",
 ]);
 
-function notificationTarget(n: NotificationView): { to: string; hash?: string } {
+function notificationTarget(n: NotificationView): {
+  to: string;
+  hash?: string;
+} {
   const actor = n.actor;
   const [did, collection, rkey] = (n.subjectUri?.split("at://")[1] ?? "").split(
     "/",
@@ -239,18 +231,17 @@ const actorName = (a: NotificationActor): string =>
   a.displayName || a.handle || "Someone";
 
 function ActorAvatar({ actor }: { actor: NotificationActor }) {
-  const isJpegPlaceholder = actor.avatar?.endsWith("/@jpeg");
-  return actor.avatar && !isJpegPlaceholder ? (
-    <Avatar src={actor.avatar} name={actorName(actor)} size="30px" />
-  ) : (
-    <AvatarFallback>
-      <IconUser size={16} color="#fff" />
-    </AvatarFallback>
-  );
+  return <Avatar src={actor.avatar} name={actorName(actor)} size="30px" />;
 }
 
 /** "A liked", "A and B liked", "A, B and 3 others liked" — names bolded. */
-function ActorSummary({ actors, verb }: { actors: NotificationActor[]; verb: string }) {
+function ActorSummary({
+  actors,
+  verb,
+}: {
+  actors: NotificationActor[];
+  verb: string;
+}) {
   if (actors.length === 0) return <>Someone {verb}</>;
   if (actors.length === 1) {
     return (
@@ -316,7 +307,9 @@ function NotificationRow({
               </SubjectArtFallback>
             )}
             <SubjectText>
-              {subject.title ? <SubjectTitle>{subject.title}</SubjectTitle> : null}
+              {subject.title ? (
+                <SubjectTitle>{subject.title}</SubjectTitle>
+              ) : null}
               {subject.artist ? (
                 <SubjectArtist>{subject.artist}</SubjectArtist>
               ) : null}

@@ -7,7 +7,7 @@ import {
   useFollowsQuery,
   useUnfollowAccountMutation,
 } from "../../../hooks/useGraph";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../../components/UserAvatar";
 import { useAtom } from "jotai";
 import { useProfileActiveTab } from "../../../atoms/tab";
 import { followsAtom } from "../../../atoms/follows";
@@ -133,7 +133,19 @@ function Follows() {
   return (
     <>
       <HeadingSmall className="!text-[var(--color-text)]">
-        Following{(count ?? 0) > 0 ? <> (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span>)</> : ""}
+        Following
+        {(count ?? 0) > 0 ? (
+          <>
+            {" "}
+            (
+            <span style={{ fontFamily: "var(--font-mono)" }}>
+              {numeral(count).format("0,0")}
+            </span>
+            )
+          </>
+        ) : (
+          ""
+        )}
       </HeadingSmall>
 
       {(isPending || (isFetching && allFollows.length === 0)) && (

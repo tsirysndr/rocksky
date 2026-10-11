@@ -50,7 +50,7 @@ export default function Song() {
 
   return (
     <Main>
-      <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
+      <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + var(--nav-height) + env(safe-area-inset-bottom))" }}>
         {isLoading && (
           <ContentLoader
             width="100%"

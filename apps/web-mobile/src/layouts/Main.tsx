@@ -55,8 +55,8 @@ function Main({ children }: { children: React.ReactNode }) {
   useProfile(token || localStorage.getItem("token"));
 
   const bottomPad = nowPlaying
-    ? "calc(56px + 72px + env(safe-area-inset-bottom))"
-    : "calc(56px + env(safe-area-inset-bottom))";
+    ? "calc(var(--nav-height) + var(--player-height) + env(safe-area-inset-bottom))"
+    : "calc(var(--nav-height) + env(safe-area-inset-bottom))";
 
   return (
     <div

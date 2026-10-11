@@ -1,3 +1,4 @@
+import ListeningCalendar from "../../../../shared/browser/ListeningCalendar";
 import ListeningPie from "../../../../shared/browser/ListeningPie";
 import { listeningShare } from "../../../../shared/listeningShare";
 import UserAvatar from "../../components/UserAvatar";
@@ -380,8 +381,8 @@ function Analytics() {
         to: range.to,
       });
       return (res.scrobbles ?? []).map((s) => ({
-        key: dayjs(s.date).format("YYYY-MM-DD"),
-        label: dayjs(s.date).format("dddd D MMMM YYYY"),
+        key: (s.date ?? "").slice(0, 10),
+        label: dayjs((s.date ?? "").slice(0, 10)).format("dddd D MMMM YYYY"),
         count: s.count ?? 0,
       })) satisfies Point[];
     },
@@ -668,6 +669,16 @@ function Analytics() {
           {daily.isLoading || topArtists.isLoading ? <Empty>Loading…</Empty> : daily.isError || topArtists.isError ? <Empty>This chart could not load. <button type="button" onClick={() => { void daily.refetch(); void topArtists.refetch(); }}>Try again</button></Empty> : !totals.scrobbles ? <Empty>Nothing scrobbled in this range.</Empty> : listeningShare(topArtists.data ?? [], totals.scrobbles).length ? (
             <ListeningPie key={`${did}-${range.from}-${range.to}`} slices={listeningShare(topArtists.data ?? [], totals.scrobbles)} />
           ) : <Empty>Listening totals are updating. <button type="button" onClick={() => { void daily.refetch(); void topArtists.refetch(); }}>Refresh</button></Empty>}
+        </Panel>
+
+        <Panel>
+          <PanelTitle>{did ? "Your listening calendar" : "Listening calendar"}</PanelTitle>
+          <PanelNote>A little music, every day.</PanelNote>
+          {daily.isLoading ? <Empty role="status">Loading listening calendar…</Empty> : daily.isError ? (
+            <Empty role="alert">The calendar could not load. <button type="button" onClick={() => void daily.refetch()}>Try again</button></Empty>
+          ) : (
+            <ListeningCalendar key={`${did}-${range.from}-${range.to}`} points={points} from={range.from} to={range.to} />
+          )}
         </Panel>
 
         <Grid2>

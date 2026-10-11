@@ -20,6 +20,7 @@ import { IconChevronDown } from "@tabler/icons-react";
 import { getRangeDates } from "../../../../lib/date";
 import { LAST_7_DAYS, LAST_DAYS_LABELS, ALL_TIME } from "../../../../consts";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
+import ExportTopButton from "../../../../components/ExportTopButton";
 import ContentLoader from "react-content-loader";
 
 type Row = {
@@ -146,17 +147,34 @@ function TopTracks(props: TopTracksProps) {
           >
             Top Tracks
           </HeadingSmall>
-          <LastDaysMenu onSelect={onSelectLastDays}>
-            <button className="mt-[40px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
-              {topTracksRange && (
-                <span>{LAST_DAYS_LABELS[topTracksRange]}</span>
-              )}
-              <IconChevronDown
-                size={16}
-                className="ml-[4px] h-[18px] mb-[-5px]"
-              />
-            </button>
-          </LastDaysMenu>
+          <div className="flex items-center gap-[4px] mt-[40px]">
+            <ExportTopButton
+              kind="tracks"
+              rangeLabel={
+                LAST_DAYS_LABELS[withDateRange ? topTracksRange : ALL_TIME]
+              }
+              user={user}
+              darkMode={darkMode}
+              items={topTracks.map((t) => ({
+                id: t.id,
+                title: t.title,
+                subtitle: t.artist,
+                image: t.albumArt,
+                plays: t.scrobbles,
+              }))}
+            />
+            <LastDaysMenu onSelect={onSelectLastDays}>
+              <button className="bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+                {topTracksRange && (
+                  <span>{LAST_DAYS_LABELS[topTracksRange]}</span>
+                )}
+                <IconChevronDown
+                  size={16}
+                  className="ml-[4px] h-[18px] mb-[-5px]"
+                />
+              </button>
+            </LastDaysMenu>
+          </div>
         </div>
       )}
 

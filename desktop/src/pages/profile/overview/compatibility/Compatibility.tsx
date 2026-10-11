@@ -4,7 +4,7 @@ import {
   useActorCompatibilityQuery,
   useProfileByDidQuery,
 } from "../../../../hooks/useProfile";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../../../components/UserAvatar";
 import { Link } from "@tanstack/react-router";
 
 function Compatibility() {

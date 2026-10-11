@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../../../components/UserAvatar";
 import { HeadingSmall } from "baseui/typography";
 
 interface ArtistListenersProps {

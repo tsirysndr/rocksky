@@ -1,9 +1,11 @@
+import { storeSessionToken } from "../../../apps/shared/browser-session";
 import styled from "@emotion/styled";
 import { IconDisc, IconSparkles } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Link, useSearch } from "@tanstack/react-router";
+import { DURATION, useSnackbar } from "baseui/snackbar";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
 import { consola } from "consola";
 import { useAtomValue } from "jotai";
@@ -14,7 +16,7 @@ import RightPaneToggle from "../components/RightPaneToggle";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";
-import { API_URL } from "../consts";
+import { API_URL, SELF_HOSTED } from "../consts";
 import useProfile, { useProfileStatsByDidQuery } from "../hooks/useProfile";
 import { syncSessionToken } from "../lib/native-session";
 import { isTauri } from "../lib/tauri";
@@ -77,8 +79,26 @@ function Main(props: MainProps) {
   const jwt = localStorage.getItem("token");
   const profile = useAtomValue(profileAtom);
   const [token, setToken] = useState<string | null>(null);
-  const { did, cli } = useSearch({ strict: false });
-  const [passwordLogin, setPasswordLogin] = useState(false);
+  const { did, cli, session } = useSearch({ strict: false });
+  // A self-hosted instance reached over anything but localhost cannot use
+  // OAuth — its PDS has no client metadata document to fetch — so open on the
+  // app-password form there. The toggle still offers the other option.
+  const [passwordLogin, setPasswordLogin] = useState(SELF_HOSTED);
+  const { enqueue } = useSnackbar();
+
+  // The session guard signs the user out on a `pds_session_expired` 401 and
+  // lands them here; say why, otherwise the logout looks like a random bug.
+  useEffect(() => {
+    if (session === "expired") {
+      enqueue(
+        {
+          message:
+            "Your session with your PDS expired. Please sign in again to keep scrobbling.",
+        },
+        DURATION.long,
+      );
+    }
+  }, [enqueue, session]);
 
   // Recommendations need listening history — hide the link until the
   // signed-in user has scrobbled at least once.
@@ -98,7 +118,7 @@ function Main(props: MainProps) {
             },
           });
           const data = await response.json();
-          localStorage.setItem("token", data.token);
+          storeSessionToken(data.token);
           setToken(data.token);
 
           if (cli) {
@@ -133,7 +153,7 @@ function Main(props: MainProps) {
     let disposed = false;
     let unlisten: (() => void) | undefined;
     listen<string>("rocksky://token", (event) => {
-      localStorage.setItem("token", event.payload);
+      storeSessionToken(event.payload);
       setToken(event.payload);
       window.location.href = "/";
     }).then((fn) => {
@@ -208,7 +228,7 @@ function Main(props: MainProps) {
 
       const data = await response.text();
       const newToken = data.split("jwt:")[1];
-      localStorage.setItem("token", newToken);
+      storeSessionToken(newToken);
       setToken(data);
 
       if (cli) {
@@ -241,7 +261,7 @@ function Main(props: MainProps) {
       return;
     }
 
-    if (API_URL.includes("localhost")) {
+    if (SELF_HOSTED || API_URL.includes("localhost")) {
       window.location.href = prompt
         ? `${API_URL}/login?handle=${handle}&prompt=${prompt}`
         : `${API_URL}/login?handle=${handle}`;

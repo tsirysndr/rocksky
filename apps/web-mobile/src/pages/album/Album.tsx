@@ -26,7 +26,7 @@ export default function Album() {
 
   return (
     <Main>
-      <div style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
+      <div style={{ paddingBottom: "calc(24px + var(--nav-height) + env(safe-area-inset-bottom))" }}>
         {isLoading && (
           <ContentLoader
             width="100%"

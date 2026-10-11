@@ -1,11 +1,4 @@
-import {
-  IconChartBar,
-  IconHome,
-  IconSearch,
-  IconUser,
-  IconVinyl,
-} from "@tabler/icons-react";
-import type { ElementType } from "react";
+import { useState, type ElementType } from "react";
 import { useAtomValue } from "jotai";
 import { Link, useLocation } from "react-router-dom";
 import { profileAtom } from "../../atoms/profile";
@@ -14,93 +7,86 @@ import {
   useNotificationStream,
   useUnreadCountQuery,
 } from "../../hooks/useNotifications";
+import { HomeIcon, LibraryIcon, ProfileIcon, SearchIcon } from "./TabIcons";
+import "./style.css";
 
-type NavTab = {
-  to: string;
-  // Accepts both @tabler/icons-react components and the custom BellIcon.
-  icon: ElementType;
-  label: string;
-  badge?: number;
-};
+type NavTab = { to: string; icon: ElementType; label: string; badge?: number };
 
 export default function BottomNav() {
-  const location = useLocation();
+  const { pathname } = useLocation();
   const profile = useAtomValue(profileAtom);
   const jwt = localStorage.getItem("token");
-
-  // BottomNav is mounted on every screen, so it's the natural home for the
-  // live notification subscription that keeps the badge up to date app-wide.
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
+  const avatar =
+    jwt &&
+    profile?.avatar &&
+    !profile.avatar.endsWith("/@jpeg") &&
+    profile.avatar !== failedAvatar
+      ? profile.avatar
+      : undefined;
   useNotificationStream();
   const { data: unreadCount = 0 } = useUnreadCountQuery();
-
-  const baseTabs: NavTab[] = [
-    { to: "/", icon: IconHome, label: "Home" },
-    { to: "/charts", icon: IconChartBar, label: "Charts" },
-    { to: "/search", icon: IconSearch, label: "Search" },
-    { to: "/library", icon: IconVinyl, label: "Library" },
-    { to: "/me", icon: IconUser, label: "Profile" },
+  const tabs: NavTab[] = [
+    { to: "/", icon: HomeIcon, label: "Home" },
+    {
+      to: "/notifications",
+      icon: BellIcon,
+      label: "Alerts",
+      badge: jwt ? unreadCount : 0,
+    },
+    { to: "/library", icon: LibraryIcon, label: "Library" },
+    { to: "/search", icon: SearchIcon, label: "Search" },
+    { to: "/me", icon: ProfileIcon, label: "Profile" },
   ];
-
-  const tabs =
-    profile && jwt
-      ? [
-          baseTabs[0],
-          {
-            to: "/notifications",
-            icon: BellIcon,
-            label: "Alerts",
-            badge: unreadCount,
-          },
-          baseTabs[1],
-          baseTabs[2],
-          baseTabs[3],
-          baseTabs[4],
-        ]
-      : baseTabs;
-
+  const ownProfile =
+    profile &&
+    [profile.handle, profile.did].some(
+      (id) =>
+        id &&
+        (pathname === `/profile/${id}` ||
+          pathname === `/profile/${encodeURIComponent(id)}`),
+    );
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-30 border-t"
-      style={{
-        backgroundColor: "var(--color-surface)",
-        borderColor: "var(--color-border)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
-    >
-      <div className="flex h-14">
+    <nav className="mobile-bottom-nav" aria-label="Main navigation">
+      <div className="mobile-bottom-tabs">
         {tabs.map(({ to, icon: Icon, label, badge }) => {
           const active =
             to === "/"
-              ? location.pathname === "/"
-              : location.pathname.startsWith(to);
+              ? pathname === "/"
+              : to === "/me"
+                ? pathname === "/me" || !!ownProfile
+                : pathname === to || pathname.startsWith(`${to}/`);
           return (
             <Link
               key={to}
               to={to}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5 no-underline"
-              style={{ color: active ? "var(--color-primary)" : "var(--color-text-muted)" }}
+              className="mobile-bottom-tab"
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
             >
-              <span className="relative flex items-center justify-center">
-                <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
+              <span className="mobile-tab-icon">
+                {to === "/me" && avatar ? (
+                  <span className="mobile-tab-avatar">
+                    <img
+                      src={avatar}
+                      alt=""
+                      width="28"
+                      height="28"
+                      onError={() => setFailedAvatar(avatar)}
+                    />
+                  </span>
+                ) : (
+                  <Icon size={28} />
+                )}
                 {typeof badge === "number" && badge > 0 && (
                   <span
-                    className="absolute flex items-center justify-center rounded-full font-bold text-white"
-                    style={{
-                      top: "-6px",
-                      left: "12px",
-                      minWidth: "16px",
-                      height: "16px",
-                      padding: "0 4px",
-                      fontSize: "10px",
-                      lineHeight: "16px",
-                      backgroundColor: "#e0245e",
-                    }}
+                    className="mobile-tab-badge"
+                    aria-label={`${badge} unread notifications`}
                   >
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}
               </span>
-              <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );
         })}

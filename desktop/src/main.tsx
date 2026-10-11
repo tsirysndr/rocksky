@@ -1,4 +1,16 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { client } from "./api";
+import { installExternalLinks } from "./lib/external-links";
+import {
+  handleSessionExpired,
+  installSessionGuard,
+  isPdsSessionExpired,
+} from "./lib/sessionExpired";
+import {
+  MutationCache,
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { BaseProvider, createLightTheme } from "baseui";
 import { PLACEMENT, SnackbarProvider } from "baseui/snackbar";
@@ -26,7 +38,15 @@ const primitives = {
 const theme = createLightTheme(primitives);
 const engine = new Styletron();
 
-const queryClient = new QueryClient();
+installSessionGuard(client);
+installExternalLinks();
+const onError = (error: unknown) => {
+  if (isPdsSessionExpired(error)) handleSessionExpired();
+};
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError }),
+  mutationCache: new MutationCache({ onError }),
+});
 
 const router = createRouter({ routeTree });
 

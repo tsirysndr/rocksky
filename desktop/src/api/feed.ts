@@ -8,6 +8,8 @@ interface ScrobbleDetailResponse extends ScrobbleViewDetailed {
   tags?: string[];
   lyrics?: string;
   spotifyLink?: string;
+  mbId?: string;
+  isrc?: string;
   composer?: string;
 }
 
@@ -33,6 +35,8 @@ export const getScrobbleByUri = async (uri: string) => {
     scrobbles: data.scrobbles || 1,
     lyrics: data.lyrics,
     spotifyLink: data.spotifyLink,
+    mbId: data.mbId,
+    isrc: data.isrc,
     composer: data.composer,
     uri: data.uri,
     // `uri` is the scrobble's; liking needs the song's.

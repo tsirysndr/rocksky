@@ -1,3 +1,7 @@
+import ListeningCalendar from "../../../../apps/shared/browser/ListeningCalendar";
+import ListeningPie from "../../../../apps/shared/browser/ListeningPie";
+import { listeningShare } from "../../../../apps/shared/listeningShare";
+import UserAvatar from "../../components/UserAvatar";
 import styled from "@emotion/styled";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -230,14 +234,6 @@ const Rank = styled.span`
   color: var(--color-text-muted);
 `;
 
-const Avatar = styled.img`
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-`;
-
 const Who = styled.div`
   min-width: 0;
   flex: 1;
@@ -352,9 +348,7 @@ function DecadeTooltip({
       <TooltipValue>
         {numeral(point.count).format("0,0")} scrobbles
       </TooltipValue>
-      <TooltipValue>
-        {numeral(point.albums).format("0,0")} albums
-      </TooltipValue>
+      <TooltipValue>{numeral(point.albums).format("0,0")} albums</TooltipValue>
     </TooltipBox>
   );
 }
@@ -385,8 +379,8 @@ function Analytics() {
         to: range.to,
       });
       return (res.scrobbles ?? []).map((s) => ({
-        key: dayjs(s.date).format("YYYY-MM-DD"),
-        label: dayjs(s.date).format("dddd D MMMM YYYY"),
+        key: (s.date ?? "").slice(0, 10),
+        label: dayjs((s.date ?? "").slice(0, 10)).format("dddd D MMMM YYYY"),
         count: s.count ?? 0,
       })) satisfies Point[];
     },
@@ -399,8 +393,8 @@ function Analytics() {
         10,
         0,
         {
-          startDate: dayjs(range.from).toISOString(),
-          endDate: dayjs(range.to).endOf("day").toISOString(),
+          startDate: `${range.from}T00:00:00.000Z`,
+          endDate: `${range.to}T23:59:59.999Z`,
         },
         did,
       ),
@@ -413,8 +407,8 @@ function Analytics() {
         10,
         0,
         {
-          startDate: dayjs(range.from).toISOString(),
-          endDate: dayjs(range.to).endOf("day").toISOString(),
+          startDate: `${range.from}T00:00:00.000Z`,
+          endDate: `${range.to}T23:59:59.999Z`,
         },
         did,
       ),
@@ -425,8 +419,8 @@ function Analytics() {
     queryFn: () =>
       rocksky().decades(
         {
-          startDate: dayjs(range.from).toISOString(),
-          endDate: dayjs(range.to).endOf("day").toISOString(),
+          startDate: `${range.from}T00:00:00.000Z`,
+          endDate: `${range.to}T23:59:59.999Z`,
         },
         did,
       ),
@@ -441,8 +435,8 @@ function Analytics() {
         allTime
           ? {}
           : {
-              startDate: dayjs(range.from).toISOString(),
-              endDate: dayjs(range.to).endOf("day").toISOString(),
+              startDate: `${range.from}T00:00:00.000Z`,
+              endDate: `${range.to}T23:59:59.999Z`,
             },
       ),
   });
@@ -609,10 +603,15 @@ function Analytics() {
           <PanelTitle>Scrobbles over time</PanelTitle>
           <PanelNote>Daily play count across the selected range.</PanelNote>
           {loading || !hasData ? (
-            <Empty>{loading ? "Loading…" : "Nothing scrobbled in this range."}</Empty>
+            <Empty>
+              {loading ? "Loading…" : "Nothing scrobbled in this range."}
+            </Empty>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <AreaChart
+                data={points}
+                margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+              >
                 <defs>
                   <linearGradient id="viz-area" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={SERIES_1} stopOpacity={0.45} />
@@ -667,12 +666,72 @@ function Analytics() {
           )}
         </Panel>
 
+        <Panel>
+          <PanelTitle>Listening share</PanelTitle>
+          <PanelNote>
+            {did
+              ? "Top 5 artists + Other · Share of scrobbles in this period."
+              : "Top 5 artists by listeners + Other · Share of scrobbles."}
+          </PanelNote>
+          {daily.isLoading || topArtists.isLoading ? (
+            <Empty>Loading…</Empty>
+          ) : daily.isError || topArtists.isError ? (
+            <Empty>
+              This chart could not load.{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  void daily.refetch();
+                  void topArtists.refetch();
+                }}
+              >
+                Try again
+              </button>
+            </Empty>
+          ) : !totals.scrobbles ? (
+            <Empty>Nothing scrobbled in this range.</Empty>
+          ) : listeningShare(topArtists.data ?? [], totals.scrobbles).length ? (
+            <ListeningPie
+              key={`${did}-${range.from}-${range.to}`}
+              slices={listeningShare(topArtists.data ?? [], totals.scrobbles)}
+            />
+          ) : (
+            <Empty>
+              Listening totals are updating.{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  void daily.refetch();
+                  void topArtists.refetch();
+                }}
+              >
+                Refresh
+              </button>
+            </Empty>
+          )}
+        </Panel>
+
+        <Panel>
+          <PanelTitle>{did ? "Your listening calendar" : "Listening calendar"}</PanelTitle>
+          <PanelNote>A little music, every day.</PanelNote>
+          {daily.isLoading ? <Empty role="status">Loading listening calendar…</Empty> : daily.isError ? (
+            <Empty role="alert">The calendar could not load. <button type="button" onClick={() => void daily.refetch()}>Try again</button></Empty>
+          ) : (
+            <ListeningCalendar key={`${did}-${range.from}-${range.to}`} points={points} from={range.from} to={range.to} />
+          )}
+        </Panel>
+
         <Grid2>
           <Panel>
             <PanelTitle>Listening by weekday</PanelTitle>
-            <PanelNote>Every play in the range, folded onto the week.</PanelNote>
+            <PanelNote>
+              Every play in the range, folded onto the week.
+            </PanelNote>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={byWeekday} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <BarChart
+                data={byWeekday}
+                margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+              >
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -706,7 +765,10 @@ function Analytics() {
             <PanelTitle>Monthly totals</PanelTitle>
             <PanelNote>How the range breaks down month by month.</PanelNote>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={byMonth} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <BarChart
+                data={byMonth}
+                margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+              >
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis
                   dataKey="key"
@@ -790,10 +852,19 @@ function Analytics() {
             <PanelTitle>Top artists</PanelTitle>
             <PanelNote>Most played in the selected range.</PanelNote>
             {artistBars.length === 0 ? (
-              <Empty>{topArtists.isLoading ? "Loading…" : "No artists yet."}</Empty>
+              <Empty>
+                {topArtists.isLoading ? "Loading…" : "No artists yet."}
+              </Empty>
             ) : (
-              <ResponsiveContainer width="100%" height={Math.max(220, artistBars.length * 34)}>
-                <BarChart data={artistBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(220, artistBars.length * 34)}
+              >
+                <BarChart
+                  data={artistBars}
+                  layout="vertical"
+                  margin={{ top: 4, right: 16, bottom: 4, left: 8 }}
+                >
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
@@ -807,7 +878,10 @@ function Analytics() {
                       v.length > 20 ? `${v.slice(0, 19)}…` : v
                     }
                   />
-                  <Tooltip cursor={{ fill: "transparent" }} content={<VizTooltip unit="plays" />} />
+                  <Tooltip
+                    cursor={{ fill: "transparent" }}
+                    content={<VizTooltip unit="plays" />}
+                  />
                   <Bar
                     dataKey="count"
                     radius={[0, 4, 4, 0]}
@@ -823,10 +897,19 @@ function Analytics() {
             <PanelTitle>Top tracks</PanelTitle>
             <PanelNote>Most played in the selected range.</PanelNote>
             {trackBars.length === 0 ? (
-              <Empty>{topTracks.isLoading ? "Loading…" : "No tracks yet."}</Empty>
+              <Empty>
+                {topTracks.isLoading ? "Loading…" : "No tracks yet."}
+              </Empty>
             ) : (
-              <ResponsiveContainer width="100%" height={Math.max(220, trackBars.length * 34)}>
-                <BarChart data={trackBars} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(220, trackBars.length * 34)}
+              >
+                <BarChart
+                  data={trackBars}
+                  layout="vertical"
+                  margin={{ top: 4, right: 16, bottom: 4, left: 8 }}
+                >
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" hide allowDecimals={false} />
                   <YAxis
@@ -840,7 +923,10 @@ function Analytics() {
                       v.length > 24 ? `${v.slice(0, 23)}…` : v
                     }
                   />
-                  <Tooltip cursor={{ fill: "transparent" }} content={<VizTooltip unit="plays" />} />
+                  <Tooltip
+                    cursor={{ fill: "transparent" }}
+                    content={<VizTooltip unit="plays" />}
+                  />
                   <Bar
                     dataKey="count"
                     radius={[0, 4, 4, 0]}
@@ -889,11 +975,11 @@ function Analytics() {
               {board.map((s, i) => (
                 <BoardRow key={s.did ?? i}>
                   <Rank>{i + 1}</Rank>
-                  {s.avatar ? (
-                    <Avatar src={s.avatar} alt="" />
-                  ) : (
-                    <Avatar as="div" />
-                  )}
+                  <UserAvatar
+                    src={s.avatar}
+                    name={s.displayName || s.handle}
+                    size={34}
+                  />
                   <Who>
                     <Link
                       to="/profile/$did"
@@ -906,9 +992,7 @@ function Analytics() {
                   </Who>
                   <Meter>
                     <MeterFill
-                      pct={
-                        topCount ? ((s.scrobbles ?? 0) / topCount) * 100 : 0
-                      }
+                      pct={topCount ? ((s.scrobbles ?? 0) / topCount) * 100 : 0}
                     />
                   </Meter>
                   <div>

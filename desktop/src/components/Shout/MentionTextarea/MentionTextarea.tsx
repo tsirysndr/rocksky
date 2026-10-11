@@ -1,3 +1,4 @@
+import UserAvatar from "../../UserAvatar";
 import styled from "@emotion/styled";
 import { useQuery } from "@tanstack/react-query";
 import { Textarea, type TextareaProps } from "baseui/textarea";
@@ -53,22 +54,6 @@ const Item = styled.button<{ active: boolean }>`
   }
 `;
 
-const Avatar = styled.span`
-  display: flex;
-  height: 28px;
-  width: 28px;
-  flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 999px;
-  background-color: var(--color-input-background);
-
-  & > img {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-  }
-`;
-
 const Names = styled.span`
   min-width: 0;
 `;
@@ -114,10 +99,13 @@ function MentionTextarea({
   ...rest
 }: MentionTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [mention, setMention] = useState<{ start: number; query: string } | null>(
+  const [mention, setMention] = useState<{
+    start: number;
+    query: string;
+  } | null>(null);
+  const [caret, setCaret] = useState<{ top: number; left: number } | null>(
     null,
   );
-  const [caret, setCaret] = useState<{ top: number; left: number } | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const debouncedQuery = useDebounced(mention?.query ?? "", 200);
 
@@ -187,7 +175,10 @@ function MentionTextarea({
         value={value}
         onChange={(e) => {
           onChange(e.currentTarget.value);
-          syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0);
+          syncMention(
+            e.currentTarget.value,
+            e.currentTarget.selectionStart ?? 0,
+          );
         }}
         overrides={{
           ...overrides,
@@ -227,7 +218,7 @@ function MentionTextarea({
                   insertMention(s.handle);
                 }}
               >
-                <Avatar>{s.avatar && <img src={s.avatar} alt="" />}</Avatar>
+                <UserAvatar src={s.avatar} size={28} />
                 <Names>
                   <DisplayName>{s.displayName || s.handle}</DisplayName>
                   <Handle>@{s.handle}</Handle>

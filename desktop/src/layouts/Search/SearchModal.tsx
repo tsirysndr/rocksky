@@ -9,7 +9,7 @@ import LikeButton from "../../components/LikeButton";
 import { uriToPath } from "../../lib/uri";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { useNavigate } from "@tanstack/react-router";
-import { IconUser } from "@tabler/icons-react";
+import UserAvatar from "../../components/UserAvatar";
 import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -50,9 +50,6 @@ type NavItem = {
   songUri?: string;
 };
 
-// A broken/placeholder avatar comes back as a URL ending in "/@jpeg".
-const isRealAvatar = (url: string) => !!url && !url.endsWith("/@jpeg");
-
 // Build a display item from a raw hit, resolving its destination path (mirrors
 // the app's routing: users → /profile/<handle>; other records →
 // /<did>/<type>/<rkey> derived from the AT-URI). Returns null when there's no
@@ -69,7 +66,7 @@ function toNavItem(hit: SearchHit): NavItem | null {
       secondaryMono: true,
       typeLabel: "User",
       art: {
-        url: isRealAvatar(hit.avatar) ? hit.avatar : null,
+        url: hit.avatar || null,
         round: true,
         kind: "users",
       },
@@ -342,8 +339,6 @@ const ICON_COLOR = "var(--color-text-muted)";
 
 function FallbackIcon({ kind }: { kind: SearchIndex }) {
   switch (kind) {
-    case "users":
-      return <IconUser size={22} color={ICON_COLOR} />;
     case "artists":
       return <Artist color={ICON_COLOR} />;
     case "albums":
@@ -359,6 +354,9 @@ function FallbackIcon({ kind }: { kind: SearchIndex }) {
 
 function Artwork({ item }: { item: NavItem }) {
   const { art, primary } = item;
+  if (art.kind === "users") {
+    return <UserAvatar src={art.url} name={primary} size={40} />;
+  }
   return (
     <Thumb round={art.round}>
       {art.url ? (

@@ -1,3 +1,5 @@
+import OnTour from "../../components/OnTour";
+import UserAvatar from "../../components/UserAvatar";
 import styled from "@emotion/styled";
 import { uriToPath } from "../../lib/uri";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
@@ -317,16 +319,11 @@ const Song = () => {
 
                 {firstScrobble && (
                   <div className="flex items-center mt-[10px] gap-[6px]">
-                    {firstScrobble.avatar && (
-                      <img
-                        src={firstScrobble.avatar}
-                        alt={firstScrobble.handle}
-                        className="w-[20px] h-[20px] rounded-full object-cover shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    )}
+                    <UserAvatar
+                      src={firstScrobble.avatar}
+                      name={firstScrobble.handle}
+                      size={20}
+                    />
                     <LabelMedium
                       margin={0}
                       className="!text-[var(--color-text-muted)]"
@@ -393,7 +390,11 @@ const Song = () => {
                 <ExternalLink size={16} />
                 View on PDSls
               </PillLink>
-              <LikeButton uri={song?.trackUri ?? song?.uri} liked={song?.liked} withLabel />
+              <LikeButton
+                uri={song?.trackUri ?? song?.uri}
+                liked={song?.liked}
+                withLabel
+              />
               <ShareOnBluesky
                 text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵`}
               />
@@ -468,6 +469,7 @@ const Song = () => {
               isLoading={songRecentListenersResult.isLoading}
             />
 
+            <OnTour artistUri={song?.artistUri} artistName={song?.artist} />
             {song?.artistUri &&
               song?.albumArtist?.toLowerCase() !== "various artists" && (
                 <>

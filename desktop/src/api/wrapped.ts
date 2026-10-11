@@ -35,8 +35,21 @@ export interface WrappedMilestone {
   trackUri?: string;
 }
 
+export type WrappedPeriod = "year" | "3months" | "month" | "2weeks" | "week";
+
+export const WRAPPED_PERIODS: { id: WrappedPeriod; label: string }[] = [
+  { id: "year", label: "Year" },
+  { id: "3months", label: "Last 3 months" },
+  { id: "month", label: "Last month" },
+  { id: "2weeks", label: "Last 2 weeks" },
+  { id: "week", label: "Last week" },
+];
+
 export interface WrappedData {
   year: number;
+  period?: WrappedPeriod;
+  startDate?: string;
+  endDate?: string;
   totalScrobbles: number;
   totalListeningTimeMinutes: number;
   topArtists: WrappedArtist[];
@@ -49,14 +62,16 @@ export interface WrappedData {
   firstScrobble?: WrappedMilestone;
   lastScrobble?: WrappedMilestone;
   scrobblesPerMonth: Array<{ month: number; count: number }>;
+  scrobblesPerDay?: Array<{ date: string; count: number }>;
   longestStreak: number;
 }
 
 export const getWrapped = async (
   did: string,
   year: number,
+  period: WrappedPeriod = "year",
 ): Promise<WrappedData> => {
-  const res = await rocksky().wrapped(did, year);
+  const res = await rocksky().wrapped(did, year, period);
   // WrappedData refines the lexicon StatsWrappedView: the AppView always
   // fills the core fields the wrapped UI renders.
   return res as WrappedData;

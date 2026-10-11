@@ -845,7 +845,7 @@ export default function MiniPlayer() {
       <div
         className="fixed left-0 right-0 z-30"
         style={{
-          bottom: `calc(56px + env(safe-area-inset-bottom))`,
+          bottom: `calc(var(--nav-height) + env(safe-area-inset-bottom))`,
           backgroundColor: "var(--color-surface)",
           borderTop: "1px solid var(--color-border)",
           height: "var(--player-height)",

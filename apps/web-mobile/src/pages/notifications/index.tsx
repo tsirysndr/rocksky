@@ -204,14 +204,15 @@ function NotificationRow({ group }: { group: NotificationGroup }) {
 }
 
 export default function NotificationsPage() {
-  const { data, isLoading } = useNotificationListQuery(true);
+  const signedIn = !!localStorage.getItem("token");
+  const { data, isLoading } = useNotificationListQuery(signedIn);
   const markSeen = useMarkSeenMutation();
 
   // Opening the screen marks everything as viewed.
   useEffect(() => {
-    markSeen.mutate(undefined);
+    if (signedIn) markSeen.mutate(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [signedIn]);
 
   return (
     <Main>
@@ -227,7 +228,7 @@ export default function NotificationsPage() {
             className="text-center py-16 px-4"
             style={{ color: "var(--color-text-muted)" }}
           >
-            No notifications yet
+            {signedIn ? "No notifications yet" : "Sign in to view your notifications"}
           </p>
         ) : (
           groupNotifications(data?.notifications ?? []).map((g) => (

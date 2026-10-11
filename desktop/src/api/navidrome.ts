@@ -27,6 +27,7 @@ export interface NavidromeSong {
   discNumber?: number;
   genre?: string;
   suffix?: string;
+  contentType?: string;
 }
 
 export interface NavidromeAlbum {
@@ -274,7 +275,8 @@ export async function fetchNavidromeFavorites(
 ): Promise<NavidromeSong[]> {
   const res = await axios.get(restUrl("getStarred2"), { params: qp(creds) });
   return asArray<NavidromeSong>(
-    (sr(res.data)?.starred2 as { song?: NavidromeSong | NavidromeSong[] })?.song,
+    (sr(res.data)?.starred2 as { song?: NavidromeSong | NavidromeSong[] })
+      ?.song,
   );
 }
 

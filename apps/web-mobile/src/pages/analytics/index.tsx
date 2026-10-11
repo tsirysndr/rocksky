@@ -1,3 +1,4 @@
+import ListeningCalendar from "../../../../shared/browser/ListeningCalendar";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
@@ -226,6 +227,13 @@ export default function Analytics() {
 						</p>
 					)}
 				</section>
+        <section aria-labelledby="listening-calendar-title" style={{ padding: 18, marginTop: 20, border: "1px solid var(--color-border)", borderRadius: 16, background: "var(--color-surface)", minWidth: 0 }}>
+          <h2 id="listening-calendar-title" style={{ fontSize: 18, margin: "0 0 8px" }}>{did ? "Your listening calendar" : "Listening calendar"}</h2>
+          <p style={{ color: "var(--color-text-muted)", fontSize: 12 }}>A little music, every day.</p>
+          {!valid ? <p role="status">Choose a valid date range.</p> : daily.isLoading ? <p role="status">Loading listening calendar…</p> : daily.isError ? (
+            <p role="alert">The calendar could not load. <button type="button" style={buttonStyle} onClick={() => void daily.refetch()}>Try again</button></p>
+          ) : <ListeningCalendar key={`${did}-${from}-${to}`} points={(daily.data?.scrobbles ?? []).map((row) => ({ key: (row.date ?? "").slice(0, 10), count: row.count ?? 0 }))} from={from} to={to} />}
+        </section>
 			</div>
 		</Main>
 	);

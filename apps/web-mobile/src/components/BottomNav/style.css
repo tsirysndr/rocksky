@@ -1,0 +1,72 @@
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--color-surface);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-bottom-tabs {
+  display: flex;
+  height: var(--nav-height);
+  padding: 10px 0;
+}
+.mobile-bottom-tab {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+.mobile-bottom-tab[aria-current="page"] {
+  color: var(--color-primary);
+}
+.mobile-bottom-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -3px;
+  border-radius: 8px;
+}
+.mobile-tab-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+.mobile-tab-avatar {
+  display: flex;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  padding: 1px;
+}
+.mobile-tab-avatar img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.mobile-bottom-tab[aria-current="page"] .mobile-tab-avatar {
+  border-color: var(--color-primary);
+}
+.mobile-tab-badge {
+  position: absolute;
+  top: -3px;
+  left: 20px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0245e;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+}

@@ -1,3 +1,4 @@
+import UserAvatar from "../../../../UserAvatar";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import styled from "@emotion/styled";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +19,10 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
 import { isVideoUrl, type MediaResult } from "../../../../../api/klipy";
-import { type Mention, resolveMentionFacets } from "../../../../../lib/richtext";
+import {
+  type Mention,
+  resolveMentionFacets,
+} from "../../../../../lib/richtext";
 import { profileAtom } from "../../../../../atoms/profile";
 import { shoutsAtom } from "../../../../../atoms/shouts";
 import useShout from "../../../../../hooks/useShout";
@@ -110,7 +114,12 @@ function ReplyModal(props: ReplyModalProps) {
         }
       : undefined;
     const facets = message.trim() ? await resolveMentionFacets(message) : [];
-    await reply(shout.uri, message, gifEmbed, facets.length ? facets : undefined);
+    await reply(
+      shout.uri,
+      message,
+      gifEmbed,
+      facets.length ? facets : undefined,
+    );
     setLoading(false);
     reset();
     setGif(null);
@@ -264,10 +273,7 @@ function ReplyModal(props: ReplyModalProps) {
           }}
         >
           <Link to={`/profile/${shout.user.handle}`} onClick={close}>
-            <img
-              src={shout.user.avatar}
-              className="w-[50px] h-[50px] rounded-full"
-            />
+            <UserAvatar src={shout.user.avatar} size={50} />
           </Link>
 
           <div className="ml-[20px] w-full">
@@ -298,10 +304,7 @@ function ReplyModal(props: ReplyModalProps) {
         </div>
 
         <div className="flex flex-row mt-[20px]">
-          <img
-            src={profile?.avatar}
-            className="w-[50px] h-[50px] rounded-full"
-          />
+          <UserAvatar src={profile?.avatar} size={50} />
           <Controller
             name="message"
             control={control}

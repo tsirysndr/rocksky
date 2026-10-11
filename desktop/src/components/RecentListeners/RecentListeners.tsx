@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../UserAvatar";
 import { HeadingSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import ContentLoader from "react-content-loader";
@@ -36,8 +36,22 @@ function RecentListeners(props: RecentListenersProps) {
           {[0, 1, 2, 3].map((i) => (
             <g key={i}>
               <circle cx={20 + i * 200} cy={40} r={24} />
-              <rect x={50 + i * 200} y={24} rx={3} ry={3} width={120} height={12} />
-              <rect x={50 + i * 200} y={44} rx={3} ry={3} width={80} height={10} />
+              <rect
+                x={50 + i * 200}
+                y={24}
+                rx={3}
+                ry={3}
+                width={120}
+                height={12}
+              />
+              <rect
+                x={50 + i * 200}
+                y={44}
+                rx={3}
+                ry={3}
+                width={80}
+                height={10}
+              />
             </g>
           ))}
         </ContentLoader>

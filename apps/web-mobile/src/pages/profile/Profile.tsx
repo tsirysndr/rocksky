@@ -1197,7 +1197,7 @@ export default function Profile() {
 
         {isNewUser ? (
           /* New user: guided onboarding instead of empty tabs */
-          <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
+          <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + var(--nav-height) + env(safe-area-inset-bottom))" }}>
             <NewUserGuide
               displayName={profile?.displayName}
               onShowSteps={() => setOnboardingOpen(true)}
@@ -1223,7 +1223,7 @@ export default function Profile() {
             </div>
 
             {/* Tab content */}
-            <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
+            <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + var(--nav-height) + env(safe-area-inset-bottom))" }}>
               {(() => {
                 const resolvedDid = profile?.did || did!;
                 return (

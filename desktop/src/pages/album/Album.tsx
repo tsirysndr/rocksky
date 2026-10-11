@@ -24,6 +24,7 @@ import { useTimeFormat } from "../../hooks/useFormat";
 import { useAlbumQuery } from "../../hooks/useLibrary";
 import SongCover from "../../components/SongCover";
 import Main from "../../layouts/Main";
+import DiscogsDetails, { discogsUrl } from "../../components/DiscogsDetails";
 
 const Group = styled.div`
   display: flex;
@@ -84,6 +85,19 @@ const Album = () => {
   const { did, rkey } = useParams({ strict: false });
   const { data, isLoading, isError } = useAlbumQuery(did!, rkey!);
 
+  const discogs = data?.discogs;
+  const formats =
+    discogs?.formats?.map((format) => format.trim()).filter(Boolean) ?? [];
+  const discogsLink = discogs
+    ? discogsUrl(discogs.url, discogs.releaseId)
+    : undefined;
+  const discogsMasterLink = discogs
+    ? discogsUrl(
+        discogs.master?.url,
+        discogs.master?.masterId ?? discogs.masterId,
+        "master",
+      )
+    : undefined;
   const [disc, setDisc] = useState(1);
   const [album, setAlbum] = useState<{
     id: string;
@@ -231,14 +245,18 @@ const Album = () => {
         )}
         {album && (
           <Group>
-            {album.albumArt && <SongCover cover={album.albumArt!} size={210} />}
-            {!album.albumArt && (
-              <div className="w-[210px] h-[210px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
-                <div className="w-[165px] h-[165px]">
-                  <Disc color="rgba(66, 87, 108, 0.65)" />
+            <div style={{ width: 210, flexShrink: 0 }}>
+              {album.albumArt && (
+                <SongCover cover={album.albumArt!} size={210} />
+              )}
+              {!album.albumArt && (
+                <div className="w-[210px] h-[210px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                  <div className="w-[165px] h-[165px]">
+                    <Disc color="rgba(66, 87, 108, 0.65)" />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
             <div className="ml-[20px] flex-1">
               <HeadingMedium margin={0} className="!text-[var(--color-text)]">
                 {album.title}
@@ -291,7 +309,7 @@ const Album = () => {
                   </LabelLarge>
                 </div>
               </div>
-              <div className="flex items-center gap-[12px] mt-[20px]">
+              <div className="flex flex-wrap items-center gap-[12px] mt-[20px]">
                 <PillLink
                   href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                   target="_blank"
@@ -302,6 +320,53 @@ const Album = () => {
                 <ShareOnBluesky
                   text={`${album?.title} by ${album?.artist} on Rocksky 🎵`}
                 />
+                {(discogsLink || discogsMasterLink) && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      flexWrap: "nowrap",
+                      gap: 20,
+                    }}
+                  >
+                    {discogsLink && (
+                      <a
+                        href={discogsLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          color: "var(--color-text)",
+                          textUnderlineOffset: 4,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <ExternalLink size={16} />
+                        View on Discogs
+                      </a>
+                    )}
+                    {discogsMasterLink && (
+                      <a
+                        href={discogsMasterLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          color: "var(--color-text)",
+                          textUnderlineOffset: 4,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <ExternalLink size={16} />
+                        View master release
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="mt-[10px]">
                 {(album?.tags || []).map((genre) => (
@@ -316,6 +381,22 @@ const Album = () => {
               </div>
             </div>
           </Group>
+        )}
+        {album && formats.length > 0 && (
+          <div
+            style={{
+              marginTop: 12,
+              color: "var(--color-text)",
+              fontSize: 13,
+              lineHeight: 1.5,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ color: "var(--color-text-muted)", marginRight: 8 }}>
+              Formats
+            </span>
+            {formats.join(", ")}
+          </div>
         )}
 
         <div className="mt-[20px]">
@@ -422,18 +503,12 @@ const Album = () => {
                   </div>
                 )}
               </TableBuilderColumn>
-              <TableBuilderColumn
-                header=""
-                overrides={FIRST_ACTION_CELL}
-              >
+              <TableBuilderColumn header="" overrides={FIRST_ACTION_CELL}>
                 {(row: Row) => (
                   <AddToPlaylistButton uri={row.uri} title={row.title} />
                 )}
               </TableBuilderColumn>
-              <TableBuilderColumn
-                header=""
-                overrides={ACTION_CELL}
-              >
+              <TableBuilderColumn header="" overrides={ACTION_CELL}>
                 {(row: Row) => <LikeButton uri={row.uri} liked={row.liked} />}
               </TableBuilderColumn>
             </TableBuilder>
@@ -545,18 +620,12 @@ const Album = () => {
                         </div>
                       )}
                     </TableBuilderColumn>
-                    <TableBuilderColumn
-                      header=""
-                      overrides={FIRST_ACTION_CELL}
-                    >
+                    <TableBuilderColumn header="" overrides={FIRST_ACTION_CELL}>
                       {(row: Row) => (
                         <AddToPlaylistButton uri={row.uri} title={row.title} />
                       )}
                     </TableBuilderColumn>
-                    <TableBuilderColumn
-                      header=""
-                      overrides={ACTION_CELL}
-                    >
+                    <TableBuilderColumn header="" overrides={ACTION_CELL}>
                       {(row: Row) => (
                         <LikeButton uri={row.uri} liked={row.liked} />
                       )}
@@ -580,6 +649,7 @@ const Album = () => {
             </LabelXSmall>
           </div>
         </div>
+        {album && <DiscogsDetails key={uri} discogs={data?.discogs} />}
         <Shout type="album" />
       </div>
     </Main>

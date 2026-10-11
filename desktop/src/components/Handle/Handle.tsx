@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Avatar } from "baseui/avatar";
+import Avatar from "../UserAvatar";
 import { Block } from "baseui/block";
 import { StatefulPopover, TRIGGER_TYPE } from "baseui/popover";
 import { LabelMedium, LabelSmall } from "baseui/typography";
@@ -14,7 +14,7 @@ import {
 import Stats from "../Stats";
 import NowPlaying from "./NowPlaying";
 import { followsAtom } from "../../atoms/follows";
-import { IconCheck, IconPlus, IconUser } from "@tabler/icons-react";
+import { IconCheck, IconPlus } from "@tabler/icons-react";
 import { Button } from "baseui/button";
 import SignInModal from "../SignInModal";
 import {
@@ -109,9 +109,7 @@ function Handle(props: HandleProps) {
       if (!profile.data?.did) {
         return newSet;
       }
-      if (
-        data.followers.some((follower) => follower.did === currentDid)
-      ) {
+      if (data.followers.some((follower) => follower.did === currentDid)) {
         newSet.add(profile.data?.did);
       } else {
         newSet.delete(profile.data?.did);
@@ -174,18 +172,11 @@ function Handle(props: HandleProps) {
             <div className="flex flex-row items-start justify-between">
               <div className="flex flex-row items-center">
                 <Link to={link} className="no-underline">
-                  {!profiles[did]?.avatar?.endsWith("/@jpeg") && (
-                    <Avatar
-                      src={profiles[did]?.avatar}
-                      name={profiles[did]?.displayName}
-                      size={"60px"}
-                    />
-                  )}
-                  {profiles[did]?.avatar?.endsWith("/@jpeg") && (
-                    <div className="w-[60px] h-[60px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
-                      <IconUser size={30} color="#fff" />
-                    </div>
-                  )}
+                  <Avatar
+                    src={profiles[did]?.avatar}
+                    name={profiles[did]?.displayName}
+                    size={"60px"}
+                  />
                 </Link>
                 <div className="ml-[16px]">
                   <Link to={link} className="no-underline">
@@ -292,6 +283,12 @@ function Handle(props: HandleProps) {
           Body: {
             style: {
               zIndex: 60,
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Inner: {
+            style: {
+              backgroundColor: "var(--color-background)",
             },
           },
         }}

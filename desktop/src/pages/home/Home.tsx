@@ -14,13 +14,16 @@ const Home = () => {
   const stats = useProfileStatsByDidQuery(ownerDid);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [dismissed, setDismissed] = useState(
-    () => !!ownerDid && !!localStorage.getItem(`rocksky:home-welcome:${ownerDid}`),
+    () =>
+      !!ownerDid && !!localStorage.getItem(`rocksky:home-welcome:${ownerDid}`),
   );
 
+  // isSuccess, not `data !== undefined`: a failed stats fetch must never be
+  // read as "no scrobbles yet" and pop the welcome flow at an existing user.
   const isNewUser =
     !!jwt &&
     !!ownerDid &&
-    stats.data !== undefined &&
+    stats.isSuccess &&
     (stats.data?.scrobbles ?? 0) === 0;
 
   const onDismiss = () => {

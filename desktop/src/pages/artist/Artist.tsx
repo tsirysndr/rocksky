@@ -1,3 +1,4 @@
+import OnTour from "../../components/OnTour";
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { Link, useParams } from "@tanstack/react-router";
@@ -284,6 +285,7 @@ const Artist = () => {
           listeners={artistRecentListenersResult.data}
           isLoading={artistRecentListenersResult.isLoading}
         />
+        <OnTour artistUri={uri} artistName={artistResult.data?.name} />
         <PopularSongs
           topTracks={topTracks}
           isLoading={artistTracksResult.isLoading}

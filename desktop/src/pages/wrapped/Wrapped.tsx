@@ -1,6 +1,7 @@
+import UserAvatar from "../../components/UserAvatar";
 import { Link } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -10,19 +11,40 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { toPng } from "html-to-image";
 import { profileAtom } from "../../atoms/profile";
 import { themeAtom } from "../../atoms/theme";
 import { useWrappedQuery } from "../../hooks/useWrapped";
 import Main from "../../layouts/Main";
-import type { WrappedArtist, WrappedTrack } from "../../api/wrapped";
-import { IconDownload, IconMusic, IconUser, IconCalendar, IconClock, IconFlame, IconSparkles, IconMicrophone2 } from "@tabler/icons-react";
-import { API_URL } from "../../consts";
+import {
+  WRAPPED_PERIODS,
+  type WrappedAlbum,
+  type WrappedArtist,
+  type WrappedPeriod,
+  type WrappedTrack,
+} from "../../api/wrapped";
+import {
+  IconDownload,
+  IconMusic,
+  IconUser,
+  IconCalendar,
+  IconClock,
+  IconFlame,
+  IconSparkles,
+  IconMicrophone2,
+  IconCopy,
+  IconCheck,
+} from "@tabler/icons-react";
+import copy from "copy-to-clipboard";
+import { downloadNodeAsPng, resolveImages } from "../../lib/shareImage";
+import { activityData, activityTitle, scopeLabel, titleLabel } from "./period";
+import { wrappedAltText } from "./altText";
+import WrappedSelect from "./WrappedSelect";
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
-
-const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const YEARS = Array.from({ length: 5 }, (_, i) => ({
+  id: CURRENT_YEAR - i,
+  label: String(CURRENT_YEAR - i),
+}));
 
 const GENRE_COLORS = [
   "#ff2876",
@@ -104,7 +126,13 @@ function numberWithCommas(n: number): string {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function ArtistAvatar({ artist, size = 64 }: { artist: WrappedArtist; size?: number }) {
+function ArtistAvatar({
+  artist,
+  size = 64,
+}: {
+  artist: WrappedArtist;
+  size?: number;
+}) {
   if (artist.picture) {
     return (
       <img
@@ -125,7 +153,15 @@ function ArtistAvatar({ artist, size = 64 }: { artist: WrappedArtist; size?: num
   );
 }
 
-function AlbumArt({ src, size = 56, alt = "" }: { src?: string; size?: number; alt?: string }) {
+function AlbumArt({
+  src,
+  size = 56,
+  alt = "",
+}: {
+  src?: string;
+  size?: number;
+  alt?: string;
+}) {
   if (src) {
     return (
       <img
@@ -150,7 +186,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
       className="text-xs tracking-[0.25em] uppercase mb-3 font-bold"
-      style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}
+      style={{
+        color: "var(--color-text-muted)",
+        fontFamily: "'Syne', sans-serif",
+      }}
     >
       {children}
     </p>
@@ -171,22 +210,36 @@ function StatCard({
   return (
     <div
       className="rounded-2xl p-5 flex flex-col gap-3"
-      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+      style={{
+        background: "rgba(255,255,255,0.05)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}
     >
       <div
         className="w-10 h-20 rounded-xl flex items-center justify-center"
         style={{ background: `${accent}22` }}
       >
-        <span style={{ color: accent }} className="mt-[4px]">{icon}</span>
+        <span style={{ color: accent }} className="mt-[4px]">
+          {icon}
+        </span>
       </div>
       <div>
         <p
           className="text-2xl font-black leading-tight ms-[10px] mb-[5px]"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--color-text)" }}
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            color: "var(--color-text)",
+          }}
         >
           {value}
         </p>
-        <p className="text-sm ms-[10px] mt-[0px]" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}>
+        <p
+          className="text-sm ms-[10px] mt-[0px]"
+          style={{
+            color: "var(--color-text-muted)",
+            fontFamily: "'Syne', sans-serif",
+          }}
+        >
           {label}
         </p>
       </div>
@@ -196,32 +249,56 @@ function StatCard({
 
 // ─── Share card (captured as PNG) ────────────────────────────────────────────
 
+const SHARE_CARD_WIDTH = 600;
+const SHARE_CARD_HEIGHT = 900;
+const RANK_COLORS = ["#ff2876", "#a855f7", "#06b6d4"];
+
+function CardLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        color: "var(--color-text-muted)",
+        fontSize: 11,
+        letterSpacing: "0.18em",
+        textTransform: "uppercase",
+        margin: "0 0 10px",
+        fontFamily: "'Syne', sans-serif",
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
 function ShareCard({
   cardRef,
-  year,
+  title,
   handle,
   displayName,
   avatar,
   totalScrobbles,
   totalListeningTimeMinutes,
   topArtists,
+  topAlbums,
   topTracks,
   resolvedImages,
   darkMode,
 }: {
   cardRef?: React.RefObject<HTMLDivElement>;
-  year: number;
+  title: string;
   handle: string;
   displayName: string;
   avatar?: string;
   totalScrobbles: number;
   totalListeningTimeMinutes: number;
   topArtists: WrappedArtist[];
+  topAlbums: WrappedAlbum[];
   topTracks: WrappedTrack[];
   resolvedImages?: Record<string, string>;
   darkMode: boolean;
 }) {
-  const r = (url?: string) => (url && resolvedImages?.[url]) ? resolvedImages[url] : url;
+  const r = (url?: string) =>
+    url && resolvedImages?.[url] ? resolvedImages[url] : url;
 
   // Brand-purple gradient on dark theme; soft pastel wash on light theme so
   // the (now-dark) text reads against it. Glow blobs use rgba accents that
@@ -234,8 +311,8 @@ function ShareCard({
     <div
       ref={cardRef}
       style={{
-        width: 600,
-        height: 600,
+        width: SHARE_CARD_WIDTH,
+        height: SHARE_CARD_HEIGHT,
         background: cardBg,
         fontFamily: "'Space Grotesk', sans-serif",
         position: "relative",
@@ -244,121 +321,371 @@ function ShareCard({
       }}
     >
       {/* Glow blobs */}
-      <div style={{
-        position: "absolute", top: -60, right: -60,
-        width: 300, height: 300,
-        borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(168,85,247,0.35) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-      <div style={{
-        position: "absolute", bottom: -40, left: -40,
-        width: 260, height: 260,
-        borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,40,118,0.3) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
+      <div
+        style={{
+          position: "absolute",
+          top: -60,
+          right: -60,
+          width: 300,
+          height: 300,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(168,85,247,0.35) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: -40,
+          left: -40,
+          width: 260,
+          height: 260,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(255,40,118,0.3) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
 
-      <div style={{ padding: 40, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+      <div
+        style={{
+          position: "relative",
+          padding: 40,
+          height: "100%",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
+      >
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
           <div>
-            <p style={{ color: "var(--color-text-muted)", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap" }}>
+            <p
+              style={{
+                color: "var(--color-text-muted)",
+                fontSize: 11,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                margin: 0,
+                fontFamily: "'Syne', sans-serif",
+                whiteSpace: "nowrap",
+              }}
+            >
               Rocksky Wrapped
             </p>
-            <p style={{ color: "var(--color-text)", fontSize: 40, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>
-              {year}
+            <p
+              style={{
+                color: "var(--color-text)",
+                fontSize: 34,
+                fontWeight: 900,
+                margin: 0,
+                lineHeight: 1.1,
+              }}
+            >
+              {title}
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {avatar && !avatar.endsWith("/@jpeg") && (
-              <img src={r(avatar)} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
-            )}
+            <UserAvatar src={avatar ? r(avatar) : undefined} size={40} />
             <div>
-              <p style={{ color: "var(--color-text)", fontSize: 14, fontWeight: 700, margin: 0 }}>{displayName}</p>
-              <p style={{ color: "var(--color-text-muted)", fontSize: 12, margin: 0 }}>@{handle}</p>
+              <p
+                style={{
+                  color: "var(--color-text)",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  margin: 0,
+                }}
+              >
+                {displayName}
+              </p>
+              <p
+                style={{
+                  color: "var(--color-text-muted)",
+                  fontSize: 12,
+                  margin: 0,
+                }}
+              >
+                @{handle}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Big stat */}
         <div style={{ textAlign: "center" }}>
-          <p style={{ color: "var(--color-text-muted)", fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "'Syne', sans-serif" }}>
+          <p
+            style={{
+              color: "var(--color-text-muted)",
+              fontSize: 13,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              margin: "0 0 4px",
+              fontFamily: "'Syne', sans-serif",
+            }}
+          >
             Total Scrobbles
           </p>
-          <p style={{
-            fontSize: 72,
-            fontWeight: 900,
-            margin: 0,
-            lineHeight: 1,
-            background: "linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}>
+          <p
+            style={{
+              fontSize: 64,
+              fontWeight: 900,
+              margin: 0,
+              lineHeight: 1,
+              color: "var(--color-text)",
+            }}
+          >
             {numberWithCommas(totalScrobbles)}
           </p>
-          <p style={{ color: "var(--color-text-muted)", fontSize: 14, margin: "6px 0 0", fontFamily: "'Syne', sans-serif" }}>
+          <p
+            style={{
+              color: "var(--color-text-muted)",
+              fontSize: 14,
+              margin: "6px 0 0",
+              fontFamily: "'Syne', sans-serif",
+            }}
+          >
             {formatMinutes(totalListeningTimeMinutes)} of music
           </p>
         </div>
 
         {/* Top artists */}
-        <div>
-          <p style={{ color: "var(--color-text-muted)", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 12px", fontFamily: "'Syne', sans-serif" }}>
-            Top Artists
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {topArtists.slice(0, 3).map((a, i) => (
-              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{
-                  color: i === 0 ? "#ff2876" : i === 1 ? "#a855f7" : "#06b6d4",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  width: 16,
-                  textAlign: "right",
-                  flexShrink: 0,
-                }}>
-                  {i + 1}
-                </span>
-                {a.picture ? (
-                  <img src={r(a.picture)} style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
-                )}
-                <span style={{ color: "var(--color-text)", fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {a.name}
-                </span>
-                <span style={{ color: "var(--color-text-muted)", fontSize: 12, flexShrink: 0 }}>
-                  {numberWithCommas(a.playCount)} plays
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Top track */}
-        {topTracks[0] && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(255,255,255,0.06)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)" }}>
-            {topTracks[0].albumArt ? (
-              <img src={r(topTracks[0].albumArt)} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-            ) : (
-              <div style={{ width: 40, height: 40, borderRadius: 8, background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
-            )}
-            <div style={{ flex: 1, overflow: "hidden" }}>
-              <p style={{ color: "var(--color-text-muted)", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", margin: "0 0 2px", fontFamily: "'Syne', sans-serif" }}>Top Track</p>
-              <p style={{ color: "var(--color-text)", fontSize: 13, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {topTracks[0].title}
-              </p>
-              <p style={{ color: "var(--color-text-muted)", fontSize: 12, margin: 0 }}>{topTracks[0].artist}</p>
+        {topArtists.length > 0 && (
+          <div>
+            <CardLabel>Top Artists</CardLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {topArtists.slice(0, 3).map((a, i) => (
+                <div
+                  key={a.id}
+                  style={{ display: "flex", alignItems: "center", gap: 10 }}
+                >
+                  <span
+                    style={{
+                      color: RANK_COLORS[i],
+                      fontSize: 13,
+                      fontWeight: 700,
+                      width: 16,
+                      textAlign: "right",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  {a.picture ? (
+                    <img
+                      src={r(a.picture)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.1)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <span
+                    style={{
+                      color: "var(--color-text)",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      flex: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {a.name}
+                  </span>
+                  <span
+                    style={{
+                      color: "var(--color-text-muted)",
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {numberWithCommas(a.playCount)} plays
+                  </span>
+                </div>
+              ))}
             </div>
-            <span style={{ color: "var(--color-text-muted)", fontSize: 12, flexShrink: 0 }}>
-              {numberWithCommas(topTracks[0].playCount)} plays
-            </span>
+          </div>
+        )}
+
+        {/* Top albums */}
+        {topAlbums.length > 0 && (
+          <div>
+            <CardLabel>Top Albums</CardLabel>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(6, 1fr)",
+                gap: 8,
+              }}
+            >
+              {topAlbums.slice(0, 6).map((a) => (
+                <div key={a.id} style={{ minWidth: 0 }}>
+                  {a.albumArt ? (
+                    <img
+                      src={r(a.albumArt)}
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1 / 1",
+                        borderRadius: 8,
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1 / 1",
+                        borderRadius: 8,
+                        background: "rgba(255,255,255,0.1)",
+                      }}
+                    />
+                  )}
+                  <p
+                    style={{
+                      color: "var(--color-text)",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      margin: "4px 0 0",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {a.title}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Top tracks */}
+        {topTracks.length > 0 && (
+          <div>
+            <CardLabel>Top Tracks</CardLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {topTracks.slice(0, 3).map((t, i) => (
+                <div
+                  key={t.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 12px",
+                    background: "rgba(255,255,255,0.06)",
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: RANK_COLORS[i],
+                      fontSize: 13,
+                      fontWeight: 700,
+                      width: 16,
+                      textAlign: "right",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  {t.albumArt ? (
+                    <img
+                      src={r(t.albumArt)}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 6,
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 6,
+                        background: "rgba(255,255,255,0.1)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <div style={{ flex: 1, overflow: "hidden" }}>
+                    <p
+                      style={{
+                        color: "var(--color-text)",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        margin: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.title}
+                    </p>
+                    <p
+                      style={{
+                        color: "var(--color-text-muted)",
+                        fontSize: 12,
+                        margin: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.artist}
+                    </p>
+                  </div>
+                  <span
+                    style={{
+                      color: "var(--color-text-muted)",
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {numberWithCommas(t.playCount)} plays
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Footer */}
-        <p style={{ color: "var(--color-text-muted)", fontSize: 11, margin: 0, textAlign: "center", letterSpacing: "0.1em", fontFamily: "'Syne', sans-serif" }}>
+        <p
+          style={{
+            color: "var(--color-text-muted)",
+            fontSize: 11,
+            margin: 0,
+            textAlign: "center",
+            letterSpacing: "0.1em",
+            fontFamily: "'Syne', sans-serif",
+          }}
+        >
           rocksky.app
         </p>
       </div>
@@ -420,8 +747,8 @@ function WrappedSkeleton() {
           className="h-3 w-28 rounded-full"
           style={{ background: "rgba(255,255,255,0.08)" }}
         />
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {[...Array(5)].map((_, i) => (
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {[...Array(6)].map((_, i) => (
             <div
               key={i}
               className="rounded-2xl aspect-square"
@@ -441,28 +768,23 @@ function WrappedSkeleton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-async function fetchAsBase64(url: string): Promise<string> {
-  const proxyUrl = `${API_URL}/proxy-image?url=${encodeURIComponent(url)}`;
-  const res = await fetch(proxyUrl);
-  if (!res.ok) throw new Error(`proxy-image failed: ${res.status}`);
-  const blob = await res.blob();
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
 export default function WrappedPage() {
   const profile = useAtomValue(profileAtom);
   const { darkMode } = useAtomValue(themeAtom);
   const [year, setYear] = useState(CURRENT_YEAR);
+  const [period, setPeriod] = useState<WrappedPeriod>("year");
   const [downloading, setDownloading] = useState(false);
-  const [resolvedImages, setResolvedImages] = useState<Record<string, string>>({});
-  const shareCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  const [copied, setCopied] = useState(false);
+  const [resolvedImages, setResolvedImages] = useState<Record<string, string>>(
+    {},
+  );
+  const shareCardRef = useRef<HTMLDivElement>(
+    null,
+  ) as React.RefObject<HTMLDivElement>;
 
-  const { data, isLoading } = useWrappedQuery(profile?.did, year);
+  const { data, isLoading } = useWrappedQuery(profile?.did, year, period);
+  const scope = scopeLabel(period, year);
+  const title = titleLabel(period, year);
 
   // Inject Google Fonts
   useEffect(() => {
@@ -479,40 +801,28 @@ export default function WrappedPage() {
   // Pre-fetch all ShareCard images as base64 so the off-screen card has no external URLs
   useEffect(() => {
     if (!data && !profile?.avatar) return;
-    const urls = [
+    let cancelled = false;
+    resolveImages([
       profile?.avatar,
-      ...data?.topArtists.slice(0, 3).map((a) => a.picture) ?? [],
-      data?.topTracks[0]?.albumArt,
-    ].filter((u): u is string => !!u && !u.endsWith("/@jpeg"));
-
-    const map: Record<string, string> = {};
-    Promise.all(
-      urls.map((url) =>
-        fetchAsBase64(url)
-          .then((b64) => { map[url] = b64; })
-          .catch(() => { /* skip on proxy failure */ }),
-      ),
-    ).then(() => setResolvedImages(map));
+      ...(data?.topArtists.slice(0, 3).map((a) => a.picture) ?? []),
+      ...(data?.topAlbums.slice(0, 6).map((a) => a.albumArt) ?? []),
+      ...(data?.topTracks.slice(0, 3).map((t) => t.albumArt) ?? []),
+    ]).then((map) => {
+      if (!cancelled) setResolvedImages(map);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [data, profile?.avatar]);
 
   const handleDownload = async () => {
     if (!shareCardRef.current) return;
     setDownloading(true);
     try {
-      await document.fonts.ready;
-
-      const dataUrl = await toPng(shareCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        skipFonts: true,
-        imagePlaceholder:
-          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=",
-      });
-
-      const link = document.createElement("a");
-      link.download = `rocksky-wrapped-${year}.png`;
-      link.href = dataUrl;
-      link.click();
+      await downloadNodeAsPng(
+        shareCardRef.current,
+        `rocksky-wrapped-${period === "year" ? year : period}.png`,
+      );
     } catch (e) {
       console.error(e);
     } finally {
@@ -520,14 +830,31 @@ export default function WrappedPage() {
     }
   };
 
-  const maxMonthCount = data
-    ? Math.max(...(data.scrobblesPerMonth.map((m) => m.count) || [1]), 1)
-    : 1;
+  // Drop the "Copied!" confirmation after a moment.
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
-  const monthData = MONTH_LABELS.map((label, i) => {
-    const found = data?.scrobblesPerMonth.find((m) => m.month === i + 1);
-    return { label, count: found?.count ?? 0 };
-  });
+  const handleCopyAltText = () => {
+    if (!data || !profile) return;
+    const alt = wrappedAltText({
+      title,
+      handle: profile.handle,
+      displayName: profile.displayName || profile.handle,
+      totalScrobbles: data.totalScrobbles,
+      totalListeningTimeMinutes: data.totalListeningTimeMinutes,
+      topArtists: data.topArtists,
+      topAlbums: data.topAlbums,
+      topTracks: data.topTracks,
+    });
+    if (copy(alt)) setCopied(true);
+  };
+
+  const chartData = useMemo(() => activityData(data, period), [data, period]);
+  const maxCount = Math.max(...chartData.map((d) => d.count), 1);
+  const hasActivity = chartData.some((d) => d.count > 0);
 
   return (
     <Main withRightPane={false}>
@@ -560,50 +887,59 @@ export default function WrappedPage() {
           <div>
             <p
               className="text-xs tracking-[0.25em] uppercase mb-2 font-bold"
-              style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}
+              style={{
+                color: "var(--color-text-muted)",
+                fontFamily: "'Syne', sans-serif",
+              }}
             >
               Rocksky
             </p>
             <h1
               className="text-5xl sm:text-6xl font-black leading-none"
               style={{
-                background: "linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%)",
+                background:
+                  "linear-gradient(90deg, #ff2876 0%, #a855f7 50%, #06b6d4 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Wrapped {year}
+              Wrapped {title}
             </h1>
           </div>
 
-          {/* Year selector */}
           <div className="flex gap-2 flex-wrap mb-[20px]">
-            {YEARS.map((y) => (
-              <button
-                key={y}
-                onClick={() => setYear(y)}
-                className="px-4 py-2 me-[6px] rounded-full text-sm font-bold transition-all duration-150"
-                style={{
-                  background: year === y ? "linear-gradient(135deg, #ff2876, #a855f7)" : "rgba(255,255,255,0.07)",
-                  color: year === y ? "var(--color-text)" : "var(--color-text-muted)",
-                  border: "1px solid",
-                  borderColor: year === y ? "transparent" : "rgba(255,255,255,0.1)",
-                  cursor: "pointer",
-                  fontFamily: "'Space Grotesk', sans-serif",
-                }}
-              >
-                {y}
-              </button>
-            ))}
+            <WrappedSelect
+              ariaLabel="Wrapped period"
+              value={period}
+              options={WRAPPED_PERIODS}
+              onChange={setPeriod}
+            />
+            {period === "year" && (
+              <WrappedSelect
+                ariaLabel="Wrapped year"
+                value={year}
+                options={YEARS}
+                onChange={setYear}
+              />
+            )}
           </div>
         </div>
 
         {!profile && (
           <div
             className="wrapped-section rounded-2xl p-10 text-center"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
           >
-            <p className="text-lg" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}>
+            <p
+              className="text-lg"
+              style={{
+                color: "var(--color-text-muted)",
+                fontFamily: "'Syne', sans-serif",
+              }}
+            >
               Sign in to see your Wrapped
             </p>
           </div>
@@ -627,16 +963,32 @@ export default function WrappedPage() {
               }}
             >
               {/* Glow blobs */}
-              <div style={{
-                position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)",
-                pointerEvents: "none",
-              }} />
-              <div style={{
-                position: "absolute", bottom: -60, left: -60, width: 280, height: 280, borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(255,40,118,0.2) 0%, transparent 70%)",
-                pointerEvents: "none",
-              }} />
+              <div
+                style={{
+                  position: "absolute",
+                  top: -80,
+                  right: -80,
+                  width: 320,
+                  height: 320,
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)",
+                  pointerEvents: "none",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: -60,
+                  left: -60,
+                  width: 280,
+                  height: 280,
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle, rgba(255,40,118,0.2) 0%, transparent 70%)",
+                  pointerEvents: "none",
+                }}
+              />
 
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-8">
                 <div className="flex-1 text-center sm:text-left">
@@ -645,26 +997,56 @@ export default function WrappedPage() {
                     className="font-black leading-none mb-2"
                     style={{
                       fontSize: "clamp(52px, 10vw, 88px)",
-                      background: "linear-gradient(90deg, #ff2876 0%, #a855f7 55%, #06b6d4 100%)",
+                      background:
+                        "linear-gradient(90deg, #ff2876 0%, #a855f7 55%, #06b6d4 100%)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                     }}
                   >
                     {numberWithCommas(data.totalScrobbles)}
                   </p>
-                  <p style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", fontSize: 15 }}>
-                    {formatMinutes(data.totalListeningTimeMinutes)} of music in {year}
+                  <p
+                    style={{
+                      color: "var(--color-text-muted)",
+                      fontFamily: "'Syne', sans-serif",
+                      fontSize: 15,
+                    }}
+                  >
+                    {formatMinutes(data.totalListeningTimeMinutes)} of music in{" "}
+                    {scope}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:min-w-[280px]">
-                  <StatCard icon={<IconMicrophone2 size={18} />} label="New artists" value={numberWithCommas(data.newArtistsCount)} accent="#a855f7" />
-                  <StatCard icon={<IconFlame size={18} />} label="Longest streak" value={`${data.longestStreak}d`} accent="#ff2876" />
+                  <StatCard
+                    icon={<IconMicrophone2 size={18} />}
+                    label="New artists"
+                    value={numberWithCommas(data.newArtistsCount)}
+                    accent="#a855f7"
+                  />
+                  <StatCard
+                    icon={<IconFlame size={18} />}
+                    label="Longest streak"
+                    value={`${data.longestStreak}d`}
+                    accent="#ff2876"
+                  />
                   {data.mostActiveHour !== undefined && (
-                    <StatCard icon={<IconClock size={18} />} label="Peak hour" value={formatHour(data.mostActiveHour)} accent="#06b6d4" />
+                    <StatCard
+                      icon={<IconClock size={18} />}
+                      label="Peak hour"
+                      value={formatHour(data.mostActiveHour)}
+                      accent="#06b6d4"
+                    />
                   )}
                   {data.mostActiveDay && (
-                    <StatCard icon={<IconCalendar size={18} />} label="Best day" value={numberWithCommas(data.mostActiveDay.count) + " plays"} accent="#f59e0b" />
+                    <StatCard
+                      icon={<IconCalendar size={18} />}
+                      label="Best day"
+                      value={
+                        numberWithCommas(data.mostActiveDay.count) + " plays"
+                      }
+                      accent="#f59e0b"
+                    />
                   )}
                 </div>
               </div>
@@ -677,64 +1059,106 @@ export default function WrappedPage() {
 
                 {/* #1 artist hero */}
                 <MaybeLink uri={data.topArtists[0].uri}>
-                <div
-                  className="rounded-3xl p-[16px] mb-3 relative overflow-hidden flex items-center gap-6"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(255,40,118,0.1) 100%)",
-                    border: "1px solid rgba(168,85,247,0.25)",
-                  }}
-                >
-                  {data.topArtists[0].picture && (
-                    <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "inherit", pointerEvents: "none" }}>
-                      <img
-                        src={data.topArtists[0].picture}
-                        alt=""
-                        style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.07, filter: "blur(8px)", transform: "scale(1.1)" }}
-                      />
-                    </div>
-                  )}
-                  <div className="relative z-10 flex items-center gap-5 flex-1 min-w-0">
-                    <ArtistAvatar artist={data.topArtists[0]} size={80} />
-                    <div className="min-w-0 ms-[14px]">
-                      <span
-                        className="text-xs font-bold tracking-widest uppercase"
-                        style={{ color: "#a855f7", fontFamily: "'Syne', sans-serif" }}
+                  <div
+                    className="rounded-3xl p-[16px] mb-3 relative overflow-hidden flex items-center gap-6"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(255,40,118,0.1) 100%)",
+                      border: "1px solid rgba(168,85,247,0.25)",
+                    }}
+                  >
+                    {data.topArtists[0].picture && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          overflow: "hidden",
+                          borderRadius: "inherit",
+                          pointerEvents: "none",
+                        }}
                       >
-                        #1 Artist
-                      </span>
-                      <p className="text-3xl font-black text-[var(--color-text)] truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        {data.topArtists[0].name}
-                      </p>
-                      <p className="m-[0px]" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", fontSize: 14 }}>
-                        {numberWithCommas(data.topArtists[0].playCount)} plays
-                      </p>
+                        <img
+                          src={data.topArtists[0].picture}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            opacity: 0.07,
+                            filter: "blur(8px)",
+                            transform: "scale(1.1)",
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="relative z-10 flex items-center gap-5 flex-1 min-w-0">
+                      <ArtistAvatar artist={data.topArtists[0]} size={80} />
+                      <div className="min-w-0 ms-[14px]">
+                        <span
+                          className="text-xs font-bold tracking-widest uppercase"
+                          style={{
+                            color: "#a855f7",
+                            fontFamily: "'Syne', sans-serif",
+                          }}
+                        >
+                          #1 Artist
+                        </span>
+                        <p
+                          className="text-3xl font-black text-[var(--color-text)] truncate m-[0px]"
+                          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                        >
+                          {data.topArtists[0].name}
+                        </p>
+                        <p
+                          className="m-[0px]"
+                          style={{
+                            color: "var(--color-text-muted)",
+                            fontFamily: "'Syne', sans-serif",
+                            fontSize: 14,
+                          }}
+                        >
+                          {numberWithCommas(data.topArtists[0].playCount)} plays
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
                 </MaybeLink>
 
                 {/* Remaining artists */}
                 <div className="space-y-2">
                   {data.topArtists.slice(1).map((artist, i) => (
                     <MaybeLink key={artist.id} uri={artist.uri}>
-                    <div
-                      className="rounded-2xl px-[10px] py-[8px] flex items-center gap-4"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-                    >
-                      <span
-                        className="font-black text-base w-5 text-right flex-shrink-0 me-[8px]"
-                        style={{ color: "var(--color-text-muted)" }}
+                      <div
+                        className="rounded-2xl px-[10px] py-[8px] flex items-center gap-4"
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.07)",
+                        }}
                       >
-                        {i + 2}
-                      </span>
-                      <ArtistAvatar artist={artist} size={44} />
-                      <p className="text-[var(--color-text)] font-semibold flex-1 truncate ms-[10px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        {artist.name}
-                      </p>
-                      <p style={{ color: "var(--color-text-muted)", fontSize: 13, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
-                        {numberWithCommas(artist.playCount)} plays
-                      </p>
-                    </div>
+                        <span
+                          className="font-black text-base w-5 text-right flex-shrink-0 me-[8px]"
+                          style={{ color: "var(--color-text-muted)" }}
+                        >
+                          {i + 2}
+                        </span>
+                        <ArtistAvatar artist={artist} size={44} />
+                        <p
+                          className="text-[var(--color-text)] font-semibold flex-1 truncate ms-[10px]"
+                          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                        >
+                          {artist.name}
+                        </p>
+                        <p
+                          style={{
+                            color: "var(--color-text-muted)",
+                            fontSize: 13,
+                            flexShrink: 0,
+                            fontFamily: "'Syne', sans-serif",
+                          }}
+                        >
+                          {numberWithCommas(artist.playCount)} plays
+                        </p>
+                      </div>
                     </MaybeLink>
                   ))}
                 </div>
@@ -748,68 +1172,124 @@ export default function WrappedPage() {
 
                 {/* #1 track hero */}
                 <MaybeLink uri={data.topTracks[0].uri}>
-                <div
-                  className="rounded-3xl p-[15px] mb-3 relative overflow-hidden flex items-center gap-5"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(255,40,118,0.18) 0%, rgba(168,85,247,0.1) 100%)",
-                    border: "1px solid rgba(255,40,118,0.25)",
-                  }}
-                >
-                  {data.topTracks[0].albumArt && (
-                    <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "inherit", pointerEvents: "none" }}>
-                      <img
-                        src={data.topTracks[0].albumArt}
-                        alt=""
-                        style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.07, filter: "blur(10px)", transform: "scale(1.1)" }}
-                      />
-                    </div>
-                  )}
-                  <div className="relative z-10 flex items-center gap-5 flex-1 min-w-0">
-                    <AlbumArt src={data.topTracks[0].albumArt} size={80} alt={data.topTracks[0].title} />
-                    <div className="min-w-0 ms-[15px]">
-                      <span
-                        className="text-xs font-bold tracking-widest uppercase"
-                        style={{ color: "#ff2876", fontFamily: "'Syne', sans-serif" }}
+                  <div
+                    className="rounded-3xl p-[15px] mb-3 relative overflow-hidden flex items-center gap-5"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(255,40,118,0.18) 0%, rgba(168,85,247,0.1) 100%)",
+                      border: "1px solid rgba(255,40,118,0.25)",
+                    }}
+                  >
+                    {data.topTracks[0].albumArt && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          overflow: "hidden",
+                          borderRadius: "inherit",
+                          pointerEvents: "none",
+                        }}
                       >
-                        #1 Track
-                      </span>
-                      <p className="text-2xl font-black text-[var(--color-text)] truncate mt-0.5 m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        {data.topTracks[0].title}
-                      </p>
-                      <p className="m-[0px]" style={{ color: "var(--color-text-muted)", fontSize: 14, fontFamily: "'Syne', sans-serif" }}>
-                        {data.topTracks[0].artist} · {numberWithCommas(data.topTracks[0].playCount)} plays
-                      </p>
+                        <img
+                          src={data.topTracks[0].albumArt}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            opacity: 0.07,
+                            filter: "blur(10px)",
+                            transform: "scale(1.1)",
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="relative z-10 flex items-center gap-5 flex-1 min-w-0">
+                      <AlbumArt
+                        src={data.topTracks[0].albumArt}
+                        size={80}
+                        alt={data.topTracks[0].title}
+                      />
+                      <div className="min-w-0 ms-[15px]">
+                        <span
+                          className="text-xs font-bold tracking-widest uppercase"
+                          style={{
+                            color: "#ff2876",
+                            fontFamily: "'Syne', sans-serif",
+                          }}
+                        >
+                          #1 Track
+                        </span>
+                        <p
+                          className="text-2xl font-black text-[var(--color-text)] truncate mt-0.5 m-[0px]"
+                          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                        >
+                          {data.topTracks[0].title}
+                        </p>
+                        <p
+                          className="m-[0px]"
+                          style={{
+                            color: "var(--color-text-muted)",
+                            fontSize: 14,
+                            fontFamily: "'Syne', sans-serif",
+                          }}
+                        >
+                          {data.topTracks[0].artist} ·{" "}
+                          {numberWithCommas(data.topTracks[0].playCount)} plays
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
                 </MaybeLink>
 
                 <div className="space-y-2">
                   {data.topTracks.slice(1).map((track, i) => (
                     <MaybeLink key={track.id} uri={track.uri}>
-                    <div
-                      className="rounded-2xl px-[10px] py-[10px] flex items-center gap-4"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-                    >
-                      <span
-                        className="font-black text-base w-5 text-right flex-shrink-0 me-[10px]"
-                        style={{ color: "var(--color-text-muted)" }}
+                      <div
+                        className="rounded-2xl px-[10px] py-[10px] flex items-center gap-4"
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.07)",
+                        }}
                       >
-                        {i + 2}
-                      </span>
-                      <AlbumArt src={track.albumArt} size={44} alt={track.title} />
-                      <div className="flex-1 min-w-0 ms-[10px]">
-                        <p className="text-[var(--color-text)] font-semibold truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          {track.title}
-                        </p>
-                        <p className="text-sm truncate m-[0px]" style={{ color: "var(--color-text-muted)" }}>
-                          {track.artist}
+                        <span
+                          className="font-black text-base w-5 text-right flex-shrink-0 me-[10px]"
+                          style={{ color: "var(--color-text-muted)" }}
+                        >
+                          {i + 2}
+                        </span>
+                        <AlbumArt
+                          src={track.albumArt}
+                          size={44}
+                          alt={track.title}
+                        />
+                        <div className="flex-1 min-w-0 ms-[10px]">
+                          <p
+                            className="text-[var(--color-text)] font-semibold truncate m-[0px]"
+                            style={{
+                              fontFamily: "'Space Grotesk', sans-serif",
+                            }}
+                          >
+                            {track.title}
+                          </p>
+                          <p
+                            className="text-sm truncate m-[0px]"
+                            style={{ color: "var(--color-text-muted)" }}
+                          >
+                            {track.artist}
+                          </p>
+                        </div>
+                        <p
+                          style={{
+                            color: "var(--color-text-muted)",
+                            fontSize: 13,
+                            flexShrink: 0,
+                            fontFamily: "'Syne', sans-serif",
+                          }}
+                        >
+                          {numberWithCommas(track.playCount)} plays
                         </p>
                       </div>
-                      <p style={{ color: "var(--color-text-muted)", fontSize: 13, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
-                        {numberWithCommas(track.playCount)} plays
-                      </p>
-                    </div>
                     </MaybeLink>
                   ))}
                 </div>
@@ -820,56 +1300,88 @@ export default function WrappedPage() {
             {data.topAlbums.length > 0 && (
               <div className="wrapped-section mt-[50px] mb-6">
                 <SectionLabel>Top Albums</SectionLabel>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  {data.topAlbums.map((album, i) => (
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                  {data.topAlbums.slice(0, 6).map((album, i) => (
                     <MaybeLink key={album.id} uri={album.uri}>
-                    <div
-                      className="rounded-2xl overflow-hidden group cursor-pointer"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-                    >
-                      {album.albumArt ? (
-                        <img
-                          src={album.albumArt}
-                          alt={album.title}
-                          className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full aspect-square bg-white/5 flex items-center justify-center">
-                          <IconMusic size={32} color="var(--color-text-muted)" />
+                      <div
+                        className="rounded-2xl overflow-hidden group cursor-pointer"
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.07)",
+                        }}
+                      >
+                        {album.albumArt ? (
+                          <img
+                            src={album.albumArt}
+                            alt={album.title}
+                            className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full aspect-square bg-white/5 flex items-center justify-center">
+                            <IconMusic
+                              size={32}
+                              color="var(--color-text-muted)"
+                            />
+                          </div>
+                        )}
+                        <div className="p-[10px]">
+                          <span
+                            className="text-xs font-bold"
+                            style={{
+                              color:
+                                i === 0 ? "#ff2876" : "var(--color-text-muted)",
+                            }}
+                          >
+                            #{i + 1}
+                          </span>
+                          <p
+                            className="text-[var(--color-text)] text-sm font-semibold truncate m-[0px] mt-0.5"
+                            style={{
+                              fontFamily: "'Space Grotesk', sans-serif",
+                            }}
+                          >
+                            {album.title}
+                          </p>
+                          <p
+                            className="text-xs truncate m-[0px]"
+                            style={{ color: "var(--color-text-muted)" }}
+                          >
+                            {album.artist}
+                          </p>
                         </div>
-                      )}
-                      <div className="p-[10px]">
-                        <span className="text-xs font-bold" style={{ color: i === 0 ? "#ff2876" : "var(--color-text-muted)" }}>
-                          #{i + 1}
-                        </span>
-                        <p className="text-[var(--color-text)] text-sm font-semibold truncate m-[0px] mt-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          {album.title}
-                        </p>
-                        <p className="text-xs truncate m-[0px]" style={{ color: "var(--color-text-muted)" }}>
-                          {album.artist}
-                        </p>
                       </div>
-                    </div>
                     </MaybeLink>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* ── Monthly Activity ── */}
-            {data.scrobblesPerMonth.length > 0 && (
+            {/* ── Activity ── */}
+            {hasActivity && (
               <div
                 className="wrapped-section rounded-3xl p-[15px] sm:p-8 mt-[50px] mb-6"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
               >
-                <SectionLabel>Your {year} in Months</SectionLabel>
+                <SectionLabel>{activityTitle(period, year)}</SectionLabel>
                 <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={monthData} barSize={18}>
+                  <BarChart
+                    data={chartData}
+                    barSize={chartData.length > 31 ? undefined : 18}
+                  >
                     <XAxis
                       dataKey="label"
-                      tick={{ fill: "var(--color-text-muted)", fontSize: 11, fontFamily: "'Syne', sans-serif" }}
+                      tick={{
+                        fill: "var(--color-text-muted)",
+                        fontSize: 11,
+                        fontFamily: "'Syne', sans-serif",
+                      }}
                       axisLine={false}
                       tickLine={false}
+                      interval="preserveStartEnd"
+                      minTickGap={12}
                     />
                     <YAxis hide />
                     <Tooltip
@@ -883,15 +1395,21 @@ export default function WrappedPage() {
                         fontSize: 13,
                       }}
                       itemStyle={{ color: "var(--color-text)" }}
-                      labelStyle={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}
-                      formatter={(v: number) => [`${numberWithCommas(v)} plays`, ""]}
+                      labelStyle={{
+                        color: "var(--color-text-muted)",
+                        fontFamily: "'Syne', sans-serif",
+                      }}
+                      formatter={(v: number) => [
+                        `${numberWithCommas(v)} plays`,
+                        "",
+                      ]}
                     />
                     <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {monthData.map((entry, index) => (
+                      {chartData.map((entry, index) => (
                         <Cell
                           key={index}
                           fill={
-                            entry.count === maxMonthCount
+                            entry.count === maxCount
                               ? "url(#barGradient)"
                               : "rgba(168,85,247,0.35)"
                           }
@@ -899,7 +1417,13 @@ export default function WrappedPage() {
                       ))}
                     </Bar>
                     <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient
+                        id="barGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
                         <stop offset="0%" stopColor="#ff2876" />
                         <stop offset="100%" stopColor="#a855f7" />
                       </linearGradient>
@@ -925,11 +1449,21 @@ export default function WrappedPage() {
                     >
                       <span
                         className="font-bold me-[3px]"
-                        style={{ color: GENRE_COLORS[i % GENRE_COLORS.length], fontSize: 14, fontFamily: "'Space Grotesk', sans-serif" }}
+                        style={{
+                          color: GENRE_COLORS[i % GENRE_COLORS.length],
+                          fontSize: 14,
+                          fontFamily: "'Space Grotesk', sans-serif",
+                        }}
                       >
                         {g.genre}
                       </span>
-                      <span style={{ color: "var(--color-text-muted)", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
+                      <span
+                        style={{
+                          color: "var(--color-text-muted)",
+                          fontSize: 12,
+                          fontFamily: "'Syne', sans-serif",
+                        }}
+                      >
                         {numberWithCommas(g.count)}
                       </span>
                     </div>
@@ -943,50 +1477,98 @@ export default function WrappedPage() {
               <div className="wrapped-section grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                 {data.firstScrobble && (
                   <MaybeLink uri={data.firstScrobble.trackUri}>
-                  <div
-                    className="rounded-2xl p-[15px]"
-                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="mr-[5px]">
-                        <IconSparkles size={14} color="#f59e0b" />
+                    <div
+                      className="rounded-2xl p-[15px]"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="mr-[5px]">
+                          <IconSparkles size={14} color="#f59e0b" />
+                        </div>
+                        <SectionLabel>First scrobble of {scope}</SectionLabel>
                       </div>
-                      <SectionLabel>First scrobble of {year}</SectionLabel>
+                      <p
+                        className="text-[var(--color-text)] font-bold truncate"
+                        style={{
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          margin: 0,
+                        }}
+                      >
+                        {data.firstScrobble.trackTitle}
+                      </p>
+                      <p
+                        className="text-sm truncate mt-0.5"
+                        style={{
+                          color: "var(--color-text-muted)",
+                          margin: 0,
+                          marginTop: 5,
+                        }}
+                      >
+                        {data.firstScrobble.artistName}
+                      </p>
+                      <p
+                        className="text-xs mt-2"
+                        style={{
+                          color: "var(--color-text-muted)",
+                          fontFamily: "'Syne', sans-serif",
+                          margin: 0,
+                          marginTop: 5,
+                        }}
+                      >
+                        {formatDate(data.firstScrobble.timestamp)}
+                      </p>
                     </div>
-                    <p className="text-[var(--color-text)] font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
-                      {data.firstScrobble.trackTitle}
-                    </p>
-                    <p className="text-sm truncate mt-0.5" style={{ color: "var(--color-text-muted)", margin: 0, marginTop: 5 }}>
-                      {data.firstScrobble.artistName}
-                    </p>
-                    <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
-                      {formatDate(data.firstScrobble.timestamp)}
-                    </p>
-                  </div>
                   </MaybeLink>
                 )}
                 {data.lastScrobble && (
                   <MaybeLink uri={data.lastScrobble.trackUri}>
-                  <div
-                    className="rounded-2xl p-[15px]"
-                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="mr-[5px]">
-                       <IconSparkles size={14} color="#a855f7" />
+                    <div
+                      className="rounded-2xl p-[15px]"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="mr-[5px]">
+                          <IconSparkles size={14} color="#a855f7" />
+                        </div>
+                        <SectionLabel>Last scrobble of {scope}</SectionLabel>
                       </div>
-                      <SectionLabel>Last scrobble of {year}</SectionLabel>
+                      <p
+                        className="text-[var(--color-text)] font-bold truncate"
+                        style={{
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          margin: 0,
+                        }}
+                      >
+                        {data.lastScrobble.trackTitle}
+                      </p>
+                      <p
+                        className="text-sm truncate m-[0px]"
+                        style={{
+                          color: "var(--color-text-muted)",
+                          margin: 0,
+                          marginTop: 5,
+                        }}
+                      >
+                        {data.lastScrobble.artistName}
+                      </p>
+                      <p
+                        className="text-xs mt-2"
+                        style={{
+                          color: "var(--color-text-muted)",
+                          fontFamily: "'Syne', sans-serif",
+                          margin: 0,
+                          marginTop: 5,
+                        }}
+                      >
+                        {formatDate(data.lastScrobble.timestamp)}
+                      </p>
                     </div>
-                    <p className="text-[var(--color-text)] font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
-                      {data.lastScrobble.trackTitle}
-                    </p>
-                    <p className="text-sm truncate m-[0px]" style={{ color: "var(--color-text-muted)", margin: 0, marginTop: 5 }}>
-                      {data.lastScrobble.artistName}
-                    </p>
-                    <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
-                      {formatDate(data.lastScrobble.timestamp)}
-                    </p>
-                  </div>
                   </MaybeLink>
                 )}
               </div>
@@ -995,61 +1577,112 @@ export default function WrappedPage() {
             {/* ── Share card ── */}
             <div
               className="wrapped-section rounded-3xl p-[18px] sm:p-8"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}
             >
               <SectionLabel>Share your Wrapped</SectionLabel>
-              <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}>
+              <p
+                className="text-sm mb-6"
+                style={{
+                  color: "var(--color-text-muted)",
+                  fontFamily: "'Syne', sans-serif",
+                }}
+              >
                 Download your Wrapped card and share it anywhere.
               </p>
 
               <div className="flex flex-col items-center gap-6">
                 {/* Card preview — visual only, no ref, inside CSS scale */}
-                <div className="overflow-hidden rounded-2xl" style={{ maxWidth: 360, width: "100%", height: 360 }}>
-                  <div style={{ transform: "scale(0.6)", transformOrigin: "top left", width: 600, height: 600 }}>
+                <div
+                  className="overflow-hidden rounded-2xl"
+                  style={{
+                    width: SHARE_CARD_WIDTH * 0.6,
+                    maxWidth: "100%",
+                    height: SHARE_CARD_HEIGHT * 0.6,
+                  }}
+                >
+                  <div
+                    style={{
+                      transform: "scale(0.6)",
+                      transformOrigin: "top left",
+                      width: SHARE_CARD_WIDTH,
+                      height: SHARE_CARD_HEIGHT,
+                    }}
+                  >
                     <ShareCard
-                      year={year}
+                      title={title}
                       handle={profile.handle}
                       displayName={profile.displayName || profile.handle}
                       avatar={profile.avatar}
                       totalScrobbles={data.totalScrobbles}
                       totalListeningTimeMinutes={data.totalListeningTimeMinutes}
                       topArtists={data.topArtists}
+                      topAlbums={data.topAlbums}
                       topTracks={data.topTracks}
                       darkMode={darkMode}
                     />
                   </div>
                 </div>
 
-                <button
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[var(--color-text)] transition-opacity"
-                  style={{
-                    background: "linear-gradient(135deg, #ff2876, #a855f7)",
-                    opacity: downloading ? 0.6 : 1,
-                    cursor: downloading ? "not-allowed" : "pointer",
-                    border: "none",
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontSize: 15,
-                  }}
-                >
-                  <IconDownload size={18} />
-                  {downloading ? "Generating…" : "Download Card"}
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[var(--color-text)] transition-opacity"
+                    style={{
+                      background: "linear-gradient(135deg, #ff2876, #a855f7)",
+                      opacity: downloading ? 0.6 : 1,
+                      cursor: downloading ? "not-allowed" : "pointer",
+                      border: "none",
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontSize: 15,
+                    }}
+                  >
+                    <IconDownload size={18} />
+                    {downloading ? "Generating…" : "Download Card"}
+                  </button>
+
+                  <button
+                    onClick={handleCopyAltText}
+                    title="Copy the alt text describing this card"
+                    className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[var(--color-text)] transition-opacity hover:opacity-80"
+                    style={{
+                      background: "var(--color-default-button)",
+                      border: "1px solid var(--color-border)",
+                      cursor: "pointer",
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontSize: 15,
+                    }}
+                  >
+                    {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
+                    {copied ? "Copied!" : "Copy Alt Text"}
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Off-screen full-size card — used only for html-to-image capture */}
-            <div style={{ position: "fixed", left: "-9999px", top: 0, pointerEvents: "none", zIndex: -1 }}>
+            <div
+              style={{
+                position: "fixed",
+                left: "-9999px",
+                top: 0,
+                pointerEvents: "none",
+                zIndex: -1,
+              }}
+            >
               <ShareCard
                 cardRef={shareCardRef}
-                year={year}
+                title={title}
                 handle={profile.handle}
                 displayName={profile.displayName || profile.handle}
                 avatar={profile.avatar}
                 totalScrobbles={data.totalScrobbles}
                 totalListeningTimeMinutes={data.totalListeningTimeMinutes}
                 topArtists={data.topArtists}
+                topAlbums={data.topAlbums}
                 topTracks={data.topTracks}
                 resolvedImages={resolvedImages}
                 darkMode={darkMode}

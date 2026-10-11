@@ -7,6 +7,7 @@ import ResponsiveFlexGrid from "../../../../components/ResponsiveFlexGrid";
 import { HeadingSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useMemo } from "react";
+import { themeAtom } from "../../../../atoms/theme";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { useTopAlbumsRange } from "../../../../atoms/range";
 import { userAtom } from "../../../../atoms/user";
@@ -17,6 +18,7 @@ import { IconChevronDown } from "@tabler/icons-react";
 import { getRangeDates } from "../../../../lib/date";
 import { ALL_TIME, LAST_7_DAYS, LAST_DAYS_LABELS } from "../../../../consts";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
+import ExportTopButton from "../../../../components/ExportTopButton";
 import ContentLoader from "react-content-loader";
 
 const itemProps: BlockProps = {
@@ -42,6 +44,7 @@ function TopAlbums() {
   const { did } = useParams({ strict: false });
   const albumsResult = useAlbumsQuery(did!, 0, 12, ...range);
   const user = useAtomValue(userAtom);
+  const { darkMode } = useAtomValue(themeAtom);
 
   useEffect(() => {
     if (albumsResult.isLoading || albumsResult.isError) {
@@ -85,17 +88,32 @@ function TopAlbums() {
         >
           Top Albums
         </HeadingSmall>
-        <LastDaysMenu onSelect={onSelectLastDays}>
-          <button className="mt-[40px] mb-[10px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
-            <span>
-              <span>{LAST_DAYS_LABELS[topAlbumsRange]}</span>
-            </span>
-            <IconChevronDown
-              size={16}
-              className="ml-[4px] h-[18px] mb-[-5px]"
-            />
-          </button>
-        </LastDaysMenu>
+        <div className="flex items-center gap-[4px] mt-[40px] mb-[10px]">
+          <ExportTopButton
+            kind="albums"
+            rangeLabel={LAST_DAYS_LABELS[topAlbumsRange]}
+            user={user}
+            darkMode={darkMode}
+            items={topAlbums.map((a) => ({
+              id: a.id,
+              title: a.title,
+              subtitle: a.artist,
+              image: a.albumArt,
+              plays: a.scrobbles,
+            }))}
+          />
+          <LastDaysMenu onSelect={onSelectLastDays}>
+            <button className="bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+              <span>
+                <span>{LAST_DAYS_LABELS[topAlbumsRange]}</span>
+              </span>
+              <IconChevronDown
+                size={16}
+                className="ml-[4px] h-[18px] mb-[-5px]"
+              />
+            </button>
+          </LastDaysMenu>
+        </div>
       </div>
       {albumsResult.isLoading && (
         <ResponsiveFlexGrid
