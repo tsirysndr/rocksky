@@ -4,6 +4,8 @@ import {
   storyPath,
   shoutUri,
   STORY_DURATION,
+  storyShare,
+  storyGif,
   type StoryItem,
 } from "./storyModel";
 const story: StoryItem = {
@@ -67,5 +69,44 @@ describe("browser story parity", () => {
         )
       ).map((l) => l.name),
     ).toEqual(["Spotify", "PDSls"]);
+  });
+});
+
+it("offers the story link and an encoded Bluesky compose link", () => {
+  const shared = storyShare({
+    ...story,
+    title: "A & B #1",
+    artist: "Artist 🦋",
+  })!;
+  expect(shared.url).toBe("https://rocksky.app/did:plc:user/scrobble/play");
+  const bluesky = new URL(shared.bluesky);
+  expect(bluesky.origin + bluesky.pathname).toBe(
+    "https://bsky.app/intent/compose",
+  );
+  expect(bluesky.searchParams.get("text")).toBe(
+    `A & B #1 — Artist 🦋\n${shared.url}`,
+  );
+  expect(storyShare({ ...story, uri: undefined })?.url).toContain("/song/song");
+  expect(
+    storyShare({ ...story, uri: undefined, trackUri: undefined }),
+  ).toBeUndefined();
+});
+it("passes the media embed including clip metadata without picker-only fields", () => {
+  expect(
+    storyGif({
+      id: "clip-1",
+      isVideo: true,
+      url: "https://example.com/clip.mp4",
+      previewUrl: "https://example.com/preview.jpg",
+      alt: "Dancing",
+      width: 300,
+      height: 200,
+    }),
+  ).toEqual({
+    url: "https://example.com/clip.mp4",
+    previewUrl: "https://example.com/preview.jpg",
+    alt: "Dancing",
+    width: 300,
+    height: 200,
   });
 });

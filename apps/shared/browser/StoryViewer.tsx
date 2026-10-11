@@ -4,8 +4,10 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { IconBrandBluesky } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
@@ -14,6 +16,10 @@ import {
   storyPath,
   shoutUri,
   type StoryItem,
+  type StoryMedia,
+  type StoryGif,
+  storyGif,
+  storyShare,
 } from "./storyModel";
 import { storyLinks, type StoryLink } from "../storyLinks";
 import musicbrainz from "./story-assets/musicbrainz.svg";
@@ -32,7 +38,15 @@ type Props = {
   onNavigate: (path: string) => void;
   loadLinks: (story: StoryItem) => Promise<StoryLink[]>;
   onLike: (story: StoryItem, liked: boolean) => Promise<unknown>;
-  onPostShout: (uri: string, message: string) => Promise<unknown>;
+  onPostShout: (
+    uri: string,
+    message: string,
+    gif?: StoryGif,
+  ) => Promise<unknown>;
+  renderMediaPicker: (props: {
+    onSelect: (media: StoryMedia) => void;
+    onClose: () => void;
+  }) => ReactNode;
   onSignIn: () => void;
   hidden?: boolean;
 };
@@ -139,13 +153,17 @@ export default function StoryViewer(props: Props) {
   const [likes, setLikes] = useState<Record<string, boolean>>({});
   const [likePending, setLikePending] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [media, setMedia] = useState<StoryMedia | null>(null);
   const [composer, setComposer] = useState(false);
   const [message, setMessage] = useState("");
   const [posting, setPosting] = useState(false);
   const [status, setStatus] = useState("");
   const touch = useRef<{ x: number; y: number } | null>(null);
   const suppressClick = useRef(false);
-  const paused = !foreground || !!props.hidden || sharing || composer;
+  const paused =
+    !foreground || !!props.hidden || sharing || shareOpen || composer;
   const next = useCallback(() => {
     if (index + 1 >= stories.length) callbacks.current.onClose();
     else setIndex(index + 1);
@@ -168,8 +186,17 @@ export default function StoryViewer(props: Props) {
     };
   }, []);
   useEffect(() => {
-    if (!props.hidden && !composer) panel.current?.focus();
-  }, [props.hidden, composer]);
+    if (props.hidden) return;
+    if (shareOpen)
+      panel.current
+        ?.querySelector<HTMLElement>(".rs-story-share button")
+        ?.focus();
+    else if (composer && !mediaOpen)
+      panel.current
+        ?.querySelector<HTMLTextAreaElement>(".rs-story-composer textarea")
+        ?.focus();
+    else if (!composer) panel.current?.focus();
+  }, [props.hidden, composer, shareOpen, mediaOpen]);
   useEffect(() => {
     if (paused) return;
     let frame = 0;
@@ -231,27 +258,21 @@ export default function StoryViewer(props: Props) {
       setLikePending(false);
     }
   };
-  const share = async () => {
-    const path = storyPath(current.uri) || storyPath(current.trackUri);
-    if (!path) {
-      setStatus("This story has no shareable link yet.");
-      return;
-    }
-    const url = `https://rocksky.app${path}`;
+  const shareData = storyShare(current);
+  const share = async (mode: "copy" | "native") => {
+    if (!shareData) return;
     setSharing(true);
     try {
-      if (navigator.share)
-        await navigator.share({
-          title: `${current.title} — ${current.artist}`,
-          url,
-        });
-      else {
-        await navigator.clipboard.writeText(url);
+      if (mode === "native" && navigator.share) {
+        await navigator.share({ title: shareData.title, url: shareData.url });
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
         setStatus("Story link copied");
       }
+      setShareOpen(false);
     } catch (error) {
       if (!(error instanceof Error && error.name === "AbortError"))
-        setStatus("Could not share this story. Please try again.");
+        setStatus("Could not share this story. You can copy the link below.");
     } finally {
       setSharing(false);
     }
@@ -284,24 +305,34 @@ export default function StoryViewer(props: Props) {
           if (props.hidden) return;
           if (e.key === "Escape") {
             e.stopPropagation();
-            if (composer && !posting) setComposer(false);
-            else if (!composer) props.onClose();
+            if (mediaOpen) setMediaOpen(false);
+            else if (shareOpen && !sharing) setShareOpen(false);
+            else if (composer && !posting) setComposer(false);
+            else if (!composer && !shareOpen) props.onClose();
           }
-          if ((e.target as HTMLElement).matches("textarea,input")) return;
-          if (!composer && e.key === "ArrowRight") {
+          if (
+            (e.target as HTMLElement).matches("textarea,input") &&
+            e.key !== "Tab"
+          )
+            return;
+          if (!composer && !shareOpen && e.key === "ArrowRight") {
             e.preventDefault();
             next();
           }
-          if (!composer && e.key === "ArrowLeft") {
+          if (!composer && !shareOpen && e.key === "ArrowLeft") {
             e.preventDefault();
             previous();
           }
           if (e.key === "Tab") {
             const nodes = Array.from(
               panel.current?.querySelectorAll<HTMLElement>(
-                composer
-                  ? ".rs-story-composer button:not(:disabled), .rs-story-composer textarea"
-                  : "button:not(:disabled), a[href]",
+                mediaOpen
+                  ? ".rs-story-media-picker button:not(:disabled), .rs-story-media-picker input, .rs-story-media-picker a[href]"
+                  : shareOpen
+                    ? ".rs-story-share button:not(:disabled), .rs-story-share a[href], .rs-story-share input"
+                    : composer
+                      ? ".rs-story-composer button:not(:disabled), .rs-story-composer textarea"
+                      : "button:not(:disabled), a[href]",
               ) || [],
             );
             if (!nodes.length) return;
@@ -325,6 +356,7 @@ export default function StoryViewer(props: Props) {
           suppressClick.current = false;
           if (
             composer ||
+            shareOpen ||
             ((e.target as HTMLElement).closest("button,a,textarea") &&
               !(e.target as HTMLElement).closest(".rs-story-art-area"))
           )
@@ -358,8 +390,8 @@ export default function StoryViewer(props: Props) {
         )}
         <div
           className="rs-story-content"
-          aria-hidden={composer || undefined}
-          style={{ pointerEvents: composer ? "none" : undefined }}
+          aria-hidden={composer || shareOpen || undefined}
+          style={{ pointerEvents: composer || shareOpen ? "none" : undefined }}
         >
           <div
             className="rs-story-progress"
@@ -509,7 +541,11 @@ export default function StoryViewer(props: Props) {
               <button
                 className="rs-story-circle"
                 aria-label="Share this story"
-                onClick={() => void share()}
+                onClick={() => {
+                  setStatus("");
+                  if (shareData) setShareOpen(true);
+                  else setStatus("This story has no shareable link yet.");
+                }}
               >
                 <Glyph kind="share" />
               </button>
@@ -525,20 +561,33 @@ export default function StoryViewer(props: Props) {
           </button>
         </div>
         {!!status && (
-          <div className="rs-story-status" role="status">
+          <div
+            className="rs-story-status"
+            role="status"
+            style={
+              composer || shareOpen ? { top: 76, bottom: "auto" } : undefined
+            }
+          >
             {status}
           </div>
         )}
         {composer && (
           <form
             className="rs-story-composer"
+            aria-hidden={mediaOpen || undefined}
+            style={{ visibility: mediaOpen ? "hidden" : undefined }}
             onSubmit={async (e) => {
               e.preventDefault();
               const uri = shoutUri(current);
-              if (!uri || !message.trim() || posting) return;
+              if (!uri || (!message.trim() && !media) || posting) return;
               setPosting(true);
               try {
-                await props.onPostShout(uri, message.trim());
+                await props.onPostShout(
+                  uri,
+                  message.trim(),
+                  media ? storyGif(media) : undefined,
+                );
+                setMedia(null);
                 setMessage("");
                 setComposer(false);
                 setStatus("Shout posted");
@@ -569,14 +618,115 @@ export default function StoryViewer(props: Props) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
-            <button
-              className="rs-story-post"
-              type="submit"
-              disabled={posting || !message.trim()}
-            >
-              {posting ? "Posting…" : "Post shout"}
-            </button>
+            {media && (
+              <div className="rs-story-media-preview">
+                {media.isVideo ? (
+                  <video
+                    src={media.url}
+                    poster={media.previewUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    aria-label={media.alt || "Selected clip"}
+                  />
+                ) : (
+                  <img src={media.url} alt={media.alt || "Selected GIF"} />
+                )}
+                <button
+                  type="button"
+                  className="rs-story-close"
+                  aria-label="Remove media"
+                  disabled={posting}
+                  onClick={() => setMedia(null)}
+                >
+                  <Glyph kind="close" />
+                </button>
+              </div>
+            )}
+            <div className="rs-story-composer-actions">
+              <button
+                type="button"
+                className="rs-story-gif"
+                aria-label="Add a GIF, sticker or clip"
+                disabled={posting}
+                onClick={() => setMediaOpen(true)}
+              >
+                GIF
+              </button>
+              <button
+                className="rs-story-post"
+                type="submit"
+                disabled={posting || (!message.trim() && !media)}
+              >
+                {posting ? "Posting…" : "Post shout"}
+              </button>
+            </div>
           </form>
+        )}
+        {mediaOpen && (
+          <div
+            className="rs-story-media-picker"
+            role="group"
+            aria-label="Choose a GIF, sticker or clip"
+          >
+            {props.renderMediaPicker({
+              onSelect: (selected) => {
+                setMedia(selected);
+                setMediaOpen(false);
+              },
+              onClose: () => setMediaOpen(false),
+            })}
+          </div>
+        )}
+        {shareOpen && shareData && (
+          <section className="rs-story-share" aria-label="Share story">
+            <div className="rs-story-sheet-header">
+              <strong>Share story</strong>
+              <button
+                className="rs-story-close"
+                aria-label="Close sharing options"
+                disabled={sharing}
+                onClick={() => setShareOpen(false)}
+              >
+                <Glyph kind="close" />
+              </button>
+            </div>
+            <a
+              className="rs-story-share-option"
+              href={shareData.bluesky}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setShareOpen(false)}
+            >
+              <IconBrandBluesky size={24} color="#1185fe" aria-hidden="true" />
+              Share on Bluesky
+            </a>
+            <button
+              className="rs-story-share-option"
+              disabled={sharing}
+              onClick={() => void share("copy")}
+            >
+              <Glyph kind="share" />
+              Copy link
+            </button>
+            {typeof navigator.share === "function" && (
+              <button
+                className="rs-story-share-option"
+                disabled={sharing}
+                onClick={() => void share("native")}
+              >
+                <Glyph kind="share" />
+                More sharing options
+              </button>
+            )}
+            <input
+              aria-label="Story link"
+              readOnly
+              value={shareData.url}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+          </section>
         )}
       </div>
     </div>,

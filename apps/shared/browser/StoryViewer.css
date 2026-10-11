@@ -23,14 +23,13 @@
 .rs-story-panel * {
   box-sizing: border-box;
 }
-.rs-story-panel button,
-.rs-story-panel a {
+.rs-story-panel :where(button, a):not(:where(.rs-story-media-picker *)) {
   -webkit-tap-highlight-color: transparent;
   color: inherit;
   font: inherit;
   text-decoration: none;
 }
-.rs-story-panel button {
+.rs-story-panel :where(button):not(:where(.rs-story-media-picker *)) {
   appearance: none;
   border: 0;
   background: none;
@@ -392,4 +391,92 @@
 }
 .rs-story-title-button {
   font-family: RockfordSansBold, sans-serif !important;
+}
+
+.rs-story-composer {
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+}
+.rs-story-composer .rs-story-media-preview {
+  position: relative;
+  display: block;
+  margin: 12px 0;
+}
+.rs-story-media-preview img,
+.rs-story-media-preview video {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 12px;
+}
+.rs-story-media-preview .rs-story-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border-radius: 50%;
+  background: #000a;
+}
+.rs-story-gif {
+  padding: 5px 8px;
+  border: 1px solid #ffffff66 !important;
+  border-radius: 6px;
+  font-size: 13px !important;
+  font-weight: bold !important;
+}
+.rs-story-gif:disabled {
+  opacity: 0.5;
+}
+.rs-story-media-picker {
+  position: absolute;
+  z-index: 7;
+  left: 16px;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  max-height: calc(100% - 32px - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: 0 0 0 100vmax #0009;
+}
+.rs-story-media-picker > div {
+  width: 100%;
+  max-width: 100%;
+}
+.rs-story-share {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 5;
+  padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+  background: #211a2a;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 0 0 100vmax #0009;
+}
+.rs-story-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.rs-story-share-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px !important;
+  border-radius: 12px;
+  text-align: left;
+}
+.rs-story-share-option:hover {
+  background: #ffffff12 !important;
+}
+.rs-story-share input {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  color: #fff;
+  background: #ffffff12;
+  border: 1px solid #ffffff33;
+  font: inherit;
+  font-size: 12px;
 }

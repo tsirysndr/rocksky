@@ -11,6 +11,7 @@ import { like, unlike, likeTrackById, unlikeTrackById } from "../api/likes";
 import { shout } from "../api/shouts";
 import { resolveMentionFacets } from "../lib/richtext";
 import SignInModal from "./SignInModal";
+import MediaPicker from "./Shout/MediaPicker";
 
 export default function StoryViewer({
   stories,
@@ -63,14 +64,10 @@ export default function StoryViewer({
           else throw new Error("Track unavailable");
           void queryClient.invalidateQueries({ queryKey: ["stories"] });
         }}
-        onPostShout={async (uri, message) => {
+        renderMediaPicker={(pickerProps) => <MediaPicker {...pickerProps} />}
+        onPostShout={async (uri, message, gif) => {
           const facets = await resolveMentionFacets(message);
-          await shout(
-            uri,
-            message,
-            undefined,
-            facets.length ? facets : undefined,
-          );
+          await shout(uri, message, gif, facets.length ? facets : undefined);
         }}
       />
       <SignInModal isOpen={signIn} onClose={() => setSignIn(false)} />

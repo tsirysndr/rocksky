@@ -76,3 +76,27 @@ export async function loadStoryLinks(
     uri: story.uri || story.trackUri,
   });
 }
+
+export type StoryGif = {
+  url: string;
+  previewUrl?: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+};
+export type StoryMedia = StoryGif & { id: string; isVideo: boolean };
+export function storyGif(media: StoryMedia): StoryGif {
+  const { url, previewUrl, alt, width, height } = media;
+  return { url, previewUrl, alt, width, height };
+}
+export function storyShare(story: StoryItem) {
+  const path = storyPath(story.uri) || storyPath(story.trackUri);
+  if (!path) return undefined;
+  const url = `https://rocksky.app${path}`;
+  const title = `${story.title} — ${story.artist}`;
+  return {
+    url,
+    title,
+    bluesky: `https://bsky.app/intent/compose?text=${encodeURIComponent(`${title}\n${url}`)}`,
+  };
+}
