@@ -36,6 +36,10 @@ class AppImageChecks(unittest.TestCase):
         (self.root / "usr/lib/libfribidi.so.0").unlink()
         self.assertTrue(any("libfribidi.so.0" in error for error in checker.check(self.root)))
 
+    def test_private_packaged_directory_is_rejected(self):
+        (self.root / "usr/bin").chmod(0o700)
+        self.assertIn("usr/bin: directory is inaccessible to other users", checker.check(self.root))
+
     def test_glibc_baseline_cannot_increase_silently(self):
         (self.root / "usr/bin/rocksky-desktop").write_bytes(b"\x7fELFfixture")
         with patch.object(checker.subprocess, "run", return_value=CompletedProcess([], 0, "GLIBC_2.38")):

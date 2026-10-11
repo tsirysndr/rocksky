@@ -7,6 +7,10 @@ on:
         description: "Release tag (default desktop-v<version> from desktop/src-tauri/tauri.conf.json)"
         type: string
         required: false
+      linux_only:
+        description: "Rebuild only Linux assets (preserve published macOS checksums)"
+        type: boolean
+        default: false
   push:
     tags:
       - "desktop-v*"
@@ -83,17 +87,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            bundles: app
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            bundles: app
-          - target: x86_64-unknown-linux-gnu
-            # Tauri 2/WebKitGTK 4.1 baseline: glibc 2.35. Do not raise silently.
-            os: ubuntu-22.04
-            bundles: deb,rpm,appimage
+        # Manual Linux repairs must not replace the DMGs referenced by Homebrew.
+        include: ${{ fromJSON(inputs.linux_only && '[{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-22.04","bundles":"deb,rpm,appimage"}]' || '[{"target":"aarch64-apple-darwin","os":"macos-latest","bundles":"app"},{"target":"x86_64-apple-darwin","os":"macos-latest","bundles":"app"},{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-22.04","bundles":"deb,rpm,appimage"}]') }}
     defaults:
       run:
         working-directory: desktop
@@ -121,6 +116,7 @@ jobs:
             rpm \
             file \
             binutils \
+            squashfs-tools \
             python3 \
             xvfb \
             xauth \
@@ -197,7 +193,11 @@ jobs:
           [ "${#images[@]}" -eq 1 ] && [ -f "${images[0]}" ]
           image="$(realpath "${images[0]}")"
           stage="$(mktemp -d)"
-          (cd "$stage" && "$image" --appimage-extract >/dev/null)
+          # The runtime's --appimage-extract creates directories with 0700,
+          # regardless of their stored mode. Inspect actual SquashFS modes.
+          offset="$("$image" --appimage-offset)"
+          [[ "$offset" =~ ^[0-9]+$ ]]
+          unsquashfs -no-progress -o "$offset" -d "$stage/squashfs-root" "$image" >/dev/null
           python3 scripts/check-appimage.py "$stage/squashfs-root"
           dbus-run-session -- xvfb-run -a \
             python3 scripts/smoke-appimage.py "$stage/squashfs-root/AppRun"
