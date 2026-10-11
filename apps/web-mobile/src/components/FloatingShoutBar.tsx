@@ -15,8 +15,8 @@ export default function FloatingShoutBar({ uri, type, title }: FloatingShoutBarP
   const nowPlaying = useAtomValue(nowPlayingAtom);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const bottomClass = nowPlaying
-    ? "bottom-[calc(56px+72px+env(safe-area-inset-bottom))]"
-    : "bottom-[calc(56px+env(safe-area-inset-bottom))]";
+    ? "bottom-[calc(var(--nav-height)+var(--player-height)+8px+env(safe-area-inset-bottom))]"
+    : "bottom-[calc(var(--nav-height)+8px+env(safe-area-inset-bottom))]";
 
   const handleClick = () => {
     if (!localStorage.getItem("token")) {
