@@ -1,34 +1,15 @@
+import StoryViewer from "../../../components/StoryViewer";
 import UserAvatar from "../../../components/UserAvatar";
 import styled from "@emotion/styled";
-import { uriToPath } from "../../../lib/uri";
-import { ChevronLeft, ChevronRight } from "@styled-icons/evaicons-solid";
-import { Link as DefaultLink } from "@tanstack/react-router";
-import { Modal, ModalBody, ModalHeader, ROLE } from "baseui/modal";
-import { ProgressBar } from "baseui/progress-bar";
 import { StatefulTooltip } from "baseui/tooltip";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import utc from "dayjs/plugin/utc";
 import { useEffect, useMemo, useState, useRef } from "react";
-import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconMusic,
-} from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { feedAtom, feedGeneratorUriAtom } from "../../../atoms/feed";
 import { followingFeedAtom } from "../../../atoms/followingFeed";
-import Heart from "../../../components/Icons/Heart";
-import HeartOutline from "../../../components/Icons/HeartOutline";
-import SignInModal from "../../../components/SignInModal";
-import useLike from "../../../hooks/useLike";
 import { useStoriesQuery } from "../../../hooks/useStories";
-import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
 import ContentLoader from "react-content-loader";
-
-dayjs.extend(relativeTime);
-dayjs.extend(utc);
 
 const Container = styled.div`
   margin-bottom: 50px;
@@ -54,59 +35,6 @@ const Handle = styled.div`
   font-family: var(--font-mono);
 `;
 
-const Cover = styled.img`
-  width: 500px;
-  height: 500px;
-`;
-
-const TrackTitle = styled.div`
-  font-size: 20px;
-  font-weight: bold;
-  margin-top: 25px;
-  color: #fff;
-  /* Content-width (capped) so the heart sits right after the text instead
-     of at the far edge of a fixed 500px block; long titles ellipsize. */
-  max-width: 500px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  text-decoration: none;
-`;
-
-const TrackArtist = styled.div`
-  font-size: 18px;
-  margin-top: 10px;
-  color: #fff;
-  width: 500px;
-  text-align: center;
-  text-decoration: none;
-  opacity: 0.6;
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const Link = styled(DefaultLink)`
-  text-decoration: none;
-`;
-
-const LikeButton = styled.button`
-  border: none;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Fixed width, mirrored by an equal spacer on the row's left, so the
-     500px title block stays truly centered above the artist. */
-  width: 32px;
-  flex-shrink: 0;
-  padding: 0;
-  /* Lines up with TrackTitle's top margin. */
-  margin-top: 25px;
-`;
-
 function Stories() {
   const [isOpen, setIsOpen] = useState(false);
   const activeCategory = useAtomValue(feedAtom);
@@ -125,85 +53,11 @@ function Stories() {
     (item) => `${item.trackId}-${item.did}-${item.createdAt}`,
   );
 
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<{
-    id: string;
-    title: string;
-    artist: string;
-    albumArt: string;
-    artistUri?: string;
-    uri: string;
-    avatar: string;
-    handle: string;
-    did: string;
-    createdAt: string;
-    trackId: string;
-    trackUri: string;
-    liked?: boolean;
-    likesCount?: number;
-  } | null>(null);
-  // Optimistic like state per story track URI, layered over the server value.
-  const [likedOverrides, setLikedOverrides] = useState<Record<string, boolean>>(
-    {},
-  );
-  const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const { like, unlike } = useLike();
-
-  const storyLiked = currentlyPlaying?.trackUri
-    ? (likedOverrides[currentlyPlaying.trackUri] ??
-      currentlyPlaying.liked ??
-      false)
-    : false;
-
-  const handleLike = async () => {
-    const uri = currentlyPlaying?.trackUri;
-    if (!uri) return;
-    if (!localStorage.getItem("token")) {
-      setIsSignInOpen(true);
-      return;
-    }
-    const next = !storyLiked;
-    setLikedOverrides((prev) => ({ ...prev, [uri]: next }));
-    try {
-      if (next) {
-        await like(uri);
-      } else {
-        await unlike(uri);
-      }
-    } catch {
-      setLikedOverrides((prev) => ({ ...prev, [uri]: !next }));
-    }
-  };
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [showLeftChevron, setShowLeftChevron] = useState(false);
   const [showRightChevron, setShowRightChevron] = useState(true);
   const [hasOverflow, setHasOverflow] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const onNext = () => {
-    const nextIndex = currentIndex + 1;
-    if (nextIndex >= stories!.length) {
-      setIsOpen(false);
-      return;
-    }
-
-    setCurrentIndex(nextIndex);
-    setCurrentlyPlaying(stories![nextIndex]);
-    setProgress(0);
-  };
-
-  const onPrev = () => {
-    const prevIndex = currentIndex - 1;
-
-    if (prevIndex < 0) {
-      setIsOpen(false);
-      return;
-    }
-
-    setCurrentIndex(prevIndex);
-    setCurrentlyPlaying(stories![prevIndex]);
-    setProgress(0);
-  };
 
   // Check scroll position and update chevron visibility
   const handleScroll = () => {
@@ -251,42 +105,6 @@ function Stories() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [stories]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setProgress(0);
-      setCurrentIndex(0);
-      return;
-    }
-    const progressInterval = window.setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) return 0;
-        return prev + 1;
-      });
-    }, 100);
-
-    return () => {
-      clearInterval(progressInterval);
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!stories) {
-      return;
-    }
-
-    if (progress >= 100) {
-      setProgress(0);
-      const nextIndex = (currentIndex + 1) % stories.length;
-      setCurrentIndex(nextIndex);
-      setCurrentlyPlaying(stories[nextIndex]);
-
-      if (nextIndex === 0) {
-        setIsOpen(false);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress, stories]);
 
   return (
     <Container>
@@ -396,13 +214,16 @@ function Stories() {
                   <StoryContainer
                     key={`${item.id}-${item.did}-${item.createdAt}`}
                     onClick={() => {
-                      setCurrentlyPlaying(item);
                       setCurrentIndex(index);
                       setIsOpen(true);
                     }}
                   >
                     <div className="rounded-full border-2 border-[rgb(255,40,118)] p-[2px]">
-                      <UserAvatar src={item.avatar} name={item.handle} size={56} />
+                      <UserAvatar
+                        src={item.avatar}
+                        name={item.handle}
+                        size={56}
+                      />
                     </div>
                     <StatefulTooltip
                       content={item.handle}
@@ -431,127 +252,13 @@ function Stories() {
             )}
           </div>
 
-          <Modal
-            onClose={() => setIsOpen(false)}
-            closeable
-            isOpen={isOpen}
-            animate
-            autoFocus={false}
-            size={"60vw"}
-            role={ROLE.dialog}
-            overrides={getModalStyles(currentlyPlaying?.albumArt).modal}
-          >
-            <ModalHeader className="text-[#fff] text-[15px]">
-              <div className="w-[380px] mx-auto">
-                <ProgressBar value={progress} overrides={styles.progressbar} />
-              </div>
-              <div className="flex flex-row items-center">
-                <Link to={`/profile/${currentlyPlaying?.handle}`}>
-                  <UserAvatar src={currentlyPlaying?.avatar} name={currentlyPlaying?.handle} size={48} style={{ marginRight: 15 }} />
-                </Link>
-                <Link to={`/profile/${currentlyPlaying?.handle}`}>
-                  <div
-                    className="text-[#fff] no-underline text-[15px]"
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    @{currentlyPlaying?.handle}
-                  </div>
-                </Link>
-                <span
-                  className="ml-[10px] text-[15px]"
-                  style={{
-                    color: "rgba(255, 255, 255, 0.7)",
-                    fontFamily: "var(--font-mono)",
-                  }}
-                >
-                  {dayjs.utc(currentlyPlaying?.createdAt).local().fromNow()}
-                </span>
-              </div>
-            </ModalHeader>
-            <ModalBody className="flex flex-col items-center justify-center mb-[100px]">
-              <div className="flex flex-row flex-1 w-[60vw]">
-                <div className="flex items-center h-[500px] w-[50px] ">
-                  {currentIndex > 0 && (
-                    <div style={{ cursor: "pointer" }} onClick={onPrev}>
-                      <ChevronLeft size={50} color="rgba(255, 255, 255, 0.5)" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col items-center flex-1">
-                  {currentlyPlaying?.trackUri && (
-                    <Link to={uriToPath(currentlyPlaying?.trackUri)}>
-                      {currentlyPlaying?.albumArt ? (
-                        <Cover
-                          src={currentlyPlaying.albumArt}
-                          key={currentlyPlaying?.id}
-                        />
-                      ) : (
-                        <div
-                          style={{ width: 500, height: 500 }}
-                          className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"
-                        >
-                          <IconMusic size={60} />
-                        </div>
-                      )}
-                    </Link>
-                  )}
-                  {currentlyPlaying?.trackUri && (
-                    <div className="flex flex-row items-center">
-                      {/* Balances the 32px like button so the title stays centered. */}
-                      <div className="w-[32px] flex-shrink-0" />
-                      <Link to={uriToPath(currentlyPlaying?.trackUri)}>
-                        <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
-                      </Link>
-                      <LikeButton onClick={handleLike}>
-                        {storyLiked ? (
-                          <Heart color="var(--color-primary)" />
-                        ) : (
-                          <HeartOutline color="#fff" />
-                        )}
-                      </LikeButton>
-                    </div>
-                  )}
-                  {!currentlyPlaying?.trackUri &&
-                    (currentlyPlaying?.albumArt ? (
-                      <Cover
-                        src={currentlyPlaying.albumArt}
-                        key={currentlyPlaying?.id}
-                      />
-                    ) : (
-                      <div
-                        style={{ width: 500, height: 500 }}
-                        className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"
-                      >
-                        <IconMusic size={60} />
-                      </div>
-                    ))}
-                </div>
-                <div className="flex items-center h-[500px] w-[50px]">
-                  {currentIndex < (stories || []).length - 1 && (
-                    <div className="cursor-pointer" onClick={onNext}>
-                      <ChevronRight
-                        size={50}
-                        color="rgba(255, 255, 255, 0.5)"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {!currentlyPlaying?.trackUri && (
-                <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
-              )}
-              <Link to={uriToPath(currentlyPlaying?.artistUri)}>
-                <TrackArtist>{currentlyPlaying?.artist}</TrackArtist>
-              </Link>
-            </ModalBody>
-          </Modal>
-
-          <SignInModal
-            isOpen={isSignInOpen}
-            onClose={() => setIsSignInOpen(false)}
-            like
-          />
+          {isOpen && (
+            <StoryViewer
+              stories={stories}
+              startIndex={currentIndex}
+              onClose={() => setIsOpen(false)}
+            />
+          )}
         </>
       )}
     </Container>

@@ -14,6 +14,8 @@ export type Story = {
   createdAt: string;
   trackId: string;
   trackUri: string;
+  liked?: boolean;
+  likesCount?: number;
 };
 
 export type StoriesFilter = {
