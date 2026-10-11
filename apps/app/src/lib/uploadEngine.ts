@@ -16,6 +16,7 @@ import {
   mediaRenderer,
   type RendererTrack,
   localMusicNative,
+  prepareAudioUrl,
   engineCommand as nativeEngineCommand,
 } from "../../modules/rocksky-engine";
 import { getSongLikeState, like, unlike } from "../api/likes";
@@ -62,6 +63,7 @@ import { remoteBridge, type TransportAction } from "./remoteBridge";
 // now-playing atoms, routes transport actions, and scrobbles.
 
 export type UploadQueueTrack = {
+  audioUrl?: string;
   renderer?: boolean;
   remoteLibraryId?: string;
   remoteTrackId?: string;
@@ -747,7 +749,7 @@ function maybeScrobble(track: UploadQueueTrack, status: EngineStatus) {
     albumArt:
       !track.remoteLibraryId &&
       !track.renderer &&
-      track.albumArt?.startsWith("https://")
+      (track.albumArt?.startsWith("https://") || track.albumArt?.startsWith("data:image/"))
         ? track.albumArt
         : undefined,
     duration,
@@ -1047,6 +1049,7 @@ async function playbackPaths(
   tracks: UploadQueueTrack[],
 ): Promise<string[] | CastPathResolver> {
   if (!castPlayback.connected()) return resolvePaths(tracks);
+  for (const track of tracks) if (track.audioUrl || track.streamUrl?.match(/^https?:/i)) await validateTrackUrl(track, track.audioUrl || track.streamUrl!);
   const owner = storage.getToken();
   let localTracks: Promise<Map<string, DeviceTrack>> | undefined;
   const resolve: CastPathResolver = async (track, _index, signal) => {
@@ -1079,6 +1082,9 @@ async function playbackPaths(
 }
 
 async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
+  for (const track of tracks) {
+    if (track.audioUrl || track.streamUrl?.match(/^https?:/i)) await validateTrackUrl(track, track.audioUrl || track.streamUrl!);
+  }
   if (tracks.some((track) => track.localId)) {
     const library = await localMusicNative.library();
     const deviceTracks = new Map<string, DeviceTrack>(
@@ -1120,7 +1126,11 @@ async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
   if (needsToken && !casting) await ensureStreamToken();
   return mapConcurrent(tracks, async (track) =>
     track.remoteLibraryId && track.remoteTrackId
-      ? await remoteLibraries.stream(track.remoteLibraryId, track.remoteTrackId)
+      ? await (async () => {
+          const url = await remoteLibraries.stream(track.remoteLibraryId!, track.remoteTrackId!);
+          await validateTrackUrl(track, url);
+          return track.streamUrl!;
+        })()
       : track.localId
         ? await localMusicNative.path(track.localId)
         : casting && !track.navidromeId && !track.streamUrl
@@ -1137,7 +1147,7 @@ export async function playUploads(
   const session = storage.getToken();
   if (
     !session &&
-    tracks.some((track) => !track.localId && !track.remoteLibraryId)
+    tracks.some((track) => !track.localId && !track.remoteLibraryId && !track.audioUrl)
   )
     return false;
   const casting = castPlayback.connected();
@@ -1214,6 +1224,7 @@ async function enqueueLocalTracks(
   let index = lastIndex ?? resumeIndex;
   if (castPlayback.connected()) {
     const session = castPlayback.sessionGeneration();
+    for (const track of tracks) if (track.audioUrl || track.streamUrl?.match(/^https?:/i)) await validateTrackUrl(track, track.audioUrl || track.streamUrl!);
     const paths = await playbackPaths(queue);
     if (!castPlayback.connected() || session !== castPlayback.sessionGeneration()) {
       throw new Error("Chromecast disconnected. Reconnect and try again.");
@@ -1302,8 +1313,9 @@ const deviceLabel = (): string =>
 const toRemoteQueueItem = (track: UploadQueueTrack): RemoteQueueItem => ({
   // A navidrome song is addressed by its Subsonic id, an upload by its id;
   // sending the right one is what lets a controller re-enqueue it.
+  url: track.audioUrl,
   uploadId:
-    track.localId || track.navidromeId || track.remoteLibraryId || track.renderer
+    track.audioUrl || track.localId || track.navidromeId || track.remoteLibraryId || track.renderer
       ? undefined
       : track.uploadId,
   trackId: track.navidromeId,
@@ -1314,7 +1326,7 @@ const toRemoteQueueItem = (track: UploadQueueTrack): RemoteQueueItem => ({
   albumArt:
     !track.remoteLibraryId &&
       !track.renderer &&
-      track.albumArt?.startsWith("https://")
+      (track.albumArt?.startsWith("https://") || track.albumArt?.startsWith("data:image/"))
       ? track.albumArt
       : undefined,
   durationMs: track.durationMs,
@@ -1343,7 +1355,7 @@ function advertiseNowPlaying(force = false) {
     albumArt:
       !track.remoteLibraryId &&
       !track.renderer &&
-      track.albumArt?.startsWith("https://")
+      (track.albumArt?.startsWith("https://") || track.albumArt?.startsWith("data:image/"))
         ? track.albumArt
         : undefined,
     durationMs: np.duration,
@@ -1387,6 +1399,7 @@ function fromRemoteQueueItem(item: RemoteQueueItem): UploadQueueTrack | null {
     artistUri: null,
     sha256: "",
   };
+  if (item.url) return { ...base, uploadId: "external-audio", audioUrl: item.url, streamUrl: item.url };
   if (item.trackId && navidromeCreds) {
     return {
       ...base,
@@ -1408,17 +1421,17 @@ async function handleRemoteEnqueue(cmd: EnqueueCommand) {
   if (tracks.length === 0) return;
   const ordered = cmd.shuffle ? shuffleTracks(tracks) : tracks;
   if (cmd.mode === "next") {
-    await queueUploadsNext(ordered);
+    if (!await queueUploadsNext(ordered)) throw new Error("The target player could not add this audio to its queue.");
     return;
   }
   if (cmd.mode === "last") {
-    await queueUploadsLast(ordered);
+    if (!await queueUploadsLast(ordered)) throw new Error("The target player could not add this audio to its queue.");
     return;
   }
   const startIndex = cmd.shuffle
     ? 0
     : Math.min(Math.max(0, cmd.startIndex), ordered.length - 1);
-  await playUploads(ordered, startIndex);
+  if (!await playUploads(ordered, startIndex)) throw new Error("The target player could not start this audio.");
 }
 
 function shuffleTracks(tracks: UploadQueueTrack[]): UploadQueueTrack[] {
@@ -1451,7 +1464,11 @@ export function startLocalRemotePlayer() {
     .on("previous", () => handleTransport("previous"))
     .on("seek", (positionMs) => handleTransport("seek", positionMs))
     .on("enqueue", (cmd) => {
-      handleRemoteEnqueue(cmd);
+      void handleRemoteEnqueue(cmd).catch((error) => {
+        const message = error instanceof Error ? error.message : "Could not queue audio";
+        remotePlayer?.commandError(message);
+        Alert.alert("Audio URL rejected", message);
+      });
     })
     .on("setAudioSettings", (settings) => {
       engineCommand({ cmd: "setAudioSettings", settings });
@@ -1490,4 +1507,36 @@ export function stopLocalRemotePlayer() {
  */
 export function localRemoteDeviceId(): string | null {
   return remotePlayer?.id || null;
+}
+
+async function validateTrackUrl(track: UploadQueueTrack, url: string) {
+  const metadata = await audioUrlTrack(url);
+  const known = track.uploadId !== "external-audio" && !track.uploadId.startsWith("url:");
+  Object.assign(track, { ...metadata,
+    uploadId: known ? track.uploadId : metadata.uploadId,
+    title: known ? track.title || metadata.title : metadata.title,
+    artist: metadata.artist || track.artist,
+    album: metadata.album || track.album,
+    albumArtist: metadata.albumArtist || track.albumArtist,
+    albumArt: metadata.albumArt || track.albumArt,
+    durationMs: metadata.durationMs || track.durationMs,
+    songUri: track.songUri, albumUri: track.albumUri, artistUri: track.artistUri, sha256: track.sha256,
+    scrobbleEligible: track.scrobbleEligible ?? !!(metadata.artist || track.artist),
+  });
+}
+
+export async function audioUrlTrack(url: string): Promise<UploadQueueTrack> {
+  const metadata = await prepareAudioUrl(url);
+  return { audioUrl: metadata.url, streamUrl: metadata.url, uploadId: `url:${metadata.cacheId}`, title: metadata.title,
+    artist: metadata.artist ?? "", album: metadata.album ?? "", albumArtist: metadata.albumArtist || metadata.artist || "",
+    albumArt: metadata.albumArt ?? null, durationMs: metadata.durationMs ?? 0, mimeType: metadata.mimeType,
+    scrobbleEligible: !!metadata.artist, songUri: null, albumUri: null, artistUri: null, sha256: "" };
+}
+export async function playAudioUrl(url: string, mode: "now" | "next" | "last") {
+  // Resolution is inside the serialized queue operation, before engine mutation.
+  const track: UploadQueueTrack = { audioUrl: url, streamUrl: url, uploadId: "external-audio", title: "Audio stream", artist: "", albumArtist: "", album: "", albumArt: null, durationMs: 0, songUri: null, albumUri: null, artistUri: null, sha256: "" };
+  const { sendToSelectedPlayer } = await import("./libraryPlayback");
+  if (await sendToSelectedPlayer([track], mode)) return;
+  const accepted = mode === "next" ? await queueUploadsNext([track]) : mode === "last" ? await queueUploadsLast([track]) : await playUploads([track], 0);
+  if (!accepted) throw new Error("Could not start audio playback. Please try again.");
 }

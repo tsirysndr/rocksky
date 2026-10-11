@@ -670,6 +670,15 @@ export default function RemoteLibrary({
             }}
           />
           <MenuAction
+            text="Play now"
+            icon="play"
+            onPress={() => {
+              const track = menuTrack;
+              setMenuTrack(null);
+              void run(() => playQueue([serverQueueTrack(source.id, track)], 0));
+            }}
+          />
+          <MenuAction
             text="Play next"
             icon="corner-down-right"
             onPress={() => {

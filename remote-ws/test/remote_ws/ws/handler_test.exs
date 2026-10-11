@@ -35,6 +35,20 @@ defmodule RemoteWs.Ws.HandlerTest do
     assert ann["clientName"] == "Rocksky CLI"
   end
 
+  test "target URL rejection reaches controllers without changing playback status" do
+    did = new_did()
+    token = Token.sign(%{"did" => did})
+    controller = FakeDevice.start(did, "controller", "Controller", self())
+    RedisMemory.put("primary_device:#{did}", "target")
+    RedisMemory.put("nowplaying:#{did}:status", "1")
+    data = %{"type" => "command_error", "action" => "enqueue", "message" => "Host/IP unreachable"}
+    Handler.handle(%{"type" => "message", "token" => token, "data" => data}, %{device_id: "target", did: did})
+    assert_receive {:pushed, ^controller, frame}
+    assert Jason.decode!(frame)["device_id"] == "target"
+    assert Jason.decode!(frame)["data"] == data
+    assert RedisMemory.get("nowplaying:#{did}:status") == "1"
+  end
+
   test "command with target routes to one device; no target broadcasts to all" do
     did = new_did()
     token = Token.sign(%{"did" => did})

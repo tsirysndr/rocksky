@@ -182,6 +182,8 @@ pub fn player_queue_paths(state: State<'_, AppState>) -> Vec<String> {
 #[derive(serde::Deserialize, Default)]
 #[serde(rename_all = "camelCase", default)]
 pub struct QueueMetaDto {
+    #[serde(default)]
+    pub url: String,
     pub upload_id: String,
     pub track_id: String,
     pub title: String,
@@ -198,6 +200,7 @@ pub struct QueueMetaDto {
 impl From<QueueMetaDto> for RemoteQueueItem {
     fn from(d: QueueMetaDto) -> Self {
         RemoteQueueItem {
+            url: d.url,
             upload_id: d.upload_id,
             track_id: d.track_id,
             title: d.title,
@@ -440,4 +443,36 @@ pub fn player_queue(state: State<'_, AppState>) -> Vec<QueueItemDto> {
             duration_ms: i.duration_ms,
         })
         .collect()
+}
+
+/// Resolve and validate media off the UI thread before accepting a queue change.
+#[tauri::command]
+pub async fn player_prepare_audio_url(
+    app: tauri::AppHandle,
+    url: String,
+) -> Result<serde_json::Value, String> {
+    use tauri::Manager;
+    let directory = app
+        .path()
+        .app_cache_dir()
+        .map_err(|_| "Audio cache unavailable")?
+        .join("audio-urls");
+    tokio::task::spawn_blocking(move || rocksky_metadata::audio_url::prepare(&url, &directory))
+        .await
+        .map_err(|_| "Audio validation failed".to_string())?
+}
+
+pub fn external_queue_item(m: &serde_json::Value) -> RemoteQueueItem {
+    let s = |k: &str| m[k].as_str().unwrap_or("").to_string();
+    RemoteQueueItem {
+        url: s("url"),
+        title: s("title"),
+        artist: s("artist"),
+        album: s("album"),
+        album_artist: s("albumArtist"),
+        album_art: s("albumArt"),
+        duration_ms: m["durationMs"].as_u64().unwrap_or(0),
+        track_number: m["trackNumber"].as_i64().unwrap_or(0) as i32,
+        ..Default::default()
+    }
 }

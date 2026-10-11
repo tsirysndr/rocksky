@@ -86,6 +86,11 @@ async fn run_controller(token: String) {
     println!("controller connected — listening for devices (Ctrl-C to quit)…");
     while let Some(event) = controller.next_event().await {
         match event {
+            RemoteEvent::CommandError {
+                device_name,
+                message,
+                ..
+            } => eprintln!("{device_name}: {message}"),
             RemoteEvent::Devices { devices, .. } => {
                 println!("devices: {}", devices.len());
                 for d in &devices {

@@ -1,3 +1,4 @@
+import OpenAudioUrl from "../../components/OpenAudioUrl";
 import styled from "@emotion/styled";
 import { shuffled } from "../../lib/shuffle";
 import {
@@ -1225,6 +1226,7 @@ export default function Library() {
       <Page>
         <Header>
           <Title>My Library</Title>
+          <OpenAudioUrl />
           <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
             <IconUpload size={15} /> Upload Music
           </UploadButton>

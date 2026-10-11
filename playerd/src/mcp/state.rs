@@ -32,6 +32,7 @@ pub struct DeviceState {
     pub status: Option<RemoteStatus>,
     pub queue: Vec<RemoteQueueItem>,
     pub queue_index: u32,
+    pub last_error: Option<String>,
 }
 
 /// Where a command is addressed.
@@ -237,6 +238,14 @@ impl Player {
         shuffle: bool,
         start_index: u32,
     ) {
+        {
+            let mut world = self.world.lock().unwrap();
+            for device in world.devices.values_mut() {
+                if matches!(t, Target::All) || t.id().as_deref() == Some(&device.id) {
+                    device.last_error = None;
+                }
+            }
+        }
         self.controller
             .enqueue(t.id(), tracks, mode, shuffle, start_index);
     }
@@ -272,6 +281,13 @@ async fn pump(player: std::sync::Arc<Player>) {
     while let Some(event) = player.controller.next_event().await {
         let mut world = player.world.lock().unwrap();
         match event {
+            RemoteEvent::CommandError {
+                device_id,
+                device_name,
+                message,
+            } => {
+                upsert(&mut world, &device_id, &device_name).last_error = Some(message);
+            }
             RemoteEvent::Devices {
                 primary_device,
                 devices,
@@ -296,6 +312,7 @@ async fn pump(player: std::sync::Arc<Player>) {
                                 status,
                                 queue: d.queue,
                                 queue_index: d.queue_index,
+                                last_error: None,
                             },
                         )
                     })
@@ -408,6 +425,9 @@ pub fn queue_item_json(index: usize, item: &RemoteQueueItem, current: bool) -> V
         "album": item.album,
         "durationMs": item.duration_ms,
     });
+    if !item.url.is_empty() {
+        v["url"] = json!(item.url);
+    }
     if current {
         v["current"] = json!(true);
     }
@@ -424,6 +444,7 @@ pub fn queue_item_json(index: usize, item: &RemoteQueueItem, current: bool) -> V
 /// caller in JSON it did not ask for.
 pub fn device_json(device: &DeviceState, primary: bool, full_queue: bool) -> Value {
     let mut v = json!({
+        "lastError": device.last_error,
         "id": device.id,
         "name": device.name,
         "status": status_str(device.status),

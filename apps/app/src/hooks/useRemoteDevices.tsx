@@ -1,3 +1,4 @@
+import { Alert } from "react-native";
 import {
   RemoteController,
   type RemoteNowPlaying,
@@ -47,6 +48,7 @@ function toDeviceTrack(track: RemoteNowPlaying): DeviceTrack | null {
 function toQueue(queue: RemoteQueueItem[] | undefined): DeviceQueueTrack[] {
   if (!Array.isArray(queue)) return [];
   return queue.map((item) => ({
+    url: item.url,
     trackId: item.trackId,
     uploadId: item.uploadId,
     title: item.title,
@@ -157,6 +159,7 @@ export function useRemoteDevicesConnection() {
           };
         });
       })
+      .on("commandError", ({ deviceName, message }) => Alert.alert(`${deviceName || "Player"}: playback rejected`, message))
       .on("queue", ({ deviceId, deviceName, index, queue }) => {
         if (!deviceId) return;
         setDevices((prev) => {

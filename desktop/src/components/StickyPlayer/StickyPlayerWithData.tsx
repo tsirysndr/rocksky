@@ -170,7 +170,9 @@ function toRemoteNowPlaying(
 // renders.
 function toRemoteQueueTrack(q: SdkRemoteQueueItem) {
   return {
-    uploadId: q.uploadId || q.trackId || "",
+    audioUrl: q.url,
+    streamUrl: q.url,
+    uploadId: q.uploadId || q.trackId || q.url || "",
     title: q.title ?? "",
     artist: q.albumArtist || q.artist || "",
     albumArtist: q.albumArtist ?? "",
@@ -576,6 +578,7 @@ function StickyPlayerWithData() {
         }
       })
       // A player pushed its queue → mirror it (kept per-device for the panel).
+      .on("commandError", ({ deviceName, message }) => window.alert(`${deviceName || "Player"}: ${message}`))
       .on("queue", ({ deviceId, deviceName, index, queue }) => {
         if (!deviceId || isSelfDevice(deviceId, deviceName)) return;
         const q = Array.isArray(queue) ? queue.map(toRemoteQueueTrack) : [];

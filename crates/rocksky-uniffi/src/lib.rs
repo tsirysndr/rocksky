@@ -1949,6 +1949,8 @@ pub enum RemoteStatus {
 #[derive(Debug, Clone, Default, uniffi::Record)]
 pub struct RemoteQueueItem {
     #[uniffi(default = "")]
+    pub url: String,
+    #[uniffi(default = "")]
     pub upload_id: String,
     #[uniffi(default = "")]
     pub track_id: String,
@@ -2057,6 +2059,7 @@ impl From<RemoteStatus> for rocksky_sdk::RemoteStatus {
 impl From<RemoteQueueItem> for rocksky_sdk::RemoteQueueItem {
     fn from(v: RemoteQueueItem) -> Self {
         Self {
+            url: v.url,
             upload_id: v.upload_id,
             track_id: v.track_id,
             title: v.title,
@@ -2076,6 +2079,7 @@ impl From<RemoteQueueItem> for rocksky_sdk::RemoteQueueItem {
 impl From<rocksky_sdk::RemoteQueueItem> for RemoteQueueItem {
     fn from(v: rocksky_sdk::RemoteQueueItem) -> Self {
         Self {
+            url: v.url,
             upload_id: v.upload_id,
             track_id: v.track_id,
             title: v.title,
@@ -2202,6 +2206,11 @@ pub struct RemoteDevice {
 #[cfg(feature = "remote-player")]
 #[derive(Debug, Clone, uniffi::Enum)]
 pub enum RemoteEvent {
+    CommandError {
+        device_id: String,
+        device_name: String,
+        message: String,
+    },
     Devices {
         primary_device: Option<String>,
         devices: Vec<RemoteDevice>,
@@ -2284,6 +2293,15 @@ impl From<rocksky_sdk::RemoteEvent> for RemoteEvent {
     fn from(v: rocksky_sdk::RemoteEvent) -> Self {
         use rocksky_sdk::RemoteEvent as E;
         match v {
+            E::CommandError {
+                device_id,
+                device_name,
+                message,
+            } => Self::CommandError {
+                device_id,
+                device_name,
+                message,
+            },
             E::Devices {
                 primary_device,
                 devices,

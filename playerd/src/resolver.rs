@@ -110,6 +110,12 @@ impl Resolver {
     }
 
     pub async fn resolve(&mut self, item: &RemoteQueueItem) -> Option<String> {
+        if !item.url.is_empty() {
+            return external_audio(item.url.clone())
+                .await
+                .ok()
+                .map(|(_, url)| url);
+        }
         if !item.upload_id.is_empty() {
             let token = self.stream_token().await?;
             return Some(format!(
@@ -237,4 +243,30 @@ fn collect(path: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
         out.push(path.to_path_buf());
     }
     Ok(())
+}
+
+pub async fn external_audio(url: String) -> Result<(RemoteQueueItem, String)> {
+    let directory = dirs::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("rocksky/playerd/audio-urls");
+    let m =
+        tokio::task::spawn_blocking(move || rocksky_metadata::audio_url::prepare(&url, &directory))
+            .await?
+            .map_err(anyhow::Error::msg)?;
+    let s = |key: &str| m[key].as_str().unwrap_or("").to_string();
+    let url = s("url");
+    Ok((
+        RemoteQueueItem {
+            url: url.clone(),
+            title: s("title"),
+            artist: s("artist"),
+            album: s("album"),
+            album_artist: s("albumArtist"),
+            album_art: s("albumArt"),
+            duration_ms: m["durationMs"].as_u64().unwrap_or(0),
+            track_number: m["trackNumber"].as_i64().unwrap_or(0) as i32,
+            ..Default::default()
+        },
+        url,
+    ))
 }

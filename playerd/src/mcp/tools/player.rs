@@ -99,15 +99,16 @@ pub fn definitions() -> Vec<Value> {
         ),
         tool(
             "enqueue",
-            "Put music on a player. Supply tracks (by library id, or just title + artist and they get matched against the library), or an album_id, or a playlist_id. This is how you start a set, add to it, or slip one song in next.",
+            "Put music on a player. Supply tracks (by direct audio URL, library id, or just title + artist and they get matched against the library), or an album_id, or a playlist_id. This is how you start a set, add to it, or slip one song in next.",
             json!({
                 "device": device_prop(),
                 "tracks": {
                     "type": "array",
-                    "description": "Tracks to queue, in order. Each entry is either {\"id\": \"<library id from search_library>\"} or {\"title\": \"...\", \"artist\": \"...\"} — names are resolved against the library, and anything with no match is reported back as unresolved instead of failing the call.",
+                    "description": "Tracks to queue, in order. Each entry can contain a direct HTTP(S) audio URL in `url`, or {\"id\": \"<library id from search_library>\"} or {\"title\": \"...\", \"artist\": \"...\"} — names are resolved against the library, and anything with no match is reported back as unresolved instead of failing the call.",
                     "items": {
                         "type": "object",
                         "properties": {
+                            "url": { "type": "string", "description": "Direct HTTP(S) audio URL; fetched, validated and tagged by the target player before queueing." },
                             "id": { "type": "string", "description": "Library track id (from search_library / get_album / browse_songs)." },
                             "title": { "type": "string" },
                             "artist": { "type": "string" },
@@ -314,6 +315,12 @@ pub async fn call(ctx: &Ctx, name: &str, args: &Args<'_>) -> Result<Option<Value
                 "enqueued": songs.iter().map(Song::to_json).collect::<Vec<_>>(),
                 "state": state_of(ctx, &target, false)?,
             });
+            if songs.iter().any(|song| !song.url.is_empty()) {
+                if let Some(requested) = v.as_object_mut().unwrap().remove("enqueued") {
+                    v["requested"] = requested;
+                }
+                v["note"] = json!("Sent to the target player for network and audio validation. Acceptance is confirmed only when its queue contains the URL; inspect lastError for a target-side rejection.");
+            }
             if !unresolved.is_empty() {
                 v["unresolved"] = json!(unresolved);
                 v["note"] = json!("These had no match in the library and were skipped. Try search_library with a looser query.");
@@ -400,11 +407,20 @@ async fn collect_tracks(ctx: &Ctx, args: &Args<'_>) -> Result<(Vec<Song>, Vec<St
     if entries.is_empty() {
         bail!("`tracks` is empty");
     }
-    let subsonic = ctx.subsonic().await?;
     let mut songs = Vec::with_capacity(entries.len());
     let mut unresolved = Vec::new();
     for entry in entries {
         let entry = Args(entry);
+        if let Some(url) = entry.str("url") {
+            // Reachability belongs to the selected player, which may be on a different network.
+            songs.push(Song {
+                url: url.to_string(),
+                title: "Audio stream".into(),
+                ..Default::default()
+            });
+            continue;
+        }
+        let subsonic = ctx.subsonic().await?;
         // A caller-supplied id is authoritative; the lookup is only to fill in
         // the metadata controllers display for the queue entry.
         if let Some(id) = entry.str("id") {

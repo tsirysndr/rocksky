@@ -23,6 +23,7 @@ export type DeviceTrack = {
 };
 
 export type DeviceQueueTrack = {
+  url?: string;
   trackId?: string;
   uploadId?: string;
   title: string;

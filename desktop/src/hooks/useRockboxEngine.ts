@@ -44,7 +44,8 @@ setQueueMetaResolver((url: string) => {
   const t = trackForUrl(url);
   if (!t) return undefined;
   return {
-    uploadId: t.uploadId,
+    url: t.audioUrl,
+    uploadId: t.audioUrl ? undefined : t.uploadId,
     title: t.title,
     artist: t.artist,
     album: t.album,

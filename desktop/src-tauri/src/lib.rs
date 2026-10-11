@@ -84,6 +84,7 @@ pub fn run() {
             player::player_set_compressor,
             player::player_set_surround,
             player::player_enqueue,
+            player::player_prepare_audio_url,
             player::player_play,
             player::player_pause,
             player::player_toggle,

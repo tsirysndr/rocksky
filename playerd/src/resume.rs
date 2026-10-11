@@ -39,6 +39,7 @@ use crate::resolver::Resolver;
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct SavedItem {
+    pub url: String,
     pub upload_id: String,
     pub track_id: String,
     pub title: String,
@@ -55,6 +56,7 @@ pub struct SavedItem {
 impl From<&RemoteQueueItem> for SavedItem {
     fn from(i: &RemoteQueueItem) -> Self {
         SavedItem {
+            url: i.url.clone(),
             upload_id: i.upload_id.clone(),
             track_id: i.track_id.clone(),
             title: i.title.clone(),
@@ -73,6 +75,7 @@ impl From<&RemoteQueueItem> for SavedItem {
 impl From<&SavedItem> for RemoteQueueItem {
     fn from(s: &SavedItem) -> Self {
         RemoteQueueItem {
+            url: s.url.clone(),
             upload_id: s.upload_id.clone(),
             track_id: s.track_id.clone(),
             title: s.title.clone(),

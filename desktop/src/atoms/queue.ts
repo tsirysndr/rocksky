@@ -1,6 +1,7 @@
 import { atom } from "jotai";
 
 export interface QueueTrack {
+  audioUrl?: string;
   uploadId: string;
   title: string;
   artist: string;

@@ -153,6 +153,8 @@ export interface RemoteAudioSettings {
 
 /** One queue entry. `uploadId` (Rocksky uploads) or `trackId` (Navidrome id). */
 export interface RemoteQueueItem {
+  /** External audio URL; the receiving player validates it before queueing. */
+  url?: string;
   uploadId?: string;
   trackId?: string;
   title: string;
@@ -307,6 +309,11 @@ export class RemotePlayer {
     });
   }
 
+  commandError(message: string): void {
+    this.send({ type: "message", device_id: this.deviceId, token: this.getToken(),
+      data: { type: "command_error", action: "enqueue", message } });
+  }
+
   /** Advertise transport state. */
   setStatus(status: "playing" | "paused" | "stopped"): void {
     const code = status === "playing" ? 1 : status === "paused" ? 2 : 0;
@@ -330,6 +337,7 @@ export class RemotePlayer {
         type: "queue",
         index,
         queue: items.map((t) => ({
+          url: t.url,
           uploadId: t.uploadId,
           trackId: t.trackId,
           title: t.title,
@@ -518,6 +526,7 @@ export class RemotePlayer {
 
 function descriptorToItem(d: Json): RemoteQueueItem {
   return {
+    url: d.url,
     uploadId: d.uploadId,
     trackId: d.trackId,
     title: d.title ?? "",

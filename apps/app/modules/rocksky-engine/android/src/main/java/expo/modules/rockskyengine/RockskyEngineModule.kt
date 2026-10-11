@@ -150,6 +150,14 @@ class RockskyEngineModule : Module() {
       else MediaRendererService.configure(context, input)
     }
 
+    AsyncFunction("prepareAudioUrl") { url: String ->
+      check(ensureLoaded()) { "Native audio engine is unavailable" }
+      val context = requireNotNull(appContext.reactContext).applicationContext
+      val cache = java.io.File(context.cacheDir, "audio-urls").apply { mkdirs() }
+      NativeEngine.command(org.json.JSONObject().put("cmd", "prepareAudioUrl")
+        .put("url", url).put("cacheDir", cache.absolutePath).toString())
+    }
+
     AsyncFunction("rendererArtwork") { url: String ->
       check(ensureLoaded()) { "Native audio engine is unavailable" }
       rendererArtwork(url)

@@ -1,3 +1,5 @@
+import { remoteLibraries } from "../api/remoteLibraries";
+import { remoteBridge } from "./remoteBridge";
 import { Alert } from "react-native";
 import type { UploadedTrack } from "../api/uploads";
 import { castPlayback } from "./castPlayback";
@@ -26,7 +28,48 @@ export function uploadToQueueTrack(item: UploadedTrack): UploadQueueTrack {
   };
 }
 
-export async function playQueue(tracks: UploadQueueTrack[], index: number) {
+/** Resolve the library reference here; only the destination fetches and validates audio. */
+export async function sendToSelectedPlayer(
+  tracks: UploadQueueTrack[],
+  mode: "now" | "next" | "last",
+  startIndex = 0,
+): Promise<boolean> {
+  const target = remoteBridge.selectedTarget();
+  if (!target) return false;
+  const items = await Promise.all(
+    tracks.map(async (track) => {
+      if (track.localId)
+        throw new Error(
+          "Local files cannot be reached by the selected remote player.",
+        );
+      const url =
+        track.audioUrl ||
+        (track.remoteLibraryId && track.remoteTrackId
+          ? await remoteLibraries.stream(
+              track.remoteLibraryId,
+              track.remoteTrackId,
+            )
+          : track.streamUrl);
+      return {
+        url,
+        uploadId: url || track.navidromeId ? undefined : track.uploadId,
+        trackId: url ? undefined : track.navidromeId,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        albumArtist: track.albumArtist,
+        durationMs: track.durationMs,
+        songUri: track.songUri ?? undefined,
+        albumUri: track.albumUri ?? undefined,
+      };
+    }),
+  );
+  remoteBridge.enqueue(target, items, mode, startIndex);
+  return true;
+}
+
+async function playQueueInternal(tracks: UploadQueueTrack[], index: number) {
+  if (await sendToSelectedPlayer(tracks, "now", index)) return;
   if (!castPlayback.connected() && !isLocalEngineAvailable()) {
     Alert.alert(
       "Playback unavailable",
@@ -44,10 +87,11 @@ export async function playQueue(tracks: UploadQueueTrack[], index: number) {
 export const playUploadedTracks = (tracks: UploadedTrack[], index: number) =>
   playQueue(tracks.map(uploadToQueueTrack), index);
 
-export async function queueTracks(
+async function queueTracksInternal(
   tracks: UploadQueueTrack[],
   where: "next" | "last",
 ) {
+  if (await sendToSelectedPlayer(tracks, where)) return;
   if (!castPlayback.connected() && !isLocalEngineAvailable()) {
     Alert.alert(
       "Playback unavailable",
@@ -61,5 +105,33 @@ export async function queueTracks(
       : await queueUploadsLast(tracks);
   if (!ok) {
     Alert.alert("Queue failed", "Could not add that to the playback queue.");
+  }
+}
+
+export async function playQueue(tracks: UploadQueueTrack[], index: number) {
+  try {
+    await playQueueInternal(tracks, index);
+  } catch (error) {
+    Alert.alert(
+      "Playback rejected",
+      error instanceof Error
+        ? error.message
+        : "The selected player could not play this track.",
+    );
+  }
+}
+export async function queueTracks(
+  tracks: UploadQueueTrack[],
+  where: "next" | "last",
+) {
+  try {
+    await queueTracksInternal(tracks, where);
+  } catch (error) {
+    Alert.alert(
+      "Queue rejected",
+      error instanceof Error
+        ? error.message
+        : "The selected player could not queue this track.",
+    );
   }
 }

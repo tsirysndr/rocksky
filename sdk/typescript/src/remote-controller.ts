@@ -44,6 +44,7 @@ export type RemoteStatus = "playing" | "paused" | "stopped";
 
 /** Events the controller emits (from the server). */
 export interface RemoteControllerEvents {
+  commandError(event: { deviceId: string; deviceName: string; message: string }): void;
   /** The full device snapshot (on connect + reconnect). */
   devices(payload: { primaryDevice: string | null; devices: RemoteDevice[] }): void;
   deviceRegistered(payload: { deviceId: string; name: string }): void;
@@ -177,9 +178,11 @@ export class RemoteController {
     shuffle = false,
     startIndex = 0,
   ): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error("The player connection is offline.");
     this.command("enqueue", target, {
       tracks: tracks.map((t) => ({
-        uploadId: t.uploadId,
+        url: t.url,
+          uploadId: t.uploadId,
         trackId: t.trackId,
         title: t.title,
         artist: t.artist,
@@ -340,6 +343,9 @@ export class RemoteController {
     const data = msg.data;
     if (!data) return;
     switch (data.type) {
+      case "command_error":
+        this.handlers.commandError?.({ deviceId, deviceName, message: data.message ?? "The player rejected this request." });
+        break;
       case "track":
         this.handlers.nowPlaying?.({ deviceId, deviceName, track: trackFromJson(data) });
         break;
@@ -391,6 +397,7 @@ function trackFromJson(d: Json): RemoteNowPlaying {
 
 function queueItemFromJson(d: Json): RemoteQueueItem {
   return {
+    url: d.url,
     uploadId: d.uploadId,
     trackId: d.trackId,
     title: d.title ?? "",

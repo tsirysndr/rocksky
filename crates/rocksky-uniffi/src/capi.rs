@@ -682,6 +682,8 @@ impl Default for NowPlayingJson {
 #[derive(serde::Deserialize, Default)]
 #[serde(rename_all = "camelCase", default)]
 struct QueueItemJson {
+    #[serde(default)]
+    url: String,
     upload_id: String,
     track_id: String,
     title: String,
@@ -704,6 +706,7 @@ fn queue_item_to_json(it: &rocksky_sdk::RemoteQueueItem) -> serde_json::Value {
     serde_json::json!({
         "uploadId": it.upload_id,
         "trackId": it.track_id,
+        "url": it.url,
         "title": it.title,
         "artist": it.artist,
         "album": it.album,
@@ -893,6 +896,7 @@ pub unsafe extern "C" fn rocksky_remote_player_set_queue(
             let items = items
                 .into_iter()
                 .map(|i| rocksky_sdk::RemoteQueueItem {
+                    url: i.url,
                     upload_id: i.upload_id,
                     track_id: i.track_id,
                     title: i.title,
@@ -1001,6 +1005,13 @@ fn device_to_json(d: &rocksky_sdk::RemoteDevice) -> serde_json::Value {
 fn event_to_json(e: &rocksky_sdk::RemoteEvent) -> serde_json::Value {
     use rocksky_sdk::RemoteEvent as E;
     match e {
+        E::CommandError {
+            device_id,
+            device_name,
+            message,
+        } => {
+            serde_json::json!({ "type": "commandError", "deviceId": device_id, "deviceName": device_name, "message": message })
+        }
         E::Devices {
             primary_device,
             devices,
@@ -1330,6 +1341,7 @@ pub unsafe extern "C" fn rocksky_remote_controller_enqueue(
             let items = items
                 .into_iter()
                 .map(|i| rocksky_sdk::RemoteQueueItem {
+                    url: i.url,
                     upload_id: i.upload_id,
                     track_id: i.track_id,
                     title: i.title,

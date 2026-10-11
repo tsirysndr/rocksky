@@ -208,6 +208,19 @@ async fn apply(shared: &Shared, resolver: &mut Resolver, cmd: RemoteCommand) {
         } => {
             let mut playable: Vec<(RemoteQueueItem, String)> = Vec::with_capacity(tracks.len());
             for track in tracks {
+                if !track.url.is_empty() {
+                    match crate::resolver::external_audio(track.url.clone()).await {
+                        Ok(pair) => playable.push(pair),
+                        Err(error) => {
+                            shared.remote.command_error(format!(
+                                "Cannot play audio URL on this device: {error}"
+                            ));
+                            tracing::warn!(%error, "audio URL rejected; queue unchanged");
+                            return;
+                        }
+                    }
+                    continue;
+                }
                 match resolver.resolve(&track).await {
                     Some(uri) => playable.push((track, uri)),
                     None => tracing::warn!(

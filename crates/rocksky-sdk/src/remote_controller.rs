@@ -90,6 +90,11 @@ pub struct RemoteDevice {
 /// An update pushed to the controller by the server.
 #[derive(Clone, Debug)]
 pub enum RemoteEvent {
+    CommandError {
+        device_id: String,
+        device_name: String,
+        message: String,
+    },
     /// The full device snapshot (sent right after (re)register).
     Devices {
         primary_device: Option<String>,
@@ -459,6 +464,11 @@ fn message_event(v: &Value) -> Option<RemoteEvent> {
     let device_name = str_field(v, "device_name");
     let data = v.get("data")?;
     match data.get("type").and_then(|x| x.as_str())? {
+        "command_error" => Some(RemoteEvent::CommandError {
+            device_id,
+            device_name,
+            message: str_field(data, "message"),
+        }),
         "track" => Some(RemoteEvent::NowPlaying {
             device_id,
             device_name,
@@ -547,6 +557,7 @@ fn track_from_value(v: &Value) -> RemoteNowPlaying {
 
 fn queue_item_from_value(v: &Value) -> RemoteQueueItem {
     RemoteQueueItem {
+        url: str_field(v, "url"),
         upload_id: str_field(v, "uploadId"),
         track_id: str_field(v, "trackId"),
         title: str_field(v, "title"),
@@ -564,6 +575,7 @@ fn queue_item_from_value(v: &Value) -> RemoteQueueItem {
 /// An `enqueue` descriptor the controller sends to a player.
 fn descriptor_json(t: &RemoteQueueItem) -> Value {
     json!({
+        "url": t.url,
         "uploadId": t.upload_id,
         "trackId": t.track_id,
         "title": t.title,
@@ -591,4 +603,27 @@ fn str_field(v: &Value, key: &str) -> String {
         .and_then(|x| x.as_str())
         .unwrap_or("")
         .to_string()
+}
+
+#[cfg(test)]
+mod audio_url_tests {
+    use super::*;
+    #[test]
+    fn target_error_preserves_device_identity() {
+        let events = parse_events(
+            r#"{"type":"message","device_id":"target","device_name":"Bedroom","data":{"type":"command_error","message":"IP unreachable"}}"#,
+        );
+        assert!(
+            matches!(&events[0], RemoteEvent::CommandError { device_id, message, .. } if device_id == "target" && message == "IP unreachable")
+        );
+    }
+    #[test]
+    fn target_queue_preserves_direct_url() {
+        let events = parse_events(
+            r#"{"type":"message","device_id":"target","data":{"type":"queue","queue":[{"url":"http://192.0.2.1/music","title":"Audio"}]}}"#,
+        );
+        assert!(
+            matches!(&events[0], RemoteEvent::Queue { queue, .. } if queue[0].url == "http://192.0.2.1/music")
+        );
+    }
 }

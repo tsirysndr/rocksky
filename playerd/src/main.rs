@@ -33,7 +33,7 @@ use crate::resolver::Resolver;
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
-    /// Audio files or directories to queue and play at startup
+    /// Audio files, directories, or HTTP(S) audio URLs to validate and play at startup
     paths: Vec<PathBuf>,
     /// TOML config file (default: ~/.rocksky/playerd.toml)
     #[arg(short, long, env = "PLAYERD_CONFIG", global = true)]
@@ -119,7 +119,21 @@ async fn main() -> Result<()> {
         return mcp::run(config, token).await;
     }
 
-    let (uris, items) = resolver::scan_local(&cli.paths)?;
+    let mut uris = Vec::new();
+    let mut items = Vec::new();
+    for path in &cli.paths {
+        let value = path.to_string_lossy();
+        if value.starts_with("http://") || value.starts_with("https://") {
+            let (item, uri) = resolver::external_audio(value.into_owned()).await?;
+            uris.push(uri);
+            items.push(item);
+        } else {
+            let (mut local_uris, mut local_items) =
+                resolver::scan_local(std::slice::from_ref(path))?;
+            uris.append(&mut local_uris);
+            items.append(&mut local_items);
+        }
+    }
 
     let mut player_config = config.player_config()?;
     if let Some(spec) = config

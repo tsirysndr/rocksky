@@ -2,6 +2,7 @@ import type { RemoteAudioSettings } from "@rocksky/sdk";
 import { requireOptionalNativeModule } from "expo";
 
 type RockskyEngineNativeModule = {
+  prepareAudioUrl(url: string): Promise<string>;
   sharePost(json: string): Promise<boolean>;
   mediaRenderer(json: string): Promise<string>;
   rendererArtwork(url: string): Promise<string>;
@@ -179,4 +180,15 @@ export async function sharePost(input: {
 }): Promise<boolean> {
   if (!native?.sharePost) throw new Error("Sharing posts requires an updated Android build.");
   return native.sharePost(JSON.stringify(input));
+}
+
+export type AudioUrlMetadata = {
+  url: string; cacheId: string; title: string; artist?: string; album?: string;
+  albumArtist?: string; albumArt?: string | null; durationMs?: number; mimeType?: string;
+};
+export async function prepareAudioUrl(url: string): Promise<AudioUrlMetadata> {
+  if (!native?.prepareAudioUrl) throw new Error("Audio URLs require an updated Android build.");
+  const result = JSON.parse(await native.prepareAudioUrl(url));
+  if (!result.ok) throw new Error(result.error || "Could not validate audio URL");
+  return result.metadata;
 }

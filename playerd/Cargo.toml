@@ -12,6 +12,7 @@ description = "Rocksky remote player daemon — a headless rockbox-playback devi
 [workspace]
 
 [dependencies]
+rocksky-metadata = { path = "../apps/app/native/metadata" }
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
 dirs = "6"

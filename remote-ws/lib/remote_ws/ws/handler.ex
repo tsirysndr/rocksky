@@ -206,6 +206,9 @@ defmodule RemoteWs.Ws.Handler do
             "queue" ->
               NowPlaying.handle_queue(did, device_id, data)
 
+            "command_error" ->
+              data
+
             _ ->
               NowPlaying.handle_status(did, device_id, data)
               data

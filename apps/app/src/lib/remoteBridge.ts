@@ -1,7 +1,11 @@
-import type { RemoteController } from "@rocksky/sdk/remote";
+import type { RemoteQueueItem, RemoteController } from "@rocksky/sdk/remote";
 import axios from "axios";
 import { getDefaultStore } from "jotai";
-import { activeDeviceIdAtom, selectedSourceAtom } from "../atoms/devices";
+import {
+  activeDeviceIdAtom,
+  devicesAtom,
+  selectedSourceAtom,
+} from "../atoms/devices";
 import {
   nowPlayingAtom,
   playbackLockedUntilAtom,
@@ -64,6 +68,29 @@ export const remoteBridge = {
   setRoute(source: Source, target: string | null) {
     state.source = source;
     state.target = target;
+  },
+
+  selectedTarget(): string | null {
+    const selected = store.get(selectedSourceAtom);
+    if (selected?.kind === "spotify") throw new Error("Spotify cannot play external audio URLs. Select a Rocksky player.");
+    return selected?.kind === "device"
+      ? selected.id
+      : selected
+        ? null
+        : store.get(playerAtom) === "rockbox"
+          ? store.get(activeDeviceIdAtom)
+          : null;
+  },
+
+  enqueue(
+    target: string,
+    tracks: RemoteQueueItem[],
+    mode: "now" | "next" | "last",
+    startIndex = 0,
+  ) {
+    if (!target.trim() || !state.controller || !store.get(devicesAtom)[target])
+      throw new Error("The selected player is disconnected.");
+    state.controller.enqueue(target, tracks, mode, false, startIndex);
   },
 
   // The in-app native engine (uploaded-track playback) registers here; while

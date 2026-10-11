@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback } from "react";
 import { InsertMode } from "rockbox-wasm";
@@ -19,7 +20,8 @@ import {
 // (= the CLI's trackId), so the remote player streams them via Navidrome.
 function toDescriptor(t: QueueTrack) {
   return {
-    trackId: t.uploadId,
+    url: t.audioUrl || t.streamUrl,
+    trackId: t.audioUrl || t.streamUrl ? undefined : t.uploadId,
     title: t.title,
     artist: t.artist,
     album: t.album,
@@ -28,6 +30,38 @@ function toDescriptor(t: QueueTrack) {
     duration: t.duration,
     song_uri: t.songUri || undefined,
   };
+}
+
+async function validateOnThisPlayer(tracks: QueueTrack[]) {
+  // Called only after remote routing: reachability on a controller is irrelevant.
+  const resolved = await Promise.all(
+    tracks.map(async (track) => {
+      const url = track.audioUrl || track.streamUrl;
+      if (!url || !/^https?:/i.test(url)) return track;
+      const m = await invoke<{
+        url: string;
+        cacheId: string;
+        title: string;
+        artist?: string;
+        album?: string;
+        albumArtist?: string;
+        albumArt?: string;
+        durationMs?: number;
+      }>("player_prepare_audio_url", { url });
+      return {
+        ...track,
+        audioUrl: m.url,
+        streamUrl: m.url,
+        title: m.title || track.title,
+        artist: m.artist || track.artist,
+        album: m.album || track.album,
+        albumArtist: m.albumArtist || track.albumArtist,
+        albumArt: m.albumArt || track.albumArt,
+        duration: m.durationMs || track.duration,
+      };
+    }),
+  );
+  return resolved;
 }
 
 // useUploadPlayer — orchestrates the in-browser rockbox-wasm queue.
@@ -78,7 +112,7 @@ export function useUploadPlayer() {
       // starts a playlist; a queue we build and hand over is played in the
       // order we give it. So the toggle has to be applied here, or starting an
       // album, a playlist or an NFC tag would ignore it entirely.
-      const tracks = shuffle
+      let tracks = shuffle
         ? from === undefined
           ? shuffled(input)
           : shuffledFrom(input, from)
@@ -93,6 +127,7 @@ export function useUploadPlayer() {
         });
         return;
       }
+      tracks = await validateOnThisPlayer(tracks);
       // Optimistic now-playing so the sticky player reacts instantly; the
       // engine's track/status events reconcile the rest.
       setNowPlaying(trackToNowPlaying(tracks[startIndex]));
@@ -103,7 +138,7 @@ export function useUploadPlayer() {
       // token) lands outside the gesture, and Chrome then rejects the worklet
       // load with "Unable to load a worklet's module".
       const p = await ensureRockboxReady();
-      await ensureStreamToken();
+      if (tracks.some((track) => !track.streamUrl)) await ensureStreamToken();
 
       registerTracks(tracks);
       const urls = tracks.map(streamUrlFor);
@@ -123,53 +158,81 @@ export function useUploadPlayer() {
     [setNowPlaying, setPlayer, deviceCommand, shuffle],
   );
 
-  const playNext = useCallback(async (track: QueueTrack) => {
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "next" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks([track]);
-    p.insert(streamUrlFor(track), InsertMode.PlayNext);
-  }, [deviceCommand]);
+  const playNext = useCallback(
+    async (track: QueueTrack) => {
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: [toDescriptor(track)],
+          mode: "next",
+        });
+        return;
+      }
+      track = (await validateOnThisPlayer([track]))[0];
+      const p = await ensureRockboxReady();
+      if (!track.streamUrl) await ensureStreamToken();
+      registerTracks([track]);
+      p.insert(streamUrlFor(track), InsertMode.PlayNext);
+    },
+    [deviceCommand],
+  );
 
-  const playNextAll = useCallback(async (tracks: QueueTrack[]) => {
-    if (!tracks.length) return;
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "next" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks(tracks);
-    // insert() with an array keeps the batch's order directly after the
-    // current track (Rockbox's PlayNext), so no manual reversal is needed.
-    p.insert(tracks.map(streamUrlFor), InsertMode.PlayNext);
-  }, [deviceCommand]);
+  const playNextAll = useCallback(
+    async (tracks: QueueTrack[]) => {
+      if (!tracks.length) return;
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: tracks.map(toDescriptor),
+          mode: "next",
+        });
+        return;
+      }
+      tracks = await validateOnThisPlayer(tracks);
+      const p = await ensureRockboxReady();
+      if (tracks.some((track) => !track.streamUrl)) await ensureStreamToken();
+      registerTracks(tracks);
+      // insert() with an array keeps the batch's order directly after the
+      // current track (Rockbox's PlayNext), so no manual reversal is needed.
+      p.insert(tracks.map(streamUrlFor), InsertMode.PlayNext);
+    },
+    [deviceCommand],
+  );
 
-  const playLast = useCallback(async (track: QueueTrack) => {
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "last" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks([track]);
-    p.insert(streamUrlFor(track), InsertMode.PlayLast);
-  }, [deviceCommand]);
+  const playLast = useCallback(
+    async (track: QueueTrack) => {
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: [toDescriptor(track)],
+          mode: "last",
+        });
+        return;
+      }
+      track = (await validateOnThisPlayer([track]))[0];
+      const p = await ensureRockboxReady();
+      if (!track.streamUrl) await ensureStreamToken();
+      registerTracks([track]);
+      p.insert(streamUrlFor(track), InsertMode.PlayLast);
+    },
+    [deviceCommand],
+  );
 
-  const playLastAll = useCallback(async (tracks: QueueTrack[]) => {
-    if (!tracks.length) return;
-    if (deviceCommand.active) {
-      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "last" });
-      return;
-    }
-    const p = await ensureRockboxReady();
-    await ensureStreamToken();
-    registerTracks(tracks);
-    p.insert(tracks.map(streamUrlFor), InsertMode.PlayLast);
-  }, [deviceCommand]);
+  const playLastAll = useCallback(
+    async (tracks: QueueTrack[]) => {
+      if (!tracks.length) return;
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: tracks.map(toDescriptor),
+          mode: "last",
+        });
+        return;
+      }
+      tracks = await validateOnThisPlayer(tracks);
+      const p = await ensureRockboxReady();
+      if (tracks.some((track) => !track.streamUrl)) await ensureStreamToken();
+      registerTracks(tracks);
+      p.insert(tracks.map(streamUrlFor), InsertMode.PlayLast);
+    },
+    [deviceCommand],
+  );
 
   return {
     queue,

@@ -182,12 +182,13 @@ pub async fn remote_connect(
             let http = reqwest::Client::new();
             let mut stream_token: Option<(String, std::time::Instant)> = None;
             while let Some(cmd) = remote.next_command().await {
-                if matches!(cmd, RemoteCommand::Enqueue { .. }) {
+                if matches!(&cmd, RemoteCommand::Enqueue { tracks, .. } if tracks.iter().any(|t| t.url.is_empty() && !t.upload_id.is_empty()))
+                {
                     stream_token =
                         ensure_stream_token(&http, &api_url, &token, stream_token.take()).await;
                 }
                 let st = stream_token.as_ref().map(|(t, _)| t.as_str()).unwrap_or("");
-                apply(&app, &remote, cmd, &api_url, st);
+                apply(&app, &remote, cmd, &api_url, st).await;
             }
             tracing::info!("remote command loop ended");
         });
@@ -251,7 +252,7 @@ fn disconnect_inner(state: &AppState) {
 }
 
 /// Apply one controller command to the local engine.
-fn apply(
+async fn apply(
     app: &AppHandle,
     remote: &RemotePlayer,
     cmd: RemoteCommand,
@@ -287,10 +288,28 @@ fn apply(
             shuffle,
             start_index,
         } => {
-            let playable: Vec<(RemoteQueueItem, String)> = tracks
-                .into_iter()
-                .filter_map(|t| resolve_uri(app, &t, api_url, stream_token).map(|uri| (t, uri)))
-                .collect();
+            let mut playable = Vec::new();
+            for track in tracks {
+                if !track.url.is_empty() {
+                    match crate::player::player_prepare_audio_url(app.clone(), track.url.clone())
+                        .await
+                    {
+                        Ok(metadata) => {
+                            let item = crate::player::external_queue_item(&metadata);
+                            playable.push((item.clone(), item.url));
+                        }
+                        Err(error) => {
+                            remote.command_error(format!(
+                                "Cannot play audio URL on this device: {error}"
+                            ));
+                            tracing::warn!(%error, "audio URL rejected; queue unchanged");
+                            return;
+                        }
+                    }
+                } else if let Some(uri) = resolve_uri(app, &track, api_url, stream_token) {
+                    playable.push((track, uri));
+                }
+            }
             if playable.is_empty() {
                 tracing::warn!(
                     stream_token_present = !stream_token.is_empty(),

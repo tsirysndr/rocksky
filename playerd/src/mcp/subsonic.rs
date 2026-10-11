@@ -24,6 +24,7 @@ pub struct Subsonic {
 /// talk about it, plus the `id` that makes it playable.
 #[derive(Clone, Default)]
 pub struct Song {
+    pub url: String,
     pub id: String,
     pub title: String,
     pub artist: String,
@@ -42,6 +43,7 @@ pub struct Song {
 impl Song {
     fn from_value(v: &Value) -> Song {
         Song {
+            url: String::new(),
             id: str_of(v, "id"),
             title: str_of(v, "title"),
             artist: str_of(v, "artist"),
@@ -64,6 +66,7 @@ impl Song {
     pub fn to_json(&self) -> Value {
         let mut v = json!({
             "id": self.id,
+            "url": self.url,
             "title": self.title,
             "artist": self.artist,
             "album": self.album,
@@ -92,6 +95,7 @@ impl Song {
     /// streams it back from Navidrome with its own credentials.
     pub fn to_queue_item(&self) -> RemoteQueueItem {
         RemoteQueueItem {
+            url: self.url.clone(),
             track_id: self.id.clone(),
             title: self.title.clone(),
             artist: self.artist.clone(),

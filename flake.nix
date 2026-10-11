@@ -79,6 +79,10 @@
           repository = "https://github.com/tsirysndr/rocksky"
         '';
 
+        # Shared native URL validation/tags are path dependencies of both players.
+        metadataSource = fs.difference ./apps/app/native/metadata
+          (fs.maybeMissing ./apps/app/native/metadata/target);
+
         playerd = rustPlatform.buildRustPackage {
           pname = "playerd";
           version = "0.3.0";
@@ -89,6 +93,7 @@
               (fs.unions [
                 ./playerd
                 ./crates/rocksky-sdk
+                metadataSource
               ])
               (fs.unions [
                 ./playerd/npm
@@ -341,6 +346,9 @@
             fileset = fs.unions [
               ./package.json
               ./bun.lock
+              # Relative imports retain the repository layout, including shared
+              # story/analytics/session/legal code and their image/CSS assets.
+              ./apps/shared
               (fs.difference ./sdk/typescript (fs.unions [
                 (fs.maybeMissing ./sdk/typescript/node_modules)
                 (fs.maybeMissing ./sdk/typescript/dist)
@@ -401,6 +409,7 @@
                 (fs.maybeMissing ./desktop/src-tauri/gen)
               ]))
               ./crates/rocksky-sdk
+              metadataSource
             ];
           };
 

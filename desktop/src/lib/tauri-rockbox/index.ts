@@ -14,6 +14,7 @@ import { invoke } from "@tauri-apps/api/core";
 // the URLs. No resolver installed → unchanged behaviour.
 
 export interface QueueMeta {
+  url?: string;
   uploadId?: string;
   trackId?: string;
   title?: string;
@@ -39,6 +40,7 @@ function metaFor(urls: string[]): Record<string, unknown>[] {
   return urls.map((url) => {
     const t = queueMetaResolver?.(url);
     return {
+      url: t?.url ?? "",
       uploadId: t?.uploadId ?? "",
       trackId: t?.trackId ?? "",
       title: t?.title ?? "",

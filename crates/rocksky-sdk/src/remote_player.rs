@@ -124,6 +124,8 @@ impl RemoteStatus {
 /// (Navidrome/Subsonic id) so the item can be streamed.
 #[derive(Clone, Debug, Default)]
 pub struct RemoteQueueItem {
+    /// Direct external HTTP(S) audio, validated by the receiving player.
+    pub url: String,
     pub upload_id: String,
     pub track_id: String,
     pub title: String,
@@ -186,6 +188,7 @@ pub enum RemoteCommand {
 // Outbound state pushes carried from the handle to the background task, which
 // frames them with the (post-register) device_id + token before sending.
 enum OutMsg {
+    CommandError(String),
     Track(RemoteNowPlaying),
     Status(i32),
     Queue(Vec<RemoteQueueItem>, u32),
@@ -252,6 +255,10 @@ impl RemotePlayer {
     }
 
     /// Advertise the playback queue + current index.
+    pub fn command_error(&self, message: String) {
+        let _ = self.out_tx.send(OutMsg::CommandError(message));
+    }
+
     pub fn set_queue(&self, items: Vec<RemoteQueueItem>, index: u32) {
         let _ = self.out_tx.send(OutMsg::Queue(items, index));
     }
@@ -392,6 +399,7 @@ async fn session(
 
 fn remember(last: &mut LastState, msg: &OutMsg) {
     match msg {
+        OutMsg::CommandError(_) => {}
         OutMsg::Track(t) => last.track = Some(t.clone()),
         OutMsg::Status(s) => last.status = Some(*s),
         OutMsg::Queue(q, i) => last.queue = Some((q.clone(), *i)),
@@ -408,6 +416,9 @@ where
     S: SinkExt<Message> + Unpin,
 {
     let data = match msg {
+        OutMsg::CommandError(message) => {
+            json!({ "type": "command_error", "action": "enqueue", "message": message })
+        }
         OutMsg::Track(t) => {
             let mut data = json!({
                 "type": "track",
@@ -462,6 +473,7 @@ where
 
 fn queue_item_json(t: &RemoteQueueItem) -> serde_json::Value {
     json!({
+        "url": t.url,
         "uploadId": t.upload_id,
         "trackId": t.track_id,
         "title": t.title,
@@ -588,6 +600,7 @@ fn parse_command(msg: &Inbound) -> Option<RemoteCommand> {
 fn descriptor_to_item(v: &serde_json::Value) -> RemoteQueueItem {
     let s = |k: &str| v.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
     RemoteQueueItem {
+        url: s("url"),
         upload_id: s("uploadId"),
         track_id: s("trackId"),
         title: s("title"),
@@ -614,4 +627,21 @@ struct Inbound {
     action: Option<String>,
     #[serde(default)]
     args: Option<serde_json::Value>,
+}
+
+#[cfg(test)]
+mod audio_url_tests {
+    use super::*;
+    #[test]
+    fn direct_url_survives_queue_serialization() {
+        let item = RemoteQueueItem {
+            url: "http://192.0.2.1:8200/audio/42".into(),
+            ..Default::default()
+        };
+        let wire = queue_item_json(&item);
+        assert_eq!(descriptor_to_item(&wire).url, item.url);
+        assert!(descriptor_to_item(&json!({"uploadId": "legacy"}))
+            .url
+            .is_empty());
+    }
 }

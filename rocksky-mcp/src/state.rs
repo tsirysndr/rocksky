@@ -32,6 +32,7 @@ pub struct DeviceState {
     pub status: Option<RemoteStatus>,
     pub queue: Vec<RemoteQueueItem>,
     pub queue_index: u32,
+    pub last_error: Option<String>,
 }
 
 /// Where a command is addressed.
@@ -276,6 +277,13 @@ async fn pump(player: std::sync::Arc<Player>) {
     while let Some(event) = player.controller.next_event().await {
         let mut world = player.world.lock().unwrap();
         match event {
+            RemoteEvent::CommandError {
+                device_id,
+                device_name,
+                message,
+            } => {
+                upsert(&mut world, &device_id, &device_name).last_error = Some(message);
+            }
             RemoteEvent::Devices {
                 primary_device,
                 devices,
@@ -300,6 +308,7 @@ async fn pump(player: std::sync::Arc<Player>) {
                                 status,
                                 queue: d.queue,
                                 queue_index: d.queue_index,
+                                last_error: None,
                             },
                         )
                     })
@@ -428,6 +437,7 @@ pub fn queue_item_json(index: usize, item: &RemoteQueueItem, current: bool) -> V
 /// caller in JSON it did not ask for.
 pub fn device_json(device: &DeviceState, primary: bool, full_queue: bool) -> Value {
     let mut v = json!({
+        "lastError": device.last_error,
         "id": device.id,
         "name": device.name,
         "status": status_str(device.status),

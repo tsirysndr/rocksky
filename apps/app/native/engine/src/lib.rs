@@ -16,6 +16,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
+    PrepareAudioUrl {
+        url: String,
+        cache_dir: String,
+    },
     RendererConfigure {
         config: Option<rocksky_renderer::Config>,
     },
@@ -405,6 +409,12 @@ fn handle_internal(input: &str, from_renderer: bool) -> String {
             renderer.release();
         }
     }
+    if let Request::PrepareAudioUrl { url, cache_dir } = &request {
+        return match rocksky_metadata::audio_url::prepare(url, std::path::Path::new(cache_dir)) {
+            Ok(metadata) => serde_json::json!({"ok":true,"metadata":metadata}).to_string(),
+            Err(error) => err(error),
+        };
+    }
     if let Request::ReadRemoteMetadata {
         url,
         cache_path,
@@ -458,7 +468,8 @@ fn handle_internal(input: &str, from_renderer: bool) -> String {
         Err(e) => return err(e),
     };
     match request {
-        Request::RendererConfigure { .. }
+        Request::PrepareAudioUrl { .. }
+        | Request::RendererConfigure { .. }
         | Request::RendererRelease
         | Request::RendererStatus
         | Request::ReadRemoteMetadata { .. }

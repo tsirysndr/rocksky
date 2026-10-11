@@ -112,7 +112,7 @@ followed by a `devices` snapshot (§5.1).
 
 ### 4.2 `message` — push now-playing / status / queue (player devices)
 
-Wrap a state payload. `data.type` is one of `track`, `status`, `queue`.
+Wrap a state payload. `data.type` is one of `track`, `status`, `queue`, `command_error`.
 
 ```json
 { "type": "message", "device_id": "<your deviceId>", "token": "<jwt>",
@@ -442,3 +442,25 @@ thread. The Rust, TS, and Go SDKs also offer a handler/callback style.
 - **Web controller:** `apps/web/src/components/StickyPlayer/StickyPlayerWithData.tsx`
 - **Mobile controller:** `apps/web-mobile/src/components/MiniPlayer/index.tsx`
 - **Server:** `remote-ws/` (see `README.md` for the module map)
+
+### Direct audio URLs and target validation
+
+An enqueue descriptor may carry `url` with an HTTP(S) audio URL instead of an
+`uploadId` or `trackId`. Controllers resolve library references to URLs but do not
+use their own network reachability as proof that a player can play them. The
+selected target fetches the URL, follows bounded redirects, checks HTTP status,
+and decodes audio before changing its queue. Connection/DNS failures, unreachable
+IPs, timeouts, HTTP errors, and unsupported media reject the batch without
+changing playback. Targets extract and cache available tags and embedded artwork.
+Queue pushes preserve the `url` field.
+
+A target reports rejection through a device message:
+
+```json
+{"type":"command_error","action":"enqueue","message":"The audio host/IP is unreachable from this player"}
+```
+
+The relay attaches the registered target's device ID and broadcasts the error to
+its account's controllers without changing playback status. Sending an enqueue
+request is not an acceptance acknowledgment; the target's resulting queue confirms
+acceptance. This extension requires a player version that supports direct URLs.
