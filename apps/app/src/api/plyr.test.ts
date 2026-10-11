@@ -1,5 +1,10 @@
 import { expect, spyOn, test } from "bun:test";
-import { createPlyrBrowser, plyrEntry, plyrTrack } from "./plyr";
+import {
+  createPlyrBrowser,
+  plyrEntry,
+  plyrTrack,
+  plyrDisplayLabel,
+} from "./plyr";
 
 test("track artwork falls back to album artwork and seconds become milliseconds", () => {
   expect(
@@ -111,4 +116,20 @@ test("supporter-gated tracks never resolve to a public audio URL", async () => {
   } finally {
     request.mockRestore();
   }
+});
+
+test("handles get one @ while display names and playback metadata stay unchanged", () => {
+  expect(plyrDisplayLabel("piss.beauty", "piss.beauty")).toBe("@piss.beauty");
+  expect(plyrDisplayLabel("@piss.beauty", "piss.beauty")).toBe("@piss.beauty");
+  expect(plyrDisplayLabel("stellz", "piss.beauty")).toBe("stellz");
+  const entry = plyrEntry({
+    id: 56,
+    title: "banana mix",
+    artist: "piss.beauty",
+    artist_handle: "piss.beauty",
+  });
+  expect(entry.artist).toBe("piss.beauty");
+  expect(plyrDisplayLabel(entry.artist, entry.artistHandle)).toBe(
+    "@piss.beauty",
+  );
 });

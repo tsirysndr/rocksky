@@ -1,4 +1,4 @@
-import { PLYR_ID, plyrTabs } from "../../api/plyr";
+import { PLYR_ID, plyrDisplayLabel, plyrTabs } from "../../api/plyr";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
@@ -32,7 +32,11 @@ import { PickerSheet } from "../../components/PlaylistSheets";
 import { Text } from "../../components/Text";
 import { refreshRemoteArtwork } from "../../lib/remoteLibraryArtwork";
 import { RemoteLibraryPaging } from "../../lib/remoteLibraryPaging";
-import { playQueue, queueTracks } from "../../lib/libraryPlayback";
+import {
+  playQueue,
+  playQueueProgressively,
+  queueTracks,
+} from "../../lib/libraryPlayback";
 import type { UploadQueueTrack } from "../../lib/uploadEngine";
 import { colors } from "../../theme";
 import { MenuAction } from "./LibraryActions";
@@ -373,15 +377,21 @@ export default function RemoteLibrary({
     }
   };
   const play = (item: LibraryEntry) =>
+    void run(() => playQueue([serverQueueTrack(source.id, item)], 0));
+  const playAll = () =>
     void run(() =>
-      playQueue(
+      playQueueProgressively(
         tracks.map((track) => serverQueueTrack(source.id, track)),
-        Math.max(
-          0,
-          tracks.findIndex((t) => t.id === item.id),
-        ),
       ),
     );
+  const artistLabel = (item: LibraryEntry) =>
+    source.kind === "plyr"
+      ? plyrDisplayLabel(item.artist, item.artistHandle)
+      : item.artist;
+  const titleLabel = (item: LibraryEntry) =>
+    source.kind === "plyr" && item.kind === "artist"
+      ? plyrDisplayLabel(item.title, item.artistHandle)
+      : item.title;
   const more = (item: LibraryEntry) => setMenuTrack(item);
   const shuffle = () => {
     const shuffled = [...tracks];
@@ -390,9 +400,8 @@ export default function RemoteLibrary({
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     void run(() =>
-      playQueue(
+      playQueueProgressively(
         shuffled.map((track) => serverQueueTrack(source.id, track)),
-        0,
       ),
     );
   };
@@ -537,7 +546,7 @@ export default function RemoteLibrary({
                     accessibilityRole="button"
                     accessibilityLabel="Play loaded tracks"
                     accessibilityState={{ disabled: busy }}
-                    onPress={() => play(tracks[0])}
+                    onPress={playAll}
                     style={[styles.icon, busy && { opacity: 0.45 }]}
                   >
                     <Feather name="play" size={24} color={colors.text} />
@@ -572,7 +581,10 @@ export default function RemoteLibrary({
                   setTab("Tracks");
                   setPath([]);
                 } else
-                  setPath((p) => [...p, { id: item.id, title: item.title }]);
+                  setPath((p) => [
+                    ...p,
+                    { id: item.id, title: titleLabel(item) },
+                  ]);
                 setSearch("");
                 setDebounced("");
               }
@@ -592,10 +604,10 @@ export default function RemoteLibrary({
                 numberOfLines={1}
                 style={{ fontSize: 15, fontWeight: "600" }}
               >
-                {item.title}
+                {titleLabel(item)}
               </Text>
               <Text numberOfLines={1} style={styles.note}>
-                {item.artist ||
+                {artistLabel(item) ||
                   (item.kind === "track" ? item.album : "Browse collection")}
               </Text>
             </View>
@@ -695,7 +707,7 @@ export default function RemoteLibrary({
       {menuTrack && (
         <PickerSheet
           title={menuTrack.title}
-          subtitle={menuTrack.artist}
+          subtitle={artistLabel(menuTrack)}
           artwork={menuTrack.art}
           headerArtwork={
             <EntryArtwork

@@ -1048,9 +1048,10 @@ function streamUrlFor(track: UploadQueueTrack): string {
 
 async function playbackPaths(
   tracks: UploadQueueTrack[],
+  validate = true,
 ): Promise<string[] | CastPathResolver> {
   if (!castPlayback.connected()) return resolvePaths(tracks);
-  for (const track of tracks) if (track.audioUrl || track.streamUrl?.match(/^https?:/i)) await validateTrackUrl(track, track.audioUrl || track.streamUrl!);
+  if (validate) for (const track of tracks) if (track.audioUrl || track.streamUrl?.match(/^https?:/i)) await validateTrackUrl(track, track.audioUrl || track.streamUrl!);
   const owner = storage.getToken();
   let localTracks: Promise<Map<string, DeviceTrack>> | undefined;
   const resolve: CastPathResolver = async (track, _index, signal) => {
@@ -1144,7 +1145,9 @@ async function resolvePaths(tracks: UploadQueueTrack[]): Promise<string[]> {
 export async function playUploads(
   tracks: UploadQueueTrack[],
   startIndex: number,
+  current: () => boolean = () => true,
 ): Promise<boolean> {
+  if (!current()) return false;
   const session = storage.getToken();
   if (
     !session &&
@@ -1154,9 +1157,10 @@ export async function playUploads(
   const casting = castPlayback.connected();
   if ((!casting && !isEngineAvailable()) || tracks.length === 0) return false;
   const paths = await playbackPaths(tracks);
+  if (!current()) return false;
   if (casting !== castPlayback.connected()) return false;
   await applyLocalPlaybackModes();
-  if (storage.getToken() !== session) return false;
+  if (!current() || storage.getToken() !== session) return false;
   const result = await openPlayback(tracks, paths, startIndex);
   if (!result.ok) return false;
   queue = tracks;
@@ -1196,20 +1200,22 @@ export async function queueUploadsNext(
 /** Queue tracks at the end without replacing a paused restored queue. */
 export async function queueUploadsLast(
   tracks: UploadQueueTrack[],
+  current: () => boolean = () => true,
 ): Promise<boolean> {
-  return enqueueTracksInOrder(tracks, "last");
+  return enqueueTracksInOrder(tracks, "last", current);
 }
 
 // Context menus in different screens can resolve URLs concurrently. Preserve
 // their insertion order and never let a later operation overwrite the queue.
 let pendingEnqueue: Promise<unknown> = Promise.resolve();
-function enqueueTracksInOrder(tracks: UploadQueueTrack[], where: "next" | "last") {
+function enqueueTracksInOrder(tracks: UploadQueueTrack[], where: "next" | "last", current: () => boolean = () => true) {
   const castSession = castPlayback.connected() ? castPlayback.sessionGeneration() : null;
   const result = pendingEnqueue.then(() => {
     if (castSession !== null && (!castPlayback.connected() || castPlayback.sessionGeneration() !== castSession)) {
       throw new Error("Chromecast disconnected. Reconnect and try again.");
     }
-    return enqueueLocalTracks(tracks, where);
+    if (!current()) return false;
+    return enqueueLocalTracks(tracks, where, current);
   });
   pendingEnqueue = result.catch(() => {});
   return result;
@@ -1218,28 +1224,31 @@ function enqueueTracksInOrder(tracks: UploadQueueTrack[], where: "next" | "last"
 async function enqueueLocalTracks(
   tracks: UploadQueueTrack[],
   where: "next" | "last",
+  current: () => boolean = () => true,
 ): Promise<boolean> {
+  if (!current()) return false;
   if (tracks.length === 0) return false;
   if (!castPlayback.connected() && !isEngineAvailable()) return false;
-  if (queue.length === 0 || (castPlayback.connected() && !castPlayback.hasLoadedQueue())) return playUploads(tracks, 0);
+  if (queue.length === 0 || (castPlayback.connected() && !castPlayback.hasLoadedQueue())) return playUploads(tracks, 0, current);
   let index = lastIndex ?? resumeIndex;
   if (castPlayback.connected()) {
     const session = castPlayback.sessionGeneration();
     for (const track of tracks) if (track.audioUrl || track.streamUrl?.match(/^https?:/i)) await validateTrackUrl(track, track.audioUrl || track.streamUrl!);
-    const paths = await playbackPaths(queue);
+    const paths = await playbackPaths(queue, false);
     if (!castPlayback.connected() || session !== castPlayback.sessionGeneration()) {
       throw new Error("Chromecast disconnected. Reconnect and try again.");
     }
-    const current = castPlayback.status();
-    index = current.index ?? index;
+    if (!current()) return false;
+    const castStatus = castPlayback.status();
+    index = castStatus.index ?? index;
     const at = where === "next" ? index + 1 : queue.length;
     const next = [...queue.slice(0, at), ...tracks, ...queue.slice(at)];
     await castPlayback.load(
       next,
       paths,
       index,
-      current.positionMs,
-      current.state === "playing",
+      castStatus.positionMs,
+      castStatus.state === "playing",
     );
     queue = next;
     store.set(selectedSourceAtom, { kind: "cast" });
@@ -1250,11 +1259,12 @@ async function enqueueLocalTracks(
   }
   if (!resumePending) {
     const paths = await resolvePaths(tracks);
-    if (castPlayback.connected()) return enqueueLocalTracks(tracks, where);
+    if (!current()) return false;
+    if (castPlayback.connected()) return enqueueLocalTracks(tracks, where, current);
     // URL resolution can take time: read the current track after it completes.
     const status = engineCommand({ cmd: "status" });
     if (!status.ok || status.queueLen !== queue.length) return false;
-    if (status.index === null) return playUploads(tracks, 0);
+    if (status.index === null) return playUploads(tracks, 0, current);
     const result = engineCommand({
       cmd: where === "next" ? "insertNext" : "append",
       paths,

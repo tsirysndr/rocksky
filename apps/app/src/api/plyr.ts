@@ -57,9 +57,16 @@ export async function plyrRequest(path: string): Promise<any> {
   }
 }
 
+export function plyrDisplayLabel(value: string, handle?: string): string {
+  if (!handle) return value;
+  const bare = handle.replace(/^@+/, "");
+  return value.replace(/^@+/, "") === bare ? `@${bare}` : value;
+}
+
 export function plyrEntry(track: Item): LibraryEntry {
   return {
     id: String(track.id),
+    artistHandle: track.artist_handle,
     kind: "track",
     title: track.title ?? "Untitled",
     artist:
@@ -79,6 +86,7 @@ export function plyrEntry(track: Item): LibraryEntry {
 function artistEntry(artist: Item): LibraryEntry {
   return {
     id: `artist:${artist.did ?? artist.artist_did}`,
+    artistHandle: artist.handle ?? artist.artist_handle,
     kind: "artist",
     title:
       artist.display_name ??
@@ -149,6 +157,7 @@ export function createPlyrBrowser(request = plyrRequest) {
         data.albums.map((a: Item) => ({
           id: `album:${encodeURIComponent(a.artist_handle ?? "")}/${encodeURIComponent(a.slug ?? "")}`,
           title: a.title ?? "Untitled",
+          artistHandle: a.artist_handle,
           kind: "album",
           artist: a.artist ?? a.artist_handle ?? "",
           album: a.title ?? "",

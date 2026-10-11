@@ -22,6 +22,7 @@ export type LibraryConnection = Omit<LibrarySource, "id"> & {
   token?: string;
 };
 export type LibraryEntry = {
+  artistHandle?: string;
   id: string;
   title: string;
   kind: string;
