@@ -33,6 +33,11 @@ xattr -dr com.apple.quarantine /Applications/Rocksky.app
 Download the `.deb`, `.rpm`, or `.AppImage` from the
 [latest `desktop-v*` release](https://github.com/tsirysndr/rocksky/releases).
 
+The Linux release targets x86_64 with **glibc 2.35 or newer** (Ubuntu 22.04
+or a compatible newer distribution). The AppImage bundles FriBidi and HarfBuzz,
+while glibc remains supplied by the operating system. It does not support older
+glibc versions just because it is an AppImage.
+
 ## What it does
 
 - **Remote control** — registers as a remotely controllable Rocksky player
@@ -72,6 +77,12 @@ The frontend is built with `--mode prod` (`.env.prod`); a `VITE_KLIPY_API_KEY`
 repo secret overrides the committed KLIPY key when set. macOS bundles are
 ad-hoc signed (`codesign --sign -`) — there is no Apple Developer identity, so
 they are not notarized.
+
+Before Linux bundling, `scripts/prepare-appimage.sh` installs Tauri's verified
+AppRun launcher with mode 0755 and supplies the extra AppImage libraries. The
+release workflow extracts the resulting image, checks permissions for other
+users and the glibc baseline, then requires a visible Rocksky window and at least
+20 seconds of startup under Xvfb before uploading artifacts.
 
 ## Remote registration
 

@@ -91,6 +91,7 @@ jobs:
             os: macos-latest
             bundles: app
           - target: x86_64-unknown-linux-gnu
+            # Tauri 2/WebKitGTK 4.1 baseline: glibc 2.35. Do not raise silently.
             os: ubuntu-22.04
             bundles: deb,rpm,appimage
     defaults:
@@ -111,11 +112,20 @@ jobs:
             libpcsclite-dev \
             libxdo-dev \
             libssl-dev \
+            libfribidi0 \
+            libharfbuzz0b \
+            libgles2 \
             build-essential \
             pkg-config \
             patchelf \
             rpm \
-            file
+            file \
+            binutils \
+            python3 \
+            xvfb \
+            xauth \
+            x11-utils \
+            dbus-x11
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -150,6 +160,10 @@ jobs:
           mv /tmp/conf.json src-tauri/tauri.conf.json
           echo "bundle version: $(jq -r .version src-tauri/tauri.conf.json)"
 
+      - name: Prepare portable AppImage launcher and libraries
+        if: runner.os == 'Linux'
+        run: bash scripts/prepare-appimage.sh "$RUNNER_TEMP/rocksky-appimage.json"
+
       - name: tauri build
         env:
           # Ad-hoc signing: no Apple Developer identity, no notarization. The
@@ -158,15 +172,35 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && '-' || '' }}
           KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
         run: |
+          set -euo pipefail
           # `--mode prod` loads desktop/.env.prod; a non-empty repo secret
           # overrides the KLIPY key committed there (real env wins in Vite).
           if [ -n "${KLIPY_API_KEY:-}" ]; then
             export VITE_KLIPY_API_KEY="$KLIPY_API_KEY"
           fi
+          extra_config=(--config '{"build":{"beforeBuildCommand":"bun run build:prod"}}')
+          if [ "$RUNNER_OS" = Linux ]; then
+            extra_config+=(--config "$RUNNER_TEMP/rocksky-appimage.json")
+          fi
           bun run tauri build \
             --target ${{ matrix.target }} \
             --bundles ${{ matrix.bundles }} \
-            --config '{"build":{"beforeBuildCommand":"bun run build:prod"}}'
+            "${extra_config[@]}"
+
+      - name: Verify AppImage permissions, dependencies, and startup
+        if: runner.os == 'Linux'
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          images=(src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage)
+          [ "${#images[@]}" -eq 1 ] && [ -f "${images[0]}" ]
+          image="$(realpath "${images[0]}")"
+          stage="$(mktemp -d)"
+          (cd "$stage" && "$image" --appimage-extract >/dev/null)
+          python3 scripts/check-appimage.py "$stage/squashfs-root"
+          dbus-run-session -- xvfb-run -a \
+            python3 scripts/smoke-appimage.py "$stage/squashfs-root/AppRun"
 
       - name: Package macOS bundle (ad-hoc signed)
         if: runner.os == 'macOS'
