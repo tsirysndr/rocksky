@@ -306,6 +306,25 @@ mod http {
 
         /// Download `[start, end)` and write it into the cache at `start`.
         fn fetch(&mut self, start: u64, end: u64) -> io::Result<()> {
+            let mut last = None;
+            for attempt in 0..3 {
+                match self.fetch_once(start, end) {
+                    Ok(()) => return Ok(()),
+                    Err(error) => {
+                        eprintln!("rockbox-playback: HTTP audio range read failed (attempt {}/3, bytes {}-{}): {}", attempt + 1, start, end, error);
+                        last = Some(error);
+                        if attempt < 2 {
+                            std::thread::sleep(std::time::Duration::from_millis(
+                                200 * (attempt + 1),
+                            ));
+                        }
+                    }
+                }
+            }
+            Err(last.unwrap())
+        }
+
+        fn fetch_once(&mut self, start: u64, end: u64) -> io::Result<()> {
             let end = end.min(self.size);
             if start >= end {
                 return Ok(());
@@ -318,29 +337,64 @@ mod http {
                 );
             }
             let mut resp = req
+                .timeout(std::time::Duration::from_secs(30))
                 .send()
-                .map_err(to_io)?
-                .error_for_status()
-                .map_err(to_io)?;
+                .and_then(|response| response.error_for_status())
+                .map_err(|error| to_io(error.without_url()))?;
 
-            self.cache.seek(SeekFrom::Start(start))?;
-            let mut written = start;
+            // A server may stop honoring Range after the probe. A 200 response
+            // starts at byte zero, never at our requested offset.
+            let (write_start, write_end) = if resp.status() == reqwest::StatusCode::OK {
+                (0, self.size)
+            } else if resp.status() == reqwest::StatusCode::PARTIAL_CONTENT {
+                let expected = format!("bytes {}-{}/{}", start, end - 1, self.size);
+                if resp
+                    .headers()
+                    .get(reqwest::header::CONTENT_RANGE)
+                    .and_then(|header| header.to_str().ok())
+                    != Some(expected.as_str())
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "incorrect audio Content-Range",
+                    ));
+                }
+                (start, end)
+            } else {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "unexpected audio HTTP status",
+                ));
+            };
+            self.cache.seek(SeekFrom::Start(write_start))?;
+            let mut written = write_start;
             let mut buf = [0u8; 64 * 1024];
             loop {
-                let n = resp.read(&mut buf).map_err(to_io)?;
+                let n = resp.read(&mut buf).map_err(|_| {
+                    io::Error::new(io::ErrorKind::UnexpectedEof, "audio response interrupted")
+                })?;
                 if n == 0 {
                     break;
                 }
-                // Guard against a server that ignores the upper bound.
-                let take = (n as u64).min(self.size.saturating_sub(written)) as usize;
-                if take == 0 {
-                    break;
+                if n as u64 > write_end.saturating_sub(written) {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "audio response exceeds requested range",
+                    ));
                 }
-                self.cache.write_all(&buf[..take])?;
-                written += take as u64;
+                self.cache.write_all(&buf[..n])?;
+                written += n as u64;
+            }
+            // The cache file is pre-sized. Never serve its unwritten zeroes
+            // as audio when the server closes a body early.
+            if written != write_end {
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "incomplete audio range response",
+                ));
             }
             self.cache.flush()?;
-            self.add_have(start, written);
+            self.add_have(write_start, written);
             Ok(())
         }
 

@@ -1717,8 +1717,10 @@ impl Engine {
                 break;
             }
 
-            *self.shared.next_track.lock().unwrap() = self.next_index(true)
-                .and_then(|i| self.queue.get(i)).cloned();
+            *self.shared.next_track.lock().unwrap() = self
+                .next_index(true)
+                .and_then(|i| self.queue.get(i))
+                .cloned();
 
             // Paused: keep the decoder and buffered audio; idle until a
             // command changes things.
@@ -1829,7 +1831,20 @@ impl Engine {
     /// `output_rate`, or `None` at end of track.
     fn next_output_chunk(&mut self) -> Option<Vec<i16>> {
         let dec = self.decoder.as_mut()?;
-        let chunk = dec.next_chunk()?;
+        let chunk = match dec.next_chunk() {
+            Some(chunk) => chunk,
+            None => {
+                let elapsed = dec.elapsed().as_millis();
+                let duration = self.shared.duration_ms.load(Ordering::Relaxed);
+                if dec.status() != Some(0)
+                    || (duration > 0 && elapsed + 2000 < u128::from(duration))
+                {
+                    eprintln!("rockbox-playback: decoder ended early: queue_index={} codec_status={:?} elapsed_ms={} duration_ms={}",
+                        self.index, dec.status(), elapsed, duration);
+                }
+                return None;
+            }
+        };
         // Engage the resampler only when the native rate actually changes.
         if chunk.sample_rate != self.input_rate {
             self.dsp.set_input_frequency(chunk.sample_rate);

@@ -19,6 +19,15 @@ struct TestServer {
 }
 
 fn spawn_server(body: Vec<u8>, support_range: bool, content_type: &str) -> TestServer {
+    spawn_fault_server(body, support_range, content_type, "")
+}
+
+fn spawn_fault_server(
+    body: Vec<u8>,
+    support_range: bool,
+    content_type: &str,
+    fault: &'static str,
+) -> TestServer {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
     let url = format!("http://{}/audio", addr);
@@ -34,7 +43,7 @@ fn spawn_server(body: Vec<u8>, support_range: bool, content_type: &str) -> TestS
             let ct = ct.clone();
             let counter = Arc::clone(&req_counter);
             std::thread::spawn(move || {
-                counter.fetch_add(1, Ordering::SeqCst);
+                let request = counter.fetch_add(1, Ordering::SeqCst);
                 let mut reader = BufReader::new(stream.try_clone().unwrap());
                 let mut range: Option<(u64, u64)> = None;
                 let mut line = String::new();
@@ -65,12 +74,21 @@ fn spawn_server(body: Vec<u8>, support_range: bool, content_type: &str) -> TestS
                 }
 
                 let total = body.len() as u64;
-                let resp = match (support_range, range) {
+                let honor_range = support_range && !(fault == "ignore_range" && request > 0);
+                let resp = match (honor_range, range) {
                     (true, Some((s, e))) => {
-                        let slice = &body[s as usize..=e as usize];
+                        let mut slice = &body[s as usize..=e as usize];
+                        let advertised_len = slice.len();
+                        if request > 0
+                            && (fault == "always_short"
+                                || ((fault == "short_once" || fault == "disconnect_once")
+                                    && request == 1))
+                        {
+                            slice = &slice[..slice.len() / 2];
+                        }
                         let mut head = format!(
                             "HTTP/1.1 206 Partial Content\r\nContent-Type: {ct}\r\nAccept-Ranges: bytes\r\nContent-Range: bytes {s}-{e}/{total}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                            slice.len()
+                            if fault == "disconnect_once" { advertised_len } else { slice.len() }
                         )
                         .into_bytes();
                         head.extend_from_slice(slice);
@@ -620,4 +638,45 @@ fn plays_an_infinite_http_stream() {
         }),
         "stop() should interrupt a live stream"
     );
+}
+
+#[test]
+fn retries_incomplete_ranges_without_serving_zero_filled_cache() {
+    let data = sample_bytes(1_000_000);
+    let server = spawn_fault_server(data.clone(), true, "audio/flac", "short_once");
+    let mut source = HttpSource::new(&server.url).unwrap();
+    let mut got = vec![0; data.len()];
+    source.read_exact(&mut got).unwrap();
+    assert_eq!(got, data);
+    assert_eq!(server.requests.load(Ordering::SeqCst), 3);
+}
+
+#[test]
+fn permanently_short_ranges_fail_instead_of_returning_silence() {
+    let server = spawn_fault_server(sample_bytes(1_000_000), true, "audio/flac", "always_short");
+    let mut source = HttpSource::new(&server.url).unwrap();
+    assert!(source.read_exact(&mut [0; 4096]).is_err());
+    assert_eq!(server.requests.load(Ordering::SeqCst), 4);
+}
+
+#[test]
+fn full_response_after_range_probe_is_written_at_zero() {
+    let data = sample_bytes(1_000_000);
+    let server = spawn_fault_server(data.clone(), true, "audio/flac", "ignore_range");
+    let mut source = HttpSource::new(&server.url).unwrap();
+    source.seek(SeekFrom::Start(12345)).unwrap();
+    let mut got = vec![0; 4096];
+    source.read_exact(&mut got).unwrap();
+    assert_eq!(got, data[12345..12345 + 4096]);
+}
+
+#[test]
+fn reconnects_after_server_disconnects_mid_range() {
+    let data = sample_bytes(1_000_000);
+    let server = spawn_fault_server(data.clone(), true, "audio/flac", "disconnect_once");
+    let mut source = HttpSource::new(&server.url).unwrap();
+    let mut got = vec![0; data.len()];
+    source.read_exact(&mut got).unwrap();
+    assert_eq!(got, data);
+    assert_eq!(server.requests.load(Ordering::SeqCst), 3);
 }
