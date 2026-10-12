@@ -37,7 +37,8 @@ async function validateOnThisPlayer(tracks: QueueTrack[]) {
   const resolved = await Promise.all(
     tracks.map(async (track) => {
       const url = track.audioUrl || track.streamUrl;
-      if (!url || !/^https?:/i.test(url)) return track;
+      if (!url || !/^https?:/i.test(url) || track.uploadId.startsWith("server:"))
+        return track;
       const m = await invoke<{
         url: string;
         cacheId: string;

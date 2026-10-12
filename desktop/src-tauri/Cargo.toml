@@ -6,7 +6,7 @@
 
 [package]
 name = "rocksky-desktop"
-version = "0.1.1"
+version = "0.1.2"
 description = "Rocksky desktop player — Tauri app over rocksky-sdk and the rockbox-playback engine"
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
 edition = "2021"
@@ -21,6 +21,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 rocksky-metadata = { path = "../../apps/app/native/metadata" }
+rocksky-libraries = { path = "../../apps/app/native/libraries" }
+uuid = { version = "1", features = ["v4"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"

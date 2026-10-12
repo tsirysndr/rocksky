@@ -1,4 +1,3 @@
-import OpenAudioUrl from "../../components/OpenAudioUrl";
 import styled from "@emotion/styled";
 import { shuffled } from "../../lib/shuffle";
 import {
@@ -17,7 +16,8 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
-import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { PlayBtn, PlayButtons, ShuffleBtn, tabOverrides, tabsOverrides } from "./libraryStyles";
+import { type ReactNode, useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
   downloadFromNavidrome,
   downloadTracksFromNavidrome,
@@ -116,23 +116,6 @@ const tabKeyFor = (tab?: string) => {
   return String(i < 0 ? 0 : i);
 };
 
-const tabOverrides = {
-  Tab: {
-    style: {
-      color: "var(--color-text)",
-      backgroundColor: "var(--color-background) !important",
-    },
-  },
-  TabPanel: {
-    style: { paddingTop: "16px", paddingBottom: "0", paddingLeft: "0", paddingRight: "0" },
-  },
-};
-
-const tabsOverrides = {
-  TabHighlight: { style: { backgroundColor: "var(--color-purple)" } },
-  TabBorder: { style: { display: "none" } },
-};
-
 // ---------------------------------------------------------------------------
 // Styled components
 // ---------------------------------------------------------------------------
@@ -154,6 +137,12 @@ const Title = styled.h1`
   font-size: 1.5rem;
   font-family: RockfordSansBold;
   color: var(--color-text);
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const UploadButton = styled.button`
@@ -571,44 +560,6 @@ const PrimaryButton = styled.button`
 `;
 
 const Sentinel = styled.div`height: 1px;`;
-
-const PlayButtons = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-`;
-
-const PlayBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 22px;
-  border: none;
-  background: var(--color-text);
-  color: var(--color-background);
-  font-size: 0.875rem;
-  font-family: RockfordSansMedium;
-  border-radius: 999px;
-  cursor: pointer;
-  &:hover:not(:disabled) { opacity: 0.85; }
-  &:disabled { opacity: 0.4; cursor: default; }
-`;
-
-const ShuffleBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 4px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-family: RockfordSansMedium;
-  cursor: pointer;
-  &:hover:not(:disabled) { color: var(--color-text); }
-  &:disabled { opacity: 0.4; cursor: default; }
-`;
 
 // A failed load used to leave the tab on its skeleton forever, which reads as a
 // library that never finishes loading rather than one that couldn't.
@@ -1047,7 +998,7 @@ function downloadFavorites(creds: NavidromeCredentials, songs: NavidromeSong[]) 
 // Page
 // ---------------------------------------------------------------------------
 
-export default function Library() {
+export default function Library({ sourceSwitcher }: { sourceSwitcher?: ReactNode }) {
   const navigate = useNavigate();
   const { playNow, playNext, playLast } = useUploadPlayer();
   const credentials = useNavidromeCredentials();
@@ -1226,10 +1177,12 @@ export default function Library() {
       <Page>
         <Header>
           <Title>My Library</Title>
-          <OpenAudioUrl />
-          <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
-            <IconUpload size={15} /> Upload Music
-          </UploadButton>
+          <HeaderActions>
+            {sourceSwitcher}
+            <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
+              <IconUpload size={15} /> Upload Music
+            </UploadButton>
+          </HeaderActions>
         </Header>
 
         <SearchWrap>

@@ -4,10 +4,12 @@ mod cards;
 // snapshot path (smoother included) across a real track boundary.
 pub mod dsp;
 pub mod engine;
+mod libraries;
 mod login;
 mod media;
 mod nfc;
 mod player;
+mod plyr;
 mod remote;
 mod rocksky;
 mod session;
@@ -44,7 +46,8 @@ pub fn run() {
 
             let cache_dir = app.path().app_cache_dir()?;
             let config_dir = app.path().app_config_dir()?;
-            app.manage(MediaCache::new(cache_dir, config_dir));
+            app.manage(MediaCache::new(cache_dir, config_dir.clone()));
+            app.manage(std::sync::Arc::new(libraries::Libraries::new(config_dir)));
 
             // OS media session (macOS Now Playing, Linux MPRIS) — must run on
             // the main thread; non-fatal when the platform has none.
@@ -101,6 +104,7 @@ pub fn run() {
             player::player_set_repeat,
             player::player_status,
             player::player_queue,
+            libraries::remote_library,
             remote::remote_connect,
             remote::remote_disconnect,
             remote::remote_status,
