@@ -31,14 +31,7 @@ pub fn request(source: &str, directory: &Path) -> Value {
         *state = (String::new(), json!({"status":"idle"}));
         return state.1.clone();
     }
-    let stamp = fs::metadata(source)
-        .ok()
-        .map(|m| format!("{}:{:?}", m.len(), m.modified().ok()))
-        .unwrap_or_default();
-    let key = format!(
-        "{:x}",
-        Sha256::digest(format!("waveform-v2-rms:{source}:{stamp}"))
-    );
+    let key = cache_key(source);
     if state.0 == key {
         return state.1.clone();
     }
@@ -61,6 +54,54 @@ pub fn request(source: &str, directory: &Path) -> Value {
         }
     });
     state.1.clone()
+}
+
+fn cache_key(source: &str) -> String {
+    let stamp = fs::metadata(source)
+        .ok()
+        .map(|m| format!("{}:{:?}", m.len(), m.modified().ok()))
+        .unwrap_or_default();
+    format!(
+        "{:x}",
+        Sha256::digest(format!("waveform-v2-rms:{source}:{stamp}"))
+    )
+}
+
+/// Warm the next file's cache without changing the visible waveform. Foreground
+/// analysis has priority; repeated polls schedule at most one job per source.
+pub fn prefetch(source: &str, directory: &Path) {
+    static LAST: OnceLock<Mutex<(u64, String)>> = OnceLock::new();
+    if source.is_empty() {
+        return;
+    }
+    let generation = GENERATION.load(Ordering::Relaxed);
+    let key = cache_key(source);
+    if let Some(state) = STATE.get() {
+        let state = state.lock().unwrap();
+        if state.0 == key || state.1["status"] == "pending" {
+            return;
+        }
+    }
+    let mut last = LAST
+        .get_or_init(|| Mutex::new((u64::MAX, String::new())))
+        .lock()
+        .unwrap();
+    if last.0 == generation && last.1 == key {
+        return;
+    }
+    *last = (generation, key.clone());
+    let source = source.to_owned();
+    let directory = directory.to_owned();
+    std::thread::spawn(move || {
+        let _worker = WORKER.lock().unwrap();
+        if GENERATION.load(Ordering::Relaxed) == generation {
+            let _ = generate(&source, &directory, &key, generation);
+        }
+    });
+}
+
+pub fn should_prefetch(playing: bool, position: Duration, duration: Duration) -> bool {
+    playing && !duration.is_zero() && position >= duration / 2
 }
 
 fn generate(source: &str, directory: &Path, key: &str, generation: u64) -> Result<Vec<u8>, String> {
@@ -244,6 +285,16 @@ fn bins(envelope: &[Energy]) -> Vec<u8> {
 mod tests {
     use super::*;
     #[test]
+    fn prefetch_threshold_excludes_paused_and_live_streams() {
+        let duration = Duration::from_secs(100);
+        assert!(!should_prefetch(true, Duration::from_secs(49), duration));
+        assert!(should_prefetch(true, Duration::from_secs(50), duration));
+        assert!(should_prefetch(true, Duration::from_secs(90), duration));
+        assert!(!should_prefetch(false, duration, duration));
+        assert!(!should_prefetch(true, duration, Duration::ZERO));
+    }
+
+    #[test]
     fn decodes_audio_into_time_aligned_waveform() {
         let mut file = tempfile::NamedTempFile::new().unwrap();
         let frames = 32_000_u32;
@@ -279,6 +330,50 @@ mod tests {
             file.write_all(&sample.to_le_bytes()).unwrap();
         }
         let peaks = decode(fs::File::open(file.path()).unwrap(), || Ok(())).unwrap();
+        // Warm a real next file while another cached waveform is displayed.
+        // The next request must hit disk cache even after its source disappears.
+        let directory = tempfile::tempdir().unwrap();
+        let current = "https://example.invalid/current.flac";
+        let current_peaks = vec![7u8; BINS];
+        fs::write(
+            directory
+                .path()
+                .join(format!("{}.json", cache_key(current))),
+            serde_json::to_vec(&current_peaks).unwrap(),
+        )
+        .unwrap();
+        request(current, directory.path());
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while request(current, directory.path())["status"] == "pending" {
+            assert!(Instant::now() < deadline);
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let next = file.path().to_str().unwrap();
+        let next_key = cache_key(next);
+        prefetch(next, directory.path());
+        let cached = directory.path().join(format!("{next_key}.json"));
+        while !cached.exists() {
+            assert!(Instant::now() < deadline);
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(
+            request(current, directory.path())["peaks"],
+            json!(current_peaks)
+        );
+        assert_eq!(
+            serde_json::from_slice::<Vec<u8>>(&fs::read(cached).unwrap()).unwrap(),
+            peaks
+        );
+        assert_eq!(
+            generate(
+                "/missing-next-file",
+                directory.path(),
+                &next_key,
+                GENERATION.load(Ordering::Relaxed)
+            )
+            .unwrap(),
+            peaks
+        );
         assert_eq!(peaks.len(), BINS);
         assert!(peaks[..60].iter().all(|&p| p == 0));
         assert!(peaks[70..120].iter().all(|&p| (11..=14).contains(&p)));

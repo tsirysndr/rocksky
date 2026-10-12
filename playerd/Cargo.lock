@@ -3304,7 +3304,7 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "playerd"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "anyhow",
  "clap",
@@ -3807,8 +3807,6 @@ dependencies = [
 [[package]]
 name = "rockbox-playback"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c650635d15737305f33bc4e52352dfbb34ac47e2853c61db3479a95526893e10"
 dependencies = [
  "cpal",
  "quick-xml",

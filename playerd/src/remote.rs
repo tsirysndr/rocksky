@@ -344,6 +344,16 @@ pub fn push_state(shared: &Shared) {
         .and_then(|v| serde_json::from_value::<Vec<u8>>(v.clone()).ok())
         .filter(|v| v.len() == 256);
 
+    if rocksky_metadata::waveform::should_prefetch(
+        status.state == PlaybackState::Playing,
+        status.position,
+        status.duration,
+    ) {
+        if let Some(next) = snapshot.next_track.as_deref() {
+            rocksky_metadata::waveform::prefetch(next, &directory);
+        }
+    }
+
     shared.remote.set_now_playing(np);
     shared.remote.set_status(match status.state {
         PlaybackState::Playing => RemoteStatus::Playing,

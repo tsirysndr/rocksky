@@ -30,6 +30,8 @@ object NativeEngine {
       }
       System.loadLibrary("rocksky_engine")
       nativeInit(context.applicationContext)
+      command(org.json.JSONObject().put("cmd", "waveformCache")
+        .put("cacheDir", java.io.File(context.cacheDir, "waveforms").absolutePath).toString())
       loaded = true
       true
     } catch (t: Throwable) {

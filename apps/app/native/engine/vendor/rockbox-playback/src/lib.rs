@@ -852,6 +852,7 @@ struct Shared {
     /// Mirror of the engine's queue so the handle can read it (for
     /// `queue()` / `export_m3u`) without a round-trip to the engine thread.
     queue: Mutex<Vec<PathBuf>>,
+    next_track: Mutex<Option<PathBuf>>,
 }
 
 impl Shared {
@@ -1152,6 +1153,11 @@ impl Player {
     }
 
     // ---- resume (auto-persist / restore) --------------------------------
+
+    /// Actual next automatic transition, including shuffle and repeat.
+    pub fn next_track(&self) -> Option<PathBuf> {
+        self.shared.next_track.lock().unwrap().clone()
+    }
 
     /// A snapshot of the current queue, in order.
     pub fn queue(&self) -> Vec<PathBuf> {
@@ -1466,6 +1472,7 @@ fn make_shared(config: &PlayerConfig, rate: u32) -> Arc<Shared> {
         meta: Mutex::new(None),
         dsp: Mutex::new(config.dsp.clone()),
         queue: Mutex::new(Vec::new()),
+        next_track: Mutex::new(None),
     })
 }
 
@@ -1956,6 +1963,9 @@ impl Engine {
             if !self.pump_commands(false) {
                 break;
             }
+
+            *self.shared.next_track.lock().unwrap() = self.next_index(true)
+                .and_then(|i| self.queue.get(i)).cloned();
 
             // Paused: keep the decoder and buffered audio; idle until a
             // command changes things.

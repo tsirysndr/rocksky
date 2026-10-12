@@ -85,7 +85,7 @@
 
         playerd = rustPlatform.buildRustPackage {
           pname = "playerd";
-          version = "0.3.1";
+          version = (builtins.fromTOML (builtins.readFile ./playerd/Cargo.toml)).package.version;
 
           src = fs.toSource {
             root = ./.;

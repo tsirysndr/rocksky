@@ -76,6 +76,7 @@ pub struct Snapshot {
     /// controllers derives from this list (URIs mapped to display metadata),
     /// so no external mirror can drift from what actually plays.
     pub queue: Vec<String>,
+    pub next_track: Option<String>,
     /// Output volume 0.0..=1.0.
     pub volume: f32,
     /// When `status` was captured, so [`Engine::snapshot`] can extrapolate the
@@ -97,6 +98,7 @@ impl Default for Snapshot {
                 repeat: RepeatMode::Off,
             },
             queue: Vec::new(),
+            next_track: None,
             volume: 1.0,
             taken: Instant::now(),
         }
@@ -202,6 +204,9 @@ fn snapshot_of(player: &Player, smoother: &mut BoundarySmoother) -> Snapshot {
             .iter()
             .map(|p| p.to_string_lossy().into_owned())
             .collect(),
+        next_track: player
+            .next_track()
+            .map(|p| p.to_string_lossy().into_owned()),
         volume: player.volume(),
         taken: Instant::now(),
     }

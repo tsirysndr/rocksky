@@ -16,7 +16,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "camelCase", rename_all_fields = "camelCase")]
 enum Request {
-    Waveform { source: String, cache_dir: String },
+    WaveformCache {
+        cache_dir: String,
+    },
+    Waveform {
+        source: String,
+        cache_dir: String,
+    },
     PrepareAudioUrl {
         url: String,
         cache_dir: String,
@@ -214,7 +220,22 @@ impl Engine {
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     }
-                    *shared.lock().unwrap() = snapshot_of(&player);
+                    let snap = snapshot_of(&player);
+                    if rocksky_metadata::waveform::should_prefetch(
+                        snap.status.state == PlaybackState::Playing,
+                        snap.status.position,
+                        snap.status.duration,
+                    ) {
+                        if let (Some(directory), Some(next)) =
+                            (WAVEFORM_CACHE.get(), player.next_track())
+                        {
+                            rocksky_metadata::waveform::prefetch(
+                                &next.to_string_lossy(),
+                                directory,
+                            );
+                        }
+                    }
+                    *shared.lock().unwrap() = snap;
                 }
             })
             .map_err(|e| e.to_string())?;
@@ -305,6 +326,8 @@ fn apply(player: &Player, cmd: EngineCmd, audio: &mut audio::AudioSettings, shuf
         EngineCmd::GetSnapshot(_) => {}
     }
 }
+
+static WAVEFORM_CACHE: OnceLock<std::path::PathBuf> = OnceLock::new();
 
 static ENGINE: OnceLock<Result<Engine, String>> = OnceLock::new();
 
@@ -413,8 +436,13 @@ fn handle_internal(input: &str, from_renderer: bool) -> String {
             renderer.release();
         }
     }
+    if let Request::WaveformCache { cache_dir } = &request {
+        let _ = WAVEFORM_CACHE.set(cache_dir.into());
+        return ok();
+    }
     if let Request::Waveform { source, cache_dir } = &request {
-        return rocksky_metadata::waveform::request(source, std::path::Path::new(cache_dir)).to_string();
+        return rocksky_metadata::waveform::request(source, std::path::Path::new(cache_dir))
+            .to_string();
     }
     if let Request::PrepareAudioUrl { url, cache_dir } = &request {
         return match rocksky_metadata::audio_url::prepare(url, std::path::Path::new(cache_dir)) {
@@ -475,7 +503,8 @@ fn handle_internal(input: &str, from_renderer: bool) -> String {
         Err(e) => return err(e),
     };
     match request {
-        Request::Waveform { .. }
+        Request::WaveformCache { .. }
+        | Request::Waveform { .. }
         | Request::PrepareAudioUrl { .. }
         | Request::RendererConfigure { .. }
         | Request::RendererRelease
