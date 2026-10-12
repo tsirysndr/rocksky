@@ -146,6 +146,8 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
   const deletePreset = useDeleteEqualizerPresetMutation();
   const [saving, setSaving] = useState(false);
   const [presetName, setPresetName] = useState("");
+  const [selectedBand, setSelectedBand] = useState(0);
+  const [editingBand, setEditingBand] = useState(false);
 
   const eq = settings.equalizer ?? {};
   const tone = settings.tone ?? {};
@@ -193,6 +195,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
   // Closing is also "I'm done": send whatever the debounce is still holding
   // rather than waiting for the timer on a sheet that is gone.
   const close = () => {
+    setEditingBand(false);
     flush();
     onClose();
   };
@@ -249,6 +252,7 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
             </View>
           ) : (
             <ScrollView
+              scrollEnabled={!editingBand}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
@@ -257,8 +261,8 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
               <SectionHeader title="EQUALIZER" />
               {/* Worth a word: none of it is suggested by the controls. */}
               <Text style={styles.hint}>
-                Drag a band to shape the curve; tap − and + to step a value,
-                hold to run, long-press a reading to reset it.
+                Drag a band to shape the curve; double-tap to reset it. Use −
+                and + below to fine-tune the selected band.
               </Text>
               <Row label="Enable EQ">
                 <Switch
@@ -340,12 +344,35 @@ export default function AudioSettingsSheet({ visible, onClose }: Props) {
                       gain={band.gain}
                       freqLabel={freqLabel(band.frequency)}
                       disabled={!eqEnabled}
+                      selected={selectedBand === index}
+                      onStart={() => {
+                        setSelectedBand(index);
+                        setEditingBand(true);
+                      }}
                       onChange={(gain) => setBandGain(index, gain)}
-                      onRelease={flush}
+                      onRelease={() => {
+                        setEditingBand(false);
+                        flush();
+                      }}
                     />
                   ))}
                 </View>
               </View>
+              {bands[selectedBand] && (
+                <View>
+                  <ValueStepper
+                    label={`${bands[selectedBand].frequency} Hz`}
+                    valueText={db(bands[selectedBand].gain)}
+                    norm={(bands[selectedBand].gain + 240) / 480}
+                    steps={96}
+                    onChange={(value) =>
+                      setBandGain(selectedBand, Math.round(value * 480 - 240))
+                    }
+                    onRelease={flush}
+                  />
+                </View>
+              )}
+
               <ValueStepper
                 label="Precut"
                 steps={48}
@@ -598,7 +625,7 @@ const styles = StyleSheet.create({
     // each band's track — which fills the remaining height — collapsed to
     // nothing. The sliders then had no thumb to show and no area to drag.
     alignItems: "stretch",
-    height: 170,
+    height: 230,
     gap: 8,
   },
   bands: {

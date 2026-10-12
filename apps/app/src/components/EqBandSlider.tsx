@@ -14,6 +14,8 @@ type Props = {
   /** e.g. "1k". */
   freqLabel: string;
   disabled?: boolean;
+  selected?: boolean;
+  onStart?: () => void;
   onChange: (gain: number) => void;
   onRelease?: () => void;
 };
@@ -43,9 +45,15 @@ export default function EqBandSlider({
   gain,
   freqLabel,
   disabled,
+  selected,
+  onStart,
   onChange,
   onRelease,
 }: Props) {
+  // Keep one responder throughout a gesture. Parent settings updates replace
+  // callbacks, but must never replace PanResponder's gesture bookkeeping.
+  const callbacks = useRef({ onChange, onRelease, onStart });
+  callbacks.current = { onChange, onRelease, onStart };
   const [trackHeight, setTrackHeight] = useState(0);
   const gainRef = useRef(gain);
   gainRef.current = gain;
@@ -76,9 +84,12 @@ export default function EqBandSlider({
           unreported.current = null;
           lastReport.current = 0;
           setLive(gainRef.current);
+          callbacks.current.onStart?.();
         },
         onPanResponderMove: (_event, gesture) => {
-          if (Math.abs(gesture.dy) > TAP_SLOP) dragged.current = true;
+          if (!dragged.current && Math.abs(gesture.dy) <= TAP_SLOP) return;
+          dragged.current = true;
+          lastTap.current = 0;
           const usable = Math.max(1, heightRef.current - THUMB);
           // Up is a boost, so the sign flips; a full track is the full range.
           const delta = (-gesture.dy / usable) * (MAX_GAIN * 2);
@@ -88,7 +99,7 @@ export default function EqBandSlider({
           if (now - lastReport.current >= REPORT_MS) {
             lastReport.current = now;
             unreported.current = null;
-            onChange(next);
+            callbacks.current.onChange(next);
             return;
           }
           unreported.current = next;
@@ -96,7 +107,7 @@ export default function EqBandSlider({
         onPanResponderRelease: () => {
           // Whatever the throttle held back is where the finger ended.
           if (unreported.current !== null) {
-            onChange(unreported.current);
+            callbacks.current.onChange(unreported.current);
             unreported.current = null;
           }
           setLive(null);
@@ -105,20 +116,25 @@ export default function EqBandSlider({
             const now = Date.now();
             if (now - lastTap.current < DOUBLE_TAP_MS) {
               lastTap.current = 0;
-              onChange(0);
-              onRelease?.();
+              callbacks.current.onChange(0);
+              callbacks.current.onRelease?.();
               return;
             }
             lastTap.current = now;
           }
-          onRelease?.();
+          callbacks.current.onRelease?.();
         },
         onPanResponderTerminate: () => {
+          if (unreported.current !== null) {
+            callbacks.current.onChange(unreported.current);
+            unreported.current = null;
+          }
+          lastTap.current = 0;
           setLive(null);
-          onRelease?.();
+          callbacks.current.onRelease?.();
         },
       }),
-    [onChange, onRelease],
+    [],
   );
 
   const onLayout = (event: LayoutChangeEvent) => {
@@ -138,7 +154,7 @@ export default function EqBandSlider({
   const fillHeight = Math.abs(thumbBottom - centre);
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, selected && styles.selected]}>
       <View {...responder.panHandlers} style={styles.track} onLayout={onLayout}>
         <View style={styles.rail} />
         <View style={[styles.centreLine, { bottom: centre + THUMB / 2 }]} />
@@ -173,6 +189,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     gap: 4,
+  },
+  selected: {
+    backgroundColor: colors.surface2,
+    borderRadius: 8,
   },
   track: {
     flex: 1,
