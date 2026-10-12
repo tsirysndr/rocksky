@@ -37,7 +37,7 @@ pub fn request(source: &str, directory: &Path) -> Value {
         .unwrap_or_default();
     let key = format!(
         "{:x}",
-        Sha256::digest(format!("waveform-v1:{source}:{stamp}"))
+        Sha256::digest(format!("waveform-v2-rms:{source}:{stamp}"))
     );
     if state.0 == key {
         return state.1.clone();
@@ -167,7 +167,7 @@ fn decode(file: fs::File, check: impl Fn() -> Result<(), String>) -> Result<Vec<
     let mut decoder = symphonia::default::get_codecs()
         .make(&track.codec_params, &DecoderOptions::default())
         .map_err(|e| e.to_string())?;
-    let mut envelope = Vec::<f32>::new();
+    let mut envelope = Vec::<Energy>::new();
     let mut time = 0.0;
     loop {
         check()?;
@@ -193,11 +193,12 @@ fn decode(file: fs::File, check: impl Fn() -> Result<(), String>) -> Result<Vec<
                 return Err("Audio longer than two hours".into());
             }
             if envelope.len() <= bin {
-                envelope.resize(bin + 1, 0.0);
+                envelope.resize(bin + 1, Energy::default());
             }
             for sample in frame {
                 if sample.is_finite() {
-                    envelope[bin] = envelope[bin].max(sample.abs());
+                    envelope[bin].squares += f64::from(*sample).powi(2);
+                    envelope[bin].samples += 1;
                 }
             }
             time += 1.0 / spec.rate as f64;
@@ -209,16 +210,32 @@ fn decode(file: fs::File, check: impl Fn() -> Result<(), String>) -> Result<Vec<
     Ok(bins(&envelope))
 }
 
-fn bins(envelope: &[f32]) -> Vec<u8> {
-    let maximum = envelope.iter().copied().fold(0.0_f32, f32::max).max(1e-9);
+// Accumulate energy rather than maxima: a short drum transient must not make
+// the whole surrounding second look full-scale. Counts also weight partial
+// windows correctly. Fixed full-scale calibration preserves dynamics without
+// stretching every track's loudest passage to 255.
+#[derive(Clone, Copy, Default)]
+struct Energy {
+    squares: f64,
+    samples: u64,
+}
+
+fn bins(envelope: &[Energy]) -> Vec<u8> {
     (0..BINS)
         .map(|i| {
             let start = i * envelope.len() / BINS;
             let end = ((i + 1) * envelope.len() / BINS)
                 .max(start + 1)
                 .min(envelope.len());
-            let peak = envelope[start..end].iter().copied().fold(0.0_f32, f32::max);
-            ((peak / maximum).clamp(0.0, 1.0).sqrt() * 255.0).round() as u8
+            let energy = envelope[start..end]
+                .iter()
+                .fold(Energy::default(), |mut sum, e| {
+                    sum.squares += e.squares;
+                    sum.samples += e.samples;
+                    sum
+                });
+            let rms = (energy.squares / energy.samples.max(1) as f64).sqrt();
+            (rms.clamp(0.0, 1.0) * 255.0).round() as u8
         })
         .collect()
 }
@@ -229,7 +246,7 @@ mod tests {
     #[test]
     fn decodes_audio_into_time_aligned_waveform() {
         let mut file = tempfile::NamedTempFile::new().unwrap();
-        let frames = 16_000_u32;
+        let frames = 32_000_u32;
         let bytes = frames * 2;
         file.write_all(b"RIFF").unwrap();
         file.write_all(&(36 + bytes).to_le_bytes()).unwrap();
@@ -244,7 +261,15 @@ mod tests {
         file.write_all(b"data").unwrap();
         file.write_all(&bytes.to_le_bytes()).unwrap();
         for i in 0..frames {
-            let sample: i16 = if i < 8000 {
+            // Silence, sparse transients, denser transients, then sustained
+            // audio. All non-silent sections have exactly the same peak.
+            let audible = match i / 8000 {
+                0 => false,
+                1 => i % 100 == 0,
+                2 => i % 100 < 25,
+                _ => true,
+            };
+            let sample: i16 = if !audible {
                 0
             } else if i % 2 == 0 {
                 16000
@@ -255,8 +280,10 @@ mod tests {
         }
         let peaks = decode(fs::File::open(file.path()).unwrap(), || Ok(())).unwrap();
         assert_eq!(peaks.len(), BINS);
-        assert!(peaks[..120].iter().all(|&p| p == 0));
-        assert!(peaks[140..].iter().all(|&p| p == 255));
+        assert!(peaks[..60].iter().all(|&p| p == 0));
+        assert!(peaks[70..120].iter().all(|&p| (11..=14).contains(&p)));
+        assert!(peaks[140..185].iter().all(|&p| (61..=64).contains(&p)));
+        assert!(peaks[205..].iter().all(|&p| p == 125));
         assert!(decode(fs::File::open(file.path()).unwrap(), || Err(
             "cancelled".into()
         ))
@@ -264,15 +291,57 @@ mod tests {
     }
 
     #[test]
-    fn waveform_preserves_silence_and_loud_sections() {
-        let mut envelope = vec![0.0; BINS];
-        envelope[80] = 0.25;
-        envelope[190] = 1.0;
-        let peaks = bins(&envelope);
-        assert_eq!(peaks.len(), BINS);
-        assert_eq!(peaks[0], 0);
-        assert_eq!(peaks[80], 128);
-        assert_eq!(peaks[190], 255);
-        assert_eq!(bins(&[0.0]), vec![0; BINS]);
+    fn equal_peaks_with_different_energy_produce_different_heights() {
+        // Every window has a full-scale peak, but the sustained energy differs.
+        // The old max-based algorithm produced 255 for all three passages.
+        let mut envelope = vec![Energy::default(); BINS];
+        envelope[80] = Energy {
+            squares: 1.0,
+            samples: 100,
+        };
+        envelope[120] = Energy {
+            squares: 25.0,
+            samples: 100,
+        };
+        envelope[190] = Energy {
+            squares: 100.0,
+            samples: 100,
+        };
+        let levels = bins(&envelope);
+        assert_eq!(levels[0], 0);
+        assert_eq!(levels[80], 26);
+        assert_eq!(levels[120], 128);
+        assert_eq!(levels[190], 255);
+        assert_eq!(bins(&[Energy::default()]), vec![0; BINS]);
+    }
+
+    #[test]
+    fn quiet_tracks_are_not_stretched_to_full_height() {
+        let levels = bins(&vec![
+            Energy {
+                squares: 1.0,
+                samples: 100
+            };
+            BINS
+        ]);
+        assert!(levels.iter().all(|&level| level == 26));
+    }
+
+    #[test]
+    fn downsampling_weights_partial_windows_by_sample_count() {
+        let mut envelope = vec![
+            Energy {
+                squares: 0.0,
+                samples: 99
+            };
+            BINS * 2
+        ];
+        for i in (0..envelope.len()).step_by(2) {
+            envelope[i] = Energy {
+                squares: 1.0,
+                samples: 1,
+            };
+        }
+        assert!(bins(&envelope).iter().all(|&level| level == 26));
     }
 }
