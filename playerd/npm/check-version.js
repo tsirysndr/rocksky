@@ -1,5 +1,5 @@
 // prepublishOnly: the npm version must match playerd/Cargo.toml, because the
-// package downloads the GitHub release tagged playerd-v<npm version> — a
+// package downloads the GitHub release tagged playerd-<npm version> — a
 // mismatch publishes a package that fetches the wrong (or a missing) binary.
 // Skips silently when Cargo.toml isn't present (publishing from a bare
 // tarball outside the repo).
@@ -20,7 +20,7 @@ const npmVersion = require("./package.json").version;
 if (cargoVersion !== npmVersion) {
   console.error(
     `version mismatch: playerd/Cargo.toml is ${cargoVersion} but npm package is ${npmVersion} — ` +
-      "they must match, since the package downloads the playerd-v<npm version> release",
+      "they must match, since the package downloads the playerd-<npm version> release",
   );
   process.exit(1);
 }

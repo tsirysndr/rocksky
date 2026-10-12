@@ -45,9 +45,9 @@ async function ensureBinary() {
   if (fs.existsSync(binaryPath)) return binaryPath;
 
   const version = require("../package.json").version;
-  const tag = `playerd-v${version}`;
+  const tag = `playerd-${version}`;
   const target = resolveTarget();
-  const asset = `playerd-v${version}-${target}.tar.gz`;
+  const asset = `playerd-${version}-${target}.tar.gz`;
   const base = `https://github.com/${REPO}/releases/download/${tag}`;
 
   console.error(`downloading playerd ${version} (${target}) from github.com/${REPO}…`);

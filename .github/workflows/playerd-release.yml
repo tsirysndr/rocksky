@@ -4,12 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (default playerd-v<version> from playerd/Cargo.toml)"
+        description: "Release tag (default playerd-<version> from playerd/Cargo.toml)"
         type: string
         required: false
   push:
     tags:
       - "playerd-v*"
+      - "playerd-[0-9]*"
 
 permissions:
   contents: write
@@ -35,7 +36,7 @@ jobs:
           else
             VER="$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -1)"
             [ -n "$VER" ] || { echo "could not read version from playerd/Cargo.toml" >&2; exit 1; }
-            TAG="playerd-v$VER"
+            TAG="playerd-$VER"
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG"

@@ -1,6 +1,6 @@
 [package]
 name = "playerd"
-version = "0.3.5"
+version = "0.3.6"
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
 edition = "2021"
 license = "MPL-2.0"
