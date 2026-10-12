@@ -82,6 +82,9 @@
         # Shared native URL validation/tags are path dependencies of both players.
         metadataSource = fs.difference ./apps/app/native/metadata
           (fs.maybeMissing ./apps/app/native/metadata/target);
+        # Remote library clients (Navidrome, Jellyfin, UPnP) shared with the desktop app.
+        librariesSource = fs.difference ./apps/app/native/libraries
+          (fs.maybeMissing ./apps/app/native/libraries/target);
 
         playerd = rustPlatform.buildRustPackage {
           pname = "playerd";
@@ -339,7 +342,7 @@
 
         desktopFrontend = pkgs.stdenvNoCC.mkDerivation {
           pname = "rocksky-desktop-frontend";
-          version = "0.1.1";
+          version = "1.2.0";
 
           src = fs.toSource {
             root = ./.;
@@ -399,7 +402,7 @@
 
         rocksky-desktop = rustPlatform.buildRustPackage {
           pname = "rocksky-desktop";
-          version = "0.1.1";
+          version = "1.2.0";
 
           src = fs.toSource {
             root = ./.;
@@ -410,6 +413,7 @@
               ]))
               ./crates/rocksky-sdk
               metadataSource
+              librariesSource
             ];
           };
 

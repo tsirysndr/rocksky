@@ -28,11 +28,31 @@ import {
 } from "../../api/remoteLibraries";
 import type { QueueTrack } from "../../atoms/queue";
 import { DropdownPortal } from "../../components/DropdownPortal";
+import { useArtistPictures } from "../../api/artistPictures";
 import { useInfiniteScrollSentinel } from "../../hooks/useInfiniteScrollSentinel";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import Main from "../../layouts/Main";
 import { shuffled } from "../../lib/shuffle";
-import { PlayBtn, PlayButtons, ShuffleBtn, tabOverrides, tabsOverrides } from "./libraryStyles";
+import {
+  AlbumActionsOverlay,
+  AlbumArtContainer,
+  AlbumArtWrap,
+  AlbumArtistName,
+  AlbumCard,
+  AlbumFloatBtn,
+  AlbumName,
+  ArtistAvatar,
+  ArtistCard,
+  ArtistGrid,
+  ArtistNameLabel,
+  Grid,
+  MenuWrap,
+  PlayBtn,
+  PlayButtons,
+  ShuffleBtn,
+  tabOverrides,
+  tabsOverrides,
+} from "./libraryStyles";
 
 const Page = styled.div`
   margin-top: 70px;
@@ -430,6 +450,11 @@ export default function RemoteLibrary({
     setDebounced("");
   }, [source.kind, upnpCategories.length, items]);
 
+  const artistNames = useMemo(
+    () => items.filter((i) => i.kind === "artist" && !i.art).map((i) => i.title),
+    [items],
+  );
+  const pictures = useArtistPictures(artistNames);
   const visible =
     localFilter && search.trim()
       ? items.filter((item) =>
@@ -454,6 +479,12 @@ export default function RemoteLibrary({
   };
   const play = (item: LibraryEntry) =>
     void run(async () => playNow(await toQueueTracks(source, [item]), 0));
+  const playFolder = (item: LibraryEntry) =>
+    void run(async () => {
+      const page = await remoteLibraries.browse(source.id, item.id, "", 0);
+      const list = page.entries.filter((e) => e.kind === "track");
+      if (list.length) await playNow(await toQueueTracks(source, list));
+    });
   const playAll = (list: LibraryEntry[], from?: number) =>
     void run(async () => playNow(await toQueueTracks(source, list), from));
 
@@ -524,10 +555,63 @@ export default function RemoteLibrary({
               : "No music found here."}
           </Note>
         ) : (
+          visible.every((item) => item.kind === "album") ? (
+          <Grid>
+            {visible.map((item) => (
+              <AlbumCard key={`${item.kind}:${item.id}`} onClick={() => open(item)}>
+                <AlbumArtContainer>
+                  <AlbumArtWrap className="album-art-wrap">
+                    {item.art ? (
+                      <img src={item.art} alt={item.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <IconDisc size={40} color="var(--color-text-muted)" />
+                    )}
+                  </AlbumArtWrap>
+                  <AlbumActionsOverlay className="album-actions">
+                    <MenuWrap>
+                      <AlbumFloatBtn
+                        aria-label={`Play ${item.title}`}
+                        disabled={busy}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playFolder(item);
+                        }}
+                      >
+                        <IconPlayerPlay size={16} fill="#fff" />
+                      </AlbumFloatBtn>
+                    </MenuWrap>
+                  </AlbumActionsOverlay>
+                </AlbumArtContainer>
+                <AlbumName title={item.title}>{titleLabel(item)}</AlbumName>
+                <AlbumArtistName title={item.artist}>{artistLabel(item)}</AlbumArtistName>
+              </AlbumCard>
+            ))}
+          </Grid>
+          ) : visible.every((item) => item.kind === "artist") ? (
+          <ArtistGrid>
+            {visible.map((item) => {
+              const art = item.art ?? pictures[item.title] ?? null;
+              return (
+                <ArtistCard key={`${item.kind}:${item.id}`} onClick={() => open(item)}>
+                  <ArtistAvatar className="artist-avatar">
+                    {art ? (
+                      <img src={art} alt={item.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <IconUser size={36} />
+                    )}
+                  </ArtistAvatar>
+                  <ArtistNameLabel title={item.title}>{titleLabel(item)}</ArtistNameLabel>
+                </ArtistCard>
+              );
+            })}
+          </ArtistGrid>
+          ) : (
           <List>
             {visible.map((item) => (
               <Row key={`${item.kind}:${item.id}`} onClick={() => open(item)}>
-                <EntryArtwork item={item} />
+                <EntryArtwork
+                  item={item.kind === "artist" && !item.art && pictures[item.title] ? { ...item, art: pictures[item.title] } : item}
+                />
                 <Info>
                   <RowTitle>{titleLabel(item)}</RowTitle>
                   <RowMeta>
@@ -551,6 +635,7 @@ export default function RemoteLibrary({
               </Row>
             ))}
           </List>
+          )
         )}
 
         {query.hasNextPage && (

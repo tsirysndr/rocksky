@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { IconCloud } from "@tabler/icons-react";
+import { IconCloud, IconDeviceLaptop } from "@tabler/icons-react";
 import type { LibraryKind } from "../api/remoteLibraries";
 import jellyfin from "../assets/libraries/jellyfin.svg";
 import navidrome from "../assets/libraries/navidrome.svg";
@@ -34,7 +34,7 @@ export default function LibraryLogo({
   kind,
   size = 40,
 }: {
-  kind: LibraryKind | "uploaded";
+  kind: LibraryKind | "uploaded" | "local";
   size?: number;
 }) {
   const inner = Math.round(size * 0.7);
@@ -42,6 +42,8 @@ export default function LibraryLogo({
     <Box size={size}>
       {kind === "uploaded" ? (
         <IconCloud size={Math.round(size * 0.55)} color="var(--color-text-muted)" />
+      ) : kind === "local" ? (
+        <IconDeviceLaptop size={Math.round(size * 0.55)} color="var(--color-text-muted)" />
       ) : kind === "plyr" ? (
         <img
           src={plyr}

@@ -150,7 +150,7 @@ export default function LibrarySwitcher({
   }, [anchor]);
 
   const remote = sources.data?.sources.find((s) => s.id === selected);
-  const name = remote?.name ?? "Uploaded music";
+  const name = remote?.name ?? (selected === "local" ? "Local music" : "Uploaded music");
 
   const disconnect = async (source: LibrarySource) => {
     if (!window.confirm(`Disconnect ${source.name}? Your server’s music stays unchanged.`)) return;
@@ -173,7 +173,7 @@ export default function LibrarySwitcher({
         aria-expanded={!!anchor}
         onClick={(e) => setAnchor(anchor ? null : e.currentTarget)}
       >
-        <LibraryLogo kind={remote?.kind ?? "uploaded"} size={28} />
+        <LibraryLogo kind={remote?.kind ?? (selected === "local" ? "local" : "uploaded")} size={28} />
         <Label>{name}</Label>
         <IconChevronDown size={16} />
       </Select>
@@ -182,22 +182,30 @@ export default function LibrarySwitcher({
       </IconBtn>
       {anchor && (
         <DropdownPortal anchorEl={anchor} menuRef={menuRef}>
-          <Item
-            role="option"
-            aria-selected={selected === "uploaded"}
-            active={selected === "uploaded"}
-            onClick={() => {
-              onSelect("uploaded");
-              setAnchor(null);
-            }}
-          >
-            <LibraryLogo kind="uploaded" size={36} />
-            <Texts>
-              <Title>Uploaded music</Title>
-              <Hint>Your Rocksky library</Hint>
-            </Texts>
-            {selected === "uploaded" && <IconCheck size={16} color="var(--color-primary)" />}
-          </Item>
+          {(
+            [
+              { id: "local", name: "Local music", hint: "Music on this computer" },
+              { id: "uploaded", name: "Uploaded music", hint: "Your Rocksky library" },
+            ] as const
+          ).map((item) => (
+            <Item
+              key={item.id}
+              role="option"
+              aria-selected={selected === item.id}
+              active={selected === item.id}
+              onClick={() => {
+                onSelect(item.id);
+                setAnchor(null);
+              }}
+            >
+              <LibraryLogo kind={item.id} size={36} />
+              <Texts>
+                <Title>{item.name}</Title>
+                <Hint>{item.hint}</Hint>
+              </Texts>
+              {selected === item.id && <IconCheck size={16} color="var(--color-primary)" />}
+            </Item>
+          ))}
           <Section>CONNECTED SERVERS</Section>
           {(sources.data?.sources ?? []).map((source) => (
             <Item

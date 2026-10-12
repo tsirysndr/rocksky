@@ -1,3 +1,4 @@
+mod artists;
 mod cache;
 mod cards;
 // dsp/engine are pub so examples/boundary_probe.rs can drive the shipped
@@ -5,6 +6,7 @@ mod cards;
 pub mod dsp;
 pub mod engine;
 mod libraries;
+mod local;
 mod login;
 mod media;
 mod nfc;
@@ -48,6 +50,8 @@ pub fn run() {
             let config_dir = app.path().app_config_dir()?;
             app.manage(MediaCache::new(cache_dir, config_dir.clone()));
             app.manage(std::sync::Arc::new(libraries::Libraries::new(config_dir)));
+            local::init(app.handle())?;
+            artists::init(app.handle())?;
 
             // OS media session (macOS Now Playing, Linux MPRIS) — must run on
             // the main thread; non-fatal when the platform has none.
@@ -105,6 +109,8 @@ pub fn run() {
             player::player_status,
             player::player_queue,
             libraries::remote_library,
+            local::local_library,
+            artists::artist_pictures,
             remote::remote_connect,
             remote::remote_disconnect,
             remote::remote_status,
