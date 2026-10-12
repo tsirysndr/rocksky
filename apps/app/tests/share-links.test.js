@@ -11,6 +11,7 @@ for (const [kind, collection, screen] of [
   test(`${kind} shared web link opens the original record`, () => {
     const uri = `at://${did}/app.rocksky.${collection}/3abc`;
     const url = shareUrl({ kind, uri });
+    assert.equal(url, `https://rocksky.app/${did}/${collection}/3abc`);
     assert.deepEqual(parseSharePath(new URL(url).pathname), {
       name: screen,
       params: { uri },
@@ -23,7 +24,9 @@ for (const [kind, collection, screen] of [
 }
 test("profile and wrapped links preserve account and year", () => {
   for (const actor of [did, "alice.bsky.social"]) {
-    const url = new URL(shareUrl({ kind: "profile", uri: actor }));
+    const link = shareUrl({ kind: "profile", uri: actor });
+    assert.equal(link, `https://rocksky.app/profile/${actor}`);
+    const url = new URL(link);
     assert.deepEqual(parseSharePath(url.pathname), {
       name: "UserProfile",
       params: { did: actor },
@@ -31,6 +34,7 @@ test("profile and wrapped links preserve account and year", () => {
     const wrapped = new URL(
       shareUrl({ kind: "wrapped", uri: actor, year: 2025 }),
     );
+    assert.equal(wrapped.href, `https://rocksky.app/profile/${actor}?wrapped=2025`);
     assert.deepEqual(parseSharePath(wrapped.pathname + wrapped.search), {
       name: "Wrapped",
       params: { did: actor, year: 2025 },
@@ -82,7 +86,7 @@ test("top-list cards share the owner's profile and preserve the selected period 
   };
   assert.equal(
     shareUrl(item),
-    `https://rocksky.app/profile/${encodeURIComponent(did)}`,
+    `https://rocksky.app/profile/${did}`,
   );
   assert.match(shareText(item), /Top Albums — Alice · 30 days/);
 });

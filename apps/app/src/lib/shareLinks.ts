@@ -57,7 +57,7 @@ export function shareUrl(
     const actor = item.uri.replace(/^at:\/\//, "");
     if (!segment(actor))
       throw new Error("This profile has no shareable link yet.");
-    return `https://rocksky.app/profile/${encodeURIComponent(actor)}${item.kind === "wrapped" ? `?wrapped=${item.year}` : ""}`;
+    return `https://rocksky.app/profile/${actor}${item.kind === "wrapped" ? `?wrapped=${item.year}` : ""}`;
   }
   const match = /^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/.exec(item.uri);
   const type = item.kind === "track" ? "song" : item.kind;
@@ -69,7 +69,7 @@ export function shareUrl(
   ) {
     throw new Error("This item has no shareable link yet.");
   }
-  return `https://rocksky.app/${encodeURIComponent(match[1])}/${type}/${encodeURIComponent(match[3])}`;
+  return `https://rocksky.app/${match[1]}/${type}/${match[3]}`;
 }
 
 export function shareText(item: ShareItem): string {
