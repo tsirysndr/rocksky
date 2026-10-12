@@ -3,6 +3,7 @@ import PlayerVolume from "@/src/components/PlayerVolume";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import WaveformSeek from "@/src/components/WaveformSeek";
+import Slider from "@react-native-community/slider";
 import { useWaveform } from "@/src/hooks/useWaveform";
 import { getStreamUrl, ensureStreamToken } from "@/src/api/uploads";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
@@ -390,7 +391,29 @@ export default function Player() {
 
             {/* Seek */}
             {finiteTrack && <View style={styles.seekBlock}>
-              <WaveformSeek
+              {isSpotify ? (
+                <Slider
+                  accessibilityLabel="Playback position"
+                  style={{ width: "100%", height: 40 }}
+                  minimumValue={0}
+                  maximumValue={duration}
+                  value={position}
+                  minimumTrackTintColor={colors.primary}
+                  maximumTrackTintColor="rgba(255,255,255,0.3)"
+                  thumbTintColor={colors.primary}
+                  onSlidingStart={() => {
+                    setScrubValue(Math.min(progress, duration));
+                    setScrubbing(true);
+                  }}
+                  onValueChange={(value) => {
+                    if (scrubbing) setScrubValue(value);
+                  }}
+                  onSlidingComplete={(value) => {
+                    setScrubbing(false);
+                    seek(value);
+                  }}
+                />
+              ) : <WaveformSeek
                 peaks={waveform}
                 duration={duration}
                 position={position}
@@ -405,7 +428,7 @@ export default function Player() {
                   setScrubbing(false);
                   seek(value);
                 }}
-              />
+              />}
               <View style={styles.timeRow}>
                 <Text style={styles.time}>{formatTime(position)}</Text>
                 <Text style={styles.time}>{formatTime(duration)}</Text>
