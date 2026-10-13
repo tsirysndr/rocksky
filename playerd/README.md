@@ -12,6 +12,10 @@ Think "Spotify Connect target", but for Rocksky: run it on a headphone rig, a
 Raspberry Pi wired to the living-room amp, or a server piping audio into a
 socket — then control it from any Rocksky client.
 
+You can also control the same player through MPD clients such as `mpc`, or
+through desktop media controls and `playerctl` using MPRIS on Linux. MPD is
+opt-in; MPRIS is enabled by default on Linux.
+
 ## Contents
 
 - [How it works](#how-it-works)
@@ -24,6 +28,8 @@ socket — then control it from any Rocksky client.
   - [Environment variables](#environment-variables)
   - [CLI](#cli)
 - [MPD and Linux MPRIS](#mpd-and-linux-mpris)
+  - [MPD configuration and mpc](#mpd-configuration-and-mpc)
+  - [Linux MPRIS and playerctl](#linux-mpris-and-playerctl)
 - [Audio output](#audio-output)
 - [Local playback](#local-playback)
 - [What is (and isn't) remotely controllable](#what-is-and-isnt-remotely-controllable)
@@ -299,21 +305,58 @@ playerd analyze [--json] <PATHS>...
 
 ## MPD and Linux MPRIS
 
+### MPD configuration and mpc
+
 MPD is disabled unless a port is configured in `~/.rocksky/playerd.toml`:
 
 ```toml
 [mpd]
 port = 6600
-# bind = "127.0.0.1"  # default; "0.0.0.0" listens on all IPv4 interfaces
+bind = "127.0.0.1"   # default: local clients only
 # enabled = false    # disable while retaining the port
 ```
 
-Both `port` and `bind` are configurable. For example, use `port = 6601` and
-`bind = "0.0.0.0"` if another player already uses port 6600.
+Defining `port` enables MPD automatically. Set `enabled = false` to disable it,
+or remove `port`; `enabled = true` alone does not start a listener.
 
-With the defaults above, connect an MPD client to `127.0.0.1:6600`. It controls the same playback
-engine and queue as Rocksky. The adapter supports transport, seeking, volume,
-shuffle/repeat, queue editing with stable song IDs, command lists, idle
+For remote clients, both the port and bind address are configurable. For
+example, listen on all IPv4 interfaces at port 6601:
+
+```toml
+[mpd]
+enabled = true
+port = 6601
+bind = "0.0.0.0"
+```
+
+Choose an unused port if another player already provides MPD. Restart playerd
+after changing the configuration. For a systemd user service:
+
+```sh
+systemctl --user restart playerd
+```
+
+With the local port-6600 configuration, use `mpc` on the player machine:
+
+```sh
+mpc -h 127.0.0.1 -p 6600 current    # artist and title of the current song
+mpc -h 127.0.0.1 -p 6600 status
+mpc -h 127.0.0.1 -p 6600 play
+mpc -h 127.0.0.1 -p 6600 pause
+mpc -h 127.0.0.1 -p 6600 next
+```
+
+For the all-interface port-6601 example, replace `PLAYER_HOST` with the
+player machine's LAN address or Tailscale hostname:
+
+```sh
+mpc -h PLAYER_HOST -p 6601 current
+mpc -h PLAYER_HOST -p 6601 status
+```
+
+MPD controls the same playback engine and queue as Rocksky. The adapter
+supports transport, seeking, volume, shuffle/repeat, queue editing with stable
+song IDs, command lists, idle
 notifications, library browsing and tag/value searches, loading library
 playlists, and cover-art reads. `commands` lists supported commands; unsupported
 commands and modes return MPD errors. Library browsing indexes your Rocksky
@@ -321,6 +364,8 @@ uploads and the current queue. Stored playlists come from the Subsonic library.
 Modern filter expressions, playlist writes, consume, and single-without-repeat
 are not supported. The listener has no MPD password authentication; keep the
 loopback bind or use a trusted, access-controlled network.
+
+### Linux MPRIS and playerctl
 
 MPRIS is **enabled by default on Linux**, using the session D-Bus name
 `org.mpris.MediaPlayer2.playerd`. It provides playback controls, position and
@@ -330,6 +375,21 @@ the same queue as MPD and Rocksky. Album art uses `mpris:artUrl`: remote covers
 are cached locally, embedded covers are extracted, and local `cover.jpg`,
 `cover.png`, `folder.jpg`, or `folder.png` are used as a fallback. Metadata
 notifications refresh the cover when the track or artwork changes.
+
+Run `playerctl` as the same user and in the same D-Bus session as playerd:
+
+```sh
+playerctl -p playerd metadata --format '{{artist}} - {{title}}'
+playerctl -p playerd metadata                 # all current-track metadata
+playerctl -p playerd metadata mpris:artUrl    # album-art URI
+playerctl -p playerd status
+playerctl -p playerd play-pause
+playerctl -p playerd next
+```
+
+Unlike `mpc`, `playerctl` uses the local session bus rather than a TCP port.
+For a remote player, run it on that machine over SSH with access to the
+player's user session bus, or use `mpc` over the network.
 
 To disable MPRIS:
 
@@ -343,6 +403,10 @@ Both the module and dependency compile only on Linux. A user session bus must
 be available (normally automatic for a desktop or systemd user service).
 If the bus is unavailable, playerd logs a warning and continues playing.
 The MPRIS setting has no effect on other operating systems.
+
+If `playerctl` cannot find playerd, check `playerctl --list-all` and the
+playerd logs. A missing session bus or `[mpris] enabled = false` prevents
+registration even while audio playback and MPD remain available.
 
 ## Audio output
 
