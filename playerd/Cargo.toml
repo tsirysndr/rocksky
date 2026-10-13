@@ -1,6 +1,6 @@
 [package]
 name = "playerd"
-version = "0.3.7"
+version = "0.4.0"
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -29,7 +29,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8.3", default-features = false, features = ["sqlite", "runtime-tokio", "tls-none"] }
 symphonia = { version = "0.6", default-features = false, features = ["flac", "mp3", "aac", "alac", "isomp4", "vorbis", "ogg", "wav", "aiff", "pcm", "adpcm"] }
-tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "signal", "sync", "time"] }
+tokio = { version = "1", features = ["io-std", "io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = { version = "4.4", default-features = false, features = ["tokio"] }

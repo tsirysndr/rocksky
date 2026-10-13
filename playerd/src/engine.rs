@@ -17,6 +17,17 @@ use rockbox_playback::{
 };
 
 pub enum EngineCmd {
+    Execute(Box<EngineCmd>, Sender<Result<(), String>>),
+    Stop,
+    Clear,
+    InsertAt {
+        paths: Vec<String>,
+        index: usize,
+    },
+    PlayAt {
+        index: usize,
+        position: Duration,
+    },
     /// Replace the queue and start playback at `start_index` ("play now").
     OpenAt {
         paths: Vec<String>,
@@ -32,9 +43,11 @@ pub enum EngineCmd {
     Seek(Duration),
     SkipTo(usize),
     Remove(usize),
-    /// Move the track at `from` so it ends up at index `to` (arrayMove
-    /// semantics). Emulated as remove + indexed re-insert; the playback
-    /// crate's index bookkeeping keeps the current track playing.
+    RemoveRange {
+        start: usize,
+        end: usize,
+    },
+    /// Move a queue entry while preserving the playing track and position.
     Move {
         from: usize,
         to: usize,
@@ -79,6 +92,8 @@ pub struct Snapshot {
     pub next_track: Option<String>,
     /// Output volume 0.0..=1.0.
     pub volume: f32,
+    /// Changes on every explicit seek, including sub-second seeks.
+    pub seek_revision: u64,
     /// When `status` was captured, so [`Engine::snapshot`] can extrapolate the
     /// position to read time.
     taken: Instant,
@@ -100,6 +115,7 @@ impl Default for Snapshot {
             queue: Vec::new(),
             next_track: None,
             volume: 1.0,
+            seek_revision: 0,
             taken: Instant::now(),
         }
     }
@@ -134,14 +150,36 @@ impl Engine {
                 let mut smoother = BoundarySmoother::default();
                 loop {
                     match rx.recv_timeout(Duration::from_millis(250)) {
+                        Ok(EngineCmd::Execute(cmd, reply)) => {
+                            let jump = intentional_jump(&cmd);
+                            let seek = matches!(*cmd, EngineCmd::Seek(_));
+                            apply(&player, *cmd);
+                            let result = if player.synchronize(Duration::from_secs(10)) {
+                                if jump {
+                                    smoother.expect_jump = true;
+                                }
+                                Ok(())
+                            } else {
+                                Err("playback engine did not acknowledge command".into())
+                            };
+                            if seek && result.is_ok() {
+                                smoother.seek_revision = smoother.seek_revision.wrapping_add(1);
+                            }
+                            *shared.lock().unwrap() = snapshot_of(&player, &mut smoother);
+                            let _ = reply.send(result);
+                        }
                         Ok(EngineCmd::GetSnapshot(reply)) => {
                             let _ = reply.send(snapshot_of(&player, &mut smoother));
                         }
                         Ok(cmd) => {
+                            let seek = matches!(cmd, EngineCmd::Seek(_));
                             if intentional_jump(&cmd) {
                                 smoother.expect_jump = true;
                             }
                             apply(&player, cmd);
+                            if seek && player.synchronize(Duration::from_secs(10)) {
+                                smoother.seek_revision = smoother.seek_revision.wrapping_add(1);
+                            }
                         }
                         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
@@ -163,6 +201,18 @@ impl Engine {
 
     pub fn send(&self, cmd: EngineCmd) {
         let _ = self.tx.lock().unwrap().send(cmd);
+    }
+
+    pub async fn execute(self: &Arc<Self>, cmd: EngineCmd) -> Result<(), String> {
+        let engine = self.clone();
+        tokio::task::spawn_blocking(move || {
+            let (tx, rx) = channel();
+            engine.send(EngineCmd::Execute(Box::new(cmd), tx));
+            rx.recv_timeout(Duration::from_secs(12))
+                .map_err(|_| "playback engine unavailable".to_string())?
+        })
+        .await
+        .map_err(|e| e.to_string())?
     }
 
     /// The engine state, read LIVE on the engine thread — no cache. The shared
@@ -208,6 +258,7 @@ fn snapshot_of(player: &Player, smoother: &mut BoundarySmoother) -> Snapshot {
             .next_track()
             .map(|p| p.to_string_lossy().into_owned()),
         volume: player.volume(),
+        seek_revision: smoother.seek_revision,
         taken: Instant::now(),
     }
 }
@@ -228,6 +279,7 @@ fn snapshot_of(player: &Player, smoother: &mut BoundarySmoother) -> Snapshot {
 /// skip, queue edits) are flagged by the command loop and pass through.
 #[derive(Default)]
 struct BoundarySmoother {
+    seek_revision: u64,
     /// The next discontinuity is intentional (a transport/queue command).
     expect_jump: bool,
     last: Option<LastSample>,
@@ -332,11 +384,15 @@ fn intentional_jump(cmd: &EngineCmd) -> bool {
     matches!(
         cmd,
         EngineCmd::Seek(_)
+            | EngineCmd::Stop
+            | EngineCmd::Clear
+            | EngineCmd::PlayAt { .. }
             | EngineCmd::SkipTo(_)
             | EngineCmd::Next
             | EngineCmd::Previous
             | EngineCmd::OpenAt { .. }
             | EngineCmd::Remove(_)
+            | EngineCmd::RemoveRange { .. }
             | EngineCmd::Move { .. }
             | EngineCmd::Resume
     )
@@ -344,6 +400,18 @@ fn intentional_jump(cmd: &EngineCmd) -> bool {
 
 fn apply(player: &Player, cmd: EngineCmd) {
     match cmd {
+        EngineCmd::Execute(_, _) => unreachable!("handled by engine loop"),
+        EngineCmd::Stop => player.stop(),
+        EngineCmd::Clear => player.clear_queue(),
+        EngineCmd::RemoveRange { start, end } => {
+            for index in (start..end).rev() {
+                player.remove(index);
+            }
+        }
+        EngineCmd::InsertAt { paths, index } => {
+            player.insert_tracks(paths, InsertPosition::Index(index))
+        }
+        EngineCmd::PlayAt { index, position } => player.play_at(index, position),
         EngineCmd::OpenAt {
             paths,
             start_index,
@@ -371,14 +439,7 @@ fn apply(player: &Player, cmd: EngineCmd) {
         EngineCmd::Seek(pos) => player.seek(pos),
         EngineCmd::SkipTo(index) => player.skip_to(index),
         EngineCmd::Remove(index) => player.remove(index),
-        EngineCmd::Move { from, to } => {
-            let queue = player.queue();
-            if from != to && from < queue.len() && to < queue.len() {
-                let uri = queue[from].clone();
-                player.remove(from);
-                player.insert(uri, InsertPosition::Index(to));
-            }
-        }
+        EngineCmd::Move { from, to } => player.move_track(from, to),
         EngineCmd::SetEqualizer(equalizer) => player.set_equalizer(equalizer),
         EngineCmd::SetTone(tone) => player.set_tone(tone),
         EngineCmd::SetBalance(balance) => player.set_balance(balance),

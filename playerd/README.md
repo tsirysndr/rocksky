@@ -23,6 +23,7 @@ socket — then control it from any Rocksky client.
 - [Configuration](#configuration)
   - [Environment variables](#environment-variables)
   - [CLI](#cli)
+- [MPD and Linux MPRIS](#mpd-and-linux-mpris)
 - [Audio output](#audio-output)
 - [Local playback](#local-playback)
 - [What is (and isn't) remotely controllable](#what-is-and-isnt-remotely-controllable)
@@ -295,6 +296,53 @@ playerd analyze [--json] <PATHS>...
       --token <JWT>      access token
   -o, --output <SPEC>    audio output backend
 ```
+
+## MPD and Linux MPRIS
+
+MPD is disabled unless a port is configured in `~/.rocksky/playerd.toml`:
+
+```toml
+[mpd]
+port = 6600
+# bind = "127.0.0.1"  # default; "0.0.0.0" listens on all IPv4 interfaces
+# enabled = false    # disable while retaining the port
+```
+
+Both `port` and `bind` are configurable. For example, use `port = 6601` and
+`bind = "0.0.0.0"` if another player already uses port 6600.
+
+With the defaults above, connect an MPD client to `127.0.0.1:6600`. It controls the same playback
+engine and queue as Rocksky. The adapter supports transport, seeking, volume,
+shuffle/repeat, queue editing with stable song IDs, command lists, idle
+notifications, library browsing and tag/value searches, loading library
+playlists, and cover-art reads. `commands` lists supported commands; unsupported
+commands and modes return MPD errors. Library browsing indexes your Rocksky
+uploads and the current queue. Stored playlists come from the Subsonic library.
+Modern filter expressions, playlist writes, consume, and single-without-repeat
+are not supported. The listener has no MPD password authentication; keep the
+loopback bind or use a trusted, access-controlled network.
+
+MPRIS is **enabled by default on Linux**, using the session D-Bus name
+`org.mpris.MediaPlayer2.playerd`. It provides playback controls, position and
+seek notifications, volume, shuffle/repeat, track metadata, and an editable
+track list. Desktop media controls and clients such as `playerctl` operate on
+the same queue as MPD and Rocksky. Album art uses `mpris:artUrl`: remote covers
+are cached locally, embedded covers are extracted, and local `cover.jpg`,
+`cover.png`, `folder.jpg`, or `folder.png` are used as a fallback. Metadata
+notifications refresh the cover when the track or artwork changes.
+
+To disable MPRIS:
+
+```toml
+[mpris]
+enabled = false
+```
+
+MPRIS uses zbus with its pure Rust Tokio backend and requires no `libdbus`.
+Both the module and dependency compile only on Linux. A user session bus must
+be available (normally automatic for a desktop or systemd user service).
+If the bus is unavailable, playerd logs a warning and continues playing.
+The MPRIS setting has no effect on other operating systems.
 
 ## Audio output
 

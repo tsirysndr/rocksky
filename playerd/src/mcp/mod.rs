@@ -18,7 +18,7 @@ mod protocol;
 mod rocksky;
 mod server;
 mod state;
-mod subsonic;
+pub(crate) mod subsonic;
 mod tools;
 
 pub use server::run;

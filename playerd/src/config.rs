@@ -87,6 +87,52 @@ pub struct Config {
     pub resume_path: String,
     pub equalizer: EqualizerConfig,
     pub autodj: AutoDjConfig,
+    pub mpd: MpdConfig,
+    pub mpris: MprisConfig,
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(default)]
+pub struct MpdConfig {
+    /// A port is required to enable MPD; enabled=false overrides it.
+    pub port: Option<u16>,
+    pub enabled: bool,
+    pub bind: String,
+}
+
+impl Default for MpdConfig {
+    fn default() -> Self {
+        Self {
+            port: None,
+            enabled: true,
+            bind: "127.0.0.1".into(),
+        }
+    }
+}
+
+impl MpdConfig {
+    pub fn address(&self) -> Result<Option<(String, u16)>> {
+        if !self.enabled {
+            return Ok(None);
+        }
+        match self.port {
+            None => Ok(None),
+            Some(0) => bail!("mpd.port must be between 1 and 65535"),
+            Some(port) => Ok(Some((self.bind.clone(), port))),
+        }
+    }
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(default)]
+pub struct MprisConfig {
+    pub enabled: bool,
+}
+
+impl Default for MprisConfig {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
 }
 
 /// Content-aware transitions: analyse what is playing and what is next, then
@@ -198,6 +244,8 @@ impl Default for Config {
             resume_path: "~/.rocksky/playerd-queue.m3u8".to_string(),
             equalizer: EqualizerConfig::default(),
             autodj: AutoDjConfig::default(),
+            mpd: MpdConfig::default(),
+            mpris: MprisConfig::default(),
         }
     }
 }
@@ -362,5 +410,27 @@ impl Config {
     /// Absolute path of the transport-prefs file (shuffle/repeat) beside it.
     pub fn transport_state_path(&self) -> PathBuf {
         self.resume_file_path().with_extension("transport.json")
+    }
+}
+
+#[cfg(test)]
+mod protocol_config_tests {
+    use super::*;
+    #[test]
+    fn local_protocol_defaults_and_overrides() {
+        let default: Config = toml::from_str("").unwrap();
+        assert!(default.mpris.enabled);
+        assert!(default.mpd.address().unwrap().is_none());
+        let configured: Config =
+            toml::from_str("[mpd]\nport=6600\n[mpris]\nenabled=false").unwrap();
+        assert_eq!(
+            configured.mpd.address().unwrap(),
+            Some(("127.0.0.1".into(), 6600))
+        );
+        assert!(!configured.mpris.enabled);
+        let disabled: Config = toml::from_str("[mpd]\nport=6600\nenabled=false").unwrap();
+        assert!(disabled.mpd.address().unwrap().is_none());
+        let invalid: Config = toml::from_str("[mpd]\nport=0").unwrap();
+        assert!(invalid.mpd.address().is_err());
     }
 }

@@ -7,8 +7,12 @@
 mod analysis;
 mod autodj;
 mod config;
+mod control;
 mod engine;
 mod mcp;
+mod mpd;
+#[cfg(target_os = "linux")]
+mod mpris;
 mod remote;
 mod resolver;
 mod resume;
@@ -119,6 +123,7 @@ async fn main() -> Result<()> {
         return mcp::run(config, token).await;
     }
 
+    let mpd_address = config.mpd.address()?;
     let mut uris = Vec::new();
     let mut items = Vec::new();
     for path in &cli.paths {
@@ -247,6 +252,24 @@ async fn main() -> Result<()> {
         tracing::info!("scrobbling disabled by config");
     }
 
+    let control = control::Control::new(shared.clone(), config.clone(), token.clone());
+    let mpd_task = match mpd_address {
+        Some(address) => Some(mpd::start(control.clone(), address).await?),
+        None => None,
+    };
+    #[cfg(target_os = "linux")]
+    let mpris_task = if config.mpris.enabled {
+        match mpris::start(control.clone()).await {
+            Ok(task) => Some(task),
+            Err(error) => {
+                tracing::warn!(%error, "MPRIS unavailable on the session bus");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     tokio::spawn(autodj::run(shared.clone(), autodj));
     tokio::spawn(remote::command_loop(
         shared.clone(),
@@ -263,7 +286,17 @@ async fn main() -> Result<()> {
         }
     });
 
-    tokio::signal::ctrl_c().await?;
+    tokio::select! {
+        result = tokio::signal::ctrl_c() => result?,
+        _ = control.shutdown.notified() => {},
+    }
+    if let Some(task) = mpd_task {
+        task.abort();
+    }
+    #[cfg(target_os = "linux")]
+    if let Some(task) = mpris_task {
+        task.abort();
+    }
     tracing::info!("shutting down");
     shared.remote.disconnect();
     Ok(())
@@ -307,3 +340,6 @@ async fn analyze_files(config: &Config, paths: &[PathBuf], json: bool) -> Result
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod protocol_test;

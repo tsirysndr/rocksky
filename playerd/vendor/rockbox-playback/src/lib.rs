@@ -722,12 +722,18 @@ impl PlayerConfigBuilder {
 }
 
 enum Command {
+    Barrier(std::sync::mpsc::Sender<()>),
+    PlayAt(usize, Duration),
     SetQueue(Vec<PathBuf>),
     Enqueue(PathBuf),
     /// Insert one or more tracks at a Rockbox insertion position.
     Insert(Vec<PathBuf>, InsertPosition),
     /// Remove the track at the given queue index (0-based).
     Remove(usize),
+    Move {
+        from: usize,
+        to: usize,
+    },
     /// Empty the queue and stop playback.
     Clear,
     /// Restore a persisted queue + exact position (does not auto-play).
@@ -1076,11 +1082,28 @@ impl Player {
         let _ = self.tx.send(Command::Clear);
     }
 
+    /// Wait until previously submitted commands have reached the playback
+    /// thread. Protocol adapters use this for command-list read-after-write.
+    pub fn synchronize(&self, timeout: Duration) -> bool {
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.tx.send(Command::Barrier(tx)).is_ok() && rx.recv_timeout(timeout).is_ok()
+    }
+
+    /// Start a queue entry and defer its seek until the new decoder opens.
+    pub fn play_at(&self, index: usize, position: Duration) {
+        let _ = self.tx.send(Command::PlayAt(index, position));
+    }
+
     // ---- resume (auto-persist / restore) --------------------------------
 
     /// Actual next automatic transition, including shuffle and repeat.
     pub fn next_track(&self) -> Option<PathBuf> {
         self.shared.next_track.lock().unwrap().clone()
+    }
+
+    /// Move a queue entry without resetting the current decoder or position.
+    pub fn move_track(&self, from: usize, to: usize) {
+        let _ = self.tx.send(Command::Move { from, to });
     }
 
     /// A snapshot of the current queue, in order.
@@ -1991,6 +2014,36 @@ impl Engine {
     /// Returns false on Shutdown.
     fn handle(&mut self, cmd: Command) -> bool {
         match cmd {
+            Command::Barrier(reply) => {
+                self.set_state(if self.paused {
+                    ST_PAUSED
+                } else if self.playing {
+                    ST_PLAYING
+                } else {
+                    ST_STOPPED
+                });
+                let _ = reply.send(());
+            }
+            Command::PlayAt(index, position) => {
+                if index < self.queue.len() {
+                    self.index = index;
+                    self.reset_current();
+                    self.pending_seek = Some((index, position));
+                    self.shared.decode_pos_ms.store(
+                        position.as_millis().min(u64::MAX as u128) as u64,
+                        Ordering::Relaxed,
+                    );
+                    self.shared.duration_ms.store(0, Ordering::Relaxed);
+                    *self.shared.meta.lock().unwrap() = None;
+                    self.finishing = false;
+                    self.paused = false;
+                    self.playing = true;
+                    self.shared.index.store(index, Ordering::Relaxed);
+                    self.shared
+                        .target_amp
+                        .store(self.shared.volume_f32().to_bits(), Ordering::Relaxed);
+                }
+            }
             Command::Shutdown => {
                 // Persist the exact position on exit, like Rockbox saves on
                 // power-off — but only mid-session (a finished queue already
@@ -2017,6 +2070,7 @@ impl Engine {
             }
             Command::Insert(tracks, position) => self.insert_tracks(tracks, position),
             Command::Remove(index) => self.remove_track(index),
+            Command::Move { from, to } => self.move_track(from, to),
             Command::Clear => self.clear_queue(),
             Command::Resume(state) => {
                 self.queue = state.tracks;
@@ -2287,6 +2341,13 @@ impl Engine {
                 .decode_pos_ms
                 .store(pos.as_millis() as u64, Ordering::Relaxed);
             self.save_resume();
+        } else if self.index < self.queue.len() && (self.playing || self.paused) {
+            // A protocol command list can seek before the new decoder opens.
+            self.pending_seek = Some((self.index, pos));
+            self.shared.decode_pos_ms.store(
+                pos.as_millis().min(u64::MAX as u128) as u64,
+                Ordering::Relaxed,
+            );
         }
     }
 
@@ -2512,6 +2573,35 @@ impl Engine {
         self.sync_queue();
     }
 
+    fn move_track(&mut self, from: usize, to: usize) {
+        if from == to || from >= self.queue.len() || to >= self.queue.len() {
+            return;
+        }
+        let remap = |index: usize| {
+            if index == from {
+                to
+            } else if from < to && index > from && index <= to {
+                index - 1
+            } else if to < from && index >= to && index < from {
+                index + 1
+            } else {
+                index
+            }
+        };
+        let track = self.queue.remove(from);
+        self.queue.insert(to, track);
+        self.index = remap(self.index);
+        self.last_insert_pos = self.last_insert_pos.map(remap);
+        self.pending_seek = self
+            .pending_seek
+            .map(|(index, position)| (remap(index), position));
+        self.pending_manual_target = self.pending_manual_target.map(remap);
+        self.sync_queue();
+        if self.playing || self.paused {
+            self.save_resume();
+        }
+    }
+
     /// Empty the queue and stop playback, mirroring [`Engine::stop_playback`]'s
     /// shared-state teardown. Also deletes the resume file — a cleared queue
     /// has nothing to resume.
@@ -2543,6 +2633,9 @@ impl Engine {
             .queue_len
             .store(self.queue.len(), Ordering::Relaxed);
         *self.shared.queue.lock().unwrap() = self.queue.clone();
+        if self.shared.index.load(Ordering::Relaxed) != usize::MAX {
+            self.shared.index.store(self.index, Ordering::Relaxed);
+        }
     }
 
     /// The playback position within the current track (decode position minus

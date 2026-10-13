@@ -72,7 +72,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install system dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config dbus
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -80,7 +80,14 @@ jobs:
           shared-key: playerd-${{ matrix.target }}
           cache-on-failure: true
       - name: cargo build --release
-        run: cargo build --release
+        run: cargo build --release --locked
+      - name: Test playerd and playback engine
+        run: |
+          cargo test --release --locked --bin playerd
+          cargo test --release --locked -p rockbox-playback --lib
+      - name: Test Linux MPRIS on an isolated session bus
+        if: runner.os == 'Linux'
+        run: dbus-run-session -- cargo test --release --locked --bin playerd mpris::tests -- --ignored
       - name: Package tarball
         run: |
           TAG="${{ needs.prepare-release.outputs.tag }}"
