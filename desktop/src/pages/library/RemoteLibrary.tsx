@@ -265,6 +265,26 @@ const LoadMore = styled.button`
 
 const Sentinel = styled.div`height: 1px;`;
 
+function ArtistPicture({ art, name }: { art: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [art]);
+  return (
+    <ArtistAvatar className="artist-avatar">
+      {art && !failed ? (
+        <img
+          src={art}
+          alt={name}
+          loading="lazy"
+          onError={() => setFailed(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : (
+        <IconUser size={36} />
+      )}
+    </ArtistAvatar>
+  );
+}
+
 function EntryArtwork({ item }: { item: LibraryEntry }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [item.art]);
@@ -593,13 +613,7 @@ export default function RemoteLibrary({
               const art = item.art ?? pictures[item.title] ?? null;
               return (
                 <ArtistCard key={`${item.kind}:${item.id}`} onClick={() => open(item)}>
-                  <ArtistAvatar className="artist-avatar">
-                    {art ? (
-                      <img src={art} alt={item.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <IconUser size={36} />
-                    )}
-                  </ArtistAvatar>
+                  <ArtistPicture art={art} name={item.title} />
                   <ArtistNameLabel title={item.title}>{titleLabel(item)}</ArtistNameLabel>
                 </ArtistCard>
               );
