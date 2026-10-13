@@ -2326,30 +2326,17 @@ impl Engine {
         #[cfg(feature = "http")]
         {
             match source::open_remote(url) {
-                Ok(source::Remote::File(mut src)) => {
+                Ok(source::Remote::File(src)) => {
                     self.current_source = None;
-                    // Buffer only the header via range requests, then decode
-                    // the rest on demand — no full download, playback starts
-                    // as soon as the header is present. ~512 KiB covers the
-                    // format/rate/duration for the common codecs.
-                    const HEADER_BYTES: u64 = 512 * 1024;
-                    if src.prefetch(HEADER_BYTES).is_err() {
-                        return Some(false);
-                    }
-                    let size = src.size();
-                    // Parse tags/duration from the prefetched header (the cache
-                    // file is full-size and sparse, so this reads what's there).
-                    let meta = rockbox_metadata::read(src.cache_path()).unwrap_or_default();
-                    let ext = src
-                        .cache_path()
-                        .extension()
-                        .and_then(|e| e.to_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let freq = meta.sample_rate;
-                    match Decoder::open_seekable(Box::new(src), size, freq, &ext, meta) {
-                        Ok(dec) => Some(self.install_decoder(dec, true)),
-                        Err(_) => Some(false),
+                    match src.open_decoder() {
+                        Ok((dec, cache)) => {
+                            self.current_source = cache.map(|src| Box::new(src) as _);
+                            Some(self.install_decoder(dec, true))
+                        }
+                        Err(error) => {
+                            eprintln!("rockbox-playback: cannot open remote audio file: {error}");
+                            Some(false)
+                        }
                     }
                 }
                 Ok(source::Remote::Adaptive(stream)) => {

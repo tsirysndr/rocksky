@@ -318,6 +318,11 @@ playerd -o stdout | ffmpeg -f s16le -ar 44100 -ac 2 -i - ...
 
 ## Local playback
 
+UPnP/DLNA media URLs use playerd's HTTP playback support; no separate playerd
+UPnP switch is required. Finite MP4/M4A/M4B files are downloaded into a verified
+temporary cache before playback so Rockbox retains HE-AAC seek/resume metadata.
+Startup waits for that download; playback and seeking then use the local cache.
+
 Positional paths are scanned (directories recursively), filtered to formats
 the rockbox codecs understand, tagged via `rockbox-metadata`, queued, and
 played. The queue — including titles, artists, and durations from the file

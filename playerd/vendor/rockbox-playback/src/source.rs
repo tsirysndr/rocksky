@@ -255,6 +255,36 @@ mod http {
             &self._tmp
         }
 
+        /// MP4 codecs need the native metadata initialized by `Decoder::open`
+        /// (notably HE-AAC's SBR seek correction and gapless trim). The callback
+        /// decoder only receives the sample rate, so it cannot seek these files
+        /// correctly. Verify the complete cache before handing it to the native
+        /// parser; sparse, unwritten cache bytes must never become audio.
+        pub(crate) fn open_decoder(
+            mut self,
+        ) -> io::Result<(rockbox_codecs::Decoder, Option<Self>)> {
+            let ext = self
+                .cache_path()
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            if matches!(ext.as_str(), "m4a" | "mp4" | "m4b") {
+                self.ensure_complete()?;
+                let decoder = rockbox_codecs::Decoder::open(self.cache_path()).map_err(to_io)?;
+                // Keep the temporary file alive for the lifetime of the decoder.
+                return Ok((decoder, Some(self)));
+            }
+            self.prefetch(512 * 1024)?;
+            let meta = rockbox_metadata::read(self.cache_path()).unwrap_or_default();
+            let size = self.size;
+            let freq = meta.sample_rate;
+            let decoder =
+                rockbox_codecs::Decoder::open_seekable(Box::new(self), size, freq, &ext, meta)
+                    .map_err(to_io)?;
+            Ok((decoder, None))
+        }
+
         /// Fetch every byte not yet cached (a single ranged request for the
         /// remaining span), so [`cache_path`](Self::cache_path) is a complete
         /// copy the codec/metadata layer can open directly.
@@ -706,6 +736,62 @@ mod http {
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        #[test]
+        fn remote_he_aac_seek_preserves_native_metadata() {
+            use std::io::{BufRead, BufReader};
+            use std::net::TcpListener;
+
+            // Synthetic four-second stereo tone, encoded with SBR. Seek past
+            // halfway: without needs_upsampling_correction the callback decoder
+            // seeks beyond EOF and produces no audio.
+            let body = include_bytes!("../tests/fixtures/he-aac-tone.m4a");
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let url = format!("http://{}/track", listener.local_addr().unwrap());
+            let server = std::thread::spawn(move || {
+                // One probe and one verified download; deliberately shut down
+                // the origin before decoding/seeking to prove the cache is used.
+                for _ in 0..2 {
+                    let (mut stream, _) = listener.accept().unwrap();
+                    let mut reader = BufReader::new(stream.try_clone().unwrap());
+                    let mut range = None;
+                    loop {
+                        let mut line = String::new();
+                        reader.read_line(&mut line).unwrap();
+                        if line == "\r\n" || line.is_empty() {
+                            break;
+                        }
+                        if let Some(value) = line.to_ascii_lowercase().strip_prefix("range: bytes=") {
+                            let (start, end) = value.trim().split_once('-').unwrap();
+                            range = Some((
+                                start.parse::<usize>().unwrap(),
+                                end.parse::<usize>().unwrap(),
+                            ));
+                        }
+                    }
+                    let (start, end) = range.unwrap();
+                    write!(stream, "HTTP/1.1 206 Partial Content\r\nContent-Type: audio/mp4\r\nContent-Range: bytes {start}-{end}/{}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len(), end-start+1).unwrap();
+                    stream.write_all(&body[start..=end]).unwrap();
+                }
+            });
+            let (mut decoder, cache) = HttpSource::new(&url).unwrap().open_decoder().unwrap();
+            server.join().unwrap();
+            assert!(cache.is_some(), "MP4 must retain its complete cache");
+            assert_eq!(decoder.metadata().codec, "AAC-HE");
+            decoder.seek(std::time::Duration::from_secs(3));
+            let mut seconds = 0.0;
+            let mut audible = false;
+            while let Some(chunk) = decoder.next_chunk() {
+                seconds += chunk.pcm.len() as f64 / 2.0 / chunk.sample_rate as f64;
+                audible |= chunk.pcm.iter().any(|sample| *sample != 0);
+            }
+            assert_eq!(decoder.status(), Some(0));
+            assert!(audible, "seek must still produce audio");
+            assert!(
+                (0.8..1.3).contains(&seconds),
+                "remaining audio: {seconds}s"
+            );
+        }
 
         #[test]
         fn mime_maps_common_audio_types() {
