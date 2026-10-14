@@ -11916,7 +11916,7 @@ export const schemaDict = {
       main: {
         type: "query",
         description:
-          "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album. Returns the existing song view on HTTP 200. HTTP 409 AmbiguousMatch means multiple recordings remain; HTTP 404 NotFound means no match. Both error bodies include status (ambiguous or unmatched), policyVersion, candidates (songMatchView objects, including catalog candidates), and warnings. Resolve ambiguity by supplying a known isrc or mbId; candidates are not a selected recording.",
+          "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album. Completed lookups return HTTP 200 in the existing songViewDetailed format. When multiple recordings remain, the highest-ranked accepted candidate supplies the song fields; external alternatives remain in matches. When no candidate is accepted, returns an empty matches array without song fields. Supply a known isrc or mbId to anchor a recording.",
         parameters: {
           type: "params",
           required: ["title", "artist"],

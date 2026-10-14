@@ -1,5 +1,4 @@
 import { catalogIdentity } from "./matchSongUris";
-import { XRPCError, ResponseType } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { count, eq } from "drizzle-orm";
 import type { Server } from "lexicon";
@@ -30,11 +29,15 @@ export async function retrieveMatch(
   ctx: Context,
   params: QueryParams,
 ): Promise<SongViewDetailed> {
-  // All identity decisions, including catalog selection, belong to the service.
+  // Use the service's accepted candidates and preserve its ranking.
   // No legacy ID-only/title-only Redis cache may bypass metadata validation.
   const result = await resolveMatch(ctx, matchingRequest(params));
-  const candidate = result.track;
-  if (!candidate) throw new SongMatchError(result);
+  // This lookup presents the best suggestion even when recording identity is
+  // ambiguous. Submission matching keeps its stricter identity policy.
+  const candidate =
+    result.track ??
+    (result.status === "ambiguous" ? result.candidates[0]?.track : undefined);
+  if (!candidate) return { matches: [] };
   const metadata = candidateMetadata(candidate);
   const selectedRecord =
     candidate.source === "catalog"
@@ -141,38 +144,6 @@ export async function retrieveMatch(
     playCount,
     uniqueListeners,
   };
-}
-
-/** A completed lookup without a selected recording, not an invalid request.
- * Keep these outcomes non-2xx so existing callers cannot mistake candidates for
- * a resolved song and publish the wrong recording. XRPC preserves this payload.
- */
-export class SongMatchError extends XRPCError {
-  constructor(
-    private readonly result: Awaited<ReturnType<typeof resolveMatch>>,
-  ) {
-    const ambiguous = result.status === "ambiguous";
-    // XRPC's enum omits HTTP 409; its error middleware accepts standard 4xx codes.
-    super(
-      (ambiguous ? 409 : 404) as ResponseType,
-      ambiguous
-        ? "Multiple recordings match. Supply an isrc or mbId to select a recording."
-        : "No song matches the supplied metadata.",
-      ambiguous ? "AmbiguousMatch" : "NotFound",
-    );
-  }
-
-  override get payload() {
-    return {
-      ...super.payload,
-      status: this.result.status,
-      policyVersion: this.result.policyVersion,
-      candidates: this.result.candidates.map(({ track }) =>
-        candidateMatch(track),
-      ),
-      warnings: this.result.warnings,
-    };
-  }
 }
 
 // Candidates have passed the matching service's identity filters. Keep its order;

@@ -3,7 +3,7 @@ import { expect, it } from "bun:test";
 import axios from "axios";
 import type { Context } from "context";
 import tables from "schema";
-import matchSong, { retrieveMatch, SongMatchError } from "./matchSong";
+import matchSong, { retrieveMatch } from "./matchSong";
 import { createServer } from "lexicon";
 import express from "express";
 import { once } from "node:events";
@@ -88,30 +88,25 @@ it("maps the selected service result to the existing song response", async () =>
     `https://open.spotify.com/track/${candidate.id}`,
   );
 });
-for (const status of ["ambiguous", "unmatched"]) {
-  it(`distinguishes ${status} without choosing a candidate`, async () => {
-    try {
-      await retrieveMatch(
-        context(status, null, status === "ambiguous" ? [candidate] : []),
-        params,
-      );
-      throw new Error("expected a matching outcome error");
-    } catch (error) {
-      expect(error).toBeInstanceOf(SongMatchError);
-      const outcome = error as SongMatchError;
-      expect(outcome.statusCode).toBe(status === "ambiguous" ? 409 : 404);
-      expect(outcome.payload).toMatchObject({
-        error: status === "ambiguous" ? "AmbiguousMatch" : "NotFound",
-        status,
-        policyVersion: "1",
-        warnings: [],
-      });
-      expect(outcome.payload.candidates).toHaveLength(
-        status === "ambiguous" ? 1 : 0,
-      );
-    }
+it("returns the highest-ranked ambiguous candidate in the existing song format", async () => {
+  const result = await retrieveMatch(
+    context("ambiguous", null, [
+      candidate,
+      { ...candidate, identifiers: { isrc: "OTHER" } },
+    ]),
+    params,
+  );
+  expect(result.title).toBe(params.title);
+  expect(result.isrc).toBe(params.isrc);
+  expect(result.matches).toHaveLength(2);
+  expect(result).not.toHaveProperty("error");
+  expect(result).not.toHaveProperty("status");
+});
+it("returns an empty matches list when unmatched", async () => {
+  expect(await retrieveMatch(context("unmatched", null, []), params)).toEqual({
+    matches: [],
   });
-}
+});
 
 it("serializes ambiguous candidates through real XRPC HTTP middleware", async () => {
   const candidates = ["USUM71705291", "USUM71705292"].map((isrc, index) => ({
@@ -162,23 +157,27 @@ it("serializes ambiguous candidates through real XRPC HTTP middleware", async ()
     });
     const url = `${base}/xrpc/app.rocksky.song.matchSong?${query}`;
     const ambiguous = await fetch(url);
-    expect(ambiguous.status).toBe(409);
+    expect(ambiguous.status).toBe(200);
     const body = await ambiguous.json();
     expect(body).toMatchObject({
-      error: "AmbiguousMatch",
-      status: "ambiguous",
-      policyVersion: "2",
+      title: "Blue Cheese",
+      artist: "2 Chainz, Migos",
+      album: "Pretty Girls Like Trap Music",
+      isrc: "USUM71705291",
+      duration: 308733,
     });
-    expect(body.candidates.map((c: any) => c.isrc)).toEqual([
+    expect(body.matches.map((c: any) => c.isrc)).toEqual([
       "USUM71705291",
       "USUM71705292",
     ]);
-    expect(body.candidates[0]).toMatchObject({
+    expect(body.matches[0]).toMatchObject({
       title: "Blue Cheese",
       artist: "2 Chainz, Migos",
       durationMs: 308733,
     });
     expect(body.track).toBeUndefined();
+    expect(body.error).toBeUndefined();
+    expect(body.status).toBeUndefined();
     const selected = await fetch(`${url}&isrc=USUM71705291`);
     expect(selected.status).toBe(200);
     expect(await selected.json()).toMatchObject({
@@ -187,12 +186,8 @@ it("serializes ambiguous candidates through real XRPC HTTP middleware", async ()
     });
     outcome = "unmatched";
     const absent = await fetch(url);
-    expect(absent.status).toBe(404);
-    expect(await absent.json()).toMatchObject({
-      error: "NotFound",
-      status: "unmatched",
-      candidates: [],
-    });
+    expect(absent.status).toBe(200);
+    expect(await absent.json()).toEqual({ matches: [] });
   } finally {
     if (listener.listening)
       await new Promise<void>((resolve, reject) =>
