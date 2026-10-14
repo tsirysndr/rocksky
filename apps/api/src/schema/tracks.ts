@@ -48,6 +48,9 @@ const tracks = pgTable(
     index("tracks_album_idx").on(t.album),
     index("tracks_album_artist_idx").on(t.albumArtist),
     index("tracks_isrc_idx").on(t.isrc),
+    index("idx_tracks_lower_title").on(sql`lower(${t.title})`),
+    index("idx_tracks_lower_mb_id").on(sql`lower(${t.mbId})`),
+    index("idx_tracks_normalized_isrc").on(sql`upper(replace(${t.isrc}, '-', ''))`),
   ],
 );
 
