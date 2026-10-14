@@ -25,6 +25,7 @@ import {
   saveCheckpoint,
 } from "lib/importCheckpoint";
 import { c } from "theme";
+import { importScrobble } from "lib/importScrobble";
 
 const log = consola.withTag("import");
 
@@ -430,14 +431,7 @@ export async function importCmd(
         // Always enrich via matchSong: the exports carry no duration or album
         // art, and scrobbleMatch falls back to a minimal record when there's no
         // match — so this never writes worse metadata than a raw scrobble would.
-        await agent.scrobbleMatch({
-          title: s.title,
-          artist: s.artist,
-          album: s.album,
-          mbId: s.mbId,
-          isrc: s.isrc,
-          timestamp: s.timestamp,
-        });
+        await importScrobble(agent, s);
       });
       // Only advance the checkpoint on success, so a failure never gets skipped
       // on resume.

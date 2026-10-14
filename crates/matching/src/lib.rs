@@ -9,7 +9,7 @@ pub mod service;
 pub mod spotify_auth;
 pub mod startup;
 
-pub const POLICY_VERSION: &str = "1";
+pub const POLICY_VERSION: &str = "2";
 
 use rocksky_core::credits::fold;
 use serde::{Deserialize, Serialize};
@@ -240,6 +240,70 @@ fn version_base(value: &str) -> String {
     normalize(value)
 }
 
+/// An omitted parenthetical subtitle is common in listening-history exports.
+/// Only a complete trailing parenthesis/bracket may be omitted, never arbitrary
+/// title words or recording/credit annotations. Other identity filters still apply.
+fn subtitle_base(value: &str) -> Option<String> {
+    let value = value.trim();
+    for (open, close) in [(" (", ')'), (" [", ']')] {
+        let Some((base, suffix)) = value.split_once(open) else {
+            continue;
+        };
+        let Some(subtitle) = suffix.strip_suffix(close) else {
+            continue;
+        };
+        if base.trim().is_empty()
+            || subtitle.trim().is_empty()
+            || subtitle.contains(['(', ')', '[', ']'])
+            || !editions(subtitle).is_empty()
+        {
+            continue;
+        }
+        // These annotations distinguish recordings or credits, not subtitles.
+        if normalize(subtitle).split_whitespace().any(|word| {
+            matches!(
+                word,
+                "version"
+                    | "mix"
+                    | "take"
+                    | "session"
+                    | "sessions"
+                    | "radio"
+                    | "feat"
+                    | "featuring"
+                    | "ft"
+                    | "with"
+                    | "solo"
+                    | "duet"
+                    | "part"
+                    | "pt"
+                    | "movement"
+                    | "reprise"
+                    | "dub"
+                    | "vocal"
+                    | "vocals"
+                    | "bonus"
+                    | "outtake"
+                    | "rehearsal"
+                    | "sped"
+                    | "speed"
+            )
+        }) {
+            continue;
+        }
+        return Some(normalize(base));
+    }
+    None
+}
+
+fn titles_match(a: &str, b: &str) -> bool {
+    let na = normalize(a);
+    let nb = normalize(b);
+    na == nb
+        || subtitle_base(a).is_some_and(|base| base == nb)
+        || subtitle_base(b).is_some_and(|base| base == na)
+}
+
 fn album_editions(album: &str) -> BTreeSet<String> {
     // Preserve legitimate names such as Live Through This. Live/demo/remix
     // count as edition metadata in a decorated suffix or Live at/in prefix.
@@ -297,6 +361,7 @@ pub fn canonical_score(album: Option<&str>, album_type: Option<&str>) -> i64 {
         "reissue",
         "bside",
         "bsides",
+        "soundtrack",
     ];
     if album.is_some_and(|s| {
         normalize(
@@ -383,7 +448,7 @@ pub fn resolve(
         if has_explicit_id && id_hits == 0 {
             reasons.push("identifiers_unverified".into());
         }
-        let same_title = normalize(&request.title) == normalize(&candidate.title);
+        let same_title = titles_match(&request.title, &candidate.title);
         if !same_title
             && !(id_hits > 0 && version_base(&request.title) == version_base(&candidate.title))
         {
@@ -507,7 +572,7 @@ pub fn resolve(
 /// Strong recording evidence cannot override conflicting text, versions,
 /// durations or recording identifiers. Provider track/release IDs may differ.
 fn same_recording(a: &Candidate, b: &Candidate) -> bool {
-    if normalize(&a.title) != normalize(&b.title)
+    if !titles_match(&a.title, &b.title)
         || artist_set(&a.artists) != artist_set(&b.artists)
         || a.version.as_deref().map(normalize) != b.version.as_deref().map(normalize)
         || album_editions(a.album.as_deref().unwrap_or(""))

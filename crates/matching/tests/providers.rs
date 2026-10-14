@@ -11,6 +11,33 @@ use std::{
 fn request() -> MatchRequest {
     serde_json::from_value(json!({"title":"Beat It","artists":["Michael Jackson"]})).unwrap()
 }
+
+#[actix_web::test]
+async fn green_day_good_riddance_live_search_regression() {
+    // Spotify search captured 2026-10-14; includes original, compilations,
+    // soundtrack, anniversary and live recordings with distinct ISRCs.
+    let data = serde_json::from_str(include_str!("fixtures/green-day-spotify.json")).unwrap();
+    let (p, h, _) = provider(ProviderKind::Spotify, data, 200).await;
+    for title in ["Good Riddance", "Good Riddance (Time of Your Life)"] {
+        for album in [None, Some("Nimrod")] {
+            let r: MatchRequest = serde_json::from_value(json!({
+                "title": title, "artists": ["Green Day"], "album": album,
+            }))
+            .unwrap();
+            let result = resolve(&r, p.candidates(&r).await.unwrap()).unwrap();
+            assert_eq!(
+                result.status,
+                Status::Matched,
+                "{title}, {album:?}: {result:?}"
+            );
+            let track = result.track.unwrap();
+            assert_eq!(track.id, "6ORqU0bHbVCRjXm9AjyHyZ");
+            assert_eq!(track.album.as_deref(), Some("Nimrod"));
+            assert_eq!(track.identifiers.isrc.as_deref(), Some("USRE19700545"));
+        }
+    }
+    h.stop(true).await;
+}
 async fn provider(
     kind: ProviderKind,
     value: Value,

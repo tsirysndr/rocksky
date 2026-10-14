@@ -1,0 +1,236 @@
+{
+  "tracks": {
+    "items": [
+      {
+        "id": "6ORqU0bHbVCRjXm9AjyHyZ",
+        "name": "Good Riddance (Time of Your Life)",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE19700545"
+        },
+        "duration_ms": 153466,
+        "album": {
+          "name": "Nimrod",
+          "album_type": "album",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "1997-10-14"
+        }
+      },
+      {
+        "id": "2gTRCIZ58gBGBO4dGRUwjs",
+        "name": "Good Riddance (Time of Your Life)",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE19700545"
+        },
+        "duration_ms": 153466,
+        "album": {
+          "name": "International Superhits!",
+          "album_type": "compilation",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "2001-11-13"
+        }
+      },
+      {
+        "id": "028mxAauDksobrL61eJaBW",
+        "name": "Good Riddance (Time of Your Life)",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE19700545"
+        },
+        "duration_ms": 153466,
+        "album": {
+          "name": "Greatest Hits: God's Favorite Band",
+          "album_type": "compilation",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "2017-11-17"
+        }
+      },
+      {
+        "id": "0kdmSi3APyWjgiNrse1ycn",
+        "name": "Good Riddance (Time of Your Life)",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE19700545"
+        },
+        "duration_ms": 153466,
+        "album": {
+          "name": "De Regreso a Clases",
+          "album_type": "compilation",
+          "artists": [
+            {
+              "name": "Various Artists"
+            }
+          ],
+          "release_date": "2023-08-18"
+        }
+      },
+      {
+        "id": "2JUGboDFftr2EoK3pvPQGD",
+        "name": "Good Riddance (Time of Your Life)",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE19700545"
+        },
+        "duration_ms": 153466,
+        "album": {
+          "name": "Acoustic Throwback",
+          "album_type": "compilation",
+          "artists": [
+            {
+              "name": "Various Artists"
+            }
+          ],
+          "release_date": "2020-03-06"
+        }
+      },
+      {
+        "id": "4eRWMqfwFRMdyAgTXMcup7",
+        "name": "Good Riddance (Time of Your Life)",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE11600605"
+        },
+        "duration_ms": 153998,
+        "album": {
+          "name": "Nimrods Original Soundtrack",
+          "album_type": "album",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "2026-07-31"
+        }
+      },
+      {
+        "id": "0QRfuD33MZUknREAabPjci",
+        "name": "Good Riddance (Time of Your Life) - Live at Milton Keynes National Bowl, Milton Keynes, England, 6/18/05",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE10501351"
+        },
+        "duration_ms": 206026,
+        "album": {
+          "name": "Bullet in a Bible",
+          "album_type": "compilation",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "2005-11-15"
+        }
+      },
+      {
+        "id": "4VaY2XLQi9ztmiLxJGjs4E",
+        "name": "Good Riddance (Time of Your Life)",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE11600605"
+        },
+        "duration_ms": 153998,
+        "album": {
+          "name": "Nimrod (25th Anniversary Edition)",
+          "album_type": "album",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "2023-01-27"
+        }
+      },
+      {
+        "id": "4DrhNLr4bzvbB11BHu6iIO",
+        "name": "Good Riddance (Time of Your Life) - Live at the Electric Factory, Philadelphia 11/14/97",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE12200626"
+        },
+        "duration_ms": 129695,
+        "album": {
+          "name": "Nimrod (25th Anniversary Edition)",
+          "album_type": "album",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "2023-01-27"
+        }
+      },
+      {
+        "id": "55ZEeoHonlzrYv7nqvZcTg",
+        "name": "Good Riddance (Time of Your Life) - Live at Makuhari Messe, Tokyo, Japan, March 18, 2001",
+        "artists": [
+          {
+            "name": "Green Day"
+          }
+        ],
+        "external_ids": {
+          "isrc": "USRE12500291"
+        },
+        "duration_ms": 158680,
+        "album": {
+          "name": "Warning (25th Anniversary Deluxe Edition)",
+          "album_type": "album",
+          "artists": [
+            {
+              "name": "Green Day"
+            }
+          ],
+          "release_date": "2025-11-14"
+        }
+      }
+    ]
+  }
+}

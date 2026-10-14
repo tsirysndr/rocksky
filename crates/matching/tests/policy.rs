@@ -22,6 +22,62 @@ fn status(r: &MatchRequest, c: Candidate) -> Status {
 fn minimum_request_matches() {
     assert_eq!(status(&request(), track("a", None)), Status::Matched);
 }
+
+#[test]
+fn omitted_subtitles_do_not_allow_recording_or_credit_annotations() {
+    for suffix in [
+        "Live",
+        "Acoustic",
+        "Remastered",
+        "Radio Edit",
+        "Instrumental",
+        "Demo",
+        "Alternate Version",
+        "Club Mix",
+        "Take 2",
+        "feat. Guest",
+        "Eurydice Solo",
+        "Part II",
+        "Reprise",
+        "Sped Up",
+        "Time of Your Life) - Live",
+    ] {
+        let mut c = track("a", None);
+        c.title = format!("Beat It ({suffix})");
+        assert_eq!(status(&request(), c), Status::Unmatched, "{suffix}");
+    }
+}
+
+#[test]
+fn omitted_subtitle_keeps_other_identity_filters_and_ambiguity() {
+    let mut r = request();
+    r.title = "Good Riddance".into();
+    r.artists = vec!["Green Day".into()];
+    let mut c = track("a", Some("Nimrod"));
+    c.title = "Good Riddance (Time of Your Life)".into();
+    c.artists = r.artists.clone();
+    assert_eq!(status(&r, c.clone()), Status::Matched);
+    let mut other = c.clone();
+    other.title = "Good Riddance (Something Else)".into();
+    other.id = "b".into();
+    assert_eq!(
+        resolve(&r, vec![c.clone(), other]).unwrap().status,
+        Status::Ambiguous
+    );
+    r.album = Some("Wrong album".into());
+    assert_eq!(status(&r, c.clone()), Status::Unmatched);
+    r.album = None;
+    r.artists = vec!["Someone Else".into()];
+    assert_eq!(status(&r, c), Status::Unmatched);
+}
+
+#[test]
+fn original_album_is_preferred_to_a_soundtrack_after_identity_checks() {
+    assert!(
+        canonical_score(Some("Nimrod"), Some("album"))
+            > canonical_score(Some("Nimrods Original Soundtrack"), Some("album"))
+    );
+}
 #[test]
 fn no_candidates_is_unmatched() {
     assert_eq!(

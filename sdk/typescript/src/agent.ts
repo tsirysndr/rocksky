@@ -418,10 +418,16 @@ export class Agent {
     // matchSong hits the shared Rocksky AppView; always throttle it, regardless
     // of the write-throttle policy (a self-hosted PDS grants no AppView capacity).
     await this.matchGate.take();
-    const m = (await new RockskyClient(appview).matchSong(title, artist, mbId, isrc, album)) as Record<
-      string,
-      unknown
-    > | null;
+    let m: Record<string, unknown> | null;
+    try {
+      m = (await new RockskyClient(appview).matchSong(title, artist, mbId, isrc, album)) as Record<string, unknown> | null;
+    } catch (error) {
+      // Unmatched and ambiguous results are both XRPC NotFound responses.
+      // Only matching misses permit raw metadata; outages/auth/rate limits must
+      // still reach the caller. Keep this catch outside the PDS write path.
+      if (!(error instanceof RockskyError) || error.kind !== "NotFound") throw error;
+      m = null;
+    }
     const s = (k: string): string | undefined => (m && typeof m[k] === "string" ? (m[k] as string) : undefined);
     const n = (k: string): number | undefined => (m && typeof m[k] === "number" ? (m[k] as number) : undefined);
     const rec: ScrobbleInput =
@@ -447,7 +453,7 @@ export class Agent {
             tidalLink: s("tidalLink"),
             appleMusicLink: s("appleMusicLink"),
           }
-        : { title, artist, album: album ?? "", albumArtist: artist, duration: 0 };
+        : { title, artist, album: album ?? "", albumArtist: artist, duration: 0, mbid: mbId, isrc };
     // "Scrobbled at" — Unix seconds; omitted -> scrobble() defaults to now.
     if (timestamp !== undefined) rec.createdAt = new Date(timestamp * 1000).toISOString();
     return this.scrobble(rec);
