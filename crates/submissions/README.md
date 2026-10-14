@@ -196,3 +196,15 @@ The backend contract covers competing consumers, fencing, retry scheduling,
 dead-lettering, step reuse and independent source cursors. SQLite also has an
 abrupt child-process exit test proving committed jobs/checkpoints survive without
 graceful connection shutdown.
+
+For a real HTTP/process smoke test, build the standalone binary and run:
+
+```sh
+SUBMISSIONS_TEST_POSTGRES_URL='postgres://localhost/testdb' \
+  python3 crates/submissions/tests/http_smoke.py target/release/rocksky-submissions
+```
+
+This requires `psql` and permission to create a temporary schema. It starts an
+isolated worker and loopback callback, kills the worker during publication,
+verifies recovery and a 503 retry, and checks that completed work is not published
+again after restart. It removes its schema afterward and never contacts a PDS.
