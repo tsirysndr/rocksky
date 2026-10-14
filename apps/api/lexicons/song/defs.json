@@ -441,6 +441,29 @@
           "description": "Match confidence score in the range 0-100 (higher is better).",
           "maximum": 100,
           "minimum": 0
+        },
+        "source": {
+          "type": "string",
+          "description": "The metadata provider for this candidate."
+        },
+        "providerId": {
+          "type": "string",
+          "description": "The provider identifier, including non-numeric identifiers."
+        },
+        "mbId": {
+          "type": "string",
+          "description": "The MusicBrainz recording identifier of this candidate."
+        },
+        "mbReleaseId": {
+          "type": "string",
+          "description": "The MusicBrainz release identifier of this candidate."
+        },
+        "mbArtists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#responseMbArtistsItemView"
+          }
         }
       }
     },

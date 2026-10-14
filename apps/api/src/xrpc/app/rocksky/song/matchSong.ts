@@ -2,9 +2,17 @@ import { InvalidRequestError } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { count, eq } from "drizzle-orm";
 import type { Server } from "lexicon";
-import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
+import type {
+  SongViewDetailed,
+  SongMatchView,
+} from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/matchSong";
-import { matchingRequest, matchTrack, candidateMetadata } from "lib/matching";
+import {
+  matchingRequest,
+  resolveMatch,
+  candidateMetadata,
+  type MatchedCandidate,
+} from "lib/matching";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
 
@@ -23,7 +31,8 @@ export async function retrieveMatch(
 ): Promise<SongViewDetailed> {
   // All identity decisions, including catalog selection, belong to the service.
   // No legacy ID-only/title-only Redis cache may bypass metadata validation.
-  const candidate = await matchTrack(ctx, matchingRequest(params));
+  const result = await resolveMatch(ctx, matchingRequest(params));
+  const candidate = result.track;
   if (!candidate)
     throw new InvalidRequestError("No unambiguous song match", "NotFound");
   const metadata = candidateMetadata(candidate);
@@ -101,8 +110,48 @@ export async function retrieveMatch(
         mbid: a.mbid,
         name: a.name,
       })) ?? null,
-    matches: [],
+    matches: result.candidates
+      .filter(({ track }) => track.source !== "catalog")
+      .map(({ track }) => candidateMatch(track)),
     playCount,
     uniqueListeners,
+  };
+}
+
+// Candidates have passed the matching service's identity filters. Keep its order;
+// its policy rank is not a confidence percentage or a provider popularity rank.
+function candidateMatch(candidate: MatchedCandidate): SongMatchView {
+  const ids = candidate.identifiers;
+  const deezerId =
+    candidate.source === "deezer"
+      ? Number(ids.deezerTrackId ?? candidate.id)
+      : undefined;
+  const metadata = candidateMetadata(candidate);
+  return {
+    source: candidate.source,
+    providerId: candidate.id,
+    id:
+      deezerId && Number.isSafeInteger(deezerId) && deezerId > 0
+        ? deezerId
+        : undefined,
+    title: candidate.title,
+    artist: candidate.artists.join(", "),
+    album: candidate.album ?? undefined,
+    albumArt: candidate.albumArt ?? undefined,
+    isrc: ids.isrc ?? undefined,
+    durationMs: candidate.durationMs ?? undefined,
+    trackNumber: candidate.trackNumber ?? undefined,
+    discNumber: candidate.discNumber ?? undefined,
+    mbId: ids.musicbrainzRecordingId ?? undefined,
+    mbReleaseId: ids.musicbrainzReleaseId ?? undefined,
+    mbArtists: candidate.musicbrainzArtists ?? undefined,
+    link:
+      candidate.source === "deezer"
+        ? metadata.deezerLink
+        : candidate.source === "spotify"
+          ? metadata.spotifyLink
+          : candidate.source === "musicbrainz" && ids.musicbrainzRecordingId
+            ? `https://musicbrainz.org/recording/${ids.musicbrainzRecordingId}`
+            : undefined,
   };
 }

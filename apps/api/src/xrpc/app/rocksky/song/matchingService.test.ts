@@ -21,7 +21,11 @@ const candidate = {
   trackNumber: 9,
   discNumber: 1,
 };
-function context(status: string, track: unknown) {
+function context(
+  status: string,
+  track: unknown,
+  candidates: unknown[] = [candidate],
+) {
   return {
     matching: axios.create({
       adapter: async (config) => {
@@ -36,7 +40,8 @@ function context(status: string, track: unknown) {
             policyVersion: "1",
             status,
             track,
-            candidates: [{ track: candidate }],
+            candidates: candidates.map((track) => ({ track })),
+            rejected: [{ track: { ...candidate, title: "Wrong song" } }],
           },
           status: 200,
           statusText: "OK",
@@ -70,7 +75,9 @@ it("maps the selected service result to the existing song response", async () =>
     discNumber: 1,
     playCount: 0,
     uniqueListeners: 0,
-    matches: [],
+    matches: [
+      { source: "spotify", providerId: candidate.id, title: params.title },
+    ],
   });
   expect(result.spotifyLink).toBe(
     `https://open.spotify.com/track/${candidate.id}`,
@@ -92,4 +99,53 @@ it("propagates service outages without fallback matching", async () => {
     },
   });
   await assert.rejects(retrieveMatch(ctx, params), /HTTP 503/);
+});
+
+it("returns Deezer and MusicBrainz candidates without changing the selected identity", async () => {
+  const mbId = "363ee5f9-0855-4c64-842d-d8be1ec59f1e";
+  const mbArtists = [{ mbid: "artist-id", name: params.artist }];
+  const deezer = {
+    ...candidate,
+    source: "deezer",
+    id: "12345",
+    identifiers: { deezerTrackId: "12345", isrc: params.isrc },
+  };
+  const mb = {
+    ...candidate,
+    source: "musicbrainz",
+    id: mbId,
+    identifiers: { musicbrainzRecordingId: mbId },
+    musicbrainzArtists: mbArtists,
+  };
+  const result = await retrieveMatch(
+    context("matched", candidate, [
+      candidate,
+      deezer,
+      mb,
+      { ...candidate, source: "catalog" },
+    ]),
+    params,
+  );
+  expect(result.matches).toHaveLength(3);
+  expect(result.matches?.[1]).toMatchObject({
+    source: "deezer",
+    id: 12345,
+    providerId: "12345",
+    link: "https://www.deezer.com/track/12345",
+    isrc: params.isrc,
+  });
+  expect(result.matches?.[2]).toMatchObject({
+    source: "musicbrainz",
+    providerId: mbId,
+    mbId,
+    mbArtists,
+    link: `https://musicbrainz.org/recording/${mbId}`,
+  });
+  expect(result.matches?.[2].id).toBeUndefined();
+  expect(result.matches?.[1].score).toBeUndefined();
+  expect(result.mbId).toBeNull();
+  expect(result.mbArtists).toBeNull();
+  expect(result.spotifyLink).toBe(
+    `https://open.spotify.com/track/${candidate.id}`,
+  );
 });

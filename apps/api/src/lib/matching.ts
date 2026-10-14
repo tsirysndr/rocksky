@@ -45,6 +45,7 @@ const responseSchema = z
     policyVersion: z.string(),
     status: z.enum(["matched", "ambiguous", "unmatched"]),
     track: candidateSchema.nullable(),
+    candidates: z.array(z.object({ track: candidateSchema })).default([]),
     warnings: z.array(z.string()).default([]),
   })
   .superRefine((response, ctx) => {

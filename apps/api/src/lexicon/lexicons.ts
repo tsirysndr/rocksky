@@ -11591,6 +11591,33 @@ export const schemaDict = {
         description:
           "A ranked candidate match for a song from an external metadata provider.",
         properties: {
+          source: {
+            type: "string",
+            description: "The metadata provider for this candidate.",
+          },
+          providerId: {
+            type: "string",
+            description:
+              "The provider identifier, including non-numeric identifiers.",
+          },
+          mbId: {
+            type: "string",
+            description:
+              "The MusicBrainz recording identifier of this candidate.",
+          },
+          mbReleaseId: {
+            type: "string",
+            description:
+              "The MusicBrainz release identifier of this candidate.",
+          },
+          mbArtists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.song.defs#responseMbArtistsItemView",
+            },
+          },
+
           id: {
             type: "integer",
             description:

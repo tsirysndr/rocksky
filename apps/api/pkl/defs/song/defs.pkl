@@ -334,6 +334,29 @@ defs = new Mapping<String, BaseType> {
     type = "object"
     description = "A ranked candidate match for a song from an external metadata provider."
     properties = new Mapping<String, BaseType> {
+      ["source"] = new StringType {
+        type = "string"
+        description = "The metadata provider for this candidate."
+      }
+      ["providerId"] = new StringType {
+        type = "string"
+        description = "The provider identifier, including non-numeric identifiers."
+      }
+      ["mbId"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz recording identifier of this candidate."
+      }
+      ["mbReleaseId"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz release identifier of this candidate."
+      }
+      ["mbArtists"] = new Array {
+        type = "array"
+        items = new Reference {
+          type = "ref"
+          ref = "app.rocksky.song.defs#responseMbArtistsItemView"
+        }
+      }
       ["id"] = new IntegerType {
         type = "integer"
         description = "The provider's numeric identifier for the matched track."
