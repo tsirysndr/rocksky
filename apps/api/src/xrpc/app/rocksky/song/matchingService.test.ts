@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { expect, it } from "bun:test";
 import axios from "axios";
 import type { Context } from "context";
+import tables from "schema";
 import { retrieveMatch } from "./matchSong";
 
 const params = {
@@ -53,7 +54,7 @@ function context(
     // Neither a catalog shortcut nor a legacy Redis hit may bypass matching.
     readDb: {
       select() {
-        throw new Error("unexpected database lookup");
+        return { from: () => ({ where: () => ({ limit: async () => [] }) }) };
       },
     },
     redis: {
@@ -108,6 +109,8 @@ it("returns Deezer and MusicBrainz candidates without changing the selected iden
     ...candidate,
     source: "deezer",
     id: "12345",
+    providerScore: 98.7,
+    providerRank: 765432,
     identifiers: { deezerTrackId: "12345", isrc: params.isrc },
   };
   const mb = {
@@ -142,9 +145,61 @@ it("returns Deezer and MusicBrainz candidates without changing the selected iden
     link: `https://musicbrainz.org/recording/${mbId}`,
   });
   expect(result.matches?.[2].id).toBeUndefined();
-  expect(result.matches?.[1].score).toBeUndefined();
+  expect(result.matches?.[1].score).toBe(99);
+  expect(result.matches?.[1].rank).toBe(765432);
+  expect(result.matches?.[0].score).toBeUndefined();
   expect(result.mbId).toBeNull();
   expect(result.mbArtists).toBeNull();
+  expect(result.spotifyLink).toBe(
+    `https://open.spotify.com/track/${candidate.id}`,
+  );
+});
+
+it("fills the catalog ID and references for an external selection and counts that record", async () => {
+  const ctx = context("matched", candidate);
+  const uri = "at://did:plc:test/app.rocksky.song/song";
+  ctx.readDb = {
+    select: () => ({
+      from: (table: unknown) => ({
+        where: () => {
+          if (table === tables.userTracks || table === tables.scrobbles)
+            return Promise.resolve([
+              { count: table === tables.userTracks ? 2 : 7 },
+            ]);
+          return {
+            limit: async () =>
+              table === tables.tracks
+                ? [
+                    {
+                      id: "rocksky-id",
+                      sha256: "hash",
+                      title: candidate.title,
+                      artist: params.artist,
+                      album: params.album,
+                      albumArtist: params.artist,
+                      isrc: params.isrc,
+                      duration: 151000,
+                      uri,
+                      albumUri: "at://did:plc:test/app.rocksky.album/album",
+                      artistUri: "at://did:plc:test/app.rocksky.artist/artist",
+                    },
+                  ]
+                : [],
+          };
+        },
+      }),
+    }),
+  } as unknown as Context["readDb"];
+  const result = await retrieveMatch(ctx, params);
+  expect(result).toMatchObject({
+    id: "rocksky-id",
+    sha256: "hash",
+    uri,
+    albumUri: "at://did:plc:test/app.rocksky.album/album",
+    artistUri: "at://did:plc:test/app.rocksky.artist/artist",
+    uniqueListeners: 2,
+    playCount: 7,
+  });
   expect(result.spotifyLink).toBe(
     `https://open.spotify.com/track/${candidate.id}`,
   );

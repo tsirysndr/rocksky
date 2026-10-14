@@ -92,6 +92,7 @@ impl HttpProvider {
                         .json()
                         .await?;
                     return Ok(vec![Candidate {
+                        provider_rank: track["rank"].as_i64(),
                         source: "deezer".into(),
                         id: track["id"].to_string(),
                         title: string(&track, "title").unwrap_or_default(),
@@ -131,7 +132,12 @@ impl HttpProvider {
                     .map(DeezerMatch::candidate)
                     .collect();
                 if let Some(track) = response.track {
-                    candidates.insert(0, track.candidate());
+                    let mut selected = track.candidate();
+                    if let Some(search) = candidates.iter().find(|c| c.id == selected.id) {
+                        selected.provider_score = selected.provider_score.or(search.provider_score);
+                        selected.provider_rank = selected.provider_rank.or(search.provider_rank);
+                    }
+                    candidates.insert(0, selected);
                 }
                 Ok(candidates)
             }
@@ -329,6 +335,8 @@ struct DeezerResponse {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DeezerMatch {
+    score: Option<f64>,
+    rank: Option<i64>,
     #[serde(default)]
     id: Option<i64>,
     #[serde(default)]
@@ -355,6 +363,11 @@ impl DeezerMatch {
             .filter(|id| *id > 0)
             .map(|id| id.to_string());
         Candidate {
+            provider_score: self
+                .score
+                .filter(|s| s.is_finite() && (0.0..=1.0).contains(s))
+                .map(|s| s * 100.0),
+            provider_rank: self.rank,
             album_artist: self.album_artist,
             track_number: self.track_number,
             disc_number: self.disc_number,
@@ -381,6 +394,10 @@ impl DeezerMatch {
 
 fn musicbrainz_candidates(v: &Value, request: &MatchRequest) -> Vec<Candidate> {
     let base = Candidate {
+        provider_score: v["score"]
+            .as_f64()
+            .or_else(|| v["score"].as_str().and_then(|s| s.parse::<f64>().ok()))
+            .filter(|s| s.is_finite() && (0.0..=100.0).contains(s)),
         source: "musicbrainz".into(),
         id: string(v, "id").unwrap_or_default(),
         title: string(v, "title").unwrap_or_default(),

@@ -178,7 +178,7 @@ async fn rust_client_calls_service_and_provider_end_to_end() {
 #[actix_web::test]
 async fn selected_deezer_candidate_keeps_full_metadata_over_duplicate_search_hit() {
     let (p, h, _) = provider(ProviderKind::Deezer, json!({
-        "matches": [{"id": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller"}],
+        "matches": [{"id": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller", "score": 0.987, "rank": 765432}],
         "track": {"deezerTrackId": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller",
             "trackNumber": 5, "discNumber": 1, "label": "Epic", "genres": ["Pop"], "releaseDate": "1982-11-30"}
     }), 200).await;
@@ -186,6 +186,8 @@ async fn selected_deezer_candidate_keeps_full_metadata_over_duplicate_search_hit
         .unwrap()
         .track
         .unwrap();
+    assert_eq!(c.provider_score, Some(98.7));
+    assert_eq!(c.provider_rank, Some(765432));
     assert_eq!(c.track_number, Some(5));
     assert_eq!(c.disc_number, Some(1));
     assert_eq!(c.label.as_deref(), Some("Epic"));
@@ -214,4 +216,22 @@ async fn optional_spotify_enrichment_uses_selected_ids_not_search() {
     assert_eq!(c.title, "Beat It");
     assert_eq!(*paths.lock().unwrap(), ["/albums/album-id"]);
     h.stop(true).await;
+}
+
+#[actix_web::test]
+async fn musicbrainz_preserves_search_score_without_inventing_popularity() {
+    for score in [json!(98), json!("98"), json!(null), json!(101)] {
+        let (p, h, _) = provider(ProviderKind::Musicbrainz, json!([{"id":"rec","title":"Beat It","score":score,"artist-credit":[{"name":"Michael Jackson"}]}]), 200).await;
+        let c = p.candidates(&request()).await.unwrap();
+        assert_eq!(
+            c[0].provider_score,
+            if score == json!(98) || score == json!("98") {
+                Some(98.0)
+            } else {
+                None
+            }
+        );
+        assert_eq!(c[0].provider_rank, None);
+        h.stop(true).await;
+    }
 }

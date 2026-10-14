@@ -118,6 +118,10 @@ pub struct Candidate {
     pub artist_picture: Option<String>,
     pub musicbrainz_artists: Option<Vec<MusicbrainzArtist>>,
     pub spotify_link: Option<String>,
+    /// Provider search score on a 0–100 scale; advisory, never identity evidence.
+    pub provider_score: Option<f64>,
+    /// Provider popularity rank (Deezer), not the policy rank vector.
+    pub provider_rank: Option<i64>,
     #[serde(skip)]
     pub provider_album_id: Option<String>,
     #[serde(skip)]

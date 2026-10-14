@@ -30,6 +30,8 @@ export const candidateSchema = z.object({
     .array(z.object({ mbid: z.string(), name: z.string() }))
     .nullish(),
   spotifyLink: z.string().nullish(),
+  providerScore: z.number().finite().min(0).max(100).nullish(),
+  providerRank: z.number().int().nullish(),
 });
 export type MatchedCandidate = z.infer<typeof candidateSchema>;
 export interface MatchingRequest {

@@ -1,3 +1,4 @@
+import { catalogIdentity } from "./matchSongUris";
 import { InvalidRequestError } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { count, eq } from "drizzle-orm";
@@ -83,22 +84,29 @@ export async function retrieveMatch(
   track.artist = candidate.artists.join(", ");
   track.album = candidate.album ?? "";
   track.albumArtist = candidate.albumArtist ?? track.albumArtist;
-  const [uniqueListeners, playCount] = record
+  const identity = await catalogIdentity(ctx, candidate, record);
+  const catalogRecord = identity.record;
+  const [uniqueListeners, playCount] = catalogRecord
     ? await Promise.all([
         ctx.readDb
           .select({ count: count() })
           .from(tables.userTracks)
-          .where(eq(tables.userTracks.trackId, record.id))
+          .where(eq(tables.userTracks.trackId, catalogRecord.id))
           .then((rows) => rows[0]?.count ?? 0),
         ctx.readDb
           .select({ count: count() })
           .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.trackId, record.id))
+          .where(eq(tables.scrobbles.trackId, catalogRecord.id))
           .then((rows) => rows[0]?.count ?? 0),
       ])
     : [0, 0];
   return {
     ...track,
+    id: catalogRecord?.id ?? track.id,
+    sha256: catalogRecord?.sha256 ?? track.sha256,
+    uri: identity.uri,
+    albumUri: identity.albumUri,
+    artistUri: identity.artistUri,
     createdAt: track.createdAt.toISOString(),
     updatedAt: track.updatedAt.toISOString(),
     releaseDate: metadata.releaseDate?.toISOString().slice(0, 10) ?? null,
@@ -128,6 +136,11 @@ function candidateMatch(candidate: MatchedCandidate): SongMatchView {
       : undefined;
   const metadata = candidateMetadata(candidate);
   return {
+    score:
+      candidate.providerScore == null
+        ? undefined
+        : Math.round(candidate.providerScore),
+    rank: candidate.providerRank ?? undefined,
     source: candidate.source,
     providerId: candidate.id,
     id:
