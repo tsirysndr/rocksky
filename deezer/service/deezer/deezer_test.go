@@ -682,3 +682,31 @@ func TestServiceUsesConfiguredBaseURL(t *testing.T) {
 		t.Fatalf("service base URL not pointed at mock: %s", svc.baseURL)
 	}
 }
+
+func TestPreviewSignatureCapsCacheExpiry(t *testing.T) {
+	now := time.Unix(1000, 0)
+	for _, tc := range []struct {
+		name  string
+		value any
+		want  time.Time
+	}{
+		{"metadata only", DeezerTrack{}, now.Add(time.Hour)},
+		{"signed track", DeezerTrack{Preview: "https://cdn.example/preview.mp3?hdnea=exp=2000~acl=/*~hmac=test"}, time.Unix(1940, 0)},
+		{"encoded signature", DeezerTrack{Preview: "https://cdn.example/preview.mp3?hdnea=exp%3D2000%7Ehmac%3Dtest"}, time.Unix(1940, 0)},
+		{"expired search result", []DeezerTrack{{Preview: "https://cdn.example/preview.mp3?hdnea=exp=900~hmac=test"}}, time.Unix(840, 0)},
+		{"unknown expiry", DeezerTrack{Preview: "https://cdn.example/preview.mp3"}, now.Add(5 * time.Minute)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := previewCacheExpiry(tc.value, now, time.Hour); !got.Equal(tc.want) {
+				t.Fatalf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+func TestExpiredPreviewIsNotCached(t *testing.T) {
+	svc := NewDeezerService()
+	svc.cacheSet("expired", DeezerTrack{Preview: "https://cdn.example/preview.mp3?hdnea=exp=1000~hmac=test"})
+	if _, _, ok := svc.cacheGet("expired"); ok {
+		t.Fatal("expired signed preview must not be cached")
+	}
+}

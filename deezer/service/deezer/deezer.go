@@ -176,9 +176,60 @@ func (s *DeezerService) cacheGet(key string) (any, error, bool) {
 
 // cacheSet stores a value with the configured TTL.
 func (s *DeezerService) cacheSet(key string, value any) {
+	now := time.Now().UTC()
+	expiresAt := previewCacheExpiry(value, now, s.cacheTTL)
+	if !expiresAt.After(now) {
+		return
+	}
 	s.cacheMutex.Lock()
-	s.cache[key] = cacheEntry{value: value, expiresAt: time.Now().UTC().Add(s.cacheTTL)}
+	s.cache[key] = cacheEntry{value: value, expiresAt: expiresAt}
 	s.cacheMutex.Unlock()
+}
+
+// Search and track objects contain signed preview URLs. Their cache lifetime
+// must end before the signature does, even when metadata has a longer TTL.
+func previewCacheExpiry(value any, now time.Time, ttl time.Duration) time.Time {
+	expiresAt := now.Add(ttl)
+	var tracks []DeezerTrack
+	switch v := value.(type) {
+	case DeezerTrack:
+		tracks = []DeezerTrack{v}
+	case []DeezerTrack:
+		tracks = v
+	}
+	for _, track := range tracks {
+		if track.Preview == "" {
+			continue
+		}
+		previewExpiry := now.Add(5 * time.Minute)
+		known := false
+		if parsed, err := url.Parse(track.Preview); err == nil {
+			for key, values := range parsed.Query() {
+				for _, value := range values {
+					parts := strings.Split(value, "~")
+					if key == "exp" || key == "expires" {
+						parts = []string{"exp=" + value}
+					}
+					for _, part := range parts {
+						if !strings.HasPrefix(part, "exp=") {
+							continue
+						}
+						if seconds, err := strconv.ParseInt(strings.TrimPrefix(part, "exp="), 10, 64); err == nil {
+							expiry := time.Unix(seconds, 0).Add(-time.Minute)
+							if !known || expiry.Before(previewExpiry) {
+								previewExpiry = expiry
+							}
+							known = true
+						}
+					}
+				}
+			}
+		}
+		if previewExpiry.Before(expiresAt) {
+			expiresAt = previewExpiry
+		}
+	}
+	return expiresAt
 }
 
 // cacheFailure remembers an upstream failure for a short while so the same
