@@ -18,6 +18,7 @@ toml = "0.8"
 serde = { version = "1", features = ["derive"] }
 rocksky-jellyfin = { path = "../jellyfin" }
 rocksky-jetstream = { path = "../jetstream" }
+rocksky-matching = { path = "../matching" }
 rocksky-mirror = { path = "../mirror" }
 rocksky-playlists = { path = "../playlists" }
 rocksky-scrobbler = { path = "../scrobbler" }

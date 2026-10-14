@@ -24,6 +24,7 @@ fn cli() -> Command {
         )
         .subcommand(Command::new("jellyfin").about("Start Jellyfin-compatible API"))
         .subcommand(Command::new("jetstream").about("Start JetStream Subscriber Service"))
+        .subcommand(Command::new("matching").about("Start the track matching HTTP service"))
         .subcommand(Command::new("mirror").about("Mirror plays from Last.fm, ListenBrainz, Teal.fm into Rocksky"))
         .subcommand(Command::new("navidrome").about("Start Navidrome-compatible API (Subsonic REST API)"))
         .subcommand(Command::new("playlist").about("Playlist related commands"))
@@ -96,6 +97,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some(("jetstream", _)) => {
             cmd::jetstream::start_jetstream_service().await?;
+        }
+        Some(("matching", _)) => {
+            cmd::matching::start_matching_service().await?;
         }
         Some(("mirror", _)) => {
             cmd::mirror::start_mirror_service().await?;

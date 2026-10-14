@@ -1,6 +1,7 @@
 pub mod appview;
 pub mod jellyfin;
 pub mod jetstream;
+pub mod matching;
 pub mod mirror;
 pub mod navidrome;
 pub mod playlist;

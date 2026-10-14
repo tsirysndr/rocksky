@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/root/github/rocksky
-# Build from the repository root: cargo build --release -p rocksky-matching
-ExecStart=/root/github/rocksky/target/release/rocksky-matching
+# Build from the repository root: cargo build --release -p rockskyd
+ExecStart=/root/github/rocksky/target/release/rockskyd matching
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal

@@ -10,13 +10,18 @@ scrobbles or mutate the catalog.
 From the repository root:
 
 ```sh
-cargo build --release -p rocksky-matching
+cargo build --release -p rockskyd
 DEEZER_URL=http://127.0.0.1:8090 \
 MUSICBRAINZ_URL=http://127.0.0.1:8088 \
-./target/release/rocksky-matching
+./target/release/rockskyd matching
 ```
 
 Only configured providers are used. At least one is required.
+
+`rockskyd matching` and the standalone `rocksky-matching` binary call the same
+`rocksky_matching::startup::run()` function. To build the standalone binary, use
+`cargo build --release -p rocksky-matching`. The daemon also loads `.env` and
+initializes its shared telemetry before starting the service.
 
 | Variable               | Meaning                                                                                                 |
 | ---------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -37,7 +42,8 @@ calls have a 7-second timeout. No provider retry loops extend that budget.
 
 The unit in [`systemd/rocksky-matching.service`](../../systemd/rocksky-matching.service)
 uses the existing deployment directory `/root/github/rocksky`, runs the release
-binary, restarts on failure, and logs to the journal. It listens on
+binary with the `matching` subcommand, restarts on failure, and logs to the
+journal. It listens on
 `127.0.0.1:8096` and uses the local Deezer and MusicBrainz services by default.
 Those providers are ordered before matching when started together, but are not
 required dependencies, so either can restart independently.
@@ -45,7 +51,7 @@ required dependencies, so either can restart independently.
 On the Linux deployment host, from the repository root:
 
 ```sh
-cargo build --release -p rocksky-matching
+cargo build --release -p rockskyd
 sudo cp systemd/rocksky-matching.service /etc/systemd/system/
 sudo systemd-analyze verify /etc/systemd/system/rocksky-matching.service
 sudo systemctl daemon-reload
@@ -66,8 +72,8 @@ MUSICBRAINZ_URL=http://127.0.0.1:8088
 Add `DATABASE_URL` to enable catalog lookup. To enable Spotify, supply both
 `SPOTIFY_API_URL` and `SPOTIFY_ACCESS_TOKEN`. Protect this file with mode `0600`
 when it contains credentials. Restart `rocksky-matching.service` after changing
-it. The unit starts the binary directly and reads only its configured environment;
-set any deployment secrets needed by this service in that file.
+it. The unit starts `rockskyd matching` directly. Set deployment secrets in that
+file; explicit environment values take precedence over the daemon’s `.env` file.
 
 ## Contract
 

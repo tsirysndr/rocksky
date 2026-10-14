@@ -4,6 +4,7 @@ pub mod catalog;
 pub mod client;
 pub mod providers;
 pub mod service;
+pub mod startup;
 
 use rocksky_core::credits::fold;
 use serde::{Deserialize, Serialize};

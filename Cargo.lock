@@ -6480,6 +6480,7 @@ dependencies = [
  "rocksky-db",
  "rocksky-jellyfin",
  "rocksky-jetstream",
+ "rocksky-matching",
  "rocksky-mirror",
  "rocksky-navidrome",
  "rocksky-pgpull",
