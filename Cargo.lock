@@ -6120,6 +6120,7 @@ dependencies = [
  "sqlx",
  "tempfile",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -6141,6 +6142,7 @@ dependencies = [
  "rand 0.9.2",
  "reqwest 0.12.23",
  "rocksky-db",
+ "rocksky-matching",
  "rocksky-pgurl",
  "rocksky-telemetry",
  "sea-query",
@@ -6299,6 +6301,7 @@ dependencies = [
  "redis 0.29.5",
  "reqwest 0.12.23",
  "rocksky-db",
+ "rocksky-matching",
  "rocksky-pgurl",
  "rocksky-telemetry",
  "serde",
@@ -6459,6 +6462,7 @@ dependencies = [
  "redis 0.29.5",
  "reqwest 0.12.23",
  "rocksky-db",
+ "rocksky-matching",
  "rocksky-pgurl",
  "rocksky-telemetry",
  "serde",

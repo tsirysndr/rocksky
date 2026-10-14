@@ -2,7 +2,6 @@ use crate::{
     cache::Cache,
     consts::BANNER,
     events::Events,
-    musicbrainz::client::MusicbrainzClient,
     repo,
     scrobbler::{resolve_track, scrobble},
     types::ScrobbleRequest,
@@ -10,6 +9,7 @@ use crate::{
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use owo_colors::OwoColorize;
 use rocksky_db::Backend;
+use rocksky_matching::client::MatchingClient;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
 
@@ -36,7 +36,7 @@ pub async fn index() -> impl Responder {
 async fn handle_scrobble(
     data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
-    mb_client: web::Data<Arc<MusicbrainzClient>>,
+    matcher: web::Data<Arc<MatchingClient>>,
     events: web::Data<Arc<Events>>,
     mut payload: web::Payload,
     req: HttpRequest,
@@ -71,18 +71,12 @@ async fn handle_scrobble(
         let duration_ms = parsed.duration.map(|d| (d as u64) * 1000).unwrap_or(0);
         let source = params.data.song.connector.id.clone();
 
-        let pool = data.get_ref().as_ref();
-        let mb_client = mb_client.get_ref().as_ref();
-        let resolved = resolve_track(
-            pool,
-            cache.get_ref(),
-            mb_client,
-            &parsed.artist,
-            &parsed.track,
-            parsed.album.as_deref(),
-        )
-        .await
-        .unwrap_or(None);
+        let resolved = resolve_track(matcher.get_ref().as_ref(), &params.data.song)
+            .await
+            .unwrap_or_else(|error| {
+                tracing::warn!(%error, "Matching unavailable for now playing; keeping source metadata");
+                None
+            });
 
         let track = serde_json::json!({
             "name": resolved.as_ref().map(|t| t.title.as_str()).unwrap_or(&parsed.track),
@@ -154,8 +148,8 @@ async fn handle_scrobble(
         }
     }
 
-    let mb_client = mb_client.get_ref().as_ref();
-    scrobble(&pool, &cache, mb_client, params, &user.did)
+    let matcher = matcher.get_ref().as_ref();
+    scrobble(&pool, &cache, matcher, params, &user.did)
         .await
         .map_err(|err| {
             actix_web::error::ErrorInternalServerError(format!("Failed to scrobble: {}", err))

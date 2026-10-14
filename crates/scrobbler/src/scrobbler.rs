@@ -1,27 +1,58 @@
-use rocksky_db::Backend;
-use std::{collections::BTreeMap, env};
-
-use anyhow::Error;
-use rand::Rng;
-
 use crate::{
     auth::{decode_token, extract_did},
     cache::Cache,
-    crypto::decrypt_aes_256_ctr,
-    deezer::client::DeezerClient,
     listenbrainz::types::SubmitListensRequest,
-    musicbrainz::{
-        client::MusicbrainzClient, get_best_release_from_recordings, recording::Recording,
-    },
-    repo::{self},
-    rocksky,
-    spotify::{client::SpotifyClient, refresh_token},
+    repo, rocksky,
     types::{Scrobble, Track},
     xata::user::User,
 };
+use anyhow::Error;
+use rocksky_db::Backend;
+use rocksky_matching::{client::MatchingClient, Identifiers, MatchRequest};
+use std::collections::BTreeMap;
 
-const MAX_SPOTIFY_RETRIES: u32 = 3;
-const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+fn optional(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+}
+
+pub fn matching_request(scrobble: &Scrobble) -> MatchRequest {
+    MatchRequest {
+        title: scrobble.track.clone(),
+        artists: vec![scrobble.artist.clone()],
+        album: optional(scrobble.album.as_deref()),
+        album_artist: optional(scrobble.album_artist.as_deref()),
+        // AudioScrobbler durations are seconds; the matching protocol is milliseconds.
+        duration_ms: scrobble
+            .duration
+            .filter(|n| *n > 0)
+            .map(|n| u64::from(n) * 1000),
+        identifiers: Identifiers {
+            musicbrainz_recording_id: optional(scrobble.mbid.as_deref()),
+            ..Default::default()
+        },
+    }
+}
+
+async fn submit_matched(
+    cache: &Cache,
+    matcher: &MatchingClient,
+    did: &str,
+    scrobble: &mut Scrobble,
+) -> Result<(), Error> {
+    if let Some(candidate) = matcher.match_track(&matching_request(scrobble)).await? {
+        let track: Track = candidate.into();
+        scrobble.album = Some(track.album.clone());
+        rocksky::scrobble(cache, did, track, scrobble.timestamp).await?;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    } else {
+        scrobble.ignored = Some(true);
+        tracing::info!(artist = %scrobble.artist, title = %scrobble.track, "No unambiguous match; skipping scrobble");
+    }
+    Ok(())
+}
 
 fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> {
     let mut result = vec![];
@@ -98,666 +129,57 @@ fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> 
     Ok(result)
 }
 
-/// Fallback enrichment via the Deezer service. Used when Spotify search fails
-/// to resolve the track, so we don't end up scrobbling with incomplete
-/// metadata. Returns `true` when Deezer produced a track and the scrobble was
-/// submitted; `false` (never an error) when Deezer had no match or was
-/// unreachable, so the caller can continue to the next fallback.
-async fn try_deezer_enrich(
-    deezer_client: &DeezerClient,
-    cache: &Cache,
-    did: &str,
-    scrobble: &mut Scrobble,
-) -> Result<bool, Error> {
-    let resp = match deezer_client
-        .enrich(&scrobble.track, &scrobble.artist, scrobble.album.as_deref())
-        .await
-    {
-        Ok(resp) => resp,
-        Err(e) => {
-            tracing::warn!(
-                artist = %scrobble.artist,
-                track = %scrobble.track,
-                error = %e,
-                "Deezer enrichment failed, continuing"
-            );
-            return Ok(false);
-        }
-    };
-
-    if let Some(enriched) = resp.track {
-        tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Deezer (track)");
-        let track: Track = enriched.into();
-        scrobble.album = Some(track.album.clone());
-        rocksky::scrobble(cache, did, track, scrobble.timestamp).await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(true);
-    }
-
-    Ok(false)
-}
-
-/// Backfill `track_number` / `disc_number` from Deezer when a provider-resolved
-/// track left them at 0 (MusicBrainz commonly does when a recording has no
-/// release media; Spotify occasionally too). Best-effort: only calls Deezer
-/// when at least one of the two is missing, and swallows any error.
-async fn backfill_track_disc_from_deezer(
-    deezer: Option<&DeezerClient>,
-    track: &mut Track,
-    artist: &str,
-    track_name: &str,
-    album: Option<&str>,
-) {
-    if track.track_number != 0 && track.disc_number != 0 {
-        return;
-    }
-    let Some(deezer) = deezer else {
-        return;
-    };
-
-    match deezer.enrich(track_name, artist, album).await {
-        Ok(resp) => {
-            if let Some(d) = resp.track {
-                if track.track_number == 0 {
-                    if let Some(n) = d.track_number {
-                        track.track_number = n;
-                    }
-                }
-                if track.disc_number == 0 {
-                    if let Some(n) = d.disc_number {
-                        track.disc_number = n;
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            tracing::warn!(%artist, %track_name, error = %e, "Deezer track/disc backfill failed, continuing");
-        }
-    }
-}
-
-/// Submit a resolved track, first backfilling a missing (0) track/disc number
-/// from Deezer. Single choke-point so every resolution path (cache, DB, Spotify,
-/// MusicBrainz) gets the same treatment before it reaches Rocksky.
-async fn submit_scrobble(
-    cache: &Cache,
-    deezer: Option<&DeezerClient>,
-    did: &str,
-    artist: &str,
-    track_name: &str,
-    album: Option<&str>,
-    mut track: Track,
-    timestamp: u64,
-) -> Result<(), Error> {
-    backfill_track_disc_from_deezer(deezer, &mut track, artist, track_name, album).await;
-    rocksky::scrobble(cache, did, track, timestamp).await
-}
-
 pub async fn scrobble(
     pool: &Backend,
     cache: &Cache,
-    mb_client: &MusicbrainzClient,
+    matcher: &MatchingClient,
     form: &BTreeMap<String, String>,
 ) -> Result<Vec<Scrobble>, Error> {
     let mut scrobbles = parse_batch(form)?;
-
-    if scrobbles.is_empty() {
-        return Err(Error::msg("No scrobbles found"));
-    }
-
+    anyhow::ensure!(!scrobbles.is_empty(), "No scrobbles found");
     let did = extract_did(pool, form).await?;
-
-    let spofity_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
-
-    if spofity_tokens.is_empty() {
-        return Err(Error::msg("No Spotify tokens found"));
-    }
-
-    let deezer_client = DeezerClient::from_env()?;
-
     for scrobble in &mut scrobbles {
-        /*
-           0. check if scrobble is cached
-           1. if mbid is present, check if it exists in the database
-           2. if it exists, scrobble
-           3. if it doesn't exist, check if it exists in Musicbrainz (using mbid)
-           4. if it exists, get album art from spotify and scrobble
-           5. if it doesn't exist, check if it exists in Spotify
-           6. if it exists, scrobble
-           7. if it doesn't exist, check if it exists in Musicbrainz (using track and artist)
-           8. if it exists, scrobble
-           9. if it doesn't exist, skip unknown track
-        */
-        let key = format!(
-            "{} - {}",
-            scrobble.artist.to_lowercase(),
-            scrobble.track.to_lowercase()
-        );
-        let cached = cache.get(&key)?;
-        if cached.is_some() {
-            tracing::info!(key = %key, "Cached:");
-            let track = serde_json::from_str::<Track>(&cached.unwrap())?;
-            scrobble.album = Some(track.album.clone());
-            submit_scrobble(
-                cache,
-                Some(&deezer_client),
-                &did,
-                &scrobble.artist,
-                &scrobble.track,
-                scrobble.album.as_deref(),
-                track,
-                scrobble.timestamp,
-            )
-            .await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            continue;
-        }
-
-        if let Some(mbid) = &scrobble.mbid {
-            // let result = repo::track::get_track_by_mbid(pool, mbid).await?;
-            let result = mb_client.get_recording(mbid).await?;
-            tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (mbid)");
-            scrobble.album = Some(Track::from(result.clone()).album);
-            submit_scrobble(
-                cache,
-                Some(&deezer_client),
-                &did,
-                &scrobble.artist,
-                &scrobble.track,
-                scrobble.album.as_deref(),
-                result.into(),
-                scrobble.timestamp,
-            )
-            .await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            continue;
-        }
-
-        let result = repo::track::get_track(pool, &scrobble.track, &scrobble.artist).await?;
-
-        if let Some(track) = result {
-            tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Xata (track)");
-            scrobble.album = Some(track.album.clone());
-            let album = repo::album::get_album_by_track_id(pool, &track.xata_id).await?;
-            let artist = repo::artist::get_artist_by_track_id(pool, &track.xata_id).await?;
-            let mut track: Track = track.into();
-            track.year = match album.year {
-                Some(year) => Some(year as u32),
-                None => match album.release_date.clone() {
-                    Some(release_date) => {
-                        let year = release_date.split("-").next();
-                        year.and_then(|x| x.parse::<u32>().ok())
-                    }
-                    None => None,
-                },
-            };
-            track.release_date = album
-                .release_date
-                .map(|x| x.split("T").next().unwrap().to_string());
-            track.artist_picture = artist.picture.clone();
-
-            submit_scrobble(
-                cache,
-                Some(&deezer_client),
-                &did,
-                &scrobble.artist,
-                &scrobble.track,
-                scrobble.album.as_deref(),
-                track,
-                scrobble.timestamp,
-            )
-            .await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            continue;
-        }
-
-        // we need to pick a random token to avoid Spotify rate limiting
-        // and to avoid using the same token for all scrobbles
-        // this is a simple way to do it, but we can improve it later
-        // by using a more sophisticated algorithm
-        // or by using a token pool
-        let mut rng = rand::rng();
-        let random_index = rng.random_range(0..spofity_tokens.len());
-        let spotify_token = &spofity_tokens[random_index];
-        let client_id = spotify_token.spotify_app_id.clone();
-
-        let client_secret = decrypt_aes_256_ctr(
-            &spotify_token.spotify_secret,
-            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-        )?;
-
-        let spotify_token = decrypt_aes_256_ctr(
-            &spotify_token.refresh_token,
-            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-        )?;
-
-        let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
-        let spotify_client = SpotifyClient::new(&spotify_token.access_token);
-
-        // Build the Spotify query with album when the scrobble carries one —
-        // narrows down which release (deluxe / single / EP) we hit.
-        let mut spotify_query =
-            format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist);
-        if let Some(album) = scrobble.album.as_deref().map(str::trim) {
-            if !album.is_empty() {
-                spotify_query.push_str(&format!(r#" album:"{}""#, album));
-            }
-        }
-        let result = retry_spotify_call(
-            || async {
-                tokio::time::timeout(
-                    std::time::Duration::from_secs(5),
-                    spotify_client.search(&spotify_query),
-                )
-                .await?
-            },
-            "search",
-        )
-        .await?;
-
-        // Even with the album in the query, Spotify sometimes returns the
-        // single first; prefer the result whose album name exactly matches
-        // the scrobble's album when one was supplied.
-        let source_album = scrobble
-            .album
-            .as_deref()
-            .map(|s| s.trim().to_lowercase())
-            .filter(|s| !s.is_empty());
-        let picked = match source_album {
-            Some(target) => result
-                .tracks
-                .items
-                .iter()
-                .find(|t| t.album.name.trim().to_lowercase() == target)
-                .or_else(|| result.tracks.items.first()),
-            None => result.tracks.items.first(),
-        };
-        if let Some(track) = picked {
-            tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Spotify (track)");
-            scrobble.album = Some(track.album.name.clone());
-            let mut track = track.clone();
-
-            if let Some(album) = retry_spotify_call(
-                || async { spotify_client.get_album(&track.album.id).await },
-                "get_album",
-            )
-            .await?
-            {
-                track.album = album;
-            }
-
-            if let Some(artist) = retry_spotify_call(
-                || async { spotify_client.get_artist(&track.album.artists[0].id).await },
-                "get_artist",
-            )
-            .await?
-            {
-                track.album.artists[0] = artist;
-            }
-
-            submit_scrobble(
-                cache,
-                Some(&deezer_client),
-                &did,
-                &scrobble.artist,
-                &scrobble.track,
-                scrobble.album.as_deref(),
-                track.into(),
-                scrobble.timestamp,
-            )
-            .await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            continue;
-        }
-
-        // Spotify search failed to resolve the track — fall back to Deezer to
-        // fill in the missing metadata before trying MusicBrainz.
-        if try_deezer_enrich(&deezer_client, cache, &did, scrobble).await? {
-            continue;
-        }
-
-        let query = format!(
-            r#"recording:"{}" AND artist:"{}" AND status:Official"#,
-            scrobble.track, scrobble.artist
-        );
-        let result = mb_client.search(&query).await?;
-
-        if let Some(recording) = result.recordings.first() {
-            let result = mb_client.get_recording(&recording.id).await?;
-            tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (recording)");
-            scrobble.album = Some(Track::from(result.clone()).album);
-            submit_scrobble(
-                cache,
-                Some(&deezer_client),
-                &did,
-                &scrobble.artist,
-                &scrobble.track,
-                scrobble.album.as_deref(),
-                result.into(),
-                scrobble.timestamp,
-            )
-            .await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            continue;
-        }
-
-        tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Track not found, skipping");
-        scrobble.ignored = Some(true);
+        submit_matched(cache, matcher, &did, scrobble).await?;
     }
-
-    Ok(scrobbles.clone())
+    Ok(scrobbles)
 }
 
 pub async fn scrobble_v1(
-    pool: &Backend,
+    _pool: &Backend,
     cache: &Cache,
-    mb_client: &MusicbrainzClient,
+    matcher: &MatchingClient,
     form: &BTreeMap<String, String>,
 ) -> Result<(), Error> {
-    let session_id = form.get("s").unwrap().to_string();
-    let artist = form.get("a[0]").unwrap().to_string();
-    let track = form.get("t[0]").unwrap().to_string();
-    let timestamp = form.get("i[0]").unwrap().to_string();
-
-    let user = cache.get(&format!("lastfm:{}", session_id))?;
-    if user.is_none() {
-        return Err(Error::msg("Session ID not found"));
-    }
-
-    let user = user.unwrap();
-    let user = serde_json::from_str::<User>(&user)?;
-
-    let spofity_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
-
-    if spofity_tokens.is_empty() {
-        return Err(Error::msg("No Spotify tokens found"));
-    }
-
+    let field = |key: &str| {
+        form.get(key)
+            .ok_or_else(|| Error::msg(format!("Missing {key}")))
+    };
+    let session_id = field("s")?;
+    let user = cache
+        .get(&format!("lastfm:{session_id}"))?
+        .ok_or_else(|| Error::msg("Session ID not found"))?;
+    let user: User = serde_json::from_str(&user)?;
     let mut scrobble = Scrobble {
-        artist: artist.trim().to_string(),
-        track: track.trim().to_string(),
-        timestamp: timestamp.parse::<u64>()?,
-        album: None,
+        artist: field("a[0]")?.trim().to_owned(),
+        track: field("t[0]")?.trim().to_owned(),
+        timestamp: field("i[0]")?.parse()?,
+        album: optional(form.get("b[0]").map(String::as_str)),
+        mbid: optional(form.get("m[0]").map(String::as_str)),
+        duration: form.get("l[0]").and_then(|v| v.parse().ok()),
+        track_number: form.get("n[0]").and_then(|v| v.parse().ok()),
+        album_artist: None,
         context: None,
         stream_id: None,
         chosen_by_user: None,
-        track_number: None,
-        mbid: None,
-        album_artist: None,
-        duration: None,
         ignored: None,
     };
-
-    let did = user.did.clone();
-
-    let deezer_client = DeezerClient::from_env()?;
-
-    /*
-    0. check if scrobble is cached
-    1. if mbid is present, check if it exists in the database
-    2. if it exists, scrobble
-    3. if it doesn't exist, check if it exists in Musicbrainz (using mbid)
-    4. if it exists, get album art from spotify and scrobble
-    5. if it doesn't exist, check if it exists in Spotify
-    6. if it exists, scrobble
-    7. if it doesn't exist, check if it exists in Musicbrainz (using track and artist)
-    8. if it exists, scrobble
-    9. if it doesn't exist, skip unknown track
-    */
-    let key = format!(
-        "{} - {}",
-        scrobble.artist.to_lowercase(),
-        scrobble.track.to_lowercase()
-    );
-    let cached = cache.get(&key)?;
-    if cached.is_some() {
-        tracing::info!(key = %key, "Cached:");
-        let track = serde_json::from_str::<Track>(&cached.unwrap())?;
-        scrobble.album = Some(track.album.clone());
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            track,
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    if let Some(mbid) = &scrobble.mbid {
-        // let result = repo::track::get_track_by_mbid(pool, mbid).await?;
-        let result = mb_client.get_recording(mbid).await?;
-        tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (mbid)");
-        scrobble.album = Some(Track::from(result.clone()).album);
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            result.into(),
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    let result = repo::track::get_track(pool, &scrobble.track, &scrobble.artist).await?;
-
-    if let Some(track) = result {
-        tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Xata (track)");
-        scrobble.album = Some(track.album.clone());
-        let album = repo::album::get_album_by_track_id(pool, &track.xata_id).await?;
-        let artist = repo::artist::get_artist_by_track_id(pool, &track.xata_id).await?;
-        let mut track: Track = track.into();
-        track.year = match album.year {
-            Some(year) => Some(year as u32),
-            None => match album.release_date.clone() {
-                Some(release_date) => {
-                    let year = release_date.split("-").next();
-                    year.and_then(|x| x.parse::<u32>().ok())
-                }
-                None => None,
-            },
-        };
-        track.release_date = album
-            .release_date
-            .map(|x| x.split("T").next().unwrap().to_string());
-        track.artist_picture = artist.picture.clone();
-
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            track,
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    // we need to pick a random token to avoid Spotify rate limiting
-    // and to avoid using the same token for all scrobbles
-    // this is a simple way to do it, but we can improve it later
-    // by using a more sophisticated algorithm
-    // or by using a token pool
-    let mut rng = rand::rng();
-    let random_index = rng.random_range(0..spofity_tokens.len());
-    let spotify_token = &spofity_tokens[random_index];
-    let client_id = spotify_token.spotify_app_id.clone();
-
-    let client_secret = decrypt_aes_256_ctr(
-        &spotify_token.spotify_secret,
-        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-    )?;
-
-    let spotify_token = decrypt_aes_256_ctr(
-        &spotify_token.refresh_token,
-        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-    )?;
-
-    let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
-    let spotify_client = SpotifyClient::new(&spotify_token.access_token);
-
-    let mut spotify_query = format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist);
-    if let Some(album) = scrobble.album.as_deref().map(str::trim) {
-        if !album.is_empty() {
-            spotify_query.push_str(&format!(r#" album:"{}""#, album));
-        }
-    }
-    let result = retry_spotify_call(
-        || async { spotify_client.search(&spotify_query).await },
-        "search",
-    )
-    .await?;
-
-    let source_album = scrobble
-        .album
-        .as_deref()
-        .map(|s| s.trim().to_lowercase())
-        .filter(|s| !s.is_empty());
-    let picked = match source_album {
-        Some(target) => result
-            .tracks
-            .items
-            .iter()
-            .find(|t| t.album.name.trim().to_lowercase() == target)
-            .or_else(|| result.tracks.items.first()),
-        None => result.tracks.items.first(),
-    };
-    if let Some(track) = picked {
-        let normalize = |s: &str| -> String {
-            s.to_lowercase()
-                .chars()
-                .filter_map(|c| match c {
-                    'á' | 'à' | 'ä' | 'â' | 'ã' | 'å' => Some('a'),
-                    'é' | 'è' | 'ë' | 'ê' => Some('e'),
-                    'í' | 'ì' | 'ï' | 'î' => Some('i'),
-                    'ó' | 'ò' | 'ö' | 'ô' | 'õ' => Some('o'),
-                    'ú' | 'ù' | 'ü' | 'û' => Some('u'),
-                    'ñ' => Some('n'),
-                    'ç' => Some('c'),
-                    _ => Some(c),
-                })
-                .collect()
-        };
-
-        let spotify_artists: Vec<String> =
-            track.artists.iter().map(|a| normalize(&a.name)).collect();
-
-        // check if artists don't contain the scrobble artist (to avoid wrong matches)
-        // scrobble artist can contain multiple artists separated by ", "
-        let scrobble_artists: Vec<String> = scrobble
-            .artist
-            .split(", ")
-            .map(|a| normalize(a.trim()))
-            .collect();
-
-        // Check for matches with partial matching:
-        // 1. Check if any scrobble artist is contained in any Spotify artist
-        // 2. Check if any Spotify artist is contained in any scrobble artist
-        let has_artist_match = scrobble_artists.iter().any(|scrobble_artist| {
-            spotify_artists.iter().any(|spotify_artist| {
-                scrobble_artist.contains(spotify_artist) || spotify_artist.contains(scrobble_artist)
-            })
-        });
-
-        if !has_artist_match {
-            tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
-        } else {
-            tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Spotify (track)");
-            scrobble.album = Some(track.album.name.clone());
-            let mut track = track.clone();
-
-            if let Some(album) = retry_spotify_call(
-                || async { spotify_client.get_album(&track.album.id).await },
-                "get_album",
-            )
-            .await?
-            {
-                track.album = album;
-            }
-
-            if let Some(artist) = retry_spotify_call(
-                || async { spotify_client.get_artist(&track.album.artists[0].id).await },
-                "get_artist",
-            )
-            .await?
-            {
-                track.album.artists[0] = artist;
-            }
-
-            submit_scrobble(
-                cache,
-                Some(&deezer_client),
-                &did,
-                &scrobble.artist,
-                &scrobble.track,
-                scrobble.album.as_deref(),
-                track.into(),
-                scrobble.timestamp,
-            )
-            .await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            return Ok(());
-        }
-    }
-
-    // Spotify search failed to resolve the track — fall back to Deezer to fill
-    // in the missing metadata before trying MusicBrainz.
-    if try_deezer_enrich(&deezer_client, cache, &did, &mut scrobble).await? {
-        return Ok(());
-    }
-
-    let query = format!(
-        r#"recording:"{}" AND artist:"{}" AND status:Official"#,
-        scrobble.track, scrobble.artist
-    );
-    let result = search_musicbrainz_recording(&query, mb_client, &scrobble).await;
-    if let Err(e) = result {
-        tracing::warn!(artist = %scrobble.artist, track = %scrobble.track, "Musicbrainz search error: {}", e);
-        return Ok(());
-    }
-    let result = result.unwrap();
-    if let Some(recording) = result {
-        let result = mb_client.get_recording(&recording.id).await?;
-        tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (recording)");
-        scrobble.album = Some(Track::from(result.clone()).album);
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            result.into(),
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    tracing::info!(artist = %artist, track = %track, "Track not found, skipping");
-
-    Ok(())
+    submit_matched(cache, matcher, &user.did, &mut scrobble).await
 }
 
 pub async fn scrobble_listenbrainz(
     pool: &Backend,
     cache: &Cache,
-    mb_client: &MusicbrainzClient,
+    matcher: &MatchingClient,
     req: &SubmitListensRequest,
     token: &str,
 ) -> Result<(), Error> {
@@ -783,10 +205,7 @@ pub async fn scrobble_listenbrainz(
             if let Some(did) = user {
                 did
             } else {
-                return Err(Error::msg(format!(
-                    "Failed to decode token: {} {}",
-                    e, token
-                )));
+                return Err(Error::msg(format!("Failed to decode token: {}", e)));
             }
         }
     };
@@ -834,355 +253,96 @@ pub async fn scrobble_listenbrainz(
         30, // 30 seconds
     )?;
 
-    let spofity_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
-
-    if spofity_tokens.is_empty() {
-        return Err(Error::msg("No Spotify tokens found"));
+    let meta = &req.payload[0].track_metadata;
+    let request = listenbrainz_matching_request(meta);
+    if let Some(candidate) = matcher.match_track(&request).await? {
+        rocksky::scrobble(cache, &did, candidate.into(), timestamp.parse()?).await?;
+    } else {
+        tracing::info!(%artist, %track, "No unambiguous match; skipping listen");
     }
-
-    let mut scrobble = Scrobble {
-        artist: artist.trim().to_string(),
-        track: track.trim().to_string(),
-        timestamp: timestamp.parse::<u64>()?,
-        album: None,
-        context: None,
-        stream_id: None,
-        chosen_by_user: None,
-        track_number: None,
-        mbid: None,
-        album_artist: None,
-        duration: None,
-        ignored: None,
-    };
-
-    let deezer_client = DeezerClient::from_env()?;
-
-    /*
-    0. check if scrobble is cached
-    1. if mbid is present, check if it exists in the database
-    2. if it exists, scrobble
-    3. if it doesn't exist, check if it exists in Musicbrainz (using mbid)
-    4. if it exists, get album art from spotify and scrobble
-    5. if it doesn't exist, check if it exists in Spotify
-    6. if it exists, scrobble
-    7. if it doesn't exist, check if it exists in Musicbrainz (using track and artist)
-    8. if it exists, scrobble
-    9. if it doesn't exist, skip unknown track
-    */
-    let key = format!(
-        "{} - {}",
-        scrobble.artist.to_lowercase(),
-        scrobble.track.to_lowercase()
-    );
-    let cached = cache.get(&key)?;
-    if cached.is_some() {
-        tracing::info!(key = %key, "Cached");
-        let track = serde_json::from_str::<Track>(&cached.unwrap())?;
-        scrobble.album = Some(track.album.clone());
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            track,
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    if let Some(mbid) = &scrobble.mbid {
-        // let result = repo::track::get_track_by_mbid(pool, mbid).await?;
-        let result = mb_client.get_recording(mbid).await?;
-        tracing::info!("Musicbrainz (mbid)");
-        scrobble.album = Some(Track::from(result.clone()).album);
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            result.into(),
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    let result = repo::track::get_track(pool, &scrobble.track, &scrobble.artist).await?;
-
-    if let Some(track) = result {
-        tracing::info!(id = %track.xata_id, artist = %track.artist, album = %track.album, album_atist = %track.album_artist, album_uri = ?track.album_uri, artist_uri = ?track.artist_uri, "Xata (track)");
-        scrobble.album = Some(track.album.clone());
-        let album =
-            repo::album::get_album_by_uri(pool, &track.album_uri.clone().unwrap_or_default())
-                .await?;
-        let artist =
-            repo::artist::get_artist_by_uri(pool, &track.artist_uri.clone().unwrap_or_default())
-                .await?;
-        let mut track: Track = track.into();
-        track.year = match album.year {
-            Some(year) => Some(year as u32),
-            None => match album.release_date.clone() {
-                Some(release_date) => {
-                    let year = release_date.split("-").next();
-                    year.and_then(|x| x.parse::<u32>().ok())
-                }
-                None => None,
-            },
-        };
-        track.release_date = album
-            .release_date
-            .map(|x| x.split("T").next().unwrap().to_string());
-        track.artist_picture = artist.picture.clone();
-
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            track,
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    // we need to pick a random token to avoid Spotify rate limiting
-    // and to avoid using the same token for all scrobbles
-    // this is a simple way to do it, but we can improve it later
-    // by using a more sophisticated algorithm
-    // or by using a token pool
-    let random_index = {
-        let mut rng = rand::rng();
-        rng.random_range(0..spofity_tokens.len())
-    };
-    let spotify_token = &spofity_tokens[random_index];
-
-    let client_id = spotify_token.spotify_app_id.clone();
-    let client_secret = decrypt_aes_256_ctr(
-        &spotify_token.spotify_secret,
-        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-    )?;
-
-    let spotify_token = decrypt_aes_256_ctr(
-        &spotify_token.refresh_token,
-        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-    )?;
-
-    let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
-    let spotify_client = SpotifyClient::new(&spotify_token.access_token);
-
-    let mut spotify_query = format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist);
-    if let Some(album) = scrobble.album.as_deref().map(str::trim) {
-        if !album.is_empty() {
-            spotify_query.push_str(&format!(r#" album:"{}""#, album));
-        }
-    }
-    let result = retry_spotify_call(
-        || async { spotify_client.search(&spotify_query).await },
-        "search",
-    )
-    .await?;
-
-    let source_album = scrobble
-        .album
-        .as_deref()
-        .map(|s| s.trim().to_lowercase())
-        .filter(|s| !s.is_empty());
-    let picked = match source_album {
-        Some(target) => result
-            .tracks
-            .items
-            .iter()
-            .find(|t| t.album.name.trim().to_lowercase() == target)
-            .or_else(|| result.tracks.items.first()),
-        None => result.tracks.items.first(),
-    };
-    if let Some(track) = picked {
-        let normalize = |s: &str| -> String {
-            s.to_lowercase()
-                .chars()
-                .filter_map(|c| match c {
-                    'á' | 'à' | 'ä' | 'â' | 'ã' | 'å' => Some('a'),
-                    'é' | 'è' | 'ë' | 'ê' => Some('e'),
-                    'í' | 'ì' | 'ï' | 'î' => Some('i'),
-                    'ó' | 'ò' | 'ö' | 'ô' | 'õ' => Some('o'),
-                    'ú' | 'ù' | 'ü' | 'û' => Some('u'),
-                    'ñ' => Some('n'),
-                    'ç' => Some('c'),
-                    _ => Some(c),
-                })
-                .collect()
-        };
-
-        let spotify_artists: Vec<String> =
-            track.artists.iter().map(|a| normalize(&a.name)).collect();
-
-        let scrobble_artist_normalized = normalize(&scrobble.artist);
-
-        // Check for matches with partial matching:
-        // 1. Check if scrobble artist is contained in any Spotify artist
-        // 2. Check if any Spotify artist is contained in scrobble artist
-        let has_artist_match = spotify_artists.iter().any(|spotify_artist| {
-            scrobble_artist_normalized.contains(spotify_artist)
-                || spotify_artist.contains(&scrobble_artist_normalized)
-        });
-
-        if !has_artist_match {
-            tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
-        } else {
-            tracing::info!("Spotify (track)");
-            scrobble.album = Some(track.album.name.clone());
-            let mut track = track.clone();
-
-            if let Some(album) = retry_spotify_call(
-                || async { spotify_client.get_album(&track.album.id).await },
-                "get_album",
-            )
-            .await?
-            {
-                track.album = album;
-            }
-
-            if let Some(artist) = retry_spotify_call(
-                || async { spotify_client.get_artist(&track.album.artists[0].id).await },
-                "get_artist",
-            )
-            .await?
-            {
-                track.album.artists[0] = artist;
-            }
-
-            submit_scrobble(
-                cache,
-                Some(&deezer_client),
-                &did,
-                &scrobble.artist,
-                &scrobble.track,
-                scrobble.album.as_deref(),
-                track.into(),
-                scrobble.timestamp,
-            )
-            .await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            return Ok(());
-        }
-    }
-
-    // Spotify search failed to resolve the track — fall back to Deezer to fill
-    // in the missing metadata before trying MusicBrainz.
-    if try_deezer_enrich(&deezer_client, cache, &did, &mut scrobble).await? {
-        return Ok(());
-    }
-
-    let query = format!(
-        r#"recording:"{}" AND artist:"{}" AND status:Official"#,
-        scrobble.track, scrobble.artist
-    );
-    let result = search_musicbrainz_recording(&query, mb_client, &scrobble).await;
-    if let Err(e) = result {
-        tracing::warn!(artist = %artist, track = %track, "Musicbrainz search error: {}", e);
-        return Ok(());
-    }
-    let result = result.unwrap();
-    if let Some(result) = result {
-        tracing::info!("Musicbrainz (recording)");
-        submit_scrobble(
-            cache,
-            Some(&deezer_client),
-            &did,
-            &scrobble.artist,
-            &scrobble.track,
-            scrobble.album.as_deref(),
-            result.into(),
-            scrobble.timestamp,
-        )
-        .await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
-    }
-
-    tracing::warn!(artist = %artist, track = %track, "Track not found, skipping");
-
     Ok(())
 }
 
-async fn search_musicbrainz_recording(
-    query: &str,
-    mb_client: &MusicbrainzClient,
-    scrobble: &Scrobble,
-) -> Result<Option<Recording>, Error> {
-    let result = mb_client.search(&query).await;
-    if let Err(e) = result {
-        tracing::warn!(artist = %scrobble.artist, track = %scrobble.track, "Musicbrainz search error: {}", e);
-        return Ok(None);
+pub fn listenbrainz_matching_request(
+    meta: &crate::listenbrainz::types::TrackMetadata,
+) -> MatchRequest {
+    let info = meta.additional_info.as_ref();
+    let extra = |key: &str| {
+        info.and_then(|i| i.extra.get(key))
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_owned)
+    };
+    MatchRequest {
+        title: meta.track_name.clone(),
+        artists: vec![meta.artist_name.clone()],
+        album: optional(
+            meta.release_name
+                .as_deref()
+                .or_else(|| info.and_then(|i| i.release_name.as_deref())),
+        ),
+        album_artist: extra("albumartist"),
+        duration_ms: info
+            .and_then(|i| i.duration_ms())
+            .and_then(|ms| ms.try_into().ok()),
+        identifiers: Identifiers {
+            musicbrainz_recording_id: extra("recording_mbid")
+                .or_else(|| info.and_then(|i| i.musicbrainz_track_id.clone())),
+            musicbrainz_release_id: extra("release_mbid"),
+            isrc: extra("isrc"),
+            spotify_track_id: extra("spotify_id")
+                .and_then(|s| rocksky_matching::client::spotify_track_id(&s)),
+            ..Default::default()
+        },
     }
-    let result = result.unwrap();
-
-    let release = get_best_release_from_recordings(&result, &scrobble.artist);
-
-    if let Some(release) = release {
-        let recording = result.recordings.into_iter().find(|r| {
-            r.releases
-                .as_ref()
-                .map(|releases| releases.iter().any(|rel| rel.id == release.id))
-                .unwrap_or(false)
-        });
-        if recording.is_none() {
-            tracing::warn!(artist = %scrobble.artist, track = %scrobble.track, "Recording not found in MusicBrainz result, skipping");
-            return Ok(None);
-        }
-        let recording = recording.unwrap();
-        let mut result = mb_client.get_recording(&recording.id).await?;
-        tracing::info!("Musicbrainz (recording)");
-        result.releases = Some(vec![release]);
-        return Ok(Some(result));
-    }
-
-    Ok(None)
 }
 
-async fn retry_spotify_call<F, Fut, T>(mut f: F, operation: &str) -> Result<T, Error>
-where
-    F: FnMut() -> Fut,
-    Fut: std::future::Future<Output = Result<T, Error>>,
-{
-    let mut last_error = None;
-
-    for attempt in 0..MAX_SPOTIFY_RETRIES {
-        match f().await {
-            Ok(result) => return Ok(result),
-            Err(e) => {
-                let is_timeout = e.to_string().contains("timed out")
-                    || e.to_string().contains("timeout")
-                    || e.to_string().contains("operation timed out");
-
-                if is_timeout && attempt < MAX_SPOTIFY_RETRIES - 1 {
-                    let delay = INITIAL_RETRY_DELAY_MS * 2_u64.pow(attempt);
-                    tracing::warn!(
-                        attempt = attempt + 1,
-                        max_attempts = MAX_SPOTIFY_RETRIES,
-                        delay_ms = delay,
-                        operation = operation,
-                        "Spotify API timeout, retrying..."
-                    );
-                    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
-                    last_error = Some(e);
-                } else {
-                    return Err(e);
-                }
-            }
-        }
+#[cfg(test)]
+mod matching_tests {
+    use super::*;
+    #[test]
+    fn batch_preserves_album_mbid_and_seconds() {
+        let timestamp = chrono::Utc::now().timestamp().to_string();
+        let form = BTreeMap::from([
+            ("artist[0]".into(), "Earth, Wind & Fire".into()),
+            ("track[0]".into(), "September".into()),
+            ("timestamp[0]".into(), timestamp),
+            ("album[0]".into(), "The Best Of".into()),
+            ("mbid[0]".into(), "recording-id".into()),
+            ("duration[0]".into(), "215".into()),
+        ]);
+        let r = matching_request(&parse_batch(&form).unwrap()[0]);
+        assert_eq!(r.artists, ["Earth, Wind & Fire"]);
+        assert_eq!(r.album.as_deref(), Some("The Best Of"));
+        assert_eq!(
+            r.identifiers.musicbrainz_recording_id.as_deref(),
+            Some("recording-id")
+        );
+        assert_eq!(r.duration_ms, Some(215000));
     }
-
-    Err(last_error.unwrap_or_else(|| Error::msg("Max retries exceeded")))
+    #[test]
+    fn listenbrainz_keeps_release_and_recording_ids_distinct() {
+        let meta = serde_json::from_value(serde_json::json!({
+            "track_name": "Song", "artist_name": "Artist", "release_name": "Album",
+            "additional_info": {
+                "recording_mbid": "recording", "release_mbid": "release",
+                "musicbrainz_track_id": "release-track-not-recording", "duration_ms": 123000,
+                "isrc": "GBBPW9800019", "spotify_id": "https://open.spotify.com/track/2XQSgmtEY2titXhfY414dy"
+            }
+        })).unwrap();
+        let r = listenbrainz_matching_request(&meta);
+        assert_eq!(r.album.as_deref(), Some("Album"));
+        assert_eq!(r.duration_ms, Some(123000));
+        assert_eq!(
+            r.identifiers.musicbrainz_recording_id.as_deref(),
+            Some("recording")
+        );
+        assert_eq!(
+            r.identifiers.musicbrainz_release_id.as_deref(),
+            Some("release")
+        );
+        assert_eq!(
+            r.identifiers.spotify_track_id.as_deref(),
+            Some("2XQSgmtEY2titXhfY414dy")
+        );
+    }
 }

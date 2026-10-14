@@ -11905,7 +11905,7 @@ export const schemaDict = {
             album: {
               type: "string",
               description:
-                "Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release",
+                "Optional album title — only candidates matching this album after normalization are accepted, including when an explicit identifier is supplied",
             },
             mbId: {
               type: "string",

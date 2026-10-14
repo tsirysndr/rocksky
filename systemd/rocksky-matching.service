@@ -20,7 +20,7 @@ Environment=HOME=/root
 Environment=USER=root
 
 # Provider defaults; deployment secrets are injected by Doppler.
-Environment=MATCHING_BIND=127.0.0.1:8096
+Environment=MATCHING_BIND=127.0.0.1:8097
 Environment=DEEZER_URL=http://127.0.0.1:8090
 Environment=MUSICBRAINZ_URL=http://127.0.0.1:8088
 EnvironmentFile=-/etc/default/rocksky-matching

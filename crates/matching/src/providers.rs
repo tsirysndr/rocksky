@@ -10,6 +10,13 @@ pub type CandidateFuture<'a> = Pin<Box<dyn Future<Output = Result<Vec<Candidate>
 pub trait Provider: Send + Sync {
     fn name(&self) -> &'static str;
     fn candidates<'a>(&'a self, request: &'a MatchRequest) -> CandidateFuture<'a>;
+    /// Optional metadata for an already selected identity, never another search.
+    fn enrich<'a>(
+        &'a self,
+        _candidate: &'a mut Candidate,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+        Box::pin(async {})
+    }
 }
 
 #[derive(Clone)]
@@ -97,6 +104,14 @@ impl HttpProvider {
                                 vec![string(&track["artist"], "name").unwrap_or_default()]
                             }),
                         album: string(&track["album"], "title"),
+                        album_art: string(&track["album"], "cover_xl"),
+                        track_number: track["track_position"]
+                            .as_u64()
+                            .and_then(|n| n.try_into().ok()),
+                        disc_number: track["disk_number"]
+                            .as_u64()
+                            .and_then(|n| n.try_into().ok()),
+                        release_date: string(&track, "release_date"),
                         duration_ms: track["duration"].as_u64().map(|d| d.saturating_mul(1000)),
                         identifiers: Identifiers {
                             deezer_track_id: track["id"].as_i64().map(|id| id.to_string()),
@@ -116,7 +131,7 @@ impl HttpProvider {
                     .map(DeezerMatch::candidate)
                     .collect();
                 if let Some(track) = response.track {
-                    candidates.push(track.candidate());
+                    candidates.insert(0, track.candidate());
                 }
                 Ok(candidates)
             }
@@ -173,6 +188,17 @@ impl HttpProvider {
                                 .unwrap_or_default(),
                             album: string(&value, "album"),
                             duration_ms: value["durationMs"].as_u64(),
+                            musicbrainz_artists: value["artist"].as_array().map(|artists| {
+                                artists
+                                    .iter()
+                                    .filter_map(|a| {
+                                        Some(crate::MusicbrainzArtist {
+                                            mbid: string(a, "mbid")?,
+                                            name: string(a, "name")?,
+                                        })
+                                    })
+                                    .collect()
+                            }),
                             identifiers: Identifiers {
                                 musicbrainz_recording_id: Some(actual_id),
                                 musicbrainz_release_id: string(&value, "releaseMBID"),
@@ -209,6 +235,44 @@ impl Provider for HttpProvider {
     fn candidates<'a>(&'a self, request: &'a MatchRequest) -> CandidateFuture<'a> {
         Box::pin(self.fetch(request))
     }
+    fn enrich<'a>(&'a self, c: &'a mut Candidate) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+        Box::pin(async move {
+            if !matches!(self.kind, ProviderKind::Spotify) {
+                return;
+            }
+            let album_id = c.provider_album_id.clone();
+            let artist_id = c.provider_artist_id.clone();
+            let album = async {
+                let id = album_id.as_ref()?;
+                let value = self.spotify_get(&format!("/albums/{id}"), &[]).await.ok()?;
+                (string(&value, "id").as_ref() == Some(id)).then_some(value)
+            };
+            let artist = async {
+                let id = artist_id.as_ref()?;
+                let value = self
+                    .spotify_get(&format!("/artists/{id}"), &[])
+                    .await
+                    .ok()?;
+                (string(&value, "id").as_ref() == Some(id)).then_some(value)
+            };
+            let (album, artist) = tokio::join!(album, artist);
+            if let Some(album) = album {
+                c.label = string(&album, "label").or(c.label.take());
+            }
+            if let Some(artist) = artist {
+                c.artist_picture = artist["images"]
+                    .as_array()
+                    .and_then(|a| a.first())
+                    .and_then(|v| string(v, "url"));
+                c.genres = artist["genres"].as_array().map(|a| {
+                    a.iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_owned)
+                        .collect()
+                });
+            }
+        })
+    }
 }
 fn quoted(s: &str) -> String {
     format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
@@ -221,6 +285,15 @@ fn string(v: &Value, key: &str) -> Option<String> {
 }
 fn spotify_candidate(v: &Value) -> Candidate {
     Candidate {
+        track_number: v["track_number"].as_u64().and_then(|n| n.try_into().ok()),
+        disc_number: v["disc_number"].as_u64().and_then(|n| n.try_into().ok()),
+        label: string(&v["album"], "label"),
+        spotify_link: string(&v["external_urls"], "spotify"),
+        provider_album_id: string(&v["album"], "id"),
+        provider_artist_id: v["artists"]
+            .as_array()
+            .and_then(|a| a.first())
+            .and_then(|v| string(v, "id")),
         source: "spotify".into(),
         id: string(v, "id").unwrap_or_default(),
         title: string(v, "name").unwrap_or_default(),
@@ -266,6 +339,13 @@ struct DeezerMatch {
     album_art: Option<String>,
     duration_ms: Option<u64>,
     isrc: Option<String>,
+    album_artist: Option<String>,
+    track_number: Option<u32>,
+    disc_number: Option<u32>,
+    label: Option<String>,
+    genres: Option<Vec<String>>,
+    artist_picture: Option<String>,
+    release_date: Option<String>,
 }
 impl DeezerMatch {
     fn candidate(self) -> Candidate {
@@ -275,6 +355,13 @@ impl DeezerMatch {
             .filter(|id| *id > 0)
             .map(|id| id.to_string());
         Candidate {
+            album_artist: self.album_artist,
+            track_number: self.track_number,
+            disc_number: self.disc_number,
+            label: self.label,
+            genres: self.genres,
+            artist_picture: self.artist_picture,
+            release_date: self.release_date,
             source: "deezer".into(),
             id: id.clone().unwrap_or_default(),
             title: self.title,
@@ -306,6 +393,17 @@ fn musicbrainz_candidates(v: &Value, request: &MatchRequest) -> Vec<Candidate> {
             })
             .unwrap_or_default(),
         duration_ms: v["length"].as_u64(),
+        musicbrainz_artists: v["artist-credit"].as_array().map(|artists| {
+            artists
+                .iter()
+                .filter_map(|a| {
+                    Some(crate::MusicbrainzArtist {
+                        mbid: string(&a["artist"], "id")?,
+                        name: string(a, "name").or_else(|| string(&a["artist"], "name"))?,
+                    })
+                })
+                .collect()
+        }),
         version: string(v, "disambiguation"),
         identifiers: Identifiers {
             musicbrainz_recording_id: string(v, "id"),

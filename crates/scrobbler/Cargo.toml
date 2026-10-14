@@ -7,6 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+rocksky-matching = { path = "../matching" }
 rocksky-telemetry = { path = "../telemetry" }
 rocksky-pgurl = { path = "../pgurl" }
 rocksky-db = { path = "../db" }

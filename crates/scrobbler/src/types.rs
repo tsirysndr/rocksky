@@ -29,6 +29,7 @@ pub struct Track {
     pub artist: String,
     pub album_artist: Option<String>,
     pub duration: u32,
+    #[serde(rename = "mbId", alias = "mbid")]
     pub mbid: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub isrc: Option<String>,
@@ -192,5 +193,68 @@ impl From<&spotify::types::Track> for Track {
 impl From<spotify::types::Track> for Track {
     fn from(track: spotify::types::Track) -> Self {
         Track::from(&track)
+    }
+}
+
+impl From<rocksky_matching::Candidate> for Track {
+    fn from(c: rocksky_matching::Candidate) -> Self {
+        Self {
+            title: c.title,
+            artist: c.artists.join(", "),
+            album: c.album.unwrap_or_default(),
+            album_artist: c.album_artist.or_else(|| c.artists.first().cloned()),
+            duration: c
+                .duration_ms
+                .and_then(|v| v.try_into().ok())
+                .unwrap_or_default(),
+            mbid: c.identifiers.musicbrainz_recording_id,
+            isrc: c.identifiers.isrc,
+            track_number: c.track_number.unwrap_or_default(),
+            disc_number: c.disc_number.unwrap_or_default(),
+            year: c
+                .release_date
+                .as_deref()
+                .and_then(|d| d.split('-').next())
+                .and_then(|y| y.parse().ok()),
+            release_date: c.release_date.filter(|d| d.len() == 10),
+            album_art: c.album_art,
+            spotify_link: c.spotify_link.or_else(|| {
+                c.identifiers
+                    .spotify_track_id
+                    .map(|id| format!("https://open.spotify.com/track/{id}"))
+            }),
+            label: c.label,
+            artist_picture: c.artist_picture,
+            genres: c.genres,
+            ..Default::default()
+        }
+    }
+}
+
+#[cfg(test)]
+mod matching_conversion_tests {
+    use super::*;
+    #[test]
+    fn selected_metadata_and_mbid_survive_the_api_wire_format() {
+        let c = rocksky_matching::Candidate {
+            title: "Song".into(),
+            artists: vec!["Artist".into()],
+            album: Some("Album".into()),
+            duration_ms: Some(123000),
+            track_number: Some(5),
+            disc_number: Some(2),
+            identifiers: rocksky_matching::Identifiers {
+                musicbrainz_recording_id: Some("verified-id".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let track: Track = c.into();
+        let wire = serde_json::to_value(track).unwrap();
+        assert_eq!(wire["mbId"], "verified-id");
+        assert_eq!(wire["albumArtist"], "Artist");
+        assert_eq!(wire["duration"], 123000);
+        assert_eq!(wire["trackNumber"], 5);
+        assert_eq!(wire["discNumber"], 2);
     }
 }

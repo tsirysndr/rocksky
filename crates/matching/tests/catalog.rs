@@ -118,3 +118,19 @@ async fn read_only_connection_cannot_write_or_migrate() {
         .unwrap();
     assert_eq!(count, Some(0));
 }
+
+#[tokio::test]
+async fn catalog_metadata_is_carried_without_another_identity_lookup() {
+    let catalog = fixture().await;
+    catalog.db.execute(&catalog.db.sql("UPDATE tracks SET track_number=5, disc_number=1, label='Epic', spotify_link='https://open.spotify.com/track/2XQSgmtEY2titXhfY414dy', genre='Pop' WHERE xata_id='one'")).await.unwrap();
+    let r = request();
+    let c = resolve(&r, catalog.candidates(&r).await.unwrap())
+        .unwrap()
+        .track
+        .unwrap();
+    assert_eq!(c.track_number, Some(5));
+    assert_eq!(c.disc_number, Some(1));
+    assert_eq!(c.label.as_deref(), Some("Epic"));
+    assert_eq!(c.genres, Some(vec!["Pop".into()]));
+    assert!(c.spotify_link.is_some());
+}

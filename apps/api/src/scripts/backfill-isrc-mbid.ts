@@ -1,48 +1,14 @@
-/**
- * Backfill tracks.mb_id and tracks.isrc using MusicBrainz /hydrate and the
- * Spotify Search API.
- *
- * - Walks every track row where either `mb_id` or `isrc` is NULL.
- * - For Spotify, draws a random *active* refresh token from
- *   `spotify_tokens` ⨝ `spotify_accounts (isBetaUser = true)` ⨝ `spotify_apps`
- *   for each access-token mint, then caches the access token per app to
- *   stretch its 60-minute lifetime.
- * - Throttles Spotify to stay well under their rate window and honors
- *   `429 Retry-After` when it shows up anyway. MusicBrainz hydrate gets a
- *   smaller fixed pacing on top.
- *
- * Usage (also wired as `bun isrc:backfill`):
- *   tsx ./src/scripts/backfill-isrc-mbid.ts
- *
- * Env overrides:
- *   BACKFILL_PAGE_SIZE     rows fetched per DB page (default 500)
- *   BACKFILL_CONCURRENCY   parallel workers (default 4)
- *   BACKFILL_SPOTIFY_DELAY ms between Spotify requests per worker (default 250)
- *   BACKFILL_MB_DELAY      ms between MusicBrainz requests per worker (default 1100)
- *   BACKFILL_LIMIT         stop after this many rows (default: no cap)
- *   BACKFILL_ONLY          "mbid" | "isrc" | "both" — which field to fill (default both)
- *   BACKFILL_ARTIST        substring match (ILIKE) — only tracks whose artist
- *                          contains this. Combine with BACKFILL_ALBUM to scope
- *                          a single release. Omit to walk all tracks.
- *   BACKFILL_ALBUM         substring match (ILIKE) on the album column.
- */
-
+// Backfill missing identifiers only from a centrally selected match.
+import { matchTrack, matchingRequest } from "lib/matching";
 import chalk from "chalk";
 import { consola } from "consola";
 import { ctx } from "context";
 import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
-import { decrypt } from "lib/crypto";
-import { enrichWithDeezer } from "lib/deezer";
-import { env } from "lib/env";
-import type { MusicbrainzTrack } from "types/track";
 import tables from "schema";
 
 const PAGE_SIZE = Number(process.env.BACKFILL_PAGE_SIZE ?? 500);
 const CONCURRENCY = Number(process.env.BACKFILL_CONCURRENCY ?? 4);
-const SPOTIFY_DELAY_MS = Number(process.env.BACKFILL_SPOTIFY_DELAY ?? 250);
-const MB_DELAY_MS = Number(process.env.BACKFILL_MB_DELAY ?? 1100);
-// Deezer allows 50 req / 5s; 120ms between calls keeps us well within quota.
-const DEEZER_DELAY_MS = Number(process.env.BACKFILL_DEEZER_DELAY ?? 120);
+const MATCHING_DELAY_MS = Number(process.env.BACKFILL_MATCHING_DELAY ?? 1100);
 const LIMIT = process.env.BACKFILL_LIMIT
   ? Number(process.env.BACKFILL_LIMIT)
   : Number.POSITIVE_INFINITY;
@@ -56,322 +22,6 @@ const FILL_ISRC = ONLY === "both" || ONLY === "isrc";
 
 const ARTIST_FILTER = process.env.BACKFILL_ARTIST?.trim() || null;
 const ALBUM_FILTER = process.env.BACKFILL_ALBUM?.trim() || null;
-
-type AppToken = {
-  appId: string;
-  appSecret: string;
-  refreshToken: string;
-};
-
-type CachedToken = {
-  accessToken: string;
-  expiresAt: number;
-};
-
-const accessTokenCache = new Map<string, CachedToken>();
-// Apps whose refresh token blew up (invalid_grant, revoked, etc.) — keep them
-// out of the random pool so we don't keep grinding on a dead token.
-const deadAppIds = new Set<string>();
-let activeTokens: AppToken[] = [];
-
-async function loadActiveSpotifyTokens(): Promise<AppToken[]> {
-  const rows = await ctx.db
-    .select({
-      refreshToken: tables.spotifyTokens.refreshToken,
-      appId: tables.spotifyApps.spotifyAppId,
-      appSecret: tables.spotifyApps.spotifySecret,
-    })
-    .from(tables.spotifyTokens)
-    .innerJoin(
-      tables.spotifyApps,
-      eq(tables.spotifyApps.spotifyAppId, tables.spotifyTokens.spotifyAppId),
-    )
-    .innerJoin(
-      tables.spotifyAccounts,
-      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId),
-    )
-    .where(eq(tables.spotifyAccounts.isBetaUser, true))
-    .execute();
-
-  return rows
-    .filter((r) => r.refreshToken && r.appId && r.appSecret)
-    .map((r) => ({
-      appId: r.appId,
-      appSecret: decrypt(r.appSecret, env.SPOTIFY_ENCRYPTION_KEY),
-      refreshToken: decrypt(r.refreshToken, env.SPOTIFY_ENCRYPTION_KEY),
-    }));
-}
-
-function livePool(): AppToken[] {
-  return activeTokens.filter((t) => !deadAppIds.has(t.appId));
-}
-
-function pickRandomToken(excludeAppIds: Set<string>): AppToken | undefined {
-  const pool = livePool().filter((t) => !excludeAppIds.has(t.appId));
-  if (pool.length === 0) return undefined;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-function markDead(appId: string, reason: string) {
-  if (deadAppIds.has(appId)) return;
-  deadAppIds.add(appId);
-  accessTokenCache.delete(appId);
-  const remaining = livePool().length;
-  consola.warn(
-    `[spotify] dropping app ${chalk.dim(appId)} from pool (${reason}); ${chalk.cyan(remaining)} token(s) remain`,
-  );
-}
-
-/**
- * Mint (or reuse) an access token for `tok`. Returns `null` if this specific
- * refresh token can't be made to work right now. Callers should rotate to a
- * different token rather than retry the same one.
- */
-async function mintAccessToken(tok: AppToken): Promise<string | null> {
-  const cached = accessTokenCache.get(tok.appId);
-  // Mint slightly before expiry so concurrent workers don't race a 401.
-  if (cached && cached.expiresAt - Date.now() > 60_000) {
-    return cached.accessToken;
-  }
-
-  let res: Response;
-  try {
-    res = await fetch("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: tok.refreshToken,
-        client_id: tok.appId,
-        client_secret: tok.appSecret,
-      }),
-    });
-  } catch (err) {
-    // Transient network failure — don't retire the token, just let the next
-    // call try again.
-    consola.warn(
-      `[spotify] token refresh network error for app ${chalk.dim(tok.appId)}: ${(err as Error).message}`,
-    );
-    return null;
-  }
-
-  if (res.ok) {
-    const json = (await res.json()) as {
-      access_token: string;
-      expires_in: number;
-    };
-    accessTokenCache.set(tok.appId, {
-      accessToken: json.access_token,
-      expiresAt: Date.now() + json.expires_in * 1000,
-    });
-    return json.access_token;
-  }
-
-  // Inspect the body so we can tell "this refresh token is dead forever" apart
-  // from "Spotify hiccupped, try again."
-  let errorCode = "";
-  try {
-    const body = (await res.json()) as { error?: string };
-    errorCode = body.error ?? "";
-  } catch {
-    /* body wasn't JSON — fall through to status-based decision */
-  }
-
-  const permanent =
-    res.status === 400 ||
-    res.status === 401 ||
-    errorCode === "invalid_grant" ||
-    errorCode === "invalid_client";
-
-  if (permanent) {
-    markDead(
-      tok.appId,
-      `refresh failed ${res.status}${errorCode ? ` ${errorCode}` : ""}`,
-    );
-  } else {
-    consola.warn(
-      `[spotify] token refresh transient failure for app ${chalk.dim(tok.appId)} → ${res.status}`,
-    );
-  }
-  return null;
-}
-
-/**
- * Walk random tokens until one mints successfully. Each token gets one
- * attempt per call — `mintAccessToken` already handles its own caching and
- * permanent-failure bookkeeping.
- */
-async function getAccessToken(): Promise<{
-  token: string;
-  appId: string;
-} | null> {
-  const tried = new Set<string>();
-  const cap = livePool().length;
-  if (cap === 0) return null;
-  for (let i = 0; i < cap; i++) {
-    const tok = pickRandomToken(tried);
-    if (!tok) return null;
-    tried.add(tok.appId);
-    const access = await mintAccessToken(tok);
-    if (access) return { token: access, appId: tok.appId };
-  }
-  return null;
-}
-
-function buildSpotifyQuery(title: string, artist: string): string {
-  const cleanTitle = title.replace(/"/g, "");
-  const primaryArtist = artist
-    .split(/,|;| x | feat\.? | ft\.? /i)[0]
-    .trim()
-    .replace(/"/g, "");
-  return `track:"${cleanTitle}" artist:"${primaryArtist}"`;
-}
-
-type SpotifyTrackHit = {
-  id: string;
-  external_ids?: { isrc?: string };
-  external_urls?: { spotify?: string };
-  artists: { name: string }[];
-  name: string;
-};
-
-async function searchSpotify(
-  title: string,
-  artist: string,
-): Promise<SpotifyTrackHit | null> {
-  const q = buildSpotifyQuery(title, artist);
-  const url = `${env.SPOTIFY_API_URL}/search?q=${encodeURIComponent(q)}&type=track&limit=1`;
-
-  // Two nested loops:
-  //   - outer: rotate through tokens. Switching tokens after 401/403 covers
-  //     refresh tokens that lasted long enough to mint but the access token
-  //     was revoked, scope changes, or the app got rate-throttled.
-  //   - inner: for the *current* token, retry on 429 / transient 5xx using
-  //     Retry-After + exponential backoff.
-  const triedTokens = new Set<string>();
-  const maxTokenAttempts = Math.max(3, livePool().length);
-
-  for (let tokenAttempt = 0; tokenAttempt < maxTokenAttempts; tokenAttempt++) {
-    const minted = await getAccessToken();
-    if (!minted) {
-      consola.warn("[spotify] no usable tokens left in pool");
-      return null;
-    }
-    if (triedTokens.has(minted.appId)) {
-      // Same app came back — give up rotating, the pool is too small.
-      break;
-    }
-    triedTokens.add(minted.appId);
-    const { token, appId } = minted;
-
-    for (let attempt = 0; attempt < 4; attempt++) {
-      let res: Response;
-      try {
-        res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } catch (err) {
-        consola.warn(
-          `[spotify] search network error (attempt ${attempt + 1}/4): ${(err as Error).message}`,
-        );
-        await sleep(500 * 2 ** attempt);
-        continue;
-      }
-
-      if (res.status === 429) {
-        const retry = Number(res.headers.get("retry-after") ?? "1");
-        const waitMs = retry * 1000 + Math.floor(Math.random() * 500);
-        consola.warn(
-          `[spotify] 429 — sleeping ${chalk.yellow(`${waitMs}ms`)} (attempt ${attempt + 1}/4)`,
-        );
-        await sleep(waitMs);
-        continue;
-      }
-
-      if (res.status === 401 || res.status === 403) {
-        // Access token went bad mid-flight — invalidate it and try another
-        // app on the next outer iteration.
-        accessTokenCache.delete(appId);
-        consola.warn(
-          `[spotify] ${res.status} on search — rotating away from app ${chalk.dim(appId)}`,
-        );
-        break;
-      }
-
-      if (res.status >= 500 && res.status < 600) {
-        const waitMs = 500 * 2 ** attempt;
-        consola.warn(
-          `[spotify] ${res.status} — backing off ${chalk.yellow(`${waitMs}ms`)} (attempt ${attempt + 1}/4)`,
-        );
-        await sleep(waitMs);
-        continue;
-      }
-
-      if (!res.ok) {
-        consola.warn(
-          `[spotify] search ${res.status} for "${title}" — ${artist}`,
-        );
-        return null;
-      }
-
-      const data = (await res.json()) as {
-        tracks?: { items?: SpotifyTrackHit[] };
-      };
-      const hit = data.tracks?.items?.[0];
-      if (!hit) return null;
-
-      // Confirm artist looks plausible — protects against unrelated hits when
-      // the title is generic ("Home", "Stay", etc.).
-      const wanted = artist.toLowerCase();
-      const got = hit.artists.map((a) => a.name.toLowerCase());
-      const matches = got.some(
-        (g) => wanted.includes(g) || g.includes(wanted.split(",")[0].trim()),
-      );
-      if (!matches) return null;
-      return hit;
-    }
-  }
-
-  consola.warn(`[spotify] exhausted token rotation for "${title}" — ${artist}`);
-  return null;
-}
-
-async function lookupMusicBrainz(
-  title: string,
-  artist: string,
-  album: string | null,
-): Promise<string | null> {
-  try {
-    const artistList = artist
-      .replace(/;/g, ",")
-      .split(",")
-      .map((a) => ({ name: a.trim() }))
-      .filter((a) => a.name.length > 0);
-
-    const { data } = await ctx.musicbrainz.post<MusicbrainzTrack>("/hydrate", {
-      artist: artistList,
-      name: title,
-      album: album ?? undefined,
-    });
-    if (data?.trackMBID) return data.trackMBID;
-
-    if (album) {
-      // Retry without album — sometimes MB hydrate fails when the album
-      // string is a remaster/edition the recording isn't tagged under.
-      const { data: d2 } = await ctx.musicbrainz.post<MusicbrainzTrack>(
-        "/hydrate",
-        { artist: artistList, name: title },
-      );
-      return d2?.trackMBID ?? null;
-    }
-    return null;
-  } catch (err) {
-    consola.warn(
-      `[musicbrainz] hydrate failed for "${title}" — ${artist}: ${(err as Error).message}`,
-    );
-    return null;
-  }
-}
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -436,49 +86,14 @@ async function processRow(row: Row): Promise<{ mb: boolean; isrc: boolean }> {
   const label = `${chalk.cyan(row.title)} — ${chalk.dim(row.artist)}`;
   const updates: { mbId?: string; isrc?: string } = {};
 
-  if (FILL_MBID && !row.mbId) {
-    consola.info(`[mb]  → hydrate ${label}`);
-    const mb = await lookupMusicBrainz(row.title, row.artist, row.album);
-    if (mb) {
-      updates.mbId = mb;
-      consola.info(`[mb]  ✓ ${label} → ${chalk.green(mb)}`);
-    } else {
-      consola.info(`[mb]  · ${label} → no match`);
-    }
-    await sleep(MB_DELAY_MS);
+  const candidate = await matchTrack(ctx, matchingRequest(row));
+  if (candidate) {
+    if (FILL_MBID && !row.mbId && candidate.identifiers.musicbrainzRecordingId)
+      updates.mbId = candidate.identifiers.musicbrainzRecordingId;
+    if (FILL_ISRC && !row.isrc && candidate.identifiers.isrc)
+      updates.isrc = candidate.identifiers.isrc;
   }
-
-  if (FILL_ISRC && !row.isrc) {
-    consola.info(`[spo] → search ${label}`);
-    const hit = await searchSpotify(row.title, row.artist);
-    const isrc = hit?.external_ids?.isrc;
-    if (isrc) {
-      updates.isrc = isrc;
-      consola.info(`[spo] ✓ ${label} → ${chalk.green(isrc)}`);
-    } else {
-      consola.info(`[spo] · ${label} → no match`);
-    }
-    await sleep(SPOTIFY_DELAY_MS);
-
-    // Deezer fallback when Spotify couldn't supply an ISRC.
-    if (!updates.isrc) {
-      consola.info(`[dz]  → enrich ${label}`);
-      const deezer = await enrichWithDeezer(
-        ctx,
-        row.title,
-        row.artist,
-        row.album,
-      );
-      const dzIsrc = deezer?.track?.isrc;
-      if (dzIsrc) {
-        updates.isrc = dzIsrc;
-        consola.info(`[dz]  ✓ ${label} → ${chalk.green(dzIsrc)}`);
-      } else {
-        consola.info(`[dz]  · ${label} → no match`);
-      }
-      await sleep(DEEZER_DELAY_MS);
-    }
-  }
+  await sleep(MATCHING_DELAY_MS);
 
   if (Object.keys(updates).length === 0) {
     return { mb: false, isrc: false };
@@ -604,20 +219,6 @@ async function main() {
     process.exit(1);
   }
 
-  if (FILL_ISRC) {
-    consola.info("Loading active Spotify tokens…");
-    activeTokens = await loadActiveSpotifyTokens();
-    if (activeTokens.length === 0) {
-      consola.warn(
-        "No active Spotify tokens (no beta users with linked accounts) — ISRC backfill will skip every row.",
-      );
-    } else {
-      consola.info(
-        `Loaded ${chalk.cyan(activeTokens.length)} active Spotify token(s).`,
-      );
-    }
-  }
-
   consola.info("Counting candidate tracks…");
   const total = await countCandidates();
   const target = Math.min(LIMIT, total);
@@ -681,7 +282,6 @@ async function main() {
       `mb_id filled: ${chalk.green(stats.mb)}`,
       `isrc filled:  ${chalk.green(stats.isrc)}`,
       `Skipped:      ${chalk.yellow(stats.failed)}`,
-      `Spotify pool: ${chalk.cyan(livePool().length)} live / ${chalk.dim(`${deadAppIds.size} retired`)}`,
       `Duration:     ${Math.round(totalSec)}s (${(stats.processed / totalSec).toFixed(1)}/s)`,
     ].join("\n"),
   );

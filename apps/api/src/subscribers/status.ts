@@ -1,14 +1,11 @@
+import { matchTrack, matchingRequest } from "lib/matching";
 import { consola } from "consola";
 import type { Context } from "context";
-import { eq } from "drizzle-orm";
 import { JSONCodec } from "nats";
-import { createHash } from "node:crypto";
 import { withFallbackAlbumArt } from "lib";
 import { createAgent } from "lib/agent";
-import { enrichWithDeezer } from "lib/deezer";
 import type * as Status from "lexicon/types/app/rocksky/actor/status";
 import type { TrackView } from "lexicon/types/app/rocksky/actor/defs";
-import tracks from "schema/tracks";
 import { remainingPlaybackMs } from "./playback";
 
 const jc = JSONCodec();
@@ -17,6 +14,9 @@ interface SongChangedPayload {
   did: string;
   track: {
     name?: string;
+    id?: string;
+    external_urls?: { spotify?: string };
+    external_ids?: { isrc?: string };
     // Spotify: structured artists + album object
     artists?: { id: string; name: string }[];
     album?: { id: string; name: string; cover?: string } | string;
@@ -67,67 +67,33 @@ async function resolveTrackInfo(
 
   if (!name || !artist) return { recordingMbId, albumArt, trackNumber };
 
-  // 2. Look up by sha256 in the local DB — fetch mbId, albumArt, trackNumber
-  const sha256 = createHash("sha256")
-    .update(`${name} - ${artist} - ${album}`.toLowerCase())
-    .digest("hex");
-
-  const [track] = await ctx.db
-    .select({
-      mbId: tracks.mbId,
-      albumArt: tracks.albumArt,
-      trackNumber: tracks.trackNumber,
-    })
-    .from(tracks)
-    .where(eq(tracks.sha256, sha256))
-    .limit(1)
-    .execute();
-
-  if (!recordingMbId && track?.mbId) recordingMbId = track.mbId;
-  if (track?.albumArt) albumArt = track.albumArt;
-  if (!trackNumber && track?.trackNumber && track.trackNumber > 0)
-    trackNumber = track.trackNumber;
-
-  // 3. Fall back to MusicBrainz /hydrate for the recording MBID.
-  if (!recordingMbId) {
-    try {
-      const body: {
-        artist: { name: string }[];
-        name: string;
-        album?: string;
-      } = {
-        artist: artist.split(",").map((a) => ({ name: a.trim() })),
-        name,
-      };
-      if (album) body.album = album;
-
-      const { data } = await ctx.musicbrainz.post<{ trackMBID?: string }>(
-        "/hydrate",
-        body,
-      );
-      recordingMbId = data?.trackMBID ?? undefined;
-    } catch (err) {
-      consola.warn("[status] MusicBrainz hydrate failed:", err);
-    }
-  }
-
-  // 4. Deezer fallback for album art and track number when neither the payload
-  //    nor the local DB provided them — keeps the now-playing status record
-  //    from falling back to the placeholder cover and gives it a real track
-  //    number (>0) when available.
-  if (!albumArt || !trackNumber) {
-    const deezer = await enrichWithDeezer(
+  try {
+    const candidate = await matchTrack(
       ctx,
-      name,
-      artist,
-      album || undefined,
+      matchingRequest({
+        title: name,
+        artist,
+        artists: raw.artists,
+        album,
+        duration: raw.duration_ms,
+        mbId: recordingMbId,
+        isrc: raw.external_ids?.isrc,
+        spotifyLink:
+          raw.external_urls?.spotify ??
+          (raw.source === "spotify" || raw.artists ? raw.id : undefined),
+      }),
     );
-    const d = deezer?.track;
-    if (d) {
-      if (!albumArt && d.albumArt) albumArt = d.albumArt;
-      if (!trackNumber && d.trackNumber && d.trackNumber > 0)
-        trackNumber = d.trackNumber;
+    if (candidate) {
+      recordingMbId ??=
+        candidate.identifiers.musicbrainzRecordingId ?? undefined;
+      albumArt = candidate.albumArt ?? undefined;
+      trackNumber ??= candidate.trackNumber ?? undefined;
     }
+  } catch (error) {
+    consola.warn(
+      "[status] Matching unavailable; preserving source metadata",
+      error instanceof Error ? error.message : error,
+    );
   }
 
   return { recordingMbId, albumArt, trackNumber };

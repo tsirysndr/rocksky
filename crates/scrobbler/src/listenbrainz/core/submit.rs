@@ -1,10 +1,10 @@
 use crate::auth::decode_token;
-use crate::musicbrainz::client::MusicbrainzClient;
 use crate::repo;
 use crate::{cache::Cache, scrobbler::scrobble_listenbrainz};
 use anyhow::Error;
 use owo_colors::OwoColorize;
 use rocksky_db::Backend;
+use rocksky_matching::client::MatchingClient;
 use std::sync::Arc;
 
 use crate::listenbrainz::msid;
@@ -28,7 +28,7 @@ pub async fn submit_listens(
     payload: SubmitListensRequest,
     cache: &Cache,
     pool: &Arc<Backend>,
-    mb_client: &Arc<MusicbrainzClient>,
+    matcher: &Arc<MatchingClient>,
     token: &str,
 ) -> Result<SubmitResponse, Error> {
     if payload.listen_type != "single" {
@@ -41,13 +41,13 @@ pub async fn submit_listens(
 
     let pool = Arc::clone(pool);
     let cache = cache.clone();
-    let mb_client = Arc::clone(mb_client);
+    let matcher = Arc::clone(matcher);
     let payload = payload.clone();
     let token = token.to_string();
     tokio::spawn(async move {
         const RETRIES: usize = 15;
         for attempt in 1..=RETRIES {
-            match scrobble_listenbrainz(&pool, &cache, &mb_client, &payload, &token).await {
+            match scrobble_listenbrainz(&pool, &cache, &matcher, &payload, &token).await {
                 Ok(_) => {
                     tracing::info!("Successfully submitted listens");
                     break;

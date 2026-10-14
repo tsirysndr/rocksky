@@ -39,7 +39,7 @@ pub async fn run() -> anyhow::Result<()> {
         !providers.is_empty(),
         "configure DATABASE_URL, DEEZER_URL, MUSICBRAINZ_URL or SPOTIFY_API_URL"
     );
-    let bind = env::var("MATCHING_BIND").unwrap_or_else(|_| "127.0.0.1:8096".into());
+    let bind = env::var("MATCHING_BIND").unwrap_or_else(|_| "127.0.0.1:8097".into());
     let state = web::Data::new(Service::new(providers));
     HttpServer::new(move || App::new().app_data(state.clone()).configure(routes))
         .bind(bind)?

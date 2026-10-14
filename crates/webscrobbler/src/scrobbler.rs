@@ -1,409 +1,124 @@
-use rocksky_db::Backend;
-use std::env;
-
-use crate::cache::Cache;
-use crate::crypto::decrypt_aes_256_ctr;
-use crate::deezer::client::DeezerClient;
-use crate::musicbrainz::client::MusicbrainzClient;
-use crate::musicbrainz::get_best_release_from_recordings;
-use crate::musicbrainz::recording::Recording;
-use crate::spotify::client::SpotifyClient;
-use crate::spotify::refresh_token;
-use crate::types::{ScrobbleRequest, Track};
-use crate::{repo, rocksky};
+use crate::{
+    cache::Cache,
+    rocksky,
+    types::{ScrobbleRequest, Song, Track},
+};
 use anyhow::Error;
-use owo_colors::OwoColorize;
-use rand::Rng;
+use rocksky_db::Backend;
+use rocksky_matching::{
+    client::{spotify_track_id, MatchingClient},
+    Identifiers, MatchRequest,
+};
 
-const MAX_SPOTIFY_RETRIES: u32 = 3;
-const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+fn optional(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+}
 
-/// Resolve a track by artist/title through cache → DB → Spotify → MusicBrainz.
-/// Returns `None` if no match is found anywhere.
-pub async fn resolve_track(
-    pool: &Backend,
-    cache: &Cache,
-    mb_client: &MusicbrainzClient,
-    artist: &str,
-    track_name: &str,
-    album: Option<&str>,
-) -> Result<Option<Track>, Error> {
-    let key = format!("{} - {}", artist.to_lowercase(), track_name.to_lowercase());
-
-    // 1. Cache
-    if let Some(cached) = cache.get(&key)? {
-        tracing::info!(%artist, %track_name, "Using cached track");
-        return Ok(Some(serde_json::from_str::<Track>(&cached)?));
-    }
-
-    tracing::info!(%artist, %track_name, "Resolving track (not cached)");
-
-    // Build a Deezer client once: reused both for the full fallback below (when
-    // Spotify fails entirely) and to backfill a missing (0) track/disc number on
-    // tracks resolved from the DB, Spotify or MusicBrainz.
-    let deezer_client = DeezerClient::from_env().ok();
-
-    // 2. DB
-    if let Some(db_track) = repo::track::get_track(pool, track_name, artist).await? {
-        println!("{}", "Xata (track)".yellow());
-        let album = repo::album::get_album_by_track_id(pool, &db_track.xata_id).await?;
-        let db_artist = repo::artist::get_artist_by_track_id(pool, &db_track.xata_id).await?;
-        let mut track: Track = db_track.into();
-        track.year = match album.year {
-            Some(year) => Some(year as u32),
-            None => match album.release_date.clone() {
-                Some(release_date) => release_date
-                    .split('-')
-                    .next()
-                    .and_then(|x| x.parse::<u32>().ok()),
-                None => None,
-            },
-        };
-        track.release_date = album
-            .release_date
-            .map(|x| x.split('T').next().unwrap().to_string());
-        track.artist_picture = db_artist.picture.clone();
-        // `album` here is the DB album row (shadows the fn param); use its title
-        // to anchor the Deezer backfill.
-        let album_title = Some(album.title.as_str()).filter(|s| !s.is_empty());
-        backfill_track_disc_from_deezer(
-            deezer_client.as_ref(),
-            &mut track,
-            artist,
-            track_name,
-            album_title,
-        )
-        .await;
-        return Ok(Some(track));
-    }
-
-    // 3. Spotify
-    let spotify_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
-    if !spotify_tokens.is_empty() {
-        let mut rng = rand::rng();
-        let random_index = rng.random_range(0..spotify_tokens.len());
-        let spotify_token = &spotify_tokens[random_index];
-        let client_id = spotify_token.spotify_app_id.clone();
-
-        let client_secret = decrypt_aes_256_ctr(
-            &spotify_token.spotify_secret,
-            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-        )?;
-        let spotify_refresh = decrypt_aes_256_ctr(
-            &spotify_token.refresh_token,
-            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
-        )?;
-        let spotify_token = refresh_token(&spotify_refresh, &client_id, &client_secret).await?;
-        let spotify_client = SpotifyClient::new(&spotify_token.access_token);
-
-        let query = build_spotify_query(artist, track_name, album);
-        tracing::info!(query = %query, "Searching on Spotify");
-
-        if let Ok(result) = retry_spotify_call(
-            || async {
-                tokio::time::timeout(
-                    std::time::Duration::from_secs(5),
-                    spotify_client.search(&query),
-                )
-                .await?
-            },
-            "search",
-        )
-        .await
-        {
-            tracing::info!(total = %result.tracks.total, "Spotify search results");
-
-            // Spotify often returns the single release first; if we know the
-            // album, prefer the result whose album name matches.
-            let source_album = album
-                .map(|s| s.trim().to_lowercase())
-                .filter(|s| !s.is_empty());
-            let picked = match source_album {
-                Some(target) => result
-                    .tracks
-                    .items
-                    .iter()
-                    .find(|t| t.album.name.trim().to_lowercase() == target)
-                    .or_else(|| result.tracks.items.first()),
-                None => result.tracks.items.first(),
-            };
-            if let Some(sp_track) = picked {
-                let normalize = accent_normalize;
-                let spotify_artists: Vec<String> = sp_track
-                    .artists
-                    .iter()
-                    .map(|a| normalize(&a.name))
-                    .collect();
-                let scrobble_artists: Vec<String> =
-                    artist.split(", ").map(|a| normalize(a.trim())).collect();
-
-                let has_artist_match = scrobble_artists.iter().any(|sa| {
-                    spotify_artists
-                        .iter()
-                        .any(|spa| sa.contains(spa.as_str()) || spa.contains(sa.as_str()))
-                });
-
-                if has_artist_match {
-                    tracing::info!("Spotify (track)");
-                    let mut sp_track = sp_track.clone();
-
-                    if let Ok(Some(album)) = retry_spotify_call(
-                        || async { spotify_client.get_album(&sp_track.album.id).await },
-                        "get_album",
-                    )
-                    .await
-                    {
-                        sp_track.album = album;
-                    }
-
-                    if let Ok(Some(sp_artist)) = retry_spotify_call(
-                        || async {
-                            spotify_client
-                                .get_artist(&sp_track.album.artists[0].id)
-                                .await
-                        },
-                        "get_artist",
-                    )
-                    .await
-                    {
-                        sp_track.album.artists[0] = sp_artist;
-                    }
-
-                    let mut track: Track = sp_track.into();
-                    backfill_track_disc_from_deezer(
-                        deezer_client.as_ref(),
-                        &mut track,
-                        artist,
-                        track_name,
-                        album,
-                    )
-                    .await;
-                    return Ok(Some(track));
-                } else {
-                    tracing::warn!(%artist, "Spotify artist mismatch, falling through to MusicBrainz");
-                }
-            }
+pub fn matching_request(song: &Song) -> MatchRequest {
+    let parsed = &song.parsed;
+    let mut identifiers = Identifiers::default();
+    // A connector's opaque uniqueID is only meaningful within that provider.
+    match song.connector.id.as_str() {
+        "spotify" => {
+            identifiers.spotify_track_id = parsed
+                .unique_id
+                .as_deref()
+                .or(song.metadata.track_url.as_deref())
+                .and_then(spotify_track_id)
         }
-    }
-
-    // 4. Deezer — Spotify failed or returned no usable match; fall back to
-    // Deezer to fill the metadata before trying MusicBrainz.
-    if let Some(deezer_client) = deezer_client.as_ref() {
-        match deezer_client.enrich(track_name, artist, album).await {
-            Ok(resp) => {
-                if let Some(enriched) = resp.track {
-                    tracing::info!(%artist, %track_name, "Deezer (track)");
-                    return Ok(Some(enriched.into()));
-                }
-            }
-            Err(e) => {
-                tracing::warn!(%artist, %track_name, error = %e, "Deezer enrichment failed, continuing");
-            }
+        "deezer" => {
+            identifiers.deezer_track_id = parsed
+                .unique_id
+                .clone()
+                .filter(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_digit()))
         }
+        _ => {}
     }
-
-    // 5. MusicBrainz
-    let mb_query = format!(
-        r#"recording:"{}" AND artist:"{}" AND status:Official"#,
-        track_name, artist
-    );
-    if let Ok(Some(recording)) =
-        search_musicbrainz_recording(&mb_query, mb_client, artist, track_name).await
-    {
-        tracing::info!("MusicBrainz (recording)");
-        let mut track: Track = recording.into();
-        backfill_track_disc_from_deezer(
-            deezer_client.as_ref(),
-            &mut track,
-            artist,
-            track_name,
-            album,
-        )
-        .await;
-        return Ok(Some(track));
+    MatchRequest {
+        title: parsed.track.clone(),
+        artists: vec![parsed.artist.clone()],
+        album: optional(parsed.album.as_deref()),
+        album_artist: optional(parsed.album_artist.as_deref()),
+        duration_ms: parsed
+            .duration
+            .filter(|n| *n > 0)
+            .map(|n| u64::from(n) * 1000),
+        identifiers,
     }
+}
 
-    tracing::warn!(%artist, %track_name, "Track not found anywhere");
-    Ok(None)
+pub async fn resolve_track(matcher: &MatchingClient, song: &Song) -> Result<Option<Track>, Error> {
+    Ok(matcher
+        .match_track(&matching_request(song))
+        .await?
+        .map(Into::into))
 }
 
 pub async fn scrobble(
-    pool: &Backend,
+    _pool: &Backend,
     cache: &Cache,
-    mb_client: &MusicbrainzClient,
+    matcher: &MatchingClient,
     scrobble: ScrobbleRequest,
     did: &str,
 ) -> Result<(), Error> {
-    let artist = scrobble.data.song.parsed.artist.clone();
-    let track_name = scrobble.data.song.parsed.track.clone();
-    let album = scrobble.data.song.parsed.album.clone();
-
-    if let Some(track) = resolve_track(
-        pool,
-        cache,
-        mb_client,
-        &artist,
-        &track_name,
-        album.as_deref(),
-    )
-    .await?
-    {
+    if let Some(track) = resolve_track(matcher, &scrobble.data.song).await? {
         rocksky::scrobble(cache, did, track, scrobble.time).await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     } else {
-        tracing::warn!(%artist, %track_name, "Track not found, skipping scrobble");
+        tracing::warn!("No unambiguous match; skipping scrobble");
     }
-
     Ok(())
 }
 
-/// Backfill `track_number` / `disc_number` from Deezer when a provider-resolved
-/// track left them at 0 (MusicBrainz commonly does when a recording has no
-/// release media; Spotify occasionally too). Best-effort: only calls Deezer
-/// when at least one of the two is missing, and swallows any error.
-async fn backfill_track_disc_from_deezer(
-    deezer: Option<&DeezerClient>,
-    track: &mut Track,
-    artist: &str,
-    track_name: &str,
-    album: Option<&str>,
-) {
-    if track.track_number != 0 && track.disc_number != 0 {
-        return;
+#[cfg(test)]
+mod matching_tests {
+    use super::*;
+    fn song(connector: &str, id: &str) -> Song {
+        serde_json::from_value(serde_json::json!({
+            "connector": {"id": connector, "js": "test.js", "label": "Test", "matches": []},
+            "controllerTabId": 1,
+            "flags": {"finishedProcessing": true, "hasBlockedTag": false, "isAlbumFetched": true,
+                "isCorrectedByUser": false, "isMarkedAsPlaying": true, "isRegexEditedByUser": {
+                    "album": false, "albumArtist": false, "artist": false, "track": false},
+                "isReplaying": false, "isScrobbled": false, "isSkipped": false, "isValid": true},
+            "metadata": {"label": "Test", "startTimestamp": 1},
+            "noRegex": {"artist": "Earth, Wind & Fire", "track": "September"},
+            "parsed": {"artist": "Earth, Wind & Fire", "track": "September", "album": "Album",
+                "albumArtist": "Earth, Wind & Fire", "duration": 215, "uniqueID": id,
+                "isPlaying": true, "isPodcast": false}
+        }))
+        .unwrap()
     }
-    let Some(deezer) = deezer else {
-        return;
-    };
-
-    match deezer.enrich(track_name, artist, album).await {
-        Ok(resp) => {
-            if let Some(d) = resp.track {
-                if track.track_number == 0 {
-                    if let Some(n) = d.track_number {
-                        track.track_number = n;
-                    }
-                }
-                if track.disc_number == 0 {
-                    if let Some(n) = d.disc_number {
-                        track.disc_number = n;
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            tracing::warn!(%artist, %track_name, error = %e, "Deezer track/disc backfill failed, continuing");
-        }
+    #[test]
+    fn spotify_preserves_explicit_id_album_and_duration() {
+        let r = matching_request(&song("spotify", "spotify:track:2XQSgmtEY2titXhfY414dy"));
+        assert_eq!(
+            r.identifiers.spotify_track_id.as_deref(),
+            Some("2XQSgmtEY2titXhfY414dy")
+        );
+        assert_eq!(r.album.as_deref(), Some("Album"));
+        assert_eq!(r.artists, ["Earth, Wind & Fire"]);
+        assert_eq!(r.duration_ms, Some(215000));
     }
-}
-
-fn accent_normalize(s: &str) -> String {
-    s.to_lowercase()
-        .chars()
-        .filter_map(|c| match c {
-            'á' | 'à' | 'ä' | 'â' | 'ã' | 'å' => Some('a'),
-            'é' | 'è' | 'ë' | 'ê' => Some('e'),
-            'í' | 'ì' | 'ï' | 'î' => Some('i'),
-            'ó' | 'ò' | 'ö' | 'ô' | 'õ' => Some('o'),
-            'ú' | 'ù' | 'ü' | 'û' => Some('u'),
-            'ñ' => Some('n'),
-            'ç' => Some('c'),
-            _ => Some(c),
-        })
-        .collect()
-}
-
-fn build_spotify_query(artist: &str, track_name: &str, album: Option<&str>) -> String {
-    let base = if artist.contains(" x ") {
-        let artists = artist
-            .split(" x ")
-            .map(|a| format!(r#"artist:"{}""#, a.trim()))
-            .collect::<Vec<_>>()
-            .join(" ");
-        format!(r#"track:"{}" {}"#, track_name, artists)
-    } else if artist.contains(", ") {
-        let artists = artist
-            .split(", ")
-            .map(|a| format!(r#"artist:"{}""#, a.trim()))
-            .collect::<Vec<_>>()
-            .join(" ");
-        format!(r#"track:"{}" {}"#, track_name, artists)
-    } else {
-        format!(r#"track:"{}" artist:"{}""#, track_name, artist.trim())
-    };
-
-    match album.map(str::trim).filter(|s| !s.is_empty()) {
-        Some(a) => format!(r#"{} album:"{}""#, base, a),
-        None => base,
+    #[test]
+    fn connector_ids_are_not_interchangeable() {
+        assert_eq!(
+            matching_request(&song("deezer", "29373661"))
+                .identifiers
+                .deezer_track_id
+                .as_deref(),
+            Some("29373661")
+        );
+        assert_eq!(
+            matching_request(&song("tidal", "29373661")).identifiers,
+            Identifiers::default()
+        );
+        assert_eq!(
+            matching_request(&song("youtube", "2XQSgmtEY2titXhfY414dy")).identifiers,
+            Identifiers::default()
+        );
     }
-}
-
-async fn search_musicbrainz_recording(
-    query: &str,
-    mb_client: &MusicbrainzClient,
-    artist: &str,
-    track_name: &str,
-) -> Result<Option<Recording>, Error> {
-    let result = mb_client.search(query).await;
-    if let Err(e) = result {
-        tracing::warn!(%artist, %track_name, "MusicBrainz search error: {}", e);
-        return Ok(None);
-    }
-    let result = result.unwrap();
-
-    let release = get_best_release_from_recordings(&result, artist);
-
-    if let Some(release) = release {
-        let recording = result.recordings.into_iter().find(|r| {
-            r.releases
-                .as_ref()
-                .map(|releases| releases.iter().any(|rel| rel.id == release.id))
-                .unwrap_or(false)
-        });
-        if recording.is_none() {
-            tracing::warn!(%artist, %track_name, "Recording not found in MusicBrainz result, skipping");
-            return Ok(None);
-        }
-        let recording = recording.unwrap();
-        let mut result = mb_client.get_recording(&recording.id).await?;
-        result.releases = Some(vec![release]);
-        return Ok(Some(result));
-    }
-
-    Ok(None)
-}
-
-async fn retry_spotify_call<F, Fut, T>(mut f: F, operation: &str) -> Result<T, Error>
-where
-    F: FnMut() -> Fut,
-    Fut: std::future::Future<Output = Result<T, Error>>,
-{
-    let mut last_error = None;
-
-    for attempt in 0..MAX_SPOTIFY_RETRIES {
-        match f().await {
-            Ok(result) => return Ok(result),
-            Err(e) => {
-                let is_timeout = e.to_string().contains("timed out")
-                    || e.to_string().contains("timeout")
-                    || e.to_string().contains("operation timed out");
-
-                if is_timeout && attempt < MAX_SPOTIFY_RETRIES - 1 {
-                    let delay = INITIAL_RETRY_DELAY_MS * 2_u64.pow(attempt);
-                    tracing::warn!(
-                        attempt = attempt + 1,
-                        max_attempts = MAX_SPOTIFY_RETRIES,
-                        delay_ms = delay,
-                        operation = operation,
-                        "Spotify API timeout, retrying..."
-                    );
-                    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
-                    last_error = Some(e);
-                } else {
-                    return Err(e);
-                }
-            }
-        }
-    }
-
-    Err(last_error.unwrap_or_else(|| Error::msg("Max retries exceeded")))
 }

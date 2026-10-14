@@ -5,20 +5,12 @@ use crate::{auth::generate_token, cache::Cache, types::Track};
 
 pub const ROCKSKY_API: &str = "https://api.rocksky.app";
 
-pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) -> Result<(), Error> {
-    let key = format!(
-        "{} - {}",
-        track.artist.to_lowercase(),
-        track.title.to_lowercase()
-    );
-
-    // Check if the track is already in the cache, if not add it
-    if !cache.exists(&key)? {
-        let value = serde_json::to_string(&track)?;
-        let ttl = 15 * 60; // 15 minutes
-        cache.setex(&key, &value, ttl)?;
-    }
-
+pub async fn scrobble(
+    _cache: &Cache,
+    did: &str,
+    track: Track,
+    timestamp: u64,
+) -> Result<(), Error> {
     let mut track = track;
     track.timestamp = Some(timestamp);
 

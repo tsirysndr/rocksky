@@ -7,7 +7,7 @@ use rocksky_db::Backend;
 use sqlx::FromRow;
 use std::time::Duration;
 
-use crate::schema::{MirrorSources as Ms, Tracks, Users};
+use crate::schema::{MirrorSources as Ms, Users};
 use crate::Provider;
 
 pub async fn connect() -> Result<Backend, Error> {
@@ -118,37 +118,6 @@ pub async fn user_id_for_did(pool: &Backend, did: &str) -> Result<Option<String>
         pool.fetch_optional(&stmt).await?
     };
     Ok(row.map(|(id,)| id))
-}
-
-/// Cached enrichment fields for a track already known to Rocksky. We key on
-/// the same sha256(lowercase("title - artist - album")) the API computes in
-/// `nowplaying.service.ts`, so a single point lookup hits the unique index.
-#[derive(Debug, Default, FromRow)]
-pub struct TrackEnrichment {
-    pub album_art: Option<String>,
-    pub spotify_link: Option<String>,
-    pub isrc: Option<String>,
-}
-
-pub async fn track_enrichment(
-    pool: &Backend,
-    title: &str,
-    artist: &str,
-    album: &str,
-) -> Result<Option<TrackEnrichment>, Error> {
-    let sha = sha256::digest(
-        format!("{title} - {artist} - {album}")
-            .to_lowercase()
-            .as_bytes(),
-    );
-    let stmt = Query::select()
-        .columns([Tracks::AlbumArt, Tracks::SpotifyLink, Tracks::Isrc])
-        .from(Tracks::Table)
-        .and_where(Expr::col(Tracks::Sha256).eq(sha))
-        .limit(1)
-        .to_owned();
-    let row: Option<TrackEnrichment> = pool.fetch_optional(&stmt).await?;
-    Ok(row)
 }
 
 pub async fn touch_polled(

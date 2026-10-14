@@ -76,6 +76,14 @@ async fn match_track(
                 .map(|name| format!("{name}_unavailable"))
                 .collect();
             response.warnings.sort();
+            if let Some(track) = response.track.as_mut() {
+                if let Some(provider) = service.providers.iter().find(|p| p.name() == track.source)
+                {
+                    // Preserve the validated match even if optional metadata is slow.
+                    let _ =
+                        tokio::time::timeout(Duration::from_secs(1), provider.enrich(track)).await;
+                }
+            }
             HttpResponse::Ok().json(response)
         }
         Err(error) => HttpResponse::BadRequest().json(serde_json::json!({"error":error})),

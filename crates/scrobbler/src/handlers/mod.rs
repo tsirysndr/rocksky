@@ -9,8 +9,8 @@ use v1::nowplaying::nowplaying;
 use v1::submission::submission;
 
 use crate::cache::Cache;
-use crate::musicbrainz::client::MusicbrainzClient;
 use crate::BANNER;
+use rocksky_matching::client::MatchingClient;
 
 pub mod scrobble;
 pub mod v1;
@@ -44,14 +44,14 @@ pub async fn handle_nowplaying(
 pub async fn handle_submission(
     data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
-    mb_client: web::Data<Arc<MusicbrainzClient>>,
+    matcher: web::Data<Arc<MatchingClient>>,
     form: web::Form<BTreeMap<String, String>>,
 ) -> impl Responder {
     submission(
         form.into_inner(),
         cache.get_ref(),
         data.get_ref(),
-        mb_client.get_ref(),
+        matcher.get_ref(),
     )
     .await
     .map_err(actix_web::error::ErrorInternalServerError)
@@ -67,14 +67,14 @@ pub async fn handle_methods(
     data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
     form: web::Form<BTreeMap<String, String>>,
-    mb_client: web::Data<Arc<MusicbrainzClient>>,
+    matcher: web::Data<Arc<MatchingClient>>,
 ) -> impl Responder {
     let conn = data.get_ref();
     let cache = cache.get_ref();
-    let mb_client = mb_client.get_ref();
+    let matcher = matcher.get_ref();
 
     let method = form.get("method").unwrap_or(&"".to_string()).to_string();
-    call_method(&method, conn, cache, mb_client, form.into_inner())
+    call_method(&method, conn, cache, matcher, form.into_inner())
         .await
         .map_err(actix_web::error::ErrorInternalServerError)
 }
@@ -83,11 +83,11 @@ pub async fn call_method(
     method: &str,
     pool: &Arc<Backend>,
     cache: &Cache,
-    mb_client: &Arc<MusicbrainzClient>,
+    matcher: &Arc<MatchingClient>,
     form: BTreeMap<String, String>,
 ) -> Result<HttpResponse, Error> {
     match method {
-        "track.scrobble" => handle_scrobble(form, pool, cache, mb_client).await,
+        "track.scrobble" => handle_scrobble(form, pool, cache, matcher).await,
         _ => Err(Error::msg(format!("Unsupported method: {}", method))),
     }
 }

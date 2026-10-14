@@ -3,7 +3,6 @@ pub mod api_key;
 pub mod artist;
 pub mod spotify_account;
 pub mod spotify_token;
-pub mod track;
 pub mod user;
 
 #[cfg(test)]
@@ -31,14 +30,7 @@ mod sqlite_tests {
             .await
             .unwrap()
             .is_none());
-        assert!(super::track::get_track(&db, "Roygbiv", "Boards of Canada")
-            .await
-            .unwrap()
-            .is_none());
-        assert!(super::track::get_track_by_mbid(&db, "mb-1")
-            .await
-            .unwrap()
-            .is_none());
+
         assert!(
             super::spotify_account::get_spotify_account(&db, "did:plc:nobody")
                 .await

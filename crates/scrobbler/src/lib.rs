@@ -1,3 +1,4 @@
+use rocksky_matching::client::MatchingClient;
 pub mod auth;
 pub mod cache;
 pub mod crypto;
@@ -30,7 +31,7 @@ use anyhow::Error;
 use async_nats::connect;
 use owo_colors::OwoColorize;
 
-use crate::{cache::Cache, events::Events, musicbrainz::client::MusicbrainzClient};
+use crate::{cache::Cache, events::Events};
 
 pub const BANNER: &str = r#"
     ___             ___          _____                 __    __    __
@@ -82,8 +83,8 @@ pub async fn run() -> Result<(), Error> {
             .unwrap(),
     );
 
-    let mb_client = MusicbrainzClient::new().await?;
-    let mb_client = Arc::new(mb_client);
+    let matcher = MatchingClient::from_env()?;
+    let matcher = Arc::new(matcher);
 
     let nats_addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
     let nc = connect(&nats_addr).await?;
@@ -102,7 +103,7 @@ pub async fn run() -> Result<(), Error> {
             .app_data(limiter.clone())
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
-            .app_data(Data::new(mb_client.clone()))
+            .app_data(Data::new(matcher.clone()))
             .app_data(Data::new(events.clone()))
             .service(handlers::handle_methods)
             .service(handlers::handle_nowplaying)

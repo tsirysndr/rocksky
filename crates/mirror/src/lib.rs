@@ -12,7 +12,6 @@
 //!   * [`crypto`] — libsodium secretbox decrypt for the API keys persisted by
 //!     the API layer (`apps/api/src/lib/storage-crypto.ts`).
 
-pub mod creds;
 pub mod crypto;
 pub mod db;
 pub mod dedup;

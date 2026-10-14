@@ -1,7 +1,7 @@
 [Unit]
 Description=Rocksky XRPC Service
-After=network.target
-Wants=network-online.target
+After=network.target rocksky-matching.service
+Wants=network-online.target rocksky-matching.service
 
 [Service]
 Type=simple
@@ -17,6 +17,7 @@ SyslogIdentifier=rocksky-xrpc
 # Environment
 Environment=HOME=/root
 Environment=USER=root
+Environment=MATCHING_URL=http://127.0.0.1:8097
 
 [Install]
 WantedBy=multi-user.target

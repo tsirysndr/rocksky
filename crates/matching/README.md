@@ -25,7 +25,7 @@ initializes its shared telemetry before starting the service.
 
 | Variable                 | Meaning                                                                                  |
 | ------------------------ | ---------------------------------------------------------------------------------------- |
-| `MATCHING_BIND`          | Bind address; default `127.0.0.1:8096`                                                   |
+| `MATCHING_BIND`          | Bind address; default `127.0.0.1:8097`                                                   |
 | `XATA_READ_POSTGRES_URL` | Preferred read-only PostgreSQL endpoint; takes precedence over `DATABASE_URL`            |
 | `DATABASE_URL`           | Optional explicit catalog URL; PostgreSQL sessions and SQLite files are opened read-only |
 | `DEEZER_URL`             | Existing Rocksky Deezer service, not the public API                                      |
@@ -47,7 +47,7 @@ The unit in [`systemd/rocksky-matching.service`](../../systemd/rocksky-matching.
 uses the existing deployment directory `/root/github/rocksky`, runs the release
 binary through `doppler run -- ./target/release/rockskyd matching`, restarts on
 failure, and logs to the journal. It listens on
-`127.0.0.1:8096` and uses the local Deezer and MusicBrainz services by default.
+`127.0.0.1:8097` and uses the local Deezer and MusicBrainz services by default.
 Those providers are ordered before matching when started together, but are not
 required dependencies, so either can restart independently.
 
@@ -69,7 +69,7 @@ environment defaults belong in `/etc/default/rocksky-matching` (systemd
 environment-file syntax, without `export`). For example:
 
 ```ini
-MATCHING_BIND=127.0.0.1:8096
+MATCHING_BIND=127.0.0.1:8097
 DEEZER_URL=http://127.0.0.1:8090
 MUSICBRAINZ_URL=http://127.0.0.1:8088
 ```
@@ -87,7 +87,7 @@ The injected environment takes precedence over the daemon’s `.env` file.
 ## Contract
 
 ```sh
-curl -sS http://127.0.0.1:8096/v1/match \
+curl -sS http://127.0.0.1:8097/v1/match \
   -H 'Content-Type: application/json' \
   --data '{"title":"Roygbiv","artists":["Boards of Canada"],"album":"Music Has the Right to Children","durationMs":151000}'
 ```
@@ -112,8 +112,8 @@ Optional fields: `album`, `albumArtist`, positive `durationMs`, and:
 
 The identifiers above illustrate the field names; supply real identifiers.
 Use an array of actual artist names. Do not split literal names such as
-`Earth, Wind & Fire` on commas. For legacy catalog rows, a joined credit is
-accepted only when it equals the entire requested credit list after normalization.
+`Earth, Wind & Fire` on commas. For legacy joined credits in requests or catalog rows, the full joined credit
+must equal the other side’s complete credit list after normalization.
 
 Responses contain `policyVersion`, `status`, `track`, ranked `candidates`,
 `rejected` candidates with reasons, and `warnings`. `rank` is an ordering tuple,
@@ -186,13 +186,37 @@ const result = await response.json();
 // Only publish result.track when result.status === "matched".
 ```
 
-This crate is independently runnable. Existing ingestion/API handlers have not
-been switched over automatically: their output/enrichment/persistence contracts
-need explicit adapters to this result. When migrating them, remove their local
-selection and wrong-album fallback rather than calling it after an `unmatched`
-result. Do not reuse legacy caches keyed only by artist/title or identifier;
-all request fields and the policy version affect the result.
+The API song matcher, API scrobble enrichment and status subscriber, Rust
+AudioScrobbler (v1/v2 and ListenBrainz), WebScrobbler, mirror importer, and track
+backfills now call this service. Configure `MATCHING_URL` in consumers; its
+default is `http://127.0.0.1:8097`. Provider credentials and the read-only catalog
+connection belong to this service, not to these matching callers.
 
+Consumers use only the selected `track` from a `matched` response. The API match
+endpoint reports NotFound for ambiguous/unmatched results. Rust scrobblers skip
+unresolved tracks, while API ingestion and mirror enrichment preserve independently
+submitted source metadata without guessing replacement metadata. Transport errors
+propagate from match clients; best-effort enrichment logs them and keeps the
+source submission. No caller uses a first candidate or relaxes an album filter.
+
+The old title/artist-only and identifier-only resolution caches are no longer
+read. Database persistence still deduplicates exact title/artist/album identities;
+it never reuses another album's row solely because its ISRC or MBID matches.
+Track/disc numbers, links, release dates and other available metadata travel with
+the selected candidate. Optional Spotify album/artist detail is fetched by that
+candidate's exact IDs under a one-second budget, without another search or
+cross-provider metadata merging.
+
+Build and restart the matching service before its consumers so they receive the
+expanded metadata response. The checked-in systemd units start it before the API
+and scrobblers and set `MATCHING_URL`. Mirror uses the same environment/default.
+Build the daemon with `cargo build --release -p rockskyd`, and build the API with
+`bun run build` from `apps/api`. Then restart matching, the API/XRPC units, the two
+scrobblers, and the process running mirror. A missing matching service is not a
+signal to restore the removed local selection rules.
+
+This stricter policy can resolve fewer tracks than the previous first-result
+fallbacks, particularly when providers expose several equally ranked releases.
 Current limitations favor false negatives over wrong matches: catalog retrieval
 uses SQL case-insensitive title or MBID/ISRC lookup (the final filter uses richer
 Unicode normalization); upstream wrappers can return limited candidate sets;
@@ -230,12 +254,12 @@ The optional live checks cover health and five rejected-input cases without
 contacting production providers. The full release-mode tests exercise policy,
 provider mocks, token renewal, database read-only behavior, and HTTP contracts.
 No Doppler secrets are needed for the test suite. The production deployment uses
-port `8097` through a systemd drop-in because Jellyfin owns port `8096`.
+port `8097` because Jellyfin owns port `8096`.
 
 Direct commands:
 
 ```sh
-cargo test --release -p rocksky-matching
+cargo test --release -p rocksky-matching -p rocksky-scrobbler -p rocksky-webscrobbler -p rocksky-mirror
 cargo clippy --release -p rocksky-matching --all-targets --no-deps -- -D warnings
 ```
 

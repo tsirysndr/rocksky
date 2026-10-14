@@ -1,3 +1,4 @@
+use rocksky_matching::client::MatchingClient;
 use std::{env, sync::Arc, time::Duration};
 
 use actix_cors::Cors;
@@ -11,7 +12,7 @@ use actix_web::{
 use anyhow::Error;
 use owo_colors::OwoColorize;
 
-use crate::{cache::Cache, consts::BANNER, events::Events, musicbrainz::client::MusicbrainzClient};
+use crate::{cache::Cache, consts::BANNER, events::Events};
 
 pub mod auth;
 pub mod cache;
@@ -52,8 +53,8 @@ pub async fn start_server() -> Result<(), Error> {
 
     let conn = Arc::new(db.primary().clone());
 
-    let mb_client = MusicbrainzClient::new().await?;
-    let mb_client = Arc::new(mb_client);
+    let matcher = MatchingClient::from_env()?;
+    let matcher = Arc::new(matcher);
 
     let host = env::var("WEBSCROBBLER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("WEBSCROBBLER_PORT")
@@ -88,7 +89,7 @@ pub async fn start_server() -> Result<(), Error> {
             .app_data(limiter.clone())
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
-            .app_data(Data::new(mb_client.clone()))
+            .app_data(Data::new(matcher.clone()))
             .app_data(Data::new(events.clone()))
             .service(handlers::index)
             .service(handlers::handle_scrobble)

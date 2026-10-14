@@ -43,6 +43,7 @@ export const env = cleanEnv(process.env, {
   DROPBOX: str({ default: "http://localhost:7881" }),
   TRACKLIST: str({ default: "http://localhost:7884" }),
   REDIS_URL: str({ default: "redis://localhost:6379" }),
+  MATCHING_URL: str({ default: "http://127.0.0.1:8097" }),
   MUSICBRAINZ_URL: str({ default: "http://localhost:8088" }),
   DEEZER_URL: str({ default: "http://localhost:8090" }),
   DISCOGS_URL: str({ default: "http://localhost:8095" }),

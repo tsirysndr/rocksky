@@ -1,6 +1,7 @@
 //! The HTTP surface of the ListenBrainz API. See [`crate::listenbrainz`] for
 //! what each route draws in a client and why the reads are unauthenticated.
 
+use rocksky_matching::client::MatchingClient;
 use std::sync::Arc;
 
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
@@ -39,7 +40,6 @@ use crate::{
         types::ApiError,
         users,
     },
-    musicbrainz::client::MusicbrainzClient,
     repo,
 };
 
@@ -219,7 +219,7 @@ pub async fn handle_submit_listens(
     req: HttpRequest,
     data: web::Data<Arc<Backend>>,
     cache: web::Data<Cache>,
-    mb_client: web::Data<Arc<MusicbrainzClient>>,
+    matcher: web::Data<Arc<MatchingClient>>,
     events: web::Data<Arc<Events>>,
     query: web::Query<SubmitQuery>,
     mut payload: web::Payload,
@@ -279,10 +279,12 @@ pub async fn handle_submit_listens(
                     .and_then(|info| info.duration_ms())
                     .unwrap_or(0) as u64;
 
-                let recording_mb_id = meta
-                    .additional_info
-                    .as_ref()
-                    .and_then(|i| i.musicbrainz_track_id.as_deref());
+                let recording_mb_id = meta.additional_info.as_ref().and_then(|i| {
+                    i.extra
+                        .get("recording_mbid")
+                        .and_then(serde_json::Value::as_str)
+                        .or(i.musicbrainz_track_id.as_deref())
+                });
 
                 let track = serde_json::json!({
                     "name": meta.track_name,
@@ -317,8 +319,8 @@ pub async fn handle_submit_listens(
         .then(|| submitted_msid(&listens))
         .flatten();
 
-    let mb_client = mb_client.get_ref();
-    let mut response = submit_listens(listens, cache.get_ref(), data.get_ref(), mb_client, &token)
+    let matcher = matcher.get_ref();
+    let mut response = submit_listens(listens, cache.get_ref(), data.get_ref(), matcher, &token)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
     response.recording_msid = msid;

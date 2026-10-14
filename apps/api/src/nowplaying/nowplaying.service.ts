@@ -11,9 +11,6 @@ import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
-import { decrypt } from "lib/crypto";
-import { enrichWithDeezer } from "lib/deezer";
-import { env } from "lib/env";
 import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
 import { ownsRecord, putRecordOnce } from "lib/recordOwnership";
 import {
@@ -23,6 +20,7 @@ import {
 } from "lib/scrobbleGuard";
 import { invalidateStats } from "lib/statsCache";
 import { reserveScrobble } from "lib/scrobbleDedup";
+import { matchTrack, matchingRequest, candidateMetadata } from "lib/matching";
 import type { MusicbrainzTrack, Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
 import albums from "../schema/albums";
@@ -30,19 +28,10 @@ import artistAlbums from "../schema/artist-albums";
 import artistTracks from "../schema/artist-tracks";
 import artists from "../schema/artists";
 import scrobbles from "../schema/scrobbles";
-import spotifyAccounts from "../schema/spotify-accounts";
-import spotifyApps from "../schema/spotify-apps";
-import spotifyTokens from "../schema/spotify-tokens";
 import tracks from "../schema/tracks";
 
-/**
- * Build the WHERE clause used to look up an existing `tracks` row for an
- * incoming scrobble. We hash by lowercase("title - artist - album"), but
- * cosmetic title variations between sources (Spotify "Song (Remastered)" vs
- * Last.fm "Song") miss the hash even though the recording is the same. When
- * the source supplied an MBID or ISRC we OR-in `mb_id = $mbid` / `isrc = $isrc`
- * so the recording-level identity wins.
- */
+// Persistence deduplication uses the exact submitted identity. Recording IDs alone
+// must never reuse a row from another title, artist, or album.
 export function trackLookupWhere(t: {
   title?: string;
   artist?: string;
@@ -53,41 +42,10 @@ export function trackLookupWhere(t: {
   const sha = createHash("sha256")
     .update(`${t.title} - ${t.artist} - ${t.album}`.toLowerCase())
     .digest("hex");
-  const mbId = t.mbId?.trim();
-  const isrc = t.isrc?.trim();
-  const clauses = [eq(tracks.sha256, sha)];
-  if (mbId) clauses.push(eq(tracks.mbId, mbId));
-  if (isrc) clauses.push(eq(tracks.isrc, isrc));
-  return clauses.length > 1 ? or(...clauses) : clauses[0];
+  return eq(tracks.sha256, sha);
 }
-
-/**
- * Companion to `trackLookupWhere`. The same ISRC/MBID can map to multiple
- * `tracks` rows when one recording appears on several albums (e.g. a single
- * + a compilation soundtrack), so a bare `OR ... LIMIT 1` returns a
- * non-deterministic row and can silently cross albums (see Dua Lipa's
- * "End Of An Era" on "Radical Optimism" vs. the "Devil Wears Prada 2"
- * soundtrack). We rank: exact title+artist+album SHA > MBID > ISRC so the
- * most specific identity always wins.
- */
-export function trackLookupOrder(t: {
-  title?: string;
-  artist?: string;
-  album?: string;
-  mbId?: string | null;
-  isrc?: string | null;
-}) {
-  const sha = createHash("sha256")
-    .update(`${t.title} - ${t.artist} - ${t.album}`.toLowerCase())
-    .digest("hex");
-  const mbId = t.mbId?.trim() || null;
-  const isrc = t.isrc?.trim() || null;
-  return sql`CASE
-    WHEN ${tracks.sha256} = ${sha} THEN 0
-    WHEN ${mbId}::text IS NOT NULL AND ${tracks.mbId} = ${mbId} THEN 1
-    WHEN ${isrc}::text IS NOT NULL AND ${tracks.isrc} = ${isrc} THEN 2
-    ELSE 3
-  END`;
+export function trackLookupOrder(_t: unknown) {
+  return tracks.id;
 }
 
 import userAlbums from "../schema/user-albums";
@@ -594,86 +552,6 @@ export async function publishScrobble(ctx: Context, id: string) {
   );
 }
 
-// A missing duration is not worth holding a request open for: give up quickly
-// and let the scrobble go through without it.
-const SPOTIFY_LOOKUP_TIMEOUT_MS = 5000;
-
-async function fetchSpotifyDuration(
-  ctx: Context,
-  title: string,
-  artist: string,
-): Promise<number | null> {
-  try {
-    const tokenRows = await ctx.db
-      .select({
-        token: spotifyTokens,
-        app: spotifyApps,
-        account: spotifyAccounts,
-      })
-      .from(spotifyTokens)
-      .leftJoin(
-        spotifyApps,
-        eq(spotifyApps.spotifyAppId, spotifyTokens.spotifyAppId),
-      )
-      .leftJoin(
-        spotifyAccounts,
-        eq(spotifyAccounts.userId, spotifyTokens.userId),
-      )
-      .where(eq(spotifyAccounts.isBetaUser, true))
-      .limit(500)
-      .execute();
-
-    if (!tokenRows.length) return null;
-
-    const row = tokenRows[Math.floor(Math.random() * tokenRows.length)];
-    if (!row.token || !row.app) return null;
-
-    const refreshToken = decrypt(
-      row.token.refreshToken,
-      env.SPOTIFY_ENCRYPTION_KEY,
-    );
-    const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-        client_id: row.app.spotifyAppId,
-        client_secret: decrypt(
-          row.app.spotifySecret,
-          env.SPOTIFY_ENCRYPTION_KEY,
-        ),
-      }),
-      signal: AbortSignal.timeout(SPOTIFY_LOOKUP_TIMEOUT_MS),
-    });
-
-    if (!tokenRes.ok) return null;
-
-    const { access_token } = (await tokenRes.json()) as {
-      access_token: string;
-    };
-    const q = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
-    // Without a signal an abandoned request keeps its socket — and its slot in
-    // the Spotify proxy's rate limiter — until Node's 300s socket timeout.
-    const searchRes = await fetch(
-      `${env.SPOTIFY_API_URL}/search?q=${q}&type=track&limit=1`,
-      {
-        headers: { Authorization: `Bearer ${access_token}` },
-        signal: AbortSignal.timeout(SPOTIFY_LOOKUP_TIMEOUT_MS),
-      },
-    );
-
-    if (!searchRes.ok) return null;
-
-    const data = (await searchRes.json()) as {
-      tracks?: { items?: { duration_ms?: number }[] };
-    };
-    return data.tracks?.items?.[0]?.duration_ms ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export type ImportCache = {
   artistOps: Map<string, Promise<string | null>>;
   albumOps: Map<string, Promise<string | null>>;
@@ -801,100 +679,53 @@ export async function scrobbleTrack(
     .limit(1)
     .then((rows) => rows[0]);
 
-  let mbTrack;
+  // Enrich only from the service's selected candidate. Unmatched or ambiguous
+  // submissions keep their original metadata; transport failures are observable
+  // but must not lose a user's independently supplied scrobble.
+  let mbTrack: MusicbrainzTrack | undefined;
+  let validatedCatalogId: string | undefined;
   try {
-    const { data } = await ctx.musicbrainz.post<MusicbrainzTrack>("/hydrate", {
-      artist: track.artist
-        .replaceAll(";", ",")
-        .split(",")
-        .map((a) => ({ name: a.trim() })),
-      name: track.title,
-      album: track.album,
-    });
-    mbTrack = data;
-
-    if (!mbTrack?.trackMBID) {
-      const response = await ctx.musicbrainz.post<MusicbrainzTrack>(
-        "/hydrate",
-        {
-          artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
-          name: track.title,
-        },
-      );
-      mbTrack = response.data;
+    const candidate = await matchTrack(ctx, matchingRequest(track));
+    if (candidate) {
+      if (candidate.source === "catalog") validatedCatalogId = candidate.id;
+      const metadata = candidateMetadata(candidate);
+      track.mbId ??= metadata.mbId;
+      if (!track.artists?.length && candidate.musicbrainzArtists?.length)
+        track.artists = candidate.musicbrainzArtists;
+      track.isrc ??= metadata.isrc;
+      track.albumArt ||= metadata.albumArt;
+      if (!track.duration || track.duration <= 1)
+        track.duration = metadata.duration ?? track.duration;
+      track.trackNumber ||= metadata.trackNumber;
+      track.discNumber ||= metadata.discNumber;
+      track.label ||= metadata.label;
+      track.releaseDate ||= metadata.releaseDate;
+      track.year ||= metadata.year;
+      track.artistPicture ||= metadata.artistPicture;
+      if (!track.genres?.length) track.genres = metadata.genres;
+      track.spotifyLink ||= metadata.spotifyLink;
+      track.deezerLink ||= metadata.deezerLink;
+      if (metadata.mbId)
+        mbTrack = {
+          trackMBID: metadata.mbId,
+          releaseMBID: candidate.identifiers.musicbrainzReleaseId ?? "",
+          name: candidate.title,
+          album: candidate.album ?? track.album,
+          artist: (candidate.musicbrainzArtists ?? []).map((a) => ({
+            id: a.mbid,
+            mbid: a.mbid,
+            name: a.name,
+          })),
+          timestamp: "",
+        };
     }
-
-    track.mbId = mbTrack?.trackMBID;
-    track.artists = mbTrack?.artist?.map((artist) => ({
-      mbid: artist.mbid,
-      name: artist.name,
-    }));
   } catch (error) {
-    consola.error("Error fetching MusicBrainz data");
-  }
-
-  // Fill duration from DB or Spotify when the source (Last.fm CSV, Spotify basic JSON) didn't provide one
-  if (!track.duration || track.duration <= 0) {
-    if (existingTrack?.duration > 0) {
-      track.duration = existingTrack.duration;
-    } else {
-      const spotifyDuration = await fetchSpotifyDuration(
-        ctx,
-        track.title,
-        track.artist,
-      );
-      if (spotifyDuration && spotifyDuration > 0)
-        track.duration = spotifyDuration;
-    }
-    if (!track.duration || track.duration <= 0) track.duration = 1;
-  }
-
-  // Deezer fallback: when MusicBrainz/Spotify/the DB left metadata missing,
-  // fill every field Deezer can provide (album art, ISRC, genres, label,
-  // release date/year, track/disc number, artist picture, deezer link). This is
-  // the same fallback matchSong uses, so the live scrobble path no longer ends
-  // up with incomplete metadata when the other providers fail.
-  const needsDeezer =
-    !track.albumArt ||
-    !track.isrc ||
-    !track.genres?.length ||
-    !track.label ||
-    !track.releaseDate ||
-    !track.year ||
-    !track.trackNumber ||
-    !track.artistPicture ||
-    !track.deezerLink;
-  if (needsDeezer) {
-    const deezer = await enrichWithDeezer(
-      ctx,
-      track.title,
-      track.artist,
-      track.album,
+    consola.warn(
+      "Matching unavailable; preserving submitted scrobble metadata",
+      error instanceof Error ? error.message : error,
     );
-    const d = deezer?.track;
-    if (d) {
-      if (!track.albumArt && d.albumArt) track.albumArt = d.albumArt;
-      if (!track.isrc && d.isrc) track.isrc = d.isrc;
-      if ((!track.duration || track.duration <= 1) && d.durationMs > 0)
-        track.duration = d.durationMs;
-      if (!track.trackNumber && d.trackNumber)
-        track.trackNumber = d.trackNumber;
-      if (!track.discNumber && d.discNumber) track.discNumber = d.discNumber;
-      if (!track.label && d.label) track.label = d.label;
-      if (!track.releaseDate && d.releaseDate)
-        track.releaseDate = new Date(d.releaseDate);
-      if (!track.year && d.year) track.year = d.year;
-      if (!track.artistPicture && d.artistPicture)
-        track.artistPicture = d.artistPicture;
-      if (!track.genres?.length && d.genres?.length) track.genres = d.genres;
-      if (!track.deezerLink && d.deezerLink) track.deezerLink = d.deezerLink;
-    }
   }
-
-  // Prefer the DB's album art over a null/missing client value so the
-  // lexicon record (and the Discord embed downstream) doesn't end up with
-  // the Last.fm placeholder when we already know the real art.
-  if (existingTrack && !track.albumArt) track.albumArt = existingTrack.albumArt;
+  if (!track.duration || track.duration <= 0) track.duration = 1;
 
   const songSha = createHash("sha256")
     .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
@@ -1113,9 +944,9 @@ export async function scrobbleTrack(
     tealfm.publishPlayingNow(agent, mbTrack, Math.floor(track.duration / 1000));
   }
 
-  // Enrich track with metadata from the DB that the client may not have sent
-  // (e.g. web upload player only sends title/artist/album/duration/albumArt)
-  if (existingTrack) {
+  // Persistence lookups are not matching decisions. Only enrich from a catalog
+  // row that the centralized service explicitly selected for this request.
+  if (existingTrack && existingTrack.id === validatedCatalogId) {
     if (track.trackNumber == null)
       track.trackNumber = existingTrack.trackNumber;
     if (track.discNumber == null) track.discNumber = existingTrack.discNumber;

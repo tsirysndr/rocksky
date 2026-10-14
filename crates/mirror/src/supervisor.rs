@@ -18,10 +18,7 @@ use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
-use crate::{
-    creds::CredentialPool, db, enrich::Enricher, lastfm, listenbrainz, tealfm, Provider,
-    MIRROR_NATS_TOPIC,
-};
+use crate::{db, enrich::Enricher, lastfm, listenbrainz, tealfm, Provider, MIRROR_NATS_TOPIC};
 
 type TaskMap = Arc<RwLock<HashMap<(Provider, String), CancellationToken>>>;
 
@@ -35,11 +32,8 @@ pub async fn run() -> Result<(), Error> {
     let tasks: TaskMap = Arc::new(RwLock::new(HashMap::new()));
     let tealfm_enabled: tealfm::EnabledDids = Arc::new(RwLock::new(HashSet::new()));
 
-    // Credential rotation pool for Spotify + Last.fm enrichment APIs.
-    let creds = CredentialPool::new();
-    creds.refresh(&pool).await;
-    creds.spawn_refresher(pool.clone());
-    let enricher = Enricher::new(creds);
+    // One reusable client; provider credentials are owned by the matching service.
+    let enricher = Enricher::new()?;
 
     // Initial reconcile: bring all currently enabled (provider, user_id) rows
     // into a running state.

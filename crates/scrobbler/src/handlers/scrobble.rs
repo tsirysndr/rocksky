@@ -1,19 +1,20 @@
 use actix_web::HttpResponse;
 use anyhow::Error;
 use rocksky_db::Backend;
+use rocksky_matching::client::MatchingClient;
 use serde_json::json;
 use std::collections::BTreeMap;
 
 use crate::{
-    auth::authenticate, cache::Cache, musicbrainz::client::MusicbrainzClient,
-    params::validate_scrobble_params, response::build_response, scrobbler::scrobble,
+    auth::authenticate, cache::Cache, params::validate_scrobble_params, response::build_response,
+    scrobbler::scrobble,
 };
 
 pub async fn handle_scrobble(
     form: BTreeMap<String, String>,
     conn: &Backend,
     cache: &Cache,
-    mb_client: &MusicbrainzClient,
+    matcher: &MatchingClient,
 ) -> Result<HttpResponse, Error> {
     let params = match validate_scrobble_params(&form, &["api_key", "api_sig", "sk", "method"]) {
         Ok(params) => params,
@@ -32,7 +33,7 @@ pub async fn handle_scrobble(
         })));
     }
 
-    match scrobble(&conn, cache, mb_client, &form).await {
+    match scrobble(&conn, cache, matcher, &form).await {
         Ok(scrobbles) => Ok(HttpResponse::Ok().json(build_response(scrobbles))),
         Err(e) => {
             if e.to_string().contains("Timestamp") {

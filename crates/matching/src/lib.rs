@@ -87,6 +87,12 @@ impl Identifiers {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MusicbrainzArtist {
+    pub mbid: String,
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Candidate {
@@ -105,6 +111,17 @@ pub struct Candidate {
     pub country: Option<String>,
     pub album_art: Option<String>,
     pub version: Option<String>,
+    pub track_number: Option<u32>,
+    pub disc_number: Option<u32>,
+    pub label: Option<String>,
+    pub genres: Option<Vec<String>>,
+    pub artist_picture: Option<String>,
+    pub musicbrainz_artists: Option<Vec<MusicbrainzArtist>>,
+    pub spotify_link: Option<String>,
+    #[serde(skip)]
+    pub provider_album_id: Option<String>,
+    #[serde(skip)]
+    pub provider_artist_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -309,9 +326,7 @@ pub fn resolve(
         }
 
         if !artists.is_subset(&artist_set(&candidate.artists))
-            && !(request.artists.len() > 1
-                && candidate.artists.len() == 1
-                && normalize(&request.artists.join(", ")) == normalize(&candidate.artists[0]))
+            && normalize(&request.artists.join(", ")) != normalize(&candidate.artists.join(", "))
         {
             reasons.push("artist_mismatch".into());
         }

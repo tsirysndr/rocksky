@@ -174,3 +174,44 @@ async fn rust_client_calls_service_and_provider_end_to_end() {
     handle.stop(true).await;
     upstream_handle.stop(true).await;
 }
+
+#[actix_web::test]
+async fn selected_deezer_candidate_keeps_full_metadata_over_duplicate_search_hit() {
+    let (p, h, _) = provider(ProviderKind::Deezer, json!({
+        "matches": [{"id": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller"}],
+        "track": {"deezerTrackId": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller",
+            "trackNumber": 5, "discNumber": 1, "label": "Epic", "genres": ["Pop"], "releaseDate": "1982-11-30"}
+    }), 200).await;
+    let c = resolve(&request(), p.candidates(&request()).await.unwrap())
+        .unwrap()
+        .track
+        .unwrap();
+    assert_eq!(c.track_number, Some(5));
+    assert_eq!(c.disc_number, Some(1));
+    assert_eq!(c.label.as_deref(), Some("Epic"));
+    assert_eq!(c.genres, Some(vec!["Pop".into()]));
+    h.stop(true).await;
+}
+
+#[actix_web::test]
+async fn optional_spotify_enrichment_uses_selected_ids_not_search() {
+    let (p, h, paths) = provider(
+        ProviderKind::Spotify,
+        json!({"id":"album-id","label":"Epic"}),
+        200,
+    )
+    .await;
+    let mut c = rocksky_matching::Candidate {
+        source: "spotify".into(),
+        id: "track-id".into(),
+        title: "Beat It".into(),
+        provider_album_id: Some("album-id".into()),
+        ..Default::default()
+    };
+    p.enrich(&mut c).await;
+    assert_eq!(c.label.as_deref(), Some("Epic"));
+    assert_eq!(c.id, "track-id");
+    assert_eq!(c.title, "Beat It");
+    assert_eq!(*paths.lock().unwrap(), ["/albums/album-id"]);
+    h.stop(true).await;
+}

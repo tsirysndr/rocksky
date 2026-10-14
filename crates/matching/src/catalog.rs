@@ -16,7 +16,7 @@ impl Provider for Catalog {
             // Retrieval is deliberately broad across artists and albums. The
             // shared Rust policy validates every row, including identifier hits.
             // SQL lower() is a retrieval optimization, not the matching rule.
-            let mut query=self.db.sql("SELECT t.xata_id, t.title, t.artist, COALESCE(a.title,t.album), t.album_artist, CAST(t.duration AS BIGINT), t.mb_id, t.isrc, t.album_art, t.album FROM tracks t LEFT JOIN album_tracks at ON at.track_id=t.xata_id LEFT JOIN albums a ON a.xata_id=at.album_id WHERE LOWER(t.title)=LOWER(");
+            let mut query=self.db.sql("SELECT t.xata_id, t.title, t.artist, COALESCE(a.title,t.album), t.album_artist, CAST(t.duration AS BIGINT), t.mb_id, t.isrc, t.album_art, t.album, CAST(t.track_number AS BIGINT), CAST(t.disc_number AS BIGINT), t.label, t.spotify_link, CAST(a.release_date AS TEXT), t.genre FROM tracks t LEFT JOIN album_tracks at ON at.track_id=t.xata_id LEFT JOIN albums a ON a.xata_id=at.album_id WHERE LOWER(t.title)=LOWER(");
             query.bind(request.title.trim()).push(")");
             if let Some(id) = &request.identifiers.musicbrainz_recording_id {
                 query
@@ -41,6 +41,12 @@ impl Provider for Catalog {
                 Option<String>,
                 Option<String>,
                 String,
+                Option<i64>,
+                Option<i64>,
+                Option<String>,
+                Option<String>,
+                Option<String>,
+                Option<String>,
             );
             let rows: Vec<Row> = self.db.fetch_all(&query).await?;
             anyhow::ensure!(rows.len() <= 500, "catalog candidate limit exceeded");
@@ -58,8 +64,21 @@ impl Provider for Catalog {
                         isrc,
                         art,
                         track_album,
+                        track_number,
+                        disc_number,
+                        label,
+                        spotify_link,
+                        release_date,
+                        genre,
                     )| {
                         Candidate {
+                            track_number: track_number.and_then(|n| n.try_into().ok()),
+                            disc_number: disc_number.and_then(|n| n.try_into().ok()),
+                            label,
+                            spotify_link,
+                            release_date: release_date
+                                .map(|d| d.split('T').next().unwrap_or(&d).to_owned()),
+                            genres: genre.map(|g| g.split(", ").map(str::to_owned).collect()),
                             source: "catalog".into(),
                             id,
                             title,

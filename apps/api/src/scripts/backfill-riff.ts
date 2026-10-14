@@ -1,3 +1,4 @@
+import { matchTrack, matchingRequest } from "lib/matching";
 /**
  * Complete missing catalog metadata from riff — the local Spotify catalog API
  * served out of the Parquet dump (see riff/README.md).
@@ -226,27 +227,19 @@ async function searchOne<T>(
 }
 
 async function findTrack(
-  title: string,
-  artist: string,
-  spotifyLink: string | null,
+  row: {
+    title: string;
+    artist: string;
+    album: string;
+    isrc: string | null;
+    spotifyLink: string | null;
+  },
   s: WalkStats,
 ): Promise<RiffTrack | null> {
-  const id = spotifyIdFromLink(spotifyLink, "track");
-  if (id) {
-    const hit = await memoized(`track:${id}`, () =>
-      riff<RiffTrack>(`/tracks/${id}`, s),
-    );
-    if (hit) return hit;
-  }
-  for (const t of titleVariants(title)) {
-    const hit = await searchOne<RiffTrack>(
-      "track",
-      `track:"${t}" artist:"${primaryArtist(artist)}"`,
-      s,
-    );
-    if (hit) return hit;
-  }
-  return null;
+  const candidate = await matchTrack(ctx, matchingRequest(row));
+  const id = candidate?.identifiers.spotifyTrackId;
+  if (!id) return null;
+  return memoized(`track:${id}`, () => riff<RiffTrack>(`/tracks/${id}`, s));
 }
 
 async function findAlbum(
@@ -328,6 +321,7 @@ function logUpdate(kind: string, color: (s: string) => string, what: string) {
 
 async function fillTrack(row: {
   id: string;
+  album: string;
   title: string;
   artist: string;
   albumArt: string | null;
@@ -338,7 +332,7 @@ async function fillTrack(row: {
   spotifyLink: string | null;
 }): Promise<Outcome> {
   const s = stats.tracks;
-  const hit = await findTrack(row.title, row.artist, row.spotifyLink, s);
+  const hit = await findTrack(row, s);
   if (!hit) return "missed";
 
   const art = bestImage(hit.album?.images);
@@ -522,6 +516,7 @@ async function main() {
             .select({
               id: tables.tracks.id,
               title: tables.tracks.title,
+              album: tables.tracks.album,
               artist: tables.tracks.artist,
               albumArt: tables.tracks.albumArt,
               duration: tables.tracks.duration,

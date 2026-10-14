@@ -50,6 +50,7 @@ export const ctx = {
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
   tracklist: axios.create({ baseURL: env.TRACKLIST }),
+  matching: axios.create({ baseURL: env.MATCHING_URL, timeout: 10_000 }),
   musicbrainz: axios.create({ baseURL: env.MUSICBRAINZ_URL }),
   deezer: axios.create({ baseURL: env.DEEZER_URL }),
   // The service queues for a rate limiter slot before answering, so the

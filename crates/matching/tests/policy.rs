@@ -504,3 +504,25 @@ fn literal_live_in_song_name_does_not_authorize_live_album() {
     c.title = r.title.clone();
     assert_eq!(status(&r, c), Status::Unmatched);
 }
+
+#[test]
+fn joined_input_credit_matches_complete_structured_credits_only() {
+    let mut r = request();
+    r.artists = vec!["C2C, Derek Martin".into()];
+    let mut c = track("credit", None);
+    c.artists = vec!["C2C".into(), "Derek Martin".into()];
+    assert_eq!(status(&r, c.clone()), Status::Matched);
+    c.artists = vec!["C2C".into()];
+    assert_eq!(status(&r, c), Status::Unmatched);
+}
+
+#[test]
+fn literal_comma_band_name_is_not_split_into_substring_matches() {
+    let mut r = request();
+    r.artists = vec!["Earth, Wind & Fire".into()];
+    let mut c = track("band", None);
+    c.artists = vec!["Earth, Wind & Fire".into()];
+    assert_eq!(status(&r, c.clone()), Status::Matched);
+    c.artists = vec!["Earth".into()];
+    assert_eq!(status(&r, c), Status::Unmatched);
+}
