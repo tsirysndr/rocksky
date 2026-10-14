@@ -66,6 +66,10 @@ name = "http"
 path = "tests/http.rs"
 
 [[test]]
+name = "gapless"
+path = "tests/gapless.rs"
+
+[[test]]
 name = "player"
 path = "tests/player.rs"
 

@@ -38,6 +38,8 @@ pub mod adaptive;
 mod crossfade;
 pub mod m3u;
 pub mod output;
+#[cfg(feature = "http")]
+mod prefetch;
 mod resume;
 pub mod source;
 
@@ -1616,6 +1618,8 @@ struct EngineConfig {
 }
 
 struct Engine {
+    #[cfg(feature = "http")]
+    prefetch: prefetch::Prefetch,
     shared: Arc<Shared>,
     rx: Receiver<Command>,
     cfg: EngineConfig,
@@ -1700,6 +1704,8 @@ impl Engine {
         let dsp_state = cfg.dsp.clone();
         let (shuffle, repeat) = (cfg.shuffle, cfg.repeat);
         Engine {
+            #[cfg(feature = "http")]
+            prefetch: prefetch::Prefetch::default(),
             shared,
             rx,
             cfg,
@@ -1808,6 +1814,7 @@ impl Engine {
             }
 
             self.set_state(ST_PLAYING);
+            self.prefetch_next();
             self.decode_step();
 
             // Publish live-radio (ICY) StreamTitle changes to status().
@@ -1984,6 +1991,7 @@ impl Engine {
                 if !self.playing || self.decoder.is_none() {
                     return; // stopped / seeked / skipped — drop stale audio
                 }
+                self.prefetch_next();
                 let len = self.shared.ring.lock().unwrap().len();
                 if len < cap {
                     break;
@@ -2353,6 +2361,15 @@ impl Engine {
 
     // ---- queue / decoder helpers ----------------------------------------
 
+    fn prefetch_next(&mut self) {
+        #[cfg(feature = "http")]
+        {
+            let next = self.next_index(true).and_then(|i| self.queue.get(i));
+            let url = next.map(|path| path.to_string_lossy());
+            self.prefetch.update(url.as_deref());
+        }
+    }
+
     fn open_current(&mut self) -> bool {
         let Some(path) = self.queue.get(self.index).cloned() else {
             return false;
@@ -2386,7 +2403,13 @@ impl Engine {
     fn open_remote(&mut self, url: &str) -> Option<bool> {
         #[cfg(feature = "http")]
         {
-            match source::open_remote(url) {
+            let remote = self
+                .prefetch
+                .take(url)
+                .map(source::Remote::File)
+                .map(Ok)
+                .unwrap_or_else(|| source::open_remote(url));
+            match remote {
                 Ok(source::Remote::File(src)) => {
                     self.current_source = None;
                     match src.open_decoder() {

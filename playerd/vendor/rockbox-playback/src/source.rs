@@ -64,6 +64,8 @@ impl MediaSource for FileSource {
 // ---------------------------------------------------------------------------
 
 #[cfg(feature = "http")]
+pub(crate) use http::open_remote_for_prefetch;
+#[cfg(feature = "http")]
 pub use http::{open_remote, HttpSource, HttpStream, IcyInfo, Remote};
 
 #[cfg(feature = "http")]
@@ -652,6 +654,20 @@ mod http {
     /// probe response body *is* the stream, so no second request is made.
     pub fn open_remote(url: &str) -> io::Result<Remote> {
         let client = build_client()?;
+        open_remote_with_client(url, client)
+    }
+
+    pub(crate) fn open_remote_for_prefetch(url: &str) -> io::Result<Remote> {
+        let client = reqwest::blocking::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .timeout(std::time::Duration::from_secs(30))
+            .user_agent(concat!("rockbox-playback/", env!("CARGO_PKG_VERSION")))
+            .build()
+            .map_err(to_io)?;
+        open_remote_with_client(url, client)
+    }
+
+    fn open_remote_with_client(url: &str, client: reqwest::blocking::Client) -> io::Result<Remote> {
         let mut url = url.to_string();
         for _ in 0..4 {
             let p = probe(&client, &url)?;
