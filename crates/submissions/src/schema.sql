@@ -28,3 +28,10 @@ CREATE TABLE IF NOT EXISTS rocksky_durable_cursors (
     source TEXT PRIMARY KEY,
     cursor_value BIGINT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_dashboard_recent
+    ON rocksky_durable_jobs (created_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_dashboard_completed
+    ON rocksky_durable_jobs (updated_at, kind) WHERE status='completed';
+CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_dashboard_active
+    ON rocksky_durable_jobs (status, kind, created_at) WHERE status<>'completed';

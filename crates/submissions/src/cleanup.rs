@@ -4,7 +4,7 @@ use anyhow::{ensure, Context, Result};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct CleanupSettings {
     pub enabled: bool,
     pub completed_retention_seconds: i64,

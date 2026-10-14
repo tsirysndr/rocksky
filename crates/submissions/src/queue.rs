@@ -7,9 +7,11 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct Queue {
-    pool: AnyPool,
-    postgres: bool,
+    pub(crate) pool: AnyPool,
+    pub(crate) postgres: bool,
     wake: std::sync::Arc<tokio::sync::Notify>,
+    pub(crate) dashboard_completed_cache: std::sync::Arc<crate::dashboard::CompletedCache>,
+    pub(crate) dashboard_cache: std::sync::Arc<crate::dashboard::Cache>,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
@@ -31,6 +33,9 @@ pub struct Job {
     pub updated_at: i64,
     pub compacted_at: i64,
 }
+
+// Explicit projections keep prepared result types stable during additive migrations.
+const JOB_COLUMNS: &str = "id,kind,request_hash,payload,status,attempts,available_at,lease_until,lease_token,last_error,created_at,updated_at,compacted_at";
 
 /// One source delivery; its cursor advances only with the durable inbox write.
 #[derive(Clone, Debug)]
@@ -110,6 +115,8 @@ impl Queue {
         let queue = Self {
             pool,
             postgres,
+            dashboard_cache: Default::default(),
+            dashboard_completed_cache: Default::default(),
             wake: std::sync::Arc::new(tokio::sync::Notify::new()),
         };
         let mut tx = queue
@@ -182,7 +189,7 @@ impl Queue {
         } else {
             ""
         };
-        let jobs: Vec<Job> = sqlx::query_as(&format!("SELECT * FROM rocksky_durable_jobs WHERE status='completed' AND compacted_at=0 AND updated_at<=$1 ORDER BY updated_at,id LIMIT $2{lock}"))
+        let jobs: Vec<Job> = sqlx::query_as(&format!("SELECT {JOB_COLUMNS} FROM rocksky_durable_jobs WHERE status='completed' AND compacted_at=0 AND updated_at<=$1 ORDER BY updated_at,id LIMIT $2{lock}"))
             .bind(now - settings.completed_retention_seconds).bind(settings.batch_size).fetch_all(&mut *tx).await?;
         let mut compacted_payloads = Vec::with_capacity(jobs.len());
         for job in &jobs {
@@ -247,7 +254,7 @@ impl Queue {
         Self::connect(&url).await
     }
 
-    fn now(&self) -> &'static str {
+    pub(crate) fn now(&self) -> &'static str {
         if self.postgres {
             "CAST(FLOOR(EXTRACT(EPOCH FROM clock_timestamp())) AS BIGINT)"
         } else {
@@ -266,7 +273,7 @@ impl Queue {
     ) -> Result<Job> {
         let id = digest(&serde_json::to_string(&(kind, key))?);
         let now = self.now();
-        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',{now},{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING *");
+        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',{now},{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING {JOB_COLUMNS}");
         let job: Job = sqlx::query_as(&sql)
             .bind(&id)
             .bind(kind)
@@ -282,12 +289,12 @@ impl Queue {
     }
 
     pub async fn get(&self, id: &str) -> Result<Option<Job>> {
-        Ok(
-            sqlx::query_as("SELECT * FROM rocksky_durable_jobs WHERE id=$1")
-                .bind(id)
-                .fetch_optional(&self.pool)
-                .await?,
-        )
+        Ok(sqlx::query_as(&format!(
+            "SELECT {JOB_COLUMNS} FROM rocksky_durable_jobs WHERE id=$1"
+        ))
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?)
     }
 
     /// Commit an upstream event and its source-specific receive cursor together.
@@ -426,7 +433,7 @@ impl Queue {
         } else {
             ""
         };
-        let claim = format!("UPDATE rocksky_durable_jobs SET status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1 AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING *");
+        let claim = format!("UPDATE rocksky_durable_jobs SET status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1 AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING {JOB_COLUMNS}");
         let sql = if self.postgres {
             format!("WITH exhausted AS ({exhausted} RETURNING id) {claim}")
         } else {

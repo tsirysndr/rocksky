@@ -13,6 +13,7 @@ sqlite = ["sqlx/sqlite"]
 [dependencies]
 anyhow = "1"
 actix-web = "4.11"
+actix-cors = "0.7.2"
 dotenv = "0.15"
 futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }

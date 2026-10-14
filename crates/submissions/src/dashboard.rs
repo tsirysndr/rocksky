@@ -1,0 +1,284 @@
+//! Authenticated operational views. Never return payloads, checkpoint results, or credentials.
+use crate::{
+    cleanup::CleanupSettings,
+    service::{authorized, Service},
+    Queue,
+};
+use actix_web::{web, HttpRequest, HttpResponse};
+use serde::{Deserialize, Serialize};
+use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
+
+include!(concat!(env!("OUT_DIR"), "/dashboard_assets.rs"));
+
+pub(crate) type CompletedCache = Mutex<Option<(Instant, Vec<Count>)>>;
+pub(crate) type Cache = Mutex<Option<(Instant, Overview)>>;
+
+#[derive(Clone, Serialize, sqlx::FromRow)]
+pub struct Count {
+    pub kind: String,
+    pub status: String,
+    pub count: i64,
+    pub oldest_created_at: i64,
+}
+#[derive(Clone, Serialize, sqlx::FromRow)]
+pub struct Cursor {
+    pub source: String,
+    pub cursor_value: i64,
+}
+#[derive(Clone, Serialize, sqlx::FromRow)]
+pub struct Bucket {
+    pub minute: i64,
+    pub kind: String,
+    pub count: i64,
+}
+#[derive(Clone, Serialize)]
+pub struct Overview {
+    pub as_of: i64,
+    pub backend: &'static str,
+    pub counts: Vec<Count>,
+    pub cursors: Vec<Cursor>,
+    pub completions: Vec<Bucket>,
+    pub cleanup: CleanupSettings,
+}
+
+#[derive(Default, Deserialize)]
+pub struct JobFilter {
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub id: String,
+    pub before: Option<String>,
+    pub limit: Option<i64>,
+}
+#[derive(Serialize, sqlx::FromRow)]
+pub struct JobSummary {
+    pub id: String,
+    pub kind: String,
+    pub status: String,
+    pub attempts: i64,
+    pub available_at: i64,
+    pub lease_until: i64,
+    pub last_error: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub compacted_at: i64,
+}
+#[derive(Serialize)]
+pub struct JobPage {
+    pub jobs: Vec<JobSummary>,
+    pub next: Option<String>,
+}
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Step {
+    pub name: String,
+    pub completed_at: i64,
+}
+const COLUMNS: &str = "id,kind,status,attempts,available_at,lease_until,last_error,created_at,updated_at,compacted_at";
+
+impl JobFilter {
+    fn validate(&self) -> anyhow::Result<(i64, i64, String)> {
+        anyhow::ensure!(
+            ["", "pending", "processing", "completed", "failed"].contains(&self.status.as_str()),
+            "invalid status"
+        );
+        anyhow::ensure!(self.kind.len() <= 128, "kind too long");
+        anyhow::ensure!(
+            self.id.is_empty() || valid_id(&self.id),
+            "enter a full 64-character job ID"
+        );
+        let limit = self.limit.unwrap_or(50);
+        anyhow::ensure!((1..=100).contains(&limit), "limit must be 1..100");
+        let (timestamp, id) = match &self.before {
+            None => (i64::MAX, String::new()),
+            Some(value) => {
+                let (time, id) = value
+                    .split_once(':')
+                    .ok_or_else(|| anyhow::anyhow!("invalid cursor"))?;
+                let time: i64 = time.parse()?;
+                anyhow::ensure!(time >= 0 && valid_id(id), "invalid cursor");
+                (time, id.to_owned())
+            }
+        };
+        Ok((limit, timestamp, id))
+    }
+}
+fn valid_id(id: &str) -> bool {
+    id.len() == 64 && id.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+impl Queue {
+    pub async fn dashboard_overview(&self) -> anyhow::Result<Overview> {
+        // Shared by all Actix workers: one live snapshot per five seconds regardless of viewer count.
+        let mut cache = self.dashboard_cache.lock().await;
+        if let Some((at, value)) = cache.as_ref() {
+            if at.elapsed() < Duration::from_secs(5) {
+                return Ok(value.clone());
+            }
+        }
+        let as_of: i64 = sqlx::query_scalar(&format!("SELECT {}", self.now()))
+            .fetch_one(&self.pool)
+            .await?;
+        let mut counts = sqlx::query_as::<_, Count>("SELECT kind,status,count(*) AS count,min(created_at) AS oldest_created_at FROM rocksky_durable_jobs WHERE status<>'completed' GROUP BY kind,status").fetch_all(&self.pool).await?;
+        let mut completed = self.dashboard_completed_cache.lock().await;
+        if completed
+            .as_ref()
+            .is_none_or(|(at, _)| at.elapsed() >= Duration::from_secs(60))
+        {
+            let totals = sqlx::query_as::<_, Count>("SELECT kind,status,count(*) AS count,min(created_at) AS oldest_created_at FROM rocksky_durable_jobs WHERE status='completed' GROUP BY kind,status").fetch_all(&self.pool).await?;
+            *completed = Some((Instant::now(), totals));
+        }
+        counts.extend(completed.as_ref().unwrap().1.clone());
+        drop(completed);
+        let cursors = sqlx::query_as::<_, Cursor>(
+            "SELECT source,cursor_value FROM rocksky_durable_cursors ORDER BY source",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let completions = sqlx::query_as::<_, Bucket>("SELECT CAST(updated_at / 60 AS BIGINT) * 60 AS minute,kind,count(*) AS count FROM rocksky_durable_jobs WHERE status='completed' AND updated_at >= $1 GROUP BY CAST(updated_at / 60 AS BIGINT),kind ORDER BY minute")
+            .bind(as_of - 3600).fetch_all(&self.pool).await?;
+        let value = Overview {
+            as_of,
+            backend: if self.postgres {
+                "PostgreSQL"
+            } else {
+                "SQLite"
+            },
+            counts,
+            cursors,
+            completions,
+            cleanup: CleanupSettings::from_env()?,
+        };
+        *cache = Some((Instant::now(), value.clone()));
+        Ok(value)
+    }
+    pub async fn dashboard_jobs(&self, filter: &JobFilter) -> anyhow::Result<JobPage> {
+        let (limit, before, before_id) = filter.validate()?;
+        let sql = format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE ($1='' OR status=$1) AND ($2='' OR kind=$2) AND ($3='' OR id=$3) AND (created_at < $4 OR (created_at=$4 AND id<$5)) ORDER BY created_at DESC,id DESC LIMIT $6");
+        let mut jobs: Vec<JobSummary> = sqlx::query_as(&sql)
+            .bind(&filter.status)
+            .bind(&filter.kind)
+            .bind(&filter.id)
+            .bind(before)
+            .bind(before_id)
+            .bind(limit + 1)
+            .fetch_all(&self.pool)
+            .await?;
+        let more = jobs.len() > limit as usize;
+        jobs.truncate(limit as usize);
+        let next = if more {
+            jobs.last()
+                .map(|job| format!("{}:{}", job.created_at, job.id))
+        } else {
+            None
+        };
+        Ok(JobPage { jobs, next })
+    }
+}
+
+fn unavailable(error: anyhow::Error) -> HttpResponse {
+    tracing::warn!(%error, "dashboard query failed");
+    HttpResponse::ServiceUnavailable()
+        .insert_header(("Cache-Control", "no-store"))
+        .json(serde_json::json!({"error":"Queue data is temporarily unavailable"}))
+}
+async fn overview(state: web::Data<Service>, req: HttpRequest) -> HttpResponse {
+    if !authorized(&req, &state.secret) {
+        return HttpResponse::Unauthorized().finish();
+    }
+    match state.queue.dashboard_overview().await {
+        Ok(data) => HttpResponse::Ok()
+            .insert_header(("Cache-Control", "no-store"))
+            .json(data),
+        Err(error) => unavailable(error),
+    }
+}
+async fn jobs(
+    state: web::Data<Service>,
+    req: HttpRequest,
+    filter: web::Query<JobFilter>,
+) -> HttpResponse {
+    if !authorized(&req, &state.secret) {
+        return HttpResponse::Unauthorized().finish();
+    }
+    if let Err(error) = filter.validate() {
+        return HttpResponse::BadRequest().json(serde_json::json!({"error":error.to_string()}));
+    }
+    match state.queue.dashboard_jobs(&filter).await {
+        Ok(data) => HttpResponse::Ok()
+            .insert_header(("Cache-Control", "no-store"))
+            .json(data),
+        Err(error) => unavailable(error),
+    }
+}
+async fn detail(
+    state: web::Data<Service>,
+    req: HttpRequest,
+    id: web::Path<String>,
+) -> HttpResponse {
+    if !authorized(&req, &state.secret) {
+        return HttpResponse::Unauthorized().finish();
+    }
+    if !valid_id(&id) {
+        return HttpResponse::BadRequest().finish();
+    }
+    let result = async {
+        let job: Option<JobSummary> = sqlx::query_as(&format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE id=$1")).bind(id.as_str()).fetch_optional(&state.queue.pool).await?;
+        let steps: Vec<Step> = sqlx::query_as("SELECT name,completed_at FROM rocksky_durable_steps WHERE job_id=$1 ORDER BY completed_at,name").bind(id.as_str()).fetch_all(&state.queue.pool).await?;
+        Ok::<_, anyhow::Error>((job,steps))
+    }.await;
+    match result {
+        Ok((Some(job), steps)) => HttpResponse::Ok()
+            .insert_header(("Cache-Control", "no-store"))
+            .json(serde_json::json!({"job":job,"steps":steps})),
+        Ok((None, _)) => HttpResponse::NotFound().finish(),
+        Err(error) => unavailable(error),
+    }
+}
+async fn redirect() -> HttpResponse {
+    HttpResponse::TemporaryRedirect()
+        .insert_header(("Location", "/dashboard/"))
+        .finish()
+}
+async fn index() -> HttpResponse {
+    asset_response("index.html")
+}
+async fn asset(path: web::Path<String>) -> HttpResponse {
+    asset_response(&path)
+}
+fn asset_response(path: &str) -> HttpResponse {
+    let Some(bytes) = embedded_asset(path) else {
+        return HttpResponse::NotFound().finish();
+    };
+    let content_type = match path.rsplit('.').next() {
+        Some("html") => "text/html; charset=utf-8",
+        Some("js") => "text/javascript; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("woff2") => "font/woff2",
+        Some("woff") => "font/woff",
+        Some("svg") => "image/svg+xml",
+        Some("txt") => "text/plain; charset=utf-8",
+        _ => "application/octet-stream",
+    };
+    HttpResponse::Ok().content_type(content_type)
+        .insert_header(("Cache-Control", if path == "index.html" { "no-cache" } else { "public, max-age=31536000, immutable" }))
+        .insert_header(("X-Content-Type-Options", "nosniff"))
+        .insert_header(("Referrer-Policy", "no-referrer"))
+        .insert_header(("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"))
+        .body(bytes)
+}
+pub fn routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/", web::get().to(redirect))
+        .route("/dashboard", web::get().to(redirect))
+        .route("/dashboard/", web::get().to(index))
+        .route("/dashboard/{path:.*}", web::get().to(asset))
+        .route("/v1/dashboard/overview", web::get().to(overview))
+        .route("/v1/dashboard/jobs", web::get().to(jobs))
+        .route("/v1/dashboard/jobs/{id}", web::get().to(detail));
+}
+
+#[cfg(test)]
+mod tests;

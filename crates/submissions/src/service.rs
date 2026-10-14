@@ -56,7 +56,7 @@ pub struct Service {
     pub secret: String,
 }
 
-fn authorized(req: &HttpRequest, secret: &str) -> bool {
+pub(crate) fn authorized(req: &HttpRequest, secret: &str) -> bool {
     req.headers()
         .get("x-rocksky-submissions-secret")
         .and_then(|s| s.to_str().ok())
@@ -177,6 +177,7 @@ async fn retry(state: web::Data<Service>, req: HttpRequest, id: web::Path<String
 pub fn routes(config: &mut web::ServiceConfig) {
     config
         .app_data(web::JsonConfig::default().limit(256 * 1024))
+        .configure(crate::dashboard::routes)
         .route("/v1/submissions", web::post().to(submit))
         .route("/v1/jobs/{id}", web::get().to(status))
         .route("/v1/jobs/{id}/retry", web::post().to(retry));
@@ -234,6 +235,7 @@ pub async fn run() -> Result<()> {
         secret.len() >= 32,
         "SUBMISSIONS_SECRET must contain at least 32 bytes"
     );
+    let cors_origins = crate::cors::origins_from_env()?;
     let cleanup_settings = crate::cleanup::CleanupSettings::from_env()?;
     let queue = Queue::from_env().await?;
     let bind = env::var("SUBMISSIONS_BIND").unwrap_or_else(|_| "127.0.0.1:8098".into());
@@ -266,10 +268,15 @@ pub async fn run() -> Result<()> {
         secret: secret.clone(),
     });
     // Bind first so a failed startup cannot leave invisible workers running.
-    let server = HttpServer::new(move || App::new().app_data(state.clone()).configure(routes))
-        .disable_signals()
-        .bind(bind)?
-        .run();
+    let server = HttpServer::new(move || {
+        App::new()
+            .wrap(crate::cors::middleware(&cors_origins))
+            .app_data(state.clone())
+            .configure(routes)
+    })
+    .disable_signals()
+    .bind(bind)?
+    .run();
     let handle = server.handle();
     let shutdown = CancellationToken::new();
     let cleaner = tokio::spawn(crate::cleanup::run(

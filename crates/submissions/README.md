@@ -254,3 +254,75 @@ This requires `psql` and permission to create a temporary schema. It starts an
 isolated worker and loopback callback, kills the worker during publication,
 verifies recovery and a 503 retry, and checks that completed work is not published
 again after restart or automatic payload cleanup. It removes its schema afterward and never contacts a PDS.
+
+## Embedded operations dashboard
+
+Open `/dashboard/` on the submissions service (the root redirects there). Sign in
+with `SUBMISSIONS_SECRET`. The React/Vite dashboard uses Jotai, TanStack Query,
+Tailwind CSS, daisyUI, Tabler icons, and bundled DM Sans / IBM Plex Mono fonts.
+Dark mode is the default; the theme preference persists locally. The service
+secret lives only in browser memory, never local storage or query keys.
+
+The dashboard includes live status counts, a 60-minute completion chart, source
+cursor age, filtered/keyset-paginated jobs, checkpoint inspection, explicit
+confirmation before retrying failed jobs, and the effective cleanup policy.
+Payloads, request fingerprints, lease tokens, and checkpoint results are excluded.
+Live views poll every 5 seconds while visible, with pause and manual refresh.
+The service shares a 5-second snapshot cache across clients; retained completed
+totals are cached for 60 seconds. Cursor age measures the last captured event,
+not necessarily source backlog. An active process is not proof of progress:
+watch pending age and completed activity together.
+
+The dashboard API requires the same secret header as intake:
+
+- `GET /v1/dashboard/overview`
+- `GET /v1/dashboard/jobs?status=pending&kind=jetstream.commit.v1&limit=25`
+- `GET /v1/dashboard/jobs/{id}`
+
+The list supports an exact `id` and an opaque `before` cursor returned as `next`.
+The maximum page size is 100. Responses are `Cache-Control: no-store`.
+
+### Frontend development and builds
+
+```sh
+cd crates/submissions/dashboard
+bun install --frozen-lockfile
+bun run dev          # localhost:5173; /v1 proxies to localhost:8098
+bun run test
+bun run build
+```
+
+Commit both source and **dashboard/dist**, including fonts and hashed assets.
+`build.rs` embeds every dist file using `include_bytes!`, including in release
+builds. Building or running the Rust binary requires no Node/Bun installation,
+frontend build step, CDN, or asset files beside the executable. CI rebuilds the
+frontend and rejects a stale committed dist. `bun run check:dist` performs that
+check locally after staging/committing the generated assets.
+
+### CORS and reverse proxy
+
+Same-origin hosting (including the Vite development proxy) needs no CORS setting.
+For a separately hosted trusted frontend, set an exact comma-separated allowlist:
+
+```sh
+SUBMISSIONS_CORS_ORIGINS=https://queue.rocksky.app,http://localhost:5173
+```
+
+Origins must use HTTP(S), with no paths, trailing slashes, wildcard hosts, or
+credentials. OPTIONS preflight permits GET/POST and the Content-Type and
+X-Rocksky-Submissions-Secret headers. Cookie credentials are disabled, responses
+vary by Origin, and unlisted origins receive no CORS permission. CORS does not
+replace API authentication. Do not add wildcard CORS headers in the proxy.
+
+Caddy configuration for the production dashboard (service stays on loopback):
+
+```caddyfile
+queue.rocksky.app {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8098
+}
+```
+
+When deploying additive database migrations, restart **all long-lived queue
+clients**, including Jetstream. Job queries use explicit column projections so
+adding a column does not invalidate their PostgreSQL prepared result types.
