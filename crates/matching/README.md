@@ -42,8 +42,8 @@ calls have a 7-second timeout. No provider retry loops extend that budget.
 
 The unit in [`systemd/rocksky-matching.service`](../../systemd/rocksky-matching.service)
 uses the existing deployment directory `/root/github/rocksky`, runs the release
-binary with the `matching` subcommand, restarts on failure, and logs to the
-journal. It listens on
+binary through `doppler run -- ./target/release/rockskyd matching`, restarts on
+failure, and logs to the journal. It listens on
 `127.0.0.1:8096` and uses the local Deezer and MusicBrainz services by default.
 Those providers are ordered before matching when started together, but are not
 required dependencies, so either can restart independently.
@@ -60,8 +60,10 @@ sudo systemctl status rocksky-matching.service
 journalctl -u rocksky-matching.service -f
 ```
 
-Optional overrides and credentials belong in `/etc/default/rocksky-matching`
-(systemd environment-file syntax, without `export`). For example:
+Configure Doppler for the deployment user in `/root/github/rocksky`, as for the
+other Rocksky services. Doppler injects deployment secrets at startup. Optional
+environment defaults belong in `/etc/default/rocksky-matching` (systemd
+environment-file syntax, without `export`). For example:
 
 ```ini
 MATCHING_BIND=127.0.0.1:8096
@@ -69,11 +71,10 @@ DEEZER_URL=http://127.0.0.1:8090
 MUSICBRAINZ_URL=http://127.0.0.1:8088
 ```
 
-Add `DATABASE_URL` to enable catalog lookup. To enable Spotify, supply both
-`SPOTIFY_API_URL` and `SPOTIFY_ACCESS_TOKEN`. Protect this file with mode `0600`
-when it contains credentials. Restart `rocksky-matching.service` after changing
-it. The unit starts `rockskyd matching` directly. Set deployment secrets in that
-file; explicit environment values take precedence over the daemon’s `.env` file.
+Set `DATABASE_URL` in Doppler to enable catalog lookup. To enable Spotify, supply
+both `SPOTIFY_API_URL` and `SPOTIFY_ACCESS_TOKEN`. Restart
+`rocksky-matching.service` after changing its configuration or Doppler secrets.
+The injected environment takes precedence over the daemon’s `.env` file.
 
 ## Contract
 

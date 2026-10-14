@@ -8,14 +8,18 @@ Type=simple
 User=root
 WorkingDirectory=/root/github/rocksky
 # Build from the repository root: cargo build --release -p rockskyd
-ExecStart=/root/github/rocksky/target/release/rockskyd matching
+ExecStart=/bin/bash -ic 'exec doppler run -- ./target/release/rockskyd matching'
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=rocksky-matching
 
-# Provider configuration and optional credentials are scoped to this service.
+# Match the environment used by the other Doppler-managed services.
+Environment=HOME=/root
+Environment=USER=root
+
+# Provider defaults; deployment secrets are injected by Doppler.
 Environment=MATCHING_BIND=127.0.0.1:8096
 Environment=DEEZER_URL=http://127.0.0.1:8090
 Environment=MUSICBRAINZ_URL=http://127.0.0.1:8088
