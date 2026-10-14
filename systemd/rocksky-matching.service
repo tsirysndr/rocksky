@@ -1,0 +1,25 @@
+[Unit]
+Description=Rocksky Track Matching Service
+After=network-online.target rocksky-deezer.service rocksky-mb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+# Build from the repository root: cargo build --release -p rocksky-matching
+ExecStart=/root/github/rocksky/target/release/rocksky-matching
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-matching
+
+# Provider configuration and optional credentials are scoped to this service.
+Environment=MATCHING_BIND=127.0.0.1:8096
+Environment=DEEZER_URL=http://127.0.0.1:8090
+Environment=MUSICBRAINZ_URL=http://127.0.0.1:8088
+EnvironmentFile=-/etc/default/rocksky-matching
+
+[Install]
+WantedBy=multi-user.target
