@@ -26,6 +26,8 @@ jobs:
       rust_sdk: ${{ steps.filter.outputs.rust_sdk }}
       deezer: ${{ steps.filter.outputs.deezer }}
       remote_ws: ${{ steps.filter.outputs.remote_ws }}
+      submissions: ${{ steps.filter.outputs.submissions }}
+      matching: ${{ steps.filter.outputs.matching }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -55,6 +57,18 @@ jobs:
             remote_ws:
               - 'remote-ws/**'
               - '.github/workflows/tests.yml'
+            submissions:
+              - 'crates/submissions/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - '.github/workflows/tests.yml'
+            matching:
+              - 'crates/matching/**'
+              - 'crates/core/**'
+              - 'crates/db/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - '.github/workflows/tests.yml'
 
   api-contracts:
     needs: changes
@@ -68,6 +82,59 @@ jobs:
       - name: Audit XRPC response contracts
         working-directory: apps/api
         run: bun run audit:xrpc
+      - name: Test durable submission and record ownership boundaries
+        working-directory: apps/api
+        run: bun test src/lib/durableSubmission.test.ts src/lib/durableRecord.test.ts src/lib/recordOwnership.test.ts
+
+  submissions:
+    needs: changes
+    if: needs.changes.outputs.submissions == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: submissions_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d submissions_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SUBMISSIONS_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/submissions_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Test default PostgreSQL backend
+        run: cargo test --locked -p rocksky-submissions -- --include-ignored
+      - name: Test SQLite-only backend
+        run: cargo test --locked -p rocksky-submissions --no-default-features --features sqlite
+      - name: Test both backends together
+        run: cargo test --locked -p rocksky-submissions --all-features -- --include-ignored
+      - name: Build standalone worker with default PostgreSQL backend
+        run: cargo build --locked -p rocksky-submissions
+      - name: Test HTTP intake, process crash recovery, and retries
+        run: python3 crates/submissions/tests/http_smoke.py target/debug/rocksky-submissions
+
+  matching:
+    needs: changes
+    if: needs.changes.outputs.matching == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run full matching regression suite
+        run: bash crates/matching/scripts/validate.sh
 
   cli:
     needs: changes

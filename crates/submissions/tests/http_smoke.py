@@ -35,8 +35,7 @@ def main():
 
     def sql(statement):
         result = subprocess.run(
-            ["psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-c", statement],
-            env={**os.environ, "PGDATABASE": database},
+            ["psql", "-X", "-qAt", "--dbname", database, "-v", "ON_ERROR_STOP=1", "-c", statement],
             capture_output=True, text=True, timeout=20,
         )
         # Avoid printing connection strings or credentials from driver errors.
