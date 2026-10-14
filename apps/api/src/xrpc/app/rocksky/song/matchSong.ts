@@ -176,13 +176,15 @@ function candidateMatch(candidate: MatchedCandidate): SongMatchView {
     mbId: ids.musicbrainzRecordingId ?? undefined,
     mbReleaseId: ids.musicbrainzReleaseId ?? undefined,
     mbArtists: candidate.musicbrainzArtists ?? undefined,
+    preview: candidate.preview || undefined,
     link:
-      candidate.source === "deezer"
+      candidate.providerLink ||
+      (candidate.source === "deezer"
         ? metadata.deezerLink
         : candidate.source === "spotify"
           ? metadata.spotifyLink
           : candidate.source === "musicbrainz" && ids.musicbrainzRecordingId
             ? `https://musicbrainz.org/recording/${ids.musicbrainzRecordingId}`
-            : undefined,
+            : undefined),
   };
 }

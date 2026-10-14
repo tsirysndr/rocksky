@@ -178,7 +178,7 @@ async fn rust_client_calls_service_and_provider_end_to_end() {
 #[actix_web::test]
 async fn selected_deezer_candidate_keeps_full_metadata_over_duplicate_search_hit() {
     let (p, h, _) = provider(ProviderKind::Deezer, json!({
-        "matches": [{"id": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller", "score": 0.987, "rank": 765432}],
+        "matches": [{"id": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller", "score": 0.87, "rank": 307167, "link": "https://www.deezer.com/track/1", "preview": "https://cdnt-preview.dzcdn.net/preview.mp3?signature=original"}],
         "track": {"deezerTrackId": 1, "title": "Beat It", "artist": "Michael Jackson", "album": "Thriller",
             "trackNumber": 5, "discNumber": 1, "label": "Epic", "genres": ["Pop"], "releaseDate": "1982-11-30"}
     }), 200).await;
@@ -186,8 +186,16 @@ async fn selected_deezer_candidate_keeps_full_metadata_over_duplicate_search_hit
         .unwrap()
         .track
         .unwrap();
-    assert_eq!(c.provider_score, Some(98.7));
-    assert_eq!(c.provider_rank, Some(765432));
+    assert_eq!(c.provider_score, Some(87.0));
+    assert_eq!(c.provider_rank, Some(307167));
+    assert_eq!(
+        c.provider_link.as_deref(),
+        Some("https://www.deezer.com/track/1")
+    );
+    assert_eq!(
+        c.preview.as_deref(),
+        Some("https://cdnt-preview.dzcdn.net/preview.mp3?signature=original")
+    );
     assert_eq!(c.track_number, Some(5));
     assert_eq!(c.disc_number, Some(1));
     assert_eq!(c.label.as_deref(), Some("Epic"));

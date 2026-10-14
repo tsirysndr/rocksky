@@ -93,6 +93,8 @@ impl HttpProvider {
                         .await?;
                     return Ok(vec![Candidate {
                         provider_rank: track["rank"].as_i64(),
+                        provider_link: string(&track, "link"),
+                        preview: string(&track, "preview"),
                         source: "deezer".into(),
                         id: track["id"].to_string(),
                         title: string(&track, "title").unwrap_or_default(),
@@ -136,6 +138,10 @@ impl HttpProvider {
                     if let Some(search) = candidates.iter().find(|c| c.id == selected.id) {
                         selected.provider_score = selected.provider_score.or(search.provider_score);
                         selected.provider_rank = selected.provider_rank.or(search.provider_rank);
+                        selected.provider_link = selected
+                            .provider_link
+                            .or_else(|| search.provider_link.clone());
+                        selected.preview = selected.preview.or_else(|| search.preview.clone());
                     }
                     candidates.insert(0, selected);
                 }
@@ -337,6 +343,8 @@ struct DeezerResponse {
 struct DeezerMatch {
     score: Option<f64>,
     rank: Option<i64>,
+    link: Option<String>,
+    preview: Option<String>,
     #[serde(default)]
     id: Option<i64>,
     #[serde(default)]
@@ -368,6 +376,8 @@ impl DeezerMatch {
                 .filter(|s| s.is_finite() && (0.0..=1.0).contains(s))
                 .map(|s| s * 100.0),
             provider_rank: self.rank,
+            provider_link: self.link,
+            preview: self.preview,
             album_artist: self.album_artist,
             track_number: self.track_number,
             disc_number: self.disc_number,

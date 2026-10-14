@@ -122,6 +122,8 @@ pub struct Candidate {
     pub provider_score: Option<f64>,
     /// Provider popularity rank (Deezer), not the policy rank vector.
     pub provider_rank: Option<i64>,
+    pub provider_link: Option<String>,
+    pub preview: Option<String>,
     #[serde(skip)]
     pub provider_album_id: Option<String>,
     #[serde(skip)]

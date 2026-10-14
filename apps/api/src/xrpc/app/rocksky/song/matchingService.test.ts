@@ -109,8 +109,10 @@ it("returns Deezer and MusicBrainz candidates without changing the selected iden
     ...candidate,
     source: "deezer",
     id: "12345",
-    providerScore: 98.7,
-    providerRank: 765432,
+    providerScore: 0.87 * 100,
+    providerRank: 307167,
+    providerLink: "https://www.deezer.com/track/12345?provider=original",
+    preview: "https://cdnt-preview.dzcdn.net/preview.mp3?signature=original",
     identifiers: { deezerTrackId: "12345", isrc: params.isrc },
   };
   const mb = {
@@ -134,7 +136,8 @@ it("returns Deezer and MusicBrainz candidates without changing the selected iden
     source: "deezer",
     id: 12345,
     providerId: "12345",
-    link: "https://www.deezer.com/track/12345",
+    link: "https://www.deezer.com/track/12345?provider=original",
+    preview: "https://cdnt-preview.dzcdn.net/preview.mp3?signature=original",
     isrc: params.isrc,
   });
   expect(result.matches?.[2]).toMatchObject({
@@ -145,8 +148,8 @@ it("returns Deezer and MusicBrainz candidates without changing the selected iden
     link: `https://musicbrainz.org/recording/${mbId}`,
   });
   expect(result.matches?.[2].id).toBeUndefined();
-  expect(result.matches?.[1].score).toBe(99);
-  expect(result.matches?.[1].rank).toBe(765432);
+  expect(result.matches?.[1].score).toBe(87);
+  expect(result.matches?.[1].rank).toBe(307167);
   expect(result.matches?.[0].score).toBeUndefined();
   expect(result.mbId).toBeNull();
   expect(result.mbArtists).toBeNull();

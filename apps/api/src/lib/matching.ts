@@ -32,6 +32,8 @@ export const candidateSchema = z.object({
   spotifyLink: z.string().nullish(),
   providerScore: z.number().finite().min(0).max(100).nullish(),
   providerRank: z.number().int().nullish(),
+  providerLink: z.string().nullish(),
+  preview: z.string().nullish(),
 });
 export type MatchedCandidate = z.infer<typeof candidateSchema>;
 export interface MatchingRequest {
