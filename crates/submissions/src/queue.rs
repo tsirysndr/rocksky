@@ -9,6 +9,7 @@ use uuid::Uuid;
 pub struct Queue {
     pool: AnyPool,
     postgres: bool,
+    wake: std::sync::Arc<tokio::sync::Notify>,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
@@ -28,6 +29,15 @@ pub struct Job {
     pub last_error: String,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+/// One source delivery; its cursor advances only with the durable inbox write.
+#[derive(Clone, Debug)]
+pub struct InboxEvent {
+    pub source: String,
+    pub cursor: i64,
+    pub key: String,
+    pub payload: String,
 }
 
 #[derive(Debug)]
@@ -96,7 +106,11 @@ impl Queue {
             .connect_with(options)
             .await
             .context("connect durable queue")?;
-        let queue = Self { pool, postgres };
+        let queue = Self {
+            pool,
+            postgres,
+            wake: std::sync::Arc::new(tokio::sync::Notify::new()),
+        };
         let mut tx = queue.pool.begin().await?;
         if postgres {
             // Serialize startup migrations across replicas.
@@ -139,18 +153,18 @@ impl Queue {
     ) -> Result<Job> {
         let id = digest(&serde_json::to_string(&(kind, key))?);
         let now = self.now();
-        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',{now},{now},{now}) ON CONFLICT (id) DO NOTHING");
-        sqlx::query(&sql)
+        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',{now},{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING *");
+        let job: Job = sqlx::query_as(&sql)
             .bind(&id)
             .bind(kind)
             .bind(request_hash)
             .bind(payload)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await?;
-        let job = self.get(&id).await?.context("enqueued job missing")?;
         if job.request_hash != request_hash {
             return Err(Conflict.into());
         }
+        self.wake.notify_one();
         Ok(job)
     }
 
@@ -173,14 +187,84 @@ impl Queue {
         key: &str,
         payload: &str,
     ) -> Result<()> {
-        let id = digest(&serde_json::to_string(&(kind, key))?);
+        self.ingest_batch(
+            kind,
+            &[InboxEvent {
+                source: source.into(),
+                cursor,
+                key: key.into(),
+                payload: payload.into(),
+            }],
+        )
+        .await
+    }
+
+    /// One network round trip on Postgres, one short transaction on SQLite.
+    /// Jobs and every source cursor commit together, even on duplicate delivery.
+    pub async fn ingest_batch(&self, kind: &str, events: &[InboxEvent]) -> Result<()> {
+        if events.is_empty() {
+            return Ok(());
+        }
+        ensure!(
+            events.len() <= 1000,
+            "inbox batch must contain at most 1000 events"
+        );
+        let mut jobs = std::collections::BTreeMap::new();
+        let mut cursors = std::collections::BTreeMap::new();
+        for event in events {
+            jobs.entry(digest(&serde_json::to_string(&(kind, &event.key))?))
+                .or_insert((digest(&event.payload), &event.payload));
+            cursors
+                .entry(&event.source)
+                .and_modify(|v: &mut i64| *v = (*v).max(event.cursor))
+                .or_insert(event.cursor);
+        }
         let now = self.now();
-        let mut tx = self.pool.begin().await?;
-        sqlx::query(&format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',{now},{now},{now}) ON CONFLICT (id) DO NOTHING"))
-            .bind(id).bind(kind).bind(digest(payload)).bind(payload).execute(&mut *tx).await?;
-        sqlx::query("INSERT INTO rocksky_durable_cursors (source,cursor_value) VALUES ($1,$2) ON CONFLICT (source) DO UPDATE SET cursor_value=CASE WHEN excluded.cursor_value>rocksky_durable_cursors.cursor_value THEN excluded.cursor_value ELSE rocksky_durable_cursors.cursor_value END")
-            .bind(source).bind(cursor).execute(&mut *tx).await?;
-        tx.commit().await?;
+        let values = (0..jobs.len())
+            .map(|n| {
+                let n = 2 + n * 3;
+                format!(
+                    "(${n},$1,${},${},'pending',{now},{now},{now})",
+                    n + 1,
+                    n + 2
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let insert = format!("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,status,available_at,created_at,updated_at) VALUES {values} ON CONFLICT (id) DO NOTHING");
+        let cursor_start = if self.postgres { 2 + jobs.len() * 3 } else { 1 };
+        let cursor_values = (0..cursors.len())
+            .map(|n| format!("(${},${})", cursor_start + n * 2, cursor_start + n * 2 + 1))
+            .collect::<Vec<_>>()
+            .join(",");
+        let upsert = format!("INSERT INTO rocksky_durable_cursors (source,cursor_value) VALUES {cursor_values} ON CONFLICT (source) DO UPDATE SET cursor_value=CASE WHEN excluded.cursor_value>rocksky_durable_cursors.cursor_value THEN excluded.cursor_value ELSE rocksky_durable_cursors.cursor_value END");
+        if self.postgres {
+            // Data-modifying CTEs execute exactly once, including when their
+            // RETURNING rows are unused. Both writes share this statement's commit.
+            let statement = format!("WITH captured AS ({insert} RETURNING id) {upsert}");
+            let mut query = sqlx::query(&statement).bind(kind);
+            for (id, (hash, payload)) in &jobs {
+                query = query.bind(id).bind(hash).bind(*payload);
+            }
+            for (source, cursor) in &cursors {
+                query = query.bind(*source).bind(*cursor);
+            }
+            query.execute(&self.pool).await?;
+        } else {
+            let mut tx = self.pool.begin().await?;
+            let mut query = sqlx::query(&insert).bind(kind);
+            for (id, (hash, payload)) in &jobs {
+                query = query.bind(id).bind(hash).bind(*payload);
+            }
+            query.execute(&mut *tx).await?;
+            let mut query = sqlx::query(&upsert);
+            for (source, cursor) in &cursors {
+                query = query.bind(*source).bind(*cursor);
+            }
+            query.execute(&mut *tx).await?;
+            tx.commit().await?;
+        }
+        self.wake.notify_one();
         Ok(())
     }
 
@@ -193,34 +277,62 @@ impl Queue {
         )
     }
 
+    pub async fn notified(&self) {
+        self.wake.notified().await;
+    }
+
     pub async fn claim(
         &self,
         kind: &str,
         lease_seconds: i64,
         max_attempts: i64,
     ) -> Result<Option<Job>> {
+        Ok(self
+            .claim_batch(kind, lease_seconds, max_attempts, 1)
+            .await?
+            .pop())
+    }
+
+    /// Reserve a bounded group with one round trip instead of serially paying
+    /// remote latency for every available execution slot.
+    pub async fn claim_batch(
+        &self,
+        kind: &str,
+        lease_seconds: i64,
+        max_attempts: i64,
+        limit: i64,
+    ) -> Result<Vec<Job>> {
         ensure!(
-            lease_seconds > 0 && max_attempts > 0,
-            "invalid lease or attempt limit"
+            lease_seconds > 0 && max_attempts > 0 && (1..=256).contains(&limit),
+            "invalid lease, attempt or batch limit"
         );
         let now = self.now();
-        // A crash on the final attempt must become visible, not remain stuck.
-        sqlx::query(&format!("UPDATE rocksky_durable_jobs SET status='failed', last_error='lease expired on final attempt', updated_at={now} WHERE kind=$1 AND status='processing' AND lease_until<={now} AND attempts >= $2"))
-            .bind(kind).bind(max_attempts).execute(&self.pool).await?;
+        let exhausted = format!("UPDATE rocksky_durable_jobs SET status='failed', last_error='lease expired on final attempt', updated_at={now} WHERE kind=$1 AND status='processing' AND lease_until<={now} AND attempts >= $4");
         let lock = if self.postgres {
             " FOR UPDATE SKIP LOCKED"
         } else {
             ""
         };
-        // SQLite serializes this single UPDATE; no SELECT-then-UPDATE race and
-        // no network calls or user code under its writer lock.
-        let sql = format!("UPDATE rocksky_durable_jobs SET status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id=(SELECT id FROM rocksky_durable_jobs WHERE kind=$1 AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT 1{lock}) RETURNING *");
+        let claim = format!("UPDATE rocksky_durable_jobs SET status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1 AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING *");
+        let sql = if self.postgres {
+            format!("WITH exhausted AS ({exhausted} RETURNING id) {claim}")
+        } else {
+            sqlx::query(&exhausted)
+                .bind(kind)
+                .bind("")
+                .bind(0_i64)
+                .bind(max_attempts)
+                .execute(&self.pool)
+                .await?;
+            claim
+        };
         Ok(sqlx::query_as(&sql)
             .bind(kind)
             .bind(Uuid::new_v4().to_string())
             .bind(lease_seconds)
             .bind(max_attempts)
-            .fetch_optional(&self.pool)
+            .bind(limit)
+            .fetch_all(&self.pool)
             .await?)
     }
 
@@ -556,3 +668,7 @@ mod tests {
         contract(Queue::connect(&url).await.unwrap()).await;
     }
 }
+
+#[cfg(test)]
+#[path = "batch_tests.rs"]
+mod batch_tests;

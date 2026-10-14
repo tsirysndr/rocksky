@@ -6,12 +6,13 @@ use crate::{
 use anyhow::Error;
 use futures_util::StreamExt;
 use owo_colors::OwoColorize;
+use rocksky_submissions::queue::InboxEvent;
 use rocksky_submissions::{
     worker::{self, Failure, Settings},
     Job, Queue,
 };
 use std::{env, sync::Arc, time::Duration};
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
@@ -114,10 +115,16 @@ impl MultiSourceSubscriber {
                 )
             },
         ));
+        let (inbox_tx, inbox_rx) = mpsc::channel(2048);
+        let writer_queue = queue.clone();
+        tasks.spawn(async move {
+            run_inbox_writer(writer_queue, inbox_rx).await;
+        });
         for (idx, server) in self.servers.iter().enumerate() {
             let (server, queue) = (server.clone(), queue.clone());
+            let inbox_tx = inbox_tx.clone();
             tasks.spawn(async move {
-                run_connection_worker(idx, server, queue).await;
+                run_connection_worker(idx, server, queue, inbox_tx).await;
             });
         }
         // These tasks run continuously. Unexpected termination must restart the
@@ -139,7 +146,12 @@ fn dedup_key(did: &str, commit: &Commit) -> String {
     )
 }
 
-async fn run_connection_worker(idx: usize, server: String, queue: Queue) {
+async fn run_connection_worker(
+    idx: usize,
+    server: String,
+    queue: Queue,
+    inbox: mpsc::Sender<InboxEvent>,
+) {
     // Independent checkpoints: the fastest source cannot move a lagging peer
     // past events it has not yet durably captured.
     let source = format!("jetstream:v1:{server}");
@@ -154,9 +166,21 @@ async fn run_connection_worker(idx: usize, server: String, queue: Queue) {
         };
         let url = build_subscribe_url(&server, cursor);
         tracing::info!(worker=idx, url=%url.bright_green(), "Connecting to jetstream");
-        match connect_async(&url).await {
-            Ok((mut stream, _)) => {
-                while let Some(frame) = stream.next().await {
+        match tokio::time::timeout(Duration::from_secs(15), connect_async(&url)).await {
+            Ok(Ok((mut stream, _))) => {
+                loop {
+                    let frame =
+                        match tokio::time::timeout(Duration::from_secs(60), stream.next()).await {
+                            Ok(Some(frame)) => frame,
+                            Ok(None) => break,
+                            Err(_) => {
+                                tracing::warn!(
+                                    worker = idx,
+                                    "Jetstream connection idle; reconnecting from durable cursor"
+                                );
+                                break;
+                            }
+                        };
                     let text = match frame {
                         Ok(Message::Text(text)) => text,
                         Ok(Message::Close(_)) | Err(_) => break,
@@ -170,8 +194,13 @@ async fn run_connection_worker(idx: usize, server: String, queue: Queue) {
                             // silently losing them when a later cursor advances.
                             let key =
                                 format!("malformed:{}", rocksky_submissions::queue::digest(&text));
-                            if queue
-                                .ingest(INBOX_KIND, &source, 0, &key, &text)
+                            if inbox
+                                .send(InboxEvent {
+                                    source: source.clone(),
+                                    cursor: 0,
+                                    key,
+                                    payload: text.to_string(),
+                                })
                                 .await
                                 .is_err()
                             {
@@ -187,20 +216,58 @@ async fn run_connection_worker(idx: usize, server: String, queue: Queue) {
                         continue;
                     };
                     let key = dedup_key(&message.did, &commit);
-                    // Backpressure is the awaited durable commit. On failure,
-                    // reconnect from the last COMMITTED cursor, never this frame.
-                    if let Err(error) = queue
-                        .ingest(INBOX_KIND, &source, message.time_us, &key, &text)
+                    // This buffer is bounded and does NOT acknowledge a cursor.
+                    // If the process dies, uncommitted events replay from the DB.
+                    if inbox
+                        .send(InboxEvent {
+                            source: source.clone(),
+                            cursor: message.time_us,
+                            key,
+                            payload: text.to_string(),
+                        })
                         .await
+                        .is_err()
                     {
-                        tracing::error!(%error, "Jetstream inbox commit failed; reconnecting for replay");
-                        break;
+                        return;
                     }
                 }
             }
-            Err(error) => tracing::error!(%error, worker=idx, "Jetstream connection failed"),
+            Ok(Err(error)) => tracing::error!(%error, worker=idx, "Jetstream connection failed"),
+            Err(_) => tracing::warn!(worker = idx, "Jetstream connection timed out"),
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+}
+
+/// Shared bounded batch writer amortizes remote DB latency across all feeds.
+async fn run_inbox_writer(queue: Queue, mut inbox: mpsc::Receiver<InboxEvent>) {
+    while let Some(first) = inbox.recv().await {
+        let mut batch = vec![first];
+        let deadline = tokio::time::Instant::now() + Duration::from_millis(25);
+        while batch.len() < 256 {
+            match tokio::time::timeout_at(deadline, inbox.recv()).await {
+                Ok(Some(event)) => batch.push(event),
+                _ => break,
+            }
+        }
+        loop {
+            match tokio::time::timeout(
+                Duration::from_secs(15),
+                queue.ingest_batch(INBOX_KIND, &batch),
+            )
+            .await
+            {
+                Ok(Ok(())) => break,
+                Ok(Err(error)) => {
+                    tracing::error!(%error, events=batch.len(), "inbox batch failed; retrying without advancing cursors")
+                }
+                Err(_) => tracing::error!(
+                    events = batch.len(),
+                    "inbox batch timed out; retrying same batch"
+                ),
+            }
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
     }
 }
 

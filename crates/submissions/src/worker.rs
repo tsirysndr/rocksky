@@ -59,14 +59,21 @@ pub async fn run<F, Fut>(
             continue;
         }
         match queue
-            .claim(kind, settings.lease_seconds, settings.max_attempts)
+            .claim_batch(
+                kind,
+                settings.lease_seconds,
+                settings.max_attempts,
+                (concurrency - active.len()).min(32) as i64,
+            )
             .await
         {
-            Ok(Some(job)) => {
-                let (queue, process) = (queue.clone(), process.clone());
-                active.spawn(async move {
-                    execute(queue, job, settings, process).await;
-                });
+            Ok(jobs) if !jobs.is_empty() => {
+                for job in jobs {
+                    let (queue, process) = (queue.clone(), process.clone());
+                    active.spawn(async move {
+                        execute(queue, job, settings, process).await;
+                    });
+                }
             }
             result => {
                 let delay = if let Err(error) = result {
@@ -77,6 +84,7 @@ pub async fn run<F, Fut>(
                 };
                 tokio::select! {
                     _ = shutdown.cancelled() => break,
+                    _ = queue.notified() => {},
                     _ = tokio::time::sleep(delay) => {}
                 }
             }
