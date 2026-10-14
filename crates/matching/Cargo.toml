@@ -6,6 +6,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+redis = { version = "0.29", default-features = false, features = ["tokio-comp", "connection-manager"] }
+sha2 = "0.10"
 tracing = "0.1"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "sqlite"] }
 rocksky-db = { path = "../db" }

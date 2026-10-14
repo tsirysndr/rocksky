@@ -1,5 +1,6 @@
 //! Shared recording resolution policy. Providers retrieve evidence; only this
 //! module decides whether a candidate is compatible with the request.
+pub mod cache;
 pub mod catalog;
 pub mod client;
 pub mod database;
@@ -7,6 +8,8 @@ pub mod providers;
 pub mod service;
 pub mod spotify_auth;
 pub mod startup;
+
+pub const POLICY_VERSION: &str = "1";
 
 use rocksky_core::credits::fold;
 use serde::{Deserialize, Serialize};
@@ -316,7 +319,7 @@ pub fn resolve(
 ) -> Result<MatchResponse, String> {
     request.validate()?;
     let mut result = MatchResponse {
-        policy_version: "1".into(),
+        policy_version: POLICY_VERSION.into(),
         status: Status::Unmatched,
         track: None,
         candidates: vec![],

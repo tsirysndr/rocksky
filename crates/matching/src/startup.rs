@@ -40,10 +40,49 @@ pub async fn run() -> anyhow::Result<()> {
         "configure DATABASE_URL, DEEZER_URL, MUSICBRAINZ_URL or SPOTIFY_API_URL"
     );
     let bind = env::var("MATCHING_BIND").unwrap_or_else(|_| "127.0.0.1:8097".into());
-    let state = web::Data::new(Service::new(providers));
+    let mut service = Service::new(providers);
+    if let Some(url) = env::var("REDIS_URL").ok().filter(|v| !v.trim().is_empty()) {
+        let ttl = cache_ttl("MATCHING_CACHE_TTL_SECONDS", 86400, 604800)?;
+        let negative_ttl = cache_ttl("MATCHING_CACHE_NEGATIVE_TTL_SECONDS", 300, 3600)?;
+        // Isolate provider/catalog configurations sharing a Redis database.
+        let scope = serde_json::to_string(
+            &[
+                "MATCHING_CACHE_NAMESPACE",
+                "DEEZER_URL",
+                "MUSICBRAINZ_URL",
+                "SPOTIFY_API_URL",
+                "XATA_READ_POSTGRES_URL",
+                "DATABASE_URL",
+            ]
+            .map(|name| (name, env::var(name).unwrap_or_default())),
+        )?;
+        match crate::cache::MatchCache::new(&url, &scope, ttl, negative_ttl) {
+            Ok(cache) => {
+                tracing::info!(
+                    ttl_seconds = ttl,
+                    negative_ttl_seconds = negative_ttl,
+                    "matching Redis cache enabled"
+                );
+                service.cache = Some(cache);
+            }
+            Err(_) => tracing::warn!("invalid matching Redis configuration; caching disabled"),
+        }
+    }
+    let state = web::Data::new(service);
     HttpServer::new(move || App::new().app_data(state.clone()).configure(routes))
         .bind(bind)?
         .run()
         .await?;
     Ok(())
+}
+
+fn cache_ttl(name: &str, default: u64, maximum: u64) -> anyhow::Result<u64> {
+    let ttl = match env::var(name) {
+        Ok(value) => value
+            .parse::<u64>()
+            .map_err(|_| anyhow::anyhow!("{name} must be an integer"))?,
+        Err(_) => default,
+    };
+    anyhow::ensure!(ttl <= maximum, "{name} must be between 0 and {maximum}");
+    Ok(ttl)
 }

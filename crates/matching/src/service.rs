@@ -1,9 +1,10 @@
-use crate::{providers::Provider, resolve, MatchRequest};
+use crate::{cache::MatchCache, providers::Provider, resolve, MatchRequest};
 use actix_web::{web, HttpResponse};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Semaphore;
 
 pub struct Service {
+    pub cache: Option<MatchCache>,
     pub providers: Vec<Arc<dyn Provider>>,
     pub deadline: Duration,
     pub capacity: Semaphore,
@@ -11,6 +12,7 @@ pub struct Service {
 impl Service {
     pub fn new(providers: Vec<Arc<dyn Provider>>) -> Self {
         Self {
+            cache: None,
             providers,
             deadline: Duration::from_secs(8),
             capacity: Semaphore::new(32),
@@ -34,6 +36,23 @@ async fn match_track(
 ) -> HttpResponse {
     if let Err(error) = request.validate() {
         return HttpResponse::BadRequest().json(serde_json::json!({"error":error}));
+    }
+    let cache_key = service.cache.as_ref().map(|cache| {
+        cache.key(
+            &request,
+            &service
+                .providers
+                .iter()
+                .map(|p| p.name())
+                .collect::<Vec<_>>(),
+        )
+    });
+    if let (Some(cache), Some(key)) = (&service.cache, &cache_key) {
+        if let Some(response) = cache.get(key).await {
+            return HttpResponse::Ok()
+                .insert_header(("x-matching-cache", "HIT"))
+                .json(response);
+        }
     }
     let Ok(_permit) = service.capacity.try_acquire() else {
         return HttpResponse::TooManyRequests()
@@ -84,7 +103,19 @@ async fn match_track(
                         tokio::time::timeout(Duration::from_secs(1), provider.enrich(track)).await;
                 }
             }
-            HttpResponse::Ok().json(response)
+            if let (Some(cache), Some(key)) = (&service.cache, &cache_key) {
+                cache.put(key, &response).await;
+            }
+            HttpResponse::Ok()
+                .insert_header((
+                    "x-matching-cache",
+                    if service.cache.is_some() {
+                        "MISS"
+                    } else {
+                        "BYPASS"
+                    },
+                ))
+                .json(response)
         }
         Err(error) => HttpResponse::BadRequest().json(serde_json::json!({"error":error})),
     }

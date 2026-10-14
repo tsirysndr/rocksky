@@ -25,6 +25,10 @@ initializes its shared telemetry before starting the service.
 
 | Variable                 | Meaning                                                                                  |
 | ------------------------ | ---------------------------------------------------------------------------------------- |
+| `REDIS_URL`             | Optional Redis response cache; unavailable Redis falls back to normal matching |
+| `MATCHING_CACHE_TTL_SECONDS` | Successful response TTL; default 86400 (24 hours), maximum 604800; 0 disables writes |
+| `MATCHING_CACHE_NEGATIVE_TTL_SECONDS` | Unmatched/ambiguous TTL; default 300 (5 minutes), maximum 3600 |
+| `MATCHING_CACHE_NAMESPACE` | Optional deployment-specific cache namespace |
 | `MATCHING_BIND`          | Bind address; default `127.0.0.1:8097`                                                   |
 | `XATA_READ_POSTGRES_URL` | Preferred read-only PostgreSQL endpoint; takes precedence over `DATABASE_URL`            |
 | `DATABASE_URL`           | Optional explicit catalog URL; PostgreSQL sessions and SQLite files are opened read-only |
@@ -270,3 +274,28 @@ Tests cover policy, HTTP validation/errors/deadlines/capacity, SQLite catalog
 lookups and ISRC collisions, and real HTTP calls to local mock providers.
 No live provider credentials or internet access are required. Integration tests
 need permission to bind loopback sockets.
+
+## Redis response cache
+
+When `REDIS_URL` is configured, validated requests check Redis before acquiring
+provider capacity. A hit returns the complete matching response, including
+ranked candidates, provider scores/ranks, links and previews. Keys hash every
+request constraint (including all identifiers), the policy/cache version,
+provider set, provider/catalog configuration, namespace and TTL settings. The
+cache never substitutes an ID-only or title-only lookup for metadata validation.
+
+Successful responses live for 24 hours by default; ambiguous and unmatched
+responses live for 5 minutes. Responses with unavailable providers and HTTP
+errors are never cached. Known signed preview expirations cap the TTL at 60
+seconds before expiry; previews with unknown expiry cap it at 5 minutes.
+Changing provider/catalog configuration or TTL settings starts a new cache
+namespace automatically. The API still reads current catalog metadata and
+counts when rendering the public song response.
+
+Redis operations (including connection establishment) have a 200 ms deadline.
+A connection manager reuses connections and reconnects after outages; failed
+initial connections are retried on subsequent requests. Missing, corrupt,
+oversized or incompatible cache entries fall back to providers. Entries larger
+than 2 MiB are not written. `x-matching-cache: HIT`, `MISS`, or `BYPASS` on the
+internal endpoint makes latency verification possible without logging request
+metadata or credentials.
