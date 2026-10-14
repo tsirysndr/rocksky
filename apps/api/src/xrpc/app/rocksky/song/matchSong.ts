@@ -1,5 +1,5 @@
 import { catalogIdentity } from "./matchSongUris";
-import { InvalidRequestError } from "@atproto/xrpc-server";
+import { XRPCError, ResponseType } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { count, eq } from "drizzle-orm";
 import type { Server } from "lexicon";
@@ -34,8 +34,7 @@ export async function retrieveMatch(
   // No legacy ID-only/title-only Redis cache may bypass metadata validation.
   const result = await resolveMatch(ctx, matchingRequest(params));
   const candidate = result.track;
-  if (!candidate)
-    throw new InvalidRequestError("No unambiguous song match", "NotFound");
+  if (!candidate) throw new SongMatchError(result);
   const metadata = candidateMetadata(candidate);
   const selectedRecord =
     candidate.source === "catalog"
@@ -142,6 +141,38 @@ export async function retrieveMatch(
     playCount,
     uniqueListeners,
   };
+}
+
+/** A completed lookup without a selected recording, not an invalid request.
+ * Keep these outcomes non-2xx so existing callers cannot mistake candidates for
+ * a resolved song and publish the wrong recording. XRPC preserves this payload.
+ */
+export class SongMatchError extends XRPCError {
+  constructor(
+    private readonly result: Awaited<ReturnType<typeof resolveMatch>>,
+  ) {
+    const ambiguous = result.status === "ambiguous";
+    // XRPC's enum omits HTTP 409; its error middleware accepts standard 4xx codes.
+    super(
+      (ambiguous ? 409 : 404) as ResponseType,
+      ambiguous
+        ? "Multiple recordings match. Supply an isrc or mbId to select a recording."
+        : "No song matches the supplied metadata.",
+      ambiguous ? "AmbiguousMatch" : "NotFound",
+    );
+  }
+
+  override get payload() {
+    return {
+      ...super.payload,
+      status: this.result.status,
+      policyVersion: this.result.policyVersion,
+      candidates: this.result.candidates.map(({ track }) =>
+        candidateMatch(track),
+      ),
+      warnings: this.result.warnings,
+    };
+  }
 }
 
 // Candidates have passed the matching service's identity filters. Keep its order;

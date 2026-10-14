@@ -5,7 +5,7 @@ id = "app.rocksky.song.matchSong"
 defs = new Mapping<String, Query> {
   ["main"] {
     type = "query"
-    description = "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album"
+    description = "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album. Returns the existing song view on HTTP 200. HTTP 409 AmbiguousMatch means multiple recordings remain; HTTP 404 NotFound means no match. Both error bodies include status (ambiguous or unmatched), policyVersion, candidates (songMatchView objects, including catalog candidates), and warnings. Resolve ambiguity by supplying a known isrc or mbId; candidates are not a selected recording."
     parameters = new Params {
       required = List("title", "artist")
       properties {
