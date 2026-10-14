@@ -166,7 +166,8 @@ def main():
             assert sql(f"SELECT count(*) FROM {schema}.rocksky_durable_steps WHERE job_id='{job_id}'") == "1"
 
             worker.terminate()
-            worker.wait(timeout=15)
+            # Actix allows up to 30 seconds to drain HTTP connections.
+            worker.wait(timeout=45)
             worker = start(log)
             assert request("/v1/submissions", submission)[1]["id"] == job_id
             time.sleep(1.5)
@@ -178,7 +179,7 @@ def main():
         if worker is not None and worker.poll() is None:
             worker.terminate()
             try:
-                worker.wait(timeout=15)
+                worker.wait(timeout=45)
             except subprocess.TimeoutExpired:
                 worker.kill()
                 worker.wait()

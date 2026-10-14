@@ -292,9 +292,16 @@ pub async fn run() -> Result<()> {
     tokio::pin!(server);
     let outcome = tokio::select! {
         result = &mut server => result.map_err(anyhow::Error::from),
-        _ = shutdown_signal() => { handle.stop(true).await; Ok(()) },
+        _ = shutdown_signal() => {
+            shutdown.cancel();
+            // The server future drives its command loop. Keep polling it while
+            // waiting for the stop acknowledgement, otherwise shutdown deadlocks.
+            let (_, result) = tokio::join!(handle.stop(true), &mut server);
+            result.map_err(anyhow::Error::from)
+        },
         _ = workers.join_next() => {
-            handle.stop(true).await;
+            shutdown.cancel();
+            let _ = tokio::join!(handle.stop(true), &mut server);
             Err(anyhow::anyhow!("submission dispatcher exited unexpectedly"))
         },
     };
