@@ -6107,6 +6107,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocksky-matching"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "reqwest 0.12.23",
+ "rocksky-core",
+ "rocksky-db",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "rocksky-mirror"
 version = "0.1.0"
 dependencies = [
