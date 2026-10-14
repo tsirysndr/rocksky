@@ -23,14 +23,17 @@ Only configured providers are used. At least one is required.
 `cargo build --release -p rocksky-matching`. The daemon also loads `.env` and
 initializes its shared telemetry before starting the service.
 
-| Variable               | Meaning                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------- |
-| `MATCHING_BIND`        | Bind address; default `127.0.0.1:8096`                                                                  |
-| `DATABASE_URL`         | Optional Rocksky PostgreSQL or SQLite catalog; uses `rocksky-db`                                        |
-| `DEEZER_URL`           | Existing Rocksky Deezer service, not the public API                                                     |
-| `MUSICBRAINZ_URL`      | Existing Rocksky MusicBrainz service, not the public API                                                |
-| `SPOTIFY_API_URL`      | Spotify API base, e.g. `https://api.spotify.com/v1`                                                     |
-| `SPOTIFY_ACCESS_TOKEN` | Required when Spotify is configured; static access token (restart with a renewed token when it expires) |
+| Variable                 | Meaning                                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| `MATCHING_BIND`          | Bind address; default `127.0.0.1:8096`                                                   |
+| `XATA_READ_POSTGRES_URL` | Preferred read-only PostgreSQL endpoint; takes precedence over `DATABASE_URL`            |
+| `DATABASE_URL`           | Optional explicit catalog URL; PostgreSQL sessions and SQLite files are opened read-only |
+| `DEEZER_URL`             | Existing Rocksky Deezer service, not the public API                                      |
+| `MUSICBRAINZ_URL`        | Existing Rocksky MusicBrainz service, not the public API                                 |
+| `SPOTIFY_API_URL`        | Spotify API base, e.g. `https://api.spotify.com/v1`                                      |
+| `SPOTIFY_CLIENT_ID`      | Spotify application client ID from Doppler                                               |
+| `SPOTIFY_CLIENT_SECRET`  | Spotify application secret; enables automatically renewed client-credentials tokens      |
+| `SPOTIFY_ACCESS_TOKEN`   | Optional static-token fallback when application credentials are absent                   |
 
 `GET /health` is a process liveness check, not a provider readiness probe.
 The default listener is local; use an authenticated internal gateway when
@@ -71,8 +74,13 @@ DEEZER_URL=http://127.0.0.1:8090
 MUSICBRAINZ_URL=http://127.0.0.1:8088
 ```
 
-Set `DATABASE_URL` in Doppler to enable catalog lookup. To enable Spotify, supply
-both `SPOTIFY_API_URL` and `SPOTIFY_ACCESS_TOKEN`. Restart
+Set `XATA_READ_POSTGRES_URL` in Doppler to enable catalog lookup on the read
+endpoint. Matching never falls back to `XATA_WRITE_POSTGRES_URL` or opens a
+primary pool. PostgreSQL connections enforce `default_transaction_read_only=on`
+and a 7-second statement timeout; SQLite opens existing files read-only without
+migrations. To enable Spotify, supply `SPOTIFY_API_URL`, `SPOTIFY_CLIENT_ID`, and
+`SPOTIFY_CLIENT_SECRET`. Tokens are cached in memory, renewed before expiry, and
+renewed once on HTTP 401. Concurrent requests share the renewal. Restart
 `rocksky-matching.service` after changing its configuration or Doppler secrets.
 The injected environment takes precedence over the daemon’s `.env` file.
 
@@ -189,10 +197,27 @@ Current limitations favor false negatives over wrong matches: catalog retrieval
 uses SQL case-insensitive title or MBID/ISRC lookup (the final filter uses richer
 Unicode normalization); upstream wrappers can return limited candidate sets;
 MusicBrainz direct lookup exposes its chosen release; cross-provider records
-are not merged on title alone; Spotify access-token refresh is not implemented yet. This service does not claim to discover version metadata
+are not merged on title alone; static Spotify tokens still require external renewal; application credentials
+enable automatic renewal. This service does not claim to discover version metadata
 that a provider omits, and does not merge enrichment from unrelated tracks.
 
 ## Tests
+
+Run the complete suite with the server-friendly wrapper (two build jobs by
+default; configurable with `MATCHING_TEST_JOBS`):
+
+```sh
+bash crates/matching/scripts/validate.sh
+bash crates/matching/scripts/validate.sh --service-url http://127.0.0.1:8097
+```
+
+The optional live checks cover health and five rejected-input cases without
+contacting production providers. The full release-mode tests exercise policy,
+provider mocks, token renewal, database read-only behavior, and HTTP contracts.
+No Doppler secrets are needed for the test suite. The production deployment uses
+port `8097` through a systemd drop-in because Jellyfin owns port `8096`.
+
+Direct commands:
 
 ```sh
 cargo test --release -p rocksky-matching

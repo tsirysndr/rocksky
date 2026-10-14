@@ -14,17 +14,25 @@ pub async fn run() -> anyhow::Result<()> {
         ("SPOTIFY_API_URL", ProviderKind::Spotify),
     ] {
         if let Ok(url) = env::var(key) {
-            let token = if matches!(kind, ProviderKind::Spotify) {
-                Some(env::var("SPOTIFY_ACCESS_TOKEN")?)
-            } else {
-                None
-            };
-            providers.push(Arc::new(HttpProvider::new(kind, url, token)?));
+            let mut provider = HttpProvider::new(kind, url, None)?;
+            if matches!(kind, ProviderKind::Spotify) {
+                let auth=match (env::var("SPOTIFY_CLIENT_ID"),env::var("SPOTIFY_CLIENT_SECRET")) {
+                    (Ok(id),Ok(secret)) => crate::spotify_auth::SpotifyAuth::client_credentials(id,secret,
+                        env::var("SPOTIFY_TOKEN_URL").unwrap_or_else(|_|"https://accounts.spotify.com/api/token".into()))?,
+                    _ => crate::spotify_auth::SpotifyAuth::Static(env::var("SPOTIFY_ACCESS_TOKEN")
+                        .map_err(|_|anyhow::anyhow!("configure SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET (or SPOTIFY_ACCESS_TOKEN)"))?),
+                };
+                provider = provider.with_spotify_auth(auth);
+            }
+            providers.push(Arc::new(provider));
         }
     }
-    if let Ok(url) = env::var("DATABASE_URL") {
+    if let Some(url) = crate::database::selected_url(
+        env::var("XATA_READ_POSTGRES_URL").ok(),
+        env::var("DATABASE_URL").ok(),
+    ) {
         providers.push(Arc::new(crate::catalog::Catalog {
-            db: rocksky_db::Backend::connect(&url).await?,
+            db: crate::database::connect_read_only(&url).await?,
         }));
     }
     anyhow::ensure!(

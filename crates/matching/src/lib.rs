@@ -2,8 +2,10 @@
 //! module decides whether a candidate is compatible with the request.
 pub mod catalog;
 pub mod client;
+pub mod database;
 pub mod providers;
 pub mod service;
+pub mod spotify_auth;
 pub mod startup;
 
 use rocksky_core::credits::fold;

@@ -87,3 +87,34 @@ async fn joined_release_cannot_hide_track_remaster_metadata() {
     let c = catalog.candidates(&r).await.unwrap();
     assert_eq!(resolve(&r, c).unwrap().status, Status::Unmatched);
 }
+#[tokio::test]
+async fn read_only_connection_cannot_write_or_migrate() {
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    let directory = tempfile::tempdir().unwrap();
+    let file = directory.path().join("catalog.sqlite");
+    let writable = SqlitePoolOptions::new()
+        .connect_with(
+            SqliteConnectOptions::new()
+                .filename(&file)
+                .create_if_missing(true),
+        )
+        .await
+        .unwrap();
+    sqlx::query("CREATE TABLE fixture (value TEXT)")
+        .execute(&writable)
+        .await
+        .unwrap();
+    writable.close().await;
+    let db = rocksky_matching::database::connect_read_only(&format!("sqlite:{}", file.display()))
+        .await
+        .unwrap();
+    assert!(db
+        .execute(&db.sql("INSERT INTO fixture VALUES ('blocked')"))
+        .await
+        .is_err());
+    let count: Option<i64> = db
+        .fetch_scalar(&db.sql("SELECT COUNT(*) FROM fixture"))
+        .await
+        .unwrap();
+    assert_eq!(count, Some(0));
+}

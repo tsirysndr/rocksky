@@ -17,7 +17,7 @@ pub struct HttpProvider {
     pub kind: ProviderKind,
     base_url: String,
     client: reqwest::Client,
-    token: Option<String>,
+    auth: Option<crate::spotify_auth::SpotifyAuth>,
 }
 #[derive(Clone, Copy)]
 pub enum ProviderKind {
@@ -34,12 +34,42 @@ impl HttpProvider {
         Ok(Self {
             kind,
             base_url: base_url.trim_end_matches('/').into(),
-            token,
+            auth: token.map(crate::spotify_auth::SpotifyAuth::Static),
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(2))
                 .timeout(Duration::from_secs(7))
                 .build()?,
         })
+    }
+    pub fn with_spotify_auth(mut self, auth: crate::spotify_auth::SpotifyAuth) -> Self {
+        self.auth = Some(auth);
+        self
+    }
+    async fn spotify_get(&self, path: &str, query: &[(&str, &str)]) -> Result<Value> {
+        let auth = self
+            .auth
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Spotify authentication not configured"))?;
+        let mut token = auth.token(&self.client).await?;
+        for attempt in 0..2 {
+            let response = self
+                .client
+                .get(format!("{}{path}", self.base_url))
+                .bearer_auth(&token)
+                .query(query)
+                .send()
+                .await?;
+            if response.status() == reqwest::StatusCode::UNAUTHORIZED
+                && attempt == 0
+                && matches!(auth, crate::spotify_auth::SpotifyAuth::ClientCredentials(_))
+            {
+                auth.invalidate(&token).await;
+                token = auth.token(&self.client).await?;
+                continue;
+            }
+            return Ok(response.error_for_status()?.json().await?);
+        }
+        unreachable!()
     }
     async fn fetch(&self, request: &MatchRequest) -> Result<Vec<Candidate>> {
         match self.kind {
@@ -91,20 +121,8 @@ impl HttpProvider {
                 Ok(candidates)
             }
             ProviderKind::Spotify => {
-                let token = self
-                    .token
-                    .as_deref()
-                    .ok_or_else(|| anyhow::anyhow!("Spotify token not configured"))?;
                 if let Some(id) = &request.identifiers.spotify_track_id {
-                    let value: Value = self
-                        .client
-                        .get(format!("{}/tracks/{id}", self.base_url))
-                        .bearer_auth(token)
-                        .send()
-                        .await?
-                        .error_for_status()?
-                        .json()
-                        .await?;
+                    let value = self.spotify_get(&format!("/tracks/{id}"), &[]).await?;
                     return Ok(vec![spotify_candidate(&value)]);
                 }
                 let q = format!(
@@ -122,15 +140,11 @@ impl HttpProvider {
                         .map(|a| format!(" album:{}", quoted(a)))
                         .unwrap_or_default()
                 );
-                let response: Value = self
-                    .client
-                    .get(format!("{}/search", self.base_url))
-                    .bearer_auth(token)
-                    .query(&[("type", "track"), ("q", q.as_str()), ("limit", "50")])
-                    .send()
-                    .await?
-                    .error_for_status()?
-                    .json()
+                let response = self
+                    .spotify_get(
+                        "/search",
+                        &[("type", "track"), ("q", q.as_str()), ("limit", "10")],
+                    )
                     .await?;
                 let items = response["tracks"]["items"]
                     .as_array()

@@ -6117,6 +6117,8 @@ dependencies = [
  "rocksky-db",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "tokio",
 ]
 
