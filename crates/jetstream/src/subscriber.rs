@@ -1,27 +1,22 @@
-use std::{
-    env,
-    num::NonZeroUsize,
-    sync::{
-        atomic::{AtomicI64, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
-
-use anyhow::Error;
-use futures_util::{FutureExt, StreamExt};
-use lru::LruCache;
-use owo_colors::OwoColorize;
-use std::panic::AssertUnwindSafe;
-use tokio::sync::{mpsc, Mutex, Semaphore};
-use tokio_tungstenite::{connect_async, tungstenite::Message};
-use tracing::Instrument;
-
 use crate::{
     repo::save_scrobble,
     types::{Commit, Root},
     webhook_worker::AppState,
 };
+use anyhow::Error;
+use futures_util::StreamExt;
+use owo_colors::OwoColorize;
+use rocksky_submissions::{
+    worker::{self, Failure, Settings},
+    Job, Queue,
+};
+use std::{env, sync::Arc, time::Duration};
+use tokio::sync::Mutex;
+use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_util::sync::CancellationToken;
+use tracing::Instrument;
+
+const INBOX_KIND: &str = "jetstream.commit.v1";
 
 pub const SCROBBLE_NSID: &str = "app.rocksky.scrobble";
 pub const ARTIST_NSID: &str = "app.rocksky.artist";
@@ -47,9 +42,8 @@ pub const EXTRA_COLLECTIONS: [&str; 2] = [CALENDAR_EVENT_NSID, CALENDAR_RSVP_NSI
 /// emitted in the gap between our last `time_us` and the disconnect.
 const RECONNECT_SLACK_US: i64 = 5_000_000;
 
-/// Subscribes to one or more Jetstream servers concurrently and deduplicates
-/// the merged stream so a commit observed on multiple servers is only
-/// processed once.
+/// Captures each source into a durable inbox before advancing its cursor.
+/// Duplicate source events share a job; interrupted indexing is retried.
 pub struct MultiSourceSubscriber {
     servers: Vec<String>,
 }
@@ -75,11 +69,6 @@ impl MultiSourceSubscriber {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(64);
-        let dedup_capacity: usize = env::var("JETSTREAM_DEDUP_CAPACITY")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(50_000);
-
         // Ingest: everything here writes, so it always talks to the primary.
         // Postgres when one is configured — keeping the pool budget and the
         // read-only check, since this service exists to write and must refuse
@@ -101,90 +90,42 @@ impl MultiSourceSubscriber {
         let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
         let nc = Arc::new(async_nats::connect(&addr).await?);
 
-        let semaphore = Arc::new(Semaphore::new(max_inflight));
-
-        // Global watermark — highest `time_us` observed across all sources.
-        // Used as the reconnect cursor (minus slack) for every worker, so a
-        // server that drifts or drops resumes near where the fastest peer is.
-        let watermark = Arc::new(AtomicI64::new(0));
-
-        // Bounded channel: backpressure flows back to the WS read loops if
-        // the consumer falls behind, instead of unbounded memory growth.
-        let (tx, mut rx) = mpsc::channel::<String>(1024);
-
+        anyhow::ensure!(
+            max_inflight > 0 && max_inflight <= 1024,
+            "MAX_INFLIGHT_SCROBBLES must be 1..1024"
+        );
+        let queue = Queue::from_env().await?;
+        let shutdown = CancellationToken::new();
+        let mut tasks = tokio::task::JoinSet::new();
+        let process_queue = queue.clone();
+        tasks.spawn(worker::run(
+            queue.clone(),
+            INBOX_KIND,
+            max_inflight,
+            Settings::default(),
+            shutdown.clone(),
+            move |job| {
+                index_event(
+                    process_queue.clone(),
+                    state.clone(),
+                    pool.clone(),
+                    nc.clone(),
+                    job,
+                )
+            },
+        ));
         for (idx, server) in self.servers.iter().enumerate() {
-            let server = server.clone();
-            let tx = tx.clone();
-            let watermark = watermark.clone();
-            tokio::spawn(async move {
-                run_connection_worker(idx, server, tx, watermark).await;
+            let (server, queue) = (server.clone(), queue.clone());
+            tasks.spawn(async move {
+                run_connection_worker(idx, server, queue).await;
             });
         }
-        // Drop our own sender so the consumer loop exits if every worker dies.
-        drop(tx);
-
-        let dedup_cap = NonZeroUsize::new(dedup_capacity.max(1)).unwrap();
-        let mut dedup: LruCache<String, ()> = LruCache::new(dedup_cap);
-
-        while let Some(text) = rx.recv().await {
-            let message: Root = match serde_json::from_str(&text) {
-                Ok(m) => m,
-                Err(e) => {
-                    tracing::error!(error = %e, raw = %text, "Failed to parse jetstream frame");
-                    continue;
-                }
-            };
-
-            // Advance the global watermark monotonically.
-            if message.time_us > 0 {
-                let mut cur = watermark.load(Ordering::Relaxed);
-                while message.time_us > cur {
-                    match watermark.compare_exchange_weak(
-                        cur,
-                        message.time_us,
-                        Ordering::Relaxed,
-                        Ordering::Relaxed,
-                    ) {
-                        Ok(_) => break,
-                        Err(observed) => cur = observed,
-                    }
-                }
-            }
-
-            if message.kind != "commit" {
-                continue;
-            }
-            let Some(commit) = message.commit else {
-                continue;
-            };
-
-            let key = dedup_key(&message.did, &commit);
-            if dedup.put(key.clone(), ()).is_some() {
-                tracing::debug!(dedup_key = %key, "Dropping duplicate jetstream event");
-                continue;
-            }
-
-            tracing::info!(message = %text, "Received message");
-
-            let permit = match semaphore.clone().acquire_owned().await {
-                Ok(p) => p,
-                Err(e) => {
-                    tracing::error!(error = %e, "Semaphore closed; exiting read loop");
-                    break;
-                }
-            };
-
-            spawn_handler(
-                state.clone(),
-                pool.clone(),
-                nc.clone(),
-                permit,
-                message.did,
-                commit,
-            );
-        }
-
-        Ok(())
+        // These tasks run continuously. Unexpected termination must restart the
+        // service, not leave an apparently healthy process with no ingestion.
+        let result = tasks.join_next().await;
+        shutdown.cancel();
+        tasks.abort_all();
+        anyhow::bail!("jetstream task exited unexpectedly: {result:?}")
     }
 }
 
@@ -198,55 +139,104 @@ fn dedup_key(did: &str, commit: &Commit) -> String {
     )
 }
 
-async fn run_connection_worker(
-    idx: usize,
-    server: String,
-    tx: mpsc::Sender<String>,
-    watermark: Arc<AtomicI64>,
-) {
+async fn run_connection_worker(idx: usize, server: String, queue: Queue) {
+    // Independent checkpoints: the fastest source cannot move a lagging peer
+    // past events it has not yet durably captured.
+    let source = format!("jetstream:v1:{server}");
     loop {
-        let cursor = watermark.load(Ordering::Relaxed);
+        let cursor = match queue.cursor(&source).await {
+            Ok(cursor) => cursor.unwrap_or(0),
+            Err(error) => {
+                tracing::error!(%error, "cannot load durable Jetstream cursor");
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                continue;
+            }
+        };
         let url = build_subscribe_url(&server, cursor);
-        tracing::info!(worker = idx, url = %url.bright_green(), "Connecting to jetstream");
-
+        tracing::info!(worker=idx, url=%url.bright_green(), "Connecting to jetstream");
         match connect_async(&url).await {
-            Ok((mut ws_stream, _)) => {
-                tracing::info!(worker = idx, url = %server.bright_green(), "Connected to jetstream");
-                while let Some(msg) = ws_stream.next().await {
-                    match msg {
-                        Ok(Message::Text(text)) => {
-                            if tx.send(text.to_string()).await.is_err() {
-                                tracing::warn!(worker = idx, "Consumer dropped; worker exiting");
-                                return;
+            Ok((mut stream, _)) => {
+                while let Some(frame) = stream.next().await {
+                    let text = match frame {
+                        Ok(Message::Text(text)) => text,
+                        Ok(Message::Close(_)) | Err(_) => break,
+                        _ => continue,
+                    };
+                    let message: Root = match serde_json::from_str(&text) {
+                        Ok(message) => message,
+                        Err(error) => {
+                            tracing::error!(%error, "malformed Jetstream frame");
+                            // Retain poison messages for inspection instead of
+                            // silently losing them when a later cursor advances.
+                            let key =
+                                format!("malformed:{}", rocksky_submissions::queue::digest(&text));
+                            if queue
+                                .ingest(INBOX_KIND, &source, 0, &key, &text)
+                                .await
+                                .is_err()
+                            {
+                                break;
                             }
+                            continue;
                         }
-                        Ok(Message::Close(_)) => {
-                            tracing::warn!(worker = idx, "Jetstream sent Close frame");
-                            break;
-                        }
-                        Ok(_) => continue,
-                        Err(e) => {
-                            tracing::error!(worker = idx, error = %e, "WebSocket error");
-                            break;
-                        }
+                    };
+                    if message.kind != "commit" {
+                        continue;
+                    }
+                    let Some(commit) = message.commit else {
+                        continue;
+                    };
+                    let key = dedup_key(&message.did, &commit);
+                    // Backpressure is the awaited durable commit. On failure,
+                    // reconnect from the last COMMITTED cursor, never this frame.
+                    if let Err(error) = queue
+                        .ingest(INBOX_KIND, &source, message.time_us, &key, &text)
+                        .await
+                    {
+                        tracing::error!(%error, "Jetstream inbox commit failed; reconnecting for replay");
+                        break;
                     }
                 }
             }
-            Err(e) => {
-                tracing::error!(
-                    worker = idx,
-                    error = %e,
-                    "Failed to connect to jetstream, retrying in 1s"
-                );
-            }
+            Err(error) => tracing::error!(%error, worker=idx, "Jetstream connection failed"),
         }
-
-        tracing::warn!(
-            worker = idx,
-            "Disconnected from jetstream, reconnecting in 1s"
-        );
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
+}
+
+async fn index_event(
+    queue: Queue,
+    state: Arc<Mutex<AppState>>,
+    pool: Arc<rocksky_db::Backend>,
+    nc: Arc<async_nats::Client>,
+    job: Job,
+) -> Result<(), Failure> {
+    if queue.step(&job, "index.v1").await?.is_some() {
+        return Ok(());
+    }
+    let message: Root = serde_json::from_str(&job.payload).map_err(|_| Failure {
+        message: "invalid persisted Jetstream event".into(),
+        permanent: true,
+    })?;
+    let commit = message.commit.ok_or_else(|| Failure {
+        message: "missing Jetstream commit".into(),
+        permanent: true,
+    })?;
+    let started = std::time::Instant::now();
+    let span = tracing::info_span!("jetstream.commit", otel.kind = "consumer",
+        submission.id = %job.id, jetstream.did = %message.did,
+        jetstream.collection = %commit.collection, jetstream.rkey = %commit.rkey);
+    let result = save_scrobble(state, pool, nc, &message.did, commit)
+        .instrument(span)
+        .await;
+    rocksky_telemetry::metrics::record_work(
+        "jetstream.commit",
+        if result.is_ok() { "ok" } else { "error" },
+        started.elapsed().as_secs_f64(),
+    );
+    result?;
+    queue.checkpoint(&job, "index.v1", "{}").await?;
+    Ok(())
 }
 
 fn build_subscribe_url(server: &str, watermark_us: i64) -> String {
@@ -281,74 +271,6 @@ fn initial_cursor() -> i64 {
         .ok()
         .and_then(|s| s.trim().parse().ok())
         .unwrap_or(0)
-}
-
-fn spawn_handler(
-    state: Arc<Mutex<AppState>>,
-    pool: Arc<rocksky_db::Backend>,
-    nc: Arc<async_nats::Client>,
-    permit: tokio::sync::OwnedSemaphorePermit,
-    did: String,
-    commit: Commit,
-) {
-    // One span per commit handled, which is this service's unit of work.
-    // Built here rather than inside the task so it records the event even if
-    // the task panics, and attached with `.instrument` because a spawned task
-    // does not inherit the caller's span.
-    let span = tracing::info_span!(
-        "jetstream.commit",
-        otel.kind = "consumer",
-        jetstream.did = %did,
-        jetstream.collection = %commit.collection,
-        jetstream.rkey = %commit.rkey,
-        otel.status_code = tracing::field::Empty,
-    );
-
-    tokio::spawn(async move {
-        let _permit = permit;
-        let started = std::time::Instant::now();
-        let collection = commit.collection.clone();
-        let rkey = commit.rkey.clone();
-        // Wrap in catch_unwind so a panic inside save_scrobble (e.g.
-        // an out-of-bounds index on a post-INSERT SELECT) is logged
-        // instead of silently aborting the spawned task and losing
-        // the scrobble + Discord notification.
-        let outcome = AssertUnwindSafe(save_scrobble(state, pool, nc, &did, commit))
-            .catch_unwind()
-            .await;
-        let elapsed = started.elapsed().as_secs_f64();
-        let result = match &outcome {
-            Ok(Ok(_)) => "ok",
-            _ => "error",
-        };
-        rocksky_telemetry::metrics::record_work("jetstream.commit", result, elapsed);
-
-        match outcome {
-            Ok(Ok(_)) => {
-                tracing::Span::current().record("otel.status_code", "OK");
-                tracing::info!(user_id = %did.bright_green(), %collection, %rkey, "Scrobble saved successfully");
-            }
-            Ok(Err(e)) => {
-                tracing::Span::current().record("otel.status_code", "ERROR");
-                tracing::error!(error = %e, %collection, %rkey, %did, "Error saving scrobble");
-            }
-            Err(panic) => {
-                tracing::Span::current().record("otel.status_code", "ERROR");
-                let msg = panic
-                    .downcast_ref::<String>()
-                    .cloned()
-                    .or_else(|| panic.downcast_ref::<&str>().map(|s| s.to_string()))
-                    .unwrap_or_else(|| "<non-string panic>".to_string());
-                tracing::error!(
-                    panic = %msg,
-                    %collection,
-                    %rkey,
-                    %did,
-                    "save_scrobble PANICKED — scrobble lost"
-                );
-            }
-        }
-    }.instrument(span));
 }
 
 #[cfg(test)]

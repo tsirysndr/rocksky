@@ -1,0 +1,250 @@
+use crate::{Job, Queue};
+use futures_util::FutureExt;
+use std::{future::Future, panic::AssertUnwindSafe, time::Duration};
+use tokio_util::sync::CancellationToken;
+
+#[derive(Debug)]
+pub struct Failure {
+    pub message: String,
+    pub permanent: bool,
+}
+
+impl From<anyhow::Error> for Failure {
+    fn from(error: anyhow::Error) -> Self {
+        Self {
+            message: error.to_string(),
+            permanent: false,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Settings {
+    pub lease_seconds: i64,
+    pub max_attempts: i64,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            lease_seconds: 120,
+            max_attempts: 20,
+        }
+    }
+}
+
+/// One dispatcher per queue kind and process. Empty-queue polling does not
+/// multiply with execution concurrency. Shutdown drains jobs with heartbeats;
+/// forced termination recovers through lease expiry.
+pub async fn run<F, Fut>(
+    queue: Queue,
+    kind: &str,
+    concurrency: usize,
+    settings: Settings,
+    shutdown: CancellationToken,
+    process: F,
+) where
+    F: Fn(Job) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = Result<(), Failure>> + Send + 'static,
+{
+    assert!(concurrency > 0 && settings.lease_seconds >= 3 && settings.max_attempts > 0);
+    let mut active = tokio::task::JoinSet::new();
+    while !shutdown.is_cancelled() {
+        while active.try_join_next().is_some() {}
+        if active.len() >= concurrency {
+            tokio::select! {
+                _ = shutdown.cancelled() => break,
+                _ = active.join_next() => {}
+            }
+            continue;
+        }
+        match queue
+            .claim(kind, settings.lease_seconds, settings.max_attempts)
+            .await
+        {
+            Ok(Some(job)) => {
+                let (queue, process) = (queue.clone(), process.clone());
+                active.spawn(async move {
+                    execute(queue, job, settings, process).await;
+                });
+            }
+            result => {
+                let delay = if let Err(error) = result {
+                    tracing::error!(%error, kind, "durable job claim failed");
+                    Duration::from_secs(2)
+                } else {
+                    Duration::from_millis(500)
+                };
+                tokio::select! {
+                    _ = shutdown.cancelled() => break,
+                    _ = tokio::time::sleep(delay) => {}
+                }
+            }
+        }
+    }
+    while active.join_next().await.is_some() {}
+}
+
+async fn execute<F, Fut>(queue: Queue, job: Job, settings: Settings, process: F)
+where
+    F: Fn(Job) -> Fut,
+    Fut: Future<Output = Result<(), Failure>>,
+{
+    let processing_job = job.clone();
+    let work = AssertUnwindSafe(async move { process(processing_job).await }).catch_unwind();
+    tokio::pin!(work);
+    let mut heartbeat =
+        tokio::time::interval(Duration::from_secs((settings.lease_seconds / 3) as u64));
+    heartbeat.tick().await;
+    loop {
+        tokio::select! {
+            result = &mut work => {
+                let result = match result {
+                    Ok(result) => result,
+                    Err(_) => Err(Failure { message: "processor panicked".into(), permanent: false }),
+                };
+                let saved = match result {
+                    Ok(()) => queue.finish(&job).await,
+                    Err(error) => {
+                        tracing::warn!(job_id=%job.id, attempt=job.attempts, error=%error.message, "durable job failed");
+                        queue.fail(&job, &error.message, error.permanent, settings.max_attempts).await
+                    }
+                };
+                if !matches!(saved, Ok(true)) {
+                    tracing::warn!(job_id=%job.id, "could not finalize job; lease recovery will retry it");
+                }
+                break;
+            }
+            _ = heartbeat.tick() => {
+                if !matches!(queue.renew(&job, settings.lease_seconds).await, Ok(true)) {
+                    // Dropping the local future cannot undo a remote write.
+                    // Stable side-effect IDs are required even with fencing.
+                    tracing::warn!(job_id=%job.id, "lost lease; cancelling local processing");
+                    break;
+                }
+            }
+        }
+    }
+}
+
+#[cfg(all(test, feature = "sqlite"))]
+mod tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
+    #[tokio::test]
+    async fn retries_failed_processors_without_losing_the_job() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = format!(
+            "sqlite://{}?mode=rwc",
+            dir.path().join("retry.sqlite").display()
+        );
+        let queue = Queue::connect(&url).await.unwrap();
+        let job = queue
+            .enqueue("retry.v1", "key", "hash", "original")
+            .await
+            .unwrap();
+        let stop = CancellationToken::new();
+        let done = stop.clone();
+        let worker = tokio::spawn(run(
+            queue.clone(),
+            "retry.v1",
+            1,
+            Settings::default(),
+            stop.clone(),
+            move |job| {
+                let done = done.clone();
+                async move {
+                    assert_eq!(job.payload, "original");
+                    if job.attempts == 1 {
+                        return Err(Failure {
+                            message: "temporary failure".into(),
+                            permanent: false,
+                        });
+                    }
+                    done.cancel();
+                    Ok(())
+                }
+            },
+        ));
+        tokio::time::timeout(Duration::from_secs(8), worker)
+            .await
+            .unwrap()
+            .unwrap();
+        let result = queue.get(&job.id).await.unwrap().unwrap();
+        assert_eq!(result.status, "completed");
+        assert_eq!(result.attempts, 2);
+    }
+
+    #[tokio::test]
+    async fn bounds_concurrency_renews_leases_and_drains_on_shutdown() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = format!(
+            "sqlite://{}?mode=rwc",
+            dir.path().join("worker.sqlite").display()
+        );
+        let queue = Queue::connect(&url).await.unwrap();
+        let mut ids = vec![];
+        for n in 0..4 {
+            ids.push(
+                queue
+                    .enqueue("work.v1", &n.to_string(), "hash", "payload")
+                    .await
+                    .unwrap()
+                    .id,
+            );
+        }
+        let active = Arc::new(AtomicUsize::new(0));
+        let peak = Arc::new(AtomicUsize::new(0));
+        let stop = CancellationToken::new();
+        let (a, p, q) = (active.clone(), peak.clone(), queue.clone());
+        let handle = tokio::spawn(run(
+            queue.clone(),
+            "work.v1",
+            2,
+            Settings {
+                lease_seconds: 3,
+                max_attempts: 3,
+            },
+            stop.clone(),
+            move |job| {
+                let (a, p, q) = (a.clone(), p.clone(), q.clone());
+                async move {
+                    let current = a.fetch_add(1, Ordering::SeqCst) + 1;
+                    p.fetch_max(current, Ordering::SeqCst);
+                    // Longer than the lease: completion needs successful renewal.
+                    tokio::time::sleep(Duration::from_secs(4)).await;
+                    q.checkpoint(&job, "done.v1", "{}").await?;
+                    a.fetch_sub(1, Ordering::SeqCst);
+                    Ok(())
+                }
+            },
+        ));
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while active.load(Ordering::SeqCst) != 2 {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        stop.cancel();
+        tokio::time::timeout(Duration::from_secs(6), handle)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(peak.load(Ordering::SeqCst), 2);
+        assert_eq!(active.load(Ordering::SeqCst), 0);
+        let mut completed = 0;
+        for id in ids {
+            let job = queue.get(&id).await.unwrap().unwrap();
+            if job.status == "completed" {
+                completed += 1;
+                assert_eq!(job.attempts, 1);
+            }
+        }
+        assert_eq!(completed, 2);
+    }
+}

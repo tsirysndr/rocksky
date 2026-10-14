@@ -2,9 +2,8 @@
 //!
 //! Mirrors the call sites in `crates/spotify` and `crates/navidrome`: a JWT
 //! bearer is built from the user's DID, then we POST the normalized track to
-//! the API. The server handler is fire-and-forget (returns immediately after
-//! kicking off the scrobble pipeline), but it does its own ±60s dedup, so a
-//! duplicate slipping past our ±120s pre-check is still safe.
+//! the API. Success means the submission was durably accepted; publication
+//! happens in the worker. Timestamped retries reuse the same submission key.
 
 use std::env;
 

@@ -6070,6 +6070,7 @@ dependencies = [
  "reqwest 0.12.23",
  "rocksky-db",
  "rocksky-pgurl",
+ "rocksky-submissions",
  "rocksky-telemetry",
  "sea-query",
  "sea-query-binder",
@@ -6081,6 +6082,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-tungstenite",
+ "tokio-util",
  "tracing",
  "tungstenite",
  "url",
@@ -6390,6 +6392,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocksky-submissions"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "dotenv",
+ "futures-util",
+ "reqwest 0.12.23",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sqlx",
+ "subtle",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "rocksky-telemetry"
 version = "0.1.0"
 dependencies = [
@@ -6495,6 +6519,7 @@ dependencies = [
  "rocksky-playlists",
  "rocksky-scrobbler",
  "rocksky-spotify",
+ "rocksky-submissions",
  "rocksky-telemetry",
  "rocksky-tracklist",
  "rocksky-webscrobbler",

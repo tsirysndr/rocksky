@@ -29,6 +29,7 @@ fn cli() -> Command {
         .subcommand(Command::new("navidrome").about("Start Navidrome-compatible API (Subsonic REST API)"))
         .subcommand(Command::new("playlist").about("Playlist related commands"))
         .subcommand(Command::new("scrobbler").about("Start Scrobbler API"))
+        .subcommand(Command::new("submissions").about("Start durable scrobble intake and publication workers"))
         .subcommand(Command::new("spotify").about("Start Spotify Listener Service"))
         .subcommand(Command::new("tracklist").about("Start User Current Track Queue Service"))
         .subcommand(Command::new("webscrobbler").about("Start Webscrobbler API"))
@@ -112,6 +113,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some(("scrobbler", _)) => {
             cmd::scrobbler::start_scrobbler_service().await?;
+        }
+        Some(("submissions", _)) => {
+            rocksky_submissions::service::run().await?;
         }
         Some(("spotify", _)) => {
             cmd::spotify::start_spotify_service().await?;

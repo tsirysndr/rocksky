@@ -13,6 +13,7 @@ import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
 import { ownsRecord, putRecordOnce } from "lib/recordOwnership";
+import { findDurableRecord, publishDurableRecord } from "lib/durableRecord";
 import {
   assertNotBotFlagged,
   assertNotScrobbleBlocked,
@@ -191,8 +192,9 @@ export async function putSongRecord(
 async function putScrobbleRecord(
   track: Track,
   agent: Agent,
+  durableRkey?: string,
 ): Promise<string | null> {
-  const rkey = TID.nextStr();
+  const rkey = durableRkey ?? TID.nextStr();
 
   const record: Scrobble.Record = {
     $type: "app.rocksky.scrobble",
@@ -245,14 +247,21 @@ async function putScrobbleRecord(
   );
 
   try {
-    const res = await agent.com.atproto.repo.putRecord({
+    const create = () => agent.com.atproto.repo.putRecord({
       repo: agentDid,
       collection: "app.rocksky.scrobble",
       rkey,
       record,
       validate: false,
+      // Create-only for durable jobs. An ambiguous retry must never overwrite
+      // the first successfully published record with newly enriched metadata.
+      ...(durableRkey ? { swapRecord: null } : {}),
     });
-    const uri = res.data.uri;
+    const uri = durableRkey
+      ? await publishDurableRecord(create, () => agent.com.atproto.repo.getRecord({
+          repo: agentDid, collection: "app.rocksky.scrobble", rkey,
+        }))
+      : (await create()).data.uri;
     consola.info(`Scrobble record created at ${uri}`);
     return uri;
   } catch (e) {
@@ -564,7 +573,16 @@ export async function scrobbleTrack(
   userDid: string,
   skipDupCheck?: boolean,
   importCache?: ImportCache,
+  submission?: { id: string; rkey: string },
 ): Promise<void> {
+  // Recover a PDS success followed by a lost HTTP response or worker crash.
+  // Only RecordNotFound permits a new publication; transport/auth errors retry.
+  if (submission) {
+    const existing = await findDurableRecord(() => agent.com.atproto.repo.getRecord({
+      repo: userDid, collection: "app.rocksky.scrobble", rkey: submission.rkey,
+    }));
+    if (existing) return;
+  }
   // Capture once: enrichment/polling can take seconds, but the dedup identity
   // and the published record must refer to the same listening time.
   track = { ...track, timestamp: track.timestamp || dayjs().unix() };
@@ -611,7 +629,7 @@ export async function scrobbleTrack(
     // Genuinely new scrobble — record it in the user's rolling window. Throws
     // ScrobbleBlockedError (and places a temporary block) if the user is
     // scrobbling faster than a human physically can.
-    await recordScrobbleAndGuard(ctx, userDid, scrobbleTime.unix());
+    await recordScrobbleAndGuard(ctx, userDid, scrobbleTime.unix(), submission?.id);
   }
 
   let existingTrack = await ctx.db
@@ -981,15 +999,21 @@ export async function scrobbleTrack(
       timestamp: scrobbleTime.unix(),
     },
     duplicateWindow,
+    submission?.id,
   );
   if (!reservation) {
+    if (submission) throw new Error("Another submission holds the dedup reservation; retry after it completes or expires");
     consola.info(`Concurrent duplicate scrobble skipped for ${track.title}`);
     return;
   }
   // Keep the reservation even on an ambiguous PDS error: the remote write
   // may have succeeded. It expires automatically, allowing a later retry.
-  const scrobbleUri = await putScrobbleRecord(track, agent);
+  const scrobbleUri = await putScrobbleRecord(track, agent, submission?.rkey);
   if (!scrobbleUri) throw new Error("Failed to publish scrobble record");
+
+  // Publication is this job's durable boundary. Jetstream owns indexing; do
+  // not occupy a worker while polling the appview for optional URI hydration.
+  if (submission) return;
 
   // loop while scrobble is null, try 30 times, sleep 1 second between tries
   tries = 0;

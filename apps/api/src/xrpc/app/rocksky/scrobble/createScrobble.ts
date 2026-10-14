@@ -1,4 +1,4 @@
-import { context, SpanStatusCode, trace } from "@opentelemetry/api";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
 import chalk from "chalk";
 import { consola } from "consola";
 import type { Context } from "context";
@@ -12,11 +12,13 @@ import {
   scrobbleBlockedMessage,
   scrobbleBotFlaggedMessage,
 } from "lib/scrobbleGuard";
-import { scrobbleTrack } from "nowplaying/nowplaying.service";
+import {
+  enqueueSubmission,
+  SubmissionUnavailable,
+} from "lib/durableSubmission";
+import { env } from "lib/env";
 import { type Track, trackSchema } from "types/track";
 import type { ZodError } from "zod";
-
-const tracer = trace.getTracer("rocksky-xrpc");
 
 // Turn a Zod validation failure into a single, human-readable line describing
 // exactly which fields are wrong, e.g. "Invalid scrobble: albumArtist is
@@ -40,7 +42,7 @@ function formatValidationError(error: ZodError): string {
 export default function (server: Server, ctx: Context) {
   server.app.rocksky.scrobble.createScrobble({
     auth: ctx.authVerifier,
-    handler: async ({ input, auth }) => {
+    handler: async ({ input, auth, req }) => {
       const span = trace.getActiveSpan();
       const did = auth.credentials?.did;
       if (!did) {
@@ -101,12 +103,7 @@ export default function (server: Server, ctx: Context) {
           throw err;
         }
 
-        // The agent is resolved up front, unlike the rest of the pipeline: with
-        // a dead PDS session there is nothing to write, and answering 200 here
-        // told clients the scrobble was stored when it never left the process.
-        // Mirrors what /now-playing already does. Everything after this point
-        // stays fire-and-forget — the client doesn't need to wait for the full
-        // scrobble pipeline (ATProto puts, MusicBrainz hydration, etc.)
+        // Reject an expired session before accepting durable work.
         const agent = await createAgent(ctx.oauthClient, did);
         if (!agent) {
           span?.addEvent("pds_session_expired");
@@ -116,49 +113,24 @@ export default function (server: Server, ctx: Context) {
           return { status: 401, message: pdsSessionExpired.message };
         }
 
-        // The pipeline outlives the request span (fire-and-forget), so it
-        // gets its own span that everything downstream (PDS puts, Postgres,
-        // MusicBrainz) nests under.
-        const pipelineSpan = tracer.startSpan("scrobbleTrack", {
-          attributes: {
-            "user.did": did,
-            "scrobble.track": track.title,
-            "scrobble.artist": track.artist,
-          },
-        });
-        context
-          .with(trace.setSpan(context.active(), pipelineSpan), () =>
-            scrobbleTrack(ctx, track, agent, did),
-          )
-          .then(() => {
-            pipelineSpan.setStatus({ code: SpanStatusCode.OK });
-            consola.info(
-              `[createScrobble] scrobble created for ${chalk.cyan(track.title)}`,
-            );
-          })
-          .catch((err) => {
-            // A guard trip on this scrobble sets the block for the *next*
-            // request; it's expected, not an error worth paging on.
-            if (err instanceof ScrobbleBlockedError) {
-              pipelineSpan.addEvent("rate_guard_tripped", {
-                "retry_after.seconds": err.retryAfter,
-              });
-              consola.warn(
-                `[createScrobble] rate guard tripped for ${chalk.cyan(did)} — now blocked ${err.retryAfter}s`,
-              );
-              return;
-            }
-            pipelineSpan.recordException(err);
-            pipelineSpan.setStatus({ code: SpanStatusCode.ERROR });
-            consola.error(
-              `[createScrobble] failed for ${chalk.cyan(did)}:`,
-              err,
-            );
-          })
-          .finally(() => pipelineSpan.end());
+        const explicitKey = req.headers["idempotency-key"];
+        if (
+          explicitKey &&
+          (typeof explicitKey !== "string" || explicitKey.length > 512)
+        )
+          return { status: 400, message: "Invalid Idempotency-Key." };
+        const submissionId = await enqueueSubmission(
+          { url: env.SUBMISSIONS_URL, secret: env.SUBMISSIONS_SECRET },
+          did,
+          track,
+          typeof explicitKey === "string" ? explicitKey : undefined,
+        );
+        span?.setAttribute("submission.id", submissionId);
 
         return { encoding: "application/json" as const, body: {} };
       } catch (err) {
+        if (err instanceof SubmissionUnavailable)
+          return { status: 503, message: err.message };
         span?.recordException(err as Error);
         span?.setStatus({ code: SpanStatusCode.ERROR });
         consola.error(

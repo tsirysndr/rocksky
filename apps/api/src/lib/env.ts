@@ -44,6 +44,9 @@ export const env = cleanEnv(process.env, {
   TRACKLIST: str({ default: "http://localhost:7884" }),
   REDIS_URL: str({ default: "redis://localhost:6379" }),
   MATCHING_URL: str({ default: "http://127.0.0.1:8097" }),
+  SUBMISSIONS_URL: str({ default: "http://127.0.0.1:8098" }),
+  // No insecure development fallback: both the queue and callback require it.
+  SUBMISSIONS_SECRET: str({ default: "" }),
   MUSICBRAINZ_URL: str({ default: "http://localhost:8088" }),
   DEEZER_URL: str({ default: "http://localhost:8090" }),
   DISCOGS_URL: str({ default: "http://localhost:8095" }),

@@ -130,6 +130,7 @@ export async function recordScrobbleAndGuard(
   ctx: Context,
   did: string,
   scrobbleTimeUnix: number,
+  submissionId?: string,
 ): Promise<void> {
   if (MAX_IN_WINDOW <= 0) return; // guard disabled
 
@@ -141,7 +142,7 @@ export async function recordScrobbleAndGuard(
   // what's left, and keep the key from lingering past the window when idle.
   const results = await ctx.redis
     .multi()
-    .zAdd(key, { score: nowMs, value: `${nowMs}:${randomUUID()}` })
+    .zAdd(key, { score: nowMs, value: `${nowMs}:${submissionId ?? randomUUID()}` })
     .zRemRangeByScore(key, 0, windowStartMs)
     .zCard(key)
     .expire(key, WINDOW_SECONDS)

@@ -1,0 +1,40 @@
+[Unit]
+Description=Rocksky Durable Submission Worker
+# Start after the API when both are scheduled; stop the worker first so its
+# active publication callbacks can drain while the API is still available.
+After=network-online.target rocksky.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+# Dedicated binary: deploying this worker does not replace the daemon used by
+# the other running Rocksky services.
+# Build from the repository root: cargo build --release -p rocksky-submissions
+ExecStart=/bin/bash -ic 'exec doppler run -- ./target/release/rocksky-submissions'
+Restart=on-failure
+RestartSec=5
+# The worker allows 190 seconds to drain active publication jobs on SIGTERM.
+TimeoutStopSec=240
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-submissions
+
+# Match the environment used by the other Doppler-managed services.
+Environment=HOME=/root
+Environment=USER=root
+Environment=SUBMISSIONS_BIND=127.0.0.1:8098
+Environment=SUBMISSIONS_API_URL=http://127.0.0.1:8000/internal/submissions/process
+Environment=SUBMISSIONS_CONCURRENCY=8
+Environment=SUBMISSIONS_MAX_ATTEMPTS=20
+# Configure SUBMISSIONS_DATABASE_URL and SUBMISSIONS_SECRET in Doppler.
+EnvironmentFile=-/etc/default/rocksky-submissions
+
+# Optional SQLite queue storage; PostgreSQL remains the default build feature.
+# SQLite URL: sqlite:///var/lib/rocksky-submissions/submissions.sqlite?mode=rwc
+StateDirectory=rocksky-submissions
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

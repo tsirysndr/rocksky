@@ -11,6 +11,8 @@ import { cors } from "hono/cors";
 import { createAgent, pdsSessionExpired } from "lib/agent";
 import { creditsArtist } from "lib/credits";
 import {
+  assertNotBotFlagged,
+  assertNotScrobbleBlocked,
   ScrobbleBlockedError,
   ScrobbleBotFlaggedError,
   scrobbleBlockedMessage,
@@ -22,7 +24,9 @@ import {
   likeTrack,
   unLikeTrack,
 } from "lovedtracks/lovedtracks.service";
-import { scrobbleTrack } from "nowplaying/nowplaying.service";
+import { enqueueSubmission, SubmissionUnavailable } from "lib/durableSubmission";
+import { env } from "lib/env";
+import submissionsApp from "./submissions/app";
 import { rateLimiter } from "ratelimiter";
 import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
@@ -55,6 +59,9 @@ dns.setDefaultResultOrder("ipv4first");
 subscribe(ctx);
 
 const app = new Hono();
+
+// Authenticated internal worker traffic has its own bounded concurrency.
+app.route("/internal/submissions", submissionsApp);
 
 app.use(
   "*",
@@ -179,12 +186,21 @@ app.post("/now-playing", async (c) => {
     return c.json(pdsSessionExpired);
   }
   consola.debug(
-    `[now-playing] agent created for ${chalk.cyan(did)}, calling scrobbleTrack`,
+    `[now-playing] agent created for ${chalk.cyan(did)}, accepting durable submission`,
   );
 
   try {
-    await scrobbleTrack(ctx, track, agent, user.did);
+    await assertNotBotFlagged(ctx, user.did);
+    await assertNotScrobbleBlocked(ctx, user.did);
+    const key = c.req.header("idempotency-key");
+    if (key && key.length > 512) return c.json({ error: "Invalid Idempotency-Key" }, 400);
+    const submissionId = await enqueueSubmission(
+      { url: env.SUBMISSIONS_URL, secret: env.SUBMISSIONS_SECRET }, user.did, track, key,
+    );
+    c.header("X-Submission-Id", submissionId);
   } catch (err) {
+    if (err instanceof SubmissionUnavailable)
+      return c.json({ error: err.message }, 503);
     if (err instanceof ScrobbleBotFlaggedError) {
       consola.warn(
         `[now-playing] rejected bot-flagged account ${chalk.cyan(did)}`,

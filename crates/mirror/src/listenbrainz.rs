@@ -251,7 +251,7 @@ async fn poll_once(
         );
         match rocksky::create_scrobble(http, &row.did, &track, Provider::Listenbrainz).await {
             Ok(_) => mirrored += 1,
-            Err(e) => warn!(user_id = %row.user_id, error = %e, "ListenBrainz: mirror failed"),
+            Err(e) => return Err(e),
         }
 
         if at > max_seen {

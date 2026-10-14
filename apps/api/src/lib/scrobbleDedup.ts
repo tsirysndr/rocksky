@@ -8,6 +8,10 @@ import { createHash, randomUUID } from "node:crypto";
 const RESERVE_SCROBBLE = `
 local at = tonumber(ARGV[1])
 local window = tonumber(ARGV[2])
+if redis.call('ZSCORE', KEYS[1], ARGV[3]) then
+  redis.call('EXPIRE', KEYS[1], 300)
+  return 1
+end
 if redis.call('ZCOUNT', KEYS[1], at - window, at + window) > 0 then
   return 0
 end
@@ -28,6 +32,7 @@ export async function reserveScrobble(
   did: string,
   track: { title: string; artist: string; timestamp: number },
   windowSeconds: number,
+  owner?: string,
 ): Promise<boolean> {
   const identity = createHash("sha256")
     .update(
@@ -36,7 +41,7 @@ export async function reserveScrobble(
     .digest("hex");
   const result = await redis.eval(RESERVE_SCROBBLE, {
     keys: [`scrobble-window:v1:${did}:${identity}`],
-    arguments: [String(track.timestamp), String(windowSeconds), randomUUID()],
+    arguments: [String(track.timestamp), String(windowSeconds), owner ?? randomUUID()],
   });
   return Number(result) === 1;
 }

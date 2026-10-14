@@ -253,7 +253,9 @@ async fn poll_once(
         );
         match rocksky::create_scrobble(http, &row.did, &track, Provider::Lastfm).await {
             Ok(_) => mirrored += 1,
-            Err(e) => warn!(user_id = %row.user_id, error = %e, "Last.fm: mirror failed"),
+            // Do not advance past a submission the durable queue did not accept.
+            // Re-fetching prior successes is safe: their timestamped keys dedup.
+            Err(e) => return Err(e),
         }
 
         if at > max_seen {

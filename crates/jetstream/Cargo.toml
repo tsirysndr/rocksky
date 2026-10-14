@@ -6,7 +6,14 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+default = ["postgres"]
+postgres = ["rocksky-submissions/postgres"]
+sqlite = ["rocksky-submissions/sqlite"]
+
 [dependencies]
+rocksky-submissions = { path = "../submissions", default-features = false }
+tokio-util = "0.7"
 rocksky-telemetry = { path = "../telemetry", default-features = false }
 rocksky-db = { path = "../db" }
 rocksky-pgurl = { path = "../pgurl" }
