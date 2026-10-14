@@ -118,8 +118,11 @@ must equal the other side’s complete credit list after normalization.
 Responses contain `policyVersion`, `status`, `track`, ranked `candidates`,
 `rejected` candidates with reasons, and `warnings`. `rank` is an ordering tuple,
 not a probability. Only `matched` has a selected `track`; `ambiguous` and
-`unmatched` have `track: null`. Equal-ranking distinct candidates stay ambiguous,
-even though their presentation order is deterministic.
+`unmatched` have `track: null`. Equal-ranking candidates stay ambiguous unless
+every pair shares recording evidence (ISRC or recording MBID) without conflicting
+identifiers, credits, versions, or durations. For verified copies of one recording,
+prefer the artist’s own album, then the earliest known release. A supplied album
+remains a strict filter. Presentation order is deterministic.
 
 HTTP 400 means invalid input, 413 oversized JSON, 429 exhausted local capacity,
 and 503 incomplete retrieval with no usable candidates. A healthy provider can

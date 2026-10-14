@@ -458,16 +458,79 @@ pub fn resolve(
         ))
     });
     if let Some(first) = result.candidates.first() {
-        if result
+        let tied: Vec<_> = result
             .candidates
-            .get(1)
-            .is_some_and(|next| first.rank == next.rank)
-        {
+            .iter()
+            .take_while(|c| c.rank == first.rank)
+            .collect();
+        // Release/territory IDs are not recording IDs. A tie between verified
+        // copies of one recording is not ambiguity. Check every pair so missing
+        // identifiers cannot bridge two contradictory recordings.
+        if tied.iter().enumerate().any(|(i, a)| {
+            tied[i + 1..]
+                .iter()
+                .any(|b| !same_recording(&a.track, &b.track))
+        }) {
             result.status = Status::Ambiguous;
         } else {
             result.status = Status::Matched;
-            result.track = Some(first.track.clone());
+            // Choose release metadata only AFTER establishing recording identity.
+            // Prefer the artist's own album, then the earliest known release.
+            let representative =
+                tied.into_iter()
+                    .min_by_key(|c| {
+                        (
+                            std::cmp::Reverse(c.track.album_artist.as_ref().is_some_and(|a| {
+                                artist_set(&c.track.artists).contains(&normalize(a))
+                            })),
+                            c.track.release_date.as_deref().unwrap_or("9999"),
+                            &c.track.source,
+                            &c.track.id,
+                        )
+                    })
+                    .unwrap();
+            result.track = Some(representative.track.clone());
         }
     }
     Ok(result)
+}
+
+/// Strong recording evidence cannot override conflicting text, versions,
+/// durations or recording identifiers. Provider track/release IDs may differ.
+fn same_recording(a: &Candidate, b: &Candidate) -> bool {
+    if normalize(&a.title) != normalize(&b.title)
+        || artist_set(&a.artists) != artist_set(&b.artists)
+        || a.version.as_deref().map(normalize) != b.version.as_deref().map(normalize)
+        || album_editions(a.album.as_deref().unwrap_or(""))
+            != album_editions(b.album.as_deref().unwrap_or(""))
+    {
+        return false;
+    }
+    if let (Some(a), Some(b)) = (
+        a.duration_ms.filter(|n| *n > 0),
+        b.duration_ms.filter(|n| *n > 0),
+    ) {
+        if a.abs_diff(b) > 5000.max(a.min(b) / 50) {
+            return false;
+        }
+    }
+    let mut shared = false;
+    for (kind, a, b) in [
+        (
+            "musicbrainzRecordingId",
+            &a.identifiers.musicbrainz_recording_id,
+            &b.identifiers.musicbrainz_recording_id,
+        ),
+        ("isrc", &a.identifiers.isrc, &b.identifiers.isrc),
+    ] {
+        if let (Some(a), Some(b)) = (a, b) {
+            let a = id_normalize(kind, a);
+            let b = id_normalize(kind, b);
+            if a != b {
+                return false;
+            }
+            shared |= !a.is_empty() && (kind != "isrc" || a.len() == 12);
+        }
+    }
+    shared
 }

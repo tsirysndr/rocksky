@@ -526,3 +526,100 @@ fn literal_comma_band_name_is_not_split_into_substring_matches() {
     c.artists = vec!["Earth".into()];
     assert_eq!(status(&r, c), Status::Unmatched);
 }
+
+fn karma_copies() -> (MatchRequest, Vec<Candidate>) {
+    let r =
+        serde_json::from_value(serde_json::json!({"title":"Karma Police","artists":["radiohead"]}))
+            .unwrap();
+    let copies = [
+        (
+            "3SVAN3BRByDmHOhKyIDxfC",
+            "OK Computer",
+            "Radiohead",
+            "1997-05-28",
+        ),
+        (
+            "4TDPAhRJvIIxC2iOj3tfnJ",
+            "Personal Effects",
+            "Tasmin Archer",
+            "1999",
+        ),
+        (
+            "63OQupATfueTdZMWTxW03A",
+            "OK Computer",
+            "Radiohead",
+            "1997-05-28",
+        ),
+    ]
+    .into_iter()
+    .map(|(id, album, artist, date)| Candidate {
+        source: "spotify".into(),
+        id: id.into(),
+        title: "Karma Police".into(),
+        artists: vec!["Radiohead".into()],
+        album: Some(album.into()),
+        album_artist: Some(artist.into()),
+        album_type: Some("album".into()),
+        release_date: Some(date.into()),
+        duration_ms: Some(264066),
+        identifiers: Identifiers {
+            isrc: Some("GBAYE9701368".into()),
+            spotify_track_id: Some(id.into()),
+            ..Default::default()
+        },
+        ..Default::default()
+    })
+    .collect();
+    (r, copies)
+}
+
+#[test]
+fn karma_police_duplicate_releases_resolve_to_original_album() {
+    let (r, copies) = karma_copies();
+    for candidates in [copies.clone(), copies.into_iter().rev().collect()] {
+        let out = resolve(&r, candidates).unwrap();
+        assert_eq!(out.status, Status::Matched);
+        let track = out.track.unwrap();
+        assert_eq!(track.id, "3SVAN3BRByDmHOhKyIDxfC");
+        assert_eq!(track.album.as_deref(), Some("OK Computer"));
+    }
+}
+
+#[test]
+fn shared_isrc_cannot_hide_conflicting_recording_evidence() {
+    for conflict in ["duration", "mbid", "isrc", "credits", "missing_id"] {
+        let (r, mut copies) = karma_copies();
+        match conflict {
+            "duration" => copies[1].duration_ms = Some(180000),
+            "mbid" => {
+                copies[0].identifiers.musicbrainz_recording_id = Some("recording-a".into());
+                copies[1].identifiers.musicbrainz_recording_id = Some("recording-b".into());
+            }
+            "isrc" => copies[1].identifiers.isrc = Some("GB0409700380".into()),
+            "credits" => copies[1].artists.push("Guest".into()),
+            _ => copies[1].identifiers.isrc = None,
+        }
+        assert_eq!(
+            resolve(&r, copies).unwrap().status,
+            Status::Ambiguous,
+            "{conflict}"
+        );
+    }
+}
+
+#[test]
+fn missing_identifier_cannot_bridge_conflicting_tied_recordings() {
+    let (r, mut copies) = karma_copies();
+    copies[1].identifiers.musicbrainz_recording_id = Some("one".into());
+    copies[2].identifiers.musicbrainz_recording_id = Some("two".into());
+    assert_eq!(resolve(&r, copies).unwrap().status, Status::Ambiguous);
+}
+
+#[test]
+fn shared_recording_copies_still_obey_requested_album() {
+    let (mut r, copies) = karma_copies();
+    r.album = Some("OK Computer".into());
+    assert_eq!(resolve(&r, copies.clone()).unwrap().status, Status::Matched);
+    r.album = Some("Wrong album".into());
+    assert_eq!(resolve(&r, copies).unwrap().status, Status::Unmatched);
+}
