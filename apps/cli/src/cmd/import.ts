@@ -3,13 +3,14 @@
 // classic-level. The runtime values are imported lazily, just before we
 // actually authenticate and write (see importCmd).
 import type { Agent } from "@rocksky/sdk";
-import type { RockskyIndex } from "@rocksky/sdk/dedup";
+import type { ImportIndex } from "lib/importIndex";
 import chalk from "chalk";
 import { consola } from "consola";
 import dayjs from "dayjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { env } from "lib/env";
 import {
   ImportFormat,
@@ -18,14 +19,14 @@ import {
 } from "lib/importParsers";
 import {
   Checkpoint,
-  ContiguousTracker,
   clearCheckpoint,
   loadCheckpoint,
-  resumeIndex,
+  restoreProgress,
   saveCheckpoint,
 } from "lib/importCheckpoint";
 import { c } from "theme";
-import { importScrobble } from "lib/importScrobble";
+import { formatImportError } from "lib/importError";
+import { importScrobble, protectScrobbleWrites } from "lib/importScrobble";
 
 const log = consola.withTag("import");
 
@@ -173,10 +174,9 @@ export async function importCmd(
   // Load the SDK lazily — only now that we're past the dry-run and actually
   // about to authenticate and write. Keeps the parse/preview path free of the
   // native classic-level dependency.
-  // `RockskyIndex` lives on the `/dedup` subpath — the root entry re-exports it
-  // as a type only, so destructuring it from there yields `undefined`.
+  // ImportIndex extends the SDK index with album-independent play identities.
   const { Agent } = await import("@rocksky/sdk");
-  const { RockskyIndex } = await import("@rocksky/sdk/dedup");
+  const { ImportIndex } = await import("lib/importIndex");
 
   // ---- Step 2: authenticate -------------------------------------------------
   const identifier = env.ROCKSKY_IDENTIFIER || env.ROCKSKY_HANDLE;
@@ -205,7 +205,7 @@ export async function importCmd(
   // overlap with scrobbles already in your repo) would re-publish records and
   // burn through the PDS write budget. If the index can't be built we abort
   // rather than risk duplicate writes.
-  let index: RockskyIndex | undefined;
+  let index: ImportIndex | undefined;
   // Background firehose sync keeps the dedup index current with scrobbles made
   // from your other apps *while this import runs*, so a long import never
   // re-writes something a concurrent client just published.
@@ -215,15 +215,16 @@ export async function importCmd(
   try {
     const dir = path.join(os.homedir(), ".rocksky", "import-index");
     fs.mkdirSync(dir, { recursive: true });
-    index = new RockskyIndex(dir);
+    index = new ImportIndex(dir);
     await index.open();
     agent.useIndex(index);
+    protectScrobbleWrites(agent, index);
     const stats = await agent.syncRepo();
     log.success(
       `Indexed your existing library — ` +
         `${chalk.bold(stats.scrobbles.toLocaleString())} scrobbles, ${stats.songs} songs, ` +
         `${stats.albums} albums, ${stats.artists} artists. ` +
-        DIM("Duplicates will be skipped."),
+        DIM("Scrobbles already present in your repo will be skipped."),
     );
 
     // Keep it live off the firehose for the duration of the import.
@@ -257,33 +258,30 @@ export async function importCmd(
   };
 
   // ---- Step 4: resume from the last imported scrobble -----------------------
-  // The checkpoint records the last *contiguously* imported scrobble for this
-  // exact source, so a restart skips everything already done — no re-walking,
-  // no wasted rate-limit budget — and resumes precisely at the next one.
+  // Restore the contiguous prefix and out-of-order successes, leaving failed
+  // and unfinished records pending.
   log.start(`[4/${steps}] Checking for a resume checkpoint…`);
   if (opts.restart) {
     clearCheckpoint(file);
     log.info("--restart given — ignoring any saved checkpoint, importing from the start.");
   }
   const saved = opts.restart ? null : loadCheckpoint(file);
-  const startIndex = resumeIndex(scrobbles, saved?.cursor ?? null);
-  const pending = scrobbles.slice(startIndex);
+  const { tracker, pendingIndices } = restoreProgress(scrobbles, saved);
+  const pending = pendingIndices.map((i) => scrobbles[i]);
+  const alreadyDone = scrobbles.length - pending.length;
 
-  if (startIndex > 0 && saved?.cursor) {
-    const at = dayjs.unix(saved.cursor.timestamp).format("YYYY-MM-DD HH:mm");
+  if (alreadyDone > 0) {
     log.success(
-      `Resuming — ${chalk.bold(startIndex.toLocaleString())} already imported ` +
-        `(last: ${saved.cursor.title} by ${saved.cursor.artist} at ${at}), ` +
-        `${chalk.bold(pending.length.toLocaleString())} remaining`,
+      `Resuming — ${chalk.bold(alreadyDone.toLocaleString())} already imported, ` +
+        `${chalk.bold(pending.length.toLocaleString())} remaining (including previous failures)`,
     );
-  } else if (saved?.cursor) {
-    log.info("Found a checkpoint but couldn't locate it in this file (source changed?) — starting from the top.");
+  } else if (saved) {
+    log.info("Checkpoint found with no matching successes — retrying all scrobbles.");
   } else {
     log.info(`No checkpoint found — importing all ${chalk.bold(pending.length.toLocaleString())} scrobbles.`);
   }
 
   if (!pending.length) {
-    clearCheckpoint(file);
     await stopJetstream();
     if (index) await index.close().catch(() => {});
     log.success("Already fully imported — nothing left to do.");
@@ -371,9 +369,8 @@ export async function importCmd(
   // The scrobble currently being written — shown live on the progress line.
   let current: ImportedScrobble | undefined;
 
-  // Checkpoint bookkeeping: advance across the unbroken completed prefix only.
-  const tracker = new ContiguousTracker();
-  let lastSaveAt = 0;
+  // Save the contiguous cursor plus every successful record beyond a gap.
+  let checkpointErrorReported = false;
   const buildCheckpoint = (): Checkpoint => {
     const m = tracker.mark;
     return {
@@ -382,22 +379,30 @@ export async function importCmd(
       cursor:
         m >= 0
           ? {
-              timestamp: pending[m].timestamp,
-              title: pending[m].title,
-              artist: pending[m].artist,
-              count: startIndex + m + 1,
+              timestamp: scrobbles[m].timestamp,
+              title: scrobbles[m].title,
+              artist: scrobbles[m].artist,
+              count: m + 1,
             }
-          : saved?.cursor ?? null,
+          : null,
+      completed: tracker.outstanding.map((i) => ({
+        timestamp: scrobbles[i].timestamp, title: scrobbles[i].title, artist: scrobbles[i].artist,
+      })),
       updatedAt: new Date().toISOString(),
     };
   };
   const flushCheckpoint = () => {
-    if (tracker.mark < 0) return;
     try {
       saveCheckpoint(buildCheckpoint());
-      lastSaveAt = Date.now();
-    } catch {
-      /* a failed checkpoint write is non-fatal; we retry on the next advance */
+      checkpointErrorReported = false;
+      return true;
+    } catch (error) {
+      if (!checkpointErrorReported) {
+        process.stdout.write("\r\x1b[K");
+        log.warn(`Could not save resume checkpoint: ${formatImportError(error)}`);
+        checkpointErrorReported = true;
+      }
+      return false;
     }
   };
 
@@ -408,10 +413,10 @@ export async function importCmd(
     if (interrupted) return;
     interrupted = true;
     process.stdout.write("\n");
-    flushCheckpoint();
+    const persisted = flushCheckpoint();
     jetstreamAbort?.abort(); // best-effort; we're exiting immediately
     log.warn(
-      `Interrupted — checkpoint saved at ${startIndex + tracker.mark + 1} of ${scrobbles.length}. ` +
+      `Interrupted — ${persisted ? `checkpoint saved with ${alreadyDone + done - failed} of ${scrobbles.length} imported` : "checkpoint could not be saved"}. ` +
         "Re-run the same command to resume.",
     );
     process.exit(130);
@@ -422,7 +427,7 @@ export async function importCmd(
   const publishOne = async (s: ImportedScrobble, i: number): Promise<void> => {
     // Surface what we're about to write, and refresh the in-place line now.
     current = s;
-    renderProgress(done, total, failed, startedAt, current);
+    renderProgress(done, total, failed, startedAt, current, index?.duplicateHits ?? 0);
     try {
       await withRateLimitRetry(async () => {
         // The SDK throttles each underlying PDS write (artist + album + song +
@@ -431,18 +436,21 @@ export async function importCmd(
         // Always enrich via matchSong: the exports carry no duration or album
         // art, and scrobbleMatch falls back to a minimal record when there's no
         // match — so this never writes worse metadata than a raw scrobble would.
-        await importScrobble(agent, s);
+        await importScrobble(agent, s, { did: agent.did, index: index! });
       });
       // Only advance the checkpoint on success, so a failure never gets skipped
       // on resume.
-      const advanced = tracker.complete(i);
-      if (advanced && Date.now() - lastSaveAt > 1500) flushCheckpoint();
+      tracker.complete(pendingIndices[i]);
+      flushCheckpoint();
     } catch (e) {
       failed++;
-      if (failures.length < 20) failures.push({ s, error: (e as Error).message });
+      const error = formatImportError(e);
+      process.stdout.write("\r\x1b[K");
+      log.error(`✖${failed} failed — Rejected: ${s.title} — ${s.artist} (${dayjs.unix(s.timestamp).format("YYYY-MM-DD HH:mm:ss")}): ${error}`);
+      if (failures.length < 20) failures.push({ s, error });
     } finally {
       done++;
-      renderProgress(done, total, failed, startedAt, current);
+      renderProgress(done, total, failed, startedAt, current, index?.duplicateHits ?? 0);
     }
   };
 
@@ -451,11 +459,9 @@ export async function importCmd(
   process.off("SIGINT", onSignal);
   process.off("SIGTERM", onSignal);
 
-  // Persist the final position, then clear the checkpoint iff the whole run
-  // completed with no gaps (a blocking failure keeps it for the next resume).
-  flushCheckpoint();
-  const fullyDone = tracker.mark === pending.length - 1;
-  if (fullyDone) clearCheckpoint(file);
+  // Keep successful checkpoints too, so re-running a finished import is a no-op.
+  const checkpointSaved = flushCheckpoint();
+  const fullyDone = tracker.mark === scrobbles.length - 1;
 
   await stopJetstream();
   if (index) {
@@ -471,11 +477,14 @@ export async function importCmd(
   const took = fmtDuration((Date.now() - startedAt) / 1000);
   log.box(
     `${failed ? c.link("Import finished with errors") : TEAL("Import complete")}\n\n` +
-      `${chalk.bold(ok.toLocaleString())}/${total.toLocaleString()} scrobble(s) published in ${took}` +
+      `${chalk.bold(ok.toLocaleString())}/${total.toLocaleString()} scrobble(s) processed in ${took}` +
+      `\n${index?.duplicateHits ?? 0} skipped (already present in your repo)` +
       (failed ? `\n${RED(`${failed} failed`)}` : "") +
       (fullyDone
         ? ""
-        : `\n${DIM(`Checkpoint kept at ${startIndex + tracker.mark + 1}/${scrobbles.length} — re-run to resume.`)}`),
+        : `\n${DIM(checkpointSaved
+          ? `Checkpoint kept with ${alreadyDone + ok}/${scrobbles.length} imported — re-run to resume.`
+          : "Could not save the latest checkpoint — resume may recheck completed records.")}`),
   );
   if (failures.length) {
     log.error(`First ${Math.min(failures.length, 10)} failure(s):`);
@@ -523,18 +532,20 @@ function truncate(s: string, n: number): string {
 /**
  * Single live status line, redrawn in place (\r + clear-to-end-of-line): a
  * smooth progress bar, counts, ETA, and the scrobble currently being written.
- * Everything updates on the same line — nothing scrolls until the run ends.
+ * Failures are printed above this line as soon as they occur.
  */
-function renderProgress(
+export function renderProgress(
   done: number,
   total: number,
   failed: number,
   startedAt: number,
   current?: ImportedScrobble,
+  skipped = 0,
 ): void {
   const frac = total > 0 ? done / total : 0;
   const pct = Math.floor(frac * 100);
-  const width = 20;
+  const cols = process.stdout.columns || 80;
+  const width = cols >= 100 ? 20 : 10;
 
   // Smooth fill: full blocks + one fractional block for the remainder.
   const exact = frac * width;
@@ -552,15 +563,14 @@ function renderProgress(
   const head =
     `  ${bar} ${chalk.bold(`${String(pct).padStart(3)}%`)}  ` +
     `${CYAN(counts)}` +
-    (failed ? RED(`  ✖${failed}`) : "") +
+    (failed ? RED(`  ✖${failed} failed`) : "") +
+    DIM(`  ↷${skipped} skipped`) +
     DIM(`  ~${fmtDuration(eta)} left`);
 
   // Append the current track, trimmed to whatever width the terminal leaves.
   let tail = "";
   if (current) {
-    // head length without ANSI colour codes ≈ bar(20)+counts+eta ~ 48 chars.
-    const cols = process.stdout.columns || 80;
-    const room = cols - 52; // conservative space left for the track label
+    const room = cols - stripVTControlCharacters(head).length - 5;
     if (room > 8) {
       const label = `${current.title} — ${current.artist}`;
       tail = "  " + VIOLET("▸ ") + truncate(label, room);

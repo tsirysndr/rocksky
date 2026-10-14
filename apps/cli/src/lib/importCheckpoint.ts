@@ -7,13 +7,13 @@ import path from "node:path";
  * Resumable checkpointing for `rocksky import`. Every import source (a file or
  * the Spotify history folder) gets a small JSON checkpoint under
  * `~/.rocksky/import-checkpoints/`. The checkpoint records the *last
- * contiguously-imported scrobble* so that a restart resumes exactly after it —
+ * contiguously-imported scrobble* and successful records beyond gaps, so resume skips successes —
  * without re-walking (or re-rate-limiting) everything that already succeeded.
  *
  * "Contiguous" matters: with concurrent workers, scrobbles can finish out of
  * order. We only advance the checkpoint across the unbroken prefix of completed
  * scrobbles, so a failure (or a Ctrl-C mid-flight) never leaves a gap that
- * resume would skip over.
+ * resume would skip over. Successes beyond gaps are saved separately.
  */
 
 /** Identity of a scrobble, stable across re-parses of the same source+flags. */
@@ -29,6 +29,8 @@ export interface Checkpoint {
   format: string;
   /** Last contiguously-imported scrobble, plus how many were done. */
   cursor: (ScrobbleId & { count: number }) | null;
+  /** Successful records beyond a failure or an unfinished concurrent write. */
+  completed?: ScrobbleId[];
   updatedAt: string;
 }
 
@@ -96,10 +98,12 @@ export class ContiguousTracker {
   private _mark = -1;
 
   complete(i: number): boolean {
+    if (i <= this._mark) return false;
     this.done.add(i);
     let advanced = false;
     while (this.done.has(this._mark + 1)) {
       this._mark++;
+      this.done.delete(this._mark);
       advanced = true;
     }
     return advanced;
@@ -109,4 +113,22 @@ export class ContiguousTracker {
   get mark(): number {
     return this._mark;
   }
+
+  get outstanding(): number[] {
+    return [...this.done].sort((a, b) => a - b);
+  }
+}
+
+/** Restore both the legacy cursor and successes beyond gaps. */
+export function restoreProgress(scrobbles: ScrobbleId[], saved: Checkpoint | null) {
+  const tracker = new ContiguousTracker();
+  const start = resumeIndex(scrobbles, saved?.cursor ?? null);
+  const key = (s: ScrobbleId) => JSON.stringify([s.timestamp, s.title, s.artist]);
+  const completed = new Set((saved?.completed ?? []).map(key));
+  const pendingIndices: number[] = [];
+  for (let i = 0; i < scrobbles.length; i++) {
+    if (i < start || completed.has(key(scrobbles[i]))) tracker.complete(i);
+    else pendingIndices.push(i);
+  }
+  return { tracker, pendingIndices };
 }
