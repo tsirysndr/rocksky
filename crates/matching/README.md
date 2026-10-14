@@ -203,6 +203,21 @@ that a provider omits, and does not merge enrichment from unrelated tracks.
 
 ## Tests
 
+For a list of live curl test cases against the running service (requires `curl`
+and `jq`, no build), run:
+
+```sh
+bash crates/matching/scripts/curl-tests.sh http://127.0.0.1:8097
+```
+
+The script lists 20 requests with expected HTTP statuses and response assertions:
+health, required fields, album filtering, normalization, unrequested remasters,
+Spotify/ISRC/MusicBrainz IDs, version suffix differences with a verified ID, and
+wrong metadata even when an ID is supplied. It prints responses and exits nonzero
+on failed assertions or provider warnings. Live catalog changes and unavailable
+providers can affect these results; the deterministic suite below covers the
+full regression cases independently of live data.
+
 Run the complete suite with the server-friendly wrapper (two build jobs by
 default; configurable with `MATCHING_TEST_JOBS`):
 
