@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS rocksky_durable_jobs (
     lease_token TEXT NOT NULL DEFAULT '',
     last_error TEXT NOT NULL DEFAULT '',
     created_at BIGINT NOT NULL,
-    updated_at BIGINT NOT NULL
+    updated_at BIGINT NOT NULL,
+    compacted_at BIGINT NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_ready
     ON rocksky_durable_jobs (kind, status, available_at, created_at);

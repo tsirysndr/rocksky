@@ -234,6 +234,7 @@ pub async fn run() -> Result<()> {
         secret.len() >= 32,
         "SUBMISSIONS_SECRET must contain at least 32 bytes"
     );
+    let cleanup_settings = crate::cleanup::CleanupSettings::from_env()?;
     let queue = Queue::from_env().await?;
     let bind = env::var("SUBMISSIONS_BIND").unwrap_or_else(|_| "127.0.0.1:8098".into());
     let api = env::var("SUBMISSIONS_API_URL")
@@ -271,6 +272,11 @@ pub async fn run() -> Result<()> {
         .run();
     let handle = server.handle();
     let shutdown = CancellationToken::new();
+    let cleaner = tokio::spawn(crate::cleanup::run(
+        queue.clone(),
+        cleanup_settings,
+        shutdown.clone(),
+    ));
     let mut workers = tokio::task::JoinSet::new();
     let process_queue = queue.clone();
     workers.spawn(worker::run(
@@ -315,6 +321,7 @@ pub async fn run() -> Result<()> {
     {
         workers.abort_all();
     }
+    cleaner.await.context("cleanup task panicked")?;
     outcome
 }
 

@@ -90,6 +90,7 @@ def main():
         "SUBMISSIONS_API_URL": f"http://127.0.0.1:{callback.server_port}/process",
         "SUBMISSIONS_CONCURRENCY": "2",
         "SUBMISSIONS_MAX_ATTEMPTS": "6",
+        "SUBMISSIONS_CLEANUP_ENABLED": "false",
     }
     worker = None
     created = False
@@ -168,12 +169,28 @@ def main():
             worker.terminate()
             # Actix allows up to 30 seconds to drain HTTP connections.
             worker.wait(timeout=45)
+            # Exercise the service's real scheduled cleanup, not just queue SQL.
+            env.update({"SUBMISSIONS_CLEANUP_ENABLED": "true",
+                        "SUBMISSIONS_COMPLETED_RETENTION_SECONDS": "10",
+                        "SUBMISSIONS_DEDUP_RETENTION_SECONDS": "0",
+                        "SUBMISSIONS_CLEANUP_INTERVAL_SECONDS": "1",
+                        "SUBMISSIONS_CLEANUP_BATCH_SIZE": "1"})
+            sql(f"UPDATE {schema}.rocksky_durable_jobs SET updated_at=extract(epoch from now())::bigint-20 WHERE id='{job_id}'")
             worker = start(log)
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                if request(f"/v1/jobs/{job_id}")[1]["compacted_at"] > 0:
+                    break
+                time.sleep(0.2)
+            else:
+                raise AssertionError("automatic cleanup did not compact the completed job")
+            assert sql(f"SELECT count(*) FROM {schema}.rocksky_durable_steps WHERE job_id='{job_id}'") == "0"
             assert request("/v1/submissions", submission)[1]["id"] == job_id
+            assert request("/v1/submissions", changed)[0] == 409
             time.sleep(1.5)
             assert len(calls) == 3, "completed job was published again after restart"
             assert request(f"/v1/jobs/{job_id}")[1]["status"] == "completed"
-            print(json.dumps({"result": "passed", "backend": "postgres", "http_attempts": 3, "checks": ["authenticated intake", "durable acceptance", "idempotency/conflict", "SIGKILL recovery", "503 retry", "stable record key and timestamp", "step checkpoint", "no republication after restart"]}))
+            print(json.dumps({"result": "passed", "backend": "postgres", "http_attempts": 3, "checks": ["authenticated intake", "durable acceptance", "idempotency/conflict", "SIGKILL recovery", "503 retry", "stable record key and timestamp", "step checkpoint", "no republication after restart", "automatic cleanup preserves deduplication"]}))
     finally:
         release_first.set()
         if worker is not None and worker.poll() is None:

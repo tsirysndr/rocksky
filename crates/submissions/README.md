@@ -176,10 +176,54 @@ SELECT id, kind, attempts, last_error
 FROM rocksky_durable_jobs WHERE status = 'failed';
 ```
 
-Jobs and checkpoints are retained by default so deduplication and manual replay
-remain possible. Monitor disk growth, oldest pending job age, failed counts and
-indexing lag. Never delete pending/processing jobs. A future retention policy must
-preserve deduplication identities for the supported replay window.
+### Automatic retention
+
+The submissions service runs a cleanup task for **all queue kinds** in its database,
+including Jetstream jobs. Keep the submissions service running even if only
+Jetstream uses the queue. These settings are read at service startup and work with
+both PostgreSQL and SQLite:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `SUBMISSIONS_CLEANUP_ENABLED` | `true` | Set `false` to retain everything and stop cleanup |
+| `SUBMISSIONS_COMPLETED_RETENTION_SECONDS` | `604800` (7 days) | Keep full completed payloads and checkpoints for this long after completion |
+| `SUBMISSIONS_DEDUP_RETENTION_SECONDS` | `7776000` (90 days) | Total deduplication retention after completion; `0` retains compact records forever |
+| `SUBMISSIONS_CLEANUP_INTERVAL_SECONDS` | `300` | Run one bounded cleanup pass every five minutes, also once at startup |
+| `SUBMISSIONS_CLEANUP_BATCH_SIZE` | `500` | Maximum jobs compacted **and**, separately, maximum compact records deleted per pass (1–10000) |
+
+Deduplication retention must be greater than completed retention, or zero. Completed
+retention must be positive; interval must be 1–86400 seconds. Invalid settings fail
+startup rather than silently applying a different policy.
+
+After seven days, completed jobs keep their ID, request hash, status, attempt count,
+and original completion time in the jobs table. Their large payloads and step
+checkpoints are removed atomically. Publication jobs also retain their original PDS
+record key and frozen listening timestamp in a small internal payload. The public
+job response exposes `compacted_at` (epoch seconds; zero before compaction), but still
+omits payloads. Duplicate requests return the same completed job; conflicting input
+still returns 409. Completed jobs cannot be manually retried. The retained primary
+key also prevents older producer binaries from recreating these jobs.
+
+After 90 days, compact records are deleted. **Once deleted, the same idempotency
+key can be accepted as new work and may publish again with a new record key.** Use
+`SUBMISSIONS_DEDUP_RETENTION_SECONDS=0` if retries must remain deduplicated indefinitely;
+compact records will then continue to grow. Retention runs in batches, so an expired
+record may remain longer while a backlog drains. Shortening retention applies to
+existing completed jobs on the next pass; disabling cleanup cannot restore already
+removed data. Older worker binaries ignore these settings and do not run cleanup.
+
+Pending, processing, failed jobs and source cursors are never cleaned automatically.
+Failed jobs retain payloads/checkpoints for investigation and manual retry. Their
+accumulation still requires monitoring and explicit operator action.
+
+Cleanup uses row locks with `SKIP LOCKED` on PostgreSQL and short writer transactions
+on SQLite. Multiple service replicas may clean safely. Each pass uses batched SQL,
+logs compacted/deleted counts, and retries database errors on the next interval.
+There is no `VACUUM FULL` or automatic SQLite `VACUUM`: PostgreSQL autovacuum and SQLite
+freelist reuse allow future writes to reuse space; files need not immediately shrink.
+Monitor queue size, oldest pending age, failed counts, cleanup errors and cleanup
+throughput. At the defaults, one replica can compact and expire up to 144,000 jobs/day;
+increase batch size or reduce the interval if ingestion outpaces that rate.
 
 ## Verification
 
@@ -189,11 +233,13 @@ cargo check -p rocksky-submissions
 cargo check -p rocksky-jetstream --all-features
 # Use an isolated test database; tests create queue tables and scoped test rows.
 SUBMISSIONS_TEST_POSTGRES_URL='postgres://localhost/testdb' \
-  cargo test -p rocksky-submissions --all-features postgres_queue_contract -- --ignored
+  cargo test -p rocksky-submissions --all-features -- --include-ignored
 ```
 
 The backend contract covers competing consumers, fencing, retry scheduling,
-dead-lettering, step reuse and independent source cursors. SQLite also has an
+dead-lettering, step reuse and independent source cursors. Cleanup tests cover
+legacy schema upgrades, atomic rollback, concurrent cleaners, batch limits,
+protected job states, retained identities/conflicts, and deduplication expiry. SQLite also has an
 abrupt child-process exit test proving committed jobs/checkpoints survive without
 graceful connection shutdown.
 
@@ -207,4 +253,4 @@ SUBMISSIONS_TEST_POSTGRES_URL='postgres://localhost/testdb' \
 This requires `psql` and permission to create a temporary schema. It starts an
 isolated worker and loopback callback, kills the worker during publication,
 verifies recovery and a 503 retry, and checks that completed work is not published
-again after restart. It removes its schema afterward and never contacts a PDS.
+again after restart or automatic payload cleanup. It removes its schema afterward and never contacts a PDS.

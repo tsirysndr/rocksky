@@ -1,7 +1,7 @@
 use anyhow::{ensure, Context, Result};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use sqlx::{any::AnyPoolOptions, AnyPool};
+use sqlx::{any::AnyPoolOptions, Any, AnyPool, Row};
 use std::{str::FromStr, time::Duration};
 use uuid::Uuid;
 
@@ -29,6 +29,7 @@ pub struct Job {
     pub last_error: String,
     pub created_at: i64,
     pub updated_at: i64,
+    pub compacted_at: i64,
 }
 
 /// One source delivery; its cursor advances only with the durable inbox write.
@@ -111,7 +112,10 @@ impl Queue {
             postgres,
             wake: std::sync::Arc::new(tokio::sync::Notify::new()),
         };
-        let mut tx = queue.pool.begin().await?;
+        let mut tx = queue
+            .pool
+            .begin_with(if postgres { "BEGIN" } else { "BEGIN IMMEDIATE" })
+            .await?;
         if postgres {
             // Serialize startup migrations across replicas.
             sqlx::query("SELECT pg_advisory_xact_lock(729411068)")
@@ -124,8 +128,117 @@ impl Queue {
         {
             sqlx::query(statement).execute(&mut *tx).await?;
         }
+        // Upgrade pre-retention databases without rewriting jobs or changing IDs.
+        let has_compacted = if postgres {
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM pg_attribute WHERE attrelid='rocksky_durable_jobs'::regclass AND attname='compacted_at' AND NOT attisdropped")
+                .fetch_one(&mut *tx).await? > 0
+        } else {
+            sqlx::query("PRAGMA table_info(rocksky_durable_jobs)")
+                .fetch_all(&mut *tx)
+                .await?
+                .iter()
+                .any(|row| row.get::<String, _>("name") == "compacted_at")
+        };
+        if !has_compacted {
+            sqlx::query("ALTER TABLE rocksky_durable_jobs ADD COLUMN compacted_at BIGINT NOT NULL DEFAULT 0")
+                .execute(&mut *tx).await?;
+        }
+        for statement in [
+            "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_compact ON rocksky_durable_jobs (updated_at,id) WHERE status='completed' AND compacted_at=0",
+            "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_retire ON rocksky_durable_jobs (updated_at,id) WHERE status='completed' AND compacted_at>0",
+        ] {
+            sqlx::query(statement).execute(&mut *tx).await?;
+        }
         tx.commit().await?;
         Ok(queue)
+    }
+
+    /// Compact completed rows in place: the primary key and request hash remain
+    /// the deduplication authority, including for older producer binaries.
+    /// Row locks (Postgres) / a writer transaction (SQLite) protect checkpoints
+    /// and prevent concurrent sweepers from counting or deleting a job twice.
+    pub async fn cleanup(
+        &self,
+        settings: crate::cleanup::CleanupSettings,
+    ) -> Result<crate::cleanup::CleanupResult> {
+        settings.validate()?;
+        let mut result = crate::cleanup::CleanupResult::default();
+        if !settings.enabled {
+            return Ok(result);
+        }
+        let mut tx = self
+            .pool
+            .begin_with(if self.postgres {
+                "BEGIN"
+            } else {
+                "BEGIN IMMEDIATE"
+            })
+            .await?;
+        let now: i64 = sqlx::query_scalar(&format!("SELECT {}", self.now()))
+            .fetch_one(&mut *tx)
+            .await?;
+        let lock = if self.postgres {
+            " FOR UPDATE SKIP LOCKED"
+        } else {
+            ""
+        };
+        let jobs: Vec<Job> = sqlx::query_as(&format!("SELECT * FROM rocksky_durable_jobs WHERE status='completed' AND compacted_at=0 AND updated_at<=$1 ORDER BY updated_at,id LIMIT $2{lock}"))
+            .bind(now - settings.completed_retention_seconds).bind(settings.batch_size).fetch_all(&mut *tx).await?;
+        let mut compacted_payloads = Vec::with_capacity(jobs.len());
+        for job in &jobs {
+            // Completed jobs are never executable again while this row exists.
+            // Keep the PDS record identity and frozen listening time for audit,
+            // but discard track metadata, DID and the large upstream event body.
+            let mut compact = serde_json::json!({});
+            if job.kind == crate::service::KIND {
+                if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&job.payload) {
+                    if let Some(key) = payload.get("recordKey").and_then(|v| v.as_str()) {
+                        compact["recordKey"] = key.into();
+                    }
+                    if let Some(timestamp) = payload.get("track").and_then(|v| v.get("timestamp")) {
+                        compact["timestamp"] = timestamp.clone();
+                    }
+                }
+            }
+            compacted_payloads.push(compact.to_string());
+        }
+        if !jobs.is_empty() {
+            let ids: Vec<String> = jobs.iter().map(|job| job.id.clone()).collect();
+            delete_steps(&mut tx, &ids).await?;
+            // Numbered placeholders work with both drivers behind sqlx::Any.
+            let cases = (0..jobs.len())
+                .map(|n| format!("WHEN ${} THEN ${}", n * 2 + 1, n * 2 + 2))
+                .collect::<Vec<_>>()
+                .join(" ");
+            let statement = format!("UPDATE rocksky_durable_jobs SET payload=CASE id {cases} END, last_error='', compacted_at=${} WHERE id IN ({})", jobs.len() * 2 + 1, placeholders(jobs.len() * 2 + 2, ids.len()));
+            let mut update = sqlx::query(&statement);
+            for (job, payload) in jobs.iter().zip(&compacted_payloads) {
+                update = update.bind(&job.id).bind(payload);
+            }
+            update = update.bind(now);
+            for id in &ids {
+                update = update.bind(id);
+            }
+            result.compacted = update.execute(&mut *tx).await?.rows_affected();
+        }
+        if settings.dedup_retention_seconds > 0 {
+            let ids: Vec<String> = sqlx::query_scalar(&format!("SELECT id FROM rocksky_durable_jobs WHERE status='completed' AND compacted_at>0 AND updated_at<=$1 ORDER BY updated_at,id LIMIT $2{lock}"))
+                .bind(now - settings.dedup_retention_seconds).bind(settings.batch_size).fetch_all(&mut *tx).await?;
+            if !ids.is_empty() {
+                delete_steps(&mut tx, &ids).await?;
+                let statement = format!(
+                    "DELETE FROM rocksky_durable_jobs WHERE id IN ({})",
+                    placeholders(1, ids.len())
+                );
+                let mut delete = sqlx::query(&statement);
+                for id in &ids {
+                    delete = delete.bind(id);
+                }
+                result.deleted = delete.execute(&mut *tx).await?.rows_affected();
+            }
+        }
+        tx.commit().await?;
+        Ok(result)
     }
 
     pub async fn from_env() -> Result<Self> {
@@ -400,6 +513,26 @@ impl Queue {
     }
 }
 
+fn placeholders(start: usize, len: usize) -> String {
+    (start..start + len)
+        .map(|n| format!("${n}"))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+async fn delete_steps(tx: &mut sqlx::Transaction<'_, Any>, ids: &[String]) -> Result<()> {
+    let statement = format!(
+        "DELETE FROM rocksky_durable_steps WHERE job_id IN ({})",
+        placeholders(1, ids.len())
+    );
+    let mut query = sqlx::query(&statement);
+    for id in ids {
+        query = query.bind(id);
+    }
+    query.execute(&mut **tx).await?;
+    Ok(())
+}
+
 fn retry_delay(attempts: i64) -> i64 {
     let base = (2_i64.pow(attempts.clamp(1, 10) as u32)).min(900);
     base + i64::from(Uuid::new_v4().as_bytes()[0]) % (base / 4 + 1)
@@ -672,3 +805,7 @@ mod tests {
 #[cfg(test)]
 #[path = "batch_tests.rs"]
 mod batch_tests;
+
+#[cfg(test)]
+#[path = "cleanup_tests.rs"]
+mod cleanup_tests;

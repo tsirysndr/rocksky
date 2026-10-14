@@ -3,6 +3,7 @@
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("enable the postgres (default) or sqlite feature");
 
+pub mod cleanup;
 pub mod queue;
 pub mod service;
 pub mod worker;
