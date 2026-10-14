@@ -102,6 +102,8 @@ export async function catalogIdentity(
     same(record.albumArtist, albumArtist);
   return {
     record,
+    album: matchingAlbum,
+    artist: matchingArtist,
     uri: record?.uri ?? null,
     albumUri:
       matchingAlbum?.uri ?? (sameAlbum ? record?.albumUri : null) ?? null,

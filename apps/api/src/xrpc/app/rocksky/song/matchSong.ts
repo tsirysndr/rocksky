@@ -37,7 +37,7 @@ export async function retrieveMatch(
   if (!candidate)
     throw new InvalidRequestError("No unambiguous song match", "NotFound");
   const metadata = candidateMetadata(candidate);
-  const record =
+  const selectedRecord =
     candidate.source === "catalog"
       ? await ctx.readDb
           .select()
@@ -46,6 +46,18 @@ export async function retrieveMatch(
           .limit(1)
           .then((rows) => rows[0])
       : undefined;
+  const identity = await catalogIdentity(ctx, candidate, selectedRecord);
+  const catalogRecord = identity.record;
+  // Only populated catalog fields override provider metadata. Null/empty values
+  // are missing metadata, and placeholder durations must not erase real lengths.
+  const catalogMetadata = Object.fromEntries(
+    Object.entries(catalogRecord ?? {}).filter(
+      ([key, value]) =>
+        value != null &&
+        value !== "" &&
+        !(key === "duration" && Number(value) <= 1),
+    ),
+  ) as Partial<SelectTrack>;
   const track: SelectTrack = {
     id: "",
     title: candidate.title,
@@ -77,15 +89,18 @@ export async function retrieveMatch(
     createdAt: new Date(),
     updatedAt: new Date(),
     xataVersion: 0,
-    ...record,
+    ...catalogMetadata,
     // The service may have selected a joined release; retain its checked identity.
   };
   track.title = candidate.title;
   track.artist = candidate.artists.join(", ");
   track.album = candidate.album ?? "";
   track.albumArtist = candidate.albumArtist ?? track.albumArtist;
-  const identity = await catalogIdentity(ctx, candidate, record);
-  const catalogRecord = identity.record;
+  track.albumArt = identity.album?.albumArt || track.albumArt;
+  const genres = track.genre
+    ? track.genre.split(", ").filter(Boolean)
+    : (metadata.genres ?? identity.artist?.genres ?? null);
+  track.genre = track.genre || genres?.join(", ") || null;
   const [uniqueListeners, playCount] = catalogRecord
     ? await Promise.all([
         ctx.readDb
@@ -109,10 +124,13 @@ export async function retrieveMatch(
     artistUri: identity.artistUri,
     createdAt: track.createdAt.toISOString(),
     updatedAt: track.updatedAt.toISOString(),
-    releaseDate: metadata.releaseDate?.toISOString().slice(0, 10) ?? null,
-    year: metadata.year ?? null,
-    artistPicture: metadata.artistPicture ?? null,
-    genres: metadata.genres ?? null,
+    releaseDate:
+      identity.album?.releaseDate ||
+      metadata.releaseDate?.toISOString().slice(0, 10) ||
+      null,
+    year: identity.album?.year ?? metadata.year ?? null,
+    artistPicture: identity.artist?.picture || metadata.artistPicture || null,
+    genres,
     mbArtists:
       candidate.musicbrainzArtists?.map((a) => ({
         mbid: a.mbid,
