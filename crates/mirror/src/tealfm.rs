@@ -140,8 +140,11 @@ async fn handle_event(
         return Ok(());
     };
     // Our outgoing plays already have a Rocksky source; never mirror them back.
-    if record.get("submissionClientAgent").and_then(|v| v.as_str())
-        .is_some_and(|agent| agent.starts_with("rocksky/")) {
+    if record
+        .get("submissionClientAgent")
+        .and_then(|v| v.as_str())
+        .is_some_and(|agent| agent.starts_with("rocksky/"))
+    {
         return Ok(());
     }
     let play: PlayRecord = match serde_json::from_value(record) {
