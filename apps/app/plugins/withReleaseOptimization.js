@@ -3,6 +3,7 @@ const { withAppBuildGradle, withGradleProperties } = require('@expo/config-plugi
 module.exports = config => {
   config = withGradleProperties(config, config => {
     const properties = {
+      'org.gradle.jvmargs': '-Xmx4g -XX:MaxMetaspaceSize=1g',
       'android.enableMinifyInReleaseBuilds': 'true',
       'android.enableShrinkResourcesInReleaseBuilds': 'true',
     };
