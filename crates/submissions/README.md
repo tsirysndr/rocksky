@@ -346,3 +346,15 @@ queue.rocksky.app {
 When deploying additive database migrations, restart **all long-lived queue
 clients**, including Jetstream. Job queries use explicit column projections so
 adding a column does not invalidate their PostgreSQL prepared result types.
+
+### Collection activity
+
+The overview groups completed Jetstream jobs by collection over the same last-hour
+window as the throughput chart. It counts distinct retained jobs, including
+successful skips and all operations, not unique scrobbles or delivery attempts.
+Collection metadata is captured on intake and survives payload compaction.
+Existing rows are not backfilled; these and malformed events appear as
+Unknown / legacy. Publication jobs are excluded from this breakdown.
+The existing cached completion query supplies collection buckets without a
+separate payload scan. Restart Jetstream as well as submissions on deployment
+so new inbox writes populate collection metadata.

@@ -63,6 +63,22 @@ pub fn digest(value: &str) -> String {
     format!("{:x}", Sha256::digest(value.as_bytes()))
 }
 
+fn job_collection(kind: &str, payload: &str) -> String {
+    if kind != "jetstream.commit.v1" {
+        return String::new();
+    }
+    serde_json::from_str::<serde_json::Value>(payload)
+        .ok()
+        .and_then(|value| {
+            value
+                .pointer("/commit/collection")
+                .and_then(|v| v.as_str())
+                .filter(|s| s.len() <= 512)
+                .map(str::to_owned)
+        })
+        .unwrap_or_default()
+}
+
 impl Queue {
     pub async fn connect(url: &str) -> Result<Self> {
         let postgres = url.starts_with("postgres://") || url.starts_with("postgresql://");
@@ -144,6 +160,7 @@ impl Queue {
         for (column, definition) in [
             ("compacted_at", "BIGINT NOT NULL DEFAULT 0"),
             ("source", "TEXT NOT NULL DEFAULT ''"),
+            ("collection", "TEXT NOT NULL DEFAULT ''"),
             ("started_at_ms", "BIGINT NOT NULL DEFAULT 0"),
             ("attempt_history", "TEXT NOT NULL DEFAULT '[]'"),
         ] {
@@ -320,12 +337,13 @@ impl Queue {
     ) -> Result<Job> {
         let id = digest(&serde_json::to_string(&(kind, key))?);
         let now = self.now();
-        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',{now},{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING {JOB_COLUMNS}");
+        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, collection, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,'pending',{now},{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING {JOB_COLUMNS}");
         let job: Job = sqlx::query_as(&sql)
             .bind(&id)
             .bind(kind)
             .bind(request_hash)
             .bind(payload)
+            .bind(job_collection(kind, payload))
             .fetch_one(&self.pool)
             .await?;
         if job.request_hash != request_hash {
@@ -380,7 +398,14 @@ impl Queue {
         let mut cursors = std::collections::BTreeMap::new();
         for event in events {
             jobs.entry(digest(&serde_json::to_string(&(kind, &event.key))?))
-                .or_insert((digest(&event.payload), &event.payload, &event.source));
+                .or_insert_with(|| {
+                    (
+                        digest(&event.payload),
+                        &event.payload,
+                        &event.source,
+                        job_collection(kind, &event.payload),
+                    )
+                });
             cursors
                 .entry(&event.source)
                 .and_modify(|v: &mut i64| *v = (*v).max(event.cursor))
@@ -389,18 +414,19 @@ impl Queue {
         let now = self.now();
         let values = (0..jobs.len())
             .map(|n| {
-                let n = 2 + n * 4;
+                let n = 2 + n * 5;
                 format!(
-                    "(${n},$1,${},${},${},'pending',{now},{now},{now})",
+                    "(${n},$1,${},${},${},${},'pending',{now},{now},{now})",
                     n + 1,
                     n + 2,
-                    n + 3
+                    n + 3,
+                    n + 4
                 )
             })
             .collect::<Vec<_>>()
             .join(",");
-        let insert = format!("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,source,status,available_at,created_at,updated_at) VALUES {values} ON CONFLICT (id) DO NOTHING");
-        let cursor_start = if self.postgres { 2 + jobs.len() * 4 } else { 1 };
+        let insert = format!("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,source,collection,status,available_at,created_at,updated_at) VALUES {values} ON CONFLICT (id) DO NOTHING");
+        let cursor_start = if self.postgres { 2 + jobs.len() * 5 } else { 1 };
         let cursor_values = (0..cursors.len())
             .map(|n| format!("(${},${})", cursor_start + n * 2, cursor_start + n * 2 + 1))
             .collect::<Vec<_>>()
@@ -411,8 +437,13 @@ impl Queue {
             // RETURNING rows are unused. Both writes share this statement's commit.
             let statement = format!("WITH captured AS ({insert} RETURNING id) {upsert}");
             let mut query = sqlx::query(&statement).bind(kind);
-            for (id, (hash, payload, source)) in &jobs {
-                query = query.bind(id).bind(hash).bind(*payload).bind(*source);
+            for (id, (hash, payload, source, collection)) in &jobs {
+                query = query
+                    .bind(id)
+                    .bind(hash)
+                    .bind(*payload)
+                    .bind(*source)
+                    .bind(collection);
             }
             for (source, cursor) in &cursors {
                 query = query.bind(*source).bind(*cursor);
@@ -421,8 +452,13 @@ impl Queue {
         } else {
             let mut tx = self.pool.begin().await?;
             let mut query = sqlx::query(&insert).bind(kind);
-            for (id, (hash, payload, source)) in &jobs {
-                query = query.bind(id).bind(hash).bind(*payload).bind(*source);
+            for (id, (hash, payload, source, collection)) in &jobs {
+                query = query
+                    .bind(id)
+                    .bind(hash)
+                    .bind(*payload)
+                    .bind(*source)
+                    .bind(collection);
             }
             query.execute(&mut *tx).await?;
             let mut query = sqlx::query(&upsert);

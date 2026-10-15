@@ -8,7 +8,13 @@ import {
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider, createStore } from "jotai";
-import { App, Chart, ProcessingTimeline } from "./App";
+import {
+  App,
+  Chart,
+  ProcessingTimeline,
+  CollectionBreakdown,
+  CopyDid,
+} from "./App";
 import { secretAtom, sectionAtom } from "./state";
 import type { Overview } from "./api";
 const overview: Overview = {
@@ -287,4 +293,66 @@ it("shows processing spans and never invents a runtime for an expired lease", ()
   expect(screen.getByText("Runtime unknown")).toBeTruthy();
   expect(screen.getByText("1.23 s")).toBeTruthy();
   expect(screen.getByText("Attempt 2 · completed")).toBeTruthy();
+});
+
+it("breaks down completed Jetstream jobs without counting publications", () => {
+  render(
+    <CollectionBreakdown
+      data={{
+        ...overview,
+        completions: [
+          {
+            minute: 100,
+            kind: "jetstream.commit.v1",
+            collection: "app.rocksky.scrobble",
+            count: 2,
+          },
+          {
+            minute: 160,
+            kind: "jetstream.commit.v1",
+            collection: "app.rocksky.scrobble",
+            count: 1,
+          },
+          {
+            minute: 160,
+            kind: "jetstream.commit.v1",
+            collection: "app.rocksky.song",
+            count: 1,
+          },
+          { minute: 160, kind: "jetstream.commit.v1", count: 1 },
+          { minute: 160, kind: "scrobble.publish.v1", count: 100 },
+        ],
+      }}
+    />,
+  );
+  expect(
+    screen.getByRole("region", { name: "Jetstream collection breakdown" })
+      .textContent,
+  ).toContain("5 total");
+  expect(screen.getByText("app.rocksky.scrobble")).toBeTruthy();
+  expect(screen.getByText("60.0%")).toBeTruthy();
+  expect(screen.getByText("Unknown / legacy")).toBeTruthy();
+  expect(screen.getByText(/before collection tracking/)).toBeTruthy();
+});
+
+it("shows an empty collection breakdown when there are no Jetstream completions", () => {
+  render(<CollectionBreakdown data={overview} />);
+  expect(
+    screen.getByText("No completed Jetstream jobs in this window."),
+  ).toBeTruthy();
+});
+
+it("copies the exact DID and reports clipboard failures", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("navigator", { clipboard: { writeText } });
+  const did = "did:plc:example";
+  const { rerender } = render(<CopyDid value={did} />);
+  fireEvent.click(screen.getByRole("button", { name: "Copy DID" }));
+  await screen.findByText("Copied");
+  expect(writeText).toHaveBeenCalledWith(did);
+  rerender(<CopyDid value="did:plc:another" />);
+  expect(screen.queryByText("Copied")).toBeNull();
+  writeText.mockRejectedValueOnce(new Error("permission denied"));
+  fireEvent.click(screen.getByRole("button", { name: "Copy DID" }));
+  await screen.findByText("Could not copy. Select the DID to copy manually.");
 });

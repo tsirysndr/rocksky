@@ -23,7 +23,12 @@ export type Overview = {
     oldest_created_at: number;
   }[];
   cursors: { source: string; cursor_value: number }[];
-  completions: { minute: number; kind: string; count: number }[];
+  completions: {
+    minute: number;
+    kind: string;
+    collection?: string;
+    count: number;
+  }[];
   cleanup: {
     enabled: boolean;
     completed_retention_seconds: number;

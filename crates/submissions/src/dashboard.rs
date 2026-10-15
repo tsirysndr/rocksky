@@ -26,6 +26,7 @@ pub struct Cursor {
 }
 #[derive(Clone, Serialize, sqlx::FromRow)]
 pub struct Bucket {
+    pub collection: String,
     pub minute: i64,
     pub kind: String,
     pub count: i64,
@@ -146,8 +147,8 @@ impl Queue {
         )
         .fetch_all(&self.pool)
         .await?;
-        let completions = sqlx::query_as::<_, Bucket>("SELECT CAST(updated_at / 60 AS BIGINT) * 60 AS minute,kind,count(*) AS count FROM rocksky_durable_jobs WHERE status='completed' AND updated_at >= $1 GROUP BY CAST(updated_at / 60 AS BIGINT),kind ORDER BY minute")
-            .bind(as_of - 3600).fetch_all(&self.pool).await?;
+        let completions = sqlx::query_as::<_, Bucket>("SELECT CAST(updated_at / 60 AS BIGINT) * 60 AS minute,kind,collection,count(*) AS count FROM rocksky_durable_jobs WHERE status='completed' AND updated_at >= $1 GROUP BY CAST(updated_at / 60 AS BIGINT),kind,collection ORDER BY minute")
+            .bind((as_of / 60 - 59) * 60).fetch_all(&self.pool).await?;
         let value = Overview {
             as_of,
             backend: if self.postgres {

@@ -287,6 +287,72 @@ async fn contract(queue: Queue) {
     .await;
     assert_eq!(metadata["scrobble"]["title"], "Blue Cheese");
     assert!(!metadata.to_string().contains("PRIVATE"));
+    // Same commit from multiple feeds counts once; grouping shares the chart window.
+    use crate::queue::InboxEvent;
+    let event = |source: &str, key: &str, payload: &str| InboxEvent {
+        source: source.into(),
+        cursor: 100,
+        key: key.into(),
+        payload: payload.into(),
+    };
+    queue
+        .ingest_batch(
+            "jetstream.commit.v1",
+            &[
+                event(
+                    "jetstream:v1:wss://one.test",
+                    "breakdown-scrobble",
+                    r#"{"commit":{"collection":"app.rocksky.scrobble"}}"#,
+                ),
+                event(
+                    "jetstream:v2:wss://two.test",
+                    "breakdown-scrobble",
+                    r#"{"commit":{"collection":"app.rocksky.scrobble"}}"#,
+                ),
+                event(
+                    "jetstream:v1:wss://one.test",
+                    "breakdown-song",
+                    r#"{"commit":{"collection":"app.rocksky.song"}}"#,
+                ),
+                event(
+                    "jetstream:v1:wss://one.test",
+                    "breakdown-unknown",
+                    "malformed",
+                ),
+            ],
+        )
+        .await
+        .unwrap();
+    while let Some(job) = queue.claim("jetstream.commit.v1", 60, 5).await.unwrap() {
+        assert!(queue.finish(&job).await.unwrap());
+    }
+    for id in &protocol_ids {
+        sqlx::query("UPDATE rocksky_durable_jobs SET updated_at=1 WHERE id=$1")
+            .bind(id)
+            .execute(&queue.pool)
+            .await
+            .unwrap();
+    }
+    // Payload compaction must not change this breakdown.
+    sqlx::query("UPDATE rocksky_durable_jobs SET payload='{}' WHERE kind='jetstream.commit.v1' AND status='completed'").execute(&queue.pool).await.unwrap();
+    queue.dashboard_cache.lock().await.take();
+    let overview = queue.dashboard_overview().await.unwrap();
+    let buckets: Vec<_> = overview
+        .completions
+        .iter()
+        .filter(|b| b.kind == "jetstream.commit.v1")
+        .collect();
+    assert_eq!(buckets.iter().map(|b| b.count).sum::<i64>(), 3);
+    for collection in ["app.rocksky.scrobble", "app.rocksky.song", ""] {
+        assert_eq!(
+            buckets
+                .iter()
+                .filter(|b| b.collection == collection)
+                .map(|b| b.count)
+                .sum::<i64>(),
+            1
+        );
+    }
     // Regression: additive migration with warm prepared statements must not halt
     // older active connections. Repeated reads/claims use stable projections.
     sqlx::query(

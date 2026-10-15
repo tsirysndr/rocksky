@@ -1319,3 +1319,23 @@ small {
 .span-bar.completed { background: var(--color-success); }
 .span-bar.failed, .span-bar.lease_expired { background: var(--color-warning); }
 .scrobble-data dd { overflow-wrap: anywhere; }
+
+.collection-breakdown { margin-top: 22px; }
+.collection-note { padding: 0 22px 18px; font-size: 12px; }
+.collection-share { display: flex; align-items: center; gap: 12px; min-width: 140px; }
+.collection-share progress { width: 90px; height: 6px; }
+.collection-share span { min-width: 48px; font-variant-numeric: tabular-nums; }
+
+.metric > strong, .metric > small, .pipeline-numbers strong,
+.source-label, .job-id, .cursor-age, .retained-total, .chart-axis, .chart-scale, .chart-tooltip strong,
+.chart-tooltip b, .collection-share span, .span-caption,
+.checkpoints small, .retention-cards strong, .table-footer,
+.processing-timeline > p:not(.muted) {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+.copy-did { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.copy-did > .mono { overflow-wrap: anywhere; min-width: 0; }
+.copy-feedback { font-family: "DM Sans Variable", sans-serif; font-size: 11px; color: var(--muted); }
+
+.content-footer > span:last-child, .retention-strip > div > span { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }

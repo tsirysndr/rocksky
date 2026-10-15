@@ -35,7 +35,7 @@ async fn contract(queue: Queue) {
         &queue,
         "jetstream.commit.v1",
         "event",
-        "large event body",
+        r#"{"commit":{"collection":"app.rocksky.scrobble"}}"#,
         20,
     )
     .await;
@@ -155,6 +155,13 @@ async fn contract(queue: Queue) {
         .unwrap()
         .is_none());
     assert_eq!(queue.cursor("test-source").await.unwrap(), Some(100));
+    let collection: String =
+        sqlx::query_scalar("SELECT collection FROM rocksky_durable_jobs WHERE id=$1")
+            .bind(&event.id)
+            .fetch_one(&queue.pool)
+            .await
+            .unwrap();
+    assert_eq!(collection, "app.rocksky.scrobble");
     assert!(queue
         .enqueue(KIND, "old", "changed hash", "payload")
         .await
@@ -262,6 +269,7 @@ async fn upgrade(url: &str) -> Queue {
         "DROP INDEX rocksky_durable_jobs_retire",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN compacted_at",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN source",
+        "ALTER TABLE rocksky_durable_jobs DROP COLUMN collection",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN started_at_ms",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN attempt_history",
     ] {

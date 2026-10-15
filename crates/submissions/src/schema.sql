@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS rocksky_durable_jobs (
     updated_at BIGINT NOT NULL,
     compacted_at BIGINT NOT NULL DEFAULT 0,
     source TEXT NOT NULL DEFAULT '',
+    collection TEXT NOT NULL DEFAULT '',
     started_at_ms BIGINT NOT NULL DEFAULT 0,
     attempt_history TEXT NOT NULL DEFAULT '[]'
 );

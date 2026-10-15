@@ -9,6 +9,7 @@ import {
   IconArrowUpRight,
   IconArrowRight,
   IconCheck,
+  IconCopy,
   IconChevronLeft,
   IconChevronRight,
   IconClock,
@@ -321,7 +322,9 @@ function OverviewView({ data }: { data: Overview }) {
               <h2>Delivery activity</h2>
               <p>Completed jobs per minute</p>
             </div>
-            <span className="badge badge-ghost">Last 60 minutes</span>
+            <span className="badge badge-ghost">
+              Last <span className="mono">60</span> minutes
+            </span>
           </div>
           <Chart data={data} />
           <div className="chart-legend">
@@ -432,7 +435,9 @@ function OverviewView({ data }: { data: Overview }) {
                     <span
                       className={`source-dot ${age > 120 ? "delayed" : ""}`}
                     />
-                    <strong>{sourceName(cursor.source)}</strong>
+                    <strong className="mono">
+                      {sourceName(cursor.source)}
+                    </strong>
                   </div>
                   <div className="cursor-age">
                     {isV2 ? "Sequence cursor" : duration(age)}
@@ -447,6 +452,7 @@ function OverviewView({ data }: { data: Overview }) {
           </div>
         )}
       </section>
+      <CollectionBreakdown data={data} />
       <div className="retention-strip">
         <IconShieldCheck size={21} />
         <div>
@@ -468,6 +474,84 @@ function OverviewView({ data }: { data: Overview }) {
     </>
   );
 }
+export function CollectionBreakdown({ data }: { data: Overview }) {
+  const counts = new Map<string, number>();
+  for (const bucket of data.completions) {
+    if (bucket.kind !== "jetstream.commit.v1") continue;
+    const collection = bucket.collection || "";
+    counts.set(collection, (counts.get(collection) ?? 0) + bucket.count);
+  }
+  const rows = [...counts].sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+  );
+  const total = rows.reduce((sum, [, count]) => sum + count, 0);
+  return (
+    <section
+      className="panel collection-breakdown"
+      aria-label="Jetstream collection breakdown"
+    >
+      <div className="panel-heading">
+        <div>
+          <h2>Jetstream collections</h2>
+          <p>
+            Completed jobs in the last <span className="mono">60</span> minutes
+            · <span className="mono">{number(total)}</span> total
+          </p>
+        </div>
+      </div>
+      <p className="collection-note">
+        Record changes, not unique listens. Includes creates, updates, deletes
+        and successful skips. Duplicate feed deliveries count once while
+        retained.
+      </p>
+      {rows.length ? (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Collection</th>
+                <th>Completed jobs</th>
+                <th>Share of Jetstream</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(([collection, count]) => (
+                <tr key={collection}>
+                  <td>
+                    <code>{collection || "Unknown / legacy"}</code>
+                  </td>
+                  <td className="mono">{number(count)}</td>
+                  <td>
+                    <div className="collection-share">
+                      <progress
+                        className="progress progress-primary"
+                        value={count}
+                        max={total}
+                        aria-label={`${collection || "Unknown / legacy"} share`}
+                      />
+                      <span>{((count / total) * 100).toFixed(1)}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="collection-note">
+          No completed Jetstream jobs in this window.
+        </p>
+      )}
+      {counts.has("") && (
+        <p className="collection-note">
+          Unknown / legacy includes jobs captured before collection tracking was
+          enabled or without valid collection metadata.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function Chart({ data }: { data: Overview }) {
   const tooltipId = useId();
   const [hover, setHover] = useState<{
@@ -734,8 +818,8 @@ function Jobs() {
                   {job.compacted_at > 0 && <small>Payload compacted</small>}
                 </td>
                 <td className="mono">{job.attempts}</td>
-                <td>{date(job.created_at)}</td>
-                <td>{date(job.updated_at)}</td>
+                <td className="mono">{date(job.created_at)}</td>
+                <td className="mono">{date(job.updated_at)}</td>
                 <td>
                   <button
                     className="btn btn-ghost btn-circle btn-sm"
@@ -874,7 +958,7 @@ function JobDialog() {
               ].map(([key, value]) => (
                 <div key={key}>
                   <dt>{key}</dt>
-                  <dd>{value}</dd>
+                  <dd className="mono">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -892,7 +976,33 @@ function JobDialog() {
                 {Object.entries(detail.data.scrobble).map(([key, value]) => (
                   <div key={key}>
                     <dt>{key}</dt>
-                    <dd>{String(value ?? "—")}</dd>
+                    <dd
+                      className={
+                        typeof value === "number" ||
+                        [
+                          "did",
+                          "recordKey",
+                          "mbId",
+                          "mbid",
+                          "isrc",
+                          "createdAt",
+                          "timestamp",
+                          "releaseDate",
+                          "year",
+                          "trackNumber",
+                          "discNumber",
+                          "duration",
+                        ].includes(key)
+                          ? "mono"
+                          : undefined
+                      }
+                    >
+                      {key === "did" && typeof value === "string" ? (
+                        <CopyDid value={value} />
+                      ) : (
+                        String(value ?? "—")
+                      )}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -1010,6 +1120,41 @@ function JobDialog() {
         <button>Close</button>
       </form>
     </dialog>
+  );
+}
+
+export function CopyDid({ value }: { value: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "error">("idle");
+  useEffect(() => {
+    setState("idle");
+  }, [value]);
+  return (
+    <span className="copy-did">
+      <span className="mono">{value}</span>
+      <button
+        type="button"
+        className="btn btn-ghost btn-circle btn-xs"
+        aria-label="Copy DID"
+        title="Copy DID"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(value);
+            setState("copied");
+          } catch {
+            setState("error");
+          }
+        }}
+      >
+        {state === "copied" ? <IconCheck size={15} /> : <IconCopy size={15} />}
+      </button>
+      <span className="copy-feedback" role="status">
+        {state === "copied"
+          ? "Copied"
+          : state === "error"
+            ? "Could not copy. Select the DID to copy manually."
+            : ""}
+      </span>
+    </span>
   );
 }
 
