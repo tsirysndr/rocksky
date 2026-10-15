@@ -89,7 +89,7 @@ jobs:
         run: bun test src/xrpc/app/rocksky/song/matchingService.test.ts src/xrpc/app/rocksky/song/matchSongUris.test.ts
       - name: Test durable submission and record ownership boundaries
         working-directory: apps/api
-        run: bun test src/lib/durableSubmission.test.ts src/lib/durableRecord.test.ts src/lib/recordOwnership.test.ts
+        run: bun test src/lib/durableSubmission.test.ts src/lib/durableRecord.test.ts src/lib/recordOwnership.test.ts src/lib/recordPosition.test.ts
 
   submissions:
     needs: changes

@@ -14,6 +14,7 @@ import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
 import { ownsRecord, putRecordOnce } from "lib/recordOwnership";
 import { findDurableRecord, publishDurableRecord } from "lib/durableRecord";
+import { recordPosition } from "lib/recordPosition";
 import {
   assertNotBotFlagged,
   assertNotScrobbleBlocked,
@@ -153,9 +154,8 @@ export async function putSongRecord(
     albumArtUrl: withFallbackAlbumArt(track.albumArt),
     composer: track.composer ? track.composer : undefined,
     lyrics: track.lyrics ? track.lyrics : undefined,
-    trackNumber: track.trackNumber ?? undefined,
-    discNumber:
-      !track.discNumber || track.discNumber === 0 ? 1 : track.discNumber,
+    trackNumber: recordPosition(track.trackNumber),
+    discNumber: recordPosition(track.discNumber),
     copyrightMessage: track.copyrightMessage
       ? track.copyrightMessage
       : undefined,
@@ -205,8 +205,8 @@ async function putScrobbleRecord(
     artists: track.artists === null ? undefined : track.artists,
     album: track.album,
     duration: track.duration,
-    trackNumber: track.trackNumber ?? 1,
-    discNumber: track.discNumber ? track.discNumber : 1,
+    trackNumber: recordPosition(track.trackNumber),
+    discNumber: recordPosition(track.discNumber),
     releaseDate: track.releaseDate
       ? track.releaseDate.toISOString()
       : undefined,
