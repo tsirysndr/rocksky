@@ -1,2 +1,4 @@
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
 musicbrainz
