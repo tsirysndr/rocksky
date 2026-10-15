@@ -595,7 +595,10 @@ function Jobs() {
   const live = useAtomValue(liveAtom);
   const setSelected = useSetAtom(selectedJobAtom);
   const [status, setStatus] = useState("");
-  const [kind, setKind] = useState("");
+  const [queue, setQueue] = useState("");
+  const jetstreamVersion =
+    queue === "jetstream-v1" ? "v1" : queue === "jetstream-v2" ? "v2" : "";
+  const kind = jetstreamVersion ? "jetstream.commit.v1" : queue;
   const [search, setSearch] = useState("");
   const [id, setId] = useState("");
   useEffect(() => {
@@ -607,11 +610,16 @@ function Jobs() {
   }, [search]);
   const [pages, setPages] = useState<(string | null)[]>([null]);
   const before = pages[pages.length - 1];
-  const query = new URLSearchParams({ status, kind, limit: "25" });
+  const query = new URLSearchParams({
+    status,
+    kind,
+    jetstream_version: jetstreamVersion,
+    limit: "25",
+  });
   query.set(/^[a-fA-F0-9]{64}$/.test(id) ? "id" : "q", id);
   if (before) query.set("before", before);
   const jobs = useQuery({
-    queryKey: ["jobs", status, kind, id, before],
+    queryKey: ["jobs", status, kind, jetstreamVersion, id, before],
     queryFn: ({ signal }) =>
       api<JobPage>(`/v1/dashboard/jobs?${query}`, "", signal),
     refetchInterval: live ? 5000 : false,
@@ -671,14 +679,16 @@ function Jobs() {
         <select
           className="select select-sm"
           aria-label="Filter by queue"
-          value={kind}
+          value={queue}
           onChange={(e) => {
-            setKind(e.target.value);
+            setQueue(e.target.value);
             reset();
           }}
         >
           <option value="">All queues</option>
-          <option value="jetstream.commit.v1">Jetstream</option>
+          <option value="jetstream.commit.v1">Jetstream · All versions</option>
+          <option value="jetstream-v1">Jetstream v1</option>
+          <option value="jetstream-v2">Jetstream v2</option>
           <option value="scrobble.publish.v1">Scrobble publication</option>
         </select>
       </div>

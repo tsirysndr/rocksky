@@ -117,9 +117,7 @@ describe("dashboard access and live controls", () => {
     vi.stubGlobal("fetch", mock);
     setup("", "jobs");
     await screen.findByText("aaaaaaaaaaaaaa…");
-    expect(
-      screen.getByText("jetstream.us-west.bsky.network"),
-    ).toBeTruthy();
+    expect(screen.getByText("jetstream.us-west.bsky.network")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Filter by status"), {
       target: { value: "failed" },
     });
@@ -134,6 +132,30 @@ describe("dashboard access and live controls", () => {
     await waitFor(() =>
       expect(
         mock.mock.calls.some(([url]) => url.includes("q=Blue+Cheese")),
+      ).toBe(true),
+    );
+    fireEvent.change(screen.getByLabelText("Filter by queue"), {
+      target: { value: "jetstream-v2" },
+    });
+    await waitFor(() =>
+      expect(
+        mock.mock.calls.some(([url]) => {
+          const params = new URL(url, "https://queue.test").searchParams;
+          return (
+            params.get("jetstream_version") === "v2" &&
+            params.get("kind") === "jetstream.commit.v1" &&
+            params.get("status") === "failed" &&
+            params.get("q") === "Blue Cheese"
+          );
+        }),
+      ).toBe(true),
+    );
+    fireEvent.change(screen.getByLabelText("Filter by queue"), {
+      target: { value: "jetstream-v1" },
+    });
+    await waitFor(() =>
+      expect(
+        mock.mock.calls.some(([url]) => url.includes("jetstream_version=v1")),
       ).toBe(true),
     );
     fireEvent.click(await screen.findByText("aaaaaaaaaaaaaa…"));

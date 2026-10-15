@@ -47,6 +47,8 @@ pub struct JobFilter {
     #[serde(default)]
     pub kind: String,
     #[serde(default)]
+    pub jetstream_version: String,
+    #[serde(default)]
     pub id: String,
     #[serde(default)]
     pub q: String,
@@ -85,6 +87,10 @@ impl JobFilter {
         anyhow::ensure!(
             ["", "pending", "processing", "completed", "failed"].contains(&self.status.as_str()),
             "invalid status"
+        );
+        anyhow::ensure!(
+            ["", "v1", "v2"].contains(&self.jetstream_version.as_str()),
+            "invalid Jetstream version"
         );
         anyhow::ensure!(self.q.len() <= 200, "search too long");
         anyhow::ensure!(self.kind.len() <= 128, "kind too long");
@@ -207,7 +213,7 @@ impl Queue {
                 .join(",");
             format!(" AND id IN ({ids})")
         };
-        let sql = format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE ($1='' OR status=$1) AND ($2='' OR kind=$2) AND ($3='' OR id=$3) AND (created_at < $4 OR (created_at=$4 AND id<$5)) {search_clause} ORDER BY created_at DESC,id DESC LIMIT $6");
+        let sql = format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE ($1='' OR status=$1) AND ($2='' OR kind=$2) AND ($3='' OR id=$3) AND (created_at < $4 OR (created_at=$4 AND id<$5)) AND ($7='' OR source LIKE $7) {search_clause} ORDER BY created_at DESC,id DESC LIMIT $6");
         let mut jobs: Vec<JobSummary> = sqlx::query_as(&sql)
             .bind(&filter.status)
             .bind(&filter.kind)
@@ -215,6 +221,11 @@ impl Queue {
             .bind(before)
             .bind(before_id)
             .bind(limit + 1)
+            .bind(if filter.jetstream_version.is_empty() {
+                String::new()
+            } else {
+                format!("jetstream:{}:%", filter.jetstream_version)
+            })
             .fetch_all(&self.pool)
             .await?;
         let more = jobs.len() > limit as usize;

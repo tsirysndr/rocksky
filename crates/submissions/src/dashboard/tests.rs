@@ -101,6 +101,8 @@ async fn contract(queue: Queue) {
         "status=invalid",
         "before=bad",
         "id=bad",
+        "jetstream_version=v3",
+        "jetstream_version=%25",
         "kind=%27%20OR%201=1--",
     ] {
         let response = test::call_service(
@@ -183,6 +185,80 @@ async fn contract(queue: Queue) {
                 .starts_with("text/javascript"));
         }
     }
+    let mut protocol_ids = Vec::new();
+    for (n, version) in ["v1", "v2", "v2"].iter().enumerate() {
+        let job = queue
+            .enqueue(
+                "jetstream.commit.v1",
+                &format!("protocol-{n}"),
+                "hash",
+                r#"{"commit":{"record":{"title":"Protocol fixture"}}}"#,
+            )
+            .await
+            .unwrap();
+        sqlx::query("UPDATE rocksky_durable_jobs SET source=$1 WHERE id=$2")
+            .bind(format!("jetstream:{version}:wss://example.test"))
+            .bind(&job.id)
+            .execute(&queue.pool)
+            .await
+            .unwrap();
+        protocol_ids.push(job.id);
+    }
+    let v1 = queue
+        .dashboard_jobs(&JobFilter {
+            jetstream_version: "v1".into(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(v1.jobs.len(), 1);
+    assert_eq!(v1.jobs[0].id, protocol_ids[0]);
+    let filter = JobFilter {
+        jetstream_version: "v2".into(),
+        kind: "jetstream.commit.v1".into(),
+        status: "pending".into(),
+        q: "Protocol fixture".into(),
+        limit: Some(1),
+        ..Default::default()
+    };
+    let page1 = queue.dashboard_jobs(&filter).await.unwrap();
+    assert_eq!(page1.jobs.len(), 1);
+    assert!(page1.next.is_some());
+    let page2 = queue
+        .dashboard_jobs(&JobFilter {
+            before: page1.next,
+            ..filter
+        })
+        .await
+        .unwrap();
+    assert_eq!(page2.jobs.len(), 1);
+    assert!(page2.next.is_none());
+    assert_ne!(page1.jobs[0].id, page2.jobs[0].id);
+    assert!(page1
+        .jobs
+        .iter()
+        .chain(&page2.jobs)
+        .all(|job| protocol_ids[1..].contains(&job.id)));
+    assert!(queue
+        .dashboard_jobs(&JobFilter {
+            jetstream_version: "v2".into(),
+            id: protocol_ids[0].clone(),
+            ..Default::default()
+        })
+        .await
+        .unwrap()
+        .jobs
+        .is_empty());
+    let response: Value = test::call_and_read_body_json(
+        &app,
+        test::TestRequest::get()
+            .uri("/v1/dashboard/jobs?jetstream_version=v1")
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response["jobs"][0]["id"], protocol_ids[0]);
+    assert_eq!(response["jobs"].as_array().unwrap().len(), 1);
+    queue.dashboard_search_cache.lock().await.take();
     let metadata_job = queue.enqueue("scrobble.publish.v1", "metadata", "hash", r#"{"did":"did:plc:listener","secret":"PRIVATE","track":{"title":"Blue Cheese","artist":"2 Chainz","album":"Pretty Girls Like Trap Music","token":"PRIVATE"}}"#).await.unwrap();
     let search = queue
         .dashboard_jobs(&JobFilter {

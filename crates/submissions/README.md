@@ -286,6 +286,9 @@ The read-only dashboard API is public (no secret header required):
 - `GET /v1/dashboard/jobs/{id}`
 
 The list supports an exact `id` and an opaque `before` cursor returned as `next`.
+Use `jetstream_version=v1|v2` to filter by the first source that captured the job.
+This combines with kind, status, search and pagination; jobs with unknown legacy
+sources are included only when no version filter is selected.
 The maximum page size is 100. Responses are `Cache-Control: no-store`.
 The `q` parameter matches case-insensitive words across allowlisted scrobble fields
 and job ID in the newest 2,000 jobs. Search updates after 180ms of typing; a shared
