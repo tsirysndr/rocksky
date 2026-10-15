@@ -1,47 +1,53 @@
 # MusicBrainz proxy
 
 `go run .` (or `go build .`) serves search, hydrate and recording lookup on port
-8088. The read-only riff-mb catalog is backed by a persistent SQLite metadata
-overlay. All three routes share the same upstream rate limiter and cache.
+8088. Requests use a persistent SQLite cache, then the public MusicBrainz API.
+The proxy does not call riff-mb. `MBRIFF_URL` and `MBRIFF_TIMEOUT` are unused.
+OpenTelemetry is disabled: ordinary HTTP and upstream-error logs go to stdout/stderr.
 
 | Setting | Default |
 | --- | --- |
-| `MBRIFF_URL` | `http://localhost:8094` |
-| `MBRIFF_TIMEOUT` | `1s` |
 | `MB_UPSTREAM_URL` | `https://musicbrainz.org/ws/2` |
 | `MB_CACHE_PATH` | `${DB_PATH}.metadata.sqlite` (`./piper.db.metadata.sqlite` by default) |
 | `MB_CACHE_TTL` | `720h` (recordings; minimum `1m`) |
 
 The cache directory must be writable and on persistent local storage. WAL and
-synchronous FULL preserve completed cache writes across restarts. No new required
-configuration or DuckDB migration is needed for the proxy fix.
+synchronous FULL preserve completed cache writes across restarts. Existing
+upstream recording entries remain usable. Old local recording entries are ignored;
+searches use a new namespace to avoid previously cached partial riff-mb results.
+No database replacement or new required environment variables are needed.
 
-Successful upstream searches also cache their recordings by MBID. Local search
-results leave recording lookups to riff-mb so release expansions are preserved. Full recording responses
-outrank search snippets, which outrank standalone local records. Search results
-live for one hour; authoritative upstream 404s and empty searches for five
-minutes. A local catalog miss is never cached as a global not-found. Positive
-entries can be served for seven days past expiry when refresh fails. Cleanup
-removes at most 500 expired entries every five minutes.
+Successful searches also cache their recordings by MBID. Full recording responses
+outrank search snippets. Search results live for one hour; authoritative upstream
+404s and empty searches for five minutes. Positive entries can be served for seven
+days past expiry when refresh fails. Cleanup removes at most 500 expired entries
+every five minutes. Failures and throttling are never cached as not-found.
 
-Identical concurrent requests share one operation. Individual cancellation does
-not cancel another caller's lookup. At most 32 distinct operations run at once;
-each has a five-second deadline. Public API traffic shares a one-request-per-second
-limiter, with at most 250 ms spent waiting for admission. Upstream calls have a
-three-second timeout and redirects are not followed automatically. Transient
-failures trigger a cooldown (five seconds by default; upstream Retry-After is
-respected). Neither transport failures nor throttling are stored as not-found.
+All three routes and redirect hops share a one-request-per-second limiter. Identical
+concurrent requests share one operation. At most 32 distinct operations run at
+once; each has a five-second deadline and individual HTTP requests have a
+three-second timeout. Admission can wait up to 1.1 seconds to use the next slot,
+without building an unbounded backlog. These limits are per process: replicas
+sharing a public IP must coordinate admission outside this service.
 
-Overload/outages return 503 with Retry-After; caller cancellations are recorded as
-499. Search errors are no longer disguised as a successful empty match.
-`X-MusicBrainz-Source` reports cache, stale-cache, riff-mb or musicbrainz-api.
-This limits latency and repeated misses; a completely cold cache still depends
-on local dataset coverage and upstream availability.
+Same-origin redirects are followed up to five hops, preserving JSON/expansion
+parameters. Merged recording IDs are cached under both the old and canonical IDs.
+Redirects to another origin are rejected. Upstream 429/5xx responses trigger a
+cooldown using Retry-After (seconds or HTTP date), or five seconds when absent.
+Transport failures also trigger a five-second cooldown. Cache hits remain available.
 
-The production catalog was verified to contain 133,144 standalone recordings,
-not the full album recording catalog. See [riff-mb import instructions](../riff/README.md#riff-mb--the-same-trick-for-musicbrainz)
-for the offline release-dump expansion. Build on a staging copy and verify before
-swapping the live database; do not import into the running service's file.
+`X-MusicBrainz-Source` reports cache, stale-cache or musicbrainz-api.
+`X-MusicBrainz-Error` and ordinary logs distinguish:
+
+- `local_rate_limit` / `local_capacity`: HTTP 429 with Retry-After.
+- `upstream_http`: upstream 429 is returned as 429; 5xx as 503; other unexpected
+  statuses as 502. The log includes the original upstream status.
+- `upstream_cooldown`: HTTP 503 with the remaining cooldown in Retry-After.
+- `upstream_transport`: HTTP 502 for connection/read failures.
+- `upstream_redirect` / `invalid_upstream_response`: HTTP 502.
+
+Caller cancellations return 499. Search errors are not disguised as empty matches.
+A cold cache still depends on upstream availability and cannot exceed its quota.
 
 Tests use local fake upstreams and temporary SQLite databases:
 

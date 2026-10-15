@@ -22,8 +22,8 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// This is a persistent overlay for the read-only riff-mb catalog. Search
-// results seed recording lookups too, including recordings absent from the dump.
+// Persistent cache for the public MusicBrainz API. Search results also seed
+// recording lookups, reducing duplicate upstream requests.
 type metadataCache struct {
 	db  *sql.DB
 	ttl time.Duration
@@ -62,7 +62,7 @@ func openMetadataCache(path string, ttl time.Duration) (*metadataCache, error) {
 func (c *metadataCache) get(ctx context.Context, key string) (*cachedMetadata, error) {
 	var r cachedMetadata
 	var expiry int64
-	err := c.db.QueryRowContext(ctx, `SELECT body,status,expires_at FROM metadata_cache WHERE key=? AND stale_until>?`, key, time.Now().Unix()).Scan(&r.body, &r.status, &expiry)
+	err := c.db.QueryRowContext(ctx, `SELECT body,status,expires_at FROM metadata_cache WHERE key=? AND stale_until>? AND quality>0`, key, time.Now().Unix()).Scan(&r.body, &r.status, &expiry)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -120,10 +120,28 @@ type metadataClient struct {
 func newMetadataClient(cache *metadataCache, baseURL string) *metadataClient {
 	return &metadataClient{cache: cache, baseURL: strings.TrimRight(baseURL, "/"),
 		http: &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}, limiter: rate.NewLimiter(rate.Every(time.Second), 1),
-		waitBudget: 250 * time.Millisecond, lookupBudget: 5 * time.Second, flights: make(map[string]*metadataFlight)}
+		waitBudget: 1100 * time.Millisecond, lookupBudget: 5 * time.Second, flights: make(map[string]*metadataFlight)}
 }
 
-var errUpstreamBusy = errors.New("MusicBrainz fallback temporarily unavailable")
+// Reasons distinguish our own admission control from upstream failures.
+type upstreamError struct {
+	reason         string
+	status         int
+	upstreamStatus int
+	retryAt        time.Time
+	cause          error
+}
+
+func (e *upstreamError) Error() string {
+	return fmt.Sprintf("%s upstream_status=%d: %v", e.reason, e.upstreamStatus, e.cause)
+}
+func (e *upstreamError) Unwrap() error { return e.cause }
+func (e *upstreamError) retrySeconds() int {
+	if e.retryAt.IsZero() {
+		return 0
+	}
+	return max(1, int(time.Until(e.retryAt).Seconds()+0.999999))
+}
 
 // One bounded operation per key. A disconnected caller does not cancel work
 // that other callers need, but the shared operation always has its own deadline.
@@ -150,7 +168,7 @@ func (m *metadataClient) lookup(ctx context.Context, key string, fetch func(cont
 	if !exists {
 		if len(m.flights) >= 32 {
 			m.mu.Unlock()
-			return stale(metadataResult{}, errUpstreamBusy)
+			return stale(metadataResult{}, &upstreamError{reason: "local_capacity", status: 429, retryAt: time.Now().Add(time.Second)})
 		}
 		f = &metadataFlight{done: make(chan struct{})}
 		m.flights[key] = f
@@ -185,58 +203,110 @@ func (m *metadataClient) pause(d time.Duration) {
 		m.cooldown = until
 	}
 }
-func (m *metadataClient) upstream(ctx context.Context, path string) ([]byte, int, error) {
+func (m *metadataClient) admission(ctx context.Context) error {
 	m.mu.Lock()
-	cooling := time.Now().Before(m.cooldown)
+	until := m.cooldown
 	m.mu.Unlock()
-	if cooling {
-		return nil, 0, errUpstreamBusy
+	if time.Now().Before(until) {
+		return &upstreamError{reason: "upstream_cooldown", status: 503, retryAt: until}
 	}
 	waiting, cancel := context.WithTimeout(ctx, m.waitBudget)
-	err := m.limiter.Wait(waiting)
-	cancel()
-	if err != nil {
-		return nil, 0, errUpstreamBusy
+	defer cancel()
+	if err := m.limiter.Wait(waiting); err != nil {
+		return &upstreamError{reason: "local_rate_limit", status: 429, retryAt: time.Now().Add(time.Second), cause: err}
 	}
-	// A request ahead of us may have started an upstream cooldown.
 	m.mu.Lock()
-	cooling = time.Now().Before(m.cooldown)
+	until = m.cooldown
 	m.mu.Unlock()
-	if cooling {
-		return nil, 0, errUpstreamBusy
+	if time.Now().Before(until) {
+		return &upstreamError{reason: "upstream_cooldown", status: 503, retryAt: until}
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.baseURL+path, nil)
-	if err != nil {
-		return nil, 0, err
-	}
-	req.Header.Set("User-Agent", "Rocksky/0.0.1 (https://rocksky.app)")
-	resp, err := m.http.Do(req)
-	if err != nil {
-		m.pause(5 * time.Second)
-		return nil, 0, fmt.Errorf("MusicBrainz transport failed: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-		delay := 5 * time.Second
-		if seconds, e := strconv.Atoi(resp.Header.Get("Retry-After")); e == nil && seconds > 0 {
-			delay = time.Duration(seconds) * time.Second
-		} else if date, e := http.ParseTime(resp.Header.Get("Retry-After")); e == nil && time.Until(date) > delay {
-			delay = time.Until(date)
+	return nil
+}
+
+func retryDelay(value string, now time.Time) time.Duration {
+	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil && seconds >= 0 {
+		// Avoid duration overflow for malformed responses.
+		if seconds > int64((time.Duration(1<<63-1))/time.Second) {
+			return time.Duration(1<<63 - 1)
 		}
-		m.pause(delay)
-		return nil, resp.StatusCode, errUpstreamBusy
+		return time.Duration(seconds) * time.Second
 	}
-	if resp.StatusCode != 200 && resp.StatusCode != 404 {
-		return nil, resp.StatusCode, fmt.Errorf("MusicBrainz returned HTTP %d", resp.StatusCode)
+	if date, err := http.ParseTime(value); err == nil {
+		if date.After(now) {
+			return date.Sub(now)
+		}
+		return 0
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 8*1024*1024+1))
+	return 5 * time.Second
+}
+
+// Follow same-origin redirects explicitly so every hop consumes the shared rate
+// budget. The final URL identifies merged MBIDs without accepting unrelated IDs.
+func (m *metadataClient) upstream(ctx context.Context, path string) ([]byte, int, string, error) {
+	endpoint, err := url.Parse(m.baseURL + path)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
 	}
-	if len(body) > 8*1024*1024 {
-		return nil, 0, errors.New("MusicBrainz response too large")
+	origin := *endpoint
+	for hop := 0; hop <= 5; hop++ {
+		if err := m.admission(ctx); err != nil {
+			return nil, 0, "", err
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+		if err != nil {
+			return nil, 0, "", err
+		}
+		req.Header.Set("User-Agent", "Rocksky/0.0.1 (https://rocksky.app)")
+		resp, err := m.http.Do(req)
+		if err != nil {
+			m.pause(5 * time.Second)
+			return nil, 0, "", &upstreamError{reason: "upstream_transport", status: 502, retryAt: time.Now().Add(5 * time.Second), cause: err}
+		}
+		status := resp.StatusCode
+		if status == 301 || status == 302 || status == 303 || status == 307 || status == 308 {
+			next, err := resp.Location()
+			resp.Body.Close()
+			if err != nil || next.Scheme != origin.Scheme || next.Host != origin.Host || next.User != nil || hop == 5 {
+				return nil, status, "", &upstreamError{reason: "upstream_redirect", status: 502, upstreamStatus: status, cause: err}
+			}
+			// MusicBrainz merged-ID redirects can omit the original expansions.
+			query := next.Query()
+			for key, values := range endpoint.Query() {
+				if _, exists := query[key]; !exists {
+					query[key] = values
+				}
+			}
+			next.RawQuery = query.Encode()
+			endpoint = next
+			continue
+		}
+		if status == 429 || status >= 500 {
+			delay := retryDelay(resp.Header.Get("Retry-After"), time.Now())
+			resp.Body.Close()
+			m.pause(delay)
+			clientStatus := 503
+			if status == 429 {
+				clientStatus = 429
+			}
+			return nil, status, "", &upstreamError{reason: "upstream_http", status: clientStatus, upstreamStatus: status, retryAt: time.Now().Add(delay)}
+		}
+		if status != 200 && status != 404 {
+			resp.Body.Close()
+			return nil, status, "", &upstreamError{reason: "upstream_http", status: 502, upstreamStatus: status}
+		}
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 8*1024*1024+1))
+		resp.Body.Close()
+		if err != nil {
+			m.pause(5 * time.Second)
+			return nil, status, "", &upstreamError{reason: "upstream_transport", status: 502, retryAt: time.Now().Add(5 * time.Second), cause: err}
+		}
+		if len(body) > 8*1024*1024 {
+			return nil, status, "", errors.New("MusicBrainz response too large")
+		}
+		return body, status, endpoint.Path, nil
 	}
-	return body, resp.StatusCode, nil
+	panic("unreachable")
 }
 func (m *metadataClient) save(ctx context.Context, key string, r metadataResult, quality int, ttl time.Duration) {
 	if err := m.cache.put(ctx, key, r, quality, ttl); err != nil {
@@ -246,96 +316,76 @@ func (m *metadataClient) save(ctx context.Context, key string, r metadataResult,
 func validRecording(rec musicbrainz.MusicBrainzRecording) bool {
 	return validMBID(rec.ID) && rec.Title != "" && len(rec.ArtistCredit) > 0
 }
-func (m *metadataClient) recording(ctx context.Context, id string, local func(context.Context) (*musicbrainz.MusicBrainzRecording, error)) (metadataResult, error) {
+func (m *metadataClient) recording(ctx context.Context, id string) (metadataResult, error) {
 	return m.lookup(ctx, "recording:"+id, func(work context.Context) (metadataResult, error) {
-		rec, err := local(work)
-		source := "riff-mb"
-		quality := 0
-		if err != nil || rec == nil || !validRecording(*rec) || !strings.EqualFold(rec.ID, id) {
-			source = "musicbrainz-api"
-			quality = 2
-			body, status, e := m.upstream(work, "/recording/"+url.PathEscape(id)+"?inc=artists+releases+isrcs&fmt=json")
-			if e != nil {
-				return metadataResult{}, e
-			}
-			if status == 404 {
-				r := metadataResult{[]byte(`{"error":"recording not found"}`), 404, source}
-				m.save(work, "recording:"+id, r, 2, 5*time.Minute)
-				return r, nil
-			}
-			rec = &musicbrainz.MusicBrainzRecording{}
-			if e = json.Unmarshal(body, rec); e != nil || !validRecording(*rec) || !strings.EqualFold(rec.ID, id) {
-				return metadataResult{}, errors.New("invalid MusicBrainz recording response")
-			}
-		}
-		body, err := json.Marshal(rec)
+		body, status, finalPath, err := m.upstream(work, "/recording/"+url.PathEscape(id)+"?inc=artists+releases+isrcs&fmt=json")
 		if err != nil {
 			return metadataResult{}, err
 		}
-		r := metadataResult{body, 200, source}
-		m.save(work, "recording:"+id, r, quality, m.cache.ttl)
+		if status == 404 {
+			r := metadataResult{[]byte(`{"error":"recording not found"}`), 404, "musicbrainz-api"}
+			m.save(work, "recording:"+id, r, 2, 5*time.Minute)
+			return r, nil
+		}
+		var rec musicbrainz.MusicBrainzRecording
+		canonicalID := finalPath[strings.LastIndex(finalPath, "/")+1:]
+		if err := json.Unmarshal(body, &rec); err != nil || !validRecording(rec) || !strings.EqualFold(rec.ID, canonicalID) {
+			return metadataResult{}, errors.New("invalid MusicBrainz recording response")
+		}
+		body, err = json.Marshal(rec)
+		if err != nil {
+			return metadataResult{}, err
+		}
+		r := metadataResult{body, 200, "musicbrainz-api"}
+		m.save(work, "recording:"+id, r, 2, m.cache.ttl)
+		if !strings.EqualFold(id, rec.ID) {
+			m.save(work, "recording:"+strings.ToLower(rec.ID), r, 2, m.cache.ttl)
+		}
 		return r, nil
 	})
 }
-func (m *metadataClient) search(ctx context.Context, p musicbrainz.SearchParams, local func(context.Context) ([]musicbrainz.MusicBrainzRecording, error)) (metadataResult, error) {
+func (m *metadataClient) search(ctx context.Context, p musicbrainz.SearchParams) (metadataResult, error) {
 	encoded, _ := json.Marshal(p)
-	key := fmt.Sprintf("search:%x", sha256.Sum256(encoded))
+	// Separate from earlier local-first searches, whose cached data may be partial.
+	key := fmt.Sprintf("search:upstream:%x", sha256.Sum256(encoded))
 	return m.lookup(ctx, key, func(work context.Context) (metadataResult, error) {
-		recs, err := local(work)
-		source := "riff-mb"
-		if err != nil || len(recs) == 0 {
-			source = "musicbrainz-api"
-			parts := []string{}
-			escape := func(s string) string { return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) }
-			for _, p := range []struct{ k, v string }{{"recording", p.Track}, {"artist", p.Artist}, {"release", p.Release}} {
-				if p.v != "" {
-					parts = append(parts, fmt.Sprintf(`%s:"%s"`, p.k, escape(p.v)))
-				}
+		parts := []string{}
+		escape := func(s string) string { return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) }
+		for _, part := range []struct{ k, v string }{{"recording", p.Track}, {"artist", p.Artist}, {"release", p.Release}} {
+			if part.v != "" {
+				parts = append(parts, fmt.Sprintf(`%s:"%s"`, part.k, escape(part.v)))
 			}
-			if len(parts) == 0 {
-				return metadataResult{}, errors.New("empty MusicBrainz query")
-			}
-			body, status, e := m.upstream(work, "/recording?query="+url.QueryEscape(strings.Join(parts, " AND "))+"&fmt=json&inc=artists+releases+isrcs")
-			if e != nil {
-				return metadataResult{}, e
-			}
-			if status != 200 {
-				return metadataResult{}, errors.New("unexpected MusicBrainz search status")
-			}
-			var response musicbrainz.MusicBrainzSearchResponse
-			if e = json.Unmarshal(body, &response); e != nil || response.Recordings == nil {
-				return metadataResult{}, errors.New("invalid MusicBrainz search response")
-			}
-			recs = response.Recordings
 		}
-		if recs == nil {
-			recs = []musicbrainz.MusicBrainzRecording{}
+		if len(parts) == 0 {
+			return metadataResult{}, errors.New("empty MusicBrainz query")
 		}
-		for _, rec := range recs {
+		body, status, _, err := m.upstream(work, "/recording?query="+url.QueryEscape(strings.Join(parts, " AND "))+"&fmt=json&inc=artists+releases+isrcs")
+		if err != nil {
+			return metadataResult{}, err
+		}
+		if status != 200 {
+			return metadataResult{}, errors.New("unexpected MusicBrainz search status")
+		}
+		var response musicbrainz.MusicBrainzSearchResponse
+		if err = json.Unmarshal(body, &response); err != nil || response.Recordings == nil {
+			return metadataResult{}, errors.New("invalid MusicBrainz search response")
+		}
+		for _, rec := range response.Recordings {
 			if !validRecording(rec) {
 				return metadataResult{}, errors.New("invalid MusicBrainz search recording")
 			}
 		}
-		for _, rec := range recs {
-			// Local search documents omit release expansions; let the indexed
-			// recording lookup attach them instead of caching a partial result.
-			if source == "riff-mb" {
-				continue
-			}
+		for _, rec := range response.Recordings {
 			body, _ := json.Marshal(rec)
-			quality := 0
-			if source == "musicbrainz-api" {
-				quality = 1
-			}
-			m.save(work, "recording:"+strings.ToLower(rec.ID), metadataResult{body, 200, source}, quality, m.cache.ttl)
+			m.save(work, "recording:"+strings.ToLower(rec.ID), metadataResult{body, 200, "musicbrainz-api"}, 1, m.cache.ttl)
 		}
-		body, err := json.Marshal(recs)
+		body, err = json.Marshal(response.Recordings)
 		if err != nil {
 			return metadataResult{}, err
 		}
-		r := metadataResult{body, 200, source}
+		r := metadataResult{body, 200, "musicbrainz-api"}
 		ttl := time.Hour
-		if len(recs) == 0 {
+		if len(response.Recordings) == 0 {
 			ttl = 5 * time.Minute
 		}
 		m.save(work, key, r, 1, ttl)
