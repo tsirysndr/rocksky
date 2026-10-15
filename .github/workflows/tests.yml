@@ -59,6 +59,8 @@ jobs:
               - '.github/workflows/tests.yml'
             submissions:
               - 'crates/submissions/**'
+              - 'crates/jetstream/**'
+              - 'crates/db/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
               - '.github/workflows/tests.yml'
@@ -127,6 +129,10 @@ jobs:
         env:
           SUBMISSIONS_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/submissions_test
         run: cargo test --locked -p rocksky-submissions -- --include-ignored
+      - name: Test Jetstream ingestion on PostgreSQL and SQLite
+        env:
+          ROCKSKY_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/submissions_test
+        run: cargo test --locked -p rocksky-jetstream --lib
       - name: Test SQLite-only backend
         run: cargo test --locked -p rocksky-submissions --no-default-features --features sqlite
       - name: Test both backends together

@@ -1590,6 +1590,66 @@ mod sqlite_behaviour {
         }
     }
 
+    // Exercise the actual artist write with a text[] column, including the
+    // missing-tags case that used to bind a text NULL and abort ingestion.
+    #[tokio::test]
+    async fn artist_genres_round_trip_on_postgres() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            eprintln!("skipped: set ROCKSKY_TEST_POSTGRES_URL to run this");
+            return;
+        };
+        let pool = sqlx::PgPool::connect(&url).await.unwrap();
+        let mut raw = pool.begin().await.unwrap();
+        sqlx::query("CREATE TEMP TABLE artists (xata_id text PRIMARY KEY, name text, sha256 text UNIQUE, uri text, picture text, genres text[]) ON COMMIT DROP")
+            .execute(&mut *raw).await.unwrap();
+        let mut tx = rocksky_db::tx::Tx::Postgres(raw);
+        check_artist_genres(&mut tx).await;
+        tx.rollback().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn artist_genres_round_trip_on_sqlite() {
+        let db = db().await;
+        let mut tx = db.begin().await.unwrap();
+        check_artist_genres(&mut tx).await;
+        tx.rollback().await.unwrap();
+    }
+
+    async fn check_artist_genres(tx: &mut rocksky_db::tx::Tx<'_>) {
+        let cases = [
+            None,
+            Some(vec![]),
+            Some(vec![
+                "indie pop".to_string(),
+                "quote \" and comma,".to_string(),
+            ]),
+        ];
+        for (index, tags) in cases.into_iter().enumerate() {
+            let mut record = a_scrobble("Test", "Test", &format!("Genre test {index}"));
+            record.tags = tags.clone();
+            let id = save_artist(tx, record.clone()).await.unwrap();
+            assert_eq!(save_artist(tx, record).await.unwrap(), id);
+            let expr = match tx.dialect() {
+                rocksky_db::Dialect::Postgres => Expr::cust("to_json(genres)::text"),
+                rocksky_db::Dialect::Sqlite => Expr::col(Artists::Genres).into(),
+            };
+            let stored: Option<Option<String>> = tx
+                .fetch_scalar(
+                    &Query::select()
+                        .expr(expr)
+                        .from(Artists::Table)
+                        .and_where(Expr::col(Artists::XataId).eq(id))
+                        .to_owned(),
+                )
+                .await
+                .unwrap();
+            let actual: Option<Vec<String>> = stored
+                .expect("artist exists")
+                .map(|value| serde_json::from_str(&value).unwrap());
+            assert_eq!(actual, tags);
+        }
+    }
+
     async fn count(db: &Backend, table: &str) -> i64 {
         db.count(
             &SqQuery::select()

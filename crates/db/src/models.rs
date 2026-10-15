@@ -331,7 +331,12 @@ pub fn column_expr(col: Col, dialect: Dialect, prefix: Option<&str>) -> sea_quer
 /// "we do not know this artist's genres" against "we know they have none".
 pub fn text_array_value(dialect: Dialect, values: Option<&[String]>) -> sea_query::SimpleExpr {
     let Some(values) = values else {
-        return Option::<String>::None.into();
+        return match dialect {
+            // A text NULL is still typed text in a prepared statement; Postgres
+            // rejects it for text[] even though the value is absent.
+            Dialect::Postgres => Option::<Vec<String>>::None.into(),
+            Dialect::Sqlite => Option::<String>::None.into(),
+        };
     };
     match dialect {
         Dialect::Postgres => values.to_vec().into(),
