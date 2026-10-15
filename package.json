@@ -29,7 +29,7 @@
     "dev:tracklist": "cargo run -p rockskyd --release -- tracklist",
     "db:pgpull": "cargo run -p rockskyd --release -- pull",
     "dev:feeds": "cd apps/feeds && deno task dev",
-    "mb": "cd musicbrainz && go run main.go",
+    "mb": "cd musicbrainz && go run .",
     "deezer": "cd deezer && go run main.go",
     "spotify-proxy": "cd spotify && go run main.go",
     "discogs": "cd discogs && go run main.go",

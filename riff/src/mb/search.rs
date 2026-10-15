@@ -58,7 +58,7 @@ fn push(query: &mut Query, field: Option<&str>, value: String) {
         Some("rgid" | "rid" | "reid" | "wid" | "aid") => query.id.push(value),
         Some("type" | "primarytype" | "primary-type") => query.kind.push(value),
         // `status:`, `country:`, `tag:`, dates… — accepted and ignored. The
-        // dump has no releases, so `status:Official` cannot narrow anything;
+        // search does not join release metadata, so `status:Official` cannot narrow anything;
         // dropping the clause beats returning nothing.
         Some(_) => {}
     }

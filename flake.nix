@@ -263,6 +263,9 @@
               ./musicbrainz/go.mod
               ./musicbrainz/go.sum
               ./musicbrainz/main.go
+              ./musicbrainz/metadata.go
+              ./musicbrainz/main_test.go
+              ./musicbrainz/metadata_test.go
               ./otel
             ];
           };

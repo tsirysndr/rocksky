@@ -198,3 +198,70 @@ pub fn import_all(
     }
     Ok(report)
 }
+
+/// Album recordings live inside release.media[].tracks[].recording in the
+/// official JSON dumps; the standalone recording dump is not a full catalog.
+/// Run offline on a staging copy: this replaces the release snapshot and merges
+/// its recording documents, retaining standalone recordings already imported.
+pub fn import_release_recordings(
+    conn: &Connection,
+    file: &Path,
+    max_object_size: u64,
+) -> Result<u64, String> {
+    conn.execute_batch("BEGIN TRANSACTION")
+        .map_err(|e| e.to_string())?;
+    let result = (|| {
+        create_shared_tables(conn).map_err(|e| e.to_string())?;
+        import_entity(conn, &crate::mb::RELEASE, file, max_object_size)?;
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS mb_recording (
+                id VARCHAR, name VARCHAR, name_lc VARCHAR, sort_name VARCHAR,
+                disambiguation VARCHAR, type VARCHAR, data VARCHAR
+            );
+            CREATE TEMP TABLE release_recordings AS
+            SELECT r.id AS release_id,
+                   json_extract_string(t.value, '$.recording.id') AS id,
+                   CAST(json_extract(t.value, '$.recording') AS VARCHAR) AS data
+            FROM mb_release r, json_each(r.data, '$.media') m,
+                 json_each(m.value, '$.tracks') t
+            WHERE json_extract_string(t.value, '$.recording.id') IS NOT NULL;
+            CREATE OR REPLACE TABLE mb_recording_release AS
+            SELECT DISTINCT id AS recording_id, release_id FROM release_recordings;
+            CREATE INDEX idx_mb_recording_release_id ON mb_recording_release(recording_id);
+            CREATE TEMP TABLE expanded_recordings AS
+            SELECT id, arg_min(data, release_id) AS data FROM release_recordings GROUP BY id;
+            CREATE OR REPLACE TABLE mb_recording AS
+            SELECT old.* FROM mb_recording old
+            WHERE NOT EXISTS (SELECT 1 FROM expanded_recordings new WHERE new.id=old.id)
+            UNION ALL
+            SELECT id, json_extract_string(data, '$.title'),
+                lower(json_extract_string(data, '$.title')), NULL::VARCHAR,
+                json_extract_string(data, '$.disambiguation'),
+                json_extract_string(data, '$.type'), data FROM expanded_recordings;
+            DROP TABLE expanded_recordings;
+            DROP TABLE release_recordings;
+            CREATE INDEX idx_mb_recording_id ON mb_recording(id);
+            CREATE INDEX idx_mb_recording_name_lc ON mb_recording(name_lc);
+        "#,
+        )
+        .map_err(|e| format!("expanding release recordings: {e}"))?;
+        refresh_side_tables(conn, crate::mb::entity("recording").unwrap())
+            .map_err(|e| format!("recording side tables: {e}"))?;
+        create_search_indexes(conn).map_err(|e| e.to_string())?;
+        conn.query_row("SELECT count(*) FROM mb_recording", [], |r| {
+            r.get::<_, u64>(0)
+        })
+        .map_err(|e| e.to_string())
+    })();
+    match result {
+        Ok(count) => {
+            conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
+            Ok(count)
+        }
+        Err(err) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            Err(err)
+        }
+    }
+}

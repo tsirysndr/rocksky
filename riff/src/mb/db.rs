@@ -15,6 +15,7 @@ pub type PooledConn = r2d2::PooledConnection<DuckdbConnectionManager>;
 
 pub struct MbCatalog {
     pool: Pool,
+    pub has_release_recordings: bool,
 }
 
 impl MbCatalog {
@@ -75,7 +76,7 @@ pub fn open(cfg: &Settings) -> Result<(MbCatalog, Vec<String>), String> {
 
     let present = tables(&conn)?;
     let mut report = Vec::new();
-    for e in ENTITIES {
+    for e in ENTITIES.iter().chain(std::iter::once(&crate::mb::RELEASE)) {
         if present.contains(e.table) {
             let n: u64 = conn
                 .query_row(&format!("SELECT count(*) FROM {}", e.table), [], |r| {
@@ -89,7 +90,14 @@ pub fn open(cfg: &Settings) -> Result<(MbCatalog, Vec<String>), String> {
     }
 
     drop(conn);
-    Ok((MbCatalog { pool }, report))
+    Ok((
+        MbCatalog {
+            pool,
+            has_release_recordings: present.contains("mb_recording_release")
+                && present.contains("mb_release"),
+        },
+        report,
+    ))
 }
 
 /// The set of entity tables present in the file.

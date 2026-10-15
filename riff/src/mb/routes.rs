@@ -3,8 +3,8 @@
 //! Responses are JSON only — every Rocksky client sends `fmt=json`, so `fmt`
 //! and `inc` are accepted and ignored: the stored documents already carry
 //! every inline expansion the dump had (aliases, tags, genres, ratings,
-//! relations, artist credits, ISRCs). What the dump does not have — releases —
-//! no `inc` can conjure.
+//! relations, artist credits, ISRCs). Recording lookups also attach release
+//! summaries when the release dump has been imported.
 
 use crate::error::ApiError;
 use crate::mb::db::{MbCatalog, PooledConn};
@@ -125,9 +125,9 @@ SEARCH
   status:, country:, tag: and other unsupported clauses are accepted and
   ignored. Responses are JSON only; `fmt` and `inc` are accepted and ignored —
   documents already carry aliases, tags, genres, ratings, relations, artist
-  credits and ISRCs. The dumps contain no releases, so `releases` is never
-  present in a response; keep the rate-limited upstream as fallback when
-  release data matters.
+  credits and ISRCs. Recording lookups attach release summaries when the
+  optional release dump has been imported; search documents do not include
+  these expansions.
 "#,
         version = env!("CARGO_PKG_VERSION"),
         port = crate::listen_port(),
@@ -154,11 +154,25 @@ pub async fn lookup(
     let (kind, mbid) = path.into_inner();
     let spec = require_entity(&kind)?;
 
+    if kind == "release" && !catalog.has_release_recordings {
+        return Err(ApiError::NotFound("release dump not imported".into()).into());
+    }
+    let with_releases = kind == "recording" && catalog.has_release_recordings;
     let data = blocking(catalog, move |conn| {
         let mut stmt = conn.prepare(&format!("SELECT data FROM {} WHERE id = ?", spec.table))?;
         let mut rows = stmt.query([&mbid])?;
         match rows.next()? {
-            Some(row) => Ok(row.get::<_, String>(0)?),
+            Some(row) => {
+                let raw = row.get::<_, String>(0)?;
+                if !with_releases { return Ok(raw); }
+                let mut doc: Value = serde_json::from_str(&raw).map_err(|e| ApiError::Internal(e.to_string()))?;
+                let mut releases = conn.prepare("SELECT json_object('id', r.id, 'title', r.name, 'date', json_extract_string(r.data, '$.date'), 'status', json_extract_string(r.data, '$.status'), 'release-group', json_extract(r.data, '$.\"release-group\"'))::VARCHAR FROM mb_release r JOIN mb_recording_release rr ON r.id=rr.release_id WHERE rr.recording_id=? ORDER BY CASE WHEN json_extract_string(r.data,'$.status')='Official' THEN 0 ELSE 1 END, coalesce(json_extract_string(r.data,'$.date'),'9999'), r.id LIMIT 100")?;
+                let rows = releases.query_map([&mbid], |r| r.get::<_, String>(0))?;
+                let mut values = Vec::new();
+                for row in rows { values.push(serde_json::from_str::<Value>(&row?).map_err(|e| ApiError::Internal(e.to_string()))?); }
+                doc["releases"] = Value::Array(values);
+                Ok(doc.to_string())
+            },
             None => Err(ApiError::NotFound("Not Found".into())),
         }
     })

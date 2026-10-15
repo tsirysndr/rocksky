@@ -99,6 +99,17 @@ pub const ENTITIES: &[EntitySpec] = &[
     },
 ];
 
+pub const RELEASE: EntitySpec = EntitySpec {
+    path: "release",
+    table: "mb_release",
+    name_field: "title",
+    plural: "releases",
+    has_sort_name: false,
+};
+
 pub fn entity(path: &str) -> Option<&'static EntitySpec> {
-    ENTITIES.iter().find(|e| e.path == path)
+    ENTITIES
+        .iter()
+        .find(|e| e.path == path)
+        .or_else(|| (path == "release").then_some(&RELEASE))
 }

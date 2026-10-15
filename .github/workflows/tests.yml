@@ -28,6 +28,7 @@ jobs:
       remote_ws: ${{ steps.filter.outputs.remote_ws }}
       submissions: ${{ steps.filter.outputs.submissions }}
       matching: ${{ steps.filter.outputs.matching }}
+      musicbrainz: ${{ steps.filter.outputs.musicbrainz }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -63,6 +64,10 @@ jobs:
               - 'crates/db/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
+              - '.github/workflows/tests.yml'
+            musicbrainz:
+              - 'musicbrainz/**'
+              - 'otel/**'
               - '.github/workflows/tests.yml'
             matching:
               - 'crates/matching/**'
@@ -268,3 +273,21 @@ jobs:
         run: mix deps.get
       - name: Run tests
         run: mix test
+
+  musicbrainz:
+    needs: changes
+    if: needs.changes.outputs.musicbrainz == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: musicbrainz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: musicbrainz/go.mod
+          cache-dependency-path: musicbrainz/go.sum
+      - name: Test durable metadata cache and upstream admission
+        run: go test -race ./...
+      - name: Build MusicBrainz proxy
+        run: go build -o /tmp/rocksky-musicbrainz .

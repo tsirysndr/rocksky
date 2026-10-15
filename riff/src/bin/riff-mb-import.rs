@@ -29,9 +29,14 @@ struct Cli {
         short = 'd',
         long,
         env = "RIFF_MB_DUMPS_DIR",
-        required_unless_present = "indexes_only"
+        required_unless_present_any = ["indexes_only", "release_recordings"]
     )]
     dumps_dir: Option<PathBuf>,
+
+    /// Official release NDJSON file. Extracts embedded album recordings and
+    /// imports releases. Use a staging database; never write the live file.
+    #[arg(long, conflicts_with_all = ["indexes_only", "only", "dumps_dir"])]
+    release_recordings: Option<PathBuf>,
 
     /// Add search indexes to an existing database without importing dumps.
     /// Stop riff-mb first: DuckDB requires exclusive access for writes.
@@ -79,6 +84,15 @@ fn run(cli: &Cli) -> Result<(), String> {
         cli.memory_limit.replace('\'', "")
     ))
     .map_err(|e| format!("configuring DuckDB: {e}"))?;
+
+    if let Some(file) = &cli.release_recordings {
+        let count = import::import_release_recordings(&conn, file, cli.max_object_size)?;
+        println!(
+            "release import complete: {count} recordings in {}",
+            cli.db.display()
+        );
+        return Ok(());
+    }
 
     if cli.indexes_only {
         import::create_search_indexes(&conn).map_err(|e| format!("search indexes: {e}"))?;

@@ -3,13 +3,17 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -20,12 +24,11 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/time/rate"
 )
 
 type Server struct {
-	mb      *musicbrainz.MusicBrainzService
-	limiter *rate.Limiter
+	mb       *musicbrainz.MusicBrainzService
+	metadata *metadataClient
 	// Local riff-mb instance (the MusicBrainz dumps served from DuckDB).
 	// Queried first on every request — no rate limit — with the real,
 	// rate-limited MusicBrainz API as fallback when it has nothing.
@@ -168,9 +171,33 @@ func main() {
 		mbriffURL = "http://localhost:8094"
 	}
 
+	cachePath := os.Getenv("MB_CACHE_PATH")
+	if cachePath == "" {
+		cachePath = dbPath + ".metadata.sqlite"
+	}
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0700); err != nil {
+		log.Fatal(err)
+	}
+	cacheTTL := 30 * 24 * time.Hour
+	if raw := os.Getenv("MB_CACHE_TTL"); raw != "" {
+		parsed, err := time.ParseDuration(raw)
+		if err != nil || parsed < time.Minute {
+			log.Fatal("MB_CACHE_TTL must be a duration of at least 1m")
+		}
+		cacheTTL = parsed
+	}
+	cache, err := openMetadataCache(cachePath, cacheTTL)
+	if err != nil {
+		log.Fatalf("metadata cache initialization: %v", err)
+	}
+	defer cache.db.Close()
+	upstream := os.Getenv("MB_UPSTREAM_URL")
+	if upstream == "" {
+		upstream = "https://musicbrainz.org/ws/2"
+	}
 	srv := &Server{
 		mb:           musicbrainz.NewMusicBrainzService(database),
-		limiter:      rate.NewLimiter(rate.Every(time.Second), 1),
+		metadata:     newMetadataClient(cache, upstream),
 		mbriffURL:    strings.TrimRight(mbriffURL, "/"),
 		mbriffClient: newMbriffClient(),
 	}
@@ -190,8 +217,9 @@ func main() {
 	e.POST("/hydrate", srv.hydrateHandler)
 	e.GET("/recording/:mbid", srv.recordingByMbidHandler)
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go cache.cleanup(ctx)
 
 	go func() {
 		port := os.Getenv("PORT")
@@ -234,31 +262,18 @@ func (s *Server) searchHandler(c echo.Context) error {
 		attribute.String("mb.query.release", req.Release),
 	)
 
-	if local, err := s.mbriffSearchRecordings(ctx, req); err == nil && len(local) > 0 {
-		spanAttrs(ctx,
-			attribute.String("mb.source", "riff-mb"),
-			attribute.Int("mb.results.count", len(local)),
-			attribute.String("mb.result.mbid", local[0].ID),
-			attribute.String("mb.result.title", local[0].Title),
-		)
-		return c.JSON(http.StatusOK, local)
+	if strings.TrimSpace(req.Track) == "" && strings.TrimSpace(req.Artist) == "" && strings.TrimSpace(req.Release) == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "empty query"})
 	}
-
-	resp, _ := s.mb.SearchMusicBrainz(ctx, req)
-
-	attrs := []attribute.KeyValue{
-		attribute.String("mb.source", "musicbrainz-api"),
-		attribute.Int("mb.results.count", len(resp)),
+	result, err := s.metadata.search(ctx, req, func(work context.Context) ([]musicbrainz.MusicBrainzRecording, error) {
+		return s.mbriffSearchRecordings(work, req)
+	})
+	if err != nil {
+		return metadataError(c, err)
 	}
-	if len(resp) > 0 {
-		attrs = append(attrs,
-			attribute.String("mb.result.mbid", resp[0].ID),
-			attribute.String("mb.result.title", resp[0].Title),
-		)
-	}
-	spanAttrs(ctx, attrs...)
-
-	return c.JSON(http.StatusOK, resp)
+	spanAttrs(ctx, attribute.String("mb.source", result.source))
+	c.Response().Header().Set("X-MusicBrainz-Source", result.source)
+	return c.Blob(result.status, "application/json", result.body)
 }
 
 func (s *Server) hydrateHandler(c echo.Context) error {
@@ -280,115 +295,72 @@ func (s *Server) hydrateHandler(c echo.Context) error {
 		attribute.String("mb.query.release", req.Album),
 	)
 
-	if resp := s.hydrateFromMbriff(ctx, req); resp != nil {
-		attrs := []attribute.KeyValue{attribute.String("mb.source", "riff-mb")}
-		if resp.RecordingMBID != nil {
-			attrs = append(attrs, attribute.String("mb.result.mbid", *resp.RecordingMBID))
-		}
-		spanAttrs(ctx, attrs...)
-		return c.JSON(http.StatusOK, resp)
-	}
-
-	// Do not start an external lookup after the caller's enrichment budget ended.
 	if ctx.Err() != nil {
 		return c.NoContent(499)
 	}
-	resp, _ := musicbrainz.HydrateTrack(s.mb, req)
-
-	// resp is nil when the real API had nothing either — dereferencing it
-	// for the attribute is what briefly panicked every failed hydrate.
-	attrs := []attribute.KeyValue{attribute.String("mb.source", "musicbrainz-api")}
-	if resp != nil && resp.RecordingMBID != nil {
-		attrs = append(attrs, attribute.String("mb.result.mbid", *resp.RecordingMBID))
+	params := musicbrainz.SearchParams{Track: req.Name, Artist: strings.Join(artistNames, ", "), Release: req.Album}
+	if strings.TrimSpace(params.Track) == "" && strings.TrimSpace(params.Artist) == "" && strings.TrimSpace(params.Release) == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "empty query"})
 	}
-	spanAttrs(ctx, attrs...)
-
-	return c.JSON(http.StatusOK, resp)
-}
-
-// hydrateFromMbriff is HydrateTrack against riff-mb: same search, same
-// first-result pick, but nil-safe on releases. Returns nil when riff-mb has
-// no answer so the caller falls back to the real API.
-func (s *Server) hydrateFromMbriff(ctx context.Context, track models.Track) *models.Track {
-	artistArray := make([]string, len(track.Artist))
-	for i, a := range track.Artist {
-		artistArray[i] = a.Name
+	result, err := s.metadata.search(ctx, params, func(work context.Context) ([]musicbrainz.MusicBrainzRecording, error) {
+		return s.mbriffSearchRecordings(work, params)
+	})
+	if err != nil {
+		return metadataError(c, err)
 	}
-	params := musicbrainz.SearchParams{
-		Track:   track.Name,
-		Artist:  strings.Join(artistArray, ", "),
-		Release: track.Album,
+	var recordings []musicbrainz.MusicBrainzRecording
+	if err = json.Unmarshal(result.body, &recordings); err != nil {
+		return metadataError(c, err)
 	}
-
-	recordings, err := s.mbriffSearchRecordings(ctx, params)
-	if err != nil || len(recordings) == 0 {
-		return nil
+	c.Response().Header().Set("X-MusicBrainz-Source", result.source)
+	spanAttrs(ctx, attribute.String("mb.source", result.source))
+	if len(recordings) == 0 {
+		return c.JSON(http.StatusOK, nil)
 	}
-
 	hydrated := s.recordingToTrack(&recordings[0])
-	hydrated.HasStamped = track.HasStamped
-	hydrated.PlayID = track.PlayID
-	hydrated.Name = track.Name
-	hydrated.URL = track.URL
-	hydrated.ServiceBaseUrl = track.ServiceBaseUrl
-	hydrated.Timestamp = track.Timestamp
-	hydrated.ProgressMs = track.ProgressMs
-	return &hydrated
+	hydrated.HasStamped = req.HasStamped
+	hydrated.PlayID = req.PlayID
+	hydrated.Name = req.Name
+	hydrated.URL = req.URL
+	hydrated.ServiceBaseUrl = req.ServiceBaseUrl
+	hydrated.Timestamp = req.Timestamp
+	hydrated.ProgressMs = req.ProgressMs
+	return c.JSON(http.StatusOK, hydrated)
 }
 
 func (s *Server) recordingByMbidHandler(c echo.Context) error {
-	id := c.Param("mbid")
-	if id == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "mbid is required"})
+	id := strings.ToLower(c.Param("mbid"))
+	if !validMBID(id) {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid mbid"})
 	}
-	spanAttrs(c.Request().Context(), attribute.String("mb.query.mbid", id))
-
-	if recording, err := s.mbriffRecording(c.Request().Context(), id); err == nil {
-		spanAttrs(c.Request().Context(),
-			attribute.String("mb.source", "riff-mb"),
-			attribute.String("mb.result.title", recording.Title),
-		)
-		return c.JSON(http.StatusOK, s.recordingToTrack(recording))
-	}
-	spanAttrs(c.Request().Context(), attribute.String("mb.source", "musicbrainz-api"))
-
-	if err := s.limiter.Wait(c.Request().Context()); err != nil {
-		if c.Request().Context().Err() != nil {
-			return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "request cancelled"})
-		}
-		return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "rate limiter error"})
-	}
-
-	endpoint := fmt.Sprintf("https://musicbrainz.org/ws/2/recording/%s?inc=artists+releases+isrcs&fmt=json", id)
-
-	req, err := http.NewRequestWithContext(c.Request().Context(), "GET", endpoint, nil)
+	result, err := s.metadata.recording(c.Request().Context(), id, func(work context.Context) (*musicbrainz.MusicBrainzRecording, error) {
+		return s.mbriffRecording(work, id)
+	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create request"})
+		return metadataError(c, err)
 	}
-	req.Header.Set("User-Agent", "piper/0.0.1 ( https://github.com/teal-fm/piper )")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to fetch recording: %v", err)})
+	c.Response().Header().Set("X-MusicBrainz-Source", result.source)
+	spanAttrs(c.Request().Context(), attribute.String("mb.source", result.source), attribute.String("mb.query.mbid", id))
+	if result.status != http.StatusOK {
+		return c.Blob(result.status, "application/json", result.body)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "recording not found"})
-	}
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return c.JSON(http.StatusTooManyRequests, map[string]string{"error": "MusicBrainz rate limit exceeded"})
-	}
-	if resp.StatusCode != http.StatusOK {
-		return c.JSON(http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("MusicBrainz API returned status %d", resp.StatusCode)})
-	}
-
 	var recording musicbrainz.MusicBrainzRecording
-	if err := json.NewDecoder(resp.Body).Decode(&recording); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to decode response"})
+	if err = json.Unmarshal(result.body, &recording); err != nil {
+		return metadataError(c, err)
 	}
-
 	return c.JSON(http.StatusOK, s.recordingToTrack(&recording))
+}
+
+var mbidPattern = regexp.MustCompile(`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$`)
+
+func validMBID(id string) bool { return mbidPattern.MatchString(id) }
+func metadataError(c echo.Context, err error) error {
+	if c.Request().Context().Err() != nil || errors.Is(err, context.Canceled) {
+		return c.NoContent(499)
+	}
+	log.Printf("metadata fallback failed route=%s: %v", c.Path(), err)
+	c.Response().Header().Set("Retry-After", "5")
+	return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "MusicBrainz temporarily unavailable"})
 }
 
 func cleanTitle(title string) string {

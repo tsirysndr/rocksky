@@ -398,12 +398,38 @@ GET /ws/2/isrc/{isrc}                  recordings carrying an ISRC
 ```
 
 Matching is **exact** (case-insensitive, aliases included), like riff's search
-and for the same reason. `fmt` and `inc` are accepted and ignored — responses
-are always JSON and already carry everything the dump had. Two honest gaps,
-both dump-shaped: there is **no release dump**, so `releases` is never in a
-response, and the **recording dump only holds standalone recordings** (~133K,
-not the ~34M attached to releases) — which is exactly why the Go proxy keeps
-the real API as fallback.
+and for the same reason. `fmt` and `inc` are accepted; responses are JSON.
+The standalone **recording** JSON dump is not the full recording catalog:
+album recordings are nested in the official **release** dump. Import both.
+
+After importing the standalone entities, expand album recordings on a **staging
+copy** of the database (never write the file currently served by riff-mb):
+
+```sh
+cp --reflink=auto /root/musicbrainz-db/musicbrainz.duckdb /path/with-space/musicbrainz.next.duckdb
+./cargo.sh run --release --bin riff-mb-import -- \
+  --db /path/with-space/musicbrainz.next.duckdb \
+  --release-recordings /path/to/extracted/release/mbdump/release \
+  --memory-limit 4GB
+```
+
+Obtain the release archive from the official
+[MusicBrainz JSON dumps](https://data.metabrainz.org/pub/musicbrainz/data/json-dumps/),
+verify the published checksum, and extract it first. Allow disk space for the
+archive, extracted NDJSON, staging database and DuckDB temporary spill files.
+The importer preserves existing standalone recordings, deduplicates embedded
+recordings by recording MBID, builds lookup/artist/ISRC indexes, and stores
+release membership separately. It commits the release expansion atomically and
+can be rerun. Run standalone imports **before** release expansion; importing the
+standalone recording table again replaces the expanded recording table.
+
+The expanded database serves `GET /ws/2/release/{mbid}` and adds up to 100
+releases to recording lookups, ordered by official status, date and MBID.
+Search still uses the indexed recording metadata; it does not scan releases on
+live requests. Validate recording counts and previously missing MBIDs on a
+separate test port before stopping riff-mb and swapping the staged database into
+place. Keep the previous database for rollback. This import needs the release
+archive; proxy caching does not manufacture the missing dump rows.
 
 ### Deployment
 
