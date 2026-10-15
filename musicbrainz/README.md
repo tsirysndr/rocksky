@@ -7,7 +7,7 @@ OpenTelemetry is disabled: ordinary HTTP and upstream-error logs go to stdout/st
 
 | Setting | Default |
 | --- | --- |
-| `MB_UPSTREAM_URL` | `https://musicbrainz.org/ws/2` |
+| `MB_UPSTREAM_URL` | `https://musicbrainz.org/ws/2` (only allowed upstream) |
 | `MB_CACHE_PATH` | `${DB_PATH}.metadata.sqlite` (`./piper.db.metadata.sqlite` by default) |
 | `MB_CACHE_TTL` | `720h` (recordings; minimum `1m`) |
 
@@ -16,6 +16,11 @@ synchronous FULL preserve completed cache writes across restarts. Existing
 upstream recording entries remain usable. Old local recording entries are ignored;
 searches use a new namespace to avoid previously cached partial riff-mb results.
 No database replacement or new required environment variables are needed.
+
+Production startup rejects a non-official upstream URL. Outbound requests connect
+straight to MusicBrainz over IPv4; HTTP(S)_PROXY/ALL_PROXY are not used. This avoids
+the production IPv6 path's TLS EOF failures without changing global networking.
+DNS resolution and TLS certificate/hostname verification remain enabled.
 
 Successful searches also cache their recordings by MBID. Full recording responses
 outrank search snippets. Search results live for one hour; authoritative upstream

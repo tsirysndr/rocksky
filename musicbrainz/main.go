@@ -98,9 +98,9 @@ func main() {
 		log.Fatalf("metadata cache initialization: %v", err)
 	}
 	defer cache.db.Close()
-	upstream := os.Getenv("MB_UPSTREAM_URL")
-	if upstream == "" {
-		upstream = "https://musicbrainz.org/ws/2"
+	upstream, err := officialUpstream(os.Getenv("MB_UPSTREAM_URL"))
+	if err != nil {
+		log.Fatal(err)
 	}
 	srv := &Server{
 		mb:       musicbrainz.NewMusicBrainzService(database),

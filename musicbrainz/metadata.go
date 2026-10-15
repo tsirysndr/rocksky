@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -117,9 +118,26 @@ type metadataClient struct {
 	cooldown     time.Time
 }
 
+const officialMusicBrainzURL = "https://musicbrainz.org/ws/2"
+
+func officialUpstream(raw string) (string, error) {
+	if raw != "" && strings.TrimRight(raw, "/") != officialMusicBrainzURL {
+		return "", errors.New("MB_UPSTREAM_URL must be https://musicbrainz.org/ws/2")
+	}
+	return officialMusicBrainzURL, nil
+}
+
 func newMetadataClient(cache *metadataCache, baseURL string) *metadataClient {
+	// This server's IPv6 path closes TLS handshakes. Keep DNS and certificate
+	// verification intact, but use IPv4 for this client only. No forwarding proxy.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	dialer := &net.Dialer{Timeout: 3 * time.Second, KeepAlive: 30 * time.Second}
+	transport.DialContext = func(ctx context.Context, _ string, address string) (net.Conn, error) {
+		return dialer.DialContext(ctx, "tcp4", address)
+	}
 	return &metadataClient{cache: cache, baseURL: strings.TrimRight(baseURL, "/"),
-		http: &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}, limiter: rate.NewLimiter(rate.Every(time.Second), 1),
+		http: &http.Client{Transport: transport, Timeout: 3 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}, limiter: rate.NewLimiter(rate.Every(time.Second), 1),
 		waitBudget: 1100 * time.Millisecond, lookupBudget: 5 * time.Second, flights: make(map[string]*metadataFlight)}
 }
 

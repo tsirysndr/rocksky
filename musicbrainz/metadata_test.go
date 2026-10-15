@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -419,5 +420,44 @@ func TestHandlersKeepResponseShapesWithoutRiff(t *testing.T) {
 	}
 	if localCalls.Load() != 0 {
 		t.Fatal("riff-mb was contacted")
+	}
+}
+
+func TestOnlyOfficialUpstreamConfigurationIsAllowed(t *testing.T) {
+	for _, raw := range []string{"", officialMusicBrainzURL, officialMusicBrainzURL + "/"} {
+		if got, err := officialUpstream(raw); err != nil || got != officialMusicBrainzURL {
+			t.Fatal(got, err)
+		}
+	}
+	for _, raw := range []string{"http://localhost:8094", "https://example.com/ws/2", "http://musicbrainz.org/ws/2", "https://musicbrainz.org.evil.test/ws/2", "https://user:pass@musicbrainz.org/ws/2"} {
+		if _, err := officialUpstream(raw); err == nil {
+			t.Fatal("accepted non-official upstream", raw)
+		}
+	}
+}
+
+func TestTransportUsesIPv4WithoutForwardProxy(t *testing.T) {
+	m := testClient(t, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, recordingJSON) })
+	transport := m.http.Transport.(*http.Transport)
+	if transport.Proxy != nil {
+		t.Fatal("forward proxy is enabled")
+	}
+	if transport.TLSClientConfig != nil && transport.TLSClientConfig.InsecureSkipVerify {
+		t.Fatal("TLS verification disabled")
+	}
+	// localhost may resolve to both families; this transport must reach IPv4.
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	_, port, _ := net.SplitHostPort(listener.Addr().String())
+	conn, err := transport.DialContext(context.Background(), "tcp", "localhost:"+port)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	if conn.RemoteAddr().(*net.TCPAddr).IP.To4() == nil {
+		t.Fatal("did not dial IPv4")
 	}
 }
