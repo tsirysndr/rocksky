@@ -9,7 +9,9 @@ import { type ReactNode, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -197,68 +199,77 @@ function CustomRange({
   const [to, setTo] = useState(value.to);
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalRoot}>
+      <KeyboardAvoidingView
+        style={styles.modalRoot}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={onClose}
           accessibilityLabel="Close date range"
         />
         <SafeAreaView edges={["bottom"]} style={styles.sheet}>
-          <View style={styles.between}>
-            <Text style={styles.panelTitle}>Choose your dates</Text>
-            <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
-              <Feather name="x" size={24} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.note}>
-            Enter dates as YYYY-MM-DD. Reports use UTC days.
-          </Text>
-          <Text style={styles.inputLabel}>From</Text>
-          <TextInput
-            style={styles.input}
-            accessibilityLabel="Start date"
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.textMuted}
-            value={from}
-            onChangeText={setFrom}
-            maxLength={10}
-            autoCorrect={false}
-          />
-          <Text style={styles.inputLabel}>To</Text>
-          <TextInput
-            style={styles.input}
-            accessibilityLabel="End date"
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.textMuted}
-            value={to}
-            onChangeText={setTo}
-            maxLength={10}
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            style={styles.apply}
-            onPress={() => {
-              if (
-                !validDate(from) ||
-                !validDate(to) ||
-                from > to ||
-                from < "2000-01-01" ||
-                to > dayjs().format("YYYY-MM-DD")
-              ) {
-                Alert.alert(
-                  "Check your dates",
-                  "Choose valid dates between 2000-01-01 and today, with the start before the end.",
-                );
-                return;
-              }
-              onApply({ from, to, label: "Custom" });
-              onClose();
-            }}
+          <ScrollView
+            style={styles.sheetScroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
-            <Text style={{ fontWeight: "700" }}>Show listening report</Text>
-          </TouchableOpacity>
+            <View style={styles.between}>
+              <Text style={styles.panelTitle}>Choose your dates</Text>
+              <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.note}>
+              Enter dates as YYYY-MM-DD. Reports use UTC days.
+            </Text>
+            <Text style={styles.inputLabel}>From</Text>
+            <TextInput
+              style={styles.input}
+              accessibilityLabel="Start date"
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textMuted}
+              value={from}
+              onChangeText={setFrom}
+              maxLength={10}
+              autoCorrect={false}
+            />
+            <Text style={styles.inputLabel}>To</Text>
+            <TextInput
+              style={styles.input}
+              accessibilityLabel="End date"
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textMuted}
+              value={to}
+              onChangeText={setTo}
+              maxLength={10}
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={styles.apply}
+              onPress={() => {
+                if (
+                  !validDate(from) ||
+                  !validDate(to) ||
+                  from > to ||
+                  from < "2000-01-01" ||
+                  to > dayjs().format("YYYY-MM-DD")
+                ) {
+                  Alert.alert(
+                    "Check your dates",
+                    "Choose valid dates between 2000-01-01 and today, with the start before the end.",
+                  );
+                  return;
+                }
+                onApply({ from, to, label: "Custom" });
+                onClose();
+              }}
+            >
+              <Text style={{ fontWeight: "700" }}>Show listening report</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </SafeAreaView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -830,11 +841,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#00000088",
   },
   sheet: {
+    maxHeight: "100%",
+    flexShrink: 1,
     padding: 24,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     backgroundColor: colors.surface,
   },
+  sheetScroll: { flexGrow: 0, flexShrink: 1 },
   inputLabel: { marginTop: 18, fontSize: 13, marginBottom: 8 },
   input: {
     padding: 14,
