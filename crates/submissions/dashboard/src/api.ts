@@ -103,6 +103,5 @@ export function duration(value: number) {
 export function sourceName(source?: string): string {
   const match = source?.match(/^jetstream:(v[12]):(.+)$/);
   if (!match) return "Legacy / unknown source";
-  const host = match[2].replace(/^wss?:\/\//, "");
-  return match[1] === "v1" ? host : `Jetstream v2 · ${host}`;
+  return match[2].replace(/^wss?:\/\//, "");
 }

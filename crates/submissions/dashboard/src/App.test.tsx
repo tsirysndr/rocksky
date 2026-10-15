@@ -118,7 +118,7 @@ describe("dashboard access and live controls", () => {
     setup("", "jobs");
     await screen.findByText("aaaaaaaaaaaaaa…");
     expect(
-      screen.getByText("Jetstream v2 · jetstream.us-west.bsky.network"),
+      screen.getByText("jetstream.us-west.bsky.network"),
     ).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Filter by status"), {
       target: { value: "failed" },
@@ -220,7 +220,7 @@ it("labels v2 cursors as sequences instead of showing a false decades-old lag", 
   );
   setup("test-secret");
   expect(
-    await screen.findByText("Jetstream v2 · jetstream.us-east.bsky.network"),
+    await screen.findByText("jetstream.us-east.bsky.network"),
   ).toBeTruthy();
   expect(screen.getByText("Sequence cursor")).toBeTruthy();
   expect(screen.queryByText("since last event")).toBeNull();
