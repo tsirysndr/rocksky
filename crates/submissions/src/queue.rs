@@ -638,6 +638,21 @@ mod tests {
                 .unwrap();
         }
 
+        if queue.postgres {
+            // SKIP LOCKED may return no job even with pending work. Prove this
+            // deterministically, then release the competing transaction's locks.
+            let mut competing = queue.pool.begin().await.unwrap();
+            let locked: Vec<String> =
+                sqlx::query_scalar("SELECT id FROM rocksky_durable_jobs WHERE kind=$1 FOR UPDATE")
+                    .bind(&kind)
+                    .fetch_all(&mut *competing)
+                    .await
+                    .unwrap();
+            assert_eq!(locked.len(), 24);
+            assert!(queue.claim(&kind, 60, 3).await.unwrap().is_none());
+            competing.rollback().await.unwrap();
+        }
+
         // Competing consumers never claim the same live lease.
         let mut tasks = tokio::task::JoinSet::new();
         for _ in 0..32 {
@@ -652,7 +667,24 @@ mod tests {
                 jobs.push(job);
             }
         }
+        assert!(!ids.is_empty(), "competing consumers must make progress");
+        // A single wave is not a drain: SKIP LOCKED can produce transient empty
+        // claims. Once every competitor has returned, claim remaining work and
+        // keep checking uniqueness against ALL leases from the concurrent wave.
+        for _ in ids.len()..24 {
+            let job = queue
+                .claim(&kind, 60, 3)
+                .await
+                .unwrap()
+                .expect("pending work must remain claimable after contention ends");
+            assert!(
+                ids.insert(job.id.clone()),
+                "duplicate claim after contention"
+            );
+            jobs.push(job);
+        }
         assert_eq!(ids.len(), 24);
+        assert!(queue.claim(&kind, 60, 3).await.unwrap().is_none());
 
         let old = &jobs[0];
         queue
