@@ -152,10 +152,6 @@ function Dashboard() {
               Disconnect
             </button>
           )}
-          <div className="sidebar-caption">
-            A little less waiting.
-            <br />A lot more listening.
-          </div>
         </div>
       </aside>
       <main className="main">
