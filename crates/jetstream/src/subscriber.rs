@@ -1,5 +1,6 @@
 use crate::{
     repo::save_scrobble,
+    source::{Frame, Source, Version},
     types::{Commit, Root},
     webhook_worker::AppState,
 };
@@ -38,20 +39,27 @@ pub const CALENDAR_RSVP_NSID: &str = "community.lexicon.calendar.rsvp";
 /// a prefix wildcard for a foreign namespace, so each is spelled out.
 pub const EXTRA_COLLECTIONS: [&str; 2] = [CALENDAR_EVENT_NSID, CALENDAR_RSVP_NSID];
 
-/// Slack subtracted from the watermark when building a reconnect cursor.
-/// Jetstream cursors are unix microseconds; 5s ensures we don't miss events
-/// emitted in the gap between our last `time_us` and the disconnect.
-const RECONNECT_SLACK_US: i64 = 5_000_000;
-
 /// Captures each source into a durable inbox before advancing its cursor.
 /// Duplicate source events share a job; interrupted indexing is retried.
 pub struct MultiSourceSubscriber {
-    servers: Vec<String>,
+    servers: Vec<Source>,
 }
 
 impl MultiSourceSubscriber {
-    pub fn new(servers: Vec<String>) -> Self {
+    pub fn with_sources(servers: Vec<Source>) -> Self {
         Self { servers }
+    }
+
+    pub fn new(servers: Vec<String>) -> Self {
+        Self::with_sources(
+            servers
+                .into_iter()
+                .map(|server| {
+                    Source::new(Version::V1, &server, initial_cursor())
+                        .expect("invalid Jetstream source")
+                })
+                .collect(),
+        )
     }
 
     pub async fn run(&self, state: Arc<Mutex<AppState>>) -> Result<(), Error> {
@@ -148,48 +156,59 @@ fn dedup_key(did: &str, commit: &Commit) -> String {
 
 async fn run_connection_worker(
     idx: usize,
-    server: String,
+    server: Source,
     queue: Queue,
     inbox: mpsc::Sender<InboxEvent>,
 ) {
     // Independent checkpoints: the fastest source cannot move a lagging peer
     // past events it has not yet durably captured.
-    let source = format!("jetstream:v1:{server}");
+    let source = server.cursor_key();
+    let version = server.version.label();
     loop {
         let cursor = match queue.cursor(&source).await {
             Ok(cursor) => cursor.unwrap_or(0),
             Err(error) => {
-                tracing::error!(%error, "cannot load durable Jetstream cursor");
+                tracing::error!(%error, jetstream.version=version, jetstream.source=%source, "cannot load durable Jetstream cursor");
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
             }
         };
-        let url = build_subscribe_url(&server, cursor);
-        tracing::info!(worker=idx, url=%url.bright_green(), "Connecting to jetstream");
-        match tokio::time::timeout(Duration::from_secs(15), connect_async(&url)).await {
+        let request = server.request(cursor).expect("validated Jetstream source");
+        tracing::info!(worker=idx, jetstream.version=version, jetstream.source=%source, url=%request.uri().to_string().bright_green(), "Connecting to jetstream");
+        match tokio::time::timeout(Duration::from_secs(15), connect_async(request)).await {
             Ok(Ok((mut stream, _))) => {
                 loop {
-                    let frame =
-                        match tokio::time::timeout(Duration::from_secs(60), stream.next()).await {
-                            Ok(Some(frame)) => frame,
-                            Ok(None) => break,
-                            Err(_) => {
-                                tracing::warn!(
-                                    worker = idx,
-                                    "Jetstream connection idle; reconnecting from durable cursor"
-                                );
-                                break;
-                            }
-                        };
+                    let frame = match tokio::time::timeout(Duration::from_secs(60), stream.next())
+                        .await
+                    {
+                        Ok(Some(frame)) => frame,
+                        Ok(None) => break,
+                        Err(_) => {
+                            tracing::warn!(
+                                worker = idx, jetstream.version=version, jetstream.source=%source,
+                                "Jetstream connection idle; reconnecting from durable cursor"
+                            );
+                            break;
+                        }
+                    };
                     let text = match frame {
                         Ok(Message::Text(text)) => text,
                         Ok(Message::Close(_)) | Err(_) => break,
                         _ => continue,
                     };
-                    let message: Root = match serde_json::from_str(&text) {
-                        Ok(message) => message,
+                    let (message, event_cursor) = match server.decode(&text) {
+                        Ok(Frame::Commit { event, cursor }) => (event, cursor),
+                        Ok(Frame::Ignore) => continue,
+                        Ok(Frame::Info(name)) => {
+                            tracing::info!(worker=idx, jetstream.version=version, jetstream.source=%source, %name, "Jetstream notice");
+                            continue;
+                        }
+                        Ok(Frame::Error(name)) => {
+                            tracing::error!(worker=idx, jetstream.version=version, jetstream.source=%source, %name, "Jetstream stream error; reconnecting without advancing cursor");
+                            break;
+                        }
                         Err(error) => {
-                            tracing::error!(%error, "malformed Jetstream frame");
+                            tracing::error!(%error, jetstream.version=version, jetstream.source=%source, "malformed Jetstream frame");
                             // Retain poison messages for inspection instead of
                             // silently losing them when a later cursor advances.
                             let key =
@@ -212,18 +231,19 @@ async fn run_connection_worker(
                     if message.kind != "commit" {
                         continue;
                     }
-                    let Some(commit) = message.commit else {
+                    let Some(ref commit) = message.commit else {
                         continue;
                     };
-                    let key = dedup_key(&message.did, &commit);
+                    let key = dedup_key(&message.did, commit);
                     // This buffer is bounded and does NOT acknowledge a cursor.
                     // If the process dies, uncommitted events replay from the DB.
                     if inbox
                         .send(InboxEvent {
                             source: source.clone(),
-                            cursor: message.time_us,
+                            cursor: event_cursor,
                             key,
-                            payload: text.to_string(),
+                            payload: serde_json::to_string(&message)
+                                .expect("serializable Jetstream event"),
                         })
                         .await
                         .is_err()
@@ -232,8 +252,12 @@ async fn run_connection_worker(
                     }
                 }
             }
-            Ok(Err(error)) => tracing::error!(%error, worker=idx, "Jetstream connection failed"),
-            Err(_) => tracing::warn!(worker = idx, "Jetstream connection timed out"),
+            Ok(Err(error)) => {
+                tracing::error!(%error, worker=idx, jetstream.version=version, jetstream.source=%source, "Jetstream connection failed")
+            }
+            Err(_) => {
+                tracing::warn!(worker = idx, jetstream.version=version, jetstream.source=%source, "Jetstream connection timed out")
+            }
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
@@ -291,7 +315,8 @@ async fn index_event(
     })?;
     let started = std::time::Instant::now();
     let span = tracing::info_span!("jetstream.commit", otel.kind = "consumer",
-        submission.id = %job.id, jetstream.did = %message.did,
+        submission.id = %job.id, jetstream.source = %job.source,
+        jetstream.version = if job.source.starts_with("jetstream:v2:") { "v2" } else if job.source.starts_with("jetstream:v1:") { "v1" } else { "legacy" }, jetstream.did = %message.did,
         jetstream.collection = %commit.collection, jetstream.rkey = %commit.rkey);
     let result = save_scrobble(state, pool, nc, &message.did, commit)
         .instrument(span)
@@ -306,33 +331,6 @@ async fn index_event(
     Ok(())
 }
 
-fn build_subscribe_url(server: &str, watermark_us: i64) -> String {
-    // A fresh process has no watermark and starts live. `JETSTREAM_CURSOR`
-    // (unix microseconds) replays from a point in the past instead, which is
-    // how commits consumed by a build that could not handle them get a second
-    // pass after a deploy. Only the first connection uses it; reconnects
-    // resume from the watermark as usual.
-    let watermark_us = if watermark_us > 0 {
-        watermark_us
-    } else {
-        initial_cursor()
-    };
-    let mut base = format!(
-        "{}/subscribe?wantedCollections=app.rocksky.*",
-        server.trim_end_matches('/')
-    );
-    for collection in EXTRA_COLLECTIONS {
-        base.push_str("&wantedCollections=");
-        base.push_str(collection);
-    }
-    if watermark_us > 0 {
-        let cursor = watermark_us.saturating_sub(RECONNECT_SLACK_US).max(0);
-        format!("{}&cursor={}", base, cursor)
-    } else {
-        base
-    }
-}
-
 fn initial_cursor() -> i64 {
     env::var("JETSTREAM_CURSOR")
         .ok()
@@ -343,21 +341,101 @@ fn initial_cursor() -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source::tests::commit_v2;
 
-    #[test]
-    fn the_subscription_asks_for_the_calendar_collections() {
-        let url = build_subscribe_url("wss://jetstream.example/", 0);
+    async fn durable_versions(queue: Queue) {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let kind = format!("test.jetstream.{unique}");
+        let v1 = Source::new(Version::V1, &format!("wss://v1-{unique}.example"), 0).unwrap();
+        let v2 = Source::new(Version::V2, &format!("wss://v2-{unique}.example"), 0).unwrap();
+        let peer = Source::new(Version::V2, &format!("wss://peer-{unique}.example"), 0).unwrap();
+        let Frame::Commit { event, cursor } = v2.decode(&commit_v2("create")).unwrap() else {
+            panic!("commit expected")
+        };
+        let normalized = serde_json::to_string(&event).unwrap();
+        let Frame::Commit {
+            event: legacy,
+            cursor: timestamp,
+        } = v1.decode(&normalized).unwrap()
+        else {
+            panic!("commit expected")
+        };
+        let key = dedup_key(&event.did, event.commit.as_ref().unwrap());
+        assert_eq!(key, dedup_key(&legacy.did, legacy.commit.as_ref().unwrap()));
+        assert_eq!(queue.cursor(&v2.cursor_key()).await.unwrap(), None);
+        queue
+            .ingest_batch(
+                &kind,
+                &[
+                    InboxEvent {
+                        source: v2.cursor_key(),
+                        cursor,
+                        key: key.clone(),
+                        payload: normalized.clone(),
+                    },
+                    InboxEvent {
+                        source: v1.cursor_key(),
+                        cursor: timestamp,
+                        key: key.clone(),
+                        payload: normalized.clone(),
+                    },
+                    InboxEvent {
+                        source: peer.cursor_key(),
+                        cursor: 7,
+                        key: key.clone(),
+                        payload: normalized.clone(),
+                    },
+                ],
+            )
+            .await
+            .unwrap();
         assert_eq!(
-            url,
-            "wss://jetstream.example/subscribe?wantedCollections=app.rocksky.*\
-             &wantedCollections=community.lexicon.calendar.event\
-             &wantedCollections=community.lexicon.calendar.rsvp"
+            queue.cursor(&v1.cursor_key()).await.unwrap(),
+            Some(timestamp)
         );
+        assert_eq!(queue.cursor(&v2.cursor_key()).await.unwrap(), Some(42));
+        assert_eq!(queue.cursor(&peer.cursor_key()).await.unwrap(), Some(7));
+        // Inclusive replay does not replace the first source label or create work twice.
+        queue
+            .ingest(&kind, &v1.cursor_key(), timestamp, &key, &normalized)
+            .await
+            .unwrap();
+        let job = queue.claim(&kind, 60, 3).await.unwrap().unwrap();
+        assert_eq!(job.source, v2.cursor_key());
+        let stored: Root = serde_json::from_str(&job.payload).unwrap();
+        assert_eq!(stored.commit.unwrap().operation, "create");
+        assert!(queue.claim(&kind, 60, 3).await.unwrap().is_none());
+        queue.finish(&job).await.unwrap();
+        assert!(v2
+            .request(queue.cursor(&v2.cursor_key()).await.unwrap().unwrap())
+            .unwrap()
+            .uri()
+            .to_string()
+            .contains("cursor=42"));
     }
 
-    #[test]
-    fn the_cursor_is_appended_with_slack() {
-        let url = build_subscribe_url("wss://jetstream.example", 10_000_000);
-        assert!(url.ends_with("&cursor=5000000"), "{url}");
+    #[tokio::test]
+    async fn both_versions_share_one_durable_job_on_postgres() {
+        let Ok(url) = env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            eprintln!("set ROCKSKY_TEST_POSTGRES_URL to run PostgreSQL test");
+            return;
+        };
+        durable_versions(Queue::connect(&url).await.unwrap()).await;
+    }
+    #[cfg(feature = "sqlite")]
+    #[tokio::test]
+    async fn both_versions_share_one_durable_job_on_sqlite() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = env::temp_dir().join(format!("rocksky-jetstream-{unique}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let url = format!("sqlite://{}?mode=rwc", dir.join("queue.db").display());
+        durable_versions(Queue::connect(&url).await.unwrap()).await;
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

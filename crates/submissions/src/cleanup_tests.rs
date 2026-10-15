@@ -261,6 +261,9 @@ async fn upgrade(url: &str) -> Queue {
         "DROP INDEX rocksky_durable_jobs_compact",
         "DROP INDEX rocksky_durable_jobs_retire",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN compacted_at",
+        "ALTER TABLE rocksky_durable_jobs DROP COLUMN source",
+        "ALTER TABLE rocksky_durable_jobs DROP COLUMN started_at_ms",
+        "ALTER TABLE rocksky_durable_jobs DROP COLUMN attempt_history",
     ] {
         sqlx::query(statement).execute(&queue.pool).await.unwrap();
     }
@@ -269,6 +272,8 @@ async fn upgrade(url: &str) -> Queue {
     let restored = migrated.get(&job.id).await.unwrap().unwrap();
     assert_eq!(restored.payload, "preserve legacy payload");
     assert_eq!(restored.compacted_at, 0);
+    assert_eq!(restored.source, "");
+    assert_eq!(restored.started_at_ms, 0);
     // Repeated startup is safe, too.
     let second = Queue::connect(url).await.unwrap();
     second.pool.close().await;

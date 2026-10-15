@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Root {
     pub did: String,
     pub time_us: i64,
@@ -9,7 +9,7 @@ pub struct Root {
     pub commit: Option<Commit>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Commit {
     pub rev: String,
     pub operation: String,

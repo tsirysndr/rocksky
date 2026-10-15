@@ -1,7 +1,12 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-// Credentials never enter persistent storage, URLs, or query keys.
-export const secretAtom = atom("");
+// Retry access persists only on this browser until Disconnect clears it.
+export const secretAtom = atomWithStorage(
+  "submissions-retry-secret",
+  "",
+  undefined,
+  { getOnInit: true },
+);
 export const themeAtom = atomWithStorage<"rocksky-dark" | "rocksky-light">(
   "submissions-theme",
   "rocksky-dark",

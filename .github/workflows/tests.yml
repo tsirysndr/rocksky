@@ -132,7 +132,7 @@ jobs:
       - name: Test Jetstream ingestion on PostgreSQL and SQLite
         env:
           ROCKSKY_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/submissions_test
-        run: cargo test --locked -p rocksky-jetstream --lib
+        run: cargo test --locked -p rocksky-jetstream --all-features --lib
       - name: Test SQLite-only backend
         run: cargo test --locked -p rocksky-submissions --no-default-features --features sqlite
       - name: Test both backends together

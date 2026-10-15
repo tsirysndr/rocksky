@@ -257,23 +257,29 @@ again after restart or automatic payload cleanup. It removes its schema afterwar
 
 ## Embedded operations dashboard
 
-Open `/dashboard/` on the submissions service (the root redirects there). Sign in
-with `SUBMISSIONS_SECRET`. The React/Vite dashboard uses Jotai, TanStack Query,
+Open `/dashboard/` on the submissions service (the root redirects there). Browsing
+is public. Clicking Retry opens a login prompt for `SUBMISSIONS_SECRET`, followed
+by explicit confirmation. All mutation endpoints remain authenticated.
+The React/Vite dashboard uses Jotai, TanStack Query,
 Tailwind CSS, daisyUI, Tabler icons, and bundled DM Sans / IBM Plex Mono fonts.
 Dark mode is the default; the theme preference persists locally. The service
-secret lives only in browser memory, never local storage or query keys.
+secret is stored in this browser’s local storage for persistent retry access until
+Disconnect removes it. It is never included in URLs or query keys and is not sent
+with public dashboard reads. Use retry access only on a trusted browser.
 
 The dashboard includes live status counts, a 60-minute completion chart, source
 cursor age, filtered/keyset-paginated jobs, checkpoint inspection, explicit
 confirmation before retrying failed jobs, and the effective cleanup policy.
-Payloads, request fingerprints, lease tokens, and checkpoint results are excluded.
+Raw payloads, request fingerprints, lease tokens, checkpoint results and arbitrary
+error messages are excluded from public responses. Selected song fields and the
+listener DID are public in job details.
 Live views poll every 5 seconds while visible, with pause and manual refresh.
 The service shares a 5-second snapshot cache across clients; retained completed
 totals are cached for 60 seconds. Cursor age measures the last captured event,
 not necessarily source backlog. An active process is not proof of progress:
 watch pending age and completed activity together.
 
-The dashboard API requires the same secret header as intake:
+The read-only dashboard API is public (no secret header required):
 
 - `GET /v1/dashboard/overview`
 - `GET /v1/dashboard/jobs?status=pending&kind=jetstream.commit.v1&limit=25`
@@ -281,6 +287,17 @@ The dashboard API requires the same secret header as intake:
 
 The list supports an exact `id` and an opaque `before` cursor returned as `next`.
 The maximum page size is 100. Responses are `Cache-Control: no-store`.
+The `q` parameter matches case-insensitive words across allowlisted scrobble fields
+and job ID in the newest 2,000 jobs. Search updates after 180ms of typing; a shared
+5-second metadata cache bounds database load. Older jobs remain accessible by ID.
+Compacted scrobble fields cannot be searched.
+
+Each new attempt records millisecond claim/outcome timestamps in the existing
+fenced state transition, without another database round trip. The timeline shows
+wall-clock processing time, queue/retry gaps, and live elapsed time. It is not a
+trace of individual HTTP calls. Expired leases have unknown runtime and show their
+lease boundary only. Older attempts are not reconstructed. Cleanup removes attempt
+history with payloads; manual retries preserve history.
 
 ### Frontend development and builds
 

@@ -1,10 +1,7 @@
-//! Authenticated operational views. Never return payloads, checkpoint results, or credentials.
-use crate::{
-    cleanup::CleanupSettings,
-    service::{authorized, Service},
-    Queue,
-};
-use actix_web::{web, HttpRequest, HttpResponse};
+//! Public read-only operational views with allowlisted scrobble metadata.
+//! Never return raw payloads, checkpoint results, or credentials.
+use crate::{cleanup::CleanupSettings, service::Service, Queue};
+use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
@@ -12,6 +9,7 @@ use tokio::sync::Mutex;
 include!(concat!(env!("OUT_DIR"), "/dashboard_assets.rs"));
 
 pub(crate) type CompletedCache = Mutex<Option<(Instant, Vec<Count>)>>;
+pub(crate) type SearchCache = Mutex<Option<(Instant, Vec<(String, String)>)>>;
 pub(crate) type Cache = Mutex<Option<(Instant, Overview)>>;
 
 #[derive(Clone, Serialize, sqlx::FromRow)]
@@ -50,12 +48,16 @@ pub struct JobFilter {
     pub kind: String,
     #[serde(default)]
     pub id: String,
+    #[serde(default)]
+    pub q: String,
     pub before: Option<String>,
     pub limit: Option<i64>,
 }
 #[derive(Serialize, sqlx::FromRow)]
 pub struct JobSummary {
     pub id: String,
+    pub source: String,
+    pub started_at_ms: i64,
     pub kind: String,
     pub status: String,
     pub attempts: i64,
@@ -76,7 +78,7 @@ pub struct Step {
     pub name: String,
     pub completed_at: i64,
 }
-const COLUMNS: &str = "id,kind,status,attempts,available_at,lease_until,last_error,created_at,updated_at,compacted_at";
+const COLUMNS: &str = "id,kind,source,started_at_ms,status,attempts,available_at,lease_until,CASE WHEN last_error='' THEN '' ELSE 'Processing failed; operator inspection required' END AS last_error,created_at,updated_at,compacted_at";
 
 impl JobFilter {
     fn validate(&self) -> anyhow::Result<(i64, i64, String)> {
@@ -84,6 +86,7 @@ impl JobFilter {
             ["", "pending", "processing", "completed", "failed"].contains(&self.status.as_str()),
             "invalid status"
         );
+        anyhow::ensure!(self.q.len() <= 200, "search too long");
         anyhow::ensure!(self.kind.len() <= 128, "kind too long");
         anyhow::ensure!(
             self.id.is_empty() || valid_id(&self.id),
@@ -156,7 +159,55 @@ impl Queue {
     }
     pub async fn dashboard_jobs(&self, filter: &JobFilter) -> anyhow::Result<JobPage> {
         let (limit, before, before_id) = filter.validate()?;
-        let sql = format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE ($1='' OR status=$1) AND ($2='' OR kind=$2) AND ($3='' OR id=$3) AND (created_at < $4 OR (created_at=$4 AND id<$5)) ORDER BY created_at DESC,id DESC LIMIT $6");
+        // Bound payload decoding independently of queue size. Only allowlisted fields are searchable.
+        let needle = filter.q.trim().to_lowercase();
+        let mut search_ids = Vec::new();
+        if !needle.is_empty() {
+            let mut cache = self.dashboard_search_cache.lock().await;
+            if cache
+                .as_ref()
+                .is_none_or(|(at, _)| at.elapsed() >= Duration::from_secs(5))
+            {
+                let recent: Vec<(String, String)> = sqlx::query_as("SELECT id,payload FROM rocksky_durable_jobs ORDER BY created_at DESC,id DESC LIMIT 2000").fetch_all(&self.pool).await?;
+                let searchable = recent
+                    .into_iter()
+                    .map(|(id, payload)| {
+                        let metadata =
+                            scrobble_metadata(&payload).unwrap_or(serde_json::Value::Null);
+                        let haystack = format!("{} {}", id, metadata).to_lowercase();
+                        (id, haystack)
+                    })
+                    .collect();
+                *cache = Some((Instant::now(), searchable));
+            }
+            for (id, haystack) in &cache.as_ref().unwrap().1 {
+                if needle
+                    .split_whitespace()
+                    .all(|word| haystack.contains(word))
+                {
+                    search_ids.push(id.clone());
+                }
+            }
+            if search_ids.is_empty() {
+                return Ok(JobPage {
+                    jobs: vec![],
+                    next: None,
+                });
+            }
+        }
+        // IDs come exclusively from the database and are validated before interpolation.
+        let search_clause = if needle.is_empty() {
+            String::new()
+        } else {
+            let ids = search_ids
+                .iter()
+                .filter(|id| valid_id(id))
+                .map(|id| format!("'{id}'"))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!(" AND id IN ({ids})")
+        };
+        let sql = format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE ($1='' OR status=$1) AND ($2='' OR kind=$2) AND ($3='' OR id=$3) AND (created_at < $4 OR (created_at=$4 AND id<$5)) {search_clause} ORDER BY created_at DESC,id DESC LIMIT $6");
         let mut jobs: Vec<JobSummary> = sqlx::query_as(&sql)
             .bind(&filter.status)
             .bind(&filter.kind)
@@ -184,10 +235,7 @@ fn unavailable(error: anyhow::Error) -> HttpResponse {
         .insert_header(("Cache-Control", "no-store"))
         .json(serde_json::json!({"error":"Queue data is temporarily unavailable"}))
 }
-async fn overview(state: web::Data<Service>, req: HttpRequest) -> HttpResponse {
-    if !authorized(&req, &state.secret) {
-        return HttpResponse::Unauthorized().finish();
-    }
+async fn overview(state: web::Data<Service>) -> HttpResponse {
     match state.queue.dashboard_overview().await {
         Ok(data) => HttpResponse::Ok()
             .insert_header(("Cache-Control", "no-store"))
@@ -195,14 +243,7 @@ async fn overview(state: web::Data<Service>, req: HttpRequest) -> HttpResponse {
         Err(error) => unavailable(error),
     }
 }
-async fn jobs(
-    state: web::Data<Service>,
-    req: HttpRequest,
-    filter: web::Query<JobFilter>,
-) -> HttpResponse {
-    if !authorized(&req, &state.secret) {
-        return HttpResponse::Unauthorized().finish();
-    }
+async fn jobs(state: web::Data<Service>, filter: web::Query<JobFilter>) -> HttpResponse {
     if let Err(error) = filter.validate() {
         return HttpResponse::BadRequest().json(serde_json::json!({"error":error.to_string()}));
     }
@@ -213,30 +254,71 @@ async fn jobs(
         Err(error) => unavailable(error),
     }
 }
-async fn detail(
-    state: web::Data<Service>,
-    req: HttpRequest,
-    id: web::Path<String>,
-) -> HttpResponse {
-    if !authorized(&req, &state.secret) {
-        return HttpResponse::Unauthorized().finish();
-    }
+async fn detail(state: web::Data<Service>, id: web::Path<String>) -> HttpResponse {
     if !valid_id(&id) {
         return HttpResponse::BadRequest().finish();
     }
     let result = async {
         let job: Option<JobSummary> = sqlx::query_as(&format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE id=$1")).bind(id.as_str()).fetch_optional(&state.queue.pool).await?;
         let steps: Vec<Step> = sqlx::query_as("SELECT name,completed_at FROM rocksky_durable_steps WHERE job_id=$1 ORDER BY completed_at,name").bind(id.as_str()).fetch_all(&state.queue.pool).await?;
-        Ok::<_, anyhow::Error>((job,steps))
+        let raw: Option<(String, String)> = sqlx::query_as("SELECT payload,attempt_history FROM rocksky_durable_jobs WHERE id=$1").bind(id.as_str()).fetch_optional(&state.queue.pool).await?;
+        let (scrobble, attempts) = raw.map(|(payload, history)| (
+            scrobble_metadata(&payload), serde_json::from_str::<serde_json::Value>(&history).unwrap_or_else(|_| serde_json::json!([]))
+        )).unwrap_or((None, serde_json::json!([])));
+        Ok::<_, anyhow::Error>((job,steps,scrobble,attempts))
     }.await;
     match result {
-        Ok((Some(job), steps)) => HttpResponse::Ok()
+        Ok((Some(job), steps, scrobble, attempts)) => HttpResponse::Ok()
             .insert_header(("Cache-Control", "no-store"))
-            .json(serde_json::json!({"job":job,"steps":steps})),
-        Ok((None, _)) => HttpResponse::NotFound().finish(),
+            .json(serde_json::json!({"job":job,"steps":steps,"scrobble":scrobble,"attempts":attempts})),
+        Ok((None, _, _, _)) => HttpResponse::NotFound().finish(),
         Err(error) => unavailable(error),
     }
 }
+// Explicit field allowlist: inspection must never expose arbitrary queue data.
+fn scrobble_metadata(payload: &str) -> Option<serde_json::Value> {
+    let root: serde_json::Value = serde_json::from_str(payload).ok()?;
+    let track = root
+        .get("track")
+        .or_else(|| root.get("commit")?.get("record"))?;
+    if !track.is_object() {
+        return None;
+    }
+    let mut result = serde_json::Map::new();
+    for key in [
+        "title",
+        "artist",
+        "album",
+        "albumArtist",
+        "duration",
+        "trackNumber",
+        "discNumber",
+        "timestamp",
+        "createdAt",
+        "releaseDate",
+        "year",
+        "isrc",
+        "mbId",
+        "mbid",
+        "spotifyLink",
+        "albumArt",
+        "albumArtUrl",
+    ] {
+        if let Some(value) = track
+            .get(key)
+            .filter(|v| v.is_string() || v.is_number() || v.is_null())
+        {
+            result.insert(key.into(), value.clone());
+        }
+    }
+    for key in ["did", "recordKey"] {
+        if let Some(value) = root.get(key).filter(|v| v.is_string()) {
+            result.insert(key.into(), value.clone());
+        }
+    }
+    Some(serde_json::Value::Object(result))
+}
+
 async fn redirect() -> HttpResponse {
     HttpResponse::TemporaryRedirect()
         .insert_header(("Location", "/dashboard/"))

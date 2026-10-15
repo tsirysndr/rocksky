@@ -50,9 +50,20 @@ async fn contract(queue: Queue) {
             test::call_service(&app, test::TestRequest::get().uri(path).to_request())
                 .await
                 .status(),
-            StatusCode::UNAUTHORIZED
+            StatusCode::OK
         );
     }
+    assert_eq!(
+        test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri(&format!("/v1/jobs/{}/retry", failed.id))
+                .to_request()
+        )
+        .await
+        .status(),
+        StatusCode::UNAUTHORIZED
+    );
     let first: Value = test::call_and_read_body_json(
         &app,
         test::TestRequest::get()
@@ -125,6 +136,9 @@ async fn contract(queue: Queue) {
     )
     .await;
     assert_eq!(detail["steps"][0]["name"], "step.v1");
+    assert_eq!(detail["attempts"][0]["outcome"], "completed");
+    assert!(detail["attempts"][0]["duration_ms"].as_i64().unwrap() >= 0);
+    assert!(detail["attempts"][0]["started_at_ms"].as_i64().unwrap() > 0);
     assert!(!detail.to_string().contains("PRIVATE"));
     let overview = queue.dashboard_overview().await.unwrap();
     assert_eq!(overview.counts.iter().map(|c| c.count).sum::<i64>(), 4);
@@ -169,6 +183,34 @@ async fn contract(queue: Queue) {
                 .starts_with("text/javascript"));
         }
     }
+    let metadata_job = queue.enqueue("scrobble.publish.v1", "metadata", "hash", r#"{"did":"did:plc:listener","secret":"PRIVATE","track":{"title":"Blue Cheese","artist":"2 Chainz","album":"Pretty Girls Like Trap Music","token":"PRIVATE"}}"#).await.unwrap();
+    let search = queue
+        .dashboard_jobs(&JobFilter {
+            q: "blue chainz".into(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(search.jobs.len(), 1);
+    assert_eq!(search.jobs[0].id, metadata_job.id);
+    assert!(queue
+        .dashboard_jobs(&JobFilter {
+            q: "PRIVATE".into(),
+            ..Default::default()
+        })
+        .await
+        .unwrap()
+        .jobs
+        .is_empty());
+    let metadata: Value = test::call_and_read_body_json(
+        &app,
+        test::TestRequest::get()
+            .uri(&format!("/v1/dashboard/jobs/{}", metadata_job.id))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(metadata["scrobble"]["title"], "Blue Cheese");
+    assert!(!metadata.to_string().contains("PRIVATE"));
     // Regression: additive migration with warm prepared statements must not halt
     // older active connections. Repeated reads/claims use stable projections.
     sqlx::query(

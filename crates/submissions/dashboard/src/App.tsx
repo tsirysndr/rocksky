@@ -1,10 +1,7 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { RESET } from "jotai/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   IconActivity,
@@ -16,7 +13,6 @@ import {
   IconChevronRight,
   IconClock,
   IconDatabase,
-  IconKey,
   IconLayoutDashboard,
   IconListDetails,
   IconLogout,
@@ -34,9 +30,11 @@ import {
 } from "@tabler/icons-react";
 import {
   api,
+  ApiError,
   date,
   duration,
   kindName,
+  sourceName,
   number,
   type Detail,
   type JobPage,
@@ -52,7 +50,6 @@ import {
 } from "./state";
 
 export function App() {
-  const secret = useAtomValue(secretAtom);
   const [theme, setTheme] = useAtom(themeAtom);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -72,7 +69,7 @@ export function App() {
           <IconMoon size={19} />
         )}
       </button>
-      {secret ? <Dashboard /> : <Login />}
+      <Dashboard />
     </>
   );
 }
@@ -84,98 +81,6 @@ function Brand() {
       </span>
       <div>
         rocksky<span className="brand-sub">SUBMISSIONS</span>
-      </div>
-    </div>
-  );
-}
-function Login() {
-  const [input, setInput] = useState("");
-  const setSecret = useSetAtom(secretAtom);
-  const client = useQueryClient();
-  const login = useMutation({
-    mutationFn: () => api<Overview>("/v1/dashboard/overview", input),
-    onSuccess: (data) => {
-      client.clear();
-      client.setQueryData(["overview"], data);
-      setSecret(input);
-      setInput("");
-    },
-  });
-  return (
-    <div className="login-shell">
-      <div className="login-intro">
-        <Brand />
-        <div className="eyebrow">THE OPERATIONS DESK</div>
-        <h1>
-          Every scrobble.
-          <br />
-          <span>Accounted for.</span>
-        </h1>
-        <p>
-          A clear view of the work behind the music.
-          <br />
-          Monitor deliveries, inspect jobs, and keep things moving.
-        </p>
-        <div className="login-grid">
-          <span>
-            <IconDatabase /> Durable by design
-          </span>
-          <span>
-            <IconActivity /> Live queue visibility
-          </span>
-        </div>
-      </div>
-      <form
-        className="panel login-card"
-        onSubmit={(event) => {
-          event.preventDefault();
-          login.mutate();
-        }}
-      >
-        <span className="icon-box">
-          <IconKey size={25} />
-        </span>
-        <h2>Connect to your queue</h2>
-        <p>
-          Enter the submissions service secret to open your operations
-          dashboard.
-        </p>
-        <label className="field-label" htmlFor="secret">
-          Service secret
-        </label>
-        <input
-          id="secret"
-          type="password"
-          autoComplete="off"
-          className="input w-full"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          required
-          placeholder="Enter your service secret"
-        />
-        {login.error && <ErrorNote>{login.error.message}</ErrorNote>}
-        <button
-          className="btn btn-primary w-full"
-          disabled={login.isPending || !input.trim()}
-        >
-          {login.isPending ? (
-            <span className="loading loading-spinner loading-xs" />
-          ) : (
-            <>
-              Open dashboard <IconArrowRight size={18} />
-            </>
-          )}
-        </button>
-        <div className="login-note">
-          <IconShieldCheck size={17} />
-          <span>
-            Your secret stays in memory and is cleared when you disconnect or
-            reload.
-          </span>
-        </div>
-      </form>
-      <div className="login-footer">
-        ROCKSKY INFRASTRUCTURE <span>Built for the flow.</span>
       </div>
     </div>
   );
@@ -197,7 +102,7 @@ function Dashboard() {
   const overview = useQuery({
     queryKey: ["overview"],
     queryFn: ({ signal }) =>
-      api<Overview>("/v1/dashboard/overview", secret, signal),
+      api<Overview>("/v1/dashboard/overview", "", signal),
     refetchInterval: live ? 5000 : false,
   });
   return (
@@ -233,18 +138,20 @@ function Dashboard() {
               <small>Durable queue storage</small>
             </div>
           </div>
-          <button
-            className="nav-item"
-            onClick={async () => {
-              await client.cancelQueries();
-              client.clear();
-              setSelected(null);
-              setSecret("");
-            }}
-          >
-            <IconLogout size={18} />
-            Disconnect
-          </button>
+          {secret && (
+            <button
+              className="nav-item"
+              onClick={async () => {
+                await client.cancelQueries();
+                client.clear();
+                setSelected(null);
+                setSecret(RESET);
+              }}
+            >
+              <IconLogout size={18} />
+              Disconnect
+            </button>
+          )}
           <div className="sidebar-caption">
             A little less waiting.
             <br />A lot more listening.
@@ -519,22 +426,23 @@ function OverviewView({ data }: { data: Overview }) {
         ) : (
           <div className="cursor-grid">
             {data.cursors.map((cursor) => {
-              const age = Math.max(0, data.as_of - cursor.cursor_value / 1e6);
+              const isV2 = cursor.source.startsWith("jetstream:v2:");
+              const age = isV2
+                ? 0
+                : Math.max(0, data.as_of - cursor.cursor_value / 1e6);
               return (
                 <div className="cursor-item" key={cursor.source}>
                   <div>
                     <span
                       className={`source-dot ${age > 120 ? "delayed" : ""}`}
                     />
-                    <strong>
-                      {cursor.source
-                        .replace("jetstream:v1:wss://", "")
-                        .replace(".bsky.network", "")}
-                    </strong>
+                    <strong>{sourceName(cursor.source)}</strong>
                   </div>
                   <div className="cursor-age">
-                    {duration(age)}
-                    <span>since last event</span>
+                    {isV2 ? "Sequence cursor" : duration(age)}
+                    <span>
+                      {isV2 ? "Per-source resume position" : "since last event"}
+                    </span>
                   </div>
                   <code>{cursor.cursor_value}</code>
                 </div>
@@ -564,7 +472,27 @@ function OverviewView({ data }: { data: Overview }) {
     </>
   );
 }
-function Chart({ data }: { data: Overview }) {
+export function Chart({ data }: { data: Overview }) {
+  const tooltipId = useId();
+  const [hover, setHover] = useState<{
+    minute: number;
+    x: number;
+    y: number;
+    below: boolean;
+  } | null>(null);
+  const show = (minute: number, element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const below = rect.top < 160;
+    setHover({
+      minute,
+      x: Math.max(
+        120,
+        Math.min(window.innerWidth - 120, rect.left + rect.width / 2),
+      ),
+      y: below ? rect.bottom + 12 : rect.top - 12,
+      below,
+    });
+  };
   const end = Math.floor(data.as_of / 60) * 60;
   const buckets = Array.from({ length: 60 }, (_, i) => {
     const minute = end - (59 - i) * 60;
@@ -580,11 +508,12 @@ function Chart({ data }: { data: Overview }) {
     };
   });
   const max = Math.max(1, ...buckets.map((b) => b.jetstream + b.other));
+  const active = hover && buckets.find((b) => b.minute === hover.minute);
   return (
     <>
       <div
         className="chart"
-        role="img"
+        role="group"
         aria-label={`Completed jobs per minute during the last hour. Peak ${max} jobs per minute.`}
       >
         <div className="chart-scale">
@@ -594,10 +523,21 @@ function Chart({ data }: { data: Overview }) {
         </div>
         <div className="chart-bars">
           {buckets.map((b) => (
-            <div
+            <button
+              type="button"
               className="chart-column"
               key={b.minute}
-              title={`${date(b.minute)}: Jetstream ${b.jetstream}, other ${b.other}`}
+              aria-label={`${date(b.minute)}: Jetstream ${b.jetstream}, other ${b.other}, total ${b.jetstream + b.other}`}
+              aria-describedby={
+                hover?.minute === b.minute ? tooltipId : undefined
+              }
+              onMouseEnter={(event) => show(b.minute, event.currentTarget)}
+              onMouseLeave={() => setHover(null)}
+              onFocus={(event) => show(b.minute, event.currentTarget)}
+              onBlur={() => setHover(null)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setHover(null);
+              }}
             >
               <div
                 className="bar-other"
@@ -607,10 +547,38 @@ function Chart({ data }: { data: Overview }) {
                 className="bar-jetstream"
                 style={{ height: `${(b.jetstream / max) * 100}%` }}
               />
-            </div>
+            </button>
           ))}
         </div>
       </div>
+      {hover &&
+        active &&
+        createPortal(
+          <div
+            id={tooltipId}
+            role="tooltip"
+            className="chart-tooltip"
+            style={{
+              left: hover.x,
+              top: hover.y,
+              transform: hover.below
+                ? "translateX(-50%)"
+                : "translate(-50%, -100%)",
+            }}
+          >
+            <strong>{date(active.minute)}</strong>
+            <span>
+              Jetstream <b>{number(active.jetstream)}</b>
+            </span>
+            <span>
+              Other jobs <b>{number(active.other)}</b>
+            </span>
+            <span className="tooltip-total">
+              Total completed <b>{number(active.jetstream + active.other)}</b>
+            </span>
+          </div>,
+          document.body,
+        )}
       <div className="chart-axis">
         <span>60 min ago</span>
         <span>30 min ago</span>
@@ -628,21 +596,28 @@ function StatusBadge({ status }: { status: Status }) {
   );
 }
 function Jobs() {
-  const secret = useAtomValue(secretAtom);
   const live = useAtomValue(liveAtom);
   const setSelected = useSetAtom(selectedJobAtom);
   const [status, setStatus] = useState("");
   const [kind, setKind] = useState("");
   const [search, setSearch] = useState("");
   const [id, setId] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setId(search.trim());
+      setPages([null]);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [pages, setPages] = useState<(string | null)[]>([null]);
   const before = pages[pages.length - 1];
-  const query = new URLSearchParams({ status, kind, id, limit: "25" });
+  const query = new URLSearchParams({ status, kind, limit: "25" });
+  query.set(/^[a-fA-F0-9]{64}$/.test(id) ? "id" : "q", id);
   if (before) query.set("before", before);
   const jobs = useQuery({
     queryKey: ["jobs", status, kind, id, before],
     queryFn: ({ signal }) =>
-      api<JobPage>(`/v1/dashboard/jobs?${query}`, secret, signal),
+      api<JobPage>(`/v1/dashboard/jobs?${query}`, "", signal),
     refetchInterval: live ? 5000 : false,
   });
   const reset = () => setPages([null]);
@@ -659,11 +634,11 @@ function Jobs() {
         >
           <IconSearch size={18} />
           <input
-            aria-label="Search full job ID"
-            placeholder="Search full job ID…"
+            aria-label="Search scrobble data or job ID"
+            placeholder="Song, artist, album, DID or job ID…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            pattern="[a-fA-F0-9]{64}|"
+            maxLength={200}
           />
           <button className="btn btn-ghost btn-xs" type="submit">
             Search
@@ -711,6 +686,10 @@ function Jobs() {
           <option value="scrobble.publish.v1">Scrobble publication</option>
         </select>
       </div>
+      <p className="muted search-scope">
+        Instant search across the newest 2,000 jobs. Compacted scrobble data is
+        no longer searchable.
+      </p>
       {jobs.error && <ErrorNote>{jobs.error.message}</ErrorNote>}
       <div className="table-wrap">
         <table className="table">
@@ -738,6 +717,11 @@ function Jobs() {
                     {job.id.slice(0, 14)}…
                   </button>
                   <small>{kindName(job.kind)}</small>
+                  {job.kind.startsWith("jetstream.") && (
+                    <small className="source-label">
+                      {sourceName(job.source)}
+                    </small>
+                  )}
                 </td>
                 <td>
                   <StatusBadge status={job.status} />
@@ -802,21 +786,32 @@ function Jobs() {
 }
 function JobDialog() {
   const [id, setId] = useAtom(selectedJobAtom);
-  const secret = useAtomValue(secretAtom);
   const live = useAtomValue(liveAtom);
   const client = useQueryClient();
   const ref = useRef<HTMLDialogElement>(null);
   const [confirm, setConfirm] = useState(false);
+  const [secret, setSecret] = useAtom(secretAtom);
+  const [input, setInput] = useState("");
+  const login = useMutation({
+    mutationFn: () => api(`/v1/jobs/${id}`, input),
+    onSuccess: () => {
+      setSecret(input);
+      setInput("");
+    },
+  });
   const detail = useQuery({
     queryKey: ["job", id],
     queryFn: ({ signal }) =>
-      api<Detail>(`/v1/dashboard/jobs/${id}`, secret, signal),
+      api<Detail>(`/v1/dashboard/jobs/${id}`, "", signal),
     enabled: !!id,
     refetchInterval: live && id ? 5000 : false,
   });
   const retry = useMutation({
     mutationFn: () =>
       api<void>(`/v1/jobs/${id}/retry`, secret, undefined, "POST"),
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 401) setSecret(RESET);
+    },
     onSuccess: () => {
       setConfirm(false);
       client.invalidateQueries({ queryKey: ["job", id] });
@@ -829,6 +824,8 @@ function JobDialog() {
       ref.current?.showModal();
       setConfirm(false);
       retry.reset();
+      login.reset();
+      setInput("");
     } else ref.current?.close();
   }, [id]);
   const job = detail.data?.job;
@@ -859,6 +856,9 @@ function JobDialog() {
             </div>
             <dl className="detail-grid">
               {[
+                ...(job.kind.startsWith("jetstream.")
+                  ? [["Captured by", sourceName(job.source)]]
+                  : []),
                 ["Attempts", job.attempts],
                 ["Created", date(job.created_at)],
                 ["Updated", date(job.updated_at)],
@@ -877,6 +877,25 @@ function JobDialog() {
                 <h3>Last error</h3>
                 <pre>{job.last_error}</pre>
               </div>
+            )}
+            {detail.data && <ProcessingTimeline detail={detail.data} />}
+            <h3 className="section-title">Scrobble data</h3>
+            {detail.data?.scrobble &&
+            Object.keys(detail.data.scrobble).length ? (
+              <dl className="detail-grid scrobble-data">
+                {Object.entries(detail.data.scrobble).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{key}</dt>
+                    <dd>{String(value ?? "—")}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="muted">
+                {job.compacted_at
+                  ? "Scrobble data was removed by retention cleanup."
+                  : "No scrobble metadata available."}
+              </p>
             )}
             <h3 className="section-title">Durable checkpoints</h3>
             {detail.data?.steps.length ? (
@@ -902,7 +921,49 @@ function JobDialog() {
             )}
             {job.status === "failed" && (
               <div className="retry-box">
-                {confirm ? (
+                {confirm && !secret ? (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      login.mutate();
+                    }}
+                  >
+                    <h3>Sign in to retry</h3>
+                    <p>
+                      Enter the submissions service secret. Retry access is
+                      saved in this browser until you click Disconnect.
+                    </p>
+                    <label htmlFor="retry-secret">Service secret</label>
+                    <input
+                      id="retry-secret"
+                      type="password"
+                      className="input w-full"
+                      autoComplete="off"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      required
+                    />
+                    {login.error && (
+                      <ErrorNote>{login.error.message}</ErrorNote>
+                    )}
+                    <button
+                      className="btn btn-primary"
+                      disabled={login.isPending || !input.trim()}
+                    >
+                      Sign in
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => {
+                        setConfirm(false);
+                        setInput("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : confirm ? (
                   <>
                     <p>
                       Retry this failed job? Attempts reset to zero. Completed
@@ -945,6 +1006,84 @@ function JobDialog() {
     </dialog>
   );
 }
+
+export function ProcessingTimeline({ detail }: { detail: Detail }) {
+  const [now, setNow] = useState(Date.now());
+  const { job } = detail;
+  useEffect(() => {
+    if (job.status !== "processing") return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [job.status]);
+  const spans = [...(detail.attempts ?? [])];
+  if (job.status === "processing" && job.started_at_ms)
+    spans.push({
+      attempt: job.attempts,
+      started_at_ms: job.started_at_ms,
+      finished_at_ms: now,
+      duration_ms: null,
+      outcome: "in progress",
+    });
+  const start = spans.length
+    ? Math.min(job.created_at * 1000, ...spans.map((s) => s.started_at_ms))
+    : 0;
+  const end = Math.max(start + 1, ...spans.map((s) => s.finished_at_ms));
+  const ms = (value: number) =>
+    value < 1000
+      ? `${Math.max(0, value)} ms`
+      : `${(value / 1000).toFixed(2)} s`;
+  return (
+    <section className="processing-timeline">
+      <h3 className="section-title">Processing timeline</h3>
+      <p className="muted">
+        Wall time from claim to outcome, including worker and database waits.
+        Gaps represent queue or retry waits.
+      </p>
+      {!spans.length ? (
+        <p className="muted">
+          {job.compacted_at
+            ? "Attempt history was removed by retention cleanup."
+            : "Timing is recorded for attempts started after this update."}
+        </p>
+      ) : (
+        <>
+          <p>
+            Initial queue wait:{" "}
+            {ms(Math.max(0, spans[0].started_at_ms - job.created_at * 1000))}{" "}
+            <small>(creation time has second precision)</small>
+          </p>
+          {spans.map((span, i) => (
+            <div className="attempt-span" key={i}>
+              <div className="span-caption">
+                <span>
+                  Attempt {span.attempt} · {span.outcome.replaceAll("_", " ")}
+                </span>
+                <strong>
+                  {span.duration_ms !== null
+                    ? ms(span.duration_ms)
+                    : span.outcome === "in progress"
+                      ? `${ms(Math.max(0, now - span.started_at_ms))} elapsed`
+                      : "Runtime unknown"}
+                </strong>
+              </div>
+              <div className="span-track">
+                <div
+                  className={`span-bar ${span.outcome}`}
+                  style={{
+                    marginLeft: `${Math.max(0, ((span.started_at_ms - start) / (end - start)) * 100)}%`,
+                    width: `${Math.max(0, ((span.finished_at_ms - span.started_at_ms) / (end - start)) * 100)}%`,
+                  }}
+                  title={`${new Date(span.started_at_ms).toLocaleString()} → ${new Date(span.finished_at_ms).toLocaleString()}`}
+                />
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </section>
+  );
+}
+
 function Retention({ data }: { data: Overview }) {
   const c = data.cleanup;
   return (

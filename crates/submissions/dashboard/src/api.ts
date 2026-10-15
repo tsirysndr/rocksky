@@ -2,6 +2,8 @@ export type Status = "pending" | "processing" | "completed" | "failed";
 export type Job = {
   id: string;
   kind: string;
+  source?: string;
+  started_at_ms?: number;
   status: Status;
   attempts: number;
   available_at: number;
@@ -31,7 +33,16 @@ export type Overview = {
   };
 };
 export type JobPage = { jobs: Job[]; next: string | null };
+export type Attempt = {
+  attempt: number;
+  started_at_ms: number;
+  finished_at_ms: number;
+  duration_ms: number | null;
+  outcome: string;
+};
 export type Detail = {
+  attempts?: Attempt[];
+  scrobble?: Record<string, string | number | null> | null;
   job: Job;
   steps: { name: string; completed_at: number }[];
 };
@@ -56,7 +67,7 @@ export async function api<T>(
       : AbortSignal.timeout(15000),
     credentials: "omit",
     cache: "no-store",
-    headers: { "x-rocksky-submissions-secret": secret },
+    headers: secret ? { "x-rocksky-submissions-secret": secret } : {},
   });
   if (!response.ok) {
     const message =
@@ -87,4 +98,10 @@ export function duration(value: number) {
   if (value < 86400)
     return `${Math.floor(value / 3600)}h ${Math.floor((value % 3600) / 60)}m`;
   return `${Math.floor(value / 86400)}d`;
+}
+
+export function sourceName(source?: string): string {
+  const match = source?.match(/^jetstream:(v[12]):(.+)$/);
+  if (!match) return "Legacy / unknown source";
+  return `Jetstream ${match[1]} · ${match[2].replace(/^wss?:\/\//, "")}`;
 }

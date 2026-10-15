@@ -11,6 +11,7 @@ pub struct Queue {
     pub(crate) postgres: bool,
     wake: std::sync::Arc<tokio::sync::Notify>,
     pub(crate) dashboard_completed_cache: std::sync::Arc<crate::dashboard::CompletedCache>,
+    pub(crate) dashboard_search_cache: std::sync::Arc<crate::dashboard::SearchCache>,
     pub(crate) dashboard_cache: std::sync::Arc<crate::dashboard::Cache>,
 }
 
@@ -18,6 +19,9 @@ pub struct Queue {
 pub struct Job {
     pub id: String,
     pub kind: String,
+    /// First inbox source to capture this job; empty for legacy/non-inbox jobs.
+    pub source: String,
+    pub started_at_ms: i64,
     #[serde(skip)]
     pub request_hash: String,
     #[serde(skip)]
@@ -35,7 +39,7 @@ pub struct Job {
 }
 
 // Explicit projections keep prepared result types stable during additive migrations.
-const JOB_COLUMNS: &str = "id,kind,request_hash,payload,status,attempts,available_at,lease_until,lease_token,last_error,created_at,updated_at,compacted_at";
+const JOB_COLUMNS: &str = "id,kind,source,started_at_ms,request_hash,payload,status,attempts,available_at,lease_until,lease_token,last_error,created_at,updated_at,compacted_at";
 
 /// One source delivery; its cursor advances only with the durable inbox write.
 #[derive(Clone, Debug)]
@@ -116,6 +120,7 @@ impl Queue {
             pool,
             postgres,
             dashboard_cache: Default::default(),
+            dashboard_search_cache: Default::default(),
             dashboard_completed_cache: Default::default(),
             wake: std::sync::Arc::new(tokio::sync::Notify::new()),
         };
@@ -135,20 +140,30 @@ impl Queue {
         {
             sqlx::query(statement).execute(&mut *tx).await?;
         }
-        // Upgrade pre-retention databases without rewriting jobs or changing IDs.
-        let has_compacted = if postgres {
-            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM pg_attribute WHERE attrelid='rocksky_durable_jobs'::regclass AND attname='compacted_at' AND NOT attisdropped")
-                .fetch_one(&mut *tx).await? > 0
-        } else {
-            sqlx::query("PRAGMA table_info(rocksky_durable_jobs)")
-                .fetch_all(&mut *tx)
-                .await?
-                .iter()
-                .any(|row| row.get::<String, _>("name") == "compacted_at")
-        };
-        if !has_compacted {
-            sqlx::query("ALTER TABLE rocksky_durable_jobs ADD COLUMN compacted_at BIGINT NOT NULL DEFAULT 0")
-                .execute(&mut *tx).await?;
+        // Additive upgrades preserve job IDs and the first capturing source.
+        for (column, definition) in [
+            ("compacted_at", "BIGINT NOT NULL DEFAULT 0"),
+            ("source", "TEXT NOT NULL DEFAULT ''"),
+            ("started_at_ms", "BIGINT NOT NULL DEFAULT 0"),
+            ("attempt_history", "TEXT NOT NULL DEFAULT '[]'"),
+        ] {
+            let exists = if postgres {
+                sqlx::query_scalar::<_, i64>("SELECT count(*) FROM pg_attribute WHERE attrelid='rocksky_durable_jobs'::regclass AND attname=$1 AND NOT attisdropped")
+                    .bind(column).fetch_one(&mut *tx).await? > 0
+            } else {
+                sqlx::query("PRAGMA table_info(rocksky_durable_jobs)")
+                    .fetch_all(&mut *tx)
+                    .await?
+                    .iter()
+                    .any(|row| row.get::<String, _>("name") == column)
+            };
+            if !exists {
+                sqlx::query(&format!(
+                    "ALTER TABLE rocksky_durable_jobs ADD COLUMN {column} {definition}"
+                ))
+                .execute(&mut *tx)
+                .await?;
+            }
         }
         for statement in [
             "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_compact ON rocksky_durable_jobs (updated_at,id) WHERE status='completed' AND compacted_at=0",
@@ -217,7 +232,7 @@ impl Queue {
                 .map(|n| format!("WHEN ${} THEN ${}", n * 2 + 1, n * 2 + 2))
                 .collect::<Vec<_>>()
                 .join(" ");
-            let statement = format!("UPDATE rocksky_durable_jobs SET payload=CASE id {cases} END, last_error='', compacted_at=${} WHERE id IN ({})", jobs.len() * 2 + 1, placeholders(jobs.len() * 2 + 2, ids.len()));
+            let statement = format!("UPDATE rocksky_durable_jobs SET payload=CASE id {cases} END, attempt_history='[]', last_error='', compacted_at=${} WHERE id IN ({})", jobs.len() * 2 + 1, placeholders(jobs.len() * 2 + 2, ids.len()));
             let mut update = sqlx::query(&statement);
             for (job, payload) in jobs.iter().zip(&compacted_payloads) {
                 update = update.bind(&job.id).bind(payload);
@@ -252,6 +267,38 @@ impl Queue {
         let url = std::env::var("SUBMISSIONS_DATABASE_URL")
             .context("SUBMISSIONS_DATABASE_URL must explicitly name the durable queue database")?;
         Self::connect(&url).await
+    }
+
+    fn now_ms(&self) -> &'static str {
+        if self.postgres {
+            "CAST(FLOOR(EXTRACT(EPOCH FROM clock_timestamp()) * 1000) AS BIGINT)"
+        } else {
+            "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)"
+        }
+    }
+
+    // Fold timing into the same fenced state transition: no additional network
+    // round trips on the processing path, and stale workers cannot append spans.
+    fn attempt_history(&self, outcome: &str, expired: bool) -> String {
+        let end = if expired {
+            "lease_until * 1000"
+        } else {
+            self.now_ms()
+        };
+        let duration = if expired {
+            "NULL".to_owned()
+        } else {
+            format!("CASE WHEN {end} >= started_at_ms THEN {end} - started_at_ms ELSE 0 END")
+        };
+        let fields = format!("'attempt',attempts,'started_at_ms',started_at_ms,'finished_at_ms',{end},'duration_ms',{duration},'outcome','{outcome}'");
+        let append = if self.postgres {
+            format!(
+                "(attempt_history::jsonb || jsonb_build_array(jsonb_build_object({fields})))::text"
+            )
+        } else {
+            format!("json_insert(attempt_history,'$[#]',json_object({fields}))")
+        };
+        format!("CASE WHEN started_at_ms>0 THEN {append} ELSE attempt_history END")
     }
 
     pub(crate) fn now(&self) -> &'static str {
@@ -333,7 +380,7 @@ impl Queue {
         let mut cursors = std::collections::BTreeMap::new();
         for event in events {
             jobs.entry(digest(&serde_json::to_string(&(kind, &event.key))?))
-                .or_insert((digest(&event.payload), &event.payload));
+                .or_insert((digest(&event.payload), &event.payload, &event.source));
             cursors
                 .entry(&event.source)
                 .and_modify(|v: &mut i64| *v = (*v).max(event.cursor))
@@ -342,17 +389,18 @@ impl Queue {
         let now = self.now();
         let values = (0..jobs.len())
             .map(|n| {
-                let n = 2 + n * 3;
+                let n = 2 + n * 4;
                 format!(
-                    "(${n},$1,${},${},'pending',{now},{now},{now})",
+                    "(${n},$1,${},${},${},'pending',{now},{now},{now})",
                     n + 1,
-                    n + 2
+                    n + 2,
+                    n + 3
                 )
             })
             .collect::<Vec<_>>()
             .join(",");
-        let insert = format!("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,status,available_at,created_at,updated_at) VALUES {values} ON CONFLICT (id) DO NOTHING");
-        let cursor_start = if self.postgres { 2 + jobs.len() * 3 } else { 1 };
+        let insert = format!("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,source,status,available_at,created_at,updated_at) VALUES {values} ON CONFLICT (id) DO NOTHING");
+        let cursor_start = if self.postgres { 2 + jobs.len() * 4 } else { 1 };
         let cursor_values = (0..cursors.len())
             .map(|n| format!("(${},${})", cursor_start + n * 2, cursor_start + n * 2 + 1))
             .collect::<Vec<_>>()
@@ -363,8 +411,8 @@ impl Queue {
             // RETURNING rows are unused. Both writes share this statement's commit.
             let statement = format!("WITH captured AS ({insert} RETURNING id) {upsert}");
             let mut query = sqlx::query(&statement).bind(kind);
-            for (id, (hash, payload)) in &jobs {
-                query = query.bind(id).bind(hash).bind(*payload);
+            for (id, (hash, payload, source)) in &jobs {
+                query = query.bind(id).bind(hash).bind(*payload).bind(*source);
             }
             for (source, cursor) in &cursors {
                 query = query.bind(*source).bind(*cursor);
@@ -373,8 +421,8 @@ impl Queue {
         } else {
             let mut tx = self.pool.begin().await?;
             let mut query = sqlx::query(&insert).bind(kind);
-            for (id, (hash, payload)) in &jobs {
-                query = query.bind(id).bind(hash).bind(*payload);
+            for (id, (hash, payload, source)) in &jobs {
+                query = query.bind(id).bind(hash).bind(*payload).bind(*source);
             }
             query.execute(&mut *tx).await?;
             let mut query = sqlx::query(&upsert);
@@ -427,13 +475,15 @@ impl Queue {
             "invalid lease, attempt or batch limit"
         );
         let now = self.now();
-        let exhausted = format!("UPDATE rocksky_durable_jobs SET status='failed', last_error='lease expired on final attempt', updated_at={now} WHERE kind=$1 AND status='processing' AND lease_until<={now} AND attempts >= $4");
+        let expired_history = self.attempt_history("lease_expired", true);
+        let started = self.now_ms();
+        let exhausted = format!("UPDATE rocksky_durable_jobs SET attempt_history={expired_history}, status='failed', last_error='lease expired on final attempt', updated_at={now} WHERE kind=$1 AND status='processing' AND lease_until<={now} AND attempts >= $4");
         let lock = if self.postgres {
             " FOR UPDATE SKIP LOCKED"
         } else {
             ""
         };
-        let claim = format!("UPDATE rocksky_durable_jobs SET status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1 AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING {JOB_COLUMNS}");
+        let claim = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {expired_history} ELSE attempt_history END, started_at_ms={started}, status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1 AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING {JOB_COLUMNS}");
         let sql = if self.postgres {
             format!("WITH exhausted AS ({exhausted} RETURNING id) {claim}")
         } else {
@@ -464,7 +514,8 @@ impl Queue {
 
     pub async fn finish(&self, job: &Job) -> Result<bool> {
         let now = self.now();
-        Ok(sqlx::query(&format!("UPDATE rocksky_durable_jobs SET status='completed', last_error='', lease_token='', lease_until=0, updated_at={now} WHERE id=$1 AND lease_token=$2 AND status='processing' AND lease_until>{now}"))
+        let history = self.attempt_history("completed", false);
+        Ok(sqlx::query(&format!("UPDATE rocksky_durable_jobs SET attempt_history={history}, status='completed', last_error='', lease_token='', lease_until=0, updated_at={now} WHERE id=$1 AND lease_token=$2 AND status='processing' AND lease_until>{now}"))
             .bind(&job.id).bind(&job.lease_token).execute(&self.pool).await?.rows_affected() == 1)
     }
 
@@ -481,10 +532,18 @@ impl Queue {
         } else {
             "pending"
         };
+        let history = self.attempt_history(
+            if status == "failed" {
+                "failed"
+            } else {
+                "retry"
+            },
+            false,
+        );
         let delay = retry_delay(job.attempts);
         // Callers supply sanitized errors: never persist bearer tokens/HTTP bodies.
         let error: String = error.chars().take(2000).collect();
-        Ok(sqlx::query(&format!("UPDATE rocksky_durable_jobs SET status=$3, last_error=$4, available_at={now}+$5, lease_token='', lease_until=0, updated_at={now} WHERE id=$1 AND lease_token=$2 AND status='processing' AND lease_until>{now}"))
+        Ok(sqlx::query(&format!("UPDATE rocksky_durable_jobs SET attempt_history={history}, status=$3, last_error=$4, available_at={now}+$5, lease_token='', lease_until=0, updated_at={now} WHERE id=$1 AND lease_token=$2 AND status='processing' AND lease_until>{now}"))
             .bind(&job.id).bind(&job.lease_token).bind(status).bind(error).bind(delay).execute(&self.pool).await?.rows_affected() == 1)
     }
 
@@ -622,6 +681,22 @@ mod tests {
         assert!(!queue.fail(old, "stale", true, 3).await.unwrap());
         assert!(queue.checkpoint(old, "other", "stale").await.is_err());
         assert!(queue.finish(&replacement).await.unwrap());
+        let history: String =
+            sqlx::query_scalar("SELECT attempt_history FROM rocksky_durable_jobs WHERE id=$1")
+                .bind(&old.id)
+                .fetch_one(&queue.pool)
+                .await
+                .unwrap();
+        let history: serde_json::Value = serde_json::from_str(&history).unwrap();
+        assert_eq!(
+            history.as_array().unwrap().len(),
+            2,
+            "stale transitions must not append spans"
+        );
+        assert_eq!(history[0]["outcome"], "lease_expired");
+        assert!(history[0]["duration_ms"].is_null());
+        assert_eq!(history[1]["outcome"], "completed");
+        assert!(history[1]["duration_ms"].as_i64().unwrap() >= 0);
 
         let retryable = &jobs[1];
         assert!(queue.fail(retryable, "temporary", false, 3).await.unwrap());
@@ -672,6 +747,7 @@ mod tests {
         assert_eq!(queue.cursor(&source_b).await.unwrap(), Some(20));
         let captured = queue.claim(&kind, 60, 3).await.unwrap().unwrap();
         assert_eq!(captured.payload, "first source payload");
+        assert_eq!(captured.source, source_a);
         assert!(queue.claim(&kind, 60, 3).await.unwrap().is_none());
         // The transaction must not advance a cursor if its inbox INSERT fails.
         let mut tx = queue.pool.begin().await.unwrap();

@@ -11,7 +11,10 @@ CREATE TABLE IF NOT EXISTS rocksky_durable_jobs (
     last_error TEXT NOT NULL DEFAULT '',
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL,
-    compacted_at BIGINT NOT NULL DEFAULT 0
+    compacted_at BIGINT NOT NULL DEFAULT 0,
+    source TEXT NOT NULL DEFAULT '',
+    started_at_ms BIGINT NOT NULL DEFAULT 0,
+    attempt_history TEXT NOT NULL DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_ready
     ON rocksky_durable_jobs (kind, status, available_at, created_at);
