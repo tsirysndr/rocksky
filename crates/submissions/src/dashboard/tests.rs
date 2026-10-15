@@ -410,3 +410,22 @@ async fn postgres_dashboard_and_additive_migration_contract() {
         .await
         .unwrap();
 }
+
+#[actix_web::test]
+async fn teal_metadata_is_searchable_without_exposing_private_fields() {
+    let value = super::scrobble_metadata(
+        &serde_json::json!({
+            "did":"did:plc:test", "recordKey":"stable", "secret":"private",
+            "track":{"$type":"fm.teal.feed.play", "trackName":"Song", "releaseName":"Album",
+                "artists":[{"artistName":"Artist"}], "playedTime":"2026-10-15T00:00:00Z",
+                "duration":180, "secret":"private"}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    assert_eq!(value["title"], "Song");
+    assert_eq!(value["artist"], "Artist");
+    assert_eq!(value["duration"], 180000);
+    assert_eq!(value["did"], "did:plc:test");
+    assert!(!value.to_string().contains("private"));
+}

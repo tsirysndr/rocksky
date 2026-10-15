@@ -323,6 +323,30 @@ fn scrobble_metadata(payload: &str) -> Option<serde_json::Value> {
             result.insert(key.into(), value.clone());
         }
     }
+    // Teal jobs retain only these public music fields in dashboard responses.
+    if track["$type"] == "fm.teal.feed.play" {
+        for (from, to) in [
+            ("trackName", "title"),
+            ("releaseName", "album"),
+            ("playedTime", "createdAt"),
+            ("recordingMbId", "mbId"),
+        ] {
+            if let Some(value) = track.get(from).filter(|v| v.is_string()) {
+                result.insert(to.into(), value.clone());
+            }
+        }
+        if let Some(artists) = track["artists"].as_array() {
+            let names: Vec<&str> = artists
+                .iter()
+                .filter_map(|a| a["artistName"].as_str())
+                .collect();
+            result.insert("artist".into(), names.join(", ").into());
+        }
+        // The dashboard displays durations in milliseconds; Teal stores seconds.
+        if let Some(duration) = track["duration"].as_i64().and_then(|n| n.checked_mul(1000)) {
+            result.insert("duration".into(), duration.into());
+        }
+    }
     for key in ["did", "recordKey"] {
         if let Some(value) = root.get(key).filter(|v| v.is_string()) {
             result.insert(key.into(), value.clone());

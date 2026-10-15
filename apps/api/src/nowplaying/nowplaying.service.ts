@@ -573,7 +573,7 @@ export async function scrobbleTrack(
   userDid: string,
   skipDupCheck?: boolean,
   importCache?: ImportCache,
-  submission?: { id: string; rkey: string },
+  submission?: { id: string; rkey: string; skipTeal?: boolean },
 ): Promise<void> {
   // Recover a PDS success followed by a lost HTTP response or worker crash.
   // Only RecordNotFound permits a new publication; transport/auth errors retry.
@@ -954,12 +954,15 @@ export async function scrobbleTrack(
     );
   }
 
-  if (mbTrack?.trackMBID) {
+  if (mbTrack?.trackMBID && !submission?.skipTeal) {
     mbTrack.timestamp = track.timestamp
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString();
-    // don't await this
-    tealfm.publishPlayingNow(agent, mbTrack, Math.floor(track.duration / 1000));
+    // Persist the child before the Rocksky PDS write. Recovery's early return
+    // above is safe because an existing parent record implies this handoff ran.
+    await tealfm.publishPlayingNow(
+      agent, mbTrack, Math.floor(track.duration / 1000), submission?.id,
+    );
   }
 
   // Persistence lookups are not matching decisions. Only enrich from a catalog

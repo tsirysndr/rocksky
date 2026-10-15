@@ -124,6 +124,7 @@ export default function (server: Server, ctx: Context) {
           did,
           track,
           typeof explicitKey === "string" ? explicitKey : undefined,
+          req.headers["x-rocksky-mirror-provider"] === "tealfm",
         );
         span?.setAttribute("submission.id", submissionId);
 

@@ -92,6 +92,8 @@ is unavailable.
 | `SUBMISSIONS_URL` | API | `http://127.0.0.1:8098` |
 | `SUBMISSIONS_API_URL` | Worker | `http://127.0.0.1:8000/internal/submissions/process` |
 | `SUBMISSIONS_CONCURRENCY` | Worker | `8` |
+| `SUBMISSIONS_TEAL_CONCURRENCY` | Worker | `4` (independent Teal pool) |
+| `SUBMISSIONS_TEAL_API_URL` | Worker | `/tealfm/process` alongside `SUBMISSIONS_API_URL` |
 | `SUBMISSIONS_MAX_ATTEMPTS` | Worker | `20` |
 | `MAX_INFLIGHT_SCROBBLES` | Jetstream | `64` |
 
@@ -358,3 +360,35 @@ Unknown / legacy. Publication jobs are excluded from this breakdown.
 The existing cached completion query supplies collection buckets without a
 separate payload scan. Restart Jetstream as well as submissions on deployment
 so new inbox writes populate collection metadata.
+
+
+## Durable Teal FM publication
+
+Eligible enriched scrobbles persist a `tealfm.publish.v1` job through the
+shared-secret protected `POST /v1/tealfm` endpoint **before** writing their Rocksky
+scrobble record. Acceptance is awaited; a queue failure retries the parent rather
+than silently losing the Teal write. Teal PDS failures only occupy the independent
+Teal worker pool. The existing 60-second delay is stored in `available_at`, so it
+survives restarts without holding a worker slot. This delay does not verify playback.
+
+The parent submission ID identifies the child (imports use a listening identity
+hash). The first accepted enriched payload, listening timestamp and generated TID
+win; subsequent attempts do not replace them. Create-only PDS writes and lookup
+recovery handle lost acknowledgements. Status failures retry without creating a
+second play. Status time and ten-minute expiry derive from listening time; old
+plays still publish, but expired or superseded status is skipped. CID comparisons
+prevent concurrent retries from overwriting newer status.
+
+Push preferences are checked at intake and processing. The mirror sends
+`X-Rocksky-Mirror-Provider: tealfm`; the authenticated API persists `skipTeal` with
+that submission, preventing an echo even after delays. The mirror also ignores
+plays marked `submissionClientAgent: rocksky/...`. Existing recent-play dedup is
+retained for older callers. No OAuth credentials are stored in queue payloads.
+
+The public dashboard labels/filters Teal jobs and exposes allowlisted music fields.
+Existing cleanup settings apply, including failed-job retention and the finite
+idempotency retention window. No migration or new required Doppler variable is
+needed. Deploy the submissions binary **before** the updated API (new endpoint),
+then restart REST/XRPC API processes and the mirror binary. During the first step,
+new callbacks cannot yet be produced; on rollback keep the new intake available
+until API producers have rolled back. Older completed scrobbles are not backfilled.

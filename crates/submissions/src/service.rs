@@ -14,6 +14,8 @@ use std::{
 use subtle::ConstantTimeEq;
 use tokio_util::sync::CancellationToken;
 
+pub const TEAL_KIND: &str = "tealfm.publish.v1";
+
 pub const KIND: &str = "scrobble.publish.v1";
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -22,6 +24,12 @@ pub struct Submission {
     pub did: String,
     pub idempotency_key: String,
     pub track: Value,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub skip_teal: bool,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
 }
 
 #[derive(Serialize, Deserialize)]
@@ -30,6 +38,8 @@ struct StoredSubmission {
     did: String,
     track: Value,
     record_key: String,
+    #[serde(default, skip_serializing_if = "is_false")]
+    skip_teal: bool,
 }
 
 fn new_record_key() -> String {
@@ -125,6 +135,7 @@ async fn submit(
         did: input.did,
         track: input.track,
         record_key: new_record_key(),
+        skip_teal: input.skip_teal,
     };
     match state
         .queue
@@ -144,6 +155,56 @@ async fn submit(
             tracing::error!(%error, "durable submission not accepted");
             HttpResponse::ServiceUnavailable()
                 .json(serde_json::json!({"error":"submission could not be persisted"}))
+        }
+    }
+}
+
+// Enriched Teal records are first-write-wins for a fixed scrobble identity:
+// enrichment can change on a retry, but must not create a second play.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TealSubmission {
+    did: String,
+    idempotency_key: String,
+    record: Value,
+}
+
+async fn submit_teal(
+    state: web::Data<Service>,
+    req: HttpRequest,
+    input: web::Json<TealSubmission>,
+) -> HttpResponse {
+    if !authorized(&req, &state.secret) {
+        return HttpResponse::Unauthorized().finish();
+    }
+    let input = input.into_inner();
+    if !input.did.starts_with("did:")
+        || input.did.len() > 2048
+        || input.idempotency_key.is_empty()
+        || input.idempotency_key.len() > 512
+        || input.record["$type"] != "fm.teal.feed.play"
+        || !input.record["trackName"]
+            .as_str()
+            .is_some_and(|v| !v.is_empty())
+        || !input.record["playedTime"].is_string()
+        || !input.record["artists"].is_array()
+        || !input.record["duration"].as_i64().is_some_and(|v| v >= 0)
+    {
+        return HttpResponse::BadRequest().finish();
+    }
+    let key = serde_json::to_string(&(&input.did, &input.idempotency_key)).unwrap();
+    let payload = serde_json::json!({
+        "did": input.did, "track": input.record, "recordKey": new_record_key(),
+    });
+    match state
+        .queue
+        .enqueue_after(TEAL_KIND, &key, &digest(&key), &payload.to_string(), 60)
+        .await
+    {
+        Ok(job) => HttpResponse::Accepted().json(job),
+        Err(error) => {
+            tracing::error!(%error, "durable Teal submission not accepted");
+            HttpResponse::ServiceUnavailable().finish()
         }
     }
 }
@@ -178,6 +239,7 @@ pub fn routes(config: &mut web::ServiceConfig) {
     config
         .app_data(web::JsonConfig::default().limit(256 * 1024))
         .configure(crate::dashboard::routes)
+        .route("/v1/tealfm", web::post().to(submit_teal))
         .route("/v1/submissions", web::post().to(submit))
         .route("/v1/jobs/{id}", web::get().to(status))
         .route("/v1/jobs/{id}/retry", web::post().to(retry));
@@ -201,7 +263,7 @@ async fn publish(
     })?;
     let response = http.post(&url)
         .header("x-rocksky-submissions-secret", secret)
-        .json(&serde_json::json!({"did": input.did, "track": input.track, "recordKey": input.record_key, "submissionId": job.id}))
+        .json(&serde_json::json!({"did": input.did, "track": input.track, "recordKey": input.record_key, "submissionId": job.id, "skipTeal": input.skip_teal}))
         .send().await.map_err(|_| Failure { message: "API publication request failed or timed out".into(), permanent: false })?;
     let status = response.status();
     if !status.is_success() {
@@ -241,6 +303,18 @@ pub async fn run() -> Result<()> {
     let bind = env::var("SUBMISSIONS_BIND").unwrap_or_else(|_| "127.0.0.1:8098".into());
     let api = env::var("SUBMISSIONS_API_URL")
         .unwrap_or_else(|_| "http://127.0.0.1:8000/internal/submissions/process".into());
+    let teal_api = env::var("SUBMISSIONS_TEAL_API_URL").unwrap_or_else(|_| {
+        api.strip_suffix("/process")
+            .map(|base| format!("{base}/tealfm/process"))
+            .unwrap_or_else(|| "http://127.0.0.1:8000/internal/submissions/tealfm/process".into())
+    });
+    let teal_concurrency: usize = env::var("SUBMISSIONS_TEAL_CONCURRENCY")
+        .unwrap_or_else(|_| "4".into())
+        .parse()?;
+    ensure!(
+        (1..=256).contains(&teal_concurrency),
+        "SUBMISSIONS_TEAL_CONCURRENCY must be 1..256"
+    );
     let concurrency: usize = env::var("SUBMISSIONS_CONCURRENCY")
         .unwrap_or_else(|_| "8".into())
         .parse()?;
@@ -285,6 +359,25 @@ pub async fn run() -> Result<()> {
         shutdown.clone(),
     ));
     let mut workers = tokio::task::JoinSet::new();
+    let teal_queue = queue.clone();
+    let teal_http = http.clone();
+    let teal_secret = secret.clone();
+    workers.spawn(worker::run(
+        queue.clone(),
+        TEAL_KIND,
+        teal_concurrency,
+        settings,
+        shutdown.clone(),
+        move |job| {
+            publish(
+                teal_queue.clone(),
+                teal_http.clone(),
+                teal_api.clone(),
+                teal_secret.clone(),
+                job,
+            )
+        },
+    ));
     let process_queue = queue.clone();
     workers.spawn(worker::run(
         queue,
@@ -349,6 +442,76 @@ async fn shutdown_signal() {
 mod tests {
     use super::*;
     use actix_web::{http::StatusCode, test};
+
+    #[actix_web::test]
+    async fn teal_acceptance_freezes_identity_payload_and_schedule() {
+        let dir = tempfile::tempdir().unwrap();
+        let queue = Queue::connect(&format!(
+            "sqlite://{}?mode=rwc",
+            dir.path().join("teal.sqlite").display()
+        ))
+        .await
+        .unwrap();
+        let secret = "test-only-secret-00000000000000000000";
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(Service {
+                    queue: queue.clone(),
+                    secret: secret.into(),
+                }))
+                .configure(routes),
+        )
+        .await;
+        let mut input = serde_json::json!({"did":"did:plc:test", "idempotencyKey":"parent-id", "record":{
+            "$type":"fm.teal.feed.play", "trackName":"Song", "duration":180,
+            "playedTime":"2026-10-15T00:00:00Z", "artists":[{"artistName":"Artist"}]
+        }});
+        let unauthorized = test::TestRequest::post()
+            .uri("/v1/tealfm")
+            .set_json(&input)
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, unauthorized).await.status(),
+            StatusCode::UNAUTHORIZED
+        );
+        let request = test::TestRequest::post()
+            .uri("/v1/tealfm")
+            .insert_header(("x-rocksky-submissions-secret", secret))
+            .set_json(&input)
+            .to_request();
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+        let response: Value = test::read_body_json(response).await;
+        let id = response["id"].as_str().unwrap();
+        let first = queue.get(id).await.unwrap().unwrap();
+        assert_eq!(first.kind, TEAL_KIND);
+        assert_eq!(first.available_at, first.created_at + 60);
+        let stored: StoredSubmission = serde_json::from_str(&first.payload).unwrap();
+        assert_eq!(stored.record_key.len(), 13);
+        input["record"]["trackName"] = "Re-enriched title".into();
+        let request = test::TestRequest::post()
+            .uri("/v1/tealfm")
+            .insert_header(("x-rocksky-submissions-secret", secret))
+            .set_json(&input)
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, request).await.status(),
+            StatusCode::ACCEPTED
+        );
+        let retry = queue.get(id).await.unwrap().unwrap();
+        assert_eq!(retry.payload, first.payload);
+        assert_eq!(retry.available_at, first.available_at);
+        input["record"]["duration"] = (-1).into();
+        let request = test::TestRequest::post()
+            .uri("/v1/tealfm")
+            .insert_header(("x-rocksky-submissions-secret", secret))
+            .set_json(&input)
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, request).await.status(),
+            StatusCode::BAD_REQUEST
+        );
+    }
 
     #[actix_web::test]
     async fn acceptance_is_durable_authenticated_and_idempotent() {

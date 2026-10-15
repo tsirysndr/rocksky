@@ -92,7 +92,7 @@ export const kindName = (kind: string) =>
     ? "Jetstream"
     : kind === "scrobble.publish.v1"
       ? "Scrobble publication"
-      : kind;
+      : kind === "tealfm.publish.v1" ? "Teal FM publication" : kind;
 export const number = (value: number) => new Intl.NumberFormat().format(value);
 export const date = (value: number) =>
   value ? new Date(value * 1000).toLocaleString() : "—";

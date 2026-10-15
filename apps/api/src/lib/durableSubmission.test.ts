@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   enqueueSubmission,
+  enqueueTealSubmission,
   submissionInput,
   submissionRecordKey,
   validSubmissionSecret,
@@ -66,4 +67,33 @@ describe("durable submission boundary", () => {
     }
     expect(rejected).toBe(true);
   });
+});
+
+it("awaits durable Teal acceptance and preserves mirror provenance", async () => {
+  const original = globalThis.fetch;
+  const calls: { url: string; body: any }[] = [];
+  const config = { url: "http://queue.test", secret: "s".repeat(32) };
+  let status = 202;
+  globalThis.fetch = (async (url, options) => {
+    calls.push({ url: String(url), body: JSON.parse(String(options?.body)) });
+    return new Response(JSON.stringify({ id: "a".repeat(64) }), { status });
+  }) as typeof fetch;
+  try {
+    await enqueueSubmission(config, "did:plc:test", track, "source-key", true);
+    expect(calls[0].body.skipTeal).toBe(true);
+    await enqueueTealSubmission(
+      config,
+      "did:plc:test",
+      { trackName: "Song" },
+      "parent-id",
+    );
+    expect(calls[1].url).toBe("http://queue.test/v1/tealfm");
+    expect(calls[1].body.idempotencyKey).toBe("parent-id");
+    status = 503;
+    await expect(
+      enqueueTealSubmission(config, "did:plc:test", {}, "parent-id"),
+    ).rejects.toThrow("durably accepted");
+  } finally {
+    globalThis.fetch = original;
+  }
 });

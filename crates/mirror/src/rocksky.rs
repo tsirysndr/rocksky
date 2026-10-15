@@ -30,6 +30,7 @@ pub async fn create_scrobble(
     let res = client
         .post(&url)
         .bearer_auth(bearer)
+        .header("x-rocksky-mirror-provider", provider.as_str())
         .json(track)
         .send()
         .await?;

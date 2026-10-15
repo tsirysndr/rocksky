@@ -57,24 +57,41 @@ export async function enqueueSubmission(
   did: string,
   track: Track,
   explicitKey?: string,
+  skipTeal = false,
+): Promise<string> {
+  return enqueueDurable(config, "/v1/submissions", {
+    ...submissionInput(did, track, explicitKey),
+    ...(skipTeal ? { skipTeal: true } : {}),
+  });
+}
+
+export async function enqueueTealSubmission(
+  config: { url: string; secret: string },
+  did: string,
+  record: unknown,
+  idempotencyKey: string,
+): Promise<string> {
+  return enqueueDurable(config, "/v1/tealfm", { did, record, idempotencyKey });
+}
+
+async function enqueueDurable(
+  config: { url: string; secret: string },
+  path: string,
+  input: unknown,
 ): Promise<string> {
   if (!config.url || config.secret.length < 32)
     throw new SubmissionUnavailable("Durable submissions are not configured");
-  const input = submissionInput(did, track, explicitKey);
   try {
-    const response = await fetch(
-      `${config.url.replace(/\/$/, "")}/v1/submissions`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-rocksky-submissions-secret": config.secret,
-        },
-        body: JSON.stringify(input),
-        signal: AbortSignal.timeout(15_000),
-        redirect: "error",
+    const response = await fetch(`${config.url.replace(/\/$/, "")}${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-rocksky-submissions-secret": config.secret,
       },
-    );
+      body: JSON.stringify(input),
+      signal: AbortSignal.timeout(15_000),
+      redirect: "error",
+    });
     if (response.status !== 202)
       throw new Error(`Queue returned ${response.status}`);
     const job = (await response.json()) as { id?: string };

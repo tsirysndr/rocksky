@@ -335,15 +335,31 @@ impl Queue {
         request_hash: &str,
         payload: &str,
     ) -> Result<Job> {
+        self.enqueue_after(kind, key, request_hash, payload, 0)
+            .await
+    }
+
+    /// Persist the delay with the first acceptance; duplicate deliveries never
+    /// move the deadline or replace the original payload.
+    pub async fn enqueue_after(
+        &self,
+        kind: &str,
+        key: &str,
+        request_hash: &str,
+        payload: &str,
+        delay_seconds: i64,
+    ) -> Result<Job> {
+        anyhow::ensure!(delay_seconds >= 0, "negative queue delay");
         let id = digest(&serde_json::to_string(&(kind, key))?);
         let now = self.now();
-        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, collection, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,'pending',{now},{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING {JOB_COLUMNS}");
+        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, collection, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,'pending',{now}+$6,{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING {JOB_COLUMNS}");
         let job: Job = sqlx::query_as(&sql)
             .bind(&id)
             .bind(kind)
             .bind(request_hash)
             .bind(payload)
             .bind(job_collection(kind, payload))
+            .bind(delay_seconds)
             .fetch_one(&self.pool)
             .await?;
         if job.request_hash != request_hash {
@@ -646,6 +662,24 @@ mod tests {
     use std::collections::HashSet;
 
     async fn contract(queue: Queue) {
+        let delayed_kind = format!("delayed-{}", Uuid::new_v4());
+        let delayed = queue
+            .enqueue_after(&delayed_kind, "key", "hash", "first", 60)
+            .await
+            .unwrap();
+        assert_eq!(delayed.available_at, delayed.created_at + 60);
+        let retry = queue
+            .enqueue_after(&delayed_kind, "key", "hash", "retry", 0)
+            .await
+            .unwrap();
+        assert_eq!(delayed.available_at, retry.available_at);
+        assert_eq!(retry.payload, "first");
+        assert!(queue
+            .claim_batch(&delayed_kind, 120, 20, 1)
+            .await
+            .unwrap()
+            .is_empty());
+
         let kind = format!("test-{}", Uuid::new_v4());
         let first = queue
             .enqueue(&kind, "same", "hash", "original payload")

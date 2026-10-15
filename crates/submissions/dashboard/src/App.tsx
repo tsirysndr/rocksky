@@ -774,6 +774,7 @@ function Jobs() {
           <option value="jetstream-v1">Jetstream v1</option>
           <option value="jetstream-v2">Jetstream v2</option>
           <option value="scrobble.publish.v1">Scrobble publication</option>
+          <option value="tealfm.publish.v1">Teal FM publication</option>
         </select>
       </div>
       <p className="muted search-scope">
