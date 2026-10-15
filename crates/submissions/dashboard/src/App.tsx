@@ -182,13 +182,13 @@ function Dashboard() {
                     ? "Job explorer"
                     : "Retention & cleanup"}
               </h1>
-              <p>
-                {section === "overview"
-                  ? "The pulse of your scrobble pipeline, all in one place."
-                  : section === "jobs"
+              {section !== "overview" && (
+                <p>
+                  {section === "jobs"
                     ? "Follow every delivery from acceptance to completion."
                     : "Keep the queue lean without losing its memory."}
-              </p>
+                </p>
+              )}
             </div>
             <div className="page-actions">
               <button
