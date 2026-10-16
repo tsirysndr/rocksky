@@ -275,9 +275,10 @@ with public dashboard reads. Use retry access only on a trusted browser.
 The dashboard includes live status counts, a 60-minute completion chart, source
 cursor age, filtered/keyset-paginated jobs, checkpoint inspection, explicit
 confirmation before retrying failed jobs, and the effective cleanup policy.
-Raw payloads, request fingerprints, lease tokens, checkpoint results and arbitrary
-error messages are excluded from public responses. Selected song fields and the
-listener DID are public in job details.
+Raw payloads, request fingerprints, lease tokens, and checkpoint results are
+excluded from public responses. Stored error diagnostics are public, with
+recognizable credentials and URL credentials/query strings redacted. Selected
+song fields and the listener DID are public in job details.
 Headline counters and activity poll every 2 seconds while visible; job lists poll
 every 5 seconds, with pause and manual refresh.
 The service shares a 30-second statistics snapshot across all clients. Set

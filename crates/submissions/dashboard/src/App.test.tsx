@@ -174,6 +174,8 @@ describe("dashboard access and live controls", () => {
     );
     fireEvent.click(await screen.findByText("aaaaaaaaaaaaaa…"));
     await screen.findByText("Retry failed job");
+    expect(screen.getByText("callback unavailable")).toBeTruthy();
+    expect(screen.queryByLabelText("Service secret")).toBeNull();
     fireEvent.click(screen.getByText("Retry failed job"));
     expect(mock.mock.calls.some(([, o]) => o?.method === "POST")).toBe(false);
     expect(screen.getByText("Sign in to retry")).toBeTruthy();

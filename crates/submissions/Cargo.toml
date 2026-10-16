@@ -12,6 +12,7 @@ sqlite = ["sqlx/sqlite"]
 
 [dependencies]
 anyhow = "1"
+regex = "1"
 actix-web = "4.11"
 actix-cors = "0.7.2"
 dotenv = "0.15"

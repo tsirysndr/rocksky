@@ -131,6 +131,17 @@ async fn contract(queue: Queue) {
     )
     .await;
     assert_eq!(filtered["jobs"].as_array().unwrap().len(), 1);
+    // Details and lists expose diagnostics without operator authentication.
+    sqlx::query("UPDATE rocksky_durable_jobs SET last_error=$1 WHERE id=$2")
+        .bind("API publication returned HTTP 503; token=PRIVATE_TOKEN")
+        .bind(&failed.id).execute(&queue.pool).await.unwrap();
+    for path in [format!("/v1/dashboard/jobs/{}", failed.id), "/v1/dashboard/jobs?status=failed&kind=dashboard.test".into()] {
+        let response: Value = test::call_and_read_body_json(&app, test::TestRequest::get().uri(&path).to_request()).await;
+        let error = if response.get("job").is_some() { &response["job"]["last_error"] } else { &response["jobs"][0]["last_error"] };
+        assert_eq!(error, "API publication returned HTTP 503; token=[REDACTED]");
+        assert!(!response.to_string().contains("PRIVATE"));
+    }
+
     let detail: Value = test::call_and_read_body_json(
         &app,
         test::TestRequest::get()
@@ -659,4 +670,17 @@ async fn postgres_live_activity_contract() {
         .execute(&admin.pool)
         .await
         .unwrap();
+}
+
+#[actix_web::test]
+async fn public_errors_keep_diagnostics_and_redact_credentials() {
+    for message in ["API publication returned HTTP 503", "lease expired on final attempt", "database error: duplicate key violates unique constraint scrobbles_uri_key"] {
+        assert_eq!(public_error(message), message);
+    }
+    let message = r#"request failed HTTP 401 https://alice:PRIVATE_PASSWORD@example.test/xrpc/test?token=PRIVATE_QUERY#PRIVATE_FRAGMENT Authorization: Bearer PRIVATE_BEARER {"refresh_token":"PRIVATE_REFRESH","password":"PRIVATE_PASS"} api_key=PRIVATE_KEY"#;
+    let redacted = public_error(message);
+    assert!(!redacted.contains("PRIVATE"), "{redacted}");
+    assert!(redacted.contains("HTTP 401"));
+    assert!(redacted.contains("example.test/xrpc/test"));
+    assert!(redacted.contains("[REDACTED]"));
 }

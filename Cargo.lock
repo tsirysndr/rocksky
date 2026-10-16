@@ -6400,6 +6400,7 @@ dependencies = [
  "anyhow",
  "dotenv",
  "futures-util",
+ "regex",
  "reqwest 0.12.23",
  "serde",
  "serde_json",

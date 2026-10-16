@@ -78,6 +78,7 @@ pub struct JobSummary {
     pub attempts: i64,
     pub available_at: i64,
     pub lease_until: i64,
+    #[serde(serialize_with = "serialize_public_error")]
     pub last_error: String,
     pub created_at: i64,
     pub updated_at: i64,
@@ -93,7 +94,36 @@ pub struct Step {
     pub name: String,
     pub completed_at: i64,
 }
-const COLUMNS: &str = "id,kind,source,started_at_ms,status,attempts,available_at,lease_until,CASE WHEN last_error='' THEN '' ELSE 'Processing failed; operator inspection required' END AS last_error,created_at,updated_at,compacted_at";
+const COLUMNS: &str = "id,kind,source,started_at_ms,status,attempts,available_at,lease_until,last_error,created_at,updated_at,compacted_at";
+
+// Queue producers already avoid response bodies and bearer credentials. Apply
+// defense-in-depth redaction to legacy errors before either public response.
+fn serialize_public_error<S: serde::Serializer>(error: &str, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(&public_error(error))
+}
+fn public_error(error: &str) -> String {
+    use regex::{Captures, Regex};
+    use std::sync::OnceLock;
+    static URL: OnceLock<Regex> = OnceLock::new();
+    static AUTH: OnceLock<Regex> = OnceLock::new();
+    static SECRET: OnceLock<Regex> = OnceLock::new();
+    let urls = URL.get_or_init(|| Regex::new(r#"[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>\"']+"#).unwrap());
+    let safe = urls.replace_all(error, |captures: &Captures| {
+        let original = &captures[0];
+        let Ok(mut url) = reqwest::Url::parse(original) else { return "[REDACTED URL]".to_owned(); };
+        if !url.username().is_empty() || url.password().is_some() {
+            let _ = url.set_username("redacted");
+            let _ = url.set_password(None);
+        }
+        if url.query().is_some() { url.set_query(Some("redacted")); }
+        if url.fragment().is_some() { url.set_fragment(Some("redacted")); }
+        url.to_string()
+    });
+    let auth = AUTH.get_or_init(|| Regex::new(r"(?i)\b(Bearer|Basic)\s+[a-zA-Z0-9._~+/=-]+").unwrap());
+    let safe = auth.replace_all(&safe, "$1 [REDACTED]");
+    let secret = SECRET.get_or_init(|| Regex::new(r#"(?i)(["']?(?:password|passwd|secret|access[_-]?token|refresh[_-]?token|token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|x-rocksky-submissions-secret|cookie|set-cookie)["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;&}\]]+)"#).unwrap());
+    secret.replace_all(&safe, "${1}[REDACTED]").into_owned()
+}
 
 impl JobFilter {
     fn validate(&self) -> anyhow::Result<(i64, i64, String)> {
