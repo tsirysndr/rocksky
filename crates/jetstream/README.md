@@ -44,21 +44,26 @@ preserved within each DID and lane; different DIDs take turns. This changes dequ
 - `JETSTREAM_SCROBBLE_CONCURRENCY`: slots reserved for scrobbles, default the total minus
   one quarter reserved for metadata (minimum one), therefore **48** by default. Must be below the total.
 - Remaining slots serve other collections: **16** by default.
-- `JETSTREAM_MAX_INFLIGHT_PER_DID`: live jobs per DID **per lane**, default **4**,
-  range **1–256**. Thus one DID can occupy at most four scrobble and four
-  background slots across all fair consumers sharing the queue database.
+- `JETSTREAM_MAX_INFLIGHT_PER_DID`: normal live-job allocation per DID **per lane**,
+  default **4**, range **1–256**. Enforced across consumers sharing the database.
+- `JETSTREAM_FAIR_BORROW_IDLE`: default **true**. After normal fair claims find no
+  eligible account, bulk work may borrow idle capacity, leaving one normal DID
+  allocation free in each lane. With defaults a busy DID can reach **44 scrobble**
+  and **12 background** jobs, leaving four slots in each lane for other DIDs.
+  Set **false** for a strict per-DID cap.
 
-Each claim takes at most one eligible job per DID, rotating accounts using a
-persistent turn counter. New/quiet accounts bypass a single account's old bulk
+Each claim shares its batch between eligible DIDs, rotating accounts using a
+persistent turn counter. Claims use bounded per-account FIFO index reads. New/quiet accounts bypass a single account's old bulk
 backlog. An indexed actor registry avoids sorting the entire backlog on each
 claim. A short database scheduling lock prevents replicas from racing past the
 cap; it is released before job execution. Missing DIDs share a capped `unknown`
 bucket. All jobs remain durable, including existing backlog upgraded at startup.
 
-The cap is strict: with only one active DID, its lane may use fewer than its
-reserved slots. Increase the cap if needed; never raise it to the lane's full
-capacity if you want spare capacity for quieter accounts. Legacy FIFO consumers
-do not enforce this cap, so restart all Jetstream consumers when upgrading.
+Normal fair claims run before borrowing, so a bulk backlog cannot jump ahead of
+eligible quieter DIDs. Borrowed jobs finish normally; they are not preempted.
+Borrowing is disabled automatically when the lane is too small to leave a normal
+allocation free. Legacy FIFO consumers do not enforce these limits, so restart
+all Jetstream consumers when upgrading.
 
 Reserved slots do not spill over into metadata work, so new scrobbles can start
 without waiting for a metadata batch to finish. Both lanes still share database

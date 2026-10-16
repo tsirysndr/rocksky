@@ -92,6 +92,7 @@ pub async fn run_fair_lane<F, Fut>(
     lane: ClaimLane,
     concurrency: usize,
     per_actor: i64,
+    borrow_idle: bool,
     settings: Settings,
     shutdown: CancellationToken,
     process: F,
@@ -104,7 +105,7 @@ pub async fn run_fair_lane<F, Fut>(
         kind,
         lane,
         concurrency,
-        Some(per_actor),
+        Some((per_actor, borrow_idle)),
         settings,
         shutdown,
         process,
@@ -117,7 +118,7 @@ async fn run_dispatcher<F, Fut>(
     kind: &str,
     lane: ClaimLane,
     concurrency: usize,
-    per_actor: Option<i64>,
+    per_actor: Option<(i64, bool)>,
     settings: Settings,
     shutdown: CancellationToken,
     process: F,
@@ -137,8 +138,8 @@ async fn run_dispatcher<F, Fut>(
             continue;
         }
         let limit = (concurrency - active.len()).min(32) as i64;
-        let result = match per_actor {
-            Some(cap) => {
+        let mut result = match per_actor {
+            Some((cap, _)) => {
                 queue
                     .claim_fair_batch(
                         kind,
@@ -162,6 +163,27 @@ async fn run_dispatcher<F, Fut>(
                     .await
             }
         };
+        if let Some((cap, true)) = per_actor {
+            // Normal fair turns always run first. Borrow only idle slots, leaving
+            // one normal account allocation free for new/quiet DIDs in this lane.
+            let burst_capacity = concurrency.saturating_sub(cap as usize);
+            let free = burst_capacity.saturating_sub(active.len());
+            if free > 0
+                && burst_capacity > cap as usize
+                && matches!(&result, Ok(jobs) if jobs.is_empty())
+            {
+                result = queue
+                    .claim_fair_batch(
+                        kind,
+                        settings.lease_seconds,
+                        settings.max_attempts,
+                        free.min(32) as i64,
+                        lane,
+                        burst_capacity.min(256) as i64,
+                    )
+                    .await;
+            }
+        }
         match result {
             Ok(jobs) if !jobs.is_empty() => {
                 for job in jobs {
@@ -239,6 +261,86 @@ mod tests {
         atomic::{AtomicUsize, Ordering},
         Arc,
     };
+
+    #[tokio::test]
+    async fn bulk_actor_borrows_idle_capacity_but_leaves_room_for_quiet_accounts() {
+        let dir = tempfile::tempdir().unwrap();
+        let queue = Queue::connect(&format!(
+            "sqlite://{}?mode=rwc",
+            dir.path().join("borrow.sqlite").display()
+        ))
+        .await
+        .unwrap();
+        for n in 0..30 {
+            queue
+                .enqueue("borrow", &format!("bulk-{n}"), "hash", r#"{"did":"bulk"}"#)
+                .await
+                .unwrap();
+        }
+        let stop = CancellationToken::new();
+        let gate = Arc::new(tokio::sync::Semaphore::new(0));
+        let (started, mut received) = tokio::sync::mpsc::unbounded_channel();
+        let processor_gate = gate.clone();
+        let worker = tokio::spawn(run_fair_lane(
+            queue.clone(),
+            "borrow",
+            ClaimLane::Background,
+            8,
+            2,
+            true,
+            Settings::default(),
+            stop.clone(),
+            move |job| {
+                let (gate, started) = (processor_gate.clone(), started.clone());
+                async move {
+                    started.send(crate::queue::job_actor(&job.payload)).unwrap();
+                    gate.acquire().await.unwrap().forget();
+                    Ok(())
+                }
+            },
+        ));
+        for _ in 0..6 {
+            assert_eq!(
+                tokio::time::timeout(Duration::from_secs(3), received.recv())
+                    .await
+                    .unwrap()
+                    .unwrap(),
+                "bulk"
+            );
+        }
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), received.recv())
+                .await
+                .is_err(),
+            "bulk must leave two slots free"
+        );
+        for n in 0..2 {
+            queue
+                .enqueue(
+                    "borrow",
+                    &format!("quiet-{n}"),
+                    "hash",
+                    r#"{"did":"quiet"}"#,
+                )
+                .await
+                .unwrap();
+        }
+        for _ in 0..2 {
+            assert_eq!(
+                tokio::time::timeout(Duration::from_secs(3), received.recv())
+                    .await
+                    .unwrap()
+                    .unwrap(),
+                "quiet"
+            );
+        }
+        stop.cancel();
+        gate.add_permits(8);
+        tokio::time::timeout(Duration::from_secs(3), worker)
+            .await
+            .unwrap()
+            .unwrap();
+    }
 
     #[tokio::test]
     async fn retries_failed_processors_without_losing_the_job() {

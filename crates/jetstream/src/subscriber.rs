@@ -92,6 +92,11 @@ impl MultiSourceSubscriber {
             (1..=256).contains(&per_did),
             "JETSTREAM_MAX_INFLIGHT_PER_DID must be between 1 and 256"
         );
+        let borrow_idle = env::var("JETSTREAM_FAIR_BORROW_IDLE")
+            .ok()
+            .map(|value| value.parse::<bool>())
+            .transpose()?
+            .unwrap_or(true);
         // Ingest: everything here writes, so it always talks to the primary.
         // Postgres when one is configured — keeping the pool budget and the
         // read-only check, since this service exists to write and must refuse
@@ -121,6 +126,7 @@ impl MultiSourceSubscriber {
             scrobble_workers,
             background_workers,
             per_did,
+            borrow_idle,
             "Jetstream priority lanes enabled"
         );
         for (lane, concurrency) in [
@@ -135,6 +141,7 @@ impl MultiSourceSubscriber {
                 lane,
                 concurrency,
                 per_did,
+                borrow_idle,
                 Settings::default(),
                 shutdown.clone(),
                 move |job| {

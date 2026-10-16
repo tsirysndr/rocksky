@@ -62,7 +62,7 @@ impl Queue {
         Ok(())
     }
 
-    /// One job per eligible actor per turn, with a database-wide live-lease cap
+    /// Share each batch among eligible actors, with a database-wide live-lease cap
     /// per actor and lane. A short scheduling lock serializes competing claims;
     /// execution and ingestion never hold that lock. Expired leases don't count.
     pub async fn claim_fair_batch(
@@ -115,29 +115,34 @@ impl Queue {
         // Both correlated probes use actor indexes. No window sort of the job
         // backlog, and no fixed candidate window that a noisy DID can monopolize.
         let ready = format!("kind=a.kind AND actor=a.actor AND status IN ('pending','processing'){lane_filter} AND attempts<$3 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now}))");
-        let rows = sqlx::query(&format!("SELECT a.actor,(SELECT id FROM rocksky_durable_jobs WHERE {ready} ORDER BY available_at,created_at,id LIMIT 1) AS id FROM rocksky_durable_actors a WHERE a.kind=$1 AND a.lane=$2 AND (SELECT count(*) FROM rocksky_durable_jobs WHERE kind=a.kind AND actor=a.actor AND status='processing'{lane_filter} AND lease_until>{now})<$4 AND EXISTS (SELECT 1 FROM rocksky_durable_jobs WHERE {ready}) ORDER BY a.last_served,a.actor LIMIT $5"))
+        let live = format!("(SELECT count(*) FROM rocksky_durable_jobs WHERE kind=a.kind AND actor=a.actor AND status='processing'{lane_filter} AND lease_until>{now})");
+        let rows = sqlx::query(&format!("SELECT a.actor,{live} AS inflight FROM rocksky_durable_actors a WHERE a.kind=$1 AND a.lane=$2 AND (SELECT count(*) FROM rocksky_durable_jobs WHERE kind=a.kind AND actor=a.actor AND status='processing'{lane_filter} AND lease_until>{now})<$4 AND EXISTS (SELECT 1 FROM rocksky_durable_jobs WHERE {ready}) ORDER BY a.last_served,a.actor LIMIT $5"))
             .bind(kind).bind(lane_id).bind(max_attempts).bind(per_actor).bind(limit).fetch_all(&mut *tx).await?;
         if rows.is_empty() {
             tx.commit().await?;
             return Ok(Vec::new());
         }
-        let params = (0..rows.len())
-            .map(|n| format!("${}", n + 3))
-            .collect::<Vec<_>>()
-            .join(",");
         let lock = if self.postgres {
             " FOR UPDATE SKIP LOCKED"
         } else {
             ""
         };
-        // Recheck eligibility under the row lock: compatible with legacy FIFO
-        // consumers during rolling upgrades, though those consumers don't cap DIDs.
-        let statement = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {history} ELSE attempt_history END,started_at_ms={started},status='processing',attempts=attempts+1,lease_token=$1,lease_until={now}+$2,updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE id IN ({params}) AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})){lock}) RETURNING {JOB_COLUMNS}");
+        // Split this batch evenly, respecting live capacity. Each bounded actor
+        // probe reads FIFO directly from its index instead of sorting the backlog.
+        let choices = rows.iter().enumerate().map(|(n,row)| {
+            let share = limit / rows.len() as i64 + i64::from((n as i64) < limit % rows.len() as i64);
+            let quota = share.min(per_actor-row.get::<i64,_>("inflight"));
+            let actor_param = n+5;
+            format!("SELECT id FROM (SELECT id FROM rocksky_durable_jobs WHERE kind=$3 AND actor=${actor_param} AND status IN ('pending','processing'){lane_filter} AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at,created_at,id LIMIT {quota}{lock}) AS actor_{n}")
+        }).collect::<Vec<_>>().join(" UNION ALL ");
+        let statement = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {history} ELSE attempt_history END,started_at_ms={started},status='processing',attempts=attempts+1,lease_token=$1,lease_until={now}+$2,updated_at={now} WHERE id IN ({choices}) RETURNING {JOB_COLUMNS}");
         let mut claim = sqlx::query_as::<_, Job>(&statement)
             .bind(Uuid::new_v4().to_string())
-            .bind(lease_seconds);
+            .bind(lease_seconds)
+            .bind(kind)
+            .bind(max_attempts);
         for row in &rows {
-            claim = claim.bind(row.get::<String, _>("id"));
+            claim = claim.bind(row.get::<String, _>("actor"));
         }
         let jobs = claim.fetch_all(&mut *tx).await?;
         let params = (0..rows.len())
