@@ -2360,17 +2360,6 @@ h3 {
   padding: 24px;
   text-align: center;
 }
-.login-tour-brand {
-  font-size: 36px;
-  font-weight: 700;
-  color: var(--pink);
-  line-height: 1.2;
-}
-.login-tour-tagline {
-  margin: 8px 0 24px;
-  font-size: 15px;
-  color: var(--soft);
-}
 .login-tour-viewport {
   display: flex;
   overflow-x: auto;

@@ -453,8 +453,6 @@ export default function LoginTour() {
       aria-label="Discover Rocksky"
       aria-roledescription="carousel"
     >
-      <div className="login-tour-brand">Rocksky</div>
-      <p className="login-tour-tagline">Your music, your community</p>
       <div
         className="login-tour-viewport"
         ref={viewport}
