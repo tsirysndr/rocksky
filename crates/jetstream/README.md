@@ -55,9 +55,9 @@ Startup adds a small partial claim index for scrobble collections. On a busy
 PostgreSQL installation, create it ahead of deployment without blocking writers:
 
 ```sql
-CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_scrobble_ready
-ON rocksky_durable_jobs (kind,status,available_at,created_at,id)
-WHERE collection='app.rocksky.scrobble';
+CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_scrobble_active
+ON rocksky_durable_jobs (kind,available_at,created_at,id)
+WHERE collection='app.rocksky.scrobble' AND status IN ('pending','processing');
 ```
 
 Restart `rocksky-jetstream` after deploying. No concurrency increase or Doppler

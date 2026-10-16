@@ -74,7 +74,9 @@ impl ClaimLane {
     fn predicate(self) -> &'static str {
         match self {
             Self::All => "",
-            Self::Scrobbles => " AND collection='app.rocksky.scrobble'",
+            Self::Scrobbles => {
+                " AND collection='app.rocksky.scrobble' AND status IN ('pending','processing')"
+            }
             Self::Background => " AND collection<>'app.rocksky.scrobble'",
         }
     }
@@ -200,7 +202,7 @@ impl Queue {
             }
         }
         for statement in [
-            "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_scrobble_ready ON rocksky_durable_jobs (kind,status,available_at,created_at,id) WHERE collection='app.rocksky.scrobble'",
+            "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_scrobble_active ON rocksky_durable_jobs (kind,available_at,created_at,id) WHERE collection='app.rocksky.scrobble' AND status IN ('pending','processing')",
             "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_compact ON rocksky_durable_jobs (updated_at,id) WHERE status='completed' AND compacted_at=0",
             "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_retire ON rocksky_durable_jobs (updated_at,id) WHERE status='completed' AND compacted_at>0",
         ] {
