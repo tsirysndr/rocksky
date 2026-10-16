@@ -41,9 +41,9 @@ FIFO ordering, retry times, leases, and crash recovery are preserved within each
 lane. This changes dequeue scheduling, not job identities, payloads or cursors.
 
 - `MAX_INFLIGHT_SCROBBLES`: total worker capacity, default **64**, range **2–1024**.
-- `JETSTREAM_SCROBBLE_CONCURRENCY`: slots reserved for scrobbles, default one quarter
-  of the total (minimum one), therefore **16** by default. Must be below the total.
-- Remaining slots serve other collections: **48** by default.
+- `JETSTREAM_SCROBBLE_CONCURRENCY`: slots reserved for scrobbles, default the total minus
+  one quarter reserved for metadata (minimum one), therefore **48** by default. Must be below the total.
+- Remaining slots serve other collections: **16** by default.
 
 Reserved slots do not spill over into metadata work, so new scrobbles can start
 without waiting for a metadata batch to finish. Both lanes still share database

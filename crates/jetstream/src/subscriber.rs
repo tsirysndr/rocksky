@@ -349,7 +349,7 @@ fn worker_capacity(total: usize, reserved: Option<usize>) -> anyhow::Result<(usi
         (2..=1024).contains(&total),
         "MAX_INFLIGHT_SCROBBLES must be 2..1024 to reserve capacity for both lanes"
     );
-    let scrobbles = reserved.unwrap_or((total / 4).max(1));
+    let scrobbles = reserved.unwrap_or(total - (total / 4).max(1));
     anyhow::ensure!(
         scrobbles > 0 && scrobbles < total,
         "JETSTREAM_SCROBBLE_CONCURRENCY must be positive and smaller than MAX_INFLIGHT_SCROBBLES"
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn priority_capacity_preserves_total_and_both_lanes() {
-        assert_eq!(worker_capacity(64, None).unwrap(), (16, 48));
+        assert_eq!(worker_capacity(64, None).unwrap(), (48, 16));
         assert_eq!(worker_capacity(64, Some(24)).unwrap(), (24, 40));
         assert_eq!(worker_capacity(2, None).unwrap(), (1, 1));
         for (total, reserved) in [(1, None), (1025, None), (64, Some(0)), (64, Some(64))] {
