@@ -98,7 +98,10 @@ const COLUMNS: &str = "id,kind,source,started_at_ms,status,attempts,available_at
 
 // Queue producers already avoid response bodies and bearer credentials. Apply
 // defense-in-depth redaction to legacy errors before either public response.
-fn serialize_public_error<S: serde::Serializer>(error: &str, serializer: S) -> Result<S::Ok, S::Error> {
+fn serialize_public_error<S: serde::Serializer>(
+    error: &str,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
     serializer.serialize_str(&public_error(error))
 }
 fn public_error(error: &str) -> String {
@@ -110,16 +113,23 @@ fn public_error(error: &str) -> String {
     let urls = URL.get_or_init(|| Regex::new(r#"[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>\"']+"#).unwrap());
     let safe = urls.replace_all(error, |captures: &Captures| {
         let original = &captures[0];
-        let Ok(mut url) = reqwest::Url::parse(original) else { return "[REDACTED URL]".to_owned(); };
+        let Ok(mut url) = reqwest::Url::parse(original) else {
+            return "[REDACTED URL]".to_owned();
+        };
         if !url.username().is_empty() || url.password().is_some() {
             let _ = url.set_username("redacted");
             let _ = url.set_password(None);
         }
-        if url.query().is_some() { url.set_query(Some("redacted")); }
-        if url.fragment().is_some() { url.set_fragment(Some("redacted")); }
+        if url.query().is_some() {
+            url.set_query(Some("redacted"));
+        }
+        if url.fragment().is_some() {
+            url.set_fragment(Some("redacted"));
+        }
         url.to_string()
     });
-    let auth = AUTH.get_or_init(|| Regex::new(r"(?i)\b(Bearer|Basic)\s+[a-zA-Z0-9._~+/=-]+").unwrap());
+    let auth =
+        AUTH.get_or_init(|| Regex::new(r"(?i)\b(Bearer|Basic)\s+[a-zA-Z0-9._~+/=-]+").unwrap());
     let safe = auth.replace_all(&safe, "$1 [REDACTED]");
     let secret = SECRET.get_or_init(|| Regex::new(r#"(?i)(["']?(?:password|passwd|secret|access[_-]?token|refresh[_-]?token|token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|x-rocksky-submissions-secret|cookie|set-cookie)["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;&}\]]+)"#).unwrap());
     secret.replace_all(&safe, "${1}[REDACTED]").into_owned()
@@ -180,7 +190,9 @@ impl Queue {
         let mut cached = self.dashboard_live_cache.lock().await;
         if let Some((at, value)) = cached.as_ref() {
             if at.elapsed() < Duration::from_secs(1) {
-                return value.clone().ok_or_else(|| anyhow::anyhow!("live activity temporarily unavailable"));
+                return value
+                    .clone()
+                    .ok_or_else(|| anyhow::anyhow!("live activity temporarily unavailable"));
             }
         }
         let result = self.read_live_activity().await;
@@ -202,13 +214,23 @@ impl Queue {
              AND (status<>'processing' OR lease_until>$1) GROUP BY kind,status
              UNION ALL SELECT '', 'completed_last_hour',count(*),CAST(0 AS BIGINT)
              FROM rocksky_durable_jobs WHERE status='completed'
-             AND updated_at>$1-3600 AND updated_at<=$1"
-        ).bind(as_of).fetch_all(&self.pool).await?;
-        let completed_last_hour = counts.iter().find(|c| c.status == "completed_last_hour")
-            .map(|c| c.count).unwrap_or(0);
+             AND updated_at>$1-3600 AND updated_at<=$1",
+        )
+        .bind(as_of)
+        .fetch_all(&self.pool)
+        .await?;
+        let completed_last_hour = counts
+            .iter()
+            .find(|c| c.status == "completed_last_hour")
+            .map(|c| c.count)
+            .unwrap_or(0);
         counts.retain(|c| c.status != "completed_last_hour");
         // Retain this field for already-open clients running the previous bundle.
-        let processing = counts.iter().filter(|c| c.status == "processing").cloned().collect();
+        let processing = counts
+            .iter()
+            .filter(|c| c.status == "processing")
+            .cloned()
+            .collect();
         let cursors = sqlx::query_as::<_, Cursor>(
             "SELECT source,cursor_value FROM rocksky_durable_cursors ORDER BY source",
         )

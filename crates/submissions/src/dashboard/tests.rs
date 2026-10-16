@@ -134,10 +134,22 @@ async fn contract(queue: Queue) {
     // Details and lists expose diagnostics without operator authentication.
     sqlx::query("UPDATE rocksky_durable_jobs SET last_error=$1 WHERE id=$2")
         .bind("API publication returned HTTP 503; token=PRIVATE_TOKEN")
-        .bind(&failed.id).execute(&queue.pool).await.unwrap();
-    for path in [format!("/v1/dashboard/jobs/{}", failed.id), "/v1/dashboard/jobs?status=failed&kind=dashboard.test".into()] {
-        let response: Value = test::call_and_read_body_json(&app, test::TestRequest::get().uri(&path).to_request()).await;
-        let error = if response.get("job").is_some() { &response["job"]["last_error"] } else { &response["jobs"][0]["last_error"] };
+        .bind(&failed.id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
+    for path in [
+        format!("/v1/dashboard/jobs/{}", failed.id),
+        "/v1/dashboard/jobs?status=failed&kind=dashboard.test".into(),
+    ] {
+        let response: Value =
+            test::call_and_read_body_json(&app, test::TestRequest::get().uri(&path).to_request())
+                .await;
+        let error = if response.get("job").is_some() {
+            &response["job"]["last_error"]
+        } else {
+            &response["jobs"][0]["last_error"]
+        };
         assert_eq!(error, "API publication returned HTTP 503; token=[REDACTED]");
         assert!(!response.to_string().contains("PRIVATE"));
     }
@@ -421,14 +433,34 @@ async fn postgres_dashboard_and_additive_migration_contract() {
     // completed history. Reproduce the production distribution and query shape.
     sqlx::query("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,status,available_at,created_at,updated_at) SELECT md5(n::text), 'history.test','hash','{}','completed',0,200,200 FROM generate_series(1,10000) n")
         .execute(&pool).await.unwrap();
-    queue.enqueue("rare.test", "old", "hash", "{}").await.unwrap();
-    sqlx::query("UPDATE rocksky_durable_jobs SET created_at=1 WHERE kind='rare.test'").execute(&pool).await.unwrap();
-    sqlx::query("ANALYZE rocksky_durable_jobs").execute(&pool).await.unwrap();
+    queue
+        .enqueue("rare.test", "old", "hash", "{}")
+        .await
+        .unwrap();
+    sqlx::query("UPDATE rocksky_durable_jobs SET created_at=1 WHERE kind='rare.test'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("ANALYZE rocksky_durable_jobs")
+        .execute(&pool)
+        .await
+        .unwrap();
     let plan: Vec<(String,)> = sqlx::query_as("EXPLAIN SELECT id FROM rocksky_durable_jobs WHERE status='pending' AND ($1='' OR kind=$1) AND ($2='' OR id=$2) AND (created_at,id)<($3,$4) AND ($6='' OR source LIKE $6) ORDER BY created_at DESC,id DESC LIMIT $5")
         .bind("").bind("").bind(i64::MAX).bind("").bind(26_i64).bind("")
         .fetch_all(&pool).await.unwrap();
-    assert!(plan.iter().any(|(line,)| line.contains("rocksky_durable_jobs_dashboard_status_recent")), "{plan:?}");
-    let page = queue.dashboard_jobs(&JobFilter {status: "pending".into(), limit: Some(25), ..Default::default()}).await.unwrap();
+    assert!(
+        plan.iter()
+            .any(|(line,)| line.contains("rocksky_durable_jobs_dashboard_status_recent")),
+        "{plan:?}"
+    );
+    let page = queue
+        .dashboard_jobs(&JobFilter {
+            status: "pending".into(),
+            limit: Some(25),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
     assert!(page.jobs.iter().any(|job| job.kind == "rare.test"));
     assert!(page.jobs.iter().all(|job| job.status == "pending"));
     pool.close().await;
@@ -554,7 +586,6 @@ async fn postgres_overview_cache_contract() {
         .unwrap();
 }
 
-
 async fn live_activity_contract(queue: Queue) {
     let snapshot = queue.dashboard_overview().await.unwrap();
     queue
@@ -562,7 +593,15 @@ async fn live_activity_contract(queue: Queue) {
         .await
         .unwrap();
     let waiting = queue.dashboard_live().await.unwrap();
-    assert_eq!(waiting.counts.iter().filter(|c| c.status == "pending").map(|c| c.count).sum::<i64>(), 1);
+    assert_eq!(
+        waiting
+            .counts
+            .iter()
+            .filter(|c| c.status == "pending")
+            .map(|c| c.count)
+            .sum::<i64>(),
+        1
+    );
     assert_eq!(waiting.completed_last_hour, 0);
     queue.dashboard_live_cache.lock().await.take();
     let job = queue.claim("live.test", 60, 5).await.unwrap().unwrap();
@@ -588,7 +627,11 @@ async fn live_activity_contract(queue: Queue) {
     assert!(fresh.counts.is_empty());
     // A completion outside the recent chart window still counts in the hour.
     sqlx::query("UPDATE rocksky_durable_jobs SET updated_at=$1 WHERE id=$2")
-        .bind(fresh.as_of - 1800).bind(&job.id).execute(&queue.pool).await.unwrap();
+        .bind(fresh.as_of - 1800)
+        .bind(&job.id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
     queue.dashboard_live_cache.lock().await.take();
     let half_hour = queue.dashboard_live().await.unwrap();
     assert_eq!(half_hour.completed_last_hour, 1);
@@ -619,13 +662,31 @@ async fn live_activity_contract(queue: Queue) {
         fresh.completions.is_empty(),
         "live queries read only recent completions"
     );
-    assert_eq!(fresh.completed_last_hour, 0, "completion ages out of rolling hour");
-    queue.enqueue("live.test", "delayed", "hash", "{}").await.unwrap();
+    assert_eq!(
+        fresh.completed_last_hour, 0,
+        "completion ages out of rolling hour"
+    );
+    queue
+        .enqueue("live.test", "delayed", "hash", "{}")
+        .await
+        .unwrap();
     sqlx::query("UPDATE rocksky_durable_jobs SET available_at=$1 WHERE status='pending'")
-        .bind(fresh.as_of + 900).execute(&queue.pool).await.unwrap();
+        .bind(fresh.as_of + 900)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
     queue.dashboard_live_cache.lock().await.take();
     let delayed = queue.dashboard_live().await.unwrap();
-    assert_eq!(delayed.counts.iter().filter(|c| c.status == "pending").map(|c| c.count).sum::<i64>(), 1, "waiting includes delayed retries");
+    assert_eq!(
+        delayed
+            .counts
+            .iter()
+            .filter(|c| c.status == "pending")
+            .map(|c| c.count)
+            .sum::<i64>(),
+        1,
+        "waiting includes delayed retries"
+    );
     queue.pool.close().await;
     queue.dashboard_live_cache.lock().await.as_mut().unwrap().0 =
         Instant::now() - Duration::from_secs(3);
@@ -674,7 +735,11 @@ async fn postgres_live_activity_contract() {
 
 #[actix_web::test]
 async fn public_errors_keep_diagnostics_and_redact_credentials() {
-    for message in ["API publication returned HTTP 503", "lease expired on final attempt", "database error: duplicate key violates unique constraint scrobbles_uri_key"] {
+    for message in [
+        "API publication returned HTTP 503",
+        "lease expired on final attempt",
+        "database error: duplicate key violates unique constraint scrobbles_uri_key",
+    ] {
         assert_eq!(public_error(message), message);
     }
     let message = r#"request failed HTTP 401 https://alice:PRIVATE_PASSWORD@example.test/xrpc/test?token=PRIVATE_QUERY#PRIVATE_FRAGMENT Authorization: Bearer PRIVATE_BEARER {"refresh_token":"PRIVATE_REFRESH","password":"PRIVATE_PASS"} api_key=PRIVATE_KEY"#;
