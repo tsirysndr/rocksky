@@ -3,7 +3,6 @@ import {
   searchHandleSuggestions,
   type HandleSuggestion,
 } from "../../shared/handle-lookup";
-import LoginTour from "./LoginTour";
 import AtmosphereApps from "./AtmosphereApps";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@heroui/react";
@@ -223,7 +222,6 @@ export default function LoginScreen() {
         </div>
       </header>
       <main className="login-layout container">
-        <LoginTour />
         <section className="login-form-section" aria-labelledby="login-title">
           <div className="login-form-content">
             <div className="eyebrow">SIGN IN</div>
