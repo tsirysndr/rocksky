@@ -72,6 +72,59 @@ pub async fn run_lane<F, Fut>(
     F: Fn(Job) -> Fut + Clone + Send + 'static,
     Fut: Future<Output = Result<(), Failure>> + Send + 'static,
 {
+    run_dispatcher(
+        queue,
+        kind,
+        lane,
+        concurrency,
+        None,
+        settings,
+        shutdown,
+        process,
+    )
+    .await;
+}
+
+/// Fair capacity is enforced by live leases in the database, across replicas.
+pub async fn run_fair_lane<F, Fut>(
+    queue: Queue,
+    kind: &str,
+    lane: ClaimLane,
+    concurrency: usize,
+    per_actor: i64,
+    settings: Settings,
+    shutdown: CancellationToken,
+    process: F,
+) where
+    F: Fn(Job) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = Result<(), Failure>> + Send + 'static,
+{
+    run_dispatcher(
+        queue,
+        kind,
+        lane,
+        concurrency,
+        Some(per_actor),
+        settings,
+        shutdown,
+        process,
+    )
+    .await;
+}
+
+async fn run_dispatcher<F, Fut>(
+    queue: Queue,
+    kind: &str,
+    lane: ClaimLane,
+    concurrency: usize,
+    per_actor: Option<i64>,
+    settings: Settings,
+    shutdown: CancellationToken,
+    process: F,
+) where
+    F: Fn(Job) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = Result<(), Failure>> + Send + 'static,
+{
     assert!(concurrency > 0 && settings.lease_seconds >= 3 && settings.max_attempts > 0);
     let mut active = tokio::task::JoinSet::new();
     while !shutdown.is_cancelled() {
@@ -83,16 +136,33 @@ pub async fn run_lane<F, Fut>(
             }
             continue;
         }
-        match queue
-            .claim_batch_in_lane(
-                kind,
-                settings.lease_seconds,
-                settings.max_attempts,
-                (concurrency - active.len()).min(32) as i64,
-                lane,
-            )
-            .await
-        {
+        let limit = (concurrency - active.len()).min(32) as i64;
+        let result = match per_actor {
+            Some(cap) => {
+                queue
+                    .claim_fair_batch(
+                        kind,
+                        settings.lease_seconds,
+                        settings.max_attempts,
+                        limit,
+                        lane,
+                        cap,
+                    )
+                    .await
+            }
+            None => {
+                queue
+                    .claim_batch_in_lane(
+                        kind,
+                        settings.lease_seconds,
+                        settings.max_attempts,
+                        limit,
+                        lane,
+                    )
+                    .await
+            }
+        };
+        match result {
             Ok(jobs) if !jobs.is_empty() => {
                 for job in jobs {
                     let (queue, process) = (queue.clone(), process.clone());
@@ -111,6 +181,7 @@ pub async fn run_lane<F, Fut>(
                 tokio::select! {
                     _ = shutdown.cancelled() => break,
                     _ = queue.notified() => {},
+                    _ = active.join_next(), if !active.is_empty() => {},
                     _ = tokio::time::sleep(delay) => {}
                 }
             }

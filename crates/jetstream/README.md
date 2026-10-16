@@ -37,13 +37,28 @@ SQLite and PostgreSQL. CI runs `cargo test -p rocksky-jetstream --all-features -
 Jetstream has separate durable claim lanes for `app.rocksky.scrobble` and all
 other collections. An album/song backlog cannot occupy the scrobble lane; the
 background lane keeps processing metadata even during continuous scrobble traffic.
-FIFO ordering, retry times, leases, and crash recovery are preserved within each
-lane. This changes dequeue scheduling, not job identities, payloads or cursors.
+Retry times, leases, and crash recovery are preserved. FIFO claim ordering is
+preserved within each DID and lane; different DIDs take turns. This changes dequeue scheduling, not job identities, payloads or cursors.
 
 - `MAX_INFLIGHT_SCROBBLES`: total worker capacity, default **64**, range **2–1024**.
 - `JETSTREAM_SCROBBLE_CONCURRENCY`: slots reserved for scrobbles, default the total minus
   one quarter reserved for metadata (minimum one), therefore **48** by default. Must be below the total.
 - Remaining slots serve other collections: **16** by default.
+- `JETSTREAM_MAX_INFLIGHT_PER_DID`: live jobs per DID **per lane**, default **4**,
+  range **1–256**. Thus one DID can occupy at most four scrobble and four
+  background slots across all fair consumers sharing the queue database.
+
+Each claim takes at most one eligible job per DID, rotating accounts using a
+persistent turn counter. New/quiet accounts bypass a single account's old bulk
+backlog. An indexed actor registry avoids sorting the entire backlog on each
+claim. A short database scheduling lock prevents replicas from racing past the
+cap; it is released before job execution. Missing DIDs share a capped `unknown`
+bucket. All jobs remain durable, including existing backlog upgraded at startup.
+
+The cap is strict: with only one active DID, its lane may use fewer than its
+reserved slots. Increase the cap if needed; never raise it to the lane's full
+capacity if you want spare capacity for quieter accounts. Legacy FIFO consumers
+do not enforce this cap, so restart all Jetstream consumers when upgrading.
 
 Reserved slots do not spill over into metadata work, so new scrobbles can start
 without waiting for a metadata batch to finish. Both lanes still share database
@@ -58,6 +73,22 @@ PostgreSQL installation, create it ahead of deployment without blocking writers:
 CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_scrobble_active
 ON rocksky_durable_jobs (kind,available_at,created_at,id)
 WHERE collection='app.rocksky.scrobble' AND status IN ('pending','processing');
+```
+
+Fair scheduling also adds an `actor` column, a small actor-turn table, registration
+triggers and actor indexes. For a busy PostgreSQL queue, add the column and build
+these indexes concurrently before restarting (the application creates the table
+and triggers automatically):
+
+```sql
+ALTER TABLE rocksky_durable_jobs ADD COLUMN IF NOT EXISTS actor TEXT NOT NULL DEFAULT '';
+CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_ready
+ON rocksky_durable_jobs(kind,actor,available_at,created_at,id)
+WHERE status IN ('pending','processing');
+CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_leases
+ON rocksky_durable_jobs(kind,actor,lease_until) WHERE status='processing';
+CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_backfill
+ON rocksky_durable_jobs(kind,id) WHERE actor='' AND status<>'completed';
 ```
 
 Restart `rocksky-jetstream` after deploying. No concurrency increase or Doppler

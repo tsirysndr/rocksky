@@ -6,6 +6,7 @@ compile_error!("enable the postgres (default) or sqlite feature");
 pub mod cleanup;
 pub mod cors;
 pub mod dashboard;
+pub mod fairness;
 pub mod queue;
 pub mod service;
 pub mod worker;

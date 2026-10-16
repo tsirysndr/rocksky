@@ -264,7 +264,24 @@ async fn upgrade(url: &str) -> Queue {
         .await
         .unwrap();
     // Reproduce the exact pre-retention table shape with existing data.
+    if queue.postgres {
+        sqlx::query("DROP TRIGGER rocksky_durable_actor_register ON rocksky_durable_jobs")
+            .execute(&queue.pool)
+            .await
+            .unwrap();
+    } else {
+        for name in ["insert", "update"] {
+            sqlx::query(&format!("DROP TRIGGER rocksky_durable_actor_{name}"))
+                .execute(&queue.pool)
+                .await
+                .unwrap();
+        }
+    }
     for statement in [
+        "DROP INDEX rocksky_durable_jobs_actor_ready",
+        "DROP INDEX rocksky_durable_jobs_actor_leases",
+        "DROP INDEX rocksky_durable_jobs_actor_backfill",
+        "ALTER TABLE rocksky_durable_jobs DROP COLUMN actor",
         "DROP INDEX rocksky_durable_jobs_compact",
         "DROP INDEX rocksky_durable_jobs_retire",
         "DROP INDEX rocksky_durable_jobs_scrobble_active",

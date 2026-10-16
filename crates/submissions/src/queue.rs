@@ -39,7 +39,7 @@ pub struct Job {
 }
 
 // Explicit projections keep prepared result types stable during additive migrations.
-const JOB_COLUMNS: &str = "id,kind,source,started_at_ms,request_hash,payload,status,attempts,available_at,lease_until,lease_token,last_error,created_at,updated_at,compacted_at";
+pub(crate) const JOB_COLUMNS: &str = "id,kind,source,started_at_ms,request_hash,payload,status,attempts,available_at,lease_until,lease_token,last_error,created_at,updated_at,compacted_at";
 
 /// One source delivery; its cursor advances only with the durable inbox write.
 #[derive(Clone, Debug)]
@@ -71,7 +71,7 @@ pub enum ClaimLane {
     Background,
 }
 impl ClaimLane {
-    fn predicate(self) -> &'static str {
+    pub(crate) fn predicate(self) -> &'static str {
         match self {
             Self::All => "",
             Self::Scrobbles => {
@@ -80,6 +80,18 @@ impl ClaimLane {
             Self::Background => " AND collection<>'app.rocksky.scrobble'",
         }
     }
+}
+
+pub(crate) fn job_actor(payload: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(payload)
+        .ok()
+        .and_then(|v| {
+            v.get("did")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty() && s.len() <= 512)
+                .map(str::to_owned)
+        })
+        .unwrap_or_else(|| "unknown".into())
 }
 
 fn job_collection(kind: &str, payload: &str) -> String {
@@ -180,6 +192,7 @@ impl Queue {
             ("compacted_at", "BIGINT NOT NULL DEFAULT 0"),
             ("source", "TEXT NOT NULL DEFAULT ''"),
             ("collection", "TEXT NOT NULL DEFAULT ''"),
+            ("actor", "TEXT NOT NULL DEFAULT ''"),
             ("started_at_ms", "BIGINT NOT NULL DEFAULT 0"),
             ("attempt_history", "TEXT NOT NULL DEFAULT '[]'"),
         ] {
@@ -208,6 +221,7 @@ impl Queue {
         ] {
             sqlx::query(statement).execute(&mut *tx).await?;
         }
+        crate::fairness::migrate(&mut tx, postgres).await?;
         tx.commit().await?;
         Ok(queue)
     }
@@ -269,7 +283,7 @@ impl Queue {
                 .map(|n| format!("WHEN ${} THEN ${}", n * 2 + 1, n * 2 + 2))
                 .collect::<Vec<_>>()
                 .join(" ");
-            let statement = format!("UPDATE rocksky_durable_jobs SET payload=CASE id {cases} END, attempt_history='[]', last_error='', compacted_at=${} WHERE id IN ({})", jobs.len() * 2 + 1, placeholders(jobs.len() * 2 + 2, ids.len()));
+            let statement = format!("UPDATE rocksky_durable_jobs SET payload=CASE id {cases} END, attempt_history='[]', actor='', last_error='', compacted_at=${} WHERE id IN ({})", jobs.len() * 2 + 1, placeholders(jobs.len() * 2 + 2, ids.len()));
             let mut update = sqlx::query(&statement);
             for (job, payload) in jobs.iter().zip(&compacted_payloads) {
                 update = update.bind(&job.id).bind(payload);
@@ -306,7 +320,7 @@ impl Queue {
         Self::connect(&url).await
     }
 
-    fn now_ms(&self) -> &'static str {
+    pub(crate) fn now_ms(&self) -> &'static str {
         if self.postgres {
             "CAST(FLOOR(EXTRACT(EPOCH FROM clock_timestamp()) * 1000) AS BIGINT)"
         } else {
@@ -316,7 +330,7 @@ impl Queue {
 
     // Fold timing into the same fenced state transition: no additional network
     // round trips on the processing path, and stale workers cannot append spans.
-    fn attempt_history(&self, outcome: &str, expired: bool) -> String {
+    pub(crate) fn attempt_history(&self, outcome: &str, expired: bool) -> String {
         let end = if expired {
             "lease_until * 1000"
         } else {
@@ -372,7 +386,7 @@ impl Queue {
         anyhow::ensure!(delay_seconds >= 0, "negative queue delay");
         let id = digest(&serde_json::to_string(&(kind, key))?);
         let now = self.now();
-        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, collection, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,'pending',{now}+$6,{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING {JOB_COLUMNS}");
+        let sql = format!("INSERT INTO rocksky_durable_jobs (id, kind, request_hash, payload, collection, actor, status, available_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$7,'pending',{now}+$6,{now},{now}) ON CONFLICT (id) DO UPDATE SET id=excluded.id RETURNING {JOB_COLUMNS}");
         let job: Job = sqlx::query_as(&sql)
             .bind(&id)
             .bind(kind)
@@ -380,6 +394,7 @@ impl Queue {
             .bind(payload)
             .bind(job_collection(kind, payload))
             .bind(delay_seconds)
+            .bind(job_actor(payload))
             .fetch_one(&self.pool)
             .await?;
         if job.request_hash != request_hash {
@@ -440,6 +455,7 @@ impl Queue {
                         &event.payload,
                         &event.source,
                         job_collection(kind, &event.payload),
+                        job_actor(&event.payload),
                     )
                 });
             cursors
@@ -450,19 +466,20 @@ impl Queue {
         let now = self.now();
         let values = (0..jobs.len())
             .map(|n| {
-                let n = 2 + n * 5;
+                let n = 2 + n * 6;
                 format!(
-                    "(${n},$1,${},${},${},${},'pending',{now},{now},{now})",
+                    "(${n},$1,${},${},${},${},${},'pending',{now},{now},{now})",
                     n + 1,
                     n + 2,
                     n + 3,
-                    n + 4
+                    n + 4,
+                    n + 5
                 )
             })
             .collect::<Vec<_>>()
             .join(",");
-        let insert = format!("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,source,collection,status,available_at,created_at,updated_at) VALUES {values} ON CONFLICT (id) DO NOTHING");
-        let cursor_start = if self.postgres { 2 + jobs.len() * 5 } else { 1 };
+        let insert = format!("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,source,collection,actor,status,available_at,created_at,updated_at) VALUES {values} ON CONFLICT (id) DO NOTHING");
+        let cursor_start = if self.postgres { 2 + jobs.len() * 6 } else { 1 };
         let cursor_values = (0..cursors.len())
             .map(|n| format!("(${},${})", cursor_start + n * 2, cursor_start + n * 2 + 1))
             .collect::<Vec<_>>()
@@ -473,13 +490,14 @@ impl Queue {
             // RETURNING rows are unused. Both writes share this statement's commit.
             let statement = format!("WITH captured AS ({insert} RETURNING id) {upsert}");
             let mut query = sqlx::query(&statement).bind(kind);
-            for (id, (hash, payload, source, collection)) in &jobs {
+            for (id, (hash, payload, source, collection, actor)) in &jobs {
                 query = query
                     .bind(id)
                     .bind(hash)
                     .bind(*payload)
                     .bind(*source)
-                    .bind(collection);
+                    .bind(collection)
+                    .bind(actor);
             }
             for (source, cursor) in &cursors {
                 query = query.bind(*source).bind(*cursor);
@@ -488,13 +506,14 @@ impl Queue {
         } else {
             let mut tx = self.pool.begin().await?;
             let mut query = sqlx::query(&insert).bind(kind);
-            for (id, (hash, payload, source, collection)) in &jobs {
+            for (id, (hash, payload, source, collection, actor)) in &jobs {
                 query = query
                     .bind(id)
                     .bind(hash)
                     .bind(*payload)
                     .bind(*source)
-                    .bind(collection);
+                    .bind(collection)
+                    .bind(actor);
             }
             query.execute(&mut *tx).await?;
             let mut query = sqlx::query(&upsert);

@@ -83,6 +83,15 @@ impl MultiSourceSubscriber {
             .map(|value| value.parse::<usize>())
             .transpose()?;
         let (scrobble_workers, background_workers) = worker_capacity(max_inflight, reserved)?;
+        let per_did = env::var("JETSTREAM_MAX_INFLIGHT_PER_DID")
+            .ok()
+            .map(|value| value.parse::<i64>())
+            .transpose()?
+            .unwrap_or(4);
+        anyhow::ensure!(
+            (1..=256).contains(&per_did),
+            "JETSTREAM_MAX_INFLIGHT_PER_DID must be between 1 and 256"
+        );
         // Ingest: everything here writes, so it always talks to the primary.
         // Postgres when one is configured — keeping the pool budget and the
         // read-only check, since this service exists to write and must refuse
@@ -105,11 +114,13 @@ impl MultiSourceSubscriber {
         let nc = Arc::new(async_nats::connect(&addr).await?);
 
         let queue = Queue::from_env().await?;
+        queue.prepare_fairness(INBOX_KIND).await?;
         let shutdown = CancellationToken::new();
         let mut tasks = tokio::task::JoinSet::new();
         tracing::info!(
             scrobble_workers,
             background_workers,
+            per_did,
             "Jetstream priority lanes enabled"
         );
         for (lane, concurrency) in [
@@ -118,11 +129,12 @@ impl MultiSourceSubscriber {
         ] {
             let process_queue = queue.clone();
             let (state, pool, nc) = (state.clone(), pool.clone(), nc.clone());
-            tasks.spawn(worker::run_lane(
+            tasks.spawn(worker::run_fair_lane(
                 queue.clone(),
                 INBOX_KIND,
                 lane,
                 concurrency,
+                per_did,
                 Settings::default(),
                 shutdown.clone(),
                 move |job| {
