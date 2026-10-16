@@ -11,6 +11,16 @@ include!(concat!(env!("OUT_DIR"), "/dashboard_assets.rs"));
 pub(crate) type CompletedCache = Mutex<Option<(Instant, Vec<Count>)>>;
 pub(crate) type SearchCache = Mutex<Option<(Instant, Vec<(String, String)>)>>;
 pub(crate) type Cache = Mutex<Option<(Instant, Overview)>>;
+pub(crate) type LiveCache = Mutex<Option<(Instant, Option<LiveActivity>)>>;
+
+#[derive(Clone, Serialize)]
+pub struct LiveActivity {
+    pub as_of: i64,
+    pub since: i64,
+    pub processing: Vec<Count>,
+    pub cursors: Vec<Cursor>,
+    pub completions: Vec<Bucket>,
+}
 
 #[derive(Clone, Serialize, sqlx::FromRow)]
 pub struct Count {
@@ -132,6 +142,45 @@ fn overview_cache_ttl(value: Option<&str>) -> anyhow::Result<Duration> {
 }
 
 impl Queue {
+    /// Small indexed reads, independent of the backlog/hour-long overview scans.
+    /// Share a two-second sample across HTTP workers to bound viewer fan-out.
+    pub async fn dashboard_live(&self) -> anyhow::Result<LiveActivity> {
+        let mut cached = self.dashboard_live_cache.lock().await;
+        if let Some((at, value)) = cached.as_ref() {
+            if at.elapsed() < Duration::from_secs(2) {
+                return value.clone().ok_or_else(|| anyhow::anyhow!("live activity temporarily unavailable"));
+            }
+        }
+        let result = self.read_live_activity().await;
+        // Coalesce failed refreshes too, so many viewers cannot amplify outages.
+        *cached = Some((Instant::now(), result.as_ref().ok().cloned()));
+        result
+    }
+
+    async fn read_live_activity(&self) -> anyhow::Result<LiveActivity> {
+        let as_of: i64 = sqlx::query_scalar(&format!("SELECT {}", self.now()))
+            .fetch_one(&self.pool)
+            .await?;
+        let since = (as_of / 60 - 1) * 60;
+        let processing = sqlx::query_as::<_, Count>("SELECT kind,status,count(*) AS count,min(created_at) AS oldest_created_at FROM rocksky_durable_jobs WHERE status='processing' AND lease_until>$1 GROUP BY kind,status")
+            .bind(as_of).fetch_all(&self.pool).await?;
+        let cursors = sqlx::query_as::<_, Cursor>(
+            "SELECT source,cursor_value FROM rocksky_durable_cursors ORDER BY source",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let completions = sqlx::query_as::<_, Bucket>("SELECT CAST(updated_at / 60 AS BIGINT) * 60 AS minute,kind,collection,count(*) AS count FROM rocksky_durable_jobs WHERE status='completed' AND updated_at >= $1 GROUP BY CAST(updated_at / 60 AS BIGINT),kind,collection ORDER BY minute")
+            .bind(since).fetch_all(&self.pool).await?;
+        let value = LiveActivity {
+            as_of,
+            since,
+            processing,
+            cursors,
+            completions,
+        };
+        Ok(value)
+    }
+
     pub async fn dashboard_overview(&self) -> anyhow::Result<Overview> {
         let seconds = std::env::var("SUBMISSIONS_DASHBOARD_CACHE_SECONDS").ok();
         let ttl = overview_cache_ttl(seconds.as_deref())?;
@@ -297,6 +346,14 @@ fn unavailable(error: anyhow::Error) -> HttpResponse {
         .insert_header(("Cache-Control", "no-store"))
         .json(serde_json::json!({"error":"Queue data is temporarily unavailable"}))
 }
+async fn live(state: web::Data<Service>) -> HttpResponse {
+    match state.queue.dashboard_live().await {
+        Ok(data) => HttpResponse::Ok()
+            .insert_header(("Cache-Control", "no-store"))
+            .json(data),
+        Err(error) => unavailable(error),
+    }
+}
 async fn overview(state: web::Data<Service>) -> HttpResponse {
     match state.queue.dashboard_overview().await {
         Ok(data) => HttpResponse::Ok()
@@ -444,6 +501,7 @@ pub fn routes(config: &mut web::ServiceConfig) {
         .route("/dashboard/", web::get().to(index))
         .route("/dashboard/{path:.*}", web::get().to(asset))
         .route("/v1/dashboard/overview", web::get().to(overview))
+        .route("/v1/dashboard/live", web::get().to(live))
         .route("/v1/dashboard/jobs", web::get().to(jobs))
         .route("/v1/dashboard/jobs/{id}", web::get().to(detail));
 }

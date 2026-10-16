@@ -400,3 +400,19 @@ needed. Deploy the submissions binary **before** the updated API (new endpoint),
 then restart REST/XRPC API processes and the mirror binary. During the first step,
 new callbacks cannot yet be produced; on rollback keep the new intake available
 until API producers have rolled back. Older completed scrobbles are not backfilled.
+
+### Dashboard freshness
+
+The dashboard polls `/v1/dashboard/live` every two seconds while automatic
+refresh is enabled. This read-only endpoint shares a two-second sample across
+HTTP workers and queries only active leases, source cursors, and completions
+since the start of the previous minute. It avoids backlog counts and full-hour
+scans. Expired leases are excluded from “Processing now.” Recent chart buckets
+replace their cached counterparts rather than being added twice.
+
+Waiting/failed counts and older history still use `SUBMISSIONS_DASHBOARD_CACHE_SECONDS`;
+completed totals retain their separate 60-second cache. The footer distinguishes
+the totals snapshot from the activity sample. This is near-real-time polling,
+not an event stream: query time and polling can add delay. Job lists/details
+continue polling every five seconds. Activity failures show an explicit stale
+data warning without advancing the activity timestamp.

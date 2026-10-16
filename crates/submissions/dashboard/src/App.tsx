@@ -31,6 +31,8 @@ import {
 } from "@tabler/icons-react";
 import {
   api,
+  mergeActivity,
+  type LiveActivity,
   ApiError,
   date,
   duration,
@@ -106,6 +108,13 @@ function Dashboard() {
       api<Overview>("/v1/dashboard/overview", "", signal),
     refetchInterval: live ? 5000 : false,
   });
+  const activity = useQuery({
+    queryKey: ["activity"],
+    queryFn: ({ signal }) => api<LiveActivity>("/v1/dashboard/live", "", signal),
+    refetchInterval: live ? 2000 : false,
+    staleTime: 1000,
+  });
+  const data = overview.data ? mergeActivity(overview.data, activity.data) : undefined;
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -162,9 +171,9 @@ function Dashboard() {
             <span>Submissions</span>
           </div>
           <div className="topbar-right">
-            <span className={`connection ${overview.isError ? "bad" : ""}`}>
+            <span className={`connection ${overview.isError || activity.isError ? "bad" : ""}`}>
               <i />
-              {overview.isError
+              {overview.isError || activity.isError
                 ? "Connection issue"
                 : overview.data
                   ? "Connected"
@@ -194,6 +203,7 @@ function Dashboard() {
             <div className="page-actions">
               <button
                 className={`btn btn-sm ${live ? "live-button" : "btn-ghost"}`}
+                title="Activity every 2s; job lists every 5s; queue totals are cached"
                 onClick={() => setLive(!live)}
               >
                 {live ? (
@@ -201,7 +211,7 @@ function Dashboard() {
                 ) : (
                   <IconPlayerPlay size={14} />
                 )}
-                {live ? "Live · 5s" : "Paused"}
+                {live ? "Auto · 2s" : "Paused"}
               </button>
               <button
                 className="btn btn-sm btn-outline"
@@ -222,6 +232,7 @@ function Dashboard() {
               {overview.error.message} Displayed data may be stale.
             </ErrorNote>
           )}
+          {activity.isError && <ErrorNote>Live activity is unavailable. Displayed activity may be stale.</ErrorNote>}
           {!overview.data && overview.isPending ? (
             <div role="status" className="loading-state">
               <span className="loading loading-spinner" />
@@ -231,7 +242,7 @@ function Dashboard() {
             overview.data && (
               <>
                 {section === "overview" && (
-                  <OverviewView data={overview.data} />
+                  <OverviewView data={data!} />
                 )}
                 {section === "retention" && <Retention data={overview.data} />}
               </>
@@ -245,7 +256,7 @@ function Dashboard() {
             </span>
             <span>
               {overview.data
-                ? `Snapshot ${date(overview.data.as_of)}`
+                ? `Queue totals snapshot ${date(overview.data.as_of)} · Activity ${data?.live_as_of ? date(data.live_as_of) : "awaiting sample"} · Completed totals: 60s cache`
                 : "Waiting for first snapshot"}
             </span>
           </footer>
@@ -274,15 +285,15 @@ function OverviewView({ data }: { data: Overview }) {
             label: "Waiting in queue",
             value: total("pending"),
             note: oldest
-              ? `Oldest waiting ${duration(oldest)}`
-              : "No waiting jobs",
+              ? `Cached count · oldest waiting ${duration(oldest)}`
+              : "No waiting jobs in cached snapshot",
             Icon: IconClock,
             color: "amber",
           },
           {
             label: "Processing now",
             value: total("processing"),
-            note: "Jobs with an active lease",
+            note: data.live_as_of ? "Active leases · polled every 2s" : "Awaiting live activity",
             Icon: IconActivity,
             color: "blue",
           },
@@ -297,8 +308,8 @@ function OverviewView({ data }: { data: Overview }) {
             label: "Needs attention",
             value: total("failed"),
             note: total("failed")
-              ? "Inspect failures in Job explorer"
-              : "No failed jobs",
+              ? "Cached count · inspect in Job explorer"
+              : "No failed jobs in cached snapshot",
             Icon: IconAlertCircle,
             color: "red",
           },
@@ -428,7 +439,7 @@ function OverviewView({ data }: { data: Overview }) {
               const isV2 = cursor.source.startsWith("jetstream:v2:");
               const age = isV2
                 ? 0
-                : Math.max(0, data.as_of - cursor.cursor_value / 1e6);
+                : Math.max(0, (data.live_as_of ?? data.as_of) - cursor.cursor_value / 1e6);
               return (
                 <div className="cursor-item" key={cursor.source}>
                   <div>
@@ -573,7 +584,7 @@ export function Chart({ data }: { data: Overview }) {
       below,
     });
   };
-  const end = Math.floor(data.as_of / 60) * 60;
+  const end = Math.floor((data.live_as_of ?? data.as_of) / 60) * 60;
   const buckets = Array.from({ length: 60 }, (_, i) => {
     const minute = end - (59 - i) * 60;
     const values = data.completions.filter((b) => b.minute === minute);

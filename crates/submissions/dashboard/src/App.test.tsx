@@ -16,7 +16,7 @@ import {
   CopyDid,
 } from "./App";
 import { secretAtom, sectionAtom } from "./state";
-import type { Overview } from "./api";
+import { mergeActivity, type Overview, type LiveActivity } from "./api";
 const overview: Overview = {
   as_of: 1800000000,
   backend: "PostgreSQL",
@@ -38,6 +38,12 @@ const overview: Overview = {
     batch_size: 500,
   },
 };
+const activityFor = (data: Overview): LiveActivity => ({
+  as_of: data.as_of, since: Math.floor(data.as_of / 60) * 60 - 60,
+  processing: data.counts.filter(c => c.status === "processing"),
+  cursors: data.cursors,
+  completions: data.completions.filter(b => b.minute >= Math.floor(data.as_of / 60) * 60 - 60),
+});
 function setup(
   secret: string | undefined = undefined,
   section: "overview" | "jobs" = "overview",
@@ -74,9 +80,7 @@ describe("dashboard access and live controls", () => {
   it("opens publicly without a secret and supports theme and live controls", async () => {
     const mock = vi
       .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify(overview), { status: 200 }),
-      );
+      .mockImplementation(async (url: string) => new Response(JSON.stringify(url.endsWith("/live") ? activityFor(overview) : overview), { status: 200 }));
     vi.stubGlobal("fetch", mock);
     setup();
     await screen.findByText("Queue overview");
@@ -86,7 +90,7 @@ describe("dashboard access and live controls", () => {
       screen.getByRole("button", { name: "Switch to light mode" }),
     );
     expect(document.documentElement.dataset.theme).toBe("rocksky-light");
-    fireEvent.click(screen.getByRole("button", { name: "Live · 5s" }));
+    fireEvent.click(screen.getByRole("button", { name: "Auto · 2s" }));
     expect(screen.getByRole("button", { name: "Paused" })).toBeTruthy();
   });
   it("filters jobs and requires confirmation before retrying a failed job", async () => {
@@ -107,7 +111,9 @@ describe("dashboard access and live controls", () => {
       if (options?.method === "POST") return new Response("", { status: 202 });
       return new Response(
         JSON.stringify(
-          url.includes("/overview")
+          url.endsWith("/live")
+            ? activityFor(overview)
+            : url.includes("/overview")
             ? overview
             : url.includes(`/jobs/${job.id}`)
               ? {
@@ -244,7 +250,7 @@ it("labels v2 cursors as sequences instead of showing a false decades-old lag", 
     "fetch",
     vi
       .fn()
-      .mockResolvedValue(new Response(JSON.stringify(data), { status: 200 })),
+      .mockImplementation(async (url: string) => new Response(JSON.stringify(url.endsWith("/live") ? activityFor(data) : data), { status: 200 })),
   );
   setup("test-secret");
   expect(
@@ -355,4 +361,39 @@ it("copies the exact DID and reports clipboard failures", async () => {
   writeText.mockRejectedValueOnce(new Error("permission denied"));
   fireEvent.click(screen.getByRole("button", { name: "Copy DID" }));
   await screen.findByText("Could not copy. Select the DID to copy manually.");
+});
+
+
+it("replaces cached processing and recent buckets without doubling completions", () => {
+  const kind = "jetstream.commit.v1";
+  const minute = overview.as_of;
+  const snapshot: Overview = {
+    ...overview,
+    counts: [...overview.counts, { kind, status: "processing", count: 9, oldest_created_at: minute }],
+    completions: [
+      { kind, minute: minute - 3600, count: 100 },
+      { kind, minute: minute - 180, count: 4 },
+      { kind, minute: minute - 60, count: 3 },
+      { kind, minute, count: 2 },
+    ],
+  };
+  const activity: LiveActivity = { as_of: minute + 5, since: minute - 60, processing: [], cursors: [{source: "new", cursor_value: 5}], completions: [{kind, minute, count: 7}] };
+  const merged = mergeActivity(snapshot, activity);
+  expect(merged.counts).toEqual(overview.counts);
+  expect(merged.completions.map(b => b.count)).toEqual([4, 7]);
+  expect(merged.as_of).toBe(snapshot.as_of);
+  expect(merged.live_as_of).toBe(minute + 5);
+  expect(merged.cursors).toEqual(activity.cursors);
+  expect(mergeActivity(merged, activity)).toEqual(merged);
+  expect(mergeActivity(snapshot, {...activity, as_of: minute - 1})).toBe(snapshot);
+});
+
+it("renders fresh activity separately from cached queue totals", async () => {
+  const activity: LiveActivity = { ...activityFor(overview), as_of: overview.as_of + 5, processing: [{kind: "jetstream.commit.v1", status: "processing", count: 7, oldest_created_at: overview.as_of}] };
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/live") ? activity : overview), {status: 200})));
+  setup();
+  await screen.findByText("Active leases · polled every 2s");
+  expect(screen.getByText("Processing now").closest(".metric")?.textContent).toContain("7");
+  expect(screen.getByText("Waiting in queue").closest(".metric")?.textContent).toContain("Cached count");
+  expect(screen.getByText(/Queue totals snapshot/)).toBeTruthy();
 });

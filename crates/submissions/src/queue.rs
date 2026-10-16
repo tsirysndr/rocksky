@@ -14,6 +14,7 @@ pub struct Queue {
     pub(crate) dashboard_search_cache: std::sync::Arc<crate::dashboard::SearchCache>,
     pub(crate) dashboard_refresh: std::sync::Arc<tokio::sync::Mutex<()>>,
     pub(crate) dashboard_cache: std::sync::Arc<crate::dashboard::Cache>,
+    pub(crate) dashboard_live_cache: std::sync::Arc<crate::dashboard::LiveCache>,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
@@ -168,6 +169,7 @@ impl Queue {
             pool,
             postgres,
             dashboard_cache: Default::default(),
+            dashboard_live_cache: Default::default(),
             dashboard_refresh: Default::default(),
             dashboard_search_cache: Default::default(),
             dashboard_completed_cache: Default::default(),

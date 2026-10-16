@@ -43,6 +43,7 @@ async fn contract(queue: Queue) {
     .await;
     for path in [
         "/v1/dashboard/overview",
+        "/v1/dashboard/live",
         "/v1/dashboard/jobs",
         &format!("/v1/dashboard/jobs/{}", claimed.id),
     ] {
@@ -521,6 +522,103 @@ async fn postgres_overview_cache_contract() {
         .query_pairs_mut()
         .append_pair("options", &format!("-csearch_path={schema}"));
     cache_contract(Queue::connect(scoped.as_str()).await.unwrap()).await;
+    sqlx::query(&format!("DROP SCHEMA {schema} CASCADE"))
+        .execute(&admin.pool)
+        .await
+        .unwrap();
+}
+
+
+async fn live_activity_contract(queue: Queue) {
+    let snapshot = queue.dashboard_overview().await.unwrap();
+    queue
+        .enqueue("live.test", "one", "hash", "{}")
+        .await
+        .unwrap();
+    let job = queue.claim("live.test", 60, 5).await.unwrap().unwrap();
+    let first = queue.dashboard_live().await.unwrap();
+    assert_eq!(first.processing.iter().map(|c| c.count).sum::<i64>(), 1);
+    assert_eq!(
+        queue.dashboard_overview().await.unwrap().as_of,
+        snapshot.as_of
+    );
+    assert_eq!(
+        queue.dashboard_overview().await.unwrap().counts.len(),
+        snapshot.counts.len()
+    );
+    queue.finish(&job).await.unwrap();
+    // The small shared live cache is independent from the overview TTL.
+    assert_eq!(queue.dashboard_live().await.unwrap().processing.len(), 1);
+    queue.dashboard_live_cache.lock().await.as_mut().unwrap().0 =
+        Instant::now() - Duration::from_secs(3);
+    let fresh = queue.dashboard_live().await.unwrap();
+    assert!(fresh.processing.is_empty());
+    assert_eq!(fresh.completions.iter().map(|b| b.count).sum::<i64>(), 1);
+    queue
+        .enqueue("live.test", "two", "hash", "{}")
+        .await
+        .unwrap();
+    let expired = queue.claim("live.test", 60, 5).await.unwrap().unwrap();
+    sqlx::query("UPDATE rocksky_durable_jobs SET lease_until=0 WHERE id=$1")
+        .bind(&expired.id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE rocksky_durable_jobs SET updated_at=1 WHERE id=$1")
+        .bind(&job.id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
+    queue.dashboard_live_cache.lock().await.take();
+    let fresh = queue.dashboard_live().await.unwrap();
+    assert!(
+        fresh.processing.is_empty(),
+        "expired leases are not processing now"
+    );
+    assert!(
+        fresh.completions.is_empty(),
+        "live queries read only recent completions"
+    );
+    queue.pool.close().await;
+    queue.dashboard_live_cache.lock().await.as_mut().unwrap().0 =
+        Instant::now() - Duration::from_secs(3);
+    assert!(
+        queue.dashboard_live().await.is_err(),
+        "outages must not be labeled fresh"
+    );
+}
+
+#[cfg(feature = "sqlite")]
+#[actix_web::test]
+async fn sqlite_live_activity_contract() {
+    let dir = tempfile::tempdir().unwrap();
+    live_activity_contract(
+        Queue::connect(&format!(
+            "sqlite://{}?mode=rwc",
+            dir.path().join("live.sqlite").display()
+        ))
+        .await
+        .unwrap(),
+    )
+    .await;
+}
+
+#[cfg(feature = "postgres")]
+#[actix_web::test]
+#[ignore = "requires SUBMISSIONS_TEST_POSTGRES_URL"]
+async fn postgres_live_activity_contract() {
+    let url = std::env::var("SUBMISSIONS_TEST_POSTGRES_URL").unwrap();
+    let admin = Queue::connect(&url).await.unwrap();
+    let schema = format!("live_test_{}", uuid::Uuid::new_v4().simple());
+    sqlx::query(&format!("CREATE SCHEMA {schema}"))
+        .execute(&admin.pool)
+        .await
+        .unwrap();
+    let mut scoped = reqwest::Url::parse(&url).unwrap();
+    scoped
+        .query_pairs_mut()
+        .append_pair("options", &format!("-csearch_path={schema}"));
+    live_activity_contract(Queue::connect(scoped.as_str()).await.unwrap()).await;
     sqlx::query(&format!("DROP SCHEMA {schema} CASCADE"))
         .execute(&admin.pool)
         .await
