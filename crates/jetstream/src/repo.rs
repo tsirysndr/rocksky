@@ -50,8 +50,9 @@ use crate::{
 };
 
 /// An exact replay needs no catalog writes or duplicate notification. Use the
-/// primary and require URI, listening time and track identity to agree; changed
-/// records and alternate-identity matches still take the normal write path.
+/// primary and require URI, listening time and track identity to agree. A track
+/// indexed through an MBID/ISRC fallback may have a different text hash; recognize
+/// that identity too, instead of retrying an already indexed URI forever.
 async fn indexed_scrobble(
     pool: &Backend,
     uri: &str,
@@ -61,6 +62,12 @@ async fn indexed_scrobble(
     let hash = sha256::digest(
         format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
     );
+    let mut identity = Cond::any().add(Expr::col((Tracks::Table, Tracks::Sha256)).eq(hash));
+    for (column, value) in [(Tracks::MbId, &record.mbid), (Tracks::Isrc, &record.isrc)] {
+        if let Some(value) = value.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+            identity = identity.add(Expr::col((Tracks::Table, column)).eq(value));
+        }
+    }
     let query = Query::select()
         .column((Scrobbles::Table, Scrobbles::XataId))
         .from(Scrobbles::Table)
@@ -71,7 +78,7 @@ async fn indexed_scrobble(
         )
         .and_where(Expr::col((Scrobbles::Table, Scrobbles::Uri)).eq(uri))
         .and_where(Expr::col((Scrobbles::Table, Scrobbles::Timestamp)).eq(timestamp))
-        .and_where(Expr::col((Tracks::Table, Tracks::Sha256)).eq(hash))
+        .cond_where(identity)
         .limit(1)
         .take();
     Ok(sql::fetch_scalar_optional::<String>(pool, &query)
@@ -2247,7 +2254,7 @@ mod sqlite_behaviour {
             "TEXT"
         };
         db.execute(&db.sql(format!(
-            "CREATE {temporary} TABLE tracks(xata_id TEXT PRIMARY KEY,sha256 TEXT)"
+            "CREATE {temporary} TABLE tracks(xata_id TEXT PRIMARY KEY,sha256 TEXT,mb_id TEXT,isrc TEXT)"
         )))
         .await
         .unwrap();
@@ -2259,8 +2266,13 @@ mod sqlite_behaviour {
         db.execute(
             &Query::insert()
                 .into_table(Tracks::Table)
-                .columns([Tracks::XataId, Tracks::Sha256])
-                .values_panic(["track".into(), hash.into()])
+                .columns([Tracks::XataId, Tracks::Sha256, Tracks::MbId, Tracks::Isrc])
+                .values_panic([
+                    "track".into(),
+                    hash.into(),
+                    "mb-recording".into(),
+                    "isrc-recording".into(),
+                ])
                 .to_owned(),
         )
         .await
@@ -2305,6 +2317,28 @@ mod sqlite_behaviour {
                 !indexed_scrobble(&db, uri, &changed).await.unwrap(),
                 "changed {field} must take normal path"
             );
+        }
+        for mbid in [true, false] {
+            let mut variant = record.clone();
+            variant.title = "Cosmetic title variation".into();
+            if mbid {
+                variant.mbid = Some(" mb-recording ".into());
+            } else {
+                variant.isrc = Some(" isrc-recording ".into());
+            }
+            assert!(indexed_scrobble(&db, uri, &variant).await.unwrap());
+            assert!(!indexed_scrobble(&db, "at://another-listen", &variant)
+                .await
+                .unwrap());
+            variant.created_at = "2026-01-01T00:00:01.000Z".into();
+            assert!(!indexed_scrobble(&db, uri, &variant).await.unwrap());
+            variant.created_at = record.created_at.clone();
+            variant.mbid = Some("unrelated".into());
+            variant.isrc = Some("unrelated".into());
+            assert!(!indexed_scrobble(&db, uri, &variant).await.unwrap());
+            variant.mbid = Some(" ".into());
+            variant.isrc = Some("".into());
+            assert!(!indexed_scrobble(&db, uri, &variant).await.unwrap());
         }
         assert_eq!(count(&db, "scrobbles").await, 1);
     }

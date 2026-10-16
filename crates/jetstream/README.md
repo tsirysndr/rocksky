@@ -60,7 +60,9 @@ cap; it is released before job execution. Missing DIDs share a capped `unknown`
 bucket. All jobs remain durable, including existing backlog upgraded at startup.
 
 Normal fair claims run before borrowing, so a bulk backlog cannot jump ahead of
-eligible quieter DIDs. Borrowed jobs finish normally; they are not preempted.
+eligible quieter DIDs. Empty and partially filled claims can both borrow unused
+capacity, accounting for jobs already claimed in that turn. Borrowed jobs finish
+normally; they are not preempted.
 Borrowing is disabled automatically when the lane is too small to leave a normal
 allocation free. Legacy FIFO consumers do not enforce these limits, so restart
 all Jetstream consumers when upgrading.
@@ -135,3 +137,8 @@ use the existing conflict-safe creation path inside the indexing transaction.
 NATS publication and the Discord webhook share the same freshly loaded user.
 Webhook Redis connections are initialized lazily and reused with automatic
 reconnection; the blocking consumer has a separate connection from producers.
+
+Scrobble replay detection requires the same record URI and listening timestamp,
+and a matching text hash, MusicBrainz recording ID, or ISRC. This recognizes
+records originally indexed through a stable-ID fallback without publishing a
+duplicate notification. Blank identifiers never count as a match.

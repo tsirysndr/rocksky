@@ -163,25 +163,37 @@ async fn run_dispatcher<F, Fut>(
                     .await
             }
         };
-        if let Some((cap, true)) = per_actor {
-            // Normal fair turns always run first. Borrow only idle slots, leaving
-            // one normal account allocation free for new/quiet DIDs in this lane.
+        if let (Some((cap, true)), Ok(jobs)) = (per_actor, &mut result) {
+            // Count this turn's leases before borrowing. A partially filled fair
+            // claim must also borrow: fast jobs may otherwise keep every normal
+            // claim nonempty and prevent the dispatcher ever reaching burst mode.
             let burst_capacity = concurrency.saturating_sub(cap as usize);
-            let free = burst_capacity.saturating_sub(active.len());
-            if free > 0
-                && burst_capacity > cap as usize
-                && matches!(&result, Ok(jobs) if jobs.is_empty())
-            {
-                result = queue
+            let free = borrow_limit(
+                concurrency,
+                active.len(),
+                jobs.len(),
+                cap as usize,
+                limit as usize,
+            );
+            if free > 0 {
+                match queue
                     .claim_fair_batch(
                         kind,
                         settings.lease_seconds,
                         settings.max_attempts,
-                        free.min(32) as i64,
+                        free as i64,
                         lane,
                         burst_capacity.min(256) as i64,
                     )
-                    .await;
+                    .await
+                {
+                    Ok(borrowed) => jobs.extend(borrowed),
+                    // Normal claims already own durable leases. Never discard
+                    // those jobs if the optional capacity top-up fails.
+                    Err(error) => {
+                        tracing::warn!(%error, kind, "durable idle-capacity claim failed")
+                    }
+                }
             }
         }
         match result {
@@ -210,6 +222,24 @@ async fn run_dispatcher<F, Fut>(
         }
     }
     while active.join_next().await.is_some() {}
+}
+
+/// Leave a normal DID allocation free, and bound the combined normal and
+/// borrowed claims to the dispatcher's batch limit.
+fn borrow_limit(
+    concurrency: usize,
+    active: usize,
+    claimed: usize,
+    cap: usize,
+    limit: usize,
+) -> usize {
+    let burst = concurrency.saturating_sub(cap);
+    if burst <= cap {
+        return 0;
+    }
+    burst
+        .saturating_sub(active + claimed)
+        .min(limit.saturating_sub(claimed))
 }
 
 async fn execute<F, Fut>(queue: Queue, job: Job, settings: Settings, process: F)
@@ -261,6 +291,20 @@ mod tests {
         atomic::{AtomicUsize, Ordering},
         Arc,
     };
+
+    #[test]
+    fn partial_fair_claims_borrow_only_unreserved_capacity() {
+        // Production background lane: four normal claims must immediately
+        // borrow another 24, without waiting for a completely empty claim.
+        assert_eq!(borrow_limit(32, 0, 4, 4, 32), 24);
+        assert_eq!(borrow_limit(32, 3, 1, 4, 29), 24);
+        assert_eq!(borrow_limit(32, 24, 4, 4, 8), 0);
+        assert_eq!(borrow_limit(96, 0, 4, 4, 32), 28);
+        assert_eq!(borrow_limit(96, 0, 32, 4, 32), 0);
+        assert_eq!(borrow_limit(8, 0, 0, 2, 8), 6);
+        assert_eq!(borrow_limit(4, 0, 1, 4, 4), 0);
+        assert_eq!(borrow_limit(8, 0, 2, 4, 8), 0);
+    }
 
     #[tokio::test]
     async fn bulk_actor_borrows_idle_capacity_but_leaves_room_for_quiet_accounts() {
