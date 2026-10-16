@@ -353,18 +353,19 @@ function OverviewView({ data }: { data: Overview }) {
           <div className="panel-heading">
             <div>
               <h2>Pipeline health</h2>
-              <p>Live work by queue</p>
+              <p>All queues total, followed by each queue · updated every 2s</p>
             </div>
             <IconActivity size={20} />
           </div>
           {[
+            "",
             ...new Set([
               "jetstream.commit.v1",
               "scrobble.publish.v1",
               ...data.counts.map((c) => c.kind),
             ]),
           ].map((kind) => {
-            const counts = data.counts.filter((c) => c.kind === kind);
+            const counts = kind ? data.counts.filter((c) => c.kind === kind) : data.counts;
             const active = counts
               .filter((c) => c.status !== "completed")
               .reduce((sum, c) => sum + c.count, 0);
@@ -378,16 +379,16 @@ function OverviewView({ data }: { data: Overview }) {
                       <IconArrowUpRight size={18} />
                     )}
                   </span>
-                  <strong>{kindName(kind)}</strong>
+                  <strong>{kind ? kindName(kind) : "All queues"}</strong>
                 </div>
                 <div className="pipeline-numbers">
                   {(["pending", "processing", "failed"] as const).map(
                     (status) => (
                       <div key={status}>
                         <strong>
-                          {number(
-                            counts.find((c) => c.status === status)?.count || 0,
-                          )}
+                          {data.live_as_of ? number(
+                            counts.filter((c) => c.status === status).reduce((sum, c) => sum + c.count, 0),
+                          ) : "—"}
                         </strong>
                         <span>{status === "pending" ? "waiting" : status}</span>
                       </div>
@@ -401,7 +402,7 @@ function OverviewView({ data }: { data: Overview }) {
                         className={status}
                         key={status}
                         style={{
-                          width: `${active ? ((counts.find((c) => c.status === status)?.count || 0) / active) * 100 : 0}%`,
+                          width: `${active ? (counts.filter((c) => c.status === status).reduce((sum, c) => sum + c.count, 0) / active) * 100 : 0}%`,
                         }}
                       />
                     ),

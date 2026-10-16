@@ -419,3 +419,12 @@ from the history snapshot. This is near-real-time polling, not an event stream:
 query time and polling can add delay. Job lists/details continue polling every
 five seconds. Activity failures show an explicit stale data warning without
 advancing the activity timestamp.
+
+Pipeline health starts with an **All queues** total matching the headline counters,
+then shows each queue separately from the same live sample. For example, two
+waiting Jetstream jobs plus eight waiting Teal FM jobs means ten waiting overall.
+
+Status-filtered job pages use `rocksky_durable_jobs_dashboard_status_recent`, a
+partial index on `(status, created_at DESC, id DESC)` excluding completed jobs.
+For a large existing PostgreSQL queue, create this index concurrently before
+restarting the upgraded service; the startup schema also creates it if absent.

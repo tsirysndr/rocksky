@@ -330,9 +330,17 @@ impl Queue {
                 .join(",");
             format!(" AND id IN ({ids})")
         };
-        let sql = format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE ($1='' OR status=$1) AND ($2='' OR kind=$2) AND ($3='' OR id=$3) AND (created_at < $4 OR (created_at=$4 AND id<$5)) AND ($7='' OR source LIKE $7) {search_clause} ORDER BY created_at DESC,id DESC LIMIT $6");
+        // Static status predicates let PostgreSQL use the partial status/order
+        // index even with a cached generic plan. Never interpolate user input.
+        let status_clause = match filter.status.as_str() {
+            "pending" => "status='pending'",
+            "processing" => "status='processing'",
+            "failed" => "status='failed'",
+            "completed" => "status='completed'",
+            _ => "TRUE", // validate() above permits only the empty filter here.
+        };
+        let sql = format!("SELECT {COLUMNS} FROM rocksky_durable_jobs WHERE {status_clause} AND ($1='' OR kind=$1) AND ($2='' OR id=$2) AND (created_at,id)<($3,$4) AND ($6='' OR source LIKE $6) {search_clause} ORDER BY created_at DESC,id DESC LIMIT $5");
         let mut jobs: Vec<JobSummary> = sqlx::query_as(&sql)
-            .bind(&filter.status)
             .bind(&filter.kind)
             .bind(&filter.id)
             .bind(before)

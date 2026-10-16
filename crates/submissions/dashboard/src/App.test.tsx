@@ -395,12 +395,28 @@ it("renders all headline counters from live data instead of cached totals", asyn
   const activity: LiveActivity = { ...activityFor(overview), as_of: overview.as_of + 5, processing: [{kind: "jetstream.commit.v1", status: "processing", count: 7, oldest_created_at: overview.as_of}], counts: [
     {kind: "jetstream.commit.v1", status: "processing", count: 7, oldest_created_at: overview.as_of},
     {kind: "jetstream.commit.v1", status: "pending", count: 3, oldest_created_at: overview.as_of},
+    {kind: "tealfm.publish.v1", status: "pending", count: 8, oldest_created_at: overview.as_of},
   ], completed_last_hour: 123 };
   vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/live") ? activity : overview), {status: 200})));
-  setup();
+  const { client } = setup();
   await screen.findByText("Active leases · polled every 2s");
   expect(screen.getByText("Processing now").closest(".metric")?.textContent).toContain("7");
-  expect(screen.getByText("Waiting in queue").closest(".metric")?.querySelector("strong")?.textContent).toBe("3");
+  expect(screen.getByText("Waiting in queue").closest(".metric")?.querySelector("strong")?.textContent).toBe("11");
+  const pipelineCount = (label: string) => screen.getByText(label).closest(".pipeline-item")?.querySelector(".pipeline-numbers strong")?.textContent;
+  expect(pipelineCount("All queues")).toBe("11");
+  expect(pipelineCount("Teal FM publication")).toBe("8");
+  expect(document.querySelectorAll(".pipeline-item")[1].querySelector(".pipeline-numbers strong")?.textContent).toBe("3");
   expect(screen.getByText("Completed · last hour").closest(".metric")?.querySelector("strong")?.textContent).toBe("123");
   expect(screen.getByText(/Counters and activity/)).toBeTruthy();
+  activity.counts = activity.counts.filter(c => c.kind !== "jetstream.commit.v1");
+  activity.processing = [];
+  activity.completed_last_hour = 130;
+  activity.as_of += 2;
+  await client.invalidateQueries({ queryKey: ["activity"] });
+  await waitFor(() => {
+    expect(screen.getByText("Waiting in queue").closest(".metric")?.querySelector("strong")?.textContent).toBe("8");
+    expect(pipelineCount("All queues")).toBe("8");
+    expect(screen.getByText("Processing now").closest(".metric")?.querySelector("strong")?.textContent).toBe("0");
+    expect(screen.getByText("Completed · last hour").closest(".metric")?.querySelector("strong")?.textContent).toBe("130");
+  });
 });

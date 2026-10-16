@@ -45,6 +45,7 @@ async fn contract(queue: Queue) {
         "/v1/dashboard/overview",
         "/v1/dashboard/live",
         "/v1/dashboard/jobs",
+        "/v1/dashboard/jobs?status=pending&kind=&jetstream_version=&limit=25&q=",
         &format!("/v1/dashboard/jobs/{}", claimed.id),
     ] {
         assert_eq!(
@@ -404,7 +405,21 @@ async fn postgres_dashboard_and_additive_migration_contract() {
         .append_pair("options", &format!("-csearch_path={schema}"));
     let queue = Queue::connect(scoped.as_str()).await.unwrap();
     let pool = queue.pool.clone();
-    contract(queue).await;
+    contract(queue.clone()).await;
+    // Rare old pending jobs must use the status/order index, not scan newer
+    // completed history. Reproduce the production distribution and query shape.
+    sqlx::query("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,status,available_at,created_at,updated_at) SELECT md5(n::text), 'history.test','hash','{}','completed',0,200,200 FROM generate_series(1,10000) n")
+        .execute(&pool).await.unwrap();
+    queue.enqueue("rare.test", "old", "hash", "{}").await.unwrap();
+    sqlx::query("UPDATE rocksky_durable_jobs SET created_at=1 WHERE kind='rare.test'").execute(&pool).await.unwrap();
+    sqlx::query("ANALYZE rocksky_durable_jobs").execute(&pool).await.unwrap();
+    let plan: Vec<(String,)> = sqlx::query_as("EXPLAIN SELECT id FROM rocksky_durable_jobs WHERE status='pending' AND ($1='' OR kind=$1) AND ($2='' OR id=$2) AND (created_at,id)<($3,$4) AND ($6='' OR source LIKE $6) ORDER BY created_at DESC,id DESC LIMIT $5")
+        .bind("").bind("").bind(i64::MAX).bind("").bind(26_i64).bind("")
+        .fetch_all(&pool).await.unwrap();
+    assert!(plan.iter().any(|(line,)| line.contains("rocksky_durable_jobs_dashboard_status_recent")), "{plan:?}");
+    let page = queue.dashboard_jobs(&JobFilter {status: "pending".into(), limit: Some(25), ..Default::default()}).await.unwrap();
+    assert!(page.jobs.iter().any(|job| job.kind == "rare.test"));
+    assert!(page.jobs.iter().all(|job| job.status == "pending"));
     pool.close().await;
     sqlx::query(&format!("DROP SCHEMA {schema} CASCADE"))
         .execute(&admin.pool)

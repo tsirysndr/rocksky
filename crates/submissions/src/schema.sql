@@ -39,3 +39,7 @@ CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_dashboard_completed
     ON rocksky_durable_jobs (updated_at, kind) WHERE status='completed';
 CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_dashboard_active
     ON rocksky_durable_jobs (status, kind, created_at) WHERE status<>'completed';
+
+-- Status-filtered pages must not scan completed history to find rare pending jobs.
+CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_dashboard_status_recent
+    ON rocksky_durable_jobs (status, created_at DESC, id DESC) WHERE status<>'completed';
