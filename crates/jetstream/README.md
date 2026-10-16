@@ -99,3 +99,11 @@ ON rocksky_durable_jobs(kind,id) WHERE actor='' AND status<>'completed';
 Restart `rocksky-jetstream` after deploying. No concurrency increase or Doppler
 change is required to enable the default split. Existing running metadata jobs
 finish normally or recover through their leases.
+
+## Exact scrobble replays
+
+Before opening an indexing transaction for a scrobble create, Jetstream checks the
+primary database for the same record URI, listening timestamp and track content
+hash. Exact matches complete through the durable worker without repeating catalog
+writes or notifications. Missing or changed records use the normal indexing and
+deduplication path. This is particularly useful when replaying a historical inbox.

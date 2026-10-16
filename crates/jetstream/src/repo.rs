@@ -50,6 +50,36 @@ use crate::{
     },
 };
 
+/// An exact replay needs no catalog writes or duplicate notification. Use the
+/// primary and require URI, listening time and track identity to agree; changed
+/// records and alternate-identity matches still take the normal write path.
+async fn indexed_scrobble(
+    pool: &Backend,
+    uri: &str,
+    record: &ScrobbleRecord,
+) -> Result<bool, Error> {
+    let timestamp = DateTime::parse_from_rfc3339(&record.created_at)?.with_timezone(&chrono::Utc);
+    let hash = sha256::digest(
+        format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
+    );
+    let query = Query::select()
+        .column((Scrobbles::Table, Scrobbles::XataId))
+        .from(Scrobbles::Table)
+        .inner_join(
+            Tracks::Table,
+            Expr::col((Scrobbles::Table, Scrobbles::TrackId))
+                .equals((Tracks::Table, Tracks::XataId)),
+        )
+        .and_where(Expr::col((Scrobbles::Table, Scrobbles::Uri)).eq(uri))
+        .and_where(Expr::col((Scrobbles::Table, Scrobbles::Timestamp)).eq(timestamp))
+        .and_where(Expr::col((Tracks::Table, Tracks::Sha256)).eq(hash))
+        .limit(1)
+        .take();
+    Ok(sql::fetch_scalar_optional::<String>(pool, &query)
+        .await?
+        .is_some())
+}
+
 pub async fn save_scrobble(
     state: Arc<Mutex<AppState>>,
     pool: Arc<Backend>,
@@ -82,6 +112,11 @@ pub async fn save_scrobble(
             let record = commit.record.unwrap();
             if commit.collection == SCROBBLE_NSID {
                 let scrobble_record: ScrobbleRecord = serde_json::from_value(record.clone())?;
+                let uri = format!("at://{}/app.rocksky.scrobble/{}", did, commit.rkey);
+                if indexed_scrobble(&pool, &uri, &scrobble_record).await? {
+                    tracing::debug!(%uri, "Exact scrobble replay already indexed");
+                    return Ok(());
+                }
                 let user_id = save_user(&*pool, did).await?;
 
                 let mut tx = pool.begin().await?;
@@ -93,8 +128,6 @@ pub async fn save_scrobble(
                 save_album_track(&mut tx, &album_id, &track_id).await?;
                 save_artist_track(&mut tx, &artist_id, &track_id).await?;
                 save_artist_album(&mut tx, &artist_id, &album_id).await?;
-
-                let uri = format!("at://{}/app.rocksky.scrobble/{}", did, commit.rkey);
 
                 tracing::info!(title = %scrobble_record.title.magenta(), artist = %scrobble_record.artist.magenta(), album = %scrobble_record.album.magenta(), "Saving scrobble");
 
@@ -1588,6 +1621,107 @@ mod sqlite_behaviour {
             isrc: None,
             artists: None,
         }
+    }
+
+    async fn replay_contract(db: Backend) {
+        let temporary = if matches!(db, Backend::Postgres { .. }) {
+            "TEMP"
+        } else {
+            ""
+        };
+        let timestamp_type = if matches!(db, Backend::Postgres { .. }) {
+            "TIMESTAMPTZ"
+        } else {
+            "TEXT"
+        };
+        db.execute(&db.sql(format!(
+            "CREATE {temporary} TABLE tracks(xata_id TEXT PRIMARY KEY,sha256 TEXT)"
+        )))
+        .await
+        .unwrap();
+        db.execute(&db.sql(format!("CREATE {temporary} TABLE scrobbles(xata_id TEXT PRIMARY KEY,track_id TEXT,uri TEXT UNIQUE,timestamp {timestamp_type})"))).await.unwrap();
+        let record = a_scrobble("Cloudbusting", "Hounds of Love", "Kate Bush");
+        let uri = "at://did:plc:replay/app.rocksky.scrobble/key";
+        assert!(!indexed_scrobble(&db, uri, &record).await.unwrap());
+        let hash = sha256::digest("cloudbusting - kate bush - hounds of love");
+        db.execute(
+            &Query::insert()
+                .into_table(Tracks::Table)
+                .columns([Tracks::XataId, Tracks::Sha256])
+                .values_panic(["track".into(), hash.into()])
+                .to_owned(),
+        )
+        .await
+        .unwrap();
+        let timestamp = DateTime::parse_from_rfc3339(&record.created_at)
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        db.execute(
+            &Query::insert()
+                .into_table(Scrobbles::Table)
+                .columns([
+                    Scrobbles::XataId,
+                    Scrobbles::TrackId,
+                    Scrobbles::Uri,
+                    Scrobbles::Timestamp,
+                ])
+                .values_panic([
+                    "scrobble".into(),
+                    "track".into(),
+                    uri.into(),
+                    timestamp.into(),
+                ])
+                .to_owned(),
+        )
+        .await
+        .unwrap();
+        assert!(indexed_scrobble(&db, uri, &record).await.unwrap());
+        assert!(
+            !indexed_scrobble(&db, "at://did:plc:other/app.rocksky.scrobble/key", &record)
+                .await
+                .unwrap()
+        );
+        for field in ["title", "artist", "album", "time"] {
+            let mut changed = record.clone();
+            match field {
+                "title" => changed.title = "Other".into(),
+                "artist" => changed.artist = "Other".into(),
+                "album" => changed.album = "Other".into(),
+                _ => changed.created_at = "2026-01-01T00:00:01.000Z".into(),
+            }
+            assert!(
+                !indexed_scrobble(&db, uri, &changed).await.unwrap(),
+                "changed {field} must take normal path"
+            );
+        }
+        assert_eq!(count(&db, "scrobbles").await, 1);
+    }
+
+    #[tokio::test]
+    async fn exact_scrobble_replay_on_sqlite() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        replay_contract(Backend::Sqlite(pool)).await;
+    }
+
+    #[tokio::test]
+    async fn exact_scrobble_replay_on_postgres() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            return;
+        };
+        let primary = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&url)
+            .await
+            .unwrap();
+        replay_contract(Backend::Postgres {
+            primary,
+            replica: None,
+        })
+        .await;
     }
 
     // Exercise the actual artist write with a text[] column, including the
