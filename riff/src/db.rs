@@ -23,6 +23,7 @@ pub type PooledConn = r2d2::PooledConnection<DuckdbConnectionManager>;
 
 pub struct Catalog {
     pool: Pool,
+    pub(crate) search_cache: crate::cache::SearchCache,
 }
 
 impl Catalog {
@@ -550,9 +551,21 @@ fn register_relations(
     Ok(report)
 }
 
+fn serving_threads(value: Option<&str>) -> Result<u32, String> {
+    let threads = value
+        .unwrap_or("2")
+        .parse::<u32>()
+        .map_err(|_| "RIFF_THREADS must be an integer".to_string())?;
+    if !(1..=1024).contains(&threads) {
+        return Err("RIFF_THREADS must be between 1 and 1024".into());
+    }
+    Ok(threads)
+}
+
 /// Opens the database and registers every relation. Returns the pool plus a
 /// human-readable report of what was found, for the startup log.
 pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
+    let search_cache = crate::cache::SearchCache::from_env()?;
     let manager = match &cfg.db_path {
         // A persistent file carries the sorted lookup tables written by
         // `riff-materialize`; without them every search and id lookup is a full
@@ -585,6 +598,12 @@ pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
     ))
     .map_err(|e| format!("could not apply RIFF_MEMORY_LIMIT={memory_limit}: {e}"))?;
 
+    // A shared host should not give every scan all available CPU cores.
+    // This bounds DuckDB's scheduler, not total process RSS or CPU usage.
+    let threads = serving_threads(std::env::var("RIFF_THREADS").ok().as_deref())?;
+    conn.execute_batch(&format!("SET threads = {threads}"))
+        .map_err(|e| format!("could not apply RIFF_THREADS={threads}: {e}"))?;
+
     // Cache parsed parquet footers across queries. A hydration request runs
     // ~8 sequential subqueries, and re-parsing the 23G tracks file's 2000+
     // row groups of metadata per subquery cost 50-200ms each — measured, it
@@ -603,6 +622,9 @@ pub fn open(cfg: &Settings) -> Result<(Catalog, Vec<String>), String> {
 
     let tables = base_tables(&conn)?;
     let mut report = register_relations(&conn, &cfg.data_dir, &tables)?;
+    report.push(format!(
+        "  serving resources: {threads} DuckDB threads, {memory_limit} buffer limit"
+    ));
     if tables.contains("riff_meta") {
         report.push(format!(
             "  ({} lookup tables materialized in {})",
@@ -621,7 +643,7 @@ run riff-materialize for production data)"
     }
 
     drop(conn);
-    Ok((Catalog { pool }, report))
+    Ok((Catalog { pool, search_cache }, report))
 }
 
 /// Builds the sorted lookup tables into `db_path`. One-off, rerunnable; each
@@ -787,6 +809,15 @@ impl From<String> for ApiError {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn serving_thread_budget_is_validated() {
+        assert_eq!(super::serving_threads(None).unwrap(), 2);
+        assert_eq!(super::serving_threads(Some("4")).unwrap(), 4);
+        for value in ["0", "1025", "-1", "oops"] {
+            assert!(super::serving_threads(Some(value)).is_err());
+        }
+    }
+
     use super::*;
 
     fn cols(names: &[&str]) -> Vec<String> {

@@ -11,6 +11,7 @@
 //! Catalog data only — nothing user-scoped (`/me`, player, playlists) exists in
 //! the dump, so none of it is served here.
 
+mod cache;
 pub mod catalog;
 pub mod db;
 pub mod error;

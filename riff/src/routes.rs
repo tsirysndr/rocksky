@@ -188,28 +188,38 @@ pub async fn search(
     // The href of each paging object must reproduce the original query.
     let base = format!("/search?q={}&type={}", urlencode(&raw_q), urlencode(&kinds));
 
-    let result = blocking(catalog, move |conn| {
-        let tracks = want_tracks
-            .then(|| catalog::search_tracks(conn, &parsed, limit, offset))
-            .transpose()?
-            .map(|(items, total)| Page::new(&base, items, limit, offset, total));
-        let artists = want_artists
-            .then(|| catalog::search_artists(conn, &parsed, limit, offset))
-            .transpose()?
-            .map(|(items, total)| Page::new(&base, items, limit, offset, total));
-        let albums = want_albums
-            .then(|| catalog::search_albums(conn, &parsed, limit, offset))
-            .transpose()?
-            .map(|(items, total)| Page::new(&base, items, limit, offset, total));
-        Ok(SearchResult {
-            tracks,
-            artists,
-            albums,
+    let cache_key = format!("{base}&limit={limit}&offset={offset}");
+    let (body, hit) = web::block(move || {
+        catalog.search_cache.get_or_load(cache_key, || {
+            let conn = catalog.get()?;
+            let tracks = want_tracks
+                .then(|| catalog::search_tracks(&conn, &parsed, limit, offset))
+                .transpose()?
+                .map(|(items, total)| Page::new(&base, items, limit, offset, total));
+            let artists = want_artists
+                .then(|| catalog::search_artists(&conn, &parsed, limit, offset))
+                .transpose()?
+                .map(|(items, total)| Page::new(&base, items, limit, offset, total));
+            let albums = want_albums
+                .then(|| catalog::search_albums(&conn, &parsed, limit, offset))
+                .transpose()?
+                .map(|(items, total)| Page::new(&base, items, limit, offset, total));
+            let result = SearchResult {
+                tracks,
+                artists,
+                albums,
+            };
+            serde_json::to_vec(&result)
+                .map(web::Bytes::from)
+                .map_err(|e| ApiError::Internal(format!("serialize search result: {e}")))
         })
     })
-    .await?;
+    .await??;
 
-    Ok(HttpResponse::Ok().json(result))
+    Ok(HttpResponse::Ok()
+        .insert_header(("X-Riff-Cache", if hit { "HIT" } else { "MISS" }))
+        .content_type("application/json")
+        .body(body))
 }
 
 /// Minimal percent-encoding for the query echoed back in paging hrefs.

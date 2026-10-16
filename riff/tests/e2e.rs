@@ -899,3 +899,43 @@ async fn explicit_artist_search_keeps_pagination_and_repeated_artist_semantics()
     assert_eq!(missing["tracks"]["total"], 0);
     assert!(missing["tracks"]["items"].as_array().unwrap().is_empty());
 }
+
+#[actix_web::test]
+async fn search_cache_preserves_results_and_separates_pages_and_types() {
+    let (catalog, _) = db::open(&settings(data_dir().to_path_buf())).unwrap();
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(catalog))
+            .configure(routes::configure),
+    )
+    .await;
+    let uri = "/v1/search?type=track&q=artist:%22Kova%20Lune%22&limit=1";
+    let first = test::call_service(&app, test::TestRequest::get().uri(uri).to_request()).await;
+    assert_eq!(first.status(), StatusCode::OK);
+    assert_eq!(first.headers().get("X-Riff-Cache").unwrap(), "MISS");
+    let first_body = test::read_body(first).await;
+    let second = test::call_service(&app, test::TestRequest::get().uri(uri).to_request()).await;
+    assert_eq!(second.headers().get("X-Riff-Cache").unwrap(), "HIT");
+    assert_eq!(test::read_body(second).await, first_body);
+    for other in [
+        "/v1/search?type=track&q=artist:%22Kova%20Lune%22&limit=1&offset=1",
+        "/v1/search?type=track&q=artist:%22Kova%20Lune%22&limit=2",
+        "/v1/search?type=artist&q=artist:%22Kova%20Lune%22&limit=1",
+        "/v1/search?type=track&q=track:%22missing-track%22&limit=1",
+    ] {
+        let response =
+            test::call_service(&app, test::TestRequest::get().uri(other).to_request()).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers().get("X-Riff-Cache").unwrap(), "MISS");
+    }
+    let missing = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/v1/search?type=track&q=track:%22missing-track%22&limit=1")
+            .to_request(),
+    )
+    .await;
+    assert_eq!(missing.headers().get("X-Riff-Cache").unwrap(), "HIT");
+    let body: Value = serde_json::from_slice(&test::read_body(missing).await).unwrap();
+    assert_eq!(body["tracks"]["total"], 0);
+}

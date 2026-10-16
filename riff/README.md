@@ -439,3 +439,25 @@ archive; proxy caching does not manufacture the missing dump rows.
 
 `tests/mb_e2e.rs` runs the real routes over a real import of
 `testdata/musicbrainz/`, 300 actual dump lines per entity.
+
+### Serving resource budgets and search cache
+
+`RIFF_THREADS` controls DuckDB's serving scheduler (default **2**, range 1–1024).
+It is independent of `RIFF_POOL_SIZE`, which controls concurrent request
+connections. `RIFF_MEMORY_LIMIT` bounds DuckDB's buffer manager, not total process
+RSS or the operating system's file cache; serving still defaults to 2GB.
+
+Successful search responses, including empty results, are cached across HTTP
+workers before acquiring a DuckDB connection. Identical concurrent searches share
+one computation. The key includes the exact query, requested types, page size and
+offset, preserving paging links and matching semantics. Errors are not cached.
+
+- `RIFF_SEARCH_CACHE_SECONDS`: retention, default **900** (0 disables; max 86400).
+- `RIFF_SEARCH_CACHE_MB`: cached key/body byte budget, default **32** (0 disables;
+  max 1024). Entry bookkeeping and in-flight responses use additional memory.
+- `RIFF_SEARCH_CACHE_ENTRIES`: entry limit, default **2048** (0 disables; max 100000).
+
+The cache evicts least recently used responses and skips oversized entries.
+`X-Riff-Cache: HIT` / `MISS` reports reuse. Restart riff after replacing a catalog
+to clear cached results immediately; otherwise they expire at the configured TTL.
+Other catalog endpoints continue querying DuckDB directly.
