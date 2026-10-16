@@ -2720,17 +2720,16 @@ h3 {
 
 .login-methods {
   display: flex;
-  gap: 4px;
-  padding: 4px;
   margin-bottom: 24px;
-  border-radius: 12px;
-  background: #28183b;
+  border-bottom: 1px solid var(--border);
 }
 .login-methods button {
   flex: 1;
   padding: 11px 8px;
   border: 0;
-  border-radius: 9px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  margin-bottom: -1px;
   background: transparent;
   color: var(--soft);
   font: inherit;
@@ -2738,8 +2737,15 @@ h3 {
   cursor: pointer;
 }
 .login-methods button[aria-pressed="true"] {
-  background: #493057;
+  border-bottom-color: var(--pink);
+  color: var(--pink);
+}
+.login-methods button:hover:not(:disabled) {
   color: var(--foreground);
+}
+.login-methods button:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 3px;
 }
 .login-password {
   margin-bottom: 24px;
