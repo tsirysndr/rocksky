@@ -44,9 +44,8 @@ use crate::{
     },
     webhook_worker::{push_to_queue, AppState},
     xata::{
-        album_track::AlbumTrack, artist_album::ArtistAlbum, artist_track::ArtistTrack,
-        track::Track, user::User, user_album::UserAlbum, user_artist::UserArtist,
-        user_track::UserTrack,
+        album_track::AlbumTrack, artist_album::ArtistAlbum, artist_track::ArtistTrack, user::User,
+        user_album::UserAlbum, user_artist::UserArtist, user_track::UserTrack,
     },
 };
 
@@ -568,6 +567,12 @@ pub(crate) fn id_by_sha256(table: impl sea_query::IntoTableRef, hash: &str) -> S
         .take()
 }
 
+#[derive(sqlx::FromRow)]
+struct TrackIdentity {
+    xata_id: String,
+    uri: Option<String>,
+}
+
 /// The `tracks` row a scrobble or song record refers to, by content hash first.
 ///
 /// Falls back to MBID and then ISRC when the source supplied one — that covers
@@ -596,7 +601,7 @@ fn track_by_hash_or_id(hash: &str, mb_id: Option<&str>, isrc: Option<&str>) -> S
     }
 
     Query::select()
-        .column(Asterisk)
+        .columns([Tracks::XataId, Tracks::Uri])
         .from(Tracks::Table)
         .cond_where(matches)
         .order_by_expr(rank.finally(3).into(), Order::Asc)
@@ -647,7 +652,7 @@ pub async fn save_track(
         .map(str::trim)
         .filter(|s| !s.is_empty());
 
-    let existing: Option<Track> = tx
+    let existing: Option<TrackIdentity> = tx
         .fetch_optional(&track_by_hash_or_id(&hash, mb_id_filter, isrc_filter))
         .await?;
 
@@ -1167,7 +1172,7 @@ pub async fn save_user_track(
 
     // Rank sha (exact title+artist+album) above MBID, MBID above ISRC — see
     // `track_by_hash_or_id` for the rationale (recordings shared across albums).
-    let found: Option<Track> = tx
+    let found: Option<TrackIdentity> = tx
         .fetch_optional(&track_by_hash_or_id(&hash, mb_id_filter, isrc_filter))
         .await?;
 
@@ -1227,12 +1232,10 @@ pub async fn save_user_track(
                         )
                         .to_owned(),
                 )
+                .returning_col(Tracks::XataId)
                 .to_owned();
-            tx.execute(&insert).await?;
-
-            let inserted: Option<String> =
-                tx.fetch_scalar(&id_by_sha256(Tracks::Table, &hash)).await?;
-            inserted.ok_or_else(|| anyhow::anyhow!("Track {} vanished after insert", hash))?
+            let inserted: Option<String> = tx.fetch_scalar(&insert).await?;
+            inserted.ok_or_else(|| anyhow::anyhow!("Track insert returned no row for {}", hash))?
         }
         Some(track) => {
             // The scrobble path (`save_track`) inserts its `tracks` row with a
@@ -1621,6 +1624,113 @@ mod sqlite_behaviour {
             isrc: None,
             artists: None,
         }
+    }
+
+    async fn track_identity_contract(db: Backend) {
+        // Deliberately omit large track metadata columns: matching must only
+        // decode the identity fields it actually consumes.
+        db.execute(&db.sql("CREATE TEMP TABLE tracks (xata_id TEXT PRIMARY KEY, title TEXT, artist TEXT, album TEXT, album_art TEXT, album_artist TEXT, track_number INTEGER, duration INTEGER, mb_id TEXT, isrc TEXT, composer TEXT, lyrics TEXT, disc_number INTEGER, sha256 TEXT UNIQUE, copyright_message TEXT, uri TEXT, spotify_link TEXT, label TEXT)")).await.unwrap();
+        let timestamp_type = if matches!(db, Backend::Postgres { .. }) {
+            "TIMESTAMPTZ"
+        } else {
+            "TEXT"
+        };
+        db.execute(&db.sql(format!("CREATE TEMP TABLE user_tracks (xata_id TEXT PRIMARY KEY, user_id TEXT, track_id TEXT, uri TEXT, scrobbles INTEGER, xata_createdat {timestamp_type} DEFAULT '2026-01-01T00:00:00Z')"))).await.unwrap();
+        let mut tx = db.begin().await.unwrap();
+        let record: SongRecord = serde_json::from_value(json!({
+            "title":"Exact", "artist":"Artist", "album":"Album",
+            "albumArtist":"Artist", "duration":1000, "createdAt":"2026-01-01T00:00:00Z",
+            "mbid":"shared-mb", "isrc":"shared-isrc"
+        }))
+        .unwrap();
+        save_user_track(&mut tx, "user", record.clone(), "at://first")
+            .await
+            .unwrap();
+        let hash = sha256::digest("exact - artist - album");
+        let original: TrackIdentity = tx
+            .fetch_optional(&track_by_hash_or_id(&hash, None, None))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(original.uri.as_deref(), Some("at://first"));
+        // Same recording, cosmetic title variation: reuse identity and keep
+        // the canonical URI, while the user's record gets its new URI.
+        let mut variant = record;
+        variant.title = "Variant".into();
+        save_user_track(&mut tx, "user", variant, "at://second")
+            .await
+            .unwrap();
+        let found: TrackIdentity = tx
+            .fetch_optional(&track_by_hash_or_id(
+                "missing",
+                Some("shared-mb"),
+                Some("shared-isrc"),
+            ))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(found.xata_id, original.xata_id);
+        assert_eq!(found.uri.as_deref(), Some("at://first"));
+        // An exact hash must win over a different MBID/ISRC candidate.
+        let insert = Query::insert()
+            .into_table(Tracks::Table)
+            .columns([Tracks::XataId, Tracks::Sha256, Tracks::MbId, Tracks::Isrc])
+            .values_panic([
+                "other".into(),
+                "other-hash".into(),
+                "other-mb".into(),
+                "other-isrc".into(),
+            ])
+            .to_owned();
+        tx.execute(&insert).await.unwrap();
+        let found: TrackIdentity = tx
+            .fetch_optional(&track_by_hash_or_id(
+                &hash,
+                Some("other-mb"),
+                Some("other-isrc"),
+            ))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(found.xata_id, original.xata_id);
+        let found: TrackIdentity = tx
+            .fetch_optional(&track_by_hash_or_id(
+                "missing",
+                Some("other-mb"),
+                Some("shared-isrc"),
+            ))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(found.xata_id, "other");
+        tx.rollback().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn lean_track_identity_on_sqlite() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        track_identity_contract(Backend::Sqlite(pool)).await;
+    }
+
+    #[tokio::test]
+    async fn lean_track_identity_on_postgres() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            return;
+        };
+        let primary = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&url)
+            .await
+            .unwrap();
+        track_identity_contract(Backend::Postgres {
+            primary,
+            replica: None,
+        })
+        .await;
     }
 
     async fn replay_contract(db: Backend) {
