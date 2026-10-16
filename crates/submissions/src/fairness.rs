@@ -12,6 +12,9 @@ pub(crate) async fn migrate(tx: &mut Transaction<'_, Any>, postgres: bool) -> Re
         "CREATE TABLE IF NOT EXISTS rocksky_durable_actors (kind TEXT NOT NULL, lane BIGINT NOT NULL, actor TEXT NOT NULL, last_served BIGINT NOT NULL DEFAULT 0, PRIMARY KEY(kind,lane,actor))",
         "CREATE INDEX IF NOT EXISTS rocksky_durable_actors_turn ON rocksky_durable_actors(kind,lane,last_served,actor)",
         "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_actor_ready ON rocksky_durable_jobs(kind,actor,available_at,created_at,id) WHERE status IN ('pending','processing')",
+        // A lane must never scan another lane's backlog to prove it has no work.
+        "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_actor_scrobbles ON rocksky_durable_jobs(kind,actor,available_at,created_at,id) WHERE collection='app.rocksky.scrobble' AND status IN ('pending','processing')",
+        "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_actor_background ON rocksky_durable_jobs(kind,actor,available_at,created_at,id) WHERE collection<>'app.rocksky.scrobble' AND status IN ('pending','processing')",
         "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_actor_backfill ON rocksky_durable_jobs(kind,id) WHERE actor='' AND status<>'completed'",
         "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_actor_leases ON rocksky_durable_jobs(kind,actor,lease_until) WHERE status='processing'",
     ] { sqlx::query(sql).execute(&mut **tx).await?; }

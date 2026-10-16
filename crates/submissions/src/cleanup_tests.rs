@@ -278,6 +278,8 @@ async fn upgrade(url: &str) -> Queue {
         }
     }
     for statement in [
+        "DROP INDEX rocksky_durable_jobs_actor_scrobbles",
+        "DROP INDEX rocksky_durable_jobs_actor_background",
         "DROP INDEX rocksky_durable_jobs_actor_ready",
         "DROP INDEX rocksky_durable_jobs_actor_leases",
         "DROP INDEX rocksky_durable_jobs_actor_backfill",

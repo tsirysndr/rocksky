@@ -90,6 +90,12 @@ ALTER TABLE rocksky_durable_jobs ADD COLUMN IF NOT EXISTS actor TEXT NOT NULL DE
 CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_ready
 ON rocksky_durable_jobs(kind,actor,available_at,created_at,id)
 WHERE status IN ('pending','processing');
+CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_scrobbles
+ON rocksky_durable_jobs(kind,actor,available_at,created_at,id)
+WHERE collection='app.rocksky.scrobble' AND status IN ('pending','processing');
+CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_background
+ON rocksky_durable_jobs(kind,actor,available_at,created_at,id)
+WHERE collection<>'app.rocksky.scrobble' AND status IN ('pending','processing');
 CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_leases
 ON rocksky_durable_jobs(kind,actor,lease_until) WHERE status='processing';
 CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_actor_backfill
