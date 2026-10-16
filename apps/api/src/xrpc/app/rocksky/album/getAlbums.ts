@@ -2,6 +2,7 @@ import { consola } from "consola";
 import type { Context } from "context";
 import { count, desc, inArray, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
+import { filteredPage } from "lib/filteredPage";
 import { queryCache } from "lib/queryCache";
 import type { Server } from "lexicon";
 import type { AlbumViewBasic } from "lexicon/types/app/rocksky/album/defs";
@@ -81,16 +82,19 @@ export const retrieveAlbums = async (
   const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
 
   const pageIds = filterWhere
-    ? (
-        await db
-          .select({ id: tables.albums.id })
+    ? await filteredPage(
+        db,
+        db
+          .select({
+            id: sql<string>`${tables.albums.id}`.as("id"),
+            created_at: sql`${tables.albums.createdAt}`.as("created_at"),
+          })
           .from(tables.albums)
           .where(filterWhere)
-          .orderBy(desc(tables.albums.createdAt), tables.albums.id)
-          .limit(limit)
-          .offset(offset)
-          .execute()
-      ).map((row) => row.id)
+          .getSQL(),
+        limit,
+        offset,
+      )
     : undefined;
   if (pageIds?.length === 0) return { data: [] };
   const topAlbumsQb = db

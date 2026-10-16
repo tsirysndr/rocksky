@@ -2,6 +2,7 @@ import { consola } from "consola";
 import type { Context } from "context";
 import { and, count, desc, inArray, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
+import { filteredPage } from "lib/filteredPage";
 import { queryCache } from "lib/queryCache";
 import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
@@ -100,14 +101,19 @@ export const retrieveArtists = async (
   let artistIds: string[];
 
   if (filters.length > 0) {
-    const filtered = await db
-      .select({ id: tables.artists.id })
-      .from(tables.artists)
-      .where(and(...filters))
-      .limit(limit)
-      .offset(offset)
-      .execute();
-    artistIds = filtered.map((a) => a.id);
+    artistIds = await filteredPage(
+      db,
+      db
+        .select({
+          id: sql<string>`${tables.artists.id}`.as("id"),
+          created_at: sql`${tables.artists.createdAt}`.as("created_at"),
+        })
+        .from(tables.artists)
+        .where(and(...filters))
+        .getSQL(),
+      limit,
+      offset,
+    );
   } else {
     const topArtists = await db
       .select({

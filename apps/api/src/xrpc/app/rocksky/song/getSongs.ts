@@ -2,6 +2,7 @@ import { consola } from "consola";
 import type { Context } from "context";
 import { and, count, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
+import { filteredPage } from "lib/filteredPage";
 import { queryCache } from "lib/queryCache";
 import type { Server } from "lexicon";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
@@ -164,16 +165,19 @@ export const retrieveSongs = async (
     ? sql`EXISTS (SELECT 1 FROM ${tables.artists} WHERE ${tables.artists.name} = ${tables.tracks.albumArtist} AND ${tables.artists.genres} @> ARRAY[${params.genre}]::text[])`
     : undefined;
   const pageIds = filterWhere
-    ? (
-        await db
-          .select({ id: tables.tracks.id })
+    ? await filteredPage(
+        db,
+        db
+          .select({
+            id: sql<string>`${tables.tracks.id}`.as("id"),
+            created_at: sql`${tables.tracks.createdAt}`.as("created_at"),
+          })
           .from(tables.tracks)
           .where(and(filterWhere, genreWhere))
-          .orderBy(desc(tables.tracks.createdAt), tables.tracks.id)
-          .limit(limit)
-          .offset(offset)
-          .execute()
-      ).map((row) => row.id)
+          .getSQL(),
+        limit,
+        offset,
+      )
     : undefined;
   if (pageIds?.length === 0) return { data: [] };
 

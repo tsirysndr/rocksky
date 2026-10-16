@@ -1,7 +1,16 @@
 import { consola } from "consola";
 import type { Context } from "context";
+import { filteredPage } from "lib/filteredPage";
 import { dbQuery } from "lib/dbQuery";
-import { and, count, desc, eq, getTableColumns, inArray } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
@@ -169,6 +178,33 @@ export const fetchScrobbles = async (
     filterUserIds ? inArray(tables.scrobbles.userId, filterUserIds) : undefined,
     compileRsqlFilterParam(params.filter, FILTER_FIELDS),
   );
+
+  if (params.filter?.trim()) {
+    const candidates = ctx.db
+      .select({
+        id: sql<string>`${tables.scrobbles.id}`.as("id"),
+        created_at: sql`${tables.scrobbles.timestamp}`.as("created_at"),
+      })
+      .from(tables.scrobbles)
+      .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
+      .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+      .leftJoin(
+        tables.artists,
+        eq(tables.scrobbles.artistId, tables.artists.id),
+      )
+      .where(where);
+    const ids = await filteredPage(
+      ctx.db,
+      candidates.getSQL(),
+      params.limit || 20,
+      params.offset || 0,
+    );
+    if (!ids.length) return [];
+    return baseQuery
+      .where(inArray(tables.scrobbles.id, ids))
+      .orderBy(desc(tables.scrobbles.timestamp), tables.scrobbles.id)
+      .execute();
+  }
 
   const query = where ? baseQuery.where(where) : baseQuery;
 

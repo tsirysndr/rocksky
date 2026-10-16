@@ -2,6 +2,8 @@ import { beforeAll, afterAll, describe, expect, it } from "bun:test";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { getTableConfig } from "drizzle-orm/pg-core";
 import pg from "pg";
+import { sql } from "drizzle-orm";
+import { filteredPage } from "./filteredPage";
 import tables from "schema";
 import type { Context } from "context";
 
@@ -182,6 +184,40 @@ describe.skipIf(!url)("RSQL catalog query regressions (PostgreSQL)", () => {
         .data[0].id,
     ).toBe("t1");
     await client.query(`DELETE FROM tracks WHERE xata_id='unplayed'`);
+  });
+
+  it("uses bounded filter-first pages for rare values and recent pages for broad matches", async () => {
+    await client.query(
+      `CREATE TEMP TABLE filtered_page_fixture (id text, created_at timestamp, tag text)`,
+    );
+    await client.query(
+      `INSERT INTO filtered_page_fixture SELECT lpad(n::text,5,'0'), timestamp '2024-01-01' + n * interval '1 second', CASE WHEN n<=2 THEN 'rare' ELSE 'common' END FROM generate_series(1,12000) n`,
+    );
+    await client.query(`ANALYZE filtered_page_fixture`);
+    let start = queries.length;
+    expect(
+      await filteredPage(
+        db,
+        sql`SELECT id,created_at FROM filtered_page_fixture WHERE tag=${"rare"}`,
+        1,
+        1,
+      ),
+    ).toEqual(["00001"]);
+    expect(
+      queries.slice(start).some((q) => q.includes("AS MATERIALIZED")),
+    ).toBe(true);
+    start = queries.length;
+    expect(
+      await filteredPage(
+        db,
+        sql`SELECT id,created_at FROM filtered_page_fixture`,
+        2,
+        0,
+      ),
+    ).toEqual(["12000", "11999"]);
+    expect(
+      queries.slice(start).some((q) => q.includes("AS MATERIALIZED")),
+    ).toBe(false);
   });
 
   it("scrobble RSQL filters preserve joins, timestamps and pagination", async () => {
