@@ -429,3 +429,9 @@ Status-filtered job pages use `rocksky_durable_jobs_dashboard_status_recent`, a
 partial index on `(status, created_at DESC, id DESC)` excluding completed jobs.
 For a large existing PostgreSQL queue, create this index concurrently before
 restarting the upgraded service; the startup schema also creates it if absent.
+
+Unhandled SQL uniqueness violations are permanent processor failures: the job
+moves to `failed` after that attempt, preserving its payload, checkpoints, and
+error for inspection and manual retry. Classification uses the typed SQL error
+(including wrapped causes), not a message substring. Transient database errors
+and foreign-key failures retain the existing retry policy.

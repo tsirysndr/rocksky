@@ -11,9 +11,17 @@ pub struct Failure {
 
 impl From<anyhow::Error> for Failure {
     fn from(error: anyhow::Error) -> Self {
+        // An unhandled uniqueness conflict will not be repaired by retrying the
+        // same payload. Inspect typed causes, including errors wrapped in context;
+        // connectivity, deadlocks, serialization and foreign-key errors still retry.
+        let permanent = error.chain().any(|cause| {
+            cause.downcast_ref::<sqlx::Error>()
+                .and_then(sqlx::Error::as_database_error)
+                .is_some_and(|error| error.is_unique_violation())
+        });
         Self {
             message: error.to_string(),
-            permanent: false,
+            permanent,
         }
     }
 }
@@ -384,6 +392,63 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn unique_conflicts_fail_on_first_attempt_and_keep_job_data() {
+        let dir = tempfile::tempdir().unwrap();
+        let queue = Queue::connect(&format!("sqlite://{}?mode=rwc", dir.path().join("unique.sqlite").display())).await.unwrap();
+        let job = queue.enqueue("unique.v1", "key", "hash", "original").await.unwrap();
+        let stop = CancellationToken::new();
+        let processor_queue = queue.clone();
+        let processor_stop = stop.clone();
+        let worker = tokio::spawn(run(queue.clone(), "unique.v1", 1, Settings::default(), stop.clone(), move |job| {
+            let queue = processor_queue.clone();
+            let done = processor_stop.clone();
+            async move {
+                let error = sqlx::query("INSERT INTO rocksky_durable_jobs (id,kind,request_hash,payload,status,available_at,created_at,updated_at) SELECT id,kind,request_hash,payload,status,available_at,created_at,updated_at FROM rocksky_durable_jobs WHERE id=$1")
+                    .bind(&job.id).execute(&queue.pool).await.unwrap_err();
+                let failure = Failure::from(anyhow::Error::new(error).context("catalog insert failed"));
+                assert!(failure.permanent);
+                done.cancel();
+                Err(failure)
+            }
+        }));
+        tokio::time::timeout(Duration::from_secs(5), worker).await.unwrap().unwrap();
+        let failed = queue.get(&job.id).await.unwrap().unwrap();
+        assert_eq!(failed.status, "failed");
+        assert_eq!(failed.attempts, 1);
+        assert_eq!(failed.payload, "original");
+        assert_eq!(failed.last_error, "catalog insert failed");
+        assert!(queue.claim("unique.v1", 60, 20).await.unwrap().is_none());
+        assert!(queue.retry(&job.id).await.unwrap());
+        assert_eq!(queue.get(&job.id).await.unwrap().unwrap().status, "pending");
+    }
+
+    #[cfg(feature = "postgres")]
+    #[tokio::test]
+    #[ignore = "requires SUBMISSIONS_TEST_POSTGRES_URL"]
+    async fn postgres_unique_errors_are_permanent_but_other_database_errors_retry() {
+        use sqlx::Connection;
+        let mut connection = sqlx::PgConnection::connect(&std::env::var("SUBMISSIONS_TEST_POSTGRES_URL").unwrap()).await.unwrap();
+        sqlx::query("CREATE TEMP TABLE failure_classification (id BIGINT PRIMARY KEY, parent BIGINT REFERENCES failure_classification(id))").execute(&mut connection).await.unwrap();
+        sqlx::query("INSERT INTO failure_classification(id) VALUES (1)").execute(&mut connection).await.unwrap();
+        for (statement, permanent) in [
+            ("INSERT INTO failure_classification(id) VALUES (1)", true),
+            ("INSERT INTO failure_classification VALUES (2,999)", false),
+            ("SELECT 1/0", false),
+        ] {
+            let error = sqlx::query(statement).execute(&mut connection).await.unwrap_err();
+            let failure = Failure::from(anyhow::Error::new(error).context("catalog operation"));
+            assert_eq!(failure.permanent, permanent, "{statement}");
+        }
+    }
+
+    #[test]
+    fn transient_errors_and_untyped_messages_still_retry() {
+        assert!(!Failure::from(anyhow::Error::new(sqlx::Error::PoolTimedOut)).permanent);
+        assert!(!Failure::from(anyhow::anyhow!("duplicate key value violates unique constraint")).permanent);
+        assert!(!Failure::from(anyhow::anyhow!("upstream HTTP 503")).permanent);
     }
 
     #[tokio::test]
