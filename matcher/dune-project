@@ -1,0 +1,26 @@
+(lang dune 3.24)
+
+(name matcher)
+
+(generate_opam_files true)
+
+(source
+ (github tsirysndr/rocksky))
+
+(authors "Tsiry Sandratraina <tsiry.sndr@rocksky.app>")
+
+(maintainers "Tsiry Sandratraina <tsiry.sndr@rocksky.app>")
+
+(license MIT)
+
+(documentation https://github.com/tsirysndr/rocksky/tree/main/matcher)
+
+(package
+ (name matcher)
+ (synopsis "Conservative music metadata matching engine for Rocksky")
+ (description "An OCaml music matching engine based on Rocksky's shared matching policy. Validates titles, artist credits, albums, recording versions, identifiers and durations before ranking candidates. Provides explainable decisions, explicit ambiguity handling, provider adapters and a JSON HTTP service.")
+ (depends (ocaml (>= 5.2)) uutf uucp uunf yojson lwt (cohttp-lwt-unix (>= 6.3)) tls-lwt uri sqlite3 postgresql digestif base64)
+ (tags
+  ("music" "metadata" "matching" "rocksky")))
+
+; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

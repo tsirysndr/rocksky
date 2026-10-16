@@ -1,0 +1,43 @@
+
+# Dune build artifacts
+_build/
+_dune/
+
+# OCaml compiled files
+*.cmi
+*.cmo
+*.cmx
+*.cmxa
+*.cma
+*.cmxs
+*.cmti
+*.cmt
+*.o
+*.a
+*.annot
+
+# Native executables
+*.exe
+
+# opam local switch
+_opam/
+.opam-switch/
+
+# Merlin / editor
+.merlin
+*.merlin
+*.merlin-conf
+
+# Editor files
+.vscode/
+.idea/
+*~
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Coverage
+_bisect/
+*.coverage

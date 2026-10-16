@@ -1,0 +1,4 @@
+(library
+ (name matcher)
+ (public_name matcher)
+ (libraries uutf uucp uunf str yojson lwt.unix cohttp-lwt-unix uri sqlite3 postgresql digestif base64))
