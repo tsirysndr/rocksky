@@ -16,6 +16,7 @@ export type Job = {
 export type Overview = {
   as_of: number;
   live_as_of?: number;
+  completed_last_hour?: number;
   backend: string;
   counts: {
     kind: string;
@@ -42,20 +43,23 @@ export type LiveActivity = {
   as_of: number;
   since: number;
   processing: Overview["counts"];
+  counts: Overview["counts"];
+  completed_last_hour: number;
   cursors: Overview["cursors"];
   completions: Overview["completions"];
 };
 
 // Replace overlapping minute buckets, including zeros, instead of adding them.
 export function mergeActivity(snapshot: Overview, activity?: LiveActivity): Overview {
-  if (!activity || activity.as_of < snapshot.as_of) return snapshot;
+  if (!activity) return snapshot;
   const hourStart = (Math.floor(activity.as_of / 60) - 59) * 60;
   return {
     ...snapshot,
     live_as_of: activity.as_of,
-    counts: [...snapshot.counts.filter(c => c.status !== "processing"), ...activity.processing],
+    counts: [...snapshot.counts.filter(c => c.status === "completed"), ...activity.counts],
+    completed_last_hour: activity.completed_last_hour,
     cursors: activity.cursors,
-    completions: [
+    completions: activity.as_of < snapshot.as_of ? snapshot.completions : [
       ...snapshot.completions.filter(b => b.minute < activity.since && b.minute >= hourStart),
       ...activity.completions,
     ],

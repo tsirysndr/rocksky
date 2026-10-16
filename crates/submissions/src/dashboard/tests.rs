@@ -535,9 +535,14 @@ async fn live_activity_contract(queue: Queue) {
         .enqueue("live.test", "one", "hash", "{}")
         .await
         .unwrap();
+    let waiting = queue.dashboard_live().await.unwrap();
+    assert_eq!(waiting.counts.iter().filter(|c| c.status == "pending").map(|c| c.count).sum::<i64>(), 1);
+    assert_eq!(waiting.completed_last_hour, 0);
+    queue.dashboard_live_cache.lock().await.take();
     let job = queue.claim("live.test", 60, 5).await.unwrap().unwrap();
     let first = queue.dashboard_live().await.unwrap();
     assert_eq!(first.processing.iter().map(|c| c.count).sum::<i64>(), 1);
+    assert!(first.counts.iter().all(|c| c.status != "pending"));
     assert_eq!(
         queue.dashboard_overview().await.unwrap().as_of,
         snapshot.as_of
@@ -553,6 +558,15 @@ async fn live_activity_contract(queue: Queue) {
         Instant::now() - Duration::from_secs(3);
     let fresh = queue.dashboard_live().await.unwrap();
     assert!(fresh.processing.is_empty());
+    assert_eq!(fresh.completed_last_hour, 1);
+    assert!(fresh.counts.is_empty());
+    // A completion outside the recent chart window still counts in the hour.
+    sqlx::query("UPDATE rocksky_durable_jobs SET updated_at=$1 WHERE id=$2")
+        .bind(fresh.as_of - 1800).bind(&job.id).execute(&queue.pool).await.unwrap();
+    queue.dashboard_live_cache.lock().await.take();
+    let half_hour = queue.dashboard_live().await.unwrap();
+    assert_eq!(half_hour.completed_last_hour, 1);
+    assert!(half_hour.completions.is_empty());
     assert_eq!(fresh.completions.iter().map(|b| b.count).sum::<i64>(), 1);
     queue
         .enqueue("live.test", "two", "hash", "{}")
@@ -579,6 +593,13 @@ async fn live_activity_contract(queue: Queue) {
         fresh.completions.is_empty(),
         "live queries read only recent completions"
     );
+    assert_eq!(fresh.completed_last_hour, 0, "completion ages out of rolling hour");
+    queue.enqueue("live.test", "delayed", "hash", "{}").await.unwrap();
+    sqlx::query("UPDATE rocksky_durable_jobs SET available_at=$1 WHERE status='pending'")
+        .bind(fresh.as_of + 900).execute(&queue.pool).await.unwrap();
+    queue.dashboard_live_cache.lock().await.take();
+    let delayed = queue.dashboard_live().await.unwrap();
+    assert_eq!(delayed.counts.iter().filter(|c| c.status == "pending").map(|c| c.count).sum::<i64>(), 1, "waiting includes delayed retries");
     queue.pool.close().await;
     queue.dashboard_live_cache.lock().await.as_mut().unwrap().0 =
         Instant::now() - Duration::from_secs(3);

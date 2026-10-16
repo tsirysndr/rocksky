@@ -278,7 +278,8 @@ confirmation before retrying failed jobs, and the effective cleanup policy.
 Raw payloads, request fingerprints, lease tokens, checkpoint results and arbitrary
 error messages are excluded from public responses. Selected song fields and the
 listener DID are public in job details.
-Live views poll every 5 seconds while visible, with pause and manual refresh.
+Headline counters and activity poll every 2 seconds while visible; job lists poll
+every 5 seconds, with pause and manual refresh.
 The service shares a 30-second statistics snapshot across all clients. Set
 `SUBMISSIONS_DASHBOARD_CACHE_SECONDS` (5–3600, default 30) to tune the interval.
 Expired snapshots return immediately while one background refresh runs. On refresh
@@ -404,15 +405,17 @@ until API producers have rolled back. Older completed scrobbles are not backfill
 ### Dashboard freshness
 
 The dashboard polls `/v1/dashboard/live` every two seconds while automatic
-refresh is enabled. This read-only endpoint shares a two-second sample across
-HTTP workers and queries only active leases, source cursors, and completions
-since the start of the previous minute. It avoids backlog counts and full-hour
-scans. Expired leases are excluded from “Processing now.” Recent chart buckets
-replace their cached counterparts rather than being added twice.
+refresh is enabled. This read-only endpoint coalesces viewers for one second.
+Waiting, active processing, failed, and rolling last-hour completion counts come
+from one database statement, independently of the overview cache. Waiting includes
+jobs scheduled for retry; expired leases are excluded from “Processing now.”
+The endpoint also reads source cursors and recent completion buckets, which replace
+their cached chart counterparts rather than being added twice.
 
-Waiting/failed counts and older history still use `SUBMISSIONS_DASHBOARD_CACHE_SECONDS`;
-completed totals retain their separate 60-second cache. The footer distinguishes
-the totals snapshot from the activity sample. This is near-real-time polling,
-not an event stream: query time and polling can add delay. Job lists/details
-continue polling every five seconds. Activity failures show an explicit stale
-data warning without advancing the activity timestamp.
+Older chart history still uses `SUBMISSIONS_DASHBOARD_CACHE_SECONDS`; retained
+all-time completed totals keep their separate 60-second cache. Neither cache
+supplies the headline counters. The footer distinguishes the live counter sample
+from the history snapshot. This is near-real-time polling, not an event stream:
+query time and polling can add delay. Job lists/details continue polling every
+five seconds. Activity failures show an explicit stale data warning without
+advancing the activity timestamp.

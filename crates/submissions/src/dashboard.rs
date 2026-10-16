@@ -18,6 +18,8 @@ pub struct LiveActivity {
     pub as_of: i64,
     pub since: i64,
     pub processing: Vec<Count>,
+    pub counts: Vec<Count>,
+    pub completed_last_hour: i64,
     pub cursors: Vec<Cursor>,
     pub completions: Vec<Bucket>,
 }
@@ -142,12 +144,12 @@ fn overview_cache_ttl(value: Option<&str>) -> anyhow::Result<Duration> {
 }
 
 impl Queue {
-    /// Small indexed reads, independent of the backlog/hour-long overview scans.
-    /// Share a two-second sample across HTTP workers to bound viewer fan-out.
+    /// Fresh operational counts and activity, independent of the overview TTL.
+    /// Coalesce viewers for one second; each two-second UI poll gets a new sample.
     pub async fn dashboard_live(&self) -> anyhow::Result<LiveActivity> {
         let mut cached = self.dashboard_live_cache.lock().await;
         if let Some((at, value)) = cached.as_ref() {
-            if at.elapsed() < Duration::from_secs(2) {
+            if at.elapsed() < Duration::from_secs(1) {
                 return value.clone().ok_or_else(|| anyhow::anyhow!("live activity temporarily unavailable"));
             }
         }
@@ -162,8 +164,21 @@ impl Queue {
             .fetch_one(&self.pool)
             .await?;
         let since = (as_of / 60 - 1) * 60;
-        let processing = sqlx::query_as::<_, Count>("SELECT kind,status,count(*) AS count,min(created_at) AS oldest_created_at FROM rocksky_durable_jobs WHERE status='processing' AND lease_until>$1 GROUP BY kind,status")
-            .bind(as_of).fetch_all(&self.pool).await?;
+        // One statement gives all headline counts the same database snapshot.
+        // The rolling-hour total is exact, independent of cached chart buckets.
+        let mut counts = sqlx::query_as::<_, Count>(
+            "SELECT kind,status,count(*) AS count,min(created_at) AS oldest_created_at
+             FROM rocksky_durable_jobs WHERE status<>'completed'
+             AND (status<>'processing' OR lease_until>$1) GROUP BY kind,status
+             UNION ALL SELECT '', 'completed_last_hour',count(*),CAST(0 AS BIGINT)
+             FROM rocksky_durable_jobs WHERE status='completed'
+             AND updated_at>$1-3600 AND updated_at<=$1"
+        ).bind(as_of).fetch_all(&self.pool).await?;
+        let completed_last_hour = counts.iter().find(|c| c.status == "completed_last_hour")
+            .map(|c| c.count).unwrap_or(0);
+        counts.retain(|c| c.status != "completed_last_hour");
+        // Retain this field for already-open clients running the previous bundle.
+        let processing = counts.iter().filter(|c| c.status == "processing").cloned().collect();
         let cursors = sqlx::query_as::<_, Cursor>(
             "SELECT source,cursor_value FROM rocksky_durable_cursors ORDER BY source",
         )
@@ -175,6 +190,8 @@ impl Queue {
             as_of,
             since,
             processing,
+            counts,
+            completed_last_hour,
             cursors,
             completions,
         };

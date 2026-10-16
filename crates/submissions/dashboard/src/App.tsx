@@ -203,7 +203,7 @@ function Dashboard() {
             <div className="page-actions">
               <button
                 className={`btn btn-sm ${live ? "live-button" : "btn-ghost"}`}
-                title="Activity every 2s; job lists every 5s; queue totals are cached"
+                title="Queue counters and activity every 2s; job lists every 5s; older history is cached"
                 onClick={() => setLive(!live)}
               >
                 {live ? (
@@ -256,7 +256,7 @@ function Dashboard() {
             </span>
             <span>
               {overview.data
-                ? `Queue totals snapshot ${date(overview.data.as_of)} · Activity ${data?.live_as_of ? date(data.live_as_of) : "awaiting sample"} · Completed totals: 60s cache`
+                ? `Counters and activity ${data?.live_as_of ? date(data.live_as_of) : "awaiting sample"} · History snapshot ${date(overview.data.as_of)}`
                 : "Waiting for first snapshot"}
             </span>
           </footer>
@@ -274,25 +274,25 @@ function OverviewView({ data }: { data: Overview }) {
       .reduce((sum, c) => sum + c.count, 0);
   const pending = data.counts.filter((c) => c.status === "pending");
   const oldest = pending.length
-    ? data.as_of - Math.min(...pending.map((c) => c.oldest_created_at))
+    ? (data.live_as_of ?? data.as_of) - Math.min(...pending.map((c) => c.oldest_created_at))
     : 0;
-  const done = data.completions.reduce((sum, bucket) => sum + bucket.count, 0);
+  const done = data.completed_last_hour;
   return (
     <>
       <div className="metrics">
         {[
           {
             label: "Waiting in queue",
-            value: total("pending"),
-            note: oldest
-              ? `Cached count · oldest waiting ${duration(oldest)}`
-              : "No waiting jobs in cached snapshot",
+            value: data.live_as_of ? total("pending") : undefined,
+            note: !data.live_as_of ? "Awaiting live counters" : oldest
+              ? `Includes delayed retries · oldest ${duration(oldest)}`
+              : "No waiting jobs",
             Icon: IconClock,
             color: "amber",
           },
           {
             label: "Processing now",
-            value: total("processing"),
+            value: data.live_as_of ? total("processing") : undefined,
             note: data.live_as_of ? "Active leases · polled every 2s" : "Awaiting live activity",
             Icon: IconActivity,
             color: "blue",
@@ -300,16 +300,16 @@ function OverviewView({ data }: { data: Overview }) {
           {
             label: "Completed · last hour",
             value: done,
-            note: "Across all queue types",
+            note: "Rolling 60 minutes · polled every 2s",
             Icon: IconCheck,
             color: "green",
           },
           {
             label: "Needs attention",
-            value: total("failed"),
+            value: data.live_as_of ? total("failed") : undefined,
             note: total("failed")
-              ? "Cached count · inspect in Job explorer"
-              : "No failed jobs in cached snapshot",
+              ? "Inspect failures in Job explorer"
+              : "No failed jobs",
             Icon: IconAlertCircle,
             color: "red",
           },
@@ -321,7 +321,7 @@ function OverviewView({ data }: { data: Overview }) {
                 <Icon size={18} />
               </span>
             </div>
-            <strong>{number(value)}</strong>
+            <strong>{value === undefined ? "—" : number(value)}</strong>
             <small>{note}</small>
           </div>
         ))}

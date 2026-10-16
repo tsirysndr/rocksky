@@ -41,6 +41,8 @@ const overview: Overview = {
 const activityFor = (data: Overview): LiveActivity => ({
   as_of: data.as_of, since: Math.floor(data.as_of / 60) * 60 - 60,
   processing: data.counts.filter(c => c.status === "processing"),
+  counts: data.counts.filter(c => c.status !== "completed"),
+  completed_last_hour: data.completions.reduce((sum, b) => sum + b.count, 0),
   cursors: data.cursors,
   completions: data.completions.filter(b => b.minute >= Math.floor(data.as_of / 60) * 60 - 60),
 });
@@ -377,23 +379,28 @@ it("replaces cached processing and recent buckets without doubling completions",
       { kind, minute, count: 2 },
     ],
   };
-  const activity: LiveActivity = { as_of: minute + 5, since: minute - 60, processing: [], cursors: [{source: "new", cursor_value: 5}], completions: [{kind, minute, count: 7}] };
+  const activity: LiveActivity = { as_of: minute + 5, since: minute - 60, processing: [], counts: [], completed_last_hour: 11, cursors: [{source: "new", cursor_value: 5}], completions: [{kind, minute, count: 7}] };
   const merged = mergeActivity(snapshot, activity);
-  expect(merged.counts).toEqual(overview.counts);
+  expect(merged.counts).toEqual([]);
+  expect(merged.completed_last_hour).toBe(11);
   expect(merged.completions.map(b => b.count)).toEqual([4, 7]);
   expect(merged.as_of).toBe(snapshot.as_of);
   expect(merged.live_as_of).toBe(minute + 5);
   expect(merged.cursors).toEqual(activity.cursors);
   expect(mergeActivity(merged, activity)).toEqual(merged);
-  expect(mergeActivity(snapshot, {...activity, as_of: minute - 1})).toBe(snapshot);
+  expect(mergeActivity(snapshot, {...activity, as_of: minute - 1}).completed_last_hour).toBe(11);
 });
 
-it("renders fresh activity separately from cached queue totals", async () => {
-  const activity: LiveActivity = { ...activityFor(overview), as_of: overview.as_of + 5, processing: [{kind: "jetstream.commit.v1", status: "processing", count: 7, oldest_created_at: overview.as_of}] };
+it("renders all headline counters from live data instead of cached totals", async () => {
+  const activity: LiveActivity = { ...activityFor(overview), as_of: overview.as_of + 5, processing: [{kind: "jetstream.commit.v1", status: "processing", count: 7, oldest_created_at: overview.as_of}], counts: [
+    {kind: "jetstream.commit.v1", status: "processing", count: 7, oldest_created_at: overview.as_of},
+    {kind: "jetstream.commit.v1", status: "pending", count: 3, oldest_created_at: overview.as_of},
+  ], completed_last_hour: 123 };
   vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith("/live") ? activity : overview), {status: 200})));
   setup();
   await screen.findByText("Active leases · polled every 2s");
   expect(screen.getByText("Processing now").closest(".metric")?.textContent).toContain("7");
-  expect(screen.getByText("Waiting in queue").closest(".metric")?.textContent).toContain("Cached count");
-  expect(screen.getByText(/Queue totals snapshot/)).toBeTruthy();
+  expect(screen.getByText("Waiting in queue").closest(".metric")?.querySelector("strong")?.textContent).toBe("3");
+  expect(screen.getByText("Completed · last hour").closest(".metric")?.querySelector("strong")?.textContent).toBe("123");
+  expect(screen.getByText(/Counters and activity/)).toBeTruthy();
 });
