@@ -1,3 +1,4 @@
 (tests
- (names test_matcher test_normalize test_policy test_json test_adapters test_catalog test_runtime test_cache)
- (libraries matcher))
+ (names test_matcher test_normalize test_policy test_json test_adapters test_catalog test_runtime test_cache test_parity test_postgres)
+ (libraries matcher)
+ (deps fixtures/policy.json))

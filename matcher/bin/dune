@@ -3,3 +3,8 @@
  (name main)
  (modules main)
  (libraries matcher))
+
+(executable
+ (name benchmark)
+ (modules benchmark)
+ (libraries matcher))
