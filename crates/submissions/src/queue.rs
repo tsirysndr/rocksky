@@ -12,6 +12,7 @@ pub struct Queue {
     wake: std::sync::Arc<tokio::sync::Notify>,
     pub(crate) dashboard_completed_cache: std::sync::Arc<crate::dashboard::CompletedCache>,
     pub(crate) dashboard_search_cache: std::sync::Arc<crate::dashboard::SearchCache>,
+    pub(crate) dashboard_refresh: std::sync::Arc<tokio::sync::Mutex<()>>,
     pub(crate) dashboard_cache: std::sync::Arc<crate::dashboard::Cache>,
 }
 
@@ -167,6 +168,7 @@ impl Queue {
             pool,
             postgres,
             dashboard_cache: Default::default(),
+            dashboard_refresh: Default::default(),
             dashboard_search_cache: Default::default(),
             dashboard_completed_cache: Default::default(),
             wake: std::sync::Arc::new(tokio::sync::Notify::new()),

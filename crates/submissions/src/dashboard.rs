@@ -119,15 +119,65 @@ fn valid_id(id: &str) -> bool {
     id.len() == 64 && id.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
+fn overview_cache_ttl(value: Option<&str>) -> anyhow::Result<Duration> {
+    let seconds: u64 = value
+        .unwrap_or("30")
+        .parse()
+        .map_err(|_| anyhow::anyhow!("SUBMISSIONS_DASHBOARD_CACHE_SECONDS must be an integer"))?;
+    anyhow::ensure!(
+        (5..=3600).contains(&seconds),
+        "SUBMISSIONS_DASHBOARD_CACHE_SECONDS must be between 5 and 3600"
+    );
+    Ok(Duration::from_secs(seconds))
+}
+
 impl Queue {
     pub async fn dashboard_overview(&self) -> anyhow::Result<Overview> {
-        // Shared by all Actix workers: one live snapshot per five seconds regardless of viewer count.
-        let mut cache = self.dashboard_cache.lock().await;
-        if let Some((at, value)) = cache.as_ref() {
-            if at.elapsed() < Duration::from_secs(5) {
-                return Ok(value.clone());
+        let seconds = std::env::var("SUBMISSIONS_DASHBOARD_CACHE_SECONDS").ok();
+        let ttl = overview_cache_ttl(seconds.as_deref())?;
+        self.cached_dashboard_overview(ttl).await
+    }
+
+    async fn cached_dashboard_overview(&self, ttl: Duration) -> anyhow::Result<Overview> {
+        let cached = self.dashboard_cache.lock().await.clone();
+        if let Some((at, value)) = cached {
+            if at.elapsed() >= ttl {
+                // One refresh across all HTTP workers; stale readers never wait
+                // behind a database scan. The timestamp remains the sample time.
+                if let Ok(guard) = self.dashboard_refresh.clone().try_lock_owned() {
+                    let queue = self.clone();
+                    tokio::spawn(async move {
+                        let _guard = guard;
+                        if queue
+                            .dashboard_cache
+                            .lock()
+                            .await
+                            .as_ref()
+                            .is_some_and(|(at, _)| at.elapsed() < ttl)
+                        {
+                            return;
+                        }
+                        if let Err(error) = queue.refresh_dashboard_overview().await {
+                            tracing::warn!(%error, "Dashboard refresh failed; retaining last snapshot");
+                            // Back off for a full TTL instead of retrying on every poll.
+                            if let Some((at, _)) = queue.dashboard_cache.lock().await.as_mut() {
+                                *at = Instant::now();
+                            }
+                        }
+                    });
+                }
             }
+            return Ok(value);
         }
+        // Cold start waits for one snapshot, even with concurrent first viewers.
+        let _guard = self.dashboard_refresh.lock().await;
+        if let Some((_, value)) = self.dashboard_cache.lock().await.as_ref() {
+            return Ok(value.clone());
+        }
+        self.refresh_dashboard_overview().await
+    }
+
+    async fn refresh_dashboard_overview(&self) -> anyhow::Result<Overview> {
         let as_of: i64 = sqlx::query_scalar(&format!("SELECT {}", self.now()))
             .fetch_one(&self.pool)
             .await?;
@@ -161,7 +211,7 @@ impl Queue {
             completions,
             cleanup: CleanupSettings::from_env()?,
         };
-        *cache = Some((Instant::now(), value.clone()));
+        *self.dashboard_cache.lock().await = Some((Instant::now(), value.clone()));
         Ok(value)
     }
     pub async fn dashboard_jobs(&self, filter: &JobFilter) -> anyhow::Result<JobPage> {

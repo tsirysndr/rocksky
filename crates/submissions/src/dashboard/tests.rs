@@ -429,3 +429,100 @@ async fn teal_metadata_is_searchable_without_exposing_private_fields() {
     assert_eq!(value["did"], "did:plc:test");
     assert!(!value.to_string().contains("private"));
 }
+
+#[actix_web::test]
+async fn overview_cache_configuration() {
+    assert_eq!(overview_cache_ttl(None).unwrap(), Duration::from_secs(30));
+    assert_eq!(
+        overview_cache_ttl(Some("60")).unwrap(),
+        Duration::from_secs(60)
+    );
+    for value in ["0", "4", "3601", "-1", "invalid"] {
+        assert!(overview_cache_ttl(Some(value)).is_err());
+    }
+}
+
+async fn cache_contract(queue: Queue) {
+    let ttl = Duration::from_secs(30);
+    let first = queue.cached_dashboard_overview(ttl).await.unwrap();
+    let initial = first.counts.iter().map(|c| c.count).sum::<i64>();
+    queue
+        .enqueue("cache.test", "one", "hash", "{}")
+        .await
+        .unwrap();
+    // A fresh snapshot does not run the aggregate again after a write.
+    let cached = queue.cached_dashboard_overview(ttl).await.unwrap();
+    assert_eq!(cached.counts.iter().map(|c| c.count).sum::<i64>(), initial);
+    queue.dashboard_cache.lock().await.as_mut().unwrap().0 = Instant::now() - ttl;
+    // Simulate an in-flight refresh: every reader returns stale immediately.
+    let guard = queue.dashboard_refresh.lock().await;
+    for _ in 0..20 {
+        let stale = tokio::time::timeout(
+            Duration::from_millis(500),
+            queue.cached_dashboard_overview(ttl),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(stale.as_of, first.as_of);
+    }
+    drop(guard);
+    let stale = queue.cached_dashboard_overview(ttl).await.unwrap();
+    assert_eq!(stale.counts.iter().map(|c| c.count).sum::<i64>(), initial);
+    // The background task owns the single refresh permit before returning.
+    assert!(queue.dashboard_refresh.try_lock().is_err());
+    let guard = queue.dashboard_refresh.lock().await;
+    drop(guard);
+    let fresh = queue.cached_dashboard_overview(ttl).await.unwrap();
+    assert_eq!(
+        fresh.counts.iter().map(|c| c.count).sum::<i64>(),
+        initial + 1
+    );
+    // Database outage retains the snapshot and backs off without falsifying as_of.
+    queue.pool.close().await;
+    queue.dashboard_cache.lock().await.as_mut().unwrap().0 = Instant::now() - ttl;
+    assert_eq!(
+        queue.cached_dashboard_overview(ttl).await.unwrap().as_of,
+        fresh.as_of
+    );
+    let guard = queue.dashboard_refresh.lock().await;
+    drop(guard);
+    let cache = queue.dashboard_cache.lock().await;
+    assert!(cache.as_ref().unwrap().0.elapsed() < ttl);
+    assert_eq!(cache.as_ref().unwrap().1.as_of, fresh.as_of);
+}
+
+#[cfg(feature = "sqlite")]
+#[actix_web::test]
+async fn sqlite_overview_cache_contract() {
+    let dir = tempfile::tempdir().unwrap();
+    let queue = Queue::connect(&format!(
+        "sqlite://{}?mode=rwc",
+        dir.path().join("cache.sqlite").display()
+    ))
+    .await
+    .unwrap();
+    cache_contract(queue).await;
+}
+
+#[cfg(feature = "postgres")]
+#[actix_web::test]
+#[ignore = "requires SUBMISSIONS_TEST_POSTGRES_URL"]
+async fn postgres_overview_cache_contract() {
+    let url = std::env::var("SUBMISSIONS_TEST_POSTGRES_URL").unwrap();
+    let admin = Queue::connect(&url).await.unwrap();
+    let schema = format!("cache_test_{}", uuid::Uuid::new_v4().simple());
+    sqlx::query(&format!("CREATE SCHEMA {schema}"))
+        .execute(&admin.pool)
+        .await
+        .unwrap();
+    let mut scoped = reqwest::Url::parse(&url).unwrap();
+    scoped
+        .query_pairs_mut()
+        .append_pair("options", &format!("-csearch_path={schema}"));
+    cache_contract(Queue::connect(scoped.as_str()).await.unwrap()).await;
+    sqlx::query(&format!("DROP SCHEMA {schema} CASCADE"))
+        .execute(&admin.pool)
+        .await
+        .unwrap();
+}

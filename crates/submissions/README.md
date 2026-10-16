@@ -276,7 +276,12 @@ Raw payloads, request fingerprints, lease tokens, checkpoint results and arbitra
 error messages are excluded from public responses. Selected song fields and the
 listener DID are public in job details.
 Live views poll every 5 seconds while visible, with pause and manual refresh.
-The service shares a 5-second snapshot cache across clients; retained completed
+The service shares a 30-second statistics snapshot across all clients. Set
+`SUBMISSIONS_DASHBOARD_CACHE_SECONDS` (5–3600, default 30) to tune the interval.
+Expired snapshots return immediately while one background refresh runs. On refresh
+failure the last snapshot is retained, with retries limited to once per interval;
+`as_of` remains the actual sample timestamp. The first request waits for a snapshot.
+Job lists/details still poll every 5 seconds independently. Retained completed
 totals are cached for 60 seconds. Cursor age measures the last captured event,
 not necessarily source backlog. An active process is not proof of progress:
 watch pending age and completed activity together.
