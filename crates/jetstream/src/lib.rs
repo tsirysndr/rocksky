@@ -24,7 +24,7 @@ pub async fn subscribe() -> Result<(), Error> {
     let queue_key =
         env::var("WEBHOOK_QUEUE_KEY").unwrap_or_else(|_| "rocksky:webhook_queue".to_string());
 
-    let state = Arc::new(Mutex::new(AppState { redis, queue_key }));
+    let state = Arc::new(Mutex::new(AppState::new(redis, queue_key)));
 
     let servers = source::configured_sources()?;
     start_worker(state.clone()).await?;

@@ -5,12 +5,47 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{sync::Mutex, time::interval};
+use tokio::{
+    sync::{Mutex, OnceCell},
+    time::interval,
+};
 
 #[derive(Clone)]
 pub struct AppState {
     pub redis: redis::Client,
     pub queue_key: String,
+    producer: Arc<OnceCell<redis::aio::ConnectionManager>>,
+    consumer: Arc<OnceCell<redis::aio::ConnectionManager>>,
+}
+
+impl AppState {
+    pub fn new(redis: redis::Client, queue_key: String) -> Self {
+        Self {
+            redis,
+            queue_key,
+            producer: Arc::new(OnceCell::new()),
+            consumer: Arc::new(OnceCell::new()),
+        }
+    }
+
+    async fn connection(
+        &self,
+        consumer: bool,
+    ) -> redis::RedisResult<redis::aio::ConnectionManager> {
+        let slot = if consumer {
+            &self.consumer
+        } else {
+            &self.producer
+        };
+        slot.get_or_try_init(|| async {
+            let config = redis::aio::ConnectionManagerConfig::new()
+                .set_connection_timeout(Duration::from_secs(5))
+                .set_response_timeout(Duration::from_secs(5));
+            redis::aio::ConnectionManager::new_with_config(self.redis.clone(), config).await
+        })
+        .await
+        .cloned()
+    }
 }
 
 pub async fn start_worker(state: Arc<Mutex<AppState>>) -> Result<(), Error> {
@@ -102,13 +137,11 @@ async fn brpop_once(
     state: Arc<Mutex<AppState>>,
     timeout_secs: u64,
 ) -> redis::RedisResult<Option<String>> {
-    let AppState {
-        redis: client,
-        queue_key: key,
-    } = state.lock().await.clone();
+    let state = state.lock().await.clone();
+    let key = &state.queue_key;
     // Release the state lock before connection setup and the blocking pop.
     // Producers must remain able to enqueue while the consumer waits for data.
-    let mut conn = client.get_multiplexed_async_connection().await?;
+    let mut conn = state.connection(true).await?;
     let res: Option<(String, String)> = redis::cmd("BRPOP")
         .arg(&key)
         .arg(timeout_secs as usize)
@@ -122,11 +155,9 @@ pub async fn push_to_queue(
     item: &WebhookEnvelope,
 ) -> redis::RedisResult<()> {
     let payload = serde_json::to_string(item).unwrap();
-    let AppState {
-        redis: client,
-        queue_key: key,
-    } = state.lock().await.clone();
-    let mut conn = client.get_multiplexed_async_connection().await?;
+    let state = state.lock().await.clone();
+    let key = &state.queue_key;
+    let mut conn = state.connection(false).await?;
     let _: () = redis::pipe()
         .cmd("RPUSH")
         .arg(&key)
@@ -151,10 +182,7 @@ mod tests {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let client =
             redis::Client::open(format!("redis://{}", listener.local_addr().unwrap())).unwrap();
-        let state = Arc::new(Mutex::new(AppState {
-            redis: client,
-            queue_key: "test".into(),
-        }));
+        let state = Arc::new(Mutex::new(AppState::new(client, "test".into())));
         let worker_state = state.clone();
         let worker = tokio::spawn(async move {
             if producer {
@@ -180,6 +208,129 @@ mod tests {
         worker.abort();
         let _ = worker.await;
         assert!(unlocked, "Redis I/O held the shared webhook state lock");
+    }
+
+    #[tokio::test]
+    async fn reuses_connections_and_enqueues_while_consumer_is_blocked() {
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+        use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let state = Arc::new(Mutex::new(AppState::new(
+            redis::Client::open(format!("redis://{}", listener.local_addr().unwrap())).unwrap(),
+            "test".into(),
+        )));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let pushes = Arc::new(AtomicUsize::new(0));
+        let disconnect = Arc::new(AtomicBool::new(false));
+        let blocked = Arc::new(tokio::sync::Notify::new());
+        let release = Arc::new(tokio::sync::Notify::new());
+        let server = tokio::spawn({
+            let accepted = accepted.clone();
+            let pushes = pushes.clone();
+            let disconnect = disconnect.clone();
+            let blocked = blocked.clone();
+            let release = release.clone();
+            async move {
+                let mut connections = tokio::task::JoinSet::new();
+                loop {
+                    let (socket, _) = listener.accept().await.unwrap();
+                    accepted.fetch_add(1, Ordering::SeqCst);
+                    let pushes = pushes.clone();
+                    let disconnect = disconnect.clone();
+                    let blocked = blocked.clone();
+                    let release = release.clone();
+                    connections.spawn(async move {
+                        let mut socket = BufReader::new(socket);
+                        loop {
+                            let mut line = String::new();
+                            if socket.read_line(&mut line).await.unwrap() == 0 {
+                                break;
+                            }
+                            let count: usize =
+                                line.trim().strip_prefix('*').unwrap().parse().unwrap();
+                            let mut args = Vec::new();
+                            for _ in 0..count {
+                                line.clear();
+                                socket.read_line(&mut line).await.unwrap();
+                                let len: usize =
+                                    line.trim().strip_prefix('$').unwrap().parse().unwrap();
+                                let mut data = vec![0; len + 2];
+                                socket.read_exact(&mut data).await.unwrap();
+                                args.push(String::from_utf8(data[..len].to_vec()).unwrap());
+                            }
+                            let response: &[u8] = match args[0].as_str() {
+                                "BRPOP" => {
+                                    blocked.notify_one();
+                                    release.notified().await;
+                                    b"*-1\r\n"
+                                }
+                                "RPUSH" => {
+                                    if disconnect.swap(false, Ordering::SeqCst) {
+                                        return;
+                                    }
+                                    pushes.fetch_add(1, Ordering::SeqCst);
+                                    b":1\r\n"
+                                }
+                                "EXPIRE" => b":1\r\n",
+                                // redis-rs connection initialization.
+                                "CLIENT" | "SELECT" => b"+OK\r\n",
+                                other => panic!("unexpected Redis command: {other}"),
+                            };
+                            socket.get_mut().write_all(response).await.unwrap();
+                        }
+                    });
+                }
+            }
+        });
+        let consumer = tokio::spawn(brpop_once(state.clone(), 1));
+        timeout(Duration::from_secs(5), blocked.notified())
+            .await
+            .unwrap();
+        let item: WebhookEnvelope = serde_json::from_value(serde_json::json!({
+            "id":"test", "data": {
+                "user":{"did":"did:test","display_name":"test","handle":"test","avatar_url":""},
+                "track":{"title":"test","artist":"test","album":"test","duration":1},
+                "played_at":"2026-01-01T00:00:00Z"
+            }
+        }))
+        .unwrap();
+        let mut producers = tokio::task::JoinSet::new();
+        for _ in 0..10 {
+            let state = state.clone();
+            let item = item.clone();
+            producers.spawn(async move {
+                push_to_queue(state, &item).await.unwrap();
+            });
+        }
+        timeout(Duration::from_secs(3), async {
+            while let Some(result) = producers.join_next().await {
+                result.unwrap();
+            }
+        })
+        .await
+        .expect("producer blocked behind BRPOP");
+        assert_eq!(pushes.load(Ordering::SeqCst), 10);
+        assert_eq!(accepted.load(Ordering::SeqCst), 2);
+        // A broken producer socket must recover without replacing AppState.
+        disconnect.store(true, Ordering::SeqCst);
+        assert!(push_to_queue(state.clone(), &item).await.is_err());
+        timeout(Duration::from_secs(5), push_to_queue(state.clone(), &item))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(pushes.load(Ordering::SeqCst), 11);
+        assert_eq!(accepted.load(Ordering::SeqCst), 3);
+        release.notify_one();
+        assert!(consumer.await.unwrap().unwrap().is_none());
+        release.notify_one();
+        assert!(brpop_once(state, 1).await.unwrap().is_none());
+        assert_eq!(
+            accepted.load(Ordering::SeqCst),
+            3,
+            "consumer must also reuse its connection"
+        );
+        server.abort();
+        let _ = server.await;
     }
 
     #[tokio::test]

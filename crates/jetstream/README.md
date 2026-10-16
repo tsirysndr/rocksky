@@ -128,3 +128,10 @@ any statement failure rolls back the job's catalog and listen writes together.
 Webhook producers and the blocking Redis consumer only lock shared configuration
 long enough to clone it. Connection setup, enqueueing, and blocking pops run
 outside that lock so a slow Redis operation cannot serialize scrobble workers.
+
+Existing album, artist, and track identities are resolved in one query per
+scrobble, preserving hash → MusicBrainz ID → ISRC track matching. Missing rows
+use the existing conflict-safe creation path inside the indexing transaction.
+NATS publication and the Discord webhook share the same freshly loaded user.
+Webhook Redis connections are initialized lazily and reused with automatic
+reconnection; the blocking consumer has a separate connection from producers.

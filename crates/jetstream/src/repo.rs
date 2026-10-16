@@ -120,9 +120,8 @@ pub async fn save_scrobble(
 
                 let mut tx = pool.begin().await?;
 
-                let album_id = save_album(&mut tx, scrobble_record.clone()).await?;
-                let artist_id = save_artist(&mut tx, scrobble_record.clone()).await?;
-                let track_id = save_track(&mut tx, scrobble_record.clone()).await?;
+                let (album_id, artist_id, track_id) =
+                    resolve_scrobble_catalog(&mut tx, &scrobble_record).await?;
 
                 let timestamp = DateTime::parse_from_rfc3339(&scrobble_record.created_at)?
                     .with_timezone(&chrono::Utc);
@@ -145,8 +144,6 @@ pub async fn save_scrobble(
 
                 nc.publish("rocksky.scrobble.new", scrobble_id.into())
                     .await?;
-                publish_user(&nc, &pool, &user_id).await?;
-
                 let users: Vec<User> = sql::fetch_all(
                     &*pool,
                     &Query::select()
@@ -163,6 +160,8 @@ pub async fn save_scrobble(
                         did
                     ));
                 }
+
+                publish_user_record(&nc, &users[0]).await?;
 
                 // Push to webhook queue (Discord)
                 match push_to_queue(
@@ -475,8 +474,10 @@ pub async fn publish_user(nc: &async_nats::Client, pool: &Backend, id: &str) -> 
         return Ok(());
     }
 
-    let u = &users[0];
+    publish_user_record(nc, &users[0]).await
+}
 
+async fn publish_user_record(nc: &async_nats::Client, u: &User) -> Result<(), Error> {
     let payload = json!({
         "xata_id": u.xata_id,
         "did": u.did,
@@ -584,18 +585,92 @@ fn bump_scrobbles(
         .to_owned()
 }
 
+#[derive(sqlx::FromRow, Debug, PartialEq)]
+struct CatalogIdentity {
+    album_id: Option<String>,
+    artist_id: Option<String>,
+    track_id: Option<String>,
+}
+
+fn album_hash(record: &ScrobbleRecord) -> String {
+    sha256::digest(format!("{} - {}", record.album, record.album_artist).to_lowercase())
+}
+
+fn artist_hash(record: &ScrobbleRecord) -> String {
+    sha256::digest(record.album_artist.to_lowercase())
+}
+
+fn track_hash(record: &ScrobbleRecord) -> String {
+    sha256::digest(
+        format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
+    )
+}
+
+fn scrobble_catalog_query(record: &ScrobbleRecord) -> SelectStatement {
+    let album_hash = album_hash(record);
+    let artist_hash = artist_hash(record);
+    let track_hash = track_hash(record);
+    let identifier = |value: &Option<String>| {
+        value
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+    };
+    let mbid = identifier(&record.mbid);
+    let isrc = identifier(&record.isrc);
+    let mut track = track_by_hash_or_id(&track_hash, mbid.as_deref(), isrc.as_deref());
+    track.clear_selects().column(Tracks::XataId);
+    let scalar = |query: SelectStatement| {
+        sea_query::SimpleExpr::SubQuery(
+            None,
+            Box::new(sea_query::SubQueryStatement::SelectStatement(query)),
+        )
+    };
+    Query::select()
+        .expr_as(
+            scalar(id_by_sha256(Albums::Table, &album_hash)),
+            Alias::new("album_id"),
+        )
+        .expr_as(
+            scalar(id_by_sha256(Artists::Table, &artist_hash)),
+            Alias::new("artist_id"),
+        )
+        .expr_as(scalar(track), Alias::new("track_id"))
+        .take()
+}
+
+/// Resolve existing catalog identities in one round trip on either backend.
+/// Missing records use the existing conflict-safe insertion path, in the same
+/// transaction. Keep track matching precedence identical to song indexing.
+async fn resolve_scrobble_catalog(
+    tx: &mut rocksky_db::tx::Tx<'_>,
+    record: &ScrobbleRecord,
+) -> Result<(String, String, String), Error> {
+    let found: CatalogIdentity = tx
+        .fetch_optional(&scrobble_catalog_query(record))
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("catalog lookup returned no row"))?;
+    let album = match found.album_id {
+        Some(id) => id,
+        None => insert_album(tx, record.clone(), album_hash(record)).await?,
+    };
+    let artist = match found.artist_id {
+        Some(id) => id,
+        None => insert_artist(tx, record.clone(), artist_hash(record)).await?,
+    };
+    let track = match found.track_id {
+        Some(id) => id,
+        None => insert_track(tx, record.clone(), track_hash(record)).await?,
+    };
+    Ok((album, artist, track))
+}
+
 pub async fn save_track(
     tx: &mut rocksky_db::tx::Tx<'_>,
     scrobble_record: ScrobbleRecord,
 ) -> Result<String, Error> {
-    let uri: Option<String> = None;
-    let hash = sha256::digest(
-        format!(
-            "{} - {} - {}",
-            scrobble_record.title, scrobble_record.artist, scrobble_record.album
-        )
-        .to_lowercase(),
-    );
+    let hash = track_hash(&scrobble_record);
 
     // Fall back to MBID or ISRC when the source supplied one — covers cosmetic
     // title variations between scrobble sources that the sha256 hash would miss.
@@ -618,6 +693,15 @@ pub async fn save_track(
         return Ok(t.xata_id);
     }
 
+    insert_track(tx, scrobble_record, hash).await
+}
+
+async fn insert_track(
+    tx: &mut rocksky_db::tx::Tx<'_>,
+    scrobble_record: ScrobbleRecord,
+    hash: String,
+) -> Result<String, Error> {
+    let uri: Option<String> = None;
     // DO UPDATE SET sha256 = tracks.sha256 forces RETURNING to fire on conflict,
     // so a concurrent insert of the same sha256 still gives us back the existing
     // xata_id instead of needing a follow-up SELECT.
@@ -684,13 +768,7 @@ pub async fn save_album(
     tx: &mut rocksky_db::tx::Tx<'_>,
     scrobble_record: ScrobbleRecord,
 ) -> Result<String, Error> {
-    let hash = sha256::digest(
-        format!(
-            "{} - {}",
-            scrobble_record.album, scrobble_record.album_artist
-        )
-        .to_lowercase(),
-    );
+    let hash = album_hash(&scrobble_record);
 
     let existing: Option<String> = tx.fetch_scalar(&id_by_sha256(Albums::Table, &hash)).await?;
 
@@ -699,6 +777,14 @@ pub async fn save_album(
         return Ok(id);
     }
 
+    insert_album(tx, scrobble_record, hash).await
+}
+
+async fn insert_album(
+    tx: &mut rocksky_db::tx::Tx<'_>,
+    scrobble_record: ScrobbleRecord,
+    hash: String,
+) -> Result<String, Error> {
     tracing::info!(name = %scrobble_record.album, "Saving new album");
 
     let uri: Option<String> = None;
@@ -742,7 +828,7 @@ pub async fn save_artist(
     tx: &mut rocksky_db::tx::Tx<'_>,
     scrobble_record: ScrobbleRecord,
 ) -> Result<String, Error> {
-    let hash = sha256::digest(scrobble_record.album_artist.to_lowercase());
+    let hash = artist_hash(&scrobble_record);
     let existing: Option<String> = tx
         .fetch_scalar(&id_by_sha256(Artists::Table, &hash))
         .await?;
@@ -752,6 +838,14 @@ pub async fn save_artist(
         return Ok(id);
     }
 
+    insert_artist(tx, scrobble_record, hash).await
+}
+
+async fn insert_artist(
+    tx: &mut rocksky_db::tx::Tx<'_>,
+    scrobble_record: ScrobbleRecord,
+    hash: String,
+) -> Result<String, Error> {
     tracing::info!(name = %scrobble_record.album_artist, "Saving new artist");
 
     let uri: Option<String> = None;
@@ -1890,6 +1984,148 @@ mod sqlite_behaviour {
             .execute(&admin)
             .await
             .unwrap();
+    }
+
+    async fn catalog_lookup_contract(db: Backend) {
+        // Minimal identity tables prove the batched read needs no full metadata.
+        for table in ["albums", "artists"] {
+            db.execute(&db.sql(format!(
+                "CREATE TEMP TABLE {table} (xata_id TEXT PRIMARY KEY, sha256 TEXT UNIQUE)"
+            )))
+            .await
+            .unwrap();
+        }
+        db.execute(&db.sql("CREATE TEMP TABLE tracks (xata_id TEXT PRIMARY KEY, sha256 TEXT UNIQUE, mb_id TEXT, isrc TEXT)")).await.unwrap();
+        let mut record = a_scrobble("Track", "Album", "Artist");
+        record.mbid = Some(" mb ".into());
+        record.isrc = Some(" isrc ".into());
+        let mut tx = db.begin().await.unwrap();
+        let empty: CatalogIdentity = tx
+            .fetch_optional(&scrobble_catalog_query(&record))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            empty,
+            CatalogIdentity {
+                album_id: None,
+                artist_id: None,
+                track_id: None
+            }
+        );
+        for (table, hash, id) in [
+            ("albums", sha256::digest("album - artist"), "album"),
+            ("artists", sha256::digest("artist"), "artist"),
+        ] {
+            tx.execute(
+                &Query::insert()
+                    .into_table(Alias::new(table))
+                    .columns([Alias::new("xata_id"), Alias::new("sha256")])
+                    .values_panic([id.into(), hash.into()])
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        }
+        for (id, hash, mb, isrc) in [
+            ("isrc", "other", "other", "isrc"),
+            ("mb", "another", "mb", "different"),
+            (
+                "exact",
+                &sha256::digest("track - artist - album"),
+                "different",
+                "different",
+            ),
+        ] {
+            tx.execute(
+                &Query::insert()
+                    .into_table(Tracks::Table)
+                    .columns([Tracks::XataId, Tracks::Sha256, Tracks::MbId, Tracks::Isrc])
+                    .values_panic([id.into(), hash.into(), mb.into(), isrc.into()])
+                    .to_owned(),
+            )
+            .await
+            .unwrap();
+        }
+        assert_eq!(
+            resolve_scrobble_catalog(&mut tx, &record).await.unwrap(),
+            ("album".into(), "artist".into(), "exact".into())
+        );
+        record.title = "Variant".into();
+        assert_eq!(
+            resolve_scrobble_catalog(&mut tx, &record).await.unwrap().2,
+            "mb"
+        );
+        record.mbid = Some(" ".into());
+        assert_eq!(
+            resolve_scrobble_catalog(&mut tx, &record).await.unwrap().2,
+            "isrc"
+        );
+        record.isrc = None;
+        let missing: CatalogIdentity = tx
+            .fetch_optional(&scrobble_catalog_query(&record))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(missing.album_id.as_deref(), Some("album"));
+        assert_eq!(missing.artist_id.as_deref(), Some("artist"));
+        assert_eq!(missing.track_id, None);
+        tx.rollback().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn batched_catalog_lookup_on_sqlite() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        catalog_lookup_contract(Backend::Sqlite(pool)).await;
+    }
+
+    #[tokio::test]
+    async fn batched_catalog_lookup_on_postgres() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            return;
+        };
+        let primary = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&url)
+            .await
+            .unwrap();
+        catalog_lookup_contract(Backend::Postgres {
+            primary,
+            replica: None,
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn batched_catalog_creates_missing_records_and_rolls_back() {
+        let db = db().await;
+        let record = a_scrobble("Track", "Album", "Artist");
+        let mut tx = db.begin().await.unwrap();
+        let first = resolve_scrobble_catalog(&mut tx, &record).await.unwrap();
+        assert_eq!(
+            resolve_scrobble_catalog(&mut tx, &record).await.unwrap(),
+            first
+        );
+        let mut variant = record.clone();
+        variant.title = "Another track".into();
+        let second = resolve_scrobble_catalog(&mut tx, &variant).await.unwrap();
+        assert_eq!(first.0, second.0);
+        assert_eq!(first.1, second.1);
+        assert_ne!(first.2, second.2);
+        tx.rollback().await.unwrap();
+        for table in ["tracks", "albums", "artists"] {
+            assert_eq!(count(&db, table).await, 0);
+        }
+        let mut tx = db.begin().await.unwrap();
+        resolve_scrobble_catalog(&mut tx, &record).await.unwrap();
+        tx.commit().await.unwrap();
+        for table in ["tracks", "albums", "artists"] {
+            assert_eq!(count(&db, table).await, 1);
+        }
     }
 
     async fn track_identity_contract(db: Backend) {
