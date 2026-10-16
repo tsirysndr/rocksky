@@ -113,3 +113,14 @@ primary database for the same record URI, listening timestamp and track content
 hash. Exact matches complete through the durable worker without repeating catalog
 writes or notifications. Missing or changed records use the normal indexing and
 deduplication path. This is particularly useful when replaying a historical inbox.
+
+### Scrobble indexing write batch
+
+PostgreSQL indexes a scrobble's album-track, artist-track, artist-album links and
+listen row in one data-modifying CTE statement inside the existing transaction.
+This reduces that stage from 4–7 database round trips to one; catalog resolution
+still precedes it. No collection window or cross-job transaction is introduced,
+so jobs retain independent leases, retries and notification deduplication. SQLite
+keeps the transactional sequential path because it has no data-modifying CTEs.
+An existing user/track/timestamp returns no new listen ID and skips notification;
+any statement failure rolls back the job's catalog and listen writes together.

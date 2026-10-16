@@ -124,54 +124,12 @@ pub async fn save_scrobble(
                 let artist_id = save_artist(&mut tx, scrobble_record.clone()).await?;
                 let track_id = save_track(&mut tx, scrobble_record.clone()).await?;
 
-                save_album_track(&mut tx, &album_id, &track_id).await?;
-                save_artist_track(&mut tx, &artist_id, &track_id).await?;
-                save_artist_album(&mut tx, &artist_id, &album_id).await?;
-
-                tracing::info!(title = %scrobble_record.title.magenta(), artist = %scrobble_record.artist.magenta(), album = %scrobble_record.album.magenta(), "Saving scrobble");
-
-                // ON CONFLICT on the (user, track, timestamp) composite drops the
-                // race between concurrent sources (Spotify webhook, Last.fm mirror,
-                // Navidrome, etc.) that each publish their own at-uri for the same
-                // listen. RETURNING is empty on conflict — that's the signal to
-                // skip the downstream fan-out (NATS + Discord) so we don't double-
-                // fire for what is, by definition, the same scrobble.
-                let insert = Query::insert()
-                    .into_table(Scrobbles::Table)
-                    .columns([
-                        Scrobbles::XataId,
-                        Scrobbles::AlbumId,
-                        Scrobbles::ArtistId,
-                        Scrobbles::TrackId,
-                        Scrobbles::Uri,
-                        Scrobbles::UserId,
-                        Scrobbles::Timestamp,
-                    ])
-                    .values_panic([
-                        rocksky_db::new_id().into(),
-                        album_id.into(),
-                        artist_id.into(),
-                        track_id.into(),
-                        uri.into(),
-                        user_id.clone().into(),
-                        DateTime::parse_from_rfc3339(&scrobble_record.created_at)
-                            .unwrap()
-                            .with_timezone(&chrono::Utc)
-                            .into(),
-                    ])
-                    .on_conflict(
-                        OnConflict::columns([
-                            Scrobbles::UserId,
-                            Scrobbles::TrackId,
-                            Scrobbles::Timestamp,
-                        ])
-                        .do_nothing()
-                        .to_owned(),
-                    )
-                    .returning_col(Scrobbles::XataId)
-                    .to_owned();
-
-                let scrobble_id: Option<String> = tx.fetch_scalar(&insert).await?;
+                let timestamp = DateTime::parse_from_rfc3339(&scrobble_record.created_at)?
+                    .with_timezone(&chrono::Utc);
+                let scrobble_id = index_scrobble_links(
+                    &mut tx, &album_id, &artist_id, &track_id, &user_id, &uri, timestamp,
+                )
+                .await?;
 
                 tx.commit().await?;
 
@@ -833,6 +791,94 @@ pub async fn save_artist(
     tx.fetch_scalar(&insert)
         .await?
         .ok_or_else(|| anyhow::anyhow!("insert returned no row"))
+}
+
+/// Batch the relationship writes and listen insert in one PostgreSQL round trip.
+/// The catalog IDs already exist in this transaction. An existing listen returns
+/// None so the caller retains its duplicate-notification suppression.
+async fn index_scrobble_links(
+    tx: &mut rocksky_db::tx::Tx<'_>,
+    album_id: &str,
+    artist_id: &str,
+    track_id: &str,
+    user_id: &str,
+    uri: &str,
+    timestamp: DateTime<chrono::Utc>,
+) -> Result<Option<String>, Error> {
+    if let rocksky_db::tx::Tx::Postgres(pg) = tx {
+        // NOT EXISTS avoids needless insert-trigger work on existing links;
+        // ON CONFLICT handles another transaction creating the same link.
+        // All CTE writes execute atomically with the final scrobble insert.
+        return Ok(sqlx::query_scalar::<_, String>(
+            r#"
+            WITH album_link AS (
+                INSERT INTO album_tracks (xata_id,album_id,track_id)
+                SELECT $1,$5,$7 WHERE NOT EXISTS (
+                    SELECT 1 FROM album_tracks WHERE album_id=$5 AND track_id=$7
+                ) ON CONFLICT DO NOTHING
+            ), artist_link AS (
+                INSERT INTO artist_tracks (xata_id,artist_id,track_id)
+                SELECT $2,$6,$7 WHERE NOT EXISTS (
+                    SELECT 1 FROM artist_tracks WHERE artist_id=$6 AND track_id=$7
+                ) ON CONFLICT DO NOTHING
+            ), artist_album_link AS (
+                INSERT INTO artist_albums (xata_id,artist_id,album_id)
+                SELECT $3,$6,$5 WHERE NOT EXISTS (
+                    SELECT 1 FROM artist_albums WHERE artist_id=$6 AND album_id=$5
+                ) ON CONFLICT DO NOTHING
+            )
+            INSERT INTO scrobbles (xata_id,album_id,artist_id,track_id,uri,user_id,timestamp)
+            VALUES ($4,$5,$6,$7,$9,$8,$10)
+            ON CONFLICT (user_id,track_id,timestamp) DO NOTHING
+            RETURNING xata_id
+        "#,
+        )
+        .bind(rocksky_db::new_id())
+        .bind(rocksky_db::new_id())
+        .bind(rocksky_db::new_id())
+        .bind(rocksky_db::new_id())
+        .bind(album_id)
+        .bind(artist_id)
+        .bind(track_id)
+        .bind(user_id)
+        .bind(uri)
+        .bind(timestamp)
+        .fetch_optional(&mut **pg)
+        .await?);
+    }
+
+    // SQLite has no data-modifying CTEs; retain the same atomic transaction.
+    save_album_track(tx, album_id, track_id).await?;
+    save_artist_track(tx, artist_id, track_id).await?;
+    save_artist_album(tx, artist_id, album_id).await?;
+    let insert = Query::insert()
+        .into_table(Scrobbles::Table)
+        .columns([
+            Scrobbles::XataId,
+            Scrobbles::AlbumId,
+            Scrobbles::ArtistId,
+            Scrobbles::TrackId,
+            Scrobbles::Uri,
+            Scrobbles::UserId,
+            Scrobbles::Timestamp,
+        ])
+        .values_panic([
+            rocksky_db::new_id().into(),
+            album_id.into(),
+            artist_id.into(),
+            track_id.into(),
+            uri.into(),
+            user_id.into(),
+            timestamp.into(),
+        ])
+        .on_conflict(
+            OnConflict::columns([Scrobbles::UserId, Scrobbles::TrackId, Scrobbles::Timestamp])
+                .do_nothing()
+                .to_owned(),
+        )
+        .returning_col(Scrobbles::XataId)
+        .to_owned();
+    Ok(tx.fetch_scalar(&insert).await?)
 }
 
 pub async fn save_album_track(
@@ -1624,6 +1670,226 @@ mod sqlite_behaviour {
             isrc: None,
             artists: None,
         }
+    }
+
+    async fn batch_schema(db: &Backend, temporary: bool) {
+        let temporary = if temporary { "TEMP" } else { "" };
+        let time_type = if matches!(db, Backend::Postgres { .. }) {
+            "TIMESTAMPTZ"
+        } else {
+            "TEXT"
+        };
+        for (table, left, right) in [
+            ("album_tracks", "album_id", "track_id"),
+            ("artist_tracks", "artist_id", "track_id"),
+            ("artist_albums", "artist_id", "album_id"),
+        ] {
+            db.execute(&db.sql(format!("CREATE {temporary} TABLE {table} (xata_id TEXT PRIMARY KEY, {left} TEXT NOT NULL, {right} TEXT NOT NULL, xata_createdat {time_type} DEFAULT '2026-01-01T00:00:00Z', UNIQUE ({left},{right}))"))).await.unwrap();
+        }
+        db.execute(&db.sql(format!("CREATE {temporary} TABLE scrobbles (xata_id TEXT PRIMARY KEY, album_id TEXT, artist_id TEXT, track_id TEXT, user_id TEXT, uri TEXT UNIQUE, timestamp {time_type} NOT NULL, UNIQUE (user_id,track_id,timestamp))"))).await.unwrap();
+    }
+
+    async fn batch_contract(db: Backend) {
+        batch_schema(&db, true).await;
+        let at = DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        let mut tx = db.begin().await.unwrap();
+        let id = index_scrobble_links(
+            &mut tx,
+            "album",
+            "artist",
+            "track",
+            "user",
+            "at://first",
+            at,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        tx.commit().await.unwrap();
+        let mut tx = db.begin().await.unwrap();
+        // Another source's record for the same listen must not publish twice.
+        assert!(index_scrobble_links(
+            &mut tx,
+            "album",
+            "artist",
+            "track",
+            "user",
+            "at://duplicate",
+            at
+        )
+        .await
+        .unwrap()
+        .is_none());
+        // A distinct listen keeps its own row while reusing the catalog links.
+        assert!(index_scrobble_links(
+            &mut tx,
+            "album",
+            "artist",
+            "track",
+            "user",
+            "at://second",
+            at + chrono::Duration::seconds(1)
+        )
+        .await
+        .unwrap()
+        .is_some());
+        tx.commit().await.unwrap();
+        assert_eq!(count(&db, "scrobbles").await, 2);
+        for table in ["album_tracks", "artist_tracks", "artist_albums"] {
+            assert_eq!(count(&db, table).await, 1);
+        }
+        let stored: Option<String> = sql::fetch_scalar(
+            &db,
+            &Query::select()
+                .column(Scrobbles::Uri)
+                .from(Scrobbles::Table)
+                .and_where(Expr::col(Scrobbles::XataId).eq(id))
+                .to_owned(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(stored.as_deref(), Some("at://first"));
+        // A conflicting URI must abort the job, not leave its new links behind.
+        let mut tx = db.begin().await.unwrap();
+        assert!(index_scrobble_links(
+            &mut tx,
+            "new-album",
+            "new-artist",
+            "new-track",
+            "user",
+            "at://first",
+            at
+        )
+        .await
+        .is_err());
+        tx.rollback().await.unwrap();
+        for table in ["album_tracks", "artist_tracks", "artist_albums"] {
+            assert_eq!(count(&db, table).await, 1);
+        }
+        // Rollback after a successful batch also rolls back every component.
+        let mut tx = db.begin().await.unwrap();
+        assert!(index_scrobble_links(
+            &mut tx,
+            "new-album",
+            "new-artist",
+            "new-track",
+            "user",
+            "at://rolled-back",
+            at
+        )
+        .await
+        .unwrap()
+        .is_some());
+        tx.rollback().await.unwrap();
+        assert_eq!(count(&db, "scrobbles").await, 2);
+        for table in ["album_tracks", "artist_tracks", "artist_albums"] {
+            assert_eq!(count(&db, table).await, 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn batched_scrobble_indexing_on_sqlite() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        batch_contract(Backend::Sqlite(pool)).await;
+    }
+
+    #[tokio::test]
+    async fn batched_scrobble_indexing_on_postgres() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            return;
+        };
+        let primary = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&url)
+            .await
+            .unwrap();
+        batch_contract(Backend::Postgres {
+            primary,
+            replica: None,
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn concurrent_postgres_batches_deduplicate_one_listen() {
+        let Ok(url) = std::env::var("ROCKSKY_TEST_POSTGRES_URL") else {
+            return;
+        };
+        let admin = sqlx::PgPool::connect(&url).await.unwrap();
+        let schema = format!("batch_test_{}", rocksky_db::new_id());
+        sqlx::query(&format!("CREATE SCHEMA {schema}"))
+            .execute(&admin)
+            .await
+            .unwrap();
+        let mut scoped = url::Url::parse(&url).unwrap();
+        scoped
+            .query_pairs_mut()
+            .append_pair("options", &format!("-csearch_path={schema}"));
+        let primary = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(2)
+            .connect(scoped.as_str())
+            .await
+            .unwrap();
+        let db = Backend::Postgres {
+            primary: primary.clone(),
+            replica: None,
+        };
+        batch_schema(&db, false).await;
+        let barrier = Arc::new(tokio::sync::Barrier::new(2));
+        let mut workers = Vec::new();
+        for n in 0..2 {
+            let db = db.clone();
+            let barrier = barrier.clone();
+            workers.push(tokio::spawn(async move {
+                let mut tx = db.begin().await.unwrap();
+                barrier.wait().await;
+                let at = DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+                    .unwrap()
+                    .with_timezone(&chrono::Utc);
+                let inserted = index_scrobble_links(
+                    &mut tx,
+                    "album",
+                    "artist",
+                    "track",
+                    "user",
+                    &format!("at://source-{n}"),
+                    at,
+                )
+                .await
+                .unwrap();
+                tx.commit().await.unwrap();
+                inserted.is_some()
+            }));
+        }
+        let mut inserted = 0;
+        for worker in workers {
+            inserted += usize::from(
+                tokio::time::timeout(std::time::Duration::from_secs(10), worker)
+                    .await
+                    .unwrap()
+                    .unwrap(),
+            );
+        }
+        assert_eq!(inserted, 1);
+        for table in [
+            "scrobbles",
+            "album_tracks",
+            "artist_tracks",
+            "artist_albums",
+        ] {
+            assert_eq!(count(&db, table).await, 1);
+        }
+        primary.close().await;
+        sqlx::query(&format!("DROP SCHEMA {schema} CASCADE"))
+            .execute(&admin)
+            .await
+            .unwrap();
     }
 
     async fn track_identity_contract(db: Backend) {
