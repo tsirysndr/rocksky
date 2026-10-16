@@ -63,6 +63,23 @@ pub fn digest(value: &str) -> String {
     format!("{:x}", Sha256::digest(value.as_bytes()))
 }
 
+/// Disjoint claim lanes reserve worker capacity for latency-sensitive scrobbles.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClaimLane {
+    All,
+    Scrobbles,
+    Background,
+}
+impl ClaimLane {
+    fn predicate(self) -> &'static str {
+        match self {
+            Self::All => "",
+            Self::Scrobbles => " AND collection='app.rocksky.scrobble'",
+            Self::Background => " AND collection<>'app.rocksky.scrobble'",
+        }
+    }
+}
+
 fn job_collection(kind: &str, payload: &str) -> String {
     if kind != "jetstream.commit.v1" {
         return String::new();
@@ -183,6 +200,7 @@ impl Queue {
             }
         }
         for statement in [
+            "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_scrobble_ready ON rocksky_durable_jobs (kind,status,available_at,created_at,id) WHERE collection='app.rocksky.scrobble'",
             "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_compact ON rocksky_durable_jobs (updated_at,id) WHERE status='completed' AND compacted_at=0",
             "CREATE INDEX IF NOT EXISTS rocksky_durable_jobs_retire ON rocksky_durable_jobs (updated_at,id) WHERE status='completed' AND compacted_at>0",
         ] {
@@ -522,6 +540,21 @@ impl Queue {
         max_attempts: i64,
         limit: i64,
     ) -> Result<Vec<Job>> {
+        self.claim_batch_in_lane(kind, lease_seconds, max_attempts, limit, ClaimLane::All)
+            .await
+    }
+
+    /// Claims only the selected collection lane. Leasing, retry eligibility and
+    /// FIFO order within each lane are identical to ordinary claims.
+    pub async fn claim_batch_in_lane(
+        &self,
+        kind: &str,
+        lease_seconds: i64,
+        max_attempts: i64,
+        limit: i64,
+        lane: ClaimLane,
+    ) -> Result<Vec<Job>> {
+        let lane_filter = lane.predicate();
         ensure!(
             lease_seconds > 0 && max_attempts > 0 && (1..=256).contains(&limit),
             "invalid lease, attempt or batch limit"
@@ -529,13 +562,13 @@ impl Queue {
         let now = self.now();
         let expired_history = self.attempt_history("lease_expired", true);
         let started = self.now_ms();
-        let exhausted = format!("UPDATE rocksky_durable_jobs SET attempt_history={expired_history}, status='failed', last_error='lease expired on final attempt', updated_at={now} WHERE kind=$1 AND status='processing' AND lease_until<={now} AND attempts >= $4");
+        let exhausted = format!("UPDATE rocksky_durable_jobs SET attempt_history={expired_history}, status='failed', last_error='lease expired on final attempt', updated_at={now} WHERE kind=$1{lane_filter} AND status='processing' AND lease_until<={now} AND attempts >= $4");
         let lock = if self.postgres {
             " FOR UPDATE SKIP LOCKED"
         } else {
             ""
         };
-        let claim = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {expired_history} ELSE attempt_history END, started_at_ms={started}, status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1 AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING {JOB_COLUMNS}");
+        let claim = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {expired_history} ELSE attempt_history END, started_at_ms={started}, status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1{lane_filter} AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING {JOB_COLUMNS}");
         let sql = if self.postgres {
             format!("WITH exhausted AS ({exhausted} RETURNING id) {claim}")
         } else {

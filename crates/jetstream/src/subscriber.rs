@@ -7,7 +7,7 @@ use crate::{
 use anyhow::Error;
 use futures_util::StreamExt;
 use owo_colors::OwoColorize;
-use rocksky_submissions::queue::InboxEvent;
+use rocksky_submissions::queue::{ClaimLane, InboxEvent};
 use rocksky_submissions::{
     worker::{self, Failure, Settings},
     Job, Queue,
@@ -78,6 +78,11 @@ impl MultiSourceSubscriber {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(64);
+        let reserved = env::var("JETSTREAM_SCROBBLE_CONCURRENCY")
+            .ok()
+            .map(|value| value.parse::<usize>())
+            .transpose()?;
+        let (scrobble_workers, background_workers) = worker_capacity(max_inflight, reserved)?;
         // Ingest: everything here writes, so it always talks to the primary.
         // Postgres when one is configured — keeping the pool budget and the
         // read-only check, since this service exists to write and must refuse
@@ -99,30 +104,38 @@ impl MultiSourceSubscriber {
         let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
         let nc = Arc::new(async_nats::connect(&addr).await?);
 
-        anyhow::ensure!(
-            max_inflight > 0 && max_inflight <= 1024,
-            "MAX_INFLIGHT_SCROBBLES must be 1..1024"
-        );
         let queue = Queue::from_env().await?;
         let shutdown = CancellationToken::new();
         let mut tasks = tokio::task::JoinSet::new();
-        let process_queue = queue.clone();
-        tasks.spawn(worker::run(
-            queue.clone(),
-            INBOX_KIND,
-            max_inflight,
-            Settings::default(),
-            shutdown.clone(),
-            move |job| {
-                index_event(
-                    process_queue.clone(),
-                    state.clone(),
-                    pool.clone(),
-                    nc.clone(),
-                    job,
-                )
-            },
-        ));
+        tracing::info!(
+            scrobble_workers,
+            background_workers,
+            "Jetstream priority lanes enabled"
+        );
+        for (lane, concurrency) in [
+            (ClaimLane::Scrobbles, scrobble_workers),
+            (ClaimLane::Background, background_workers),
+        ] {
+            let process_queue = queue.clone();
+            let (state, pool, nc) = (state.clone(), pool.clone(), nc.clone());
+            tasks.spawn(worker::run_lane(
+                queue.clone(),
+                INBOX_KIND,
+                lane,
+                concurrency,
+                Settings::default(),
+                shutdown.clone(),
+                move |job| {
+                    index_event(
+                        process_queue.clone(),
+                        state.clone(),
+                        pool.clone(),
+                        nc.clone(),
+                        job,
+                    )
+                },
+            ));
+        }
         let (inbox_tx, inbox_rx) = mpsc::channel(2048);
         let writer_queue = queue.clone();
         tasks.spawn(async move {
@@ -331,6 +344,19 @@ async fn index_event(
     Ok(())
 }
 
+fn worker_capacity(total: usize, reserved: Option<usize>) -> anyhow::Result<(usize, usize)> {
+    anyhow::ensure!(
+        (2..=1024).contains(&total),
+        "MAX_INFLIGHT_SCROBBLES must be 2..1024 to reserve capacity for both lanes"
+    );
+    let scrobbles = reserved.unwrap_or((total / 4).max(1));
+    anyhow::ensure!(
+        scrobbles > 0 && scrobbles < total,
+        "JETSTREAM_SCROBBLE_CONCURRENCY must be positive and smaller than MAX_INFLIGHT_SCROBBLES"
+    );
+    Ok((scrobbles, total - scrobbles))
+}
+
 fn initial_cursor() -> i64 {
     env::var("JETSTREAM_CURSOR")
         .ok()
@@ -342,6 +368,16 @@ fn initial_cursor() -> i64 {
 mod tests {
     use super::*;
     use crate::source::tests::commit_v2;
+
+    #[test]
+    fn priority_capacity_preserves_total_and_both_lanes() {
+        assert_eq!(worker_capacity(64, None).unwrap(), (16, 48));
+        assert_eq!(worker_capacity(64, Some(24)).unwrap(), (24, 40));
+        assert_eq!(worker_capacity(2, None).unwrap(), (1, 1));
+        for (total, reserved) in [(1, None), (1025, None), (64, Some(0)), (64, Some(64))] {
+            assert!(worker_capacity(total, reserved).is_err());
+        }
+    }
 
     async fn durable_versions(queue: Queue) {
         let unique = std::time::SystemTime::now()

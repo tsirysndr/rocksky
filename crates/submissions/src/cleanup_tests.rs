@@ -267,6 +267,7 @@ async fn upgrade(url: &str) -> Queue {
     for statement in [
         "DROP INDEX rocksky_durable_jobs_compact",
         "DROP INDEX rocksky_durable_jobs_retire",
+        "DROP INDEX rocksky_durable_jobs_scrobble_ready",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN compacted_at",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN source",
         "ALTER TABLE rocksky_durable_jobs DROP COLUMN collection",

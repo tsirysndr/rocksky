@@ -1,6 +1,7 @@
 use super::*;
 
 async fn contract(queue: Queue) {
+    priority_contract(&queue).await;
     let kind = format!("batch-{}", Uuid::new_v4().simple());
     let mut events = Vec::new();
     for n in 0..64 {
@@ -129,4 +130,99 @@ async fn postgres_batch_contract() {
             .unwrap(),
     )
     .await;
+}
+
+async fn priority_contract(queue: &Queue) {
+    let kind = format!("priority-{}", Uuid::new_v4().simple());
+    for n in 0..48 {
+        queue
+            .enqueue(&kind, &format!("album-{n}"), "hash", "{}")
+            .await
+            .unwrap();
+    }
+    sqlx::query("UPDATE rocksky_durable_jobs SET available_at=available_at-100, created_at=created_at-100 WHERE kind=$1")
+        .bind(&kind).execute(&queue.pool).await.unwrap();
+    let mut scrobbles = std::collections::HashSet::new();
+    for n in 0..8 {
+        let job = queue
+            .enqueue(&kind, &format!("scrobble-{n}"), "hash", "{}")
+            .await
+            .unwrap();
+        sqlx::query(
+            "UPDATE rocksky_durable_jobs SET collection='app.rocksky.scrobble' WHERE id=$1",
+        )
+        .bind(&job.id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
+        scrobbles.insert(job.id);
+    }
+    let delayed = queue
+        .enqueue_after(&kind, "delayed", "hash", "{}", 600)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE rocksky_durable_jobs SET collection='app.rocksky.scrobble' WHERE id=$1")
+        .bind(&delayed.id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
+    let (a, b) = tokio::join!(
+        queue.claim_batch_in_lane(&kind, 60, 3, 4, ClaimLane::Scrobbles),
+        queue.claim_batch_in_lane(&kind, 60, 3, 4, ClaimLane::Scrobbles)
+    );
+    let claimed = [a.unwrap(), b.unwrap()].concat();
+    assert_eq!(claimed.len(), 8);
+    assert_eq!(
+        claimed
+            .iter()
+            .map(|j| j.id.clone())
+            .collect::<std::collections::HashSet<_>>(),
+        scrobbles,
+        "new scrobbles bypass the older metadata backlog without double leasing"
+    );
+    assert!(
+        queue
+            .claim_batch_in_lane(&kind, 60, 3, 4, ClaimLane::Scrobbles)
+            .await
+            .unwrap()
+            .is_empty(),
+        "future retries must not be claimed early"
+    );
+    let background = queue
+        .claim_batch_in_lane(&kind, 60, 3, 4, ClaimLane::Background)
+        .await
+        .unwrap();
+    assert_eq!(
+        background.len(),
+        4,
+        "metadata must retain its own processing capacity"
+    );
+    assert!(background.iter().all(|job| !scrobbles.contains(&job.id)));
+    // Expired priority leases recover within their lane; final attempts fail.
+    sqlx::query("UPDATE rocksky_durable_jobs SET lease_until=0 WHERE id=$1")
+        .bind(&claimed[0].id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE rocksky_durable_jobs SET lease_until=0,attempts=3 WHERE id=$1")
+        .bind(&claimed[1].id)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
+    let recovered = queue
+        .claim_batch_in_lane(&kind, 60, 3, 4, ClaimLane::Scrobbles)
+        .await
+        .unwrap();
+    assert_eq!(recovered.len(), 1);
+    assert_eq!(recovered[0].id, claimed[0].id);
+    assert_eq!(recovered[0].attempts, 2);
+    assert_eq!(
+        queue.get(&claimed[1].id).await.unwrap().unwrap().status,
+        "failed"
+    );
+    sqlx::query("DELETE FROM rocksky_durable_jobs WHERE kind=$1")
+        .bind(&kind)
+        .execute(&queue.pool)
+        .await
+        .unwrap();
 }

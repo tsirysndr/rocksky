@@ -31,3 +31,35 @@ saved cursor; upstream replay retention still limits recovery.
 Tests cover configuration, protocol envelopes, a local WebSocket handshake,
 normalization, independent cursor persistence and cross-source deduplication on
 SQLite and PostgreSQL. CI runs `cargo test -p rocksky-jetstream --all-features --lib`.
+
+## Scrobble priority
+
+Jetstream has separate durable claim lanes for `app.rocksky.scrobble` and all
+other collections. An album/song backlog cannot occupy the scrobble lane; the
+background lane keeps processing metadata even during continuous scrobble traffic.
+FIFO ordering, retry times, leases, and crash recovery are preserved within each
+lane. This changes dequeue scheduling, not job identities, payloads or cursors.
+
+- `MAX_INFLIGHT_SCROBBLES`: total worker capacity, default **64**, range **2–1024**.
+- `JETSTREAM_SCROBBLE_CONCURRENCY`: slots reserved for scrobbles, default one quarter
+  of the total (minimum one), therefore **16** by default. Must be below the total.
+- Remaining slots serve other collections: **48** by default.
+
+Reserved slots do not spill over into metadata work, so new scrobbles can start
+without waiting for a metadata batch to finish. Both lanes still share database
+pools and database capacity; this does not eliminate database contention.
+Existing indexed backlog rows use their stored collection; legacy rows without
+collection metadata remain in the background lane and are not dropped.
+
+Startup adds a small partial claim index for scrobble collections. On a busy
+PostgreSQL installation, create it ahead of deployment without blocking writers:
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS rocksky_durable_jobs_scrobble_ready
+ON rocksky_durable_jobs (kind,status,available_at,created_at,id)
+WHERE collection='app.rocksky.scrobble';
+```
+
+Restart `rocksky-jetstream` after deploying. No concurrency increase or Doppler
+change is required to enable the default split. Existing running metadata jobs
+finish normally or recover through their leases.

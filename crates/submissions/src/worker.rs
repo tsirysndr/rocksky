@@ -1,4 +1,4 @@
-use crate::{Job, Queue};
+use crate::{queue::ClaimLane, Job, Queue};
 use futures_util::FutureExt;
 use std::{future::Future, panic::AssertUnwindSafe, time::Duration};
 use tokio_util::sync::CancellationToken;
@@ -47,6 +47,31 @@ pub async fn run<F, Fut>(
     F: Fn(Job) -> Fut + Clone + Send + 'static,
     Fut: Future<Output = Result<(), Failure>> + Send + 'static,
 {
+    run_lane(
+        queue,
+        kind,
+        ClaimLane::All,
+        concurrency,
+        settings,
+        shutdown,
+        process,
+    )
+    .await;
+}
+
+/// A dedicated lane cannot be occupied by another collection's backlog.
+pub async fn run_lane<F, Fut>(
+    queue: Queue,
+    kind: &str,
+    lane: ClaimLane,
+    concurrency: usize,
+    settings: Settings,
+    shutdown: CancellationToken,
+    process: F,
+) where
+    F: Fn(Job) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = Result<(), Failure>> + Send + 'static,
+{
     assert!(concurrency > 0 && settings.lease_seconds >= 3 && settings.max_attempts > 0);
     let mut active = tokio::task::JoinSet::new();
     while !shutdown.is_cancelled() {
@@ -59,11 +84,12 @@ pub async fn run<F, Fut>(
             continue;
         }
         match queue
-            .claim_batch(
+            .claim_batch_in_lane(
                 kind,
                 settings.lease_seconds,
                 settings.max_attempts,
                 (concurrency - active.len()).min(32) as i64,
+                lane,
             )
             .await
         {
@@ -185,6 +211,86 @@ mod tests {
         let result = queue.get(&job.id).await.unwrap().unwrap();
         assert_eq!(result.status, "completed");
         assert_eq!(result.attempts, 2);
+    }
+
+    #[tokio::test]
+    async fn scrobble_lane_runs_while_background_capacity_is_busy() {
+        let dir = tempfile::tempdir().unwrap();
+        let queue = Queue::connect(&format!(
+            "sqlite://{}?mode=rwc",
+            dir.path().join("priority.sqlite").display()
+        ))
+        .await
+        .unwrap();
+        let kind = "jetstream.commit.v1";
+        queue
+            .enqueue(
+                kind,
+                "album",
+                "hash",
+                r#"{"commit":{"collection":"app.rocksky.album"}}"#,
+            )
+            .await
+            .unwrap();
+        let stop = CancellationToken::new();
+        let entered = std::sync::Arc::new(tokio::sync::Notify::new());
+        let release = CancellationToken::new();
+        let (entered_worker, release_worker) = (entered.clone(), release.clone());
+        let background = tokio::spawn(run_lane(
+            queue.clone(),
+            kind,
+            ClaimLane::Background,
+            1,
+            Settings::default(),
+            stop.clone(),
+            move |_| {
+                let (entered, release) = (entered_worker.clone(), release_worker.clone());
+                async move {
+                    entered.notify_one();
+                    release.cancelled().await;
+                    Ok(())
+                }
+            },
+        ));
+        tokio::time::timeout(Duration::from_secs(3), entered.notified())
+            .await
+            .unwrap();
+        let scrobble = queue
+            .enqueue(
+                kind,
+                "scrobble",
+                "hash",
+                r#"{"commit":{"collection":"app.rocksky.scrobble"}}"#,
+            )
+            .await
+            .unwrap();
+        let priority = tokio::spawn(run_lane(
+            queue.clone(),
+            kind,
+            ClaimLane::Scrobbles,
+            1,
+            Settings::default(),
+            stop.clone(),
+            |_| async { Ok(()) },
+        ));
+        tokio::time::timeout(Duration::from_secs(3), async {
+            loop {
+                if queue.get(&scrobble.id).await.unwrap().unwrap().status == "completed" {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        assert!(
+            !background.is_finished(),
+            "scrobble did not wait for the busy background lane"
+        );
+        stop.cancel();
+        release.cancel();
+        background.await.unwrap();
+        priority.await.unwrap();
     }
 
     #[tokio::test]
