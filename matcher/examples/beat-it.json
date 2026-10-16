@@ -1,0 +1,28 @@
+{
+  "request": {
+    "title": "Beat It",
+    "artists": ["Michael Jackson"],
+    "album": "Thriller",
+    "durationMs": 258000
+  },
+  "candidates": [
+    {
+      "source": "fixture",
+      "id": "remaster",
+      "title": "Beat It (2008 Remaster)",
+      "artists": ["Michael Jackson"],
+      "album": "Thriller (2008 Remaster)",
+      "durationMs": 258000
+    },
+    {
+      "source": "fixture",
+      "id": "original",
+      "title": "Beat It",
+      "artists": ["Michael Jackson"],
+      "album": "Thriller",
+      "albumType": "album",
+      "releaseStatus": "official",
+      "durationMs": 258000
+    }
+  ]
+}

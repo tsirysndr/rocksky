@@ -1,4 +1,5 @@
 (executable
  (public_name matcher)
  (name main)
+ (modules main)
  (libraries matcher))
