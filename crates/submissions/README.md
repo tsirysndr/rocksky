@@ -130,6 +130,9 @@ See [DBOS architecture](https://docs.dbos.dev/architecture).
 - Workers claim jobs atomically (`SKIP LOCKED` on Postgres; a single atomic UPDATE
   on SQLite), hold no database transaction during network calls, and renew
   120-second leases every 40 seconds.
+- PostgreSQL records a checkpoint with one atomic statement containing the lease
+  fence and step insert, reducing four network round trips to one. SQLite retains
+  its transaction. Repeated checkpoints preserve the original result.
 - Every state transition and checkpoint checks the lease token and expiry. An
   expired worker cannot finalize its replacement's work. A remote request may
   outlive cancellation, so stable remote keys are still necessary.

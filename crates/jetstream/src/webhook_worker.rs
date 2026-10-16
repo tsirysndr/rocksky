@@ -105,10 +105,12 @@ async fn brpop_once(
     let AppState {
         redis: client,
         queue_key: key,
-    } = &*state.lock().await;
+    } = state.lock().await.clone();
+    // Release the state lock before connection setup and the blocking pop.
+    // Producers must remain able to enqueue while the consumer waits for data.
     let mut conn = client.get_multiplexed_async_connection().await?;
     let res: Option<(String, String)> = redis::cmd("BRPOP")
-        .arg(key)
+        .arg(&key)
         .arg(timeout_secs as usize)
         .query_async(&mut conn)
         .await?;
@@ -123,17 +125,70 @@ pub async fn push_to_queue(
     let AppState {
         redis: client,
         queue_key: key,
-    } = &*state.lock().await;
+    } = state.lock().await.clone();
     let mut conn = client.get_multiplexed_async_connection().await?;
     let _: () = redis::pipe()
         .cmd("RPUSH")
-        .arg(key)
+        .arg(&key)
         .arg(payload)
         .ignore()
         .cmd("EXPIRE")
-        .arg(key)
+        .arg(&key)
         .arg(60 * 60 * 24) // 24h
         .query_async(&mut conn)
         .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::{net::TcpListener, time::timeout};
+
+    // A stalled Redis handshake must not monopolize the shared state. This
+    // exercises the real connection path without requiring a Redis daemon.
+    async fn stalled_redis_does_not_lock_state(producer: bool) {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let client =
+            redis::Client::open(format!("redis://{}", listener.local_addr().unwrap())).unwrap();
+        let state = Arc::new(Mutex::new(AppState {
+            redis: client,
+            queue_key: "test".into(),
+        }));
+        let worker_state = state.clone();
+        let worker = tokio::spawn(async move {
+            if producer {
+                let item: WebhookEnvelope = serde_json::from_value(serde_json::json!({
+                    "id":"test", "data": {
+                        "user":{"did":"did:test","display_name":"test","handle":"test","avatar_url":""},
+                        "track":{"title":"test","artist":"test","album":"test","duration":1},
+                        "played_at":"2026-01-01T00:00:00Z"
+                    }
+                })).unwrap();
+                let _ = push_to_queue(worker_state, &item).await;
+            } else {
+                let _ = brpop_once(worker_state, 1).await;
+            }
+        });
+        let (_socket, _) = timeout(Duration::from_secs(5), listener.accept())
+            .await
+            .unwrap()
+            .unwrap();
+        let unlocked = timeout(Duration::from_millis(500), state.lock())
+            .await
+            .is_ok();
+        worker.abort();
+        let _ = worker.await;
+        assert!(unlocked, "Redis I/O held the shared webhook state lock");
+    }
+
+    #[tokio::test]
+    async fn stalled_consumer_does_not_block_producers() {
+        stalled_redis_does_not_lock_state(false).await;
+    }
+
+    #[tokio::test]
+    async fn stalled_producer_does_not_block_other_producers() {
+        stalled_redis_does_not_lock_state(true).await;
+    }
 }

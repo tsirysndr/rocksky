@@ -124,3 +124,7 @@ so jobs retain independent leases, retries and notification deduplication. SQLit
 keeps the transactional sequential path because it has no data-modifying CTEs.
 An existing user/track/timestamp returns no new listen ID and skips notification;
 any statement failure rolls back the job's catalog and listen writes together.
+
+Webhook producers and the blocking Redis consumer only lock shared configuration
+long enough to clone it. Connection setup, enqueueing, and blocking pops run
+outside that lock so a slow Redis operation cannot serialize scrobble workers.

@@ -676,6 +676,26 @@ impl Queue {
         // Lock/fence the job before recording a completed step. A stale worker
         // must not write checkpoints belonging to its replacement's attempt.
         let now = self.now();
+        if self.postgres {
+            // One statement keeps the ownership fence and step insert atomic,
+            // without BEGIN/UPDATE/INSERT/COMMIT network round trips. Count the
+            // owned row, not inserted rows: replaying a checkpoint is valid.
+            let owned: i64 = sqlx::query_scalar(&format!(
+                "WITH owned AS (UPDATE rocksky_durable_jobs SET updated_at={now} \
+                 WHERE id=$1 AND lease_token=$2 AND status='processing' AND lease_until>{now} \
+                 RETURNING id), saved AS (INSERT INTO rocksky_durable_steps \
+                 (job_id,name,result,completed_at) SELECT id,$3,$4,{now} FROM owned \
+                 ON CONFLICT (job_id,name) DO NOTHING) SELECT count(*) FROM owned"
+            ))
+            .bind(&job.id)
+            .bind(&job.lease_token)
+            .bind(name)
+            .bind(result)
+            .fetch_one(&self.pool)
+            .await?;
+            ensure!(owned == 1, "job lease lost before checkpoint");
+            return Ok(());
+        }
         let mut tx = self.pool.begin().await?;
         let owned = sqlx::query(&format!("UPDATE rocksky_durable_jobs SET updated_at={now} WHERE id=$1 AND lease_token=$2 AND status='processing' AND lease_until>{now}"))
             .bind(&job.id).bind(&job.lease_token).execute(&mut *tx).await?.rows_affected();
@@ -817,6 +837,14 @@ mod tests {
             .checkpoint(old, "publish.v1", "confirmed-pds-uri")
             .await
             .unwrap();
+        queue
+            .checkpoint(old, "publish.v1", "must-not-overwrite")
+            .await
+            .unwrap();
+        assert_eq!(
+            queue.step(old, "publish.v1").await.unwrap().as_deref(),
+            Some("confirmed-pds-uri")
+        );
         // Simulate a worker dying after checkpoint, before job completion.
         sqlx::query("UPDATE rocksky_durable_jobs SET lease_until=0 WHERE id=$1")
             .bind(&old.id)
@@ -838,7 +866,17 @@ mod tests {
         assert!(!queue.finish(old).await.unwrap());
         assert!(!queue.fail(old, "stale", true, 3).await.unwrap());
         assert!(queue.checkpoint(old, "other", "stale").await.is_err());
+        assert!(queue.step(&replacement, "other").await.unwrap().is_none());
         assert!(queue.finish(&replacement).await.unwrap());
+        assert!(queue
+            .checkpoint(&replacement, "after-finish", "invalid")
+            .await
+            .is_err());
+        assert!(queue
+            .step(&replacement, "after-finish")
+            .await
+            .unwrap()
+            .is_none());
         let history: String =
             sqlx::query_scalar("SELECT attempt_history FROM rocksky_durable_jobs WHERE id=$1")
                 .bind(&old.id)
