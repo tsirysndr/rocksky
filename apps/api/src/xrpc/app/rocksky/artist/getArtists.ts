@@ -1,11 +1,13 @@
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, count, desc, inArray, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
+import { queryCache } from "lib/queryCache";
 import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtists";
 import { deepCamelCaseKeys } from "lib";
+import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
 import tables from "schema";
@@ -22,10 +24,8 @@ const FILTER_FIELDS: RsqlFieldMap = {
 };
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 50,
-    timeToLive: Duration.minutes(5),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -33,12 +33,13 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("10 seconds"),
       ),
-  });
+    "30 seconds",
+    200,
+  );
 
   const getArtists = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ artists: [] });
@@ -66,117 +67,114 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: Artist[] }, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      const limit = params.limit ?? 100;
-      const offset = params.offset ?? 0;
-      const names = params.names
-        ?.split(",")
-        .map((n) => n.trim())
-        .filter(Boolean);
+  return readQuery("Failed to retrieve artists", (db) =>
+    retrieveArtists(db, params),
+  );
+};
 
-      const filters = [];
-      if (names && names.length > 0) {
-        filters.push(inArray(tables.artists.name, names));
-      }
-      if (params.genre) {
-        filters.push(
-          sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`,
-        );
-      }
-      const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
-      if (filterWhere) {
-        filters.push(filterWhere);
-      }
+export const retrieveArtists = async (
+  db: Context["readDb"],
+  params: QueryParams,
+) => {
+  const limit = params.limit ?? 100;
+  const offset = params.offset ?? 0;
+  const names = params.names
+    ?.split(",")
+    .map((n) => n.trim())
+    .filter(Boolean);
 
-      let artistIds: string[];
+  const filters = [];
+  if (names && names.length > 0) {
+    filters.push(inArray(tables.artists.name, names));
+  }
+  if (params.genre) {
+    filters.push(
+      sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`,
+    );
+  }
+  const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
+  if (filterWhere) {
+    filters.push(filterWhere);
+  }
 
-      if (filters.length > 0) {
-        const filtered = await ctx.readDb
-          .select({ id: tables.artists.id })
-          .from(tables.artists)
-          .where(and(...filters))
-          .limit(limit)
-          .offset(offset)
-          .execute();
-        artistIds = filtered.map((a) => a.id);
-      } else {
-        const topArtists = await ctx.readDb
-          .select({
-            artistId: tables.scrobbles.artistId,
-            play_count: count(tables.scrobbles.id).as("play_count"),
-          })
-          .from(tables.scrobbles)
-          .groupBy(tables.scrobbles.artistId)
-          .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
-          .limit(limit)
-          .offset(offset)
-          .execute();
-        artistIds = topArtists
-          .map((a) => a.artistId)
-          .filter((id): id is string => id !== null);
-      }
+  let artistIds: string[];
 
-      if (artistIds.length === 0) return { data: [] };
+  if (filters.length > 0) {
+    const filtered = await db
+      .select({ id: tables.artists.id })
+      .from(tables.artists)
+      .where(and(...filters))
+      .limit(limit)
+      .offset(offset)
+      .execute();
+    artistIds = filtered.map((a) => a.id);
+  } else {
+    const topArtists = await db
+      .select({
+        artistId: tables.scrobbles.artistId,
+        play_count: count().as("play_count"),
+      })
+      .from(tables.scrobbles)
+      .groupBy(tables.scrobbles.artistId)
+      .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
+      .limit(limit)
+      .offset(offset)
+      .execute();
+    artistIds = topArtists
+      .map((a) => a.artistId)
+      .filter((id): id is string => id !== null);
+  }
 
-      const [artists, scrobbleCounts, uniqueListenersRows] = await Promise.all([
-        ctx.readDb
-          .select({
-            id: tables.artists.id,
-            name: tables.artists.name,
-            picture: tables.artists.picture,
-            sha256: tables.artists.sha256,
-            uri: tables.artists.uri,
-            genres: tables.artists.genres,
-          })
-          .from(tables.artists)
-          .where(inArray(tables.artists.id, artistIds))
-          .execute(),
-        ctx.readDb
-          .select({
-            artistId: tables.scrobbles.artistId,
-            play_count: count(tables.scrobbles.id).as("play_count"),
-          })
-          .from(tables.scrobbles)
-          .where(inArray(tables.scrobbles.artistId, artistIds))
-          .groupBy(tables.scrobbles.artistId)
-          .execute(),
-        ctx.readDb
-          .select({
-            artistId: tables.scrobbles.artistId,
-            unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
-          })
-          .from(tables.scrobbles)
-          .where(inArray(tables.scrobbles.artistId, artistIds))
-          .groupBy(tables.scrobbles.artistId)
-          .execute(),
-      ]);
+  if (artistIds.length === 0) return { data: [] };
 
-      const playCountMap = new Map(
-        scrobbleCounts.map((r) => [r.artistId, Number(r.play_count)]),
-      );
-      const listenersMap = new Map(
-        uniqueListenersRows.map((r) => [
-          r.artistId,
-          Number(r.unique_listeners),
-        ]),
-      );
+  const [artists, totals] = await Promise.all([
+    db
+      .select({
+        id: tables.artists.id,
+        name: tables.artists.name,
+        picture: tables.artists.picture,
+        sha256: tables.artists.sha256,
+        uri: tables.artists.uri,
+        genres: tables.artists.genres,
+      })
+      .from(tables.artists)
+      .where(inArray(tables.artists.id, artistIds))
+      .execute(),
+    db
+      .select({
+        artistId: tables.scrobbles.artistId,
+        play_count: count(),
+        unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
+      })
+      .from(tables.scrobbles)
+      .where(inArray(tables.scrobbles.artistId, artistIds))
+      .groupBy(tables.scrobbles.artistId)
+      .execute(),
+  ]);
 
-      const data: Artist[] = artists.map((artist) => ({
-        id: artist.id,
-        name: artist.name,
-        picture: artist.picture,
-        sha256: artist.sha256,
-        uri: artist.uri,
-        genres: artist.genres || [],
-        play_count: playCountMap.get(artist.id) ?? 0,
-        unique_listeners: listenersMap.get(artist.id) ?? 0,
-      }));
+  const playCountMap = new Map(
+    totals.map((r) => [r.artistId, Number(r.play_count)]),
+  );
+  const listenersMap = new Map(
+    totals.map((r) => [r.artistId, Number(r.unique_listeners)]),
+  );
 
-      return { data };
-    },
-    catch: (error) => new Error(`Failed to retrieve artists: ${error}`),
-  });
+  const artistMap = new Map(artists.map((artist) => [artist.id, artist]));
+  const data: Artist[] = artistIds
+    .map((id) => artistMap.get(id))
+    .filter((artist): artist is (typeof artists)[number] => !!artist)
+    .map((artist) => ({
+      id: artist.id,
+      name: artist.name,
+      picture: artist.picture,
+      sha256: artist.sha256,
+      uri: artist.uri,
+      genres: artist.genres || [],
+      play_count: playCountMap.get(artist.id) ?? 0,
+      unique_listeners: listenersMap.get(artist.id) ?? 0,
+    }));
+
+  return { data };
 };
 
 const presentation = ({

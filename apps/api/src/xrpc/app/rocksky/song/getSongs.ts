@@ -1,7 +1,8 @@
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, count, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
+import { queryCache } from "lib/queryCache";
 import type { Server } from "lexicon";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/getSongs";
@@ -32,10 +33,8 @@ const FILTER_FIELDS: RsqlFieldMap = {
 };
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 50,
-    timeToLive: Duration.minutes(5),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -43,15 +42,16 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "30 seconds",
+    200,
+  );
 
   const getSongs = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
-        return Effect.succeed({ songs: [] });
+        return Effect.succeed({ tracks: [] });
       }),
     );
 
@@ -76,117 +76,38 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: Track[] }, Error> => {
-  return readQuery("Failed to retrieve tracks", async (db) => {
-    const limit = params.limit ?? 100;
-    const offset = params.offset ?? 0;
-    const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
+  return readQuery("Failed to retrieve tracks", (db) =>
+    retrieveSongs(db, params),
+  );
+};
 
-    // Direct lookup by mbid/isrc/spotifyId — short-circuits the top-tracks aggregation
-    const mbid = params.mbid?.trim();
-    const isrc = params.isrc?.trim();
-    const spotifyId = params.spotifyId?.trim();
-    if (mbid || isrc || spotifyId) {
-      const idClauses: SQL[] = [];
-      if (mbid) idClauses.push(eq(tables.tracks.mbId, mbid));
-      if (isrc) idClauses.push(eq(tables.tracks.isrc, isrc));
-      if (spotifyId) {
-        idClauses.push(
-          eq(
-            tables.tracks.spotifyLink,
-            `https://open.spotify.com/track/${spotifyId}`,
-          ),
-        );
-      }
-      const directWhere =
-        idClauses.length > 1 ? or(...idClauses) : idClauses[0];
+export const retrieveSongs = async (
+  db: Context["readDb"],
+  params: QueryParams,
+) => {
+  const limit = params.limit ?? 100;
+  const offset = params.offset ?? 0;
+  const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
 
-      const directTracks = await db
-        .select({
-          id: tables.tracks.id,
-          title: tables.tracks.title,
-          artist: tables.tracks.artist,
-          albumArtist: tables.tracks.albumArtist,
-          albumArt: tables.tracks.albumArt,
-          album: tables.tracks.album,
-          uri: tables.tracks.uri,
-          albumUri: tables.tracks.albumUri,
-          artistUri: tables.tracks.artistUri,
-          sha256: tables.tracks.sha256,
-          mbId: tables.tracks.mbId,
-          isrc: tables.tracks.isrc,
-          trackNumber: tables.tracks.trackNumber,
-          discNumber: tables.tracks.discNumber,
-          duration: tables.tracks.duration,
-          copyrightMessage: tables.tracks.copyrightMessage,
-          createdAt: tables.tracks.createdAt,
-        })
-        .from(tables.tracks)
-        .where(and(directWhere, filterWhere))
-        .limit(limit)
-        .offset(offset)
-        .execute();
-
-      return {
-        data: directTracks.map((track) => ({
-          id: track.id,
-          uri: track.uri,
-          title: track.title,
-          artist: track.artist,
-          artist_uri: track.artistUri,
-          album: track.album,
-          album_uri: track.albumUri,
-          album_art: track.albumArt,
-          album_artist: track.albumArtist,
-          copyright_message: track.copyrightMessage,
-          disc_number: track.discNumber,
-          duration: track.duration,
-          sha256: track.sha256,
-          mbid: track.mbId,
-          isrc: track.isrc,
-          track_number: track.trackNumber,
-          play_count: 0,
-          unique_listeners: 0,
-          created_at: track.createdAt.toISOString(),
-        })),
-      };
-    }
-
-    const topTracksQuery = await db
-      .select({
-        trackId: tables.scrobbles.trackId,
-        play_count: count(tables.scrobbles.id).as("play_count"),
-        unique_listeners:
-          sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
-            "unique_listeners",
-          ),
-      })
-      .from(tables.scrobbles)
-      .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
-      .leftJoin(
-        tables.artists,
-        eq(tables.tracks.albumArtist, tables.artists.name),
-      )
-      .where(
-        and(
-          params.genre
-            ? sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`
-            : undefined,
-          filterWhere,
+  // Direct lookup by mbid/isrc/spotifyId — short-circuits the top-tracks aggregation
+  const mbid = params.mbid?.trim();
+  const isrc = params.isrc?.trim();
+  const spotifyId = params.spotifyId?.trim();
+  if (mbid || isrc || spotifyId) {
+    const idClauses: SQL[] = [];
+    if (mbid) idClauses.push(eq(tables.tracks.mbId, mbid));
+    if (isrc) idClauses.push(eq(tables.tracks.isrc, isrc));
+    if (spotifyId) {
+      idClauses.push(
+        eq(
+          tables.tracks.spotifyLink,
+          `https://open.spotify.com/track/${spotifyId}`,
         ),
-      )
-      .groupBy(tables.scrobbles.trackId)
-      .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
-      .limit(limit)
-      .offset(offset)
-      .execute();
+      );
+    }
+    const directWhere = idClauses.length > 1 ? or(...idClauses) : idClauses[0];
 
-    if (topTracksQuery.length === 0) return { data: [] };
-
-    const trackIds = topTracksQuery
-      .map((t) => t.trackId)
-      .filter((id): id is string => id !== null);
-
-    const tracks = await db
+    const directTracks = await db
       .select({
         id: tables.tracks.id,
         title: tables.tracks.title,
@@ -198,6 +119,8 @@ const retrieve = ({
         albumUri: tables.tracks.albumUri,
         artistUri: tables.tracks.artistUri,
         sha256: tables.tracks.sha256,
+        mbId: tables.tracks.mbId,
+        isrc: tables.tracks.isrc,
         trackNumber: tables.tracks.trackNumber,
         discNumber: tables.tracks.discNumber,
         duration: tables.tracks.duration,
@@ -205,45 +128,138 @@ const retrieve = ({
         createdAt: tables.tracks.createdAt,
       })
       .from(tables.tracks)
-      .where(inArray(tables.tracks.id, trackIds))
+      .where(and(directWhere, filterWhere))
+      .limit(limit)
+      .offset(offset)
       .execute();
 
-    const trackMap = new Map(tracks.map((t) => [t.id, t]));
-    const listenersMap = new Map(
-      topTracksQuery.map((r) => [r.trackId, Number(r.unique_listeners)]),
-    );
-    const playCountMap = new Map(
-      topTracksQuery.map((r) => [r.trackId, Number(r.play_count)]),
-    );
+    return {
+      data: directTracks.map((track) => ({
+        id: track.id,
+        uri: track.uri,
+        title: track.title,
+        artist: track.artist,
+        artist_uri: track.artistUri,
+        album: track.album,
+        album_uri: track.albumUri,
+        album_art: track.albumArt,
+        album_artist: track.albumArtist,
+        copyright_message: track.copyrightMessage,
+        disc_number: track.discNumber,
+        duration: track.duration,
+        sha256: track.sha256,
+        mbid: track.mbId,
+        isrc: track.isrc,
+        track_number: track.trackNumber,
+        play_count: 0,
+        unique_listeners: 0,
+        created_at: track.createdAt.toISOString(),
+      })),
+    };
+  }
 
-    const data: Track[] = topTracksQuery
-      .map((item) => {
-        const track = trackMap.get(item.trackId!);
-        if (!track) return null;
-        return {
-          id: track.id,
-          uri: track.uri,
-          title: track.title,
-          artist: track.artist,
-          artist_uri: track.artistUri,
-          album: track.album,
-          album_uri: track.albumUri,
-          album_art: track.albumArt,
-          album_artist: track.albumArtist,
-          copyright_message: track.copyrightMessage,
-          disc_number: track.discNumber,
-          duration: track.duration,
-          sha256: track.sha256,
-          track_number: track.trackNumber,
-          play_count: playCountMap.get(item.trackId!) ?? 0,
-          unique_listeners: listenersMap.get(item.trackId!) ?? 0,
-          created_at: track.createdAt.toISOString(),
-        };
-      })
-      .filter((t): t is Track => t !== null);
+  // Filter the catalog and page before aggregating history. A broad wildcard
+  // must not count every matching track just to display 50 catalog entries.
+  const genreWhere = params.genre
+    ? sql`EXISTS (SELECT 1 FROM ${tables.artists} WHERE ${tables.artists.name} = ${tables.tracks.albumArtist} AND ${tables.artists.genres} @> ARRAY[${params.genre}]::text[])`
+    : undefined;
+  const pageIds = filterWhere
+    ? (
+        await db
+          .select({ id: tables.tracks.id })
+          .from(tables.tracks)
+          .where(and(filterWhere, genreWhere))
+          .orderBy(desc(tables.tracks.createdAt), tables.tracks.id)
+          .limit(limit)
+          .offset(offset)
+          .execute()
+      ).map((row) => row.id)
+    : undefined;
+  if (pageIds?.length === 0) return { data: [] };
 
-    return { data };
-  });
+  const topTracksQuery = await db
+    .select({
+      trackId: tables.scrobbles.trackId,
+      play_count: count().as("play_count"),
+      unique_listeners:
+        sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
+          "unique_listeners",
+        ),
+    })
+    .from(tables.scrobbles)
+    .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
+    .where(pageIds ? inArray(tables.scrobbles.trackId, pageIds) : genreWhere)
+    .groupBy(tables.scrobbles.trackId)
+    .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
+    .limit(limit)
+    .offset(pageIds ? 0 : offset)
+    .execute();
+
+  if (!pageIds && topTracksQuery.length === 0) return { data: [] };
+
+  const trackIds =
+    pageIds ??
+    topTracksQuery
+      .map((t) => t.trackId)
+      .filter((id): id is string => id !== null);
+
+  const tracks = await db
+    .select({
+      id: tables.tracks.id,
+      title: tables.tracks.title,
+      artist: tables.tracks.artist,
+      albumArtist: tables.tracks.albumArtist,
+      albumArt: tables.tracks.albumArt,
+      album: tables.tracks.album,
+      uri: tables.tracks.uri,
+      albumUri: tables.tracks.albumUri,
+      artistUri: tables.tracks.artistUri,
+      sha256: tables.tracks.sha256,
+      trackNumber: tables.tracks.trackNumber,
+      discNumber: tables.tracks.discNumber,
+      duration: tables.tracks.duration,
+      copyrightMessage: tables.tracks.copyrightMessage,
+      createdAt: tables.tracks.createdAt,
+    })
+    .from(tables.tracks)
+    .where(inArray(tables.tracks.id, trackIds))
+    .execute();
+
+  const trackMap = new Map(tracks.map((t) => [t.id, t]));
+  const listenersMap = new Map(
+    topTracksQuery.map((r) => [r.trackId, Number(r.unique_listeners)]),
+  );
+  const playCountMap = new Map(
+    topTracksQuery.map((r) => [r.trackId, Number(r.play_count)]),
+  );
+
+  const data: Track[] = trackIds
+    .map((trackId) => {
+      const track = trackMap.get(trackId);
+      if (!track) return null;
+      return {
+        id: track.id,
+        uri: track.uri,
+        title: track.title,
+        artist: track.artist,
+        artist_uri: track.artistUri,
+        album: track.album,
+        album_uri: track.albumUri,
+        album_art: track.albumArt,
+        album_artist: track.albumArtist,
+        copyright_message: track.copyrightMessage,
+        disc_number: track.discNumber,
+        duration: track.duration,
+        sha256: track.sha256,
+        track_number: track.trackNumber,
+        play_count: playCountMap.get(trackId) ?? 0,
+        unique_listeners: listenersMap.get(trackId) ?? 0,
+        created_at: track.createdAt.toISOString(),
+      };
+    })
+    .filter((t): t is Track => t !== null);
+
+  return { data };
 };
 
 const presentation = ({

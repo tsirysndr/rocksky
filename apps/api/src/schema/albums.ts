@@ -5,9 +5,7 @@ import discogsReleases from "./discogs-releases";
 const albums = pgTable(
   "albums",
   {
-    id: text("xata_id")
-      .primaryKey()
-      .default(sql`xata_id()`),
+    id: text("xata_id").primaryKey().default(sql`xata_id()`),
     title: text("title").notNull(),
     artist: text("artist").notNull(),
     releaseDate: text("release_date"),
@@ -28,6 +26,14 @@ const albums = pgTable(
     xataVersion: integer("xata_version"),
   },
   (t) => [
+    index("albums_catalog_recent_idx").on(t.createdAt.desc(), t.id),
+    index("albums_title_id_idx").on(t.title, t.id),
+    index("albums_artist_trgm_idx").using(
+      "gin",
+      sql`lower(${t.artist}) gin_trgm_ops`,
+    ),
+    index("albums_artist_id_idx").on(t.artist, t.id),
+    index("albums_year_id_idx").on(t.year, t.id),
     index("albums_missing_artist_uri_idx")
       .on(t.artist)
       .where(sql`${t.artistUri} IS NULL`),

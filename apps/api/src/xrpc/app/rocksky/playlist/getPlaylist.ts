@@ -1,6 +1,7 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
+import { dbQuery } from "lib/dbQuery";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -77,73 +78,71 @@ const retrieve = ({
   ctx: Context;
   did?: string;
 }): Effect.Effect<[Playlist, PlaylistTrack[]], Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      // Clients build the URI from whatever identifies the actor in the route,
-      // which is often a handle — `at://alice.example/...` never matches the
-      // stored `at://did:plc:.../...`. Canonicalise to the owner's DID first.
-      const uri = await canonicalUri(ctx, params.uri);
-      const [playlist, tracks] = await Promise.all([
-        ctx.db
-          .select({
-            playlists: tables.playlists,
-            users: tables.users,
-            trackCount: sql<number>`
+  return dbQuery("Failed to retrieve playlist", async (db) => {
+    const scoped = { ...ctx, db };
+    // Clients build the URI from whatever identifies the actor in the route,
+    // which is often a handle — `at://alice.example/...` never matches the
+    // stored `at://did:plc:.../...`. Canonicalise to the owner's DID first.
+    const uri = await canonicalUri(scoped, params.uri);
+    const [playlist, tracks] = await Promise.all([
+      db
+        .select({
+          playlists: tables.playlists,
+          users: tables.users,
+          trackCount: sql<number>`
               (SELECT COUNT(*)
                 FROM ${tables.playlistTracks}
                 WHERE ${tables.playlistTracks.playlistId} = ${tables.playlists.id}
               )`.as("trackCount"),
-          })
-          .from(tables.userPlaylists)
-          .leftJoin(
-            tables.playlists,
-            eq(tables.userPlaylists.playlistId, tables.playlists.id),
-          )
-          .leftJoin(
-            tables.users,
-            eq(tables.userPlaylists.userId, tables.users.id),
-          )
-          .where(eq(tables.playlists.uri, uri))
-          .execute()
-          .then(([row]) => row),
-        ctx.db
-          .select()
-          .from(tables.playlistTracks)
-          .leftJoin(
-            tables.tracks,
-            eq(tables.playlistTracks.trackId, tables.tracks.id),
-          )
-          .leftJoin(
-            tables.playlists,
-            eq(tables.playlistTracks.playlistId, tables.playlists.id),
-          )
-          .where(
-            and(
-              eq(tables.playlists.uri, uri),
-              compileRsqlFilterParam(params.filter, FILTER_FIELDS),
-            ),
-          )
-          // addedAt is the record's own timestamp and is what the playlist is
-          // ordered by; createdAt only says when we ingested the commit, which
-          // can differ when entries arrive out of order or get backfilled.
-          .orderBy(
-            asc(tables.playlistTracks.addedAt),
-            asc(tables.playlistTracks.createdAt),
-          )
-          .execute()
-          .then((rows) => rows.map((row) => row.tracks))
-          .then((tracks) => withLikes(ctx, tracks, did)),
-      ]);
+        })
+        .from(tables.userPlaylists)
+        .leftJoin(
+          tables.playlists,
+          eq(tables.userPlaylists.playlistId, tables.playlists.id),
+        )
+        .leftJoin(
+          tables.users,
+          eq(tables.userPlaylists.userId, tables.users.id),
+        )
+        .where(eq(tables.playlists.uri, uri))
+        .execute()
+        .then(([row]) => row),
+      db
+        .select()
+        .from(tables.playlistTracks)
+        .leftJoin(
+          tables.tracks,
+          eq(tables.playlistTracks.trackId, tables.tracks.id),
+        )
+        .leftJoin(
+          tables.playlists,
+          eq(tables.playlistTracks.playlistId, tables.playlists.id),
+        )
+        .where(
+          and(
+            eq(tables.playlists.uri, uri),
+            compileRsqlFilterParam(params.filter, FILTER_FIELDS),
+          ),
+        )
+        // addedAt is the record's own timestamp and is what the playlist is
+        // ordered by; createdAt only says when we ingested the commit, which
+        // can differ when entries arrive out of order or get backfilled.
+        .orderBy(
+          asc(tables.playlistTracks.addedAt),
+          asc(tables.playlistTracks.createdAt),
+        )
+        .execute()
+        .then((rows) => rows.map((row) => row.tracks))
+        .then((tracks) => withLikes(scoped, tracks, did)),
+    ]);
 
-      // presentation() reads playlist.playlists.* inside an Effect.sync, so a
-      // miss would throw there as a defect — which catchAll does not catch, and
-      // the request 500s. Fail here instead, as a typed error catchAll handles.
-      if (!playlist?.playlists) {
-        throw new Error(`Playlist not found: ${uri}`);
-      }
-      return [playlist, tracks] as [Playlist, PlaylistTrack[]];
-    },
-    catch: (error) => new Error(`Failed to retrieve playlist: ${error}`),
+    // presentation() reads playlist.playlists.* inside an Effect.sync, so a
+    // miss would throw there as a defect — which catchAll does not catch, and
+    // the request 500s. Fail here instead, as a typed error catchAll handles.
+    if (!playlist?.playlists) {
+      throw new Error(`Playlist not found: ${uri}`);
+    }
+    return [playlist, tracks] as [Playlist, PlaylistTrack[]];
   });
 };
 

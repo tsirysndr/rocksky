@@ -1,6 +1,6 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, eq, or, sql } from "drizzle-orm";
+import { and, eq, exists, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorPlaylists";
@@ -76,19 +76,27 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<Playlist[], Error> => {
-  return dbQuery("Failed to retrieve user playlists", async (db) => {
-    const projection = {
-      users: tables.users,
-      playlists: tables.playlists,
-      trackCount: sql<number>`
+  return dbQuery("Failed to retrieve user playlists", (db) =>
+    retrieveActorPlaylists(db, params),
+  );
+};
+
+export const retrieveActorPlaylists = async (
+  db: Context["db"],
+  params: QueryParams,
+) => {
+  const projection = {
+    users: tables.users,
+    playlists: tables.playlists,
+    trackCount: sql<number>`
           (SELECT COUNT(*)
            FROM ${tables.playlistTracks}
            WHERE ${tables.playlistTracks.playlistId} = ${tables.playlists.id}
           )`.as("trackCount"),
-      // Album art of up to four tracks, for the cover mosaic shown when the
-      // playlist has no picture. Grouped by art so one album's tracks don't
-      // fill every tile; ordered by first-added so the mosaic is stable.
-      trackArts: sql<string[]>`
+    // Album art of up to four tracks, for the cover mosaic shown when the
+    // playlist has no picture. Grouped by art so one album's tracks don't
+    // fill every tile; ordered by first-added so the mosaic is stable.
+    trackArts: sql<string[]>`
           (SELECT COALESCE(array_agg(art), '{}')
            FROM (
              SELECT t.album_art AS art
@@ -100,58 +108,45 @@ const retrieve = ({
              ORDER BY MIN(pt.xata_createdat)
              LIMIT 4
            ) arts)`.as("trackArts"),
-    };
-    const where = and(
-      or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)),
-      compileRsqlFilterParam(params.filter, FILTER_FIELDS),
+  };
+  const where = and(
+    or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)),
+    compileRsqlFilterParam(params.filter, FILTER_FIELDS),
+  );
+  const base = (dedupe = false) =>
+    (dedupe ? db.selectDistinct(projection) : db.select(projection))
+      .from(tables.playlists)
+      .leftJoin(tables.users, eq(tables.playlists.createdBy, tables.users.id));
+
+  // Keep all track predicates on the same track, without a wide DISTINCT
+  // over a row per matching playlist entry.
+  const matchingTrack = db
+    .select({ one: sql`1` })
+    .from(tables.playlistTracks)
+    .innerJoin(
+      tables.tracks,
+      eq(tables.playlistTracks.trackId, tables.tracks.id),
+    )
+    .where(
+      and(eq(tables.playlistTracks.playlistId, tables.playlists.id), where),
     );
-    const base = (dedupe = false) =>
-      (dedupe ? db.selectDistinct(projection) : db.select(projection))
-        .from(tables.playlists)
-        .leftJoin(
-          tables.users,
-          eq(tables.playlists.createdBy, tables.users.id),
-        );
+  const rows = await base()
+    .where(filtersOnTracks(params.filter) ? exists(matchingTrack) : where)
+    .offset(params.offset)
+    .limit(params.limit)
+    .execute();
 
-    // Joining the contents fans a playlist out to one row per matching
-    // track; DISTINCT folds it back. Only done when the filter asks for it.
-    // Not GROUP BY on the ids: Postgres only treats the other selected
-    // columns as functionally dependent when the grouped column is a PRIMARY
-    // KEY, and xata_id is UNIQUE instead — so grouping raised "column must
-    // appear in the GROUP BY clause" and the catchAll turned that into an
-    // empty list.
-    const rows = filtersOnTracks(params.filter)
-      ? await base(true)
-          .innerJoin(
-            tables.playlistTracks,
-            eq(tables.playlistTracks.playlistId, tables.playlists.id),
-          )
-          .innerJoin(
-            tables.tracks,
-            eq(tables.playlistTracks.trackId, tables.tracks.id),
-          )
-          .where(where)
-          .offset(params.offset)
-          .limit(params.limit)
-          .execute()
-      : await base()
-          .where(where)
-          .offset(params.offset)
-          .limit(params.limit)
-          .execute();
-
-    return rows.map((row) => ({
-      ...row.playlists,
-      trackCount: row.trackCount,
-      trackArts: row.trackArts ?? [],
-      title: row.playlists.name,
-      coverImageUrl: row.playlists.picture,
-      curatorDId: row.users.did,
-      curatorName: row.users.displayName,
-      curatorAvatarUrl: row.users.avatar,
-      curatorHandle: row.users.handle,
-    }));
-  });
+  return rows.map((row) => ({
+    ...row.playlists,
+    trackCount: row.trackCount,
+    trackArts: row.trackArts ?? [],
+    title: row.playlists.name,
+    coverImageUrl: row.playlists.picture,
+    curatorDId: row.users.did,
+    curatorName: row.users.displayName,
+    curatorAvatarUrl: row.users.avatar,
+    curatorHandle: row.users.handle,
+  }));
 };
 
 const presentation = (

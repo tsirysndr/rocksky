@@ -51,8 +51,9 @@ describe("compileRsqlFilter", () => {
 
   it("translates * wildcards to case-insensitive like", () => {
     const q = compile("artist==Daft*");
-    expect(q.sql.toLowerCase()).toContain("ilike");
+    expect(q.sql.toLowerCase()).toContain("like");
     expect(q.params).toEqual(["Daft%"]);
+    expect(q.sql).toContain('lower("tracks"."artist")');
   });
 
   it("escapes like metacharacters inside wildcard values", () => {
@@ -60,10 +61,10 @@ describe("compileRsqlFilter", () => {
     expect(q.params).toEqual(["%100\\%\\_%"]);
   });
 
-  it("compiles negated wildcard to not ilike", () => {
+  it("compiles negated wildcard to indexed lower LIKE", () => {
     const q = compile("artist!=Daft*");
     expect(q.sql.toLowerCase()).toContain("not");
-    expect(q.sql.toLowerCase()).toContain("ilike");
+    expect(q.sql.toLowerCase()).toContain("like");
     expect(q.params).toEqual(["Daft%"]);
   });
 

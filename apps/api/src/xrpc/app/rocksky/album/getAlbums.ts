@@ -1,11 +1,13 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { count, desc, eq, inArray, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { count, desc, inArray, sql } from "drizzle-orm";
+import { Effect, pipe } from "effect";
+import { queryCache } from "lib/queryCache";
 import type { Server } from "lexicon";
 import type { AlbumViewBasic } from "lexicon/types/app/rocksky/album/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbums";
 import { deepCamelCaseKeys } from "lib";
+import { readQuery } from "lib/dbQuery";
 import { transientDbRetry } from "lib/dbRetry";
 import { compileRsqlFilterParam, type RsqlFieldMap } from "lib/rsql";
 import tables from "schema";
@@ -22,10 +24,8 @@ const FILTER_FIELDS: RsqlFieldMap = {
 };
 
 export default function (server: Server, ctx: Context) {
-  const cache = Cache.make({
-    capacity: 50,
-    timeToLive: Duration.minutes(5),
-    lookup: (params: QueryParams) =>
+  const cached = queryCache(
+    (params: QueryParams) =>
       pipe(
         { params, ctx },
         retrieve,
@@ -33,12 +33,13 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "30 seconds",
+    200,
+  );
 
   const getAlbums = (params: QueryParams) =>
     pipe(
-      cache,
-      Effect.flatMap((c) => c.get(Data.struct({ ...params }))),
+      cached(params),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ albums: [] });
@@ -66,101 +67,111 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ data: Album[] }, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      const limit = params.limit ?? 100;
-      const offset = params.offset ?? 0;
-      const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
+  return readQuery("Failed to retrieve albums", (db) =>
+    retrieveAlbums(db, params),
+  );
+};
 
-      let topAlbumsQb = ctx.readDb
-        .select({
-          albumId: tables.scrobbles.albumId,
-          play_count: count(tables.scrobbles.id).as("play_count"),
-        })
-        .from(tables.scrobbles)
-        .$dynamic();
+export const retrieveAlbums = async (
+  db: Context["readDb"],
+  params: QueryParams,
+) => {
+  const limit = params.limit ?? 100;
+  const offset = params.offset ?? 0;
+  const filterWhere = compileRsqlFilterParam(params.filter, FILTER_FIELDS);
 
-      if (filterWhere) {
-        topAlbumsQb = topAlbumsQb
-          .innerJoin(
-            tables.albums,
-            eq(tables.scrobbles.albumId, tables.albums.id),
-          )
-          .where(filterWhere);
-      }
-
-      const topAlbumsQuery = await topAlbumsQb
-        .groupBy(tables.scrobbles.albumId)
-        .orderBy(desc(sql`count(${tables.scrobbles.id})`))
-        .limit(limit)
-        .offset(offset)
-        .execute();
-
-      if (topAlbumsQuery.length === 0) return { data: [] };
-
-      const albumIds = topAlbumsQuery
-        .map((a) => a.albumId)
-        .filter((id): id is string => id !== null);
-
-      const [albums, uniqueListenersRows] = await Promise.all([
-        ctx.readDb
-          .select({
-            id: tables.albums.id,
-            uri: tables.albums.uri,
-            title: tables.albums.title,
-            artist: tables.albums.artist,
-            artistUri: tables.albums.artistUri,
-            year: tables.albums.year,
-            albumArt: tables.albums.albumArt,
-            releaseDate: tables.albums.releaseDate,
-            sha256: tables.albums.sha256,
-          })
+  const pageIds = filterWhere
+    ? (
+        await db
+          .select({ id: tables.albums.id })
           .from(tables.albums)
-          .where(inArray(tables.albums.id, albumIds))
-          .execute(),
-        ctx.readDb
-          .select({
-            albumId: tables.scrobbles.albumId,
-            unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
-          })
-          .from(tables.scrobbles)
-          .where(inArray(tables.scrobbles.albumId, albumIds))
-          .groupBy(tables.scrobbles.albumId)
-          .execute(),
-      ]);
+          .where(filterWhere)
+          .orderBy(desc(tables.albums.createdAt), tables.albums.id)
+          .limit(limit)
+          .offset(offset)
+          .execute()
+      ).map((row) => row.id)
+    : undefined;
+  if (pageIds?.length === 0) return { data: [] };
+  const topAlbumsQb = db
+    .select({
+      albumId: tables.scrobbles.albumId,
+      play_count: count().as("play_count"),
+    })
+    .from(tables.scrobbles)
+    .where(pageIds ? inArray(tables.scrobbles.albumId, pageIds) : undefined);
 
-      const albumMap = new Map(albums.map((a) => [a.id, a]));
-      const listenersMap = new Map(
-        uniqueListenersRows.map((r) => [r.albumId, Number(r.unique_listeners)]),
-      );
-      const playCountMap = new Map(
-        topAlbumsQuery.map((r) => [r.albumId, Number(r.play_count)]),
-      );
+  const topAlbumsQuery = await topAlbumsQb
+    .groupBy(tables.scrobbles.albumId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit)
+    .offset(pageIds ? 0 : offset)
+    .execute();
 
-      const data: Album[] = topAlbumsQuery
-        .map((item) => {
-          const album = albumMap.get(item.albumId!);
-          if (!album) return null;
-          return {
-            id: album.id,
-            uri: album.uri,
-            title: album.title,
-            artist: album.artist,
-            artist_uri: album.artistUri,
-            year: album.year,
-            album_art: album.albumArt,
-            release_date: album.releaseDate,
-            sha256: album.sha256,
-            play_count: playCountMap.get(item.albumId!) ?? 0,
-            unique_listeners: listenersMap.get(item.albumId!) ?? 0,
-          };
-        })
-        .filter((a): a is Album => a !== null);
+  if (!pageIds && topAlbumsQuery.length === 0) return { data: [] };
 
-      return { data };
-    },
-    catch: (error) => new Error(`Failed to retrieve albums: ${error}`),
-  });
+  const albumIds =
+    pageIds ??
+    topAlbumsQuery
+      .map((a) => a.albumId)
+      .filter((id): id is string => id !== null);
+
+  const [albums, uniqueListenersRows] = await Promise.all([
+    db
+      .select({
+        id: tables.albums.id,
+        uri: tables.albums.uri,
+        title: tables.albums.title,
+        artist: tables.albums.artist,
+        artistUri: tables.albums.artistUri,
+        year: tables.albums.year,
+        albumArt: tables.albums.albumArt,
+        releaseDate: tables.albums.releaseDate,
+        sha256: tables.albums.sha256,
+      })
+      .from(tables.albums)
+      .where(inArray(tables.albums.id, albumIds))
+      .execute(),
+    db
+      .select({
+        albumId: tables.scrobbles.albumId,
+        unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
+      })
+      .from(tables.scrobbles)
+      .where(inArray(tables.scrobbles.albumId, albumIds))
+      .groupBy(tables.scrobbles.albumId)
+      .execute(),
+  ]);
+
+  const albumMap = new Map(albums.map((a) => [a.id, a]));
+  const listenersMap = new Map(
+    uniqueListenersRows.map((r) => [r.albumId, Number(r.unique_listeners)]),
+  );
+  const playCountMap = new Map(
+    topAlbumsQuery.map((r) => [r.albumId, Number(r.play_count)]),
+  );
+
+  const data: Album[] = albumIds
+    .map((albumId) => {
+      const album = albumMap.get(albumId);
+      if (!album) return null;
+      return {
+        id: album.id,
+        uri: album.uri,
+        title: album.title,
+        artist: album.artist,
+        artist_uri: album.artistUri,
+        year: album.year,
+        album_art: album.albumArt,
+        release_date: album.releaseDate,
+        sha256: album.sha256,
+        play_count: playCountMap.get(albumId) ?? 0,
+        unique_listeners: listenersMap.get(albumId) ?? 0,
+      };
+    })
+    .filter((a): a is Album => a !== null);
+
+  return { data };
 };
 
 const presentation = ({

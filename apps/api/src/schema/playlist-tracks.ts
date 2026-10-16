@@ -27,6 +27,10 @@ const playlistTracks = pgTable(
     createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   },
   (table) => [
+    index("playlist_tracks_track_playlist_idx").on(
+      table.trackId,
+      table.playlistId,
+    ),
     index("playlist_tracks_playlist_id_added_at_idx").on(
       table.playlistId,
       table.addedAt,

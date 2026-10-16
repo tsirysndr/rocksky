@@ -43,6 +43,24 @@ const tracks = pgTable(
     xataVersion: integer("xata_version"),
   },
   (t) => [
+    index("tracks_catalog_recent_idx").on(t.createdAt.desc(), t.id),
+    index("tracks_title_id_idx").on(t.title, t.id),
+    index("tracks_duration_id_idx").on(t.duration, t.id),
+    index("tracks_track_number_id_idx").on(t.trackNumber, t.id),
+    index("tracks_disc_number_id_idx").on(t.discNumber, t.id),
+    index("tracks_title_trgm_idx").using(
+      "gin",
+      sql`lower(${t.title}) gin_trgm_ops`,
+    ),
+    index("tracks_artist_trgm_idx").using(
+      "gin",
+      sql`lower(${t.artist}) gin_trgm_ops`,
+    ),
+    index("tracks_album_trgm_idx").using(
+      "gin",
+      sql`lower(${t.album}) gin_trgm_ops`,
+    ),
+    index("tracks_artist_id_idx").on(t.artist, t.id),
     index("tracks_genre_idx").on(t.genre),
     index("tracks_artist_uri_idx").on(t.artistUri),
     index("tracks_album_idx").on(t.album),
@@ -50,7 +68,9 @@ const tracks = pgTable(
     index("tracks_isrc_idx").on(t.isrc),
     index("idx_tracks_lower_title").on(sql`lower(${t.title})`),
     index("idx_tracks_lower_mb_id").on(sql`lower(${t.mbId})`),
-    index("idx_tracks_normalized_isrc").on(sql`upper(replace(${t.isrc}, '-', ''))`),
+    index("idx_tracks_normalized_isrc").on(
+      sql`upper(replace(${t.isrc}, '-', ''))`,
+    ),
   ],
 );
 

@@ -81,6 +81,20 @@ jobs:
     needs: changes
     if: needs.changes.outputs.api_contracts == 'true'
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: api_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -89,6 +103,11 @@ jobs:
       - name: Audit XRPC response contracts
         working-directory: apps/api
         run: bun run audit:xrpc
+      - name: Test RSQL query correctness and cache behavior
+        working-directory: apps/api
+        env:
+          ROCKSKY_QUERY_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/api_test
+        run: bun test src/lib/rsql.test.ts src/lib/catalogFilters.test.ts src/lib/queryCache.test.ts
       - name: Test matching API outcomes and candidate metadata
         working-directory: apps/api
         run: bun test src/xrpc/app/rocksky/song/matchingService.test.ts src/xrpc/app/rocksky/song/matchSongUris.test.ts

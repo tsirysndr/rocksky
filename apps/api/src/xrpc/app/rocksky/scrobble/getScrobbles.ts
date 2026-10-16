@@ -1,5 +1,6 @@
 import { consola } from "consola";
 import type { Context } from "context";
+import { dbQuery } from "lib/dbQuery";
 import { and, count, desc, eq, getTableColumns, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -108,18 +109,16 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<Scrobbles, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      const filterUserIds = await getFilterUserIds(ctx, params);
+  return dbQuery("Failed to retrieve scrobbles", async (db) => {
+    const scoped = { ...ctx, db };
+    const filterUserIds = await getFilterUserIds(scoped, params);
 
-      if (filterUserIds !== null && filterUserIds.length === 0) {
-        return [];
-      }
+    if (filterUserIds !== null && filterUserIds.length === 0) {
+      return [];
+    }
 
-      const scrobbles = await fetchScrobbles(ctx, params, filterUserIds);
-      return enrichWithLikes(ctx, scrobbles, params.did);
-    },
-    catch: (error) => new Error(`Failed to retrieve scrobbles: ${error}`),
+    const scrobbles = await fetchScrobbles(scoped, params, filterUserIds);
+    return enrichWithLikes(scoped, scrobbles, params.did);
   });
 };
 
@@ -141,7 +140,7 @@ const getFilterUserIds = async (
   return rows.map((r) => r.userId);
 };
 
-const fetchScrobbles = async (
+export const fetchScrobbles = async (
   ctx: Context,
   params: QueryParams,
   filterUserIds: string[] | null,

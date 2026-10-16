@@ -15,7 +15,6 @@ import {
   eq,
   gt,
   gte,
-  ilike,
   inArray,
   isNotNull,
   isNull,
@@ -23,7 +22,6 @@ import {
   lte,
   ne,
   not,
-  notIlike,
   notInArray,
   or,
   type SQL,
@@ -210,7 +208,10 @@ const compileEquality = (
   }
   if (type === "string" && raw.includes("*")) {
     const pattern = raw.replace(/([\\%_])/g, "\\$1").replace(/\*/g, "%");
-    return negated ? notIlike(column, pattern) : ilike(column, pattern);
+    // Match the lower(column) trigram indexes used by catalog search. Keep
+    // wildcard comparisons case-insensitive without changing exact equality.
+    const matches = sql`lower(${column}) LIKE lower(${pattern})`;
+    return negated ? not(matches) : matches;
   }
   const value = coerceValue(raw, type, selector);
   return negated ? ne(column, value) : eq(column, value);
