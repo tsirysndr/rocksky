@@ -2345,7 +2345,7 @@ h3 {
 }
 .login-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   flex: 1;
   margin-block: 8px 24px;
   min-height: 580px;
@@ -2461,12 +2461,14 @@ h3 {
 }
 .login-form-section {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: center;
   padding: 24px 44px;
 }
 .login-form-content {
   width: 100%;
+  min-width: 0;
   max-width: 370px;
 }
 .login-form-content > .eyebrow {
@@ -2682,7 +2684,7 @@ h3 {
 }
 @media (max-width: 760px) {
   .login-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     max-width: 520px;
     margin-block: 16px 34px;
     min-height: auto;
@@ -2844,4 +2846,77 @@ h3 {
 .login-suggestion-status button {
   text-align: left;
   cursor: pointer;
+}
+
+.atmosphere-apps {
+  margin: 0 0 22px;
+}
+.atmosphere-apps-strip {
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+}
+.atmosphere-apps-track {
+  display: flex;
+  width: max-content;
+  animation: atmosphere-apps-scroll 40s linear infinite;
+}
+.atmosphere-apps-group {
+  display: flex;
+  gap: 12px;
+  padding-right: 12px;
+}
+.atmosphere-apps-group img {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.atmosphere-apps-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.atmosphere-apps-footer a {
+  color: var(--soft);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.atmosphere-apps-footer a:hover {
+  color: var(--foreground);
+}
+.atmosphere-apps-pause {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--soft);
+  cursor: pointer;
+}
+.atmosphere-apps-footer :focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 3px;
+}
+@keyframes atmosphere-apps-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atmosphere-apps-track {
+    animation: none;
+  }
+  .atmosphere-apps-pause {
+    display: none;
+  }
 }

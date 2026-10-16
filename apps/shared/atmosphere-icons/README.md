@@ -1,0 +1,1 @@
+App icons sourced from https://grain.social/atmo/ for the Atmosphere account strip, matching its sign-in explainer. Filenames retain the upstream names. App names and marks belong to their respective owners.

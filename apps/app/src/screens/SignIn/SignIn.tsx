@@ -20,6 +20,7 @@ import {
   resolveSignInHandle,
   searchHandleSuggestions,
 } from "@/src/api/handleLookup";
+import AtmosphereApps from "@/src/components/AtmosphereApps";
 import LoginStars from "@/src/components/LoginStars";
 import LoginTour from "@/src/components/LoginTour";
 import { Text } from "@/src/components/Text";
@@ -251,6 +252,7 @@ export default function SignIn({ onSuccess, onCancel }: Props) {
           </Text>
 
           {!keyboardVisible && <LoginTour />}
+          {!keyboardVisible && <AtmosphereApps />}
 
           {/* Android's adjustResize provides the keyboard viewport. Collapse the
               tour and anchor the form so suggestions remain scrollable above it. */}

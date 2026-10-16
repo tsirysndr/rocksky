@@ -4,6 +4,7 @@ import {
   type HandleSuggestion,
 } from "../../shared/handle-lookup";
 import LoginTour from "./LoginTour";
+import AtmosphereApps from "./AtmosphereApps";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@heroui/react";
 import {
@@ -230,6 +231,7 @@ export default function LoginScreen() {
               Welcome to Rocksky.
             </h1>
             <p className="login-intro">Sign in with your Atmosphere Account.</p>
+            <AtmosphereApps />
             <Button
               type="button"
               variant="outline"
