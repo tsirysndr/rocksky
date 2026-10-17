@@ -654,6 +654,70 @@ fn delete_equalizer_preset(base: String, token: String, rkey: String) -> String 
     envelope(RT.block_on(av.delete_equalizer_preset(&rkey)).map(|_| true))
 }
 
+// ---- music events (app.rocksky.event.*) ----------------------------------
+
+/// Indexed music events (`app.rocksky.event.getEvents`). `query_json` is the
+/// camelCase filter object (`artist`, `did`, `rsvpBy`, `kind`, `genre`, `from`,
+/// `to`, `includePast`, `limit`, `offset`), `"{}"` for everything upcoming. A
+/// non-empty `token` fills in each event's `viewerRsvp`.
+#[rustler::nif(schedule = "DirtyIo")]
+fn events(base: String, token: String, query_json: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    match parse::<rocksky_sdk::EventsQuery>(&query_json) {
+        Ok(query) => envelope(RT.block_on(av.events(&query))),
+        Err(e) => envelope(Err::<serde_json::Value, _>(e)),
+    }
+}
+
+/// One music event by calendar-event or `app.rocksky.event.music` AT-URI
+/// (`app.rocksky.event.getEvent`). `token` may be empty.
+#[rustler::nif(schedule = "DirtyIo")]
+fn event(base: String, token: String, uri: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.event(&uri)))
+}
+
+/// Who responded to an event (`app.rocksky.event.getEventRsvps`). Empty
+/// `status` returns every status; `limit`/`offset` of 0 use server defaults.
+#[rustler::nif(schedule = "DirtyIo")]
+fn event_rsvps(base: String, uri: String, status: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).event_rsvps(
+        &uri,
+        opt(&status),
+        Some(limit).filter(|v| *v > 0),
+        Some(offset).filter(|v| *v > 0),
+    )))
+}
+
+/// The events an artist is billed on (`app.rocksky.artist.getArtistEvents`).
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist_events(base: String, uri: String, include_past: bool, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).artist_events(
+        &uri,
+        include_past,
+        Some(limit).filter(|v| *v > 0),
+        Some(offset).filter(|v| *v > 0),
+    )))
+}
+
+/// Set the token holder's RSVP on an event (`app.rocksky.event.putRsvp`).
+/// `status` is a `community.lexicon.calendar.rsvp#{going,interested,notgoing}`
+/// token. `token` is required.
+#[rustler::nif(schedule = "DirtyIo")]
+fn put_rsvp(base: String, token: String, uri: String, status: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    envelope(RT.block_on(av.put_rsvp(&uri, &status)))
+}
+
 #[rustler::nif(schedule = "DirtyIo")]
 fn apikeys(base: String, limit: u32, offset: u32) -> String {
     envelope(RT.block_on(appview(&base).apikeys(limit, offset)))

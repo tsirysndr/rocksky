@@ -92,10 +92,12 @@ pub use agent::{
 };
 pub use appview::{
     AlbumView, AppView, ArtistView, DateInterval, DropboxView, EqualizerBandView,
-    EqualizerPresetInput, EqualizerPresetView, FeedItem, FeedView, GlobalStats, GoogledriveView,
-    NotificationActor, NotificationList, NotificationSubject, NotificationView, ProfileView,
-    ScrobbleInput, ScrobbleView, SearchFederation, SearchHit, SearchResults, SongView,
-    SpotifyUserView, UnreadCount, UpdateSeenResult,
+    EqualizerPresetInput, EqualizerPresetView, EventArtistView, EventExternalIds,
+    EventLocationView, EventMediaView, EventUriView, EventView, EventsQuery, FeedItem, FeedView,
+    GlobalStats, GoogledriveView, NotificationActor, NotificationList, NotificationSubject,
+    NotificationView, ProfileView, PutRsvpResult, RsvpCounts, RsvpView, ScrobbleInput,
+    ScrobbleView, SearchFederation, SearchHit, SearchResults, SongView, SpotifyUserView,
+    UnreadCount, UpdateSeenResult,
 };
 pub use auth::Profile;
 #[cfg(feature = "dedup")]

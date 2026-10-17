@@ -649,8 +649,11 @@ impl AppView {
     /// metadata providers, resolving the best canonical track — full album,
     /// artwork, duration, track/disc number, MBID, ISRC, links
     /// (`app.rocksky.song.matchSong`). Optionally anchor with `mb_id` / `isrc`;
-    /// `album` steers the match toward that release (case-insensitive) so a
-    /// remaster/live/single edition doesn't shadow the intended album.
+    /// when `album` is given only candidates matching that album (after
+    /// normalization) are accepted, even alongside an explicit identifier.
+    /// When no candidate is accepted the response carries an empty `matches`
+    /// array and no song fields; each candidate in `matches` also reports its
+    /// `source`, `providerId` and MusicBrainz ids.
     /// This is what [`RockskyAgent::scrobble_match`] uses to enrich a scrobble.
     pub async fn match_song(
         &self,
@@ -1185,6 +1188,106 @@ impl AppView {
             )
             .await?;
         Ok(())
+    }
+
+    // ---- music events (app.rocksky.event.*) --------------------------------
+
+    /// Indexed music events, soonest first (`app.rocksky.event.getEvents`).
+    /// Without a time window only unexpired events are returned; set
+    /// `include_past` for past events, most recent first. Attach a token to get
+    /// `viewer_rsvp` filled in.
+    pub async fn events(&self, query: &EventsQuery) -> Result<Vec<EventView>> {
+        let out: EventsOutput = self
+            .query(
+                "app.rocksky.event.getEvents",
+                &[
+                    ("artist", query.artist.clone().unwrap_or_default()),
+                    ("did", query.did.clone().unwrap_or_default()),
+                    ("rsvpBy", query.rsvp_by.clone().unwrap_or_default()),
+                    ("kind", query.kind.clone().unwrap_or_default()),
+                    ("genre", query.genre.clone().unwrap_or_default()),
+                    ("from", query.from.clone().unwrap_or_default()),
+                    ("to", query.to.clone().unwrap_or_default()),
+                    ("includePast", flag(query.include_past)),
+                    (
+                        "limit",
+                        query.limit.map(|v| v.to_string()).unwrap_or_default(),
+                    ),
+                    (
+                        "offset",
+                        query.offset.map(|v| v.to_string()).unwrap_or_default(),
+                    ),
+                ],
+            )
+            .await?;
+        Ok(out.events)
+    }
+
+    /// A single music event by the AT-URI of either its calendar event record
+    /// or its `app.rocksky.event.music` record (`app.rocksky.event.getEvent`).
+    pub async fn event(&self, uri: &str) -> Result<EventView> {
+        self.query("app.rocksky.event.getEvent", &[("uri", uri.to_string())])
+            .await
+    }
+
+    /// Who responded to an event, most recent first
+    /// (`app.rocksky.event.getEventRsvps`). `status` narrows to one RSVP
+    /// status (`community.lexicon.calendar.rsvp#going` etc.).
+    pub async fn event_rsvps(
+        &self,
+        uri: &str,
+        status: Option<&str>,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<Vec<RsvpView>> {
+        let out: RsvpsOutput = self
+            .query(
+                "app.rocksky.event.getEventRsvps",
+                &[
+                    ("uri", uri.to_string()),
+                    ("status", status.unwrap_or_default().to_string()),
+                    ("limit", limit.map(|v| v.to_string()).unwrap_or_default()),
+                    ("offset", offset.map(|v| v.to_string()).unwrap_or_default()),
+                ],
+            )
+            .await?;
+        Ok(out.rsvps)
+    }
+
+    /// The music events an artist is billed on, soonest first
+    /// (`app.rocksky.artist.getArtistEvents`). Only unexpired events unless
+    /// `include_past` is set.
+    pub async fn artist_events(
+        &self,
+        uri: &str,
+        include_past: bool,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<Vec<EventView>> {
+        let out: EventsOutput = self
+            .query(
+                "app.rocksky.artist.getArtistEvents",
+                &[
+                    ("uri", uri.to_string()),
+                    ("includePast", flag(include_past)),
+                    ("limit", limit.map(|v| v.to_string()).unwrap_or_default()),
+                    ("offset", offset.map(|v| v.to_string()).unwrap_or_default()),
+                ],
+            )
+            .await?;
+        Ok(out.events)
+    }
+
+    /// Set the viewer's RSVP on an event (`app.rocksky.event.putRsvp`,
+    /// procedure, auth-gated). `status` is one of the
+    /// `community.lexicon.calendar.rsvp#{going,interested,notgoing}` tokens;
+    /// an existing RSVP record is reused.
+    pub async fn put_rsvp(&self, uri: &str, status: &str) -> Result<PutRsvpResult> {
+        self.mutate(
+            "app.rocksky.event.putRsvp",
+            serde_json::json!({ "uri": uri, "status": status }),
+        )
+        .await
     }
 
     /// The viewer's API keys (`app.rocksky.apikey.getApikeys`, auth-gated).
@@ -1957,7 +2060,281 @@ pub struct EqualizerPresetInput {
     pub bands: Vec<EqualizerBandView>,
 }
 
+/// Filters for [`AppView::events`] (`app.rocksky.event.getEvents`). All fields
+/// are optional; build with `..Default::default()`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct EventsQuery {
+    /// Only events this artist plays: the artist's AT-URI, id or sha256.
+    pub artist: Option<String>,
+    /// Only events published by this repo.
+    pub did: Option<String>,
+    /// Only events this DID has RSVP'd to (going or interested).
+    pub rsvp_by: Option<String>,
+    /// Only events of this kind (concert, festival...).
+    pub kind: Option<String>,
+    /// Only events whose genre matches (case-insensitive).
+    pub genre: Option<String>,
+    /// Only events that end at or after this RFC-3339 time.
+    pub from: Option<String>,
+    /// Only events that start at or before this RFC-3339 time.
+    pub to: Option<String>,
+    /// Return past events too, most recent first, instead of upcoming ones.
+    pub include_past: bool,
+    pub limit: Option<u32>,
+    pub offset: Option<u32>,
+}
+
+/// `app.rocksky.event.defs#eventView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventView {
+    #[serde(default)]
+    pub id: String,
+    /// AT-URI of the `community.lexicon.calendar.event` record.
+    #[serde(default)]
+    pub uri: String,
+    #[serde(default)]
+    pub cid: Option<String>,
+    /// AT-URI of the `app.rocksky.event.music` record annotating it.
+    #[serde(default)]
+    pub music_uri: String,
+    #[serde(default)]
+    pub music_cid: Option<String>,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    /// concert, festival, club-night, dj-set, livestream, release-party,
+    /// listening-party.
+    #[serde(default)]
+    pub kind: Option<String>,
+    #[serde(default)]
+    pub genre: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub starts_at: Option<String>,
+    #[serde(default)]
+    pub ends_at: Option<String>,
+    /// `community.lexicon.calendar.event#{inperson,virtual,hybrid}`.
+    #[serde(default)]
+    pub mode: Option<String>,
+    /// `community.lexicon.calendar.event#{planned,scheduled,rescheduled,cancelled,postponed}`.
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub image_url: Option<String>,
+    #[serde(default)]
+    pub media: Vec<EventMediaView>,
+    #[serde(default)]
+    pub tickets_url: Option<String>,
+    #[serde(default)]
+    pub locations: Vec<EventLocationView>,
+    #[serde(default)]
+    pub uris: Vec<EventUriView>,
+    #[serde(default)]
+    pub artists: Vec<EventArtistView>,
+    #[serde(default)]
+    pub external_ids: Option<EventExternalIds>,
+    #[serde(default)]
+    pub organizer_did: String,
+    #[serde(default)]
+    pub organizer_handle: Option<String>,
+    #[serde(default)]
+    pub organizer_name: Option<String>,
+    #[serde(default)]
+    pub organizer_avatar_url: Option<String>,
+    #[serde(default)]
+    pub rsvp_counts: RsvpCounts,
+    /// The viewer's own RSVP status token, when authenticated.
+    #[serde(default)]
+    pub viewer_rsvp: Option<String>,
+    #[serde(default)]
+    pub created_at: String,
+    #[serde(default)]
+    pub updated_at: String,
+}
+
+/// `app.rocksky.event.defs#artistView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventArtistView {
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub uri: Option<String>,
+    #[serde(default)]
+    pub sha256: Option<String>,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub picture: Option<String>,
+    #[serde(default)]
+    pub mbid: Option<String>,
+    /// headliner, support, opener, dj, special-guest, performer.
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub stage: Option<String>,
+    #[serde(default)]
+    pub starts_at: Option<String>,
+}
+
+/// `app.rocksky.event.defs#locationView` — one flattened
+/// `community.lexicon.location.*` value; `r#type` says which fields apply.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventLocationView {
+    #[serde(rename = "type", default)]
+    pub r#type: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub country: Option<String>,
+    #[serde(default)]
+    pub postal_code: Option<String>,
+    #[serde(default)]
+    pub region: Option<String>,
+    #[serde(default)]
+    pub locality: Option<String>,
+    #[serde(default)]
+    pub street: Option<String>,
+    #[serde(default)]
+    pub latitude: Option<String>,
+    #[serde(default)]
+    pub longitude: Option<String>,
+    #[serde(default)]
+    pub altitude: Option<String>,
+    #[serde(default)]
+    pub fsq_place_id: Option<String>,
+    #[serde(default)]
+    pub h3: Option<String>,
+    #[serde(default)]
+    pub uri: Option<String>,
+}
+
+/// `app.rocksky.event.defs#mediaView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventMediaView {
+    /// thumbnail or header.
+    #[serde(default)]
+    pub role: String,
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub cid: String,
+    #[serde(default)]
+    pub mime_type: String,
+    #[serde(default)]
+    pub size: Option<i64>,
+    #[serde(default)]
+    pub width: Option<i64>,
+    #[serde(default)]
+    pub height: Option<i64>,
+    #[serde(default)]
+    pub alt: Option<String>,
+}
+
+/// `app.rocksky.event.defs#uriView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventUriView {
+    #[serde(default)]
+    pub uri: String,
+    #[serde(default)]
+    pub name: Option<String>,
+}
+
+/// `app.rocksky.event.music#externalIds`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventExternalIds {
+    #[serde(default)]
+    pub ticketmaster: Option<String>,
+    #[serde(default)]
+    pub songkick: Option<String>,
+    #[serde(default)]
+    pub bandsintown: Option<String>,
+    #[serde(default)]
+    pub resident_advisor: Option<String>,
+    #[serde(default)]
+    pub setlistfm: Option<String>,
+    #[serde(default)]
+    pub dice: Option<String>,
+    #[serde(default)]
+    pub eventbrite: Option<String>,
+}
+
+/// `app.rocksky.event.defs#rsvpCounts`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RsvpCounts {
+    #[serde(default)]
+    pub going: i64,
+    #[serde(default)]
+    pub interested: i64,
+    #[serde(default)]
+    pub not_going: i64,
+}
+
+/// `app.rocksky.event.defs#rsvpView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RsvpView {
+    #[serde(default)]
+    pub uri: String,
+    #[serde(default)]
+    pub cid: Option<String>,
+    /// `community.lexicon.calendar.rsvp#{going,interested,notgoing}`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub did: String,
+    #[serde(default)]
+    pub handle: String,
+    #[serde(default)]
+    pub display_name: String,
+    #[serde(default)]
+    pub avatar: Option<String>,
+    #[serde(default)]
+    pub created_at: String,
+}
+
+/// Output of `app.rocksky.event.putRsvp`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PutRsvpResult {
+    /// The RSVP record URI.
+    #[serde(default)]
+    pub uri: String,
+    #[serde(default)]
+    pub status: String,
+}
+
+/// A boolean query flag; `false` encodes as empty so the query filter drops it.
+fn flag(on: bool) -> String {
+    if on {
+        "true".to_string()
+    } else {
+        String::new()
+    }
+}
+
 // ---- output envelopes ----------------------------------------------------
+
+#[derive(Deserialize)]
+struct EventsOutput {
+    #[serde(default)]
+    events: Vec<EventView>,
+}
+
+#[derive(Deserialize)]
+struct RsvpsOutput {
+    #[serde(default)]
+    rsvps: Vec<RsvpView>,
+}
 
 #[derive(Deserialize)]
 struct EqualizerPresetsOutput {

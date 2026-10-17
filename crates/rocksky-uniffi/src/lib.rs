@@ -667,6 +667,340 @@ impl From<rocksky_sdk::EqualizerPresetView> for EqualizerPreset {
     }
 }
 
+/// Filters for `AppView.events` (`app.rocksky.event.getEvents`). Every field
+/// is optional.
+#[derive(Debug, Clone, Default, uniffi::Record)]
+pub struct EventsQuery {
+    /// Only events this artist plays: the artist's AT-URI, id or sha256.
+    #[uniffi(default = None)]
+    pub artist: Option<String>,
+    /// Only events published by this repo.
+    #[uniffi(default = None)]
+    pub did: Option<String>,
+    /// Only events this DID has RSVP'd to (going or interested).
+    #[uniffi(default = None)]
+    pub rsvp_by: Option<String>,
+    /// Only events of this kind (concert, festival...).
+    #[uniffi(default = None)]
+    pub kind: Option<String>,
+    /// Only events whose genre matches (case-insensitive).
+    #[uniffi(default = None)]
+    pub genre: Option<String>,
+    /// Only events that end at or after this RFC-3339 time.
+    #[uniffi(default = None)]
+    pub from: Option<String>,
+    /// Only events that start at or before this RFC-3339 time.
+    #[uniffi(default = None)]
+    pub to: Option<String>,
+    /// Return past events too, most recent first, instead of upcoming ones.
+    #[uniffi(default = false)]
+    pub include_past: bool,
+    #[uniffi(default = None)]
+    pub limit: Option<u32>,
+    #[uniffi(default = None)]
+    pub offset: Option<u32>,
+}
+
+impl From<EventsQuery> for rocksky_sdk::EventsQuery {
+    fn from(q: EventsQuery) -> Self {
+        rocksky_sdk::EventsQuery {
+            artist: q.artist,
+            did: q.did,
+            rsvp_by: q.rsvp_by,
+            kind: q.kind,
+            genre: q.genre,
+            from: q.from,
+            to: q.to,
+            include_past: q.include_past,
+            limit: q.limit,
+            offset: q.offset,
+        }
+    }
+}
+
+/// A music event (`app.rocksky.event.defs#eventView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EventView {
+    pub id: String,
+    /// AT-URI of the `community.lexicon.calendar.event` record.
+    pub uri: String,
+    pub cid: Option<String>,
+    /// AT-URI of the `app.rocksky.event.music` record annotating it.
+    pub music_uri: String,
+    pub music_cid: Option<String>,
+    pub name: String,
+    pub description: Option<String>,
+    /// concert, festival, club-night, dj-set, livestream, release-party,
+    /// listening-party.
+    pub kind: Option<String>,
+    pub genre: Option<String>,
+    pub tags: Vec<String>,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    /// `community.lexicon.calendar.event#{inperson,virtual,hybrid}`.
+    pub mode: Option<String>,
+    /// `community.lexicon.calendar.event#{planned,scheduled,rescheduled,cancelled,postponed}`.
+    pub status: Option<String>,
+    pub image_url: Option<String>,
+    pub media: Vec<EventMedia>,
+    pub tickets_url: Option<String>,
+    pub locations: Vec<EventLocation>,
+    pub uris: Vec<EventUri>,
+    pub artists: Vec<EventArtist>,
+    pub external_ids: Option<EventExternalIds>,
+    pub organizer_did: String,
+    pub organizer_handle: Option<String>,
+    pub organizer_name: Option<String>,
+    pub organizer_avatar_url: Option<String>,
+    pub rsvp_counts: RsvpCounts,
+    /// The viewer's own RSVP status token, when authenticated.
+    pub viewer_rsvp: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<rocksky_sdk::EventView> for EventView {
+    fn from(e: rocksky_sdk::EventView) -> Self {
+        EventView {
+            id: e.id,
+            uri: e.uri,
+            cid: e.cid,
+            music_uri: e.music_uri,
+            music_cid: e.music_cid,
+            name: e.name,
+            description: e.description,
+            kind: e.kind,
+            genre: e.genre,
+            tags: e.tags,
+            starts_at: e.starts_at,
+            ends_at: e.ends_at,
+            mode: e.mode,
+            status: e.status,
+            image_url: e.image_url,
+            media: e.media.into_iter().map(Into::into).collect(),
+            tickets_url: e.tickets_url,
+            locations: e.locations.into_iter().map(Into::into).collect(),
+            uris: e.uris.into_iter().map(Into::into).collect(),
+            artists: e.artists.into_iter().map(Into::into).collect(),
+            external_ids: e.external_ids.map(Into::into),
+            organizer_did: e.organizer_did,
+            organizer_handle: e.organizer_handle,
+            organizer_name: e.organizer_name,
+            organizer_avatar_url: e.organizer_avatar_url,
+            rsvp_counts: e.rsvp_counts.into(),
+            viewer_rsvp: e.viewer_rsvp,
+            created_at: e.created_at,
+            updated_at: e.updated_at,
+        }
+    }
+}
+
+/// An artist on an event's bill (`app.rocksky.event.defs#artistView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EventArtist {
+    pub id: Option<String>,
+    pub uri: Option<String>,
+    pub sha256: Option<String>,
+    pub name: String,
+    pub picture: Option<String>,
+    pub mbid: Option<String>,
+    /// headliner, support, opener, dj, special-guest, performer.
+    pub role: Option<String>,
+    pub stage: Option<String>,
+    pub starts_at: Option<String>,
+}
+
+impl From<rocksky_sdk::EventArtistView> for EventArtist {
+    fn from(a: rocksky_sdk::EventArtistView) -> Self {
+        EventArtist {
+            id: a.id,
+            uri: a.uri,
+            sha256: a.sha256,
+            name: a.name,
+            picture: a.picture,
+            mbid: a.mbid,
+            role: a.role,
+            stage: a.stage,
+            starts_at: a.starts_at,
+        }
+    }
+}
+
+/// A flattened `community.lexicon.location.*` value
+/// (`app.rocksky.event.defs#locationView`); `kind` is the location type NSID
+/// and says which fields apply.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EventLocation {
+    pub kind: String,
+    pub name: Option<String>,
+    pub country: Option<String>,
+    pub postal_code: Option<String>,
+    pub region: Option<String>,
+    pub locality: Option<String>,
+    pub street: Option<String>,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
+    pub altitude: Option<String>,
+    pub fsq_place_id: Option<String>,
+    pub h3: Option<String>,
+    pub uri: Option<String>,
+}
+
+impl From<rocksky_sdk::EventLocationView> for EventLocation {
+    fn from(l: rocksky_sdk::EventLocationView) -> Self {
+        EventLocation {
+            kind: l.r#type,
+            name: l.name,
+            country: l.country,
+            postal_code: l.postal_code,
+            region: l.region,
+            locality: l.locality,
+            street: l.street,
+            latitude: l.latitude,
+            longitude: l.longitude,
+            altitude: l.altitude,
+            fsq_place_id: l.fsq_place_id,
+            h3: l.h3,
+            uri: l.uri,
+        }
+    }
+}
+
+/// An event image (`app.rocksky.event.defs#mediaView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EventMedia {
+    /// thumbnail or header.
+    pub role: String,
+    pub url: String,
+    pub cid: String,
+    pub mime_type: String,
+    pub size: Option<i64>,
+    pub width: Option<i64>,
+    pub height: Option<i64>,
+    pub alt: Option<String>,
+}
+
+impl From<rocksky_sdk::EventMediaView> for EventMedia {
+    fn from(m: rocksky_sdk::EventMediaView) -> Self {
+        EventMedia {
+            role: m.role,
+            url: m.url,
+            cid: m.cid,
+            mime_type: m.mime_type,
+            size: m.size,
+            width: m.width,
+            height: m.height,
+            alt: m.alt,
+        }
+    }
+}
+
+/// A link attached to an event (`app.rocksky.event.defs#uriView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EventUri {
+    pub uri: String,
+    pub name: Option<String>,
+}
+
+impl From<rocksky_sdk::EventUriView> for EventUri {
+    fn from(u: rocksky_sdk::EventUriView) -> Self {
+        EventUri {
+            uri: u.uri,
+            name: u.name,
+        }
+    }
+}
+
+/// Third-party event ids (`app.rocksky.event.music#externalIds`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EventExternalIds {
+    pub ticketmaster: Option<String>,
+    pub songkick: Option<String>,
+    pub bandsintown: Option<String>,
+    pub resident_advisor: Option<String>,
+    pub setlistfm: Option<String>,
+    pub dice: Option<String>,
+    pub eventbrite: Option<String>,
+}
+
+impl From<rocksky_sdk::EventExternalIds> for EventExternalIds {
+    fn from(x: rocksky_sdk::EventExternalIds) -> Self {
+        EventExternalIds {
+            ticketmaster: x.ticketmaster,
+            songkick: x.songkick,
+            bandsintown: x.bandsintown,
+            resident_advisor: x.resident_advisor,
+            setlistfm: x.setlistfm,
+            dice: x.dice,
+            eventbrite: x.eventbrite,
+        }
+    }
+}
+
+/// RSVP tallies (`app.rocksky.event.defs#rsvpCounts`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct RsvpCounts {
+    pub going: i64,
+    pub interested: i64,
+    pub not_going: i64,
+}
+
+impl From<rocksky_sdk::RsvpCounts> for RsvpCounts {
+    fn from(c: rocksky_sdk::RsvpCounts) -> Self {
+        RsvpCounts {
+            going: c.going,
+            interested: c.interested,
+            not_going: c.not_going,
+        }
+    }
+}
+
+/// One response to an event (`app.rocksky.event.defs#rsvpView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct RsvpView {
+    pub uri: String,
+    pub cid: Option<String>,
+    /// `community.lexicon.calendar.rsvp#{going,interested,notgoing}`.
+    pub status: String,
+    pub did: String,
+    pub handle: String,
+    pub display_name: String,
+    pub avatar: Option<String>,
+    pub created_at: String,
+}
+
+impl From<rocksky_sdk::RsvpView> for RsvpView {
+    fn from(r: rocksky_sdk::RsvpView) -> Self {
+        RsvpView {
+            uri: r.uri,
+            cid: r.cid,
+            status: r.status,
+            did: r.did,
+            handle: r.handle,
+            display_name: r.display_name,
+            avatar: r.avatar,
+            created_at: r.created_at,
+        }
+    }
+}
+
+/// Result of `AppView.put_rsvp` (`app.rocksky.event.putRsvp`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct PutRsvpResult {
+    /// The RSVP record URI.
+    pub uri: String,
+    pub status: String,
+}
+
+impl From<rocksky_sdk::PutRsvpResult> for PutRsvpResult {
+    fn from(r: rocksky_sdk::PutRsvpResult) -> Self {
+        PutRsvpResult {
+            uri: r.uri,
+            status: r.status,
+        }
+    }
+}
+
 /// A scrobble from the AppView.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ScrobbleView {
@@ -1293,8 +1627,9 @@ impl AppView {
 
     /// Resolve full canonical metadata for a bare title + artist
     /// (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
-    /// `album` steers the match toward that release (case-insensitive) so a
-    /// remaster/live/single edition doesn't shadow the intended album.
+    /// When `album` is given only candidates matching that album (after
+    /// normalization) are accepted; with no accepted candidate the response has
+    /// an empty `matches` array and no song fields.
     pub fn match_song(
         &self,
         title: String,
@@ -1616,6 +1951,74 @@ impl AppView {
     pub fn delete_equalizer_preset(&self, rkey: String) -> Result<(), RockskyError> {
         RT.block_on(self.inner.delete_equalizer_preset(&rkey))
             .map_err(err)
+    }
+
+    /// Indexed music events, soonest first (`app.rocksky.event.getEvents`).
+    /// Without a time window only unexpired events are returned; set
+    /// `include_past` in the query for past events, most recent first. With a
+    /// token attached each event carries the viewer's own `viewer_rsvp`.
+    pub fn events(&self, query: EventsQuery) -> Result<Vec<EventView>, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.events(&query.into()))
+            .map_err(err)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
+    }
+
+    /// A single music event by the AT-URI of its calendar event or its
+    /// `app.rocksky.event.music` record (`app.rocksky.event.getEvent`).
+    pub fn event(&self, uri: String) -> Result<EventView, RockskyError> {
+        Ok(RT.block_on(self.inner.event(&uri)).map_err(err)?.into())
+    }
+
+    /// Who responded to an event, most recent first
+    /// (`app.rocksky.event.getEventRsvps`). `status` narrows to one RSVP
+    /// status token.
+    pub fn event_rsvps(
+        &self,
+        uri: String,
+        status: Option<String>,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<Vec<RsvpView>, RockskyError> {
+        Ok(RT
+            .block_on(
+                self.inner
+                    .event_rsvps(&uri, status.as_deref(), limit, offset),
+            )
+            .map_err(err)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
+    }
+
+    /// The music events an artist is billed on, soonest first
+    /// (`app.rocksky.artist.getArtistEvents`); `include_past` adds past events,
+    /// most recent first.
+    pub fn artist_events(
+        &self,
+        uri: String,
+        include_past: bool,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<Vec<EventView>, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.artist_events(&uri, include_past, limit, offset))
+            .map_err(err)?
+            .into_iter()
+            .map(Into::into)
+            .collect())
+    }
+
+    /// Set the viewer's RSVP on an event (`app.rocksky.event.putRsvp`). `status`
+    /// is a `community.lexicon.calendar.rsvp#{going,interested,notgoing}` token;
+    /// an existing RSVP record is reused. Token required.
+    pub fn put_rsvp(&self, uri: String, status: String) -> Result<PutRsvpResult, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.put_rsvp(&uri, &status))
+            .map_err(err)?
+            .into())
     }
 
     pub fn apikeys(&self, limit: u32, offset: u32) -> Result<String, RockskyError> {
