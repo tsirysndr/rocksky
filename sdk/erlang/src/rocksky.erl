@@ -34,6 +34,9 @@
          equalizer_presets_raw/3, put_equalizer_preset/2, put_equalizer_preset/3,
          put_equalizer_preset_raw/3,
          delete_equalizer_preset/2, delete_equalizer_preset/3,
+         events/0, events/1, events/3, events_raw/3, event/1, event/3,
+         event_rsvps/1, event_rsvps/5, artist_events/1, artist_events/5,
+         put_rsvp/3, put_rsvp/4,
          agent_shout_with_gif_raw/5, agent_reply_shout_with_gif_raw/7]).
 
 %% Decode a NIF JSON-envelope binary into {ok, Value} | {error, Message}.
@@ -253,9 +256,52 @@ library_get_raw(Base, Token, Nsid, ParamsJson) ->
 library_post_raw(Base, Token, Nsid, BodyJson) ->
     unwrap(rocksky_nif:library_post(b(Base), b(Token), b(Nsid), b(BodyJson))).
 
-%% Resolve full canonical metadata for a bare title + artist (matchSong).
-%% Album steers the match toward that release (case-insensitive) so a
-%% remaster/live/single edition doesn't shadow the intended album.
+%% ---- music events (app.rocksky.event.*) ----
+
+%% Indexed music events, soonest first. `Query` is a map with camelCase binary
+%% keys — <<"artist">> (AT-URI, id or sha256), <<"did">> (publisher),
+%% <<"rsvpBy">>, <<"kind">>, <<"genre">>, <<"from">> / <<"to">> (RFC-3339),
+%% <<"includePast">> (past events, most recent first), <<"limit">>, <<"offset">>
+%% — or #{} for everything upcoming. A non-empty `Token` fills in each event's
+%% <<"viewerRsvp">>. Returns {ok, [EventView]}.
+events() -> events(#{}).
+events(Query) -> events(Query, <<>>, <<>>).
+events(Query, Token, Base) ->
+    unwrap(rocksky_nif:events(b(Base), b(Token), iolist_to_binary(json:encode(Query)))).
+
+%% Flat form for cross-language callers passing a pre-encoded JSON query object.
+events_raw(Token, QueryJson, Base) ->
+    unwrap(rocksky_nif:events(b(Base), b(Token), b(QueryJson))).
+
+%% One music event by the AT-URI of its calendar event or its
+%% app.rocksky.event.music record.
+event(Uri) -> event(Uri, <<>>, <<>>).
+event(Uri, Token, Base) -> unwrap(rocksky_nif:event(b(Base), b(Token), b(Uri))).
+
+%% Who responded to an event, most recent first. `Status` narrows to one
+%% community.lexicon.calendar.rsvp#... token (<<>> for all); Limit/Offset of 0
+%% use the server defaults. Returns {ok, [RsvpView]}.
+event_rsvps(Uri) -> event_rsvps(Uri, <<>>, 0, 0, <<>>).
+event_rsvps(Uri, Status, Limit, Offset, Base) ->
+    unwrap(rocksky_nif:event_rsvps(b(Base), b(Uri), b(Status), Limit, Offset)).
+
+%% The music events an artist is billed on, soonest first; IncludePast adds past
+%% events, most recent first. Returns {ok, [EventView]}.
+artist_events(Uri) -> artist_events(Uri, false, 0, 0, <<>>).
+artist_events(Uri, IncludePast, Limit, Offset, Base) ->
+    unwrap(rocksky_nif:artist_events(b(Base), b(Uri), IncludePast, Limit, Offset)).
+
+%% Set the token holder's RSVP on an event (`Token` required). `Status` is a
+%% community.lexicon.calendar.rsvp#{going,interested,notgoing} token; an
+%% existing RSVP record is reused. Returns {ok, #{<<"uri">> := _, <<"status">> := _}}.
+put_rsvp(Token, Uri, Status) -> put_rsvp(Token, Uri, Status, <<>>).
+put_rsvp(Token, Uri, Status, Base) ->
+    unwrap(rocksky_nif:put_rsvp(b(Base), b(Token), b(Uri), b(Status))).
+
+%% Resolve full canonical metadata for a bare title + artist (matchSong). When
+%% Album is given only candidates matching that album (after normalization) are
+%% accepted; with no accepted candidate the response has an empty <<"matches">>
+%% array and no song fields.
 match_song(Title, Artist) -> match_song(<<>>, Title, Artist, <<>>, <<>>, <<>>).
 match_song(Title, Artist, Album) -> match_song(<<>>, Title, Artist, Album, <<>>, <<>>).
 match_song(Base, Title, Artist, Album, MbId, Isrc) ->

@@ -222,8 +222,9 @@ module Rocksky
   end
 
   # Resolve full canonical metadata for a bare title + artist (matchSong).
-  # +album+ steers the match toward that release (case-insensitive) so a
-  # remaster/live/single edition doesn't shadow the intended album.
+  # When +album+ is given only candidates matching that album (after
+  # normalization) are accepted; with no accepted candidate the response has an
+  # empty "matches" array and no song fields.
   def self.match_song(title, artist, album: nil, mb_id: nil, isrc: nil, base: nil)
     unwrap(C.rocksky_match_song(base.to_s, title, artist, album.to_s, mb_id.to_s, isrc.to_s))
   end
@@ -363,6 +364,7 @@ module Rocksky
 end
 
 require_relative "rocksky/equalizer"
+require_relative "rocksky/event"
 require_relative "rocksky/filter"
 require_relative "rocksky/library"
 require_relative "rocksky/playlist"

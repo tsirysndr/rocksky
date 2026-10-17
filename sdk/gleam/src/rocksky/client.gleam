@@ -360,6 +360,85 @@ pub fn delete_equalizer_preset(token: String, rkey: String) -> Dynamic {
   delete_equalizer_preset_ffi(token, rkey, "")
 }
 
+// ---- music events (app.rocksky.event.*) -----------------------------------
+
+@external(erlang, "rocksky", "events_raw")
+fn events_ffi(token: String, query_json: String, base: String) -> Dynamic
+
+/// Indexed music events, soonest first. `query_json` is a JSON object of
+/// filters — `artist` (AT-URI, id or sha256), `did` (publisher), `rsvpBy`,
+/// `kind`, `genre`, `from` / `to` (RFC-3339), `includePast` (past events, most
+/// recent first), `limit`, `offset` — or `"{}"` for everything upcoming. A
+/// non-empty `token` fills in each event's `viewerRsvp`.
+pub fn events(token: String, query_json: String) -> Dynamic {
+  events_ffi(token, query_json, "")
+}
+
+@external(erlang, "rocksky", "event")
+fn event_ffi(uri: String, token: String, base: String) -> Dynamic
+
+/// One music event by the AT-URI of its calendar event or its
+/// `app.rocksky.event.music` record.
+pub fn event(uri: String) -> Dynamic {
+  event_ffi(uri, "", "")
+}
+
+@external(erlang, "rocksky", "event_rsvps")
+fn event_rsvps_ffi(
+  uri: String,
+  status: String,
+  limit: Int,
+  offset: Int,
+  base: String,
+) -> Dynamic
+
+/// Who responded to an event, most recent first. `status` narrows to one
+/// `community.lexicon.calendar.rsvp#…` token (`""` for all); `limit`/`offset`
+/// of 0 use the server defaults.
+pub fn event_rsvps(
+  uri: String,
+  status: String,
+  limit: Int,
+  offset: Int,
+) -> Dynamic {
+  event_rsvps_ffi(uri, status, limit, offset, "")
+}
+
+@external(erlang, "rocksky", "artist_events")
+fn artist_events_ffi(
+  uri: String,
+  include_past: Bool,
+  limit: Int,
+  offset: Int,
+  base: String,
+) -> Dynamic
+
+/// The music events an artist is billed on, soonest first; `include_past` adds
+/// past events, most recent first.
+pub fn artist_events(
+  uri: String,
+  include_past: Bool,
+  limit: Int,
+  offset: Int,
+) -> Dynamic {
+  artist_events_ffi(uri, include_past, limit, offset, "")
+}
+
+@external(erlang, "rocksky", "put_rsvp")
+fn put_rsvp_ffi(
+  token: String,
+  uri: String,
+  status: String,
+  base: String,
+) -> Dynamic
+
+/// Set the viewer's RSVP on an event (`token` required). `status` is a
+/// `community.lexicon.calendar.rsvp#{going,interested,notgoing}` token; an
+/// existing RSVP record is reused. Returns `{"uri", "status"}`.
+pub fn put_rsvp(token: String, uri: String, status: String) -> Dynamic {
+  put_rsvp_ffi(token, uri, status, "")
+}
+
 @external(erlang, "rocksky", "match_song")
 fn match_song_ffi(title: String, artist: String) -> Dynamic
 
@@ -371,8 +450,9 @@ pub fn match_song(title: String, artist: String) -> Dynamic {
   match_song_ffi(title, artist)
 }
 
-/// Like `match_song`, but steer the match toward this album (case-insensitive)
-/// so a remaster/live/single edition doesn't shadow the intended release.
+/// Like `match_song`, but accept only candidates matching this album (after
+/// normalization); with no accepted candidate the response has an empty
+/// `matches` array and no song fields.
 pub fn match_song_album(title: String, artist: String, album: String) -> Dynamic {
   match_song_album_ffi(title, artist, album)
 }

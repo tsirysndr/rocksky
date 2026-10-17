@@ -38,6 +38,13 @@ impl<'a> ArtistApi<'a> {
         }
     }
 
+    /// The music events an artist is billed on, soonest first; only unexpired
+    /// events unless `.include_past(true)`.
+    /// XRPC: `app.rocksky.artist.getArtistEvents`.
+    pub fn get_events(&self, uri: impl Into<String>) -> super::event::GetArtistEvents<'_> {
+        super::event::GetArtistEvents::new(self.client, uri.into())
+    }
+
     /// Albums by an artist.
     pub async fn get_albums(&self, uri: impl Into<String>) -> Result<Vec<AlbumBasic>> {
         #[derive(Serialize)]

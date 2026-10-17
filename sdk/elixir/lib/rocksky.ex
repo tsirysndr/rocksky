@@ -140,9 +140,50 @@ defmodule Rocksky do
     do: :rocksky.delete_equalizer_preset(to_bin(token), to_bin(rkey), to_bin(base))
 
   @doc """
-  Resolve full canonical metadata for a bare title + artist (matchSong).
-  `album` steers the match toward that release (case-insensitive) so a
-  remaster/live/single edition doesn't shadow the intended album.
+  Indexed music events, soonest first. `query` is a map with camelCase string
+  keys — `"artist"` (AT-URI, id or sha256), `"did"` (publisher), `"rsvpBy"`,
+  `"kind"`, `"genre"`, `"from"` / `"to"` (RFC-3339), `"includePast"` (past
+  events, most recent first), `"limit"`, `"offset"` — or `%{}` for everything
+  upcoming. A non-empty `token` fills in each event's `"viewerRsvp"`.
+  """
+  def events(query \\ %{}, token \\ "", base \\ "") when is_map(query),
+    do: :rocksky.events(query, to_bin(token), to_bin(base))
+
+  @doc """
+  One music event by the AT-URI of its calendar event or its
+  `app.rocksky.event.music` record.
+  """
+  def event(uri, token \\ "", base \\ ""),
+    do: :rocksky.event(to_bin(uri), to_bin(token), to_bin(base))
+
+  @doc """
+  Who responded to an event, most recent first. `status` narrows to one
+  `community.lexicon.calendar.rsvp#…` token (`""` for all); `limit`/`offset` of
+  0 use the server defaults.
+  """
+  def event_rsvps(uri, status \\ "", limit \\ 0, offset \\ 0, base \\ ""),
+    do: :rocksky.event_rsvps(to_bin(uri), to_bin(status), limit, offset, to_bin(base))
+
+  @doc """
+  The music events an artist is billed on, soonest first; `include_past` adds
+  past events, most recent first.
+  """
+  def artist_events(uri, include_past \\ false, limit \\ 0, offset \\ 0, base \\ ""),
+    do: :rocksky.artist_events(to_bin(uri), include_past, limit, offset, to_bin(base))
+
+  @doc """
+  Set the viewer's RSVP on an event (`token` required). `status` is one of the
+  `community.lexicon.calendar.rsvp#going`, `#interested` or `#notgoing` tokens;
+  an existing RSVP record is reused. Returns `%{"uri" => _, "status" => _}`.
+  """
+  def put_rsvp(token, uri, status, base \\ ""),
+    do: :rocksky.put_rsvp(to_bin(token), to_bin(uri), to_bin(status), to_bin(base))
+
+  @doc """
+  Resolve full canonical metadata for a bare title + artist (matchSong). When
+  `album` is given only candidates matching that album (after normalization)
+  are accepted; with no accepted candidate the response has an empty
+  `"matches"` array and no song fields.
   """
   def match_song(title, artist, album \\ "", mb_id \\ "", isrc \\ "", base \\ ""),
     do:

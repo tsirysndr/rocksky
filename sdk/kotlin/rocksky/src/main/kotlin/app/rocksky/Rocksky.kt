@@ -40,6 +40,18 @@ typealias GlobalStats = uniffi.rocksky_uniffi.GlobalStats
 typealias DateInterval = uniffi.rocksky_uniffi.DateInterval
 typealias RockskyException = uniffi.rocksky_uniffi.RockskyException
 
+// ── Music events (app.rocksky.event.*) ───────────────────────────────────────
+typealias EventsQuery = uniffi.rocksky_uniffi.EventsQuery
+typealias EventView = uniffi.rocksky_uniffi.EventView
+typealias EventArtist = uniffi.rocksky_uniffi.EventArtist
+typealias EventLocation = uniffi.rocksky_uniffi.EventLocation
+typealias EventMedia = uniffi.rocksky_uniffi.EventMedia
+typealias EventUri = uniffi.rocksky_uniffi.EventUri
+typealias EventExternalIds = uniffi.rocksky_uniffi.EventExternalIds
+typealias RsvpCounts = uniffi.rocksky_uniffi.RsvpCounts
+typealias RsvpView = uniffi.rocksky_uniffi.RsvpView
+typealias PutRsvpResult = uniffi.rocksky_uniffi.PutRsvpResult
+
 // ── Remote player / controller (remote-control WebSocket) ────────────────────
 typealias RemotePlayer = uniffi.rocksky_uniffi.RemotePlayer
 typealias RemoteController = uniffi.rocksky_uniffi.RemoteController

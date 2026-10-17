@@ -38,6 +38,16 @@ import type {
   GetProfileShoutsOutput,
   GetShoutRepliesOutput,
   EqualizerPresetView,
+  EventRsvpView,
+  EventView,
+  GetArtistEventsOutput,
+  GetArtistEventsParams,
+  GetEventRsvpsOutput,
+  GetEventRsvpsParams,
+  GetEventsOutput,
+  GetEventsParams,
+  PutRsvpInput,
+  PutRsvpOutput,
   GetSongRecentListenersOutput,
   GetTrackShoutsOutput,
   ListPresetsOutput,
@@ -462,8 +472,9 @@ export class RockskyClient {
   }
   /** Resolve full canonical metadata for a bare title + artist
    * (`app.rocksky.song.matchSong`); optionally anchor with `mbId` / `isrc`.
-   * `album` steers the match toward that release (case-insensitive) so a
-   * remaster/live/single edition doesn't shadow the intended album. */
+   * When `album` is given only candidates matching that album (after
+   * normalization) are accepted; with no accepted candidate the response has an
+   * empty `matches` array and no song fields. */
   matchSong(title: string, artist: string, mbId?: string, isrc?: string, album?: string): Promise<SongViewDetailed> {
     return this.query("app.rocksky.song.matchSong", { title, artist, mbId, isrc, album });
   }
@@ -710,6 +721,40 @@ export class RockskyClient {
    * Auth required. */
   putAudioSettings(input: PutAudioSettingsInput): Promise<RockboxSettingsView> {
     return this.post("app.rocksky.rockbox.putAudioSettings", { body: input });
+  }
+
+  /** Indexed music events, soonest first (`app.rocksky.event.getEvents`).
+   * Without a time window only unexpired events are returned; set
+   * `includePast` for past events, most recent first. With a token attached
+   * each event carries the viewer's own `viewerRsvp`. */
+  async events(params: GetEventsParams = {}): Promise<EventView[]> {
+    const out = await this.query<GetEventsOutput>("app.rocksky.event.getEvents", { ...params });
+    return out.events ?? [];
+  }
+  /** A single music event by the AT-URI of its calendar event or its
+   * `app.rocksky.event.music` record (`app.rocksky.event.getEvent`). */
+  event(uri: string): Promise<EventView> {
+    return this.query("app.rocksky.event.getEvent", { uri });
+  }
+  /** Who responded to an event, most recent first
+   * (`app.rocksky.event.getEventRsvps`); `status` narrows to one
+   * `community.lexicon.calendar.rsvp#…` token. */
+  async eventRsvps(uri: string, opts: Omit<GetEventRsvpsParams, "uri"> = {}): Promise<EventRsvpView[]> {
+    const out = await this.query<GetEventRsvpsOutput>("app.rocksky.event.getEventRsvps", { uri, ...opts });
+    return out.rsvps ?? [];
+  }
+  /** The music events an artist is billed on, soonest first
+   * (`app.rocksky.artist.getArtistEvents`); `includePast` adds past events,
+   * most recent first. */
+  async artistEvents(uri: string, opts: Omit<GetArtistEventsParams, "uri"> = {}): Promise<EventView[]> {
+    const out = await this.query<GetArtistEventsOutput>("app.rocksky.artist.getArtistEvents", { uri, ...opts });
+    return out.events ?? [];
+  }
+  /** Set the viewer's RSVP on an event (`app.rocksky.event.putRsvp`); `status`
+   * is a `community.lexicon.calendar.rsvp#{going,interested,notgoing}` token
+   * and an existing RSVP record is reused. Auth required. */
+  putRsvp(input: PutRsvpInput): Promise<PutRsvpOutput> {
+    return this.post("app.rocksky.event.putRsvp", { body: input });
   }
 
   /** An actor's saved equalizer presets (`app.rocksky.equalizer.listPresets`).

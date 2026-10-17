@@ -646,6 +646,79 @@ func (c *Client) DeleteEqualizerPreset(ctx context.Context, rkey string) error {
 	return c.procedure(ctx, "app.rocksky.equalizer.deletePreset", map[string]any{"rkey": rkey}, nil)
 }
 
+// Events lists indexed music events, soonest first. A zero GetEventsParams
+// lists every upcoming event; set IncludePast for past events, most recent
+// first. With a token attached each event carries the viewer's own RSVP.
+func (c *Client) Events(ctx context.Context, params gen.GetEventsParams) ([]gen.EventView, error) {
+	p := map[string]any{
+		"artist": params.Artist, "did": params.DID, "rsvpBy": params.RsvpBy,
+		"kind": params.Kind, "genre": params.Genre, "from": params.From, "to": params.To,
+	}
+	if params.IncludePast {
+		p["includePast"] = true
+	}
+	if params.Limit > 0 {
+		p["limit"] = params.Limit
+	}
+	if params.Offset > 0 {
+		p["offset"] = params.Offset
+	}
+	var out gen.GetEventsOutput
+	err := c.query(ctx, "app.rocksky.event.getEvents", p, &out)
+	return out.Events, err
+}
+
+// Event returns one music event by the AT-URI of either its calendar event
+// record or its app.rocksky.event.music record.
+func (c *Client) Event(ctx context.Context, uri string) (*gen.EventView, error) {
+	var out gen.EventView
+	err := c.query(ctx, "app.rocksky.event.getEvent", map[string]any{"uri": uri}, &out)
+	return &out, err
+}
+
+// EventRsvps lists who responded to an event, most recent first. status narrows
+// to one community.lexicon.calendar.rsvp#… token; "" returns every status.
+func (c *Client) EventRsvps(ctx context.Context, uri, status string, limit, offset int) ([]gen.EventRsvpView, error) {
+	p := map[string]any{"uri": uri, "status": status}
+	if limit > 0 {
+		p["limit"] = limit
+	}
+	if offset > 0 {
+		p["offset"] = offset
+	}
+	var out gen.GetEventRsvpsOutput
+	err := c.query(ctx, "app.rocksky.event.getEventRsvps", p, &out)
+	return out.Rsvps, err
+}
+
+// ArtistEvents lists the music events an artist is billed on, soonest first.
+// includePast adds past events, most recent first.
+func (c *Client) ArtistEvents(ctx context.Context, uri string, includePast bool, limit, offset int) ([]gen.EventView, error) {
+	p := map[string]any{"uri": uri}
+	if includePast {
+		p["includePast"] = true
+	}
+	if limit > 0 {
+		p["limit"] = limit
+	}
+	if offset > 0 {
+		p["offset"] = offset
+	}
+	var out gen.GetArtistEventsOutput
+	err := c.query(ctx, "app.rocksky.artist.getArtistEvents", p, &out)
+	return out.Events, err
+}
+
+// PutRsvp sets the viewer's RSVP on an event (auth). status is a
+// community.lexicon.calendar.rsvp#{going,interested,notgoing} token; an
+// existing RSVP record is reused.
+func (c *Client) PutRsvp(ctx context.Context, uri, status string) (*gen.PutRsvpOutput, error) {
+	var out gen.PutRsvpOutput
+	err := c.xrpc.Do(ctx, xrpc.Procedure, "application/json",
+		"app.rocksky.event.putRsvp", nil, gen.PutRsvpInput{URI: uri, Status: status}, &out)
+	return &out, err
+}
+
 // Apikeys returns the viewer's API keys (auth).
 func (c *Client) Apikeys(ctx context.Context, limit, offset int) (json.RawMessage, error) {
 	return c.Get(ctx, "app.rocksky.apikey.getApikeys", map[string]any{"limit": limit, "offset": offset})
