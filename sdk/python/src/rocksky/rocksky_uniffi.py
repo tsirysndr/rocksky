@@ -527,6 +527,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_albums() != 29658:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_events() != 48827:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners() != 28932:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_recent_listeners() != 57944:
@@ -557,6 +559,12 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_equalizer_presets() != 56418:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_event() != 53489:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_event_rsvps() != 28709:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_events() != 3771:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_feed() != 45348:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_feed_generator() != 4005:
@@ -575,7 +583,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs() != 22860:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 58118:
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 63976:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources() != 4801:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -596,6 +604,8 @@ def _uniffi_check_api_checksums(lib):
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts() != 27333:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_put_equalizer_preset() != 32860:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_put_rsvp() != 25745:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations() != 8253:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -1118,6 +1128,15 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_albums.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_albums.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_events.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_int8,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_events.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_listeners.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1231,6 +1250,27 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_equalizer_presets.argtypes = 
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_equalizer_presets.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_event.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_event.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_event_rsvps.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_event_rsvps.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_events.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_events.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1371,6 +1411,13 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_put_equalizer_preset.argtypes
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_put_equalizer_preset.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_put_rsvp.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_put_rsvp.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_recommendations.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -2386,6 +2433,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist.restype = ctypes
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_albums.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_albums.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_events.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_events.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners.restype = ctypes.c_uint16
@@ -2431,6 +2481,15 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_delete_equalizer_preset
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_equalizer_presets.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_equalizer_presets.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_event.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_event.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_event_rsvps.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_event_rsvps.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_events.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_events.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed.restype = ctypes.c_uint16
@@ -2491,6 +2550,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts.restype 
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_put_equalizer_preset.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_put_equalizer_preset.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_put_rsvp.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_put_rsvp.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations.restype = ctypes.c_uint16
@@ -2896,6 +2958,26 @@ class _UniffiConverterString:
         with _UniffiRustBuffer.alloc_with_builder() as builder:
             builder.write(value.encode("utf-8"))
             return builder.finalize()
+
+class _UniffiConverterBytes(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        size = buf.read_i32()
+        if size < 0:
+            raise InternalError("Unexpected negative byte string length")
+        return buf.read(size)
+
+    @staticmethod
+    def check_lower(value):
+        try:
+            memoryview(value)
+        except TypeError:
+            raise TypeError("a bytes-like object is required, not {!r}".format(type(value).__name__))
+
+    @staticmethod
+    def write(value, buf):
+        buf.write_i32(len(value))
+        buf.write(value)
 
 
 
@@ -3439,6 +3521,14 @@ class AppViewProtocol(typing.Protocol):
         raise NotImplementedError
     def artist_albums(self, uri: "str"):
         raise NotImplementedError
+    def artist_events(self, uri: "str",include_past: "bool",limit: "typing.Optional[int]",offset: "typing.Optional[int]"):
+        """
+        The music events an artist is billed on, soonest first
+        (`app.rocksky.artist.getArtistEvents`); `include_past` adds past events,
+        most recent first.
+        """
+
+        raise NotImplementedError
     def artist_listeners(self, uri: "str",limit: "int",offset: "int"):
         raise NotImplementedError
     def artist_recent_listeners(self, uri: "str",limit: "int",offset: "int"):
@@ -3483,6 +3573,30 @@ class AppViewProtocol(typing.Protocol):
         """
 
         raise NotImplementedError
+    def event(self, uri: "str"):
+        """
+        A single music event by the AT-URI of its calendar event or its
+        `app.rocksky.event.music` record (`app.rocksky.event.getEvent`).
+        """
+
+        raise NotImplementedError
+    def event_rsvps(self, uri: "str",status: "typing.Optional[str]",limit: "typing.Optional[int]",offset: "typing.Optional[int]"):
+        """
+        Who responded to an event, most recent first
+        (`app.rocksky.event.getEventRsvps`). `status` narrows to one RSVP
+        status token.
+        """
+
+        raise NotImplementedError
+    def events(self, query: "EventsQuery"):
+        """
+        Indexed music events, soonest first (`app.rocksky.event.getEvents`).
+        Without a time window only unexpired events are returned; set
+        `include_past` in the query for past events, most recent first. With a
+        token attached each event carries the viewer's own `viewer_rsvp`.
+        """
+
+        raise NotImplementedError
     def feed(self, feed: "str",limit: "int",cursor: "typing.Optional[str]"):
         raise NotImplementedError
     def feed_generator(self, feed: "str"):
@@ -3509,8 +3623,9 @@ class AppViewProtocol(typing.Protocol):
         """
         Resolve full canonical metadata for a bare title + artist
         (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
-        `album` steers the match toward that release (case-insensitive) so a
-        remaster/live/single edition doesn't shadow the intended album.
+        When `album` is given only candidates matching that album (after
+        normalization) are accepted; with no accepted candidate the response has
+        an empty `matches` array and no song fields.
         """
 
         raise NotImplementedError
@@ -3547,6 +3662,14 @@ class AppViewProtocol(typing.Protocol):
         Create or update an equalizer preset (`app.rocksky.equalizer.putPreset`).
         The record key is the name slugified, so an existing name overwrites that
         preset. Token required.
+        """
+
+        raise NotImplementedError
+    def put_rsvp(self, uri: "str",status: "str"):
+        """
+        Set the viewer's RSVP on an event (`app.rocksky.event.putRsvp`). `status`
+        is a `community.lexicon.calendar.rsvp#{going,interested,notgoing}` token;
+        an existing RSVP record is reused. Token required.
         """
 
         raise NotImplementedError
@@ -3820,6 +3943,33 @@ class AppView:
 
 
 
+    def artist_events(self, uri: "str",include_past: "bool",limit: "typing.Optional[int]",offset: "typing.Optional[int]") -> "typing.List[EventView]":
+        """
+        The music events an artist is billed on, soonest first
+        (`app.rocksky.artist.getArtistEvents`); `include_past` adds past events,
+        most recent first.
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterBool.check_lower(include_past)
+        
+        _UniffiConverterOptionalUInt32.check_lower(limit)
+        
+        _UniffiConverterOptionalUInt32.check_lower(offset)
+        
+        return _UniffiConverterSequenceTypeEventView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_events,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterBool.lower(include_past),
+        _UniffiConverterOptionalUInt32.lower(limit),
+        _UniffiConverterOptionalUInt32.lower(offset))
+        )
+
+
+
+
+
     def artist_listeners(self, uri: "str",limit: "int",offset: "int") -> "str":
         _UniffiConverterString.check_lower(uri)
         
@@ -4082,6 +4232,69 @@ class AppView:
 
 
 
+    def event(self, uri: "str") -> "EventView":
+        """
+        A single music event by the AT-URI of its calendar event or its
+        `app.rocksky.event.music` record (`app.rocksky.event.getEvent`).
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterTypeEventView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_event,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def event_rsvps(self, uri: "str",status: "typing.Optional[str]",limit: "typing.Optional[int]",offset: "typing.Optional[int]") -> "typing.List[RsvpView]":
+        """
+        Who responded to an event, most recent first
+        (`app.rocksky.event.getEventRsvps`). `status` narrows to one RSVP
+        status token.
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterOptionalString.check_lower(status)
+        
+        _UniffiConverterOptionalUInt32.check_lower(limit)
+        
+        _UniffiConverterOptionalUInt32.check_lower(offset)
+        
+        return _UniffiConverterSequenceTypeRsvpView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_event_rsvps,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterOptionalString.lower(status),
+        _UniffiConverterOptionalUInt32.lower(limit),
+        _UniffiConverterOptionalUInt32.lower(offset))
+        )
+
+
+
+
+
+    def events(self, query: "EventsQuery") -> "typing.List[EventView]":
+        """
+        Indexed music events, soonest first (`app.rocksky.event.getEvents`).
+        Without a time window only unexpired events are returned; set
+        `include_past` in the query for past events, most recent first. With a
+        token attached each event carries the viewer's own `viewer_rsvp`.
+        """
+
+        _UniffiConverterTypeEventsQuery.check_lower(query)
+        
+        return _UniffiConverterSequenceTypeEventView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_events,self._uniffi_clone_pointer(),
+        _UniffiConverterTypeEventsQuery.lower(query))
+        )
+
+
+
+
+
     def feed(self, feed: "str",limit: "int",cursor: "typing.Optional[str]") -> "str":
         _UniffiConverterString.check_lower(feed)
         
@@ -4228,8 +4441,9 @@ class AppView:
         """
         Resolve full canonical metadata for a bare title + artist
         (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
-        `album` steers the match toward that release (case-insensitive) so a
-        remaster/live/single edition doesn't shadow the intended album.
+        When `album` is given only candidates matching that album (after
+        normalization) are accepted; with no accepted candidate the response has
+        an empty `matches` array and no song fields.
         """
 
         _UniffiConverterString.check_lower(title)
@@ -4403,6 +4617,27 @@ class AppView:
         _UniffiConverterString.lower(name),
         _UniffiConverterOptionalInt64.lower(precut),
         _UniffiConverterSequenceTypeEqualizerBand.lower(bands))
+        )
+
+
+
+
+
+    def put_rsvp(self, uri: "str",status: "str") -> "PutRsvpResult":
+        """
+        Set the viewer's RSVP on an event (`app.rocksky.event.putRsvp`). `status`
+        is a `community.lexicon.calendar.rsvp#{going,interested,notgoing}` token;
+        an existing RSVP record is reused. Token required.
+        """
+
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterString.check_lower(status)
+        
+        return _UniffiConverterTypePutRsvpResult.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_put_rsvp,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterString.lower(status))
         )
 
 
@@ -7213,6 +7448,832 @@ class _UniffiConverterTypeEqualizerPreset(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.updated_at, buf)
 
 
+class EventArtist:
+    """
+    An artist on an event's bill (`app.rocksky.event.defs#artistView`).
+    """
+
+    id: "typing.Optional[str]"
+    uri: "typing.Optional[str]"
+    sha256: "typing.Optional[str]"
+    name: "str"
+    picture: "typing.Optional[str]"
+    mbid: "typing.Optional[str]"
+    role: "typing.Optional[str]"
+    """
+    headliner, support, opener, dj, special-guest, performer.
+    """
+
+    stage: "typing.Optional[str]"
+    starts_at: "typing.Optional[str]"
+    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", sha256: "typing.Optional[str]", name: "str", picture: "typing.Optional[str]", mbid: "typing.Optional[str]", role: "typing.Optional[str]", stage: "typing.Optional[str]", starts_at: "typing.Optional[str]"):
+        self.id = id
+        self.uri = uri
+        self.sha256 = sha256
+        self.name = name
+        self.picture = picture
+        self.mbid = mbid
+        self.role = role
+        self.stage = stage
+        self.starts_at = starts_at
+
+    def __str__(self):
+        return "EventArtist(id={}, uri={}, sha256={}, name={}, picture={}, mbid={}, role={}, stage={}, starts_at={})".format(self.id, self.uri, self.sha256, self.name, self.picture, self.mbid, self.role, self.stage, self.starts_at)
+
+    def __eq__(self, other):
+        if self.id != other.id:
+            return False
+        if self.uri != other.uri:
+            return False
+        if self.sha256 != other.sha256:
+            return False
+        if self.name != other.name:
+            return False
+        if self.picture != other.picture:
+            return False
+        if self.mbid != other.mbid:
+            return False
+        if self.role != other.role:
+            return False
+        if self.stage != other.stage:
+            return False
+        if self.starts_at != other.starts_at:
+            return False
+        return True
+
+class _UniffiConverterTypeEventArtist(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return EventArtist(
+            id=_UniffiConverterOptionalString.read(buf),
+            uri=_UniffiConverterOptionalString.read(buf),
+            sha256=_UniffiConverterOptionalString.read(buf),
+            name=_UniffiConverterString.read(buf),
+            picture=_UniffiConverterOptionalString.read(buf),
+            mbid=_UniffiConverterOptionalString.read(buf),
+            role=_UniffiConverterOptionalString.read(buf),
+            stage=_UniffiConverterOptionalString.read(buf),
+            starts_at=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.id)
+        _UniffiConverterOptionalString.check_lower(value.uri)
+        _UniffiConverterOptionalString.check_lower(value.sha256)
+        _UniffiConverterString.check_lower(value.name)
+        _UniffiConverterOptionalString.check_lower(value.picture)
+        _UniffiConverterOptionalString.check_lower(value.mbid)
+        _UniffiConverterOptionalString.check_lower(value.role)
+        _UniffiConverterOptionalString.check_lower(value.stage)
+        _UniffiConverterOptionalString.check_lower(value.starts_at)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.id, buf)
+        _UniffiConverterOptionalString.write(value.uri, buf)
+        _UniffiConverterOptionalString.write(value.sha256, buf)
+        _UniffiConverterString.write(value.name, buf)
+        _UniffiConverterOptionalString.write(value.picture, buf)
+        _UniffiConverterOptionalString.write(value.mbid, buf)
+        _UniffiConverterOptionalString.write(value.role, buf)
+        _UniffiConverterOptionalString.write(value.stage, buf)
+        _UniffiConverterOptionalString.write(value.starts_at, buf)
+
+
+class EventExternalIds:
+    """
+    Third-party event ids (`app.rocksky.event.music#externalIds`).
+    """
+
+    ticketmaster: "typing.Optional[str]"
+    songkick: "typing.Optional[str]"
+    bandsintown: "typing.Optional[str]"
+    resident_advisor: "typing.Optional[str]"
+    setlistfm: "typing.Optional[str]"
+    dice: "typing.Optional[str]"
+    eventbrite: "typing.Optional[str]"
+    def __init__(self, *, ticketmaster: "typing.Optional[str]", songkick: "typing.Optional[str]", bandsintown: "typing.Optional[str]", resident_advisor: "typing.Optional[str]", setlistfm: "typing.Optional[str]", dice: "typing.Optional[str]", eventbrite: "typing.Optional[str]"):
+        self.ticketmaster = ticketmaster
+        self.songkick = songkick
+        self.bandsintown = bandsintown
+        self.resident_advisor = resident_advisor
+        self.setlistfm = setlistfm
+        self.dice = dice
+        self.eventbrite = eventbrite
+
+    def __str__(self):
+        return "EventExternalIds(ticketmaster={}, songkick={}, bandsintown={}, resident_advisor={}, setlistfm={}, dice={}, eventbrite={})".format(self.ticketmaster, self.songkick, self.bandsintown, self.resident_advisor, self.setlistfm, self.dice, self.eventbrite)
+
+    def __eq__(self, other):
+        if self.ticketmaster != other.ticketmaster:
+            return False
+        if self.songkick != other.songkick:
+            return False
+        if self.bandsintown != other.bandsintown:
+            return False
+        if self.resident_advisor != other.resident_advisor:
+            return False
+        if self.setlistfm != other.setlistfm:
+            return False
+        if self.dice != other.dice:
+            return False
+        if self.eventbrite != other.eventbrite:
+            return False
+        return True
+
+class _UniffiConverterTypeEventExternalIds(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return EventExternalIds(
+            ticketmaster=_UniffiConverterOptionalString.read(buf),
+            songkick=_UniffiConverterOptionalString.read(buf),
+            bandsintown=_UniffiConverterOptionalString.read(buf),
+            resident_advisor=_UniffiConverterOptionalString.read(buf),
+            setlistfm=_UniffiConverterOptionalString.read(buf),
+            dice=_UniffiConverterOptionalString.read(buf),
+            eventbrite=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.ticketmaster)
+        _UniffiConverterOptionalString.check_lower(value.songkick)
+        _UniffiConverterOptionalString.check_lower(value.bandsintown)
+        _UniffiConverterOptionalString.check_lower(value.resident_advisor)
+        _UniffiConverterOptionalString.check_lower(value.setlistfm)
+        _UniffiConverterOptionalString.check_lower(value.dice)
+        _UniffiConverterOptionalString.check_lower(value.eventbrite)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.ticketmaster, buf)
+        _UniffiConverterOptionalString.write(value.songkick, buf)
+        _UniffiConverterOptionalString.write(value.bandsintown, buf)
+        _UniffiConverterOptionalString.write(value.resident_advisor, buf)
+        _UniffiConverterOptionalString.write(value.setlistfm, buf)
+        _UniffiConverterOptionalString.write(value.dice, buf)
+        _UniffiConverterOptionalString.write(value.eventbrite, buf)
+
+
+class EventLocation:
+    """
+    A flattened `community.lexicon.location.*` value
+    (`app.rocksky.event.defs#locationView`); `kind` is the location type NSID
+    and says which fields apply.
+    """
+
+    kind: "str"
+    name: "typing.Optional[str]"
+    country: "typing.Optional[str]"
+    postal_code: "typing.Optional[str]"
+    region: "typing.Optional[str]"
+    locality: "typing.Optional[str]"
+    street: "typing.Optional[str]"
+    latitude: "typing.Optional[str]"
+    longitude: "typing.Optional[str]"
+    altitude: "typing.Optional[str]"
+    fsq_place_id: "typing.Optional[str]"
+    h3: "typing.Optional[str]"
+    uri: "typing.Optional[str]"
+    def __init__(self, *, kind: "str", name: "typing.Optional[str]", country: "typing.Optional[str]", postal_code: "typing.Optional[str]", region: "typing.Optional[str]", locality: "typing.Optional[str]", street: "typing.Optional[str]", latitude: "typing.Optional[str]", longitude: "typing.Optional[str]", altitude: "typing.Optional[str]", fsq_place_id: "typing.Optional[str]", h3: "typing.Optional[str]", uri: "typing.Optional[str]"):
+        self.kind = kind
+        self.name = name
+        self.country = country
+        self.postal_code = postal_code
+        self.region = region
+        self.locality = locality
+        self.street = street
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitude = altitude
+        self.fsq_place_id = fsq_place_id
+        self.h3 = h3
+        self.uri = uri
+
+    def __str__(self):
+        return "EventLocation(kind={}, name={}, country={}, postal_code={}, region={}, locality={}, street={}, latitude={}, longitude={}, altitude={}, fsq_place_id={}, h3={}, uri={})".format(self.kind, self.name, self.country, self.postal_code, self.region, self.locality, self.street, self.latitude, self.longitude, self.altitude, self.fsq_place_id, self.h3, self.uri)
+
+    def __eq__(self, other):
+        if self.kind != other.kind:
+            return False
+        if self.name != other.name:
+            return False
+        if self.country != other.country:
+            return False
+        if self.postal_code != other.postal_code:
+            return False
+        if self.region != other.region:
+            return False
+        if self.locality != other.locality:
+            return False
+        if self.street != other.street:
+            return False
+        if self.latitude != other.latitude:
+            return False
+        if self.longitude != other.longitude:
+            return False
+        if self.altitude != other.altitude:
+            return False
+        if self.fsq_place_id != other.fsq_place_id:
+            return False
+        if self.h3 != other.h3:
+            return False
+        if self.uri != other.uri:
+            return False
+        return True
+
+class _UniffiConverterTypeEventLocation(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return EventLocation(
+            kind=_UniffiConverterString.read(buf),
+            name=_UniffiConverterOptionalString.read(buf),
+            country=_UniffiConverterOptionalString.read(buf),
+            postal_code=_UniffiConverterOptionalString.read(buf),
+            region=_UniffiConverterOptionalString.read(buf),
+            locality=_UniffiConverterOptionalString.read(buf),
+            street=_UniffiConverterOptionalString.read(buf),
+            latitude=_UniffiConverterOptionalString.read(buf),
+            longitude=_UniffiConverterOptionalString.read(buf),
+            altitude=_UniffiConverterOptionalString.read(buf),
+            fsq_place_id=_UniffiConverterOptionalString.read(buf),
+            h3=_UniffiConverterOptionalString.read(buf),
+            uri=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.kind)
+        _UniffiConverterOptionalString.check_lower(value.name)
+        _UniffiConverterOptionalString.check_lower(value.country)
+        _UniffiConverterOptionalString.check_lower(value.postal_code)
+        _UniffiConverterOptionalString.check_lower(value.region)
+        _UniffiConverterOptionalString.check_lower(value.locality)
+        _UniffiConverterOptionalString.check_lower(value.street)
+        _UniffiConverterOptionalString.check_lower(value.latitude)
+        _UniffiConverterOptionalString.check_lower(value.longitude)
+        _UniffiConverterOptionalString.check_lower(value.altitude)
+        _UniffiConverterOptionalString.check_lower(value.fsq_place_id)
+        _UniffiConverterOptionalString.check_lower(value.h3)
+        _UniffiConverterOptionalString.check_lower(value.uri)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.kind, buf)
+        _UniffiConverterOptionalString.write(value.name, buf)
+        _UniffiConverterOptionalString.write(value.country, buf)
+        _UniffiConverterOptionalString.write(value.postal_code, buf)
+        _UniffiConverterOptionalString.write(value.region, buf)
+        _UniffiConverterOptionalString.write(value.locality, buf)
+        _UniffiConverterOptionalString.write(value.street, buf)
+        _UniffiConverterOptionalString.write(value.latitude, buf)
+        _UniffiConverterOptionalString.write(value.longitude, buf)
+        _UniffiConverterOptionalString.write(value.altitude, buf)
+        _UniffiConverterOptionalString.write(value.fsq_place_id, buf)
+        _UniffiConverterOptionalString.write(value.h3, buf)
+        _UniffiConverterOptionalString.write(value.uri, buf)
+
+
+class EventMedia:
+    """
+    An event image (`app.rocksky.event.defs#mediaView`).
+    """
+
+    role: "str"
+    """
+    thumbnail or header.
+    """
+
+    url: "str"
+    cid: "str"
+    mime_type: "str"
+    size: "typing.Optional[int]"
+    width: "typing.Optional[int]"
+    height: "typing.Optional[int]"
+    alt: "typing.Optional[str]"
+    def __init__(self, *, role: "str", url: "str", cid: "str", mime_type: "str", size: "typing.Optional[int]", width: "typing.Optional[int]", height: "typing.Optional[int]", alt: "typing.Optional[str]"):
+        self.role = role
+        self.url = url
+        self.cid = cid
+        self.mime_type = mime_type
+        self.size = size
+        self.width = width
+        self.height = height
+        self.alt = alt
+
+    def __str__(self):
+        return "EventMedia(role={}, url={}, cid={}, mime_type={}, size={}, width={}, height={}, alt={})".format(self.role, self.url, self.cid, self.mime_type, self.size, self.width, self.height, self.alt)
+
+    def __eq__(self, other):
+        if self.role != other.role:
+            return False
+        if self.url != other.url:
+            return False
+        if self.cid != other.cid:
+            return False
+        if self.mime_type != other.mime_type:
+            return False
+        if self.size != other.size:
+            return False
+        if self.width != other.width:
+            return False
+        if self.height != other.height:
+            return False
+        if self.alt != other.alt:
+            return False
+        return True
+
+class _UniffiConverterTypeEventMedia(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return EventMedia(
+            role=_UniffiConverterString.read(buf),
+            url=_UniffiConverterString.read(buf),
+            cid=_UniffiConverterString.read(buf),
+            mime_type=_UniffiConverterString.read(buf),
+            size=_UniffiConverterOptionalInt64.read(buf),
+            width=_UniffiConverterOptionalInt64.read(buf),
+            height=_UniffiConverterOptionalInt64.read(buf),
+            alt=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.role)
+        _UniffiConverterString.check_lower(value.url)
+        _UniffiConverterString.check_lower(value.cid)
+        _UniffiConverterString.check_lower(value.mime_type)
+        _UniffiConverterOptionalInt64.check_lower(value.size)
+        _UniffiConverterOptionalInt64.check_lower(value.width)
+        _UniffiConverterOptionalInt64.check_lower(value.height)
+        _UniffiConverterOptionalString.check_lower(value.alt)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.role, buf)
+        _UniffiConverterString.write(value.url, buf)
+        _UniffiConverterString.write(value.cid, buf)
+        _UniffiConverterString.write(value.mime_type, buf)
+        _UniffiConverterOptionalInt64.write(value.size, buf)
+        _UniffiConverterOptionalInt64.write(value.width, buf)
+        _UniffiConverterOptionalInt64.write(value.height, buf)
+        _UniffiConverterOptionalString.write(value.alt, buf)
+
+
+class EventUri:
+    """
+    A link attached to an event (`app.rocksky.event.defs#uriView`).
+    """
+
+    uri: "str"
+    name: "typing.Optional[str]"
+    def __init__(self, *, uri: "str", name: "typing.Optional[str]"):
+        self.uri = uri
+        self.name = name
+
+    def __str__(self):
+        return "EventUri(uri={}, name={})".format(self.uri, self.name)
+
+    def __eq__(self, other):
+        if self.uri != other.uri:
+            return False
+        if self.name != other.name:
+            return False
+        return True
+
+class _UniffiConverterTypeEventUri(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return EventUri(
+            uri=_UniffiConverterString.read(buf),
+            name=_UniffiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.uri)
+        _UniffiConverterOptionalString.check_lower(value.name)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.uri, buf)
+        _UniffiConverterOptionalString.write(value.name, buf)
+
+
+class EventView:
+    """
+    A music event (`app.rocksky.event.defs#eventView`).
+    """
+
+    id: "str"
+    uri: "str"
+    """
+    AT-URI of the `community.lexicon.calendar.event` record.
+    """
+
+    cid: "typing.Optional[str]"
+    music_uri: "str"
+    """
+    AT-URI of the `app.rocksky.event.music` record annotating it.
+    """
+
+    music_cid: "typing.Optional[str]"
+    name: "str"
+    description: "typing.Optional[str]"
+    kind: "typing.Optional[str]"
+    """
+    concert, festival, club-night, dj-set, livestream, release-party,
+    listening-party.
+    """
+
+    genre: "typing.Optional[str]"
+    tags: "typing.List[str]"
+    starts_at: "typing.Optional[str]"
+    ends_at: "typing.Optional[str]"
+    mode: "typing.Optional[str]"
+    """
+    `community.lexicon.calendar.event#{inperson,virtual,hybrid}`.
+    """
+
+    status: "typing.Optional[str]"
+    """
+    `community.lexicon.calendar.event#{planned,scheduled,rescheduled,cancelled,postponed}`.
+    """
+
+    image_url: "typing.Optional[str]"
+    media: "typing.List[EventMedia]"
+    tickets_url: "typing.Optional[str]"
+    locations: "typing.List[EventLocation]"
+    uris: "typing.List[EventUri]"
+    artists: "typing.List[EventArtist]"
+    external_ids: "typing.Optional[EventExternalIds]"
+    organizer_did: "str"
+    organizer_handle: "typing.Optional[str]"
+    organizer_name: "typing.Optional[str]"
+    organizer_avatar_url: "typing.Optional[str]"
+    rsvp_counts: "RsvpCounts"
+    viewer_rsvp: "typing.Optional[str]"
+    """
+    The viewer's own RSVP status token, when authenticated.
+    """
+
+    created_at: "str"
+    updated_at: "str"
+    def __init__(self, *, id: "str", uri: "str", cid: "typing.Optional[str]", music_uri: "str", music_cid: "typing.Optional[str]", name: "str", description: "typing.Optional[str]", kind: "typing.Optional[str]", genre: "typing.Optional[str]", tags: "typing.List[str]", starts_at: "typing.Optional[str]", ends_at: "typing.Optional[str]", mode: "typing.Optional[str]", status: "typing.Optional[str]", image_url: "typing.Optional[str]", media: "typing.List[EventMedia]", tickets_url: "typing.Optional[str]", locations: "typing.List[EventLocation]", uris: "typing.List[EventUri]", artists: "typing.List[EventArtist]", external_ids: "typing.Optional[EventExternalIds]", organizer_did: "str", organizer_handle: "typing.Optional[str]", organizer_name: "typing.Optional[str]", organizer_avatar_url: "typing.Optional[str]", rsvp_counts: "RsvpCounts", viewer_rsvp: "typing.Optional[str]", created_at: "str", updated_at: "str"):
+        self.id = id
+        self.uri = uri
+        self.cid = cid
+        self.music_uri = music_uri
+        self.music_cid = music_cid
+        self.name = name
+        self.description = description
+        self.kind = kind
+        self.genre = genre
+        self.tags = tags
+        self.starts_at = starts_at
+        self.ends_at = ends_at
+        self.mode = mode
+        self.status = status
+        self.image_url = image_url
+        self.media = media
+        self.tickets_url = tickets_url
+        self.locations = locations
+        self.uris = uris
+        self.artists = artists
+        self.external_ids = external_ids
+        self.organizer_did = organizer_did
+        self.organizer_handle = organizer_handle
+        self.organizer_name = organizer_name
+        self.organizer_avatar_url = organizer_avatar_url
+        self.rsvp_counts = rsvp_counts
+        self.viewer_rsvp = viewer_rsvp
+        self.created_at = created_at
+        self.updated_at = updated_at
+
+    def __str__(self):
+        return "EventView(id={}, uri={}, cid={}, music_uri={}, music_cid={}, name={}, description={}, kind={}, genre={}, tags={}, starts_at={}, ends_at={}, mode={}, status={}, image_url={}, media={}, tickets_url={}, locations={}, uris={}, artists={}, external_ids={}, organizer_did={}, organizer_handle={}, organizer_name={}, organizer_avatar_url={}, rsvp_counts={}, viewer_rsvp={}, created_at={}, updated_at={})".format(self.id, self.uri, self.cid, self.music_uri, self.music_cid, self.name, self.description, self.kind, self.genre, self.tags, self.starts_at, self.ends_at, self.mode, self.status, self.image_url, self.media, self.tickets_url, self.locations, self.uris, self.artists, self.external_ids, self.organizer_did, self.organizer_handle, self.organizer_name, self.organizer_avatar_url, self.rsvp_counts, self.viewer_rsvp, self.created_at, self.updated_at)
+
+    def __eq__(self, other):
+        if self.id != other.id:
+            return False
+        if self.uri != other.uri:
+            return False
+        if self.cid != other.cid:
+            return False
+        if self.music_uri != other.music_uri:
+            return False
+        if self.music_cid != other.music_cid:
+            return False
+        if self.name != other.name:
+            return False
+        if self.description != other.description:
+            return False
+        if self.kind != other.kind:
+            return False
+        if self.genre != other.genre:
+            return False
+        if self.tags != other.tags:
+            return False
+        if self.starts_at != other.starts_at:
+            return False
+        if self.ends_at != other.ends_at:
+            return False
+        if self.mode != other.mode:
+            return False
+        if self.status != other.status:
+            return False
+        if self.image_url != other.image_url:
+            return False
+        if self.media != other.media:
+            return False
+        if self.tickets_url != other.tickets_url:
+            return False
+        if self.locations != other.locations:
+            return False
+        if self.uris != other.uris:
+            return False
+        if self.artists != other.artists:
+            return False
+        if self.external_ids != other.external_ids:
+            return False
+        if self.organizer_did != other.organizer_did:
+            return False
+        if self.organizer_handle != other.organizer_handle:
+            return False
+        if self.organizer_name != other.organizer_name:
+            return False
+        if self.organizer_avatar_url != other.organizer_avatar_url:
+            return False
+        if self.rsvp_counts != other.rsvp_counts:
+            return False
+        if self.viewer_rsvp != other.viewer_rsvp:
+            return False
+        if self.created_at != other.created_at:
+            return False
+        if self.updated_at != other.updated_at:
+            return False
+        return True
+
+class _UniffiConverterTypeEventView(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return EventView(
+            id=_UniffiConverterString.read(buf),
+            uri=_UniffiConverterString.read(buf),
+            cid=_UniffiConverterOptionalString.read(buf),
+            music_uri=_UniffiConverterString.read(buf),
+            music_cid=_UniffiConverterOptionalString.read(buf),
+            name=_UniffiConverterString.read(buf),
+            description=_UniffiConverterOptionalString.read(buf),
+            kind=_UniffiConverterOptionalString.read(buf),
+            genre=_UniffiConverterOptionalString.read(buf),
+            tags=_UniffiConverterSequenceString.read(buf),
+            starts_at=_UniffiConverterOptionalString.read(buf),
+            ends_at=_UniffiConverterOptionalString.read(buf),
+            mode=_UniffiConverterOptionalString.read(buf),
+            status=_UniffiConverterOptionalString.read(buf),
+            image_url=_UniffiConverterOptionalString.read(buf),
+            media=_UniffiConverterSequenceTypeEventMedia.read(buf),
+            tickets_url=_UniffiConverterOptionalString.read(buf),
+            locations=_UniffiConverterSequenceTypeEventLocation.read(buf),
+            uris=_UniffiConverterSequenceTypeEventUri.read(buf),
+            artists=_UniffiConverterSequenceTypeEventArtist.read(buf),
+            external_ids=_UniffiConverterOptionalTypeEventExternalIds.read(buf),
+            organizer_did=_UniffiConverterString.read(buf),
+            organizer_handle=_UniffiConverterOptionalString.read(buf),
+            organizer_name=_UniffiConverterOptionalString.read(buf),
+            organizer_avatar_url=_UniffiConverterOptionalString.read(buf),
+            rsvp_counts=_UniffiConverterTypeRsvpCounts.read(buf),
+            viewer_rsvp=_UniffiConverterOptionalString.read(buf),
+            created_at=_UniffiConverterString.read(buf),
+            updated_at=_UniffiConverterString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.id)
+        _UniffiConverterString.check_lower(value.uri)
+        _UniffiConverterOptionalString.check_lower(value.cid)
+        _UniffiConverterString.check_lower(value.music_uri)
+        _UniffiConverterOptionalString.check_lower(value.music_cid)
+        _UniffiConverterString.check_lower(value.name)
+        _UniffiConverterOptionalString.check_lower(value.description)
+        _UniffiConverterOptionalString.check_lower(value.kind)
+        _UniffiConverterOptionalString.check_lower(value.genre)
+        _UniffiConverterSequenceString.check_lower(value.tags)
+        _UniffiConverterOptionalString.check_lower(value.starts_at)
+        _UniffiConverterOptionalString.check_lower(value.ends_at)
+        _UniffiConverterOptionalString.check_lower(value.mode)
+        _UniffiConverterOptionalString.check_lower(value.status)
+        _UniffiConverterOptionalString.check_lower(value.image_url)
+        _UniffiConverterSequenceTypeEventMedia.check_lower(value.media)
+        _UniffiConverterOptionalString.check_lower(value.tickets_url)
+        _UniffiConverterSequenceTypeEventLocation.check_lower(value.locations)
+        _UniffiConverterSequenceTypeEventUri.check_lower(value.uris)
+        _UniffiConverterSequenceTypeEventArtist.check_lower(value.artists)
+        _UniffiConverterOptionalTypeEventExternalIds.check_lower(value.external_ids)
+        _UniffiConverterString.check_lower(value.organizer_did)
+        _UniffiConverterOptionalString.check_lower(value.organizer_handle)
+        _UniffiConverterOptionalString.check_lower(value.organizer_name)
+        _UniffiConverterOptionalString.check_lower(value.organizer_avatar_url)
+        _UniffiConverterTypeRsvpCounts.check_lower(value.rsvp_counts)
+        _UniffiConverterOptionalString.check_lower(value.viewer_rsvp)
+        _UniffiConverterString.check_lower(value.created_at)
+        _UniffiConverterString.check_lower(value.updated_at)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.id, buf)
+        _UniffiConverterString.write(value.uri, buf)
+        _UniffiConverterOptionalString.write(value.cid, buf)
+        _UniffiConverterString.write(value.music_uri, buf)
+        _UniffiConverterOptionalString.write(value.music_cid, buf)
+        _UniffiConverterString.write(value.name, buf)
+        _UniffiConverterOptionalString.write(value.description, buf)
+        _UniffiConverterOptionalString.write(value.kind, buf)
+        _UniffiConverterOptionalString.write(value.genre, buf)
+        _UniffiConverterSequenceString.write(value.tags, buf)
+        _UniffiConverterOptionalString.write(value.starts_at, buf)
+        _UniffiConverterOptionalString.write(value.ends_at, buf)
+        _UniffiConverterOptionalString.write(value.mode, buf)
+        _UniffiConverterOptionalString.write(value.status, buf)
+        _UniffiConverterOptionalString.write(value.image_url, buf)
+        _UniffiConverterSequenceTypeEventMedia.write(value.media, buf)
+        _UniffiConverterOptionalString.write(value.tickets_url, buf)
+        _UniffiConverterSequenceTypeEventLocation.write(value.locations, buf)
+        _UniffiConverterSequenceTypeEventUri.write(value.uris, buf)
+        _UniffiConverterSequenceTypeEventArtist.write(value.artists, buf)
+        _UniffiConverterOptionalTypeEventExternalIds.write(value.external_ids, buf)
+        _UniffiConverterString.write(value.organizer_did, buf)
+        _UniffiConverterOptionalString.write(value.organizer_handle, buf)
+        _UniffiConverterOptionalString.write(value.organizer_name, buf)
+        _UniffiConverterOptionalString.write(value.organizer_avatar_url, buf)
+        _UniffiConverterTypeRsvpCounts.write(value.rsvp_counts, buf)
+        _UniffiConverterOptionalString.write(value.viewer_rsvp, buf)
+        _UniffiConverterString.write(value.created_at, buf)
+        _UniffiConverterString.write(value.updated_at, buf)
+
+
+class EventsQuery:
+    """
+    Filters for `AppView.events` (`app.rocksky.event.getEvents`). Every field
+    is optional.
+    """
+
+    artist: "typing.Optional[str]"
+    """
+    Only events this artist plays: the artist's AT-URI, id or sha256.
+    """
+
+    did: "typing.Optional[str]"
+    """
+    Only events published by this repo.
+    """
+
+    rsvp_by: "typing.Optional[str]"
+    """
+    Only events this DID has RSVP'd to (going or interested).
+    """
+
+    kind: "typing.Optional[str]"
+    """
+    Only events of this kind (concert, festival...).
+    """
+
+    genre: "typing.Optional[str]"
+    """
+    Only events whose genre matches (case-insensitive).
+    """
+
+    _from: "typing.Optional[str]"
+    """
+    Only events that end at or after this RFC-3339 time.
+    """
+
+    to: "typing.Optional[str]"
+    """
+    Only events that start at or before this RFC-3339 time.
+    """
+
+    include_past: "bool"
+    """
+    Return past events too, most recent first, instead of upcoming ones.
+    """
+
+    limit: "typing.Optional[int]"
+    offset: "typing.Optional[int]"
+    def __init__(self, *, artist: "typing.Optional[str]" = _DEFAULT, did: "typing.Optional[str]" = _DEFAULT, rsvp_by: "typing.Optional[str]" = _DEFAULT, kind: "typing.Optional[str]" = _DEFAULT, genre: "typing.Optional[str]" = _DEFAULT, _from: "typing.Optional[str]" = _DEFAULT, to: "typing.Optional[str]" = _DEFAULT, include_past: "bool" = _DEFAULT, limit: "typing.Optional[int]" = _DEFAULT, offset: "typing.Optional[int]" = _DEFAULT):
+        if artist is _DEFAULT:
+            self.artist = None
+        else:
+            self.artist = artist
+        if did is _DEFAULT:
+            self.did = None
+        else:
+            self.did = did
+        if rsvp_by is _DEFAULT:
+            self.rsvp_by = None
+        else:
+            self.rsvp_by = rsvp_by
+        if kind is _DEFAULT:
+            self.kind = None
+        else:
+            self.kind = kind
+        if genre is _DEFAULT:
+            self.genre = None
+        else:
+            self.genre = genre
+        if _from is _DEFAULT:
+            self._from = None
+        else:
+            self._from = _from
+        if to is _DEFAULT:
+            self.to = None
+        else:
+            self.to = to
+        if include_past is _DEFAULT:
+            self.include_past = False
+        else:
+            self.include_past = include_past
+        if limit is _DEFAULT:
+            self.limit = None
+        else:
+            self.limit = limit
+        if offset is _DEFAULT:
+            self.offset = None
+        else:
+            self.offset = offset
+
+    def __str__(self):
+        return "EventsQuery(artist={}, did={}, rsvp_by={}, kind={}, genre={}, _from={}, to={}, include_past={}, limit={}, offset={})".format(self.artist, self.did, self.rsvp_by, self.kind, self.genre, self._from, self.to, self.include_past, self.limit, self.offset)
+
+    def __eq__(self, other):
+        if self.artist != other.artist:
+            return False
+        if self.did != other.did:
+            return False
+        if self.rsvp_by != other.rsvp_by:
+            return False
+        if self.kind != other.kind:
+            return False
+        if self.genre != other.genre:
+            return False
+        if self._from != other._from:
+            return False
+        if self.to != other.to:
+            return False
+        if self.include_past != other.include_past:
+            return False
+        if self.limit != other.limit:
+            return False
+        if self.offset != other.offset:
+            return False
+        return True
+
+class _UniffiConverterTypeEventsQuery(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return EventsQuery(
+            artist=_UniffiConverterOptionalString.read(buf),
+            did=_UniffiConverterOptionalString.read(buf),
+            rsvp_by=_UniffiConverterOptionalString.read(buf),
+            kind=_UniffiConverterOptionalString.read(buf),
+            genre=_UniffiConverterOptionalString.read(buf),
+            _from=_UniffiConverterOptionalString.read(buf),
+            to=_UniffiConverterOptionalString.read(buf),
+            include_past=_UniffiConverterBool.read(buf),
+            limit=_UniffiConverterOptionalUInt32.read(buf),
+            offset=_UniffiConverterOptionalUInt32.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.artist)
+        _UniffiConverterOptionalString.check_lower(value.did)
+        _UniffiConverterOptionalString.check_lower(value.rsvp_by)
+        _UniffiConverterOptionalString.check_lower(value.kind)
+        _UniffiConverterOptionalString.check_lower(value.genre)
+        _UniffiConverterOptionalString.check_lower(value._from)
+        _UniffiConverterOptionalString.check_lower(value.to)
+        _UniffiConverterBool.check_lower(value.include_past)
+        _UniffiConverterOptionalUInt32.check_lower(value.limit)
+        _UniffiConverterOptionalUInt32.check_lower(value.offset)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.artist, buf)
+        _UniffiConverterOptionalString.write(value.did, buf)
+        _UniffiConverterOptionalString.write(value.rsvp_by, buf)
+        _UniffiConverterOptionalString.write(value.kind, buf)
+        _UniffiConverterOptionalString.write(value.genre, buf)
+        _UniffiConverterOptionalString.write(value._from, buf)
+        _UniffiConverterOptionalString.write(value.to, buf)
+        _UniffiConverterBool.write(value.include_past, buf)
+        _UniffiConverterOptionalUInt32.write(value.limit, buf)
+        _UniffiConverterOptionalUInt32.write(value.offset, buf)
+
+
 class GlobalStats:
     """
     Platform-wide totals.
@@ -7837,6 +8898,50 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalTypeDropboxView.write(value.dropbox, buf)
 
 
+class PutRsvpResult:
+    """
+    Result of `AppView.put_rsvp` (`app.rocksky.event.putRsvp`).
+    """
+
+    uri: "str"
+    """
+    The RSVP record URI.
+    """
+
+    status: "str"
+    def __init__(self, *, uri: "str", status: "str"):
+        self.uri = uri
+        self.status = status
+
+    def __str__(self):
+        return "PutRsvpResult(uri={}, status={})".format(self.uri, self.status)
+
+    def __eq__(self, other):
+        if self.uri != other.uri:
+            return False
+        if self.status != other.status:
+            return False
+        return True
+
+class _UniffiConverterTypePutRsvpResult(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return PutRsvpResult(
+            uri=_UniffiConverterString.read(buf),
+            status=_UniffiConverterString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.uri)
+        _UniffiConverterString.check_lower(value.status)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.uri, buf)
+        _UniffiConverterString.write(value.status, buf)
+
+
 class RemoteDevice:
     """
     A player device visible to a controller (from the device snapshot).
@@ -7930,6 +9035,21 @@ class RemoteNowPlaying:
     Audio sample rate in Hz (e.g. 44100), when the player knows it.
     """
 
+    bitrate: "typing.Optional[int]"
+    """
+    Source audio bitrate in kilobits per second.
+    """
+
+    waveform: "typing.Optional[bytes]"
+    """
+    256 normalized amplitude peaks (0..255), in track-time order.
+    """
+
+    waveform_status: "typing.Optional[str]"
+    """
+    "pending", "ready", or "unavailable". Omitted by older players.
+    """
+
     shuffle: "typing.Optional[bool]"
     """
     Queue shuffle state. Leave `None` when the player has no shuffle — that
@@ -7946,7 +9066,7 @@ class RemoteNowPlaying:
     Output volume 0.0..=1.0. `None` when the player has no volume control.
     """
 
-    def __init__(self, *, title: "str", artist: "str", album: "str", album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, elapsed_ms: "int" = _DEFAULT, is_playing: "bool" = _DEFAULT, codec: "typing.Optional[str]" = _DEFAULT, sample_rate: "typing.Optional[int]" = _DEFAULT, shuffle: "typing.Optional[bool]" = _DEFAULT, repeat: "typing.Optional[str]" = _DEFAULT, volume: "typing.Optional[float]" = _DEFAULT):
+    def __init__(self, *, title: "str", artist: "str", album: "str", album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, elapsed_ms: "int" = _DEFAULT, is_playing: "bool" = _DEFAULT, codec: "typing.Optional[str]" = _DEFAULT, sample_rate: "typing.Optional[int]" = _DEFAULT, bitrate: "typing.Optional[int]" = _DEFAULT, waveform: "typing.Optional[bytes]" = _DEFAULT, waveform_status: "typing.Optional[str]" = _DEFAULT, shuffle: "typing.Optional[bool]" = _DEFAULT, repeat: "typing.Optional[str]" = _DEFAULT, volume: "typing.Optional[float]" = _DEFAULT):
         self.title = title
         self.artist = artist
         self.album = album
@@ -7978,6 +9098,18 @@ class RemoteNowPlaying:
             self.sample_rate = None
         else:
             self.sample_rate = sample_rate
+        if bitrate is _DEFAULT:
+            self.bitrate = None
+        else:
+            self.bitrate = bitrate
+        if waveform is _DEFAULT:
+            self.waveform = None
+        else:
+            self.waveform = waveform
+        if waveform_status is _DEFAULT:
+            self.waveform_status = None
+        else:
+            self.waveform_status = waveform_status
         if shuffle is _DEFAULT:
             self.shuffle = None
         else:
@@ -7992,7 +9124,7 @@ class RemoteNowPlaying:
             self.volume = volume
 
     def __str__(self):
-        return "RemoteNowPlaying(title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, elapsed_ms={}, is_playing={}, codec={}, sample_rate={}, shuffle={}, repeat={}, volume={})".format(self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.elapsed_ms, self.is_playing, self.codec, self.sample_rate, self.shuffle, self.repeat, self.volume)
+        return "RemoteNowPlaying(title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, elapsed_ms={}, is_playing={}, codec={}, sample_rate={}, bitrate={}, waveform={}, waveform_status={}, shuffle={}, repeat={}, volume={})".format(self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.elapsed_ms, self.is_playing, self.codec, self.sample_rate, self.bitrate, self.waveform, self.waveform_status, self.shuffle, self.repeat, self.volume)
 
     def __eq__(self, other):
         if self.title != other.title:
@@ -8014,6 +9146,12 @@ class RemoteNowPlaying:
         if self.codec != other.codec:
             return False
         if self.sample_rate != other.sample_rate:
+            return False
+        if self.bitrate != other.bitrate:
+            return False
+        if self.waveform != other.waveform:
+            return False
+        if self.waveform_status != other.waveform_status:
             return False
         if self.shuffle != other.shuffle:
             return False
@@ -8037,6 +9175,9 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
             is_playing=_UniffiConverterBool.read(buf),
             codec=_UniffiConverterOptionalString.read(buf),
             sample_rate=_UniffiConverterOptionalUInt32.read(buf),
+            bitrate=_UniffiConverterOptionalUInt32.read(buf),
+            waveform=_UniffiConverterOptionalBytes.read(buf),
+            waveform_status=_UniffiConverterOptionalString.read(buf),
             shuffle=_UniffiConverterOptionalBool.read(buf),
             repeat=_UniffiConverterOptionalString.read(buf),
             volume=_UniffiConverterOptionalFloat.read(buf),
@@ -8054,6 +9195,9 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
         _UniffiConverterBool.check_lower(value.is_playing)
         _UniffiConverterOptionalString.check_lower(value.codec)
         _UniffiConverterOptionalUInt32.check_lower(value.sample_rate)
+        _UniffiConverterOptionalUInt32.check_lower(value.bitrate)
+        _UniffiConverterOptionalBytes.check_lower(value.waveform)
+        _UniffiConverterOptionalString.check_lower(value.waveform_status)
         _UniffiConverterOptionalBool.check_lower(value.shuffle)
         _UniffiConverterOptionalString.check_lower(value.repeat)
         _UniffiConverterOptionalFloat.check_lower(value.volume)
@@ -8070,6 +9214,9 @@ class _UniffiConverterTypeRemoteNowPlaying(_UniffiConverterRustBuffer):
         _UniffiConverterBool.write(value.is_playing, buf)
         _UniffiConverterOptionalString.write(value.codec, buf)
         _UniffiConverterOptionalUInt32.write(value.sample_rate, buf)
+        _UniffiConverterOptionalUInt32.write(value.bitrate, buf)
+        _UniffiConverterOptionalBytes.write(value.waveform, buf)
+        _UniffiConverterOptionalString.write(value.waveform_status, buf)
         _UniffiConverterOptionalBool.write(value.shuffle, buf)
         _UniffiConverterOptionalString.write(value.repeat, buf)
         _UniffiConverterOptionalFloat.write(value.volume, buf)
@@ -8081,6 +9228,7 @@ class RemoteQueueItem:
     inside an `Enqueue` command).
     """
 
+    url: "str"
     upload_id: "str"
     track_id: "str"
     title: "str"
@@ -8092,7 +9240,11 @@ class RemoteQueueItem:
     song_uri: "str"
     album_uri: "str"
     track_number: "int"
-    def __init__(self, *, upload_id: "str" = _DEFAULT, track_id: "str" = _DEFAULT, title: "str", artist: "str", album: "str" = _DEFAULT, album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, song_uri: "str" = _DEFAULT, album_uri: "str" = _DEFAULT, track_number: "int" = _DEFAULT):
+    def __init__(self, *, url: "str" = _DEFAULT, upload_id: "str" = _DEFAULT, track_id: "str" = _DEFAULT, title: "str", artist: "str", album: "str" = _DEFAULT, album_artist: "str" = _DEFAULT, album_art: "str" = _DEFAULT, duration_ms: "int" = _DEFAULT, song_uri: "str" = _DEFAULT, album_uri: "str" = _DEFAULT, track_number: "int" = _DEFAULT):
+        if url is _DEFAULT:
+            self.url = ""
+        else:
+            self.url = url
         if upload_id is _DEFAULT:
             self.upload_id = ""
         else:
@@ -8133,9 +9285,11 @@ class RemoteQueueItem:
             self.track_number = track_number
 
     def __str__(self):
-        return "RemoteQueueItem(upload_id={}, track_id={}, title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, song_uri={}, album_uri={}, track_number={})".format(self.upload_id, self.track_id, self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.song_uri, self.album_uri, self.track_number)
+        return "RemoteQueueItem(url={}, upload_id={}, track_id={}, title={}, artist={}, album={}, album_artist={}, album_art={}, duration_ms={}, song_uri={}, album_uri={}, track_number={})".format(self.url, self.upload_id, self.track_id, self.title, self.artist, self.album, self.album_artist, self.album_art, self.duration_ms, self.song_uri, self.album_uri, self.track_number)
 
     def __eq__(self, other):
+        if self.url != other.url:
+            return False
         if self.upload_id != other.upload_id:
             return False
         if self.track_id != other.track_id:
@@ -8164,6 +9318,7 @@ class _UniffiConverterTypeRemoteQueueItem(_UniffiConverterRustBuffer):
     @staticmethod
     def read(buf):
         return RemoteQueueItem(
+            url=_UniffiConverterString.read(buf),
             upload_id=_UniffiConverterString.read(buf),
             track_id=_UniffiConverterString.read(buf),
             title=_UniffiConverterString.read(buf),
@@ -8179,6 +9334,7 @@ class _UniffiConverterTypeRemoteQueueItem(_UniffiConverterRustBuffer):
 
     @staticmethod
     def check_lower(value):
+        _UniffiConverterString.check_lower(value.url)
         _UniffiConverterString.check_lower(value.upload_id)
         _UniffiConverterString.check_lower(value.track_id)
         _UniffiConverterString.check_lower(value.title)
@@ -8193,6 +9349,7 @@ class _UniffiConverterTypeRemoteQueueItem(_UniffiConverterRustBuffer):
 
     @staticmethod
     def write(value, buf):
+        _UniffiConverterString.write(value.url, buf)
         _UniffiConverterString.write(value.upload_id, buf)
         _UniffiConverterString.write(value.track_id, buf)
         _UniffiConverterString.write(value.title, buf)
@@ -8204,6 +9361,139 @@ class _UniffiConverterTypeRemoteQueueItem(_UniffiConverterRustBuffer):
         _UniffiConverterString.write(value.song_uri, buf)
         _UniffiConverterString.write(value.album_uri, buf)
         _UniffiConverterInt32.write(value.track_number, buf)
+
+
+class RsvpCounts:
+    """
+    RSVP tallies (`app.rocksky.event.defs#rsvpCounts`).
+    """
+
+    going: "int"
+    interested: "int"
+    not_going: "int"
+    def __init__(self, *, going: "int", interested: "int", not_going: "int"):
+        self.going = going
+        self.interested = interested
+        self.not_going = not_going
+
+    def __str__(self):
+        return "RsvpCounts(going={}, interested={}, not_going={})".format(self.going, self.interested, self.not_going)
+
+    def __eq__(self, other):
+        if self.going != other.going:
+            return False
+        if self.interested != other.interested:
+            return False
+        if self.not_going != other.not_going:
+            return False
+        return True
+
+class _UniffiConverterTypeRsvpCounts(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return RsvpCounts(
+            going=_UniffiConverterInt64.read(buf),
+            interested=_UniffiConverterInt64.read(buf),
+            not_going=_UniffiConverterInt64.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterInt64.check_lower(value.going)
+        _UniffiConverterInt64.check_lower(value.interested)
+        _UniffiConverterInt64.check_lower(value.not_going)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterInt64.write(value.going, buf)
+        _UniffiConverterInt64.write(value.interested, buf)
+        _UniffiConverterInt64.write(value.not_going, buf)
+
+
+class RsvpView:
+    """
+    One response to an event (`app.rocksky.event.defs#rsvpView`).
+    """
+
+    uri: "str"
+    cid: "typing.Optional[str]"
+    status: "str"
+    """
+    `community.lexicon.calendar.rsvp#{going,interested,notgoing}`.
+    """
+
+    did: "str"
+    handle: "str"
+    display_name: "str"
+    avatar: "typing.Optional[str]"
+    created_at: "str"
+    def __init__(self, *, uri: "str", cid: "typing.Optional[str]", status: "str", did: "str", handle: "str", display_name: "str", avatar: "typing.Optional[str]", created_at: "str"):
+        self.uri = uri
+        self.cid = cid
+        self.status = status
+        self.did = did
+        self.handle = handle
+        self.display_name = display_name
+        self.avatar = avatar
+        self.created_at = created_at
+
+    def __str__(self):
+        return "RsvpView(uri={}, cid={}, status={}, did={}, handle={}, display_name={}, avatar={}, created_at={})".format(self.uri, self.cid, self.status, self.did, self.handle, self.display_name, self.avatar, self.created_at)
+
+    def __eq__(self, other):
+        if self.uri != other.uri:
+            return False
+        if self.cid != other.cid:
+            return False
+        if self.status != other.status:
+            return False
+        if self.did != other.did:
+            return False
+        if self.handle != other.handle:
+            return False
+        if self.display_name != other.display_name:
+            return False
+        if self.avatar != other.avatar:
+            return False
+        if self.created_at != other.created_at:
+            return False
+        return True
+
+class _UniffiConverterTypeRsvpView(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return RsvpView(
+            uri=_UniffiConverterString.read(buf),
+            cid=_UniffiConverterOptionalString.read(buf),
+            status=_UniffiConverterString.read(buf),
+            did=_UniffiConverterString.read(buf),
+            handle=_UniffiConverterString.read(buf),
+            display_name=_UniffiConverterString.read(buf),
+            avatar=_UniffiConverterOptionalString.read(buf),
+            created_at=_UniffiConverterString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.uri)
+        _UniffiConverterOptionalString.check_lower(value.cid)
+        _UniffiConverterString.check_lower(value.status)
+        _UniffiConverterString.check_lower(value.did)
+        _UniffiConverterString.check_lower(value.handle)
+        _UniffiConverterString.check_lower(value.display_name)
+        _UniffiConverterOptionalString.check_lower(value.avatar)
+        _UniffiConverterString.check_lower(value.created_at)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.uri, buf)
+        _UniffiConverterOptionalString.write(value.cid, buf)
+        _UniffiConverterString.write(value.status, buf)
+        _UniffiConverterString.write(value.did, buf)
+        _UniffiConverterString.write(value.handle, buf)
+        _UniffiConverterString.write(value.display_name, buf)
+        _UniffiConverterOptionalString.write(value.avatar, buf)
+        _UniffiConverterString.write(value.created_at, buf)
 
 
 class ScrobbleInput:
@@ -10182,6 +11472,30 @@ class RemoteEvent:
         raise RuntimeError("RemoteEvent cannot be instantiated directly")
 
     # Each enum variant is a nested class of the enum itself.
+    class COMMAND_ERROR:
+        device_id: "str"
+        device_name: "str"
+        message: "str"
+
+        def __init__(self,device_id: "str", device_name: "str", message: "str"):
+            self.device_id = device_id
+            self.device_name = device_name
+            self.message = message
+
+        def __str__(self):
+            return "RemoteEvent.COMMAND_ERROR(device_id={}, device_name={}, message={})".format(self.device_id, self.device_name, self.message)
+
+        def __eq__(self, other):
+            if not other.is_command_error():
+                return False
+            if self.device_id != other.device_id:
+                return False
+            if self.device_name != other.device_name:
+                return False
+            if self.message != other.message:
+                return False
+            return True
+    
     class DEVICES:
         primary_device: "typing.Optional[str]"
         devices: "typing.List[RemoteDevice]"
@@ -10334,6 +11648,8 @@ class RemoteEvent:
 
     # For each variant, we have an `is_NAME` method for easily checking
     # whether an instance is that variant.
+    def is_command_error(self) -> bool:
+        return isinstance(self, RemoteEvent.COMMAND_ERROR)
     def is_devices(self) -> bool:
         return isinstance(self, RemoteEvent.DEVICES)
     def is_device_registered(self) -> bool:
@@ -10353,6 +11669,7 @@ class RemoteEvent:
 # Now, a little trick - we make each nested variant class be a subclass of the main
 # enum class, so that method calls and instance checks etc will work intuitively.
 # We might be able to do this a little more neatly with a metaclass, but this'll do.
+RemoteEvent.COMMAND_ERROR = type("RemoteEvent.COMMAND_ERROR", (RemoteEvent.COMMAND_ERROR, RemoteEvent,), {})  # type: ignore
 RemoteEvent.DEVICES = type("RemoteEvent.DEVICES", (RemoteEvent.DEVICES, RemoteEvent,), {})  # type: ignore
 RemoteEvent.DEVICE_REGISTERED = type("RemoteEvent.DEVICE_REGISTERED", (RemoteEvent.DEVICE_REGISTERED, RemoteEvent,), {})  # type: ignore
 RemoteEvent.DEVICE_UNREGISTERED = type("RemoteEvent.DEVICE_UNREGISTERED", (RemoteEvent.DEVICE_UNREGISTERED, RemoteEvent,), {})  # type: ignore
@@ -10369,36 +11686,42 @@ class _UniffiConverterTypeRemoteEvent(_UniffiConverterRustBuffer):
     def read(buf):
         variant = buf.read_i32()
         if variant == 1:
+            return RemoteEvent.COMMAND_ERROR(
+                _UniffiConverterString.read(buf),
+                _UniffiConverterString.read(buf),
+                _UniffiConverterString.read(buf),
+            )
+        if variant == 2:
             return RemoteEvent.DEVICES(
                 _UniffiConverterOptionalString.read(buf),
                 _UniffiConverterSequenceTypeRemoteDevice.read(buf),
             )
-        if variant == 2:
+        if variant == 3:
             return RemoteEvent.DEVICE_REGISTERED(
                 _UniffiConverterString.read(buf),
                 _UniffiConverterString.read(buf),
             )
-        if variant == 3:
+        if variant == 4:
             return RemoteEvent.DEVICE_UNREGISTERED(
                 _UniffiConverterString.read(buf),
             )
-        if variant == 4:
+        if variant == 5:
             return RemoteEvent.PRIMARY_CHANGED(
                 _UniffiConverterString.read(buf),
             )
-        if variant == 5:
+        if variant == 6:
             return RemoteEvent.NOW_PLAYING(
                 _UniffiConverterString.read(buf),
                 _UniffiConverterString.read(buf),
                 _UniffiConverterTypeRemoteNowPlaying.read(buf),
             )
-        if variant == 6:
+        if variant == 7:
             return RemoteEvent.STATUS(
                 _UniffiConverterString.read(buf),
                 _UniffiConverterString.read(buf),
                 _UniffiConverterTypeRemoteStatus.read(buf),
             )
-        if variant == 7:
+        if variant == 8:
             return RemoteEvent.QUEUE(
                 _UniffiConverterString.read(buf),
                 _UniffiConverterString.read(buf),
@@ -10409,6 +11732,11 @@ class _UniffiConverterTypeRemoteEvent(_UniffiConverterRustBuffer):
 
     @staticmethod
     def check_lower(value):
+        if value.is_command_error():
+            _UniffiConverterString.check_lower(value.device_id)
+            _UniffiConverterString.check_lower(value.device_name)
+            _UniffiConverterString.check_lower(value.message)
+            return
         if value.is_devices():
             _UniffiConverterOptionalString.check_lower(value.primary_device)
             _UniffiConverterSequenceTypeRemoteDevice.check_lower(value.devices)
@@ -10443,32 +11771,37 @@ class _UniffiConverterTypeRemoteEvent(_UniffiConverterRustBuffer):
 
     @staticmethod
     def write(value, buf):
-        if value.is_devices():
+        if value.is_command_error():
             buf.write_i32(1)
+            _UniffiConverterString.write(value.device_id, buf)
+            _UniffiConverterString.write(value.device_name, buf)
+            _UniffiConverterString.write(value.message, buf)
+        if value.is_devices():
+            buf.write_i32(2)
             _UniffiConverterOptionalString.write(value.primary_device, buf)
             _UniffiConverterSequenceTypeRemoteDevice.write(value.devices, buf)
         if value.is_device_registered():
-            buf.write_i32(2)
+            buf.write_i32(3)
             _UniffiConverterString.write(value.device_id, buf)
             _UniffiConverterString.write(value.name, buf)
         if value.is_device_unregistered():
-            buf.write_i32(3)
-            _UniffiConverterString.write(value.device_id, buf)
-        if value.is_primary_changed():
             buf.write_i32(4)
             _UniffiConverterString.write(value.device_id, buf)
-        if value.is_now_playing():
+        if value.is_primary_changed():
             buf.write_i32(5)
+            _UniffiConverterString.write(value.device_id, buf)
+        if value.is_now_playing():
+            buf.write_i32(6)
             _UniffiConverterString.write(value.device_id, buf)
             _UniffiConverterString.write(value.device_name, buf)
             _UniffiConverterTypeRemoteNowPlaying.write(value.track, buf)
         if value.is_status():
-            buf.write_i32(6)
+            buf.write_i32(7)
             _UniffiConverterString.write(value.device_id, buf)
             _UniffiConverterString.write(value.device_name, buf)
             _UniffiConverterTypeRemoteStatus.write(value.status, buf)
         if value.is_queue():
-            buf.write_i32(7)
+            buf.write_i32(8)
             _UniffiConverterString.write(value.device_id, buf)
             _UniffiConverterString.write(value.device_name, buf)
             _UniffiConverterUInt32.write(value.index, buf)
@@ -10777,6 +12110,33 @@ class _UniffiConverterOptionalString(_UniffiConverterRustBuffer):
 
 
 
+class _UniffiConverterOptionalBytes(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterBytes.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterBytes.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterBytes.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
 class _UniffiConverterOptionalTypeDropboxView(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -10799,6 +12159,33 @@ class _UniffiConverterOptionalTypeDropboxView(_UniffiConverterRustBuffer):
             return None
         elif flag == 1:
             return _UniffiConverterTypeDropboxView.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
+class _UniffiConverterOptionalTypeEventExternalIds(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypeEventExternalIds.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypeEventExternalIds.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypeEventExternalIds.read(buf)
         else:
             raise InternalError("Unexpected flag byte for optional type")
 
@@ -11172,6 +12559,131 @@ class _UniffiConverterSequenceTypeEqualizerPreset(_UniffiConverterRustBuffer):
 
 
 
+class _UniffiConverterSequenceTypeEventArtist(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeEventArtist.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeEventArtist.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeEventArtist.read(buf) for i in range(count)
+        ]
+
+
+
+class _UniffiConverterSequenceTypeEventLocation(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeEventLocation.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeEventLocation.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeEventLocation.read(buf) for i in range(count)
+        ]
+
+
+
+class _UniffiConverterSequenceTypeEventMedia(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeEventMedia.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeEventMedia.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeEventMedia.read(buf) for i in range(count)
+        ]
+
+
+
+class _UniffiConverterSequenceTypeEventUri(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeEventUri.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeEventUri.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeEventUri.read(buf) for i in range(count)
+        ]
+
+
+
+class _UniffiConverterSequenceTypeEventView(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeEventView.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeEventView.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeEventView.read(buf) for i in range(count)
+        ]
+
+
+
 class _UniffiConverterSequenceTypeNotificationView(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -11268,6 +12780,31 @@ class _UniffiConverterSequenceTypeRemoteQueueItem(_UniffiConverterRustBuffer):
 
         return [
             _UniffiConverterTypeRemoteQueueItem.read(buf) for i in range(count)
+        ]
+
+
+
+class _UniffiConverterSequenceTypeRsvpView(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeRsvpView.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeRsvpView.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeRsvpView.read(buf) for i in range(count)
         ]
 
 
@@ -11399,6 +12936,13 @@ __all__ = [
     "DropboxView",
     "EqualizerBand",
     "EqualizerPreset",
+    "EventArtist",
+    "EventExternalIds",
+    "EventLocation",
+    "EventMedia",
+    "EventUri",
+    "EventView",
+    "EventsQuery",
     "GlobalStats",
     "GoogledriveView",
     "NotificationActor",
@@ -11408,9 +12952,12 @@ __all__ = [
     "NowPlayingInput",
     "Profile",
     "ProfileView",
+    "PutRsvpResult",
     "RemoteDevice",
     "RemoteNowPlaying",
     "RemoteQueueItem",
+    "RsvpCounts",
+    "RsvpView",
     "ScrobbleInput",
     "ScrobbleMatchInput",
     "ScrobbleResult",

@@ -1040,6 +1040,16 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -1131,6 +1141,8 @@ internal interface UniffiLib : JnaLibrary {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_artist_albums(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_artist_events(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`includePast`: Byte,`limit`: RustBuffer.ByValue,`offset`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_artist_listeners(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_artist_recent_listeners(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
@@ -1160,6 +1172,12 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_fn_method_appview_delete_equalizer_preset(`ptr`: Pointer,`rkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_rocksky_uniffi_fn_method_appview_equalizer_presets(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_event(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_event_rsvps(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`status`: RustBuffer.ByValue,`limit`: RustBuffer.ByValue,`offset`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_events(`ptr`: Pointer,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_feed(`ptr`: Pointer,`feed`: RustBuffer.ByValue,`limit`: Int,`cursor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1200,6 +1218,8 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_fn_method_appview_profile_shouts(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_put_equalizer_preset(`ptr`: Pointer,`name`: RustBuffer.ByValue,`precut`: RustBuffer.ByValue,`bands`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_put_rsvp(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`status`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_recommendations(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1575,6 +1595,8 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_artist_albums(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_artist_events(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_artist_recent_listeners(
@@ -1604,6 +1626,12 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_checksum_method_appview_delete_equalizer_preset(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_equalizer_presets(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_event(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_event_rsvps(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_events(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_feed(
     ): Short
@@ -1644,6 +1672,8 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_put_equalizer_preset(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_put_rsvp(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_recommendations(
     ): Short
@@ -1943,6 +1973,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_albums() != 29658.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_events() != 48827.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners() != 28932.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1988,6 +2021,15 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_equalizer_presets() != 56418.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_event() != 53489.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_event_rsvps() != 28709.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_events() != 3771.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_feed() != 45348.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -2015,7 +2057,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs() != 22860.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 58118.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 63976.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources() != 4801.toShort()) {
@@ -2046,6 +2088,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_put_equalizer_preset() != 32860.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_put_rsvp() != 25745.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations() != 8253.toShort()) {
@@ -2583,6 +2628,25 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
         val byteBuf = toUtf8(value)
         buf.putInt(byteBuf.limit())
         buf.put(byteBuf)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
+    override fun read(buf: ByteBuffer): ByteArray {
+        val len = buf.getInt()
+        val byteArr = ByteArray(len)
+        buf.get(byteArr)
+        return byteArr
+    }
+    override fun allocationSize(value: ByteArray): ULong {
+        return 4UL + value.size.toULong()
+    }
+    override fun write(value: ByteArray, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        buf.put(value)
     }
 }
 
@@ -3401,6 +3465,13 @@ public interface AppViewInterface {
     
     fun `artistAlbums`(`uri`: kotlin.String): List<AlbumView>
     
+    /**
+     * The music events an artist is billed on, soonest first
+     * (`app.rocksky.artist.getArtistEvents`); `include_past` adds past events,
+     * most recent first.
+     */
+    fun `artistEvents`(`uri`: kotlin.String, `includePast`: kotlin.Boolean, `limit`: kotlin.UInt?, `offset`: kotlin.UInt?): List<EventView>
+    
     fun `artistListeners`(`uri`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): kotlin.String
     
     fun `artistRecentListeners`(`uri`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): kotlin.String
@@ -3442,6 +3513,27 @@ public interface AppViewInterface {
      */
     fun `equalizerPresets`(`actor`: kotlin.String): List<EqualizerPreset>
     
+    /**
+     * A single music event by the AT-URI of its calendar event or its
+     * `app.rocksky.event.music` record (`app.rocksky.event.getEvent`).
+     */
+    fun `event`(`uri`: kotlin.String): EventView
+    
+    /**
+     * Who responded to an event, most recent first
+     * (`app.rocksky.event.getEventRsvps`). `status` narrows to one RSVP
+     * status token.
+     */
+    fun `eventRsvps`(`uri`: kotlin.String, `status`: kotlin.String?, `limit`: kotlin.UInt?, `offset`: kotlin.UInt?): List<RsvpView>
+    
+    /**
+     * Indexed music events, soonest first (`app.rocksky.event.getEvents`).
+     * Without a time window only unexpired events are returned; set
+     * `include_past` in the query for past events, most recent first. With a
+     * token attached each event carries the viewer's own `viewer_rsvp`.
+     */
+    fun `events`(`query`: EventsQuery): List<EventView>
+    
     fun `feed`(`feed`: kotlin.String, `limit`: kotlin.UInt, `cursor`: kotlin.String?): kotlin.String
     
     fun `feedGenerator`(`feed`: kotlin.String): kotlin.String
@@ -3466,8 +3558,9 @@ public interface AppViewInterface {
     /**
      * Resolve full canonical metadata for a bare title + artist
      * (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
-     * `album` steers the match toward that release (case-insensitive) so a
-     * remaster/live/single edition doesn't shadow the intended album.
+     * When `album` is given only candidates matching that album (after
+     * normalization) are accepted; with no accepted candidate the response has
+     * an empty `matches` array and no song fields.
      */
     fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String
     
@@ -3503,6 +3596,13 @@ public interface AppViewInterface {
      * preset. Token required.
      */
     fun `putEqualizerPreset`(`name`: kotlin.String, `precut`: kotlin.Long?, `bands`: List<EqualizerBand>): EqualizerPreset
+    
+    /**
+     * Set the viewer's RSVP on an event (`app.rocksky.event.putRsvp`). `status`
+     * is a `community.lexicon.calendar.rsvp#{going,interested,notgoing}` token;
+     * an existing RSVP record is reused. Token required.
+     */
+    fun `putRsvp`(`uri`: kotlin.String, `status`: kotlin.String): PutRsvpResult
     
     fun `recommendations`(`actor`: kotlin.String, `limit`: kotlin.UInt?): kotlin.String
     
@@ -3807,6 +3907,24 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
+    /**
+     * The music events an artist is billed on, soonest first
+     * (`app.rocksky.artist.getArtistEvents`); `include_past` adds past events,
+     * most recent first.
+     */
+    @Throws(RockskyException::class)override fun `artistEvents`(`uri`: kotlin.String, `includePast`: kotlin.Boolean, `limit`: kotlin.UInt?, `offset`: kotlin.UInt?): List<EventView> {
+            return FfiConverterSequenceTypeEventView.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_artist_events(
+        it, FfiConverterString.lower(`uri`),FfiConverterBoolean.lower(`includePast`),FfiConverterOptionalUInt.lower(`limit`),FfiConverterOptionalUInt.lower(`offset`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(RockskyException::class)override fun `artistListeners`(`uri`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): kotlin.String {
             return FfiConverterString.lift(
     callWithPointer {
@@ -4012,6 +4130,60 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
+    /**
+     * A single music event by the AT-URI of its calendar event or its
+     * `app.rocksky.event.music` record (`app.rocksky.event.getEvent`).
+     */
+    @Throws(RockskyException::class)override fun `event`(`uri`: kotlin.String): EventView {
+            return FfiConverterTypeEventView.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_event(
+        it, FfiConverterString.lower(`uri`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Who responded to an event, most recent first
+     * (`app.rocksky.event.getEventRsvps`). `status` narrows to one RSVP
+     * status token.
+     */
+    @Throws(RockskyException::class)override fun `eventRsvps`(`uri`: kotlin.String, `status`: kotlin.String?, `limit`: kotlin.UInt?, `offset`: kotlin.UInt?): List<RsvpView> {
+            return FfiConverterSequenceTypeRsvpView.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_event_rsvps(
+        it, FfiConverterString.lower(`uri`),FfiConverterOptionalString.lower(`status`),FfiConverterOptionalUInt.lower(`limit`),FfiConverterOptionalUInt.lower(`offset`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Indexed music events, soonest first (`app.rocksky.event.getEvents`).
+     * Without a time window only unexpired events are returned; set
+     * `include_past` in the query for past events, most recent first. With a
+     * token attached each event carries the viewer's own `viewer_rsvp`.
+     */
+    @Throws(RockskyException::class)override fun `events`(`query`: EventsQuery): List<EventView> {
+            return FfiConverterSequenceTypeEventView.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_events(
+        it, FfiConverterTypeEventsQuery.lower(`query`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(RockskyException::class)override fun `feed`(`feed`: kotlin.String, `limit`: kotlin.UInt, `cursor`: kotlin.String?): kotlin.String {
             return FfiConverterString.lift(
     callWithPointer {
@@ -4135,8 +4307,9 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     /**
      * Resolve full canonical metadata for a bare title + artist
      * (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
-     * `album` steers the match toward that release (case-insensitive) so a
-     * remaster/live/single edition doesn't shadow the intended album.
+     * When `album` is given only candidates matching that album (after
+     * normalization) are accepted; with no accepted candidate the response has
+     * an empty `matches` array and no song fields.
      */
     @Throws(RockskyException::class)override fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String {
             return FfiConverterString.lift(
@@ -4287,6 +4460,24 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_put_equalizer_preset(
         it, FfiConverterString.lower(`name`),FfiConverterOptionalLong.lower(`precut`),FfiConverterSequenceTypeEqualizerBand.lower(`bands`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Set the viewer's RSVP on an event (`app.rocksky.event.putRsvp`). `status`
+     * is a `community.lexicon.calendar.rsvp#{going,interested,notgoing}` token;
+     * an existing RSVP record is reused. Token required.
+     */
+    @Throws(RockskyException::class)override fun `putRsvp`(`uri`: kotlin.String, `status`: kotlin.String): PutRsvpResult {
+            return FfiConverterTypePutRsvpResult.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_put_rsvp(
+        it, FfiConverterString.lower(`uri`),FfiConverterString.lower(`status`),_status)
 }
     }
     )
@@ -7114,6 +7305,559 @@ public object FfiConverterTypeEqualizerPreset: FfiConverterRustBuffer<EqualizerP
 
 
 /**
+ * An artist on an event's bill (`app.rocksky.event.defs#artistView`).
+ */
+data class EventArtist (
+    var `id`: kotlin.String?, 
+    var `uri`: kotlin.String?, 
+    var `sha256`: kotlin.String?, 
+    var `name`: kotlin.String, 
+    var `picture`: kotlin.String?, 
+    var `mbid`: kotlin.String?, 
+    /**
+     * headliner, support, opener, dj, special-guest, performer.
+     */
+    var `role`: kotlin.String?, 
+    var `stage`: kotlin.String?, 
+    var `startsAt`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEventArtist: FfiConverterRustBuffer<EventArtist> {
+    override fun read(buf: ByteBuffer): EventArtist {
+        return EventArtist(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EventArtist) = (
+            FfiConverterOptionalString.allocationSize(value.`id`) +
+            FfiConverterOptionalString.allocationSize(value.`uri`) +
+            FfiConverterOptionalString.allocationSize(value.`sha256`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterOptionalString.allocationSize(value.`picture`) +
+            FfiConverterOptionalString.allocationSize(value.`mbid`) +
+            FfiConverterOptionalString.allocationSize(value.`role`) +
+            FfiConverterOptionalString.allocationSize(value.`stage`) +
+            FfiConverterOptionalString.allocationSize(value.`startsAt`)
+    )
+
+    override fun write(value: EventArtist, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`id`, buf)
+            FfiConverterOptionalString.write(value.`uri`, buf)
+            FfiConverterOptionalString.write(value.`sha256`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterOptionalString.write(value.`picture`, buf)
+            FfiConverterOptionalString.write(value.`mbid`, buf)
+            FfiConverterOptionalString.write(value.`role`, buf)
+            FfiConverterOptionalString.write(value.`stage`, buf)
+            FfiConverterOptionalString.write(value.`startsAt`, buf)
+    }
+}
+
+
+
+/**
+ * Third-party event ids (`app.rocksky.event.music#externalIds`).
+ */
+data class EventExternalIds (
+    var `ticketmaster`: kotlin.String?, 
+    var `songkick`: kotlin.String?, 
+    var `bandsintown`: kotlin.String?, 
+    var `residentAdvisor`: kotlin.String?, 
+    var `setlistfm`: kotlin.String?, 
+    var `dice`: kotlin.String?, 
+    var `eventbrite`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEventExternalIds: FfiConverterRustBuffer<EventExternalIds> {
+    override fun read(buf: ByteBuffer): EventExternalIds {
+        return EventExternalIds(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EventExternalIds) = (
+            FfiConverterOptionalString.allocationSize(value.`ticketmaster`) +
+            FfiConverterOptionalString.allocationSize(value.`songkick`) +
+            FfiConverterOptionalString.allocationSize(value.`bandsintown`) +
+            FfiConverterOptionalString.allocationSize(value.`residentAdvisor`) +
+            FfiConverterOptionalString.allocationSize(value.`setlistfm`) +
+            FfiConverterOptionalString.allocationSize(value.`dice`) +
+            FfiConverterOptionalString.allocationSize(value.`eventbrite`)
+    )
+
+    override fun write(value: EventExternalIds, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`ticketmaster`, buf)
+            FfiConverterOptionalString.write(value.`songkick`, buf)
+            FfiConverterOptionalString.write(value.`bandsintown`, buf)
+            FfiConverterOptionalString.write(value.`residentAdvisor`, buf)
+            FfiConverterOptionalString.write(value.`setlistfm`, buf)
+            FfiConverterOptionalString.write(value.`dice`, buf)
+            FfiConverterOptionalString.write(value.`eventbrite`, buf)
+    }
+}
+
+
+
+/**
+ * A flattened `community.lexicon.location.*` value
+ * (`app.rocksky.event.defs#locationView`); `kind` is the location type NSID
+ * and says which fields apply.
+ */
+data class EventLocation (
+    var `kind`: kotlin.String, 
+    var `name`: kotlin.String?, 
+    var `country`: kotlin.String?, 
+    var `postalCode`: kotlin.String?, 
+    var `region`: kotlin.String?, 
+    var `locality`: kotlin.String?, 
+    var `street`: kotlin.String?, 
+    var `latitude`: kotlin.String?, 
+    var `longitude`: kotlin.String?, 
+    var `altitude`: kotlin.String?, 
+    var `fsqPlaceId`: kotlin.String?, 
+    var `h3`: kotlin.String?, 
+    var `uri`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEventLocation: FfiConverterRustBuffer<EventLocation> {
+    override fun read(buf: ByteBuffer): EventLocation {
+        return EventLocation(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EventLocation) = (
+            FfiConverterString.allocationSize(value.`kind`) +
+            FfiConverterOptionalString.allocationSize(value.`name`) +
+            FfiConverterOptionalString.allocationSize(value.`country`) +
+            FfiConverterOptionalString.allocationSize(value.`postalCode`) +
+            FfiConverterOptionalString.allocationSize(value.`region`) +
+            FfiConverterOptionalString.allocationSize(value.`locality`) +
+            FfiConverterOptionalString.allocationSize(value.`street`) +
+            FfiConverterOptionalString.allocationSize(value.`latitude`) +
+            FfiConverterOptionalString.allocationSize(value.`longitude`) +
+            FfiConverterOptionalString.allocationSize(value.`altitude`) +
+            FfiConverterOptionalString.allocationSize(value.`fsqPlaceId`) +
+            FfiConverterOptionalString.allocationSize(value.`h3`) +
+            FfiConverterOptionalString.allocationSize(value.`uri`)
+    )
+
+    override fun write(value: EventLocation, buf: ByteBuffer) {
+            FfiConverterString.write(value.`kind`, buf)
+            FfiConverterOptionalString.write(value.`name`, buf)
+            FfiConverterOptionalString.write(value.`country`, buf)
+            FfiConverterOptionalString.write(value.`postalCode`, buf)
+            FfiConverterOptionalString.write(value.`region`, buf)
+            FfiConverterOptionalString.write(value.`locality`, buf)
+            FfiConverterOptionalString.write(value.`street`, buf)
+            FfiConverterOptionalString.write(value.`latitude`, buf)
+            FfiConverterOptionalString.write(value.`longitude`, buf)
+            FfiConverterOptionalString.write(value.`altitude`, buf)
+            FfiConverterOptionalString.write(value.`fsqPlaceId`, buf)
+            FfiConverterOptionalString.write(value.`h3`, buf)
+            FfiConverterOptionalString.write(value.`uri`, buf)
+    }
+}
+
+
+
+/**
+ * An event image (`app.rocksky.event.defs#mediaView`).
+ */
+data class EventMedia (
+    /**
+     * thumbnail or header.
+     */
+    var `role`: kotlin.String, 
+    var `url`: kotlin.String, 
+    var `cid`: kotlin.String, 
+    var `mimeType`: kotlin.String, 
+    var `size`: kotlin.Long?, 
+    var `width`: kotlin.Long?, 
+    var `height`: kotlin.Long?, 
+    var `alt`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEventMedia: FfiConverterRustBuffer<EventMedia> {
+    override fun read(buf: ByteBuffer): EventMedia {
+        return EventMedia(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EventMedia) = (
+            FfiConverterString.allocationSize(value.`role`) +
+            FfiConverterString.allocationSize(value.`url`) +
+            FfiConverterString.allocationSize(value.`cid`) +
+            FfiConverterString.allocationSize(value.`mimeType`) +
+            FfiConverterOptionalLong.allocationSize(value.`size`) +
+            FfiConverterOptionalLong.allocationSize(value.`width`) +
+            FfiConverterOptionalLong.allocationSize(value.`height`) +
+            FfiConverterOptionalString.allocationSize(value.`alt`)
+    )
+
+    override fun write(value: EventMedia, buf: ByteBuffer) {
+            FfiConverterString.write(value.`role`, buf)
+            FfiConverterString.write(value.`url`, buf)
+            FfiConverterString.write(value.`cid`, buf)
+            FfiConverterString.write(value.`mimeType`, buf)
+            FfiConverterOptionalLong.write(value.`size`, buf)
+            FfiConverterOptionalLong.write(value.`width`, buf)
+            FfiConverterOptionalLong.write(value.`height`, buf)
+            FfiConverterOptionalString.write(value.`alt`, buf)
+    }
+}
+
+
+
+/**
+ * A link attached to an event (`app.rocksky.event.defs#uriView`).
+ */
+data class EventUri (
+    var `uri`: kotlin.String, 
+    var `name`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEventUri: FfiConverterRustBuffer<EventUri> {
+    override fun read(buf: ByteBuffer): EventUri {
+        return EventUri(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EventUri) = (
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterOptionalString.allocationSize(value.`name`)
+    )
+
+    override fun write(value: EventUri, buf: ByteBuffer) {
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterOptionalString.write(value.`name`, buf)
+    }
+}
+
+
+
+/**
+ * A music event (`app.rocksky.event.defs#eventView`).
+ */
+data class EventView (
+    var `id`: kotlin.String, 
+    /**
+     * AT-URI of the `community.lexicon.calendar.event` record.
+     */
+    var `uri`: kotlin.String, 
+    var `cid`: kotlin.String?, 
+    /**
+     * AT-URI of the `app.rocksky.event.music` record annotating it.
+     */
+    var `musicUri`: kotlin.String, 
+    var `musicCid`: kotlin.String?, 
+    var `name`: kotlin.String, 
+    var `description`: kotlin.String?, 
+    /**
+     * concert, festival, club-night, dj-set, livestream, release-party,
+     * listening-party.
+     */
+    var `kind`: kotlin.String?, 
+    var `genre`: kotlin.String?, 
+    var `tags`: List<kotlin.String>, 
+    var `startsAt`: kotlin.String?, 
+    var `endsAt`: kotlin.String?, 
+    /**
+     * `community.lexicon.calendar.event#{inperson,virtual,hybrid}`.
+     */
+    var `mode`: kotlin.String?, 
+    /**
+     * `community.lexicon.calendar.event#{planned,scheduled,rescheduled,cancelled,postponed}`.
+     */
+    var `status`: kotlin.String?, 
+    var `imageUrl`: kotlin.String?, 
+    var `media`: List<EventMedia>, 
+    var `ticketsUrl`: kotlin.String?, 
+    var `locations`: List<EventLocation>, 
+    var `uris`: List<EventUri>, 
+    var `artists`: List<EventArtist>, 
+    var `externalIds`: EventExternalIds?, 
+    var `organizerDid`: kotlin.String, 
+    var `organizerHandle`: kotlin.String?, 
+    var `organizerName`: kotlin.String?, 
+    var `organizerAvatarUrl`: kotlin.String?, 
+    var `rsvpCounts`: RsvpCounts, 
+    /**
+     * The viewer's own RSVP status token, when authenticated.
+     */
+    var `viewerRsvp`: kotlin.String?, 
+    var `createdAt`: kotlin.String, 
+    var `updatedAt`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEventView: FfiConverterRustBuffer<EventView> {
+    override fun read(buf: ByteBuffer): EventView {
+        return EventView(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceTypeEventMedia.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceTypeEventLocation.read(buf),
+            FfiConverterSequenceTypeEventUri.read(buf),
+            FfiConverterSequenceTypeEventArtist.read(buf),
+            FfiConverterOptionalTypeEventExternalIds.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterTypeRsvpCounts.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EventView) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterOptionalString.allocationSize(value.`cid`) +
+            FfiConverterString.allocationSize(value.`musicUri`) +
+            FfiConverterOptionalString.allocationSize(value.`musicCid`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterOptionalString.allocationSize(value.`description`) +
+            FfiConverterOptionalString.allocationSize(value.`kind`) +
+            FfiConverterOptionalString.allocationSize(value.`genre`) +
+            FfiConverterSequenceString.allocationSize(value.`tags`) +
+            FfiConverterOptionalString.allocationSize(value.`startsAt`) +
+            FfiConverterOptionalString.allocationSize(value.`endsAt`) +
+            FfiConverterOptionalString.allocationSize(value.`mode`) +
+            FfiConverterOptionalString.allocationSize(value.`status`) +
+            FfiConverterOptionalString.allocationSize(value.`imageUrl`) +
+            FfiConverterSequenceTypeEventMedia.allocationSize(value.`media`) +
+            FfiConverterOptionalString.allocationSize(value.`ticketsUrl`) +
+            FfiConverterSequenceTypeEventLocation.allocationSize(value.`locations`) +
+            FfiConverterSequenceTypeEventUri.allocationSize(value.`uris`) +
+            FfiConverterSequenceTypeEventArtist.allocationSize(value.`artists`) +
+            FfiConverterOptionalTypeEventExternalIds.allocationSize(value.`externalIds`) +
+            FfiConverterString.allocationSize(value.`organizerDid`) +
+            FfiConverterOptionalString.allocationSize(value.`organizerHandle`) +
+            FfiConverterOptionalString.allocationSize(value.`organizerName`) +
+            FfiConverterOptionalString.allocationSize(value.`organizerAvatarUrl`) +
+            FfiConverterTypeRsvpCounts.allocationSize(value.`rsvpCounts`) +
+            FfiConverterOptionalString.allocationSize(value.`viewerRsvp`) +
+            FfiConverterString.allocationSize(value.`createdAt`) +
+            FfiConverterString.allocationSize(value.`updatedAt`)
+    )
+
+    override fun write(value: EventView, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterOptionalString.write(value.`cid`, buf)
+            FfiConverterString.write(value.`musicUri`, buf)
+            FfiConverterOptionalString.write(value.`musicCid`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterOptionalString.write(value.`description`, buf)
+            FfiConverterOptionalString.write(value.`kind`, buf)
+            FfiConverterOptionalString.write(value.`genre`, buf)
+            FfiConverterSequenceString.write(value.`tags`, buf)
+            FfiConverterOptionalString.write(value.`startsAt`, buf)
+            FfiConverterOptionalString.write(value.`endsAt`, buf)
+            FfiConverterOptionalString.write(value.`mode`, buf)
+            FfiConverterOptionalString.write(value.`status`, buf)
+            FfiConverterOptionalString.write(value.`imageUrl`, buf)
+            FfiConverterSequenceTypeEventMedia.write(value.`media`, buf)
+            FfiConverterOptionalString.write(value.`ticketsUrl`, buf)
+            FfiConverterSequenceTypeEventLocation.write(value.`locations`, buf)
+            FfiConverterSequenceTypeEventUri.write(value.`uris`, buf)
+            FfiConverterSequenceTypeEventArtist.write(value.`artists`, buf)
+            FfiConverterOptionalTypeEventExternalIds.write(value.`externalIds`, buf)
+            FfiConverterString.write(value.`organizerDid`, buf)
+            FfiConverterOptionalString.write(value.`organizerHandle`, buf)
+            FfiConverterOptionalString.write(value.`organizerName`, buf)
+            FfiConverterOptionalString.write(value.`organizerAvatarUrl`, buf)
+            FfiConverterTypeRsvpCounts.write(value.`rsvpCounts`, buf)
+            FfiConverterOptionalString.write(value.`viewerRsvp`, buf)
+            FfiConverterString.write(value.`createdAt`, buf)
+            FfiConverterString.write(value.`updatedAt`, buf)
+    }
+}
+
+
+
+/**
+ * Filters for `AppView.events` (`app.rocksky.event.getEvents`). Every field
+ * is optional.
+ */
+data class EventsQuery (
+    /**
+     * Only events this artist plays: the artist's AT-URI, id or sha256.
+     */
+    var `artist`: kotlin.String? = null, 
+    /**
+     * Only events published by this repo.
+     */
+    var `did`: kotlin.String? = null, 
+    /**
+     * Only events this DID has RSVP'd to (going or interested).
+     */
+    var `rsvpBy`: kotlin.String? = null, 
+    /**
+     * Only events of this kind (concert, festival...).
+     */
+    var `kind`: kotlin.String? = null, 
+    /**
+     * Only events whose genre matches (case-insensitive).
+     */
+    var `genre`: kotlin.String? = null, 
+    /**
+     * Only events that end at or after this RFC-3339 time.
+     */
+    var `from`: kotlin.String? = null, 
+    /**
+     * Only events that start at or before this RFC-3339 time.
+     */
+    var `to`: kotlin.String? = null, 
+    /**
+     * Return past events too, most recent first, instead of upcoming ones.
+     */
+    var `includePast`: kotlin.Boolean = false, 
+    var `limit`: kotlin.UInt? = null, 
+    var `offset`: kotlin.UInt? = null
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEventsQuery: FfiConverterRustBuffer<EventsQuery> {
+    override fun read(buf: ByteBuffer): EventsQuery {
+        return EventsQuery(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EventsQuery) = (
+            FfiConverterOptionalString.allocationSize(value.`artist`) +
+            FfiConverterOptionalString.allocationSize(value.`did`) +
+            FfiConverterOptionalString.allocationSize(value.`rsvpBy`) +
+            FfiConverterOptionalString.allocationSize(value.`kind`) +
+            FfiConverterOptionalString.allocationSize(value.`genre`) +
+            FfiConverterOptionalString.allocationSize(value.`from`) +
+            FfiConverterOptionalString.allocationSize(value.`to`) +
+            FfiConverterBoolean.allocationSize(value.`includePast`) +
+            FfiConverterOptionalUInt.allocationSize(value.`limit`) +
+            FfiConverterOptionalUInt.allocationSize(value.`offset`)
+    )
+
+    override fun write(value: EventsQuery, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`artist`, buf)
+            FfiConverterOptionalString.write(value.`did`, buf)
+            FfiConverterOptionalString.write(value.`rsvpBy`, buf)
+            FfiConverterOptionalString.write(value.`kind`, buf)
+            FfiConverterOptionalString.write(value.`genre`, buf)
+            FfiConverterOptionalString.write(value.`from`, buf)
+            FfiConverterOptionalString.write(value.`to`, buf)
+            FfiConverterBoolean.write(value.`includePast`, buf)
+            FfiConverterOptionalUInt.write(value.`limit`, buf)
+            FfiConverterOptionalUInt.write(value.`offset`, buf)
+    }
+}
+
+
+
+/**
  * Platform-wide totals.
  */
 data class GlobalStats (
@@ -7575,6 +8319,44 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
 
 
 /**
+ * Result of `AppView.put_rsvp` (`app.rocksky.event.putRsvp`).
+ */
+data class PutRsvpResult (
+    /**
+     * The RSVP record URI.
+     */
+    var `uri`: kotlin.String, 
+    var `status`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePutRsvpResult: FfiConverterRustBuffer<PutRsvpResult> {
+    override fun read(buf: ByteBuffer): PutRsvpResult {
+        return PutRsvpResult(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PutRsvpResult) = (
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterString.allocationSize(value.`status`)
+    )
+
+    override fun write(value: PutRsvpResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterString.write(value.`status`, buf)
+    }
+}
+
+
+
+/**
  * A player device visible to a controller (from the device snapshot).
  */
 data class RemoteDevice (
@@ -7649,6 +8431,18 @@ data class RemoteNowPlaying (
      */
     var `sampleRate`: kotlin.UInt? = null, 
     /**
+     * Source audio bitrate in kilobits per second.
+     */
+    var `bitrate`: kotlin.UInt? = null, 
+    /**
+     * 256 normalized amplitude peaks (0..255), in track-time order.
+     */
+    var `waveform`: kotlin.ByteArray? = null, 
+    /**
+     * "pending", "ready", or "unavailable". Omitted by older players.
+     */
+    var `waveformStatus`: kotlin.String? = null, 
+    /**
      * Queue shuffle state. Leave `None` when the player has no shuffle — that
      * is how a controller knows to hide the toggle instead of showing it wrong.
      */
@@ -7682,6 +8476,9 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterBoolean.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterOptionalByteArray.read(buf),
+            FfiConverterOptionalString.read(buf),
             FfiConverterOptionalBoolean.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalFloat.read(buf),
@@ -7699,6 +8496,9 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterBoolean.allocationSize(value.`isPlaying`) +
             FfiConverterOptionalString.allocationSize(value.`codec`) +
             FfiConverterOptionalUInt.allocationSize(value.`sampleRate`) +
+            FfiConverterOptionalUInt.allocationSize(value.`bitrate`) +
+            FfiConverterOptionalByteArray.allocationSize(value.`waveform`) +
+            FfiConverterOptionalString.allocationSize(value.`waveformStatus`) +
             FfiConverterOptionalBoolean.allocationSize(value.`shuffle`) +
             FfiConverterOptionalString.allocationSize(value.`repeat`) +
             FfiConverterOptionalFloat.allocationSize(value.`volume`)
@@ -7715,6 +8515,9 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
             FfiConverterBoolean.write(value.`isPlaying`, buf)
             FfiConverterOptionalString.write(value.`codec`, buf)
             FfiConverterOptionalUInt.write(value.`sampleRate`, buf)
+            FfiConverterOptionalUInt.write(value.`bitrate`, buf)
+            FfiConverterOptionalByteArray.write(value.`waveform`, buf)
+            FfiConverterOptionalString.write(value.`waveformStatus`, buf)
             FfiConverterOptionalBoolean.write(value.`shuffle`, buf)
             FfiConverterOptionalString.write(value.`repeat`, buf)
             FfiConverterOptionalFloat.write(value.`volume`, buf)
@@ -7728,6 +8531,7 @@ public object FfiConverterTypeRemoteNowPlaying: FfiConverterRustBuffer<RemoteNow
  * inside an `Enqueue` command).
  */
 data class RemoteQueueItem (
+    var `url`: kotlin.String = "", 
     var `uploadId`: kotlin.String = "", 
     var `trackId`: kotlin.String = "", 
     var `title`: kotlin.String, 
@@ -7757,6 +8561,7 @@ public object FfiConverterTypeRemoteQueueItem: FfiConverterRustBuffer<RemoteQueu
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
             FfiConverterULong.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
@@ -7765,6 +8570,7 @@ public object FfiConverterTypeRemoteQueueItem: FfiConverterRustBuffer<RemoteQueu
     }
 
     override fun allocationSize(value: RemoteQueueItem) = (
+            FfiConverterString.allocationSize(value.`url`) +
             FfiConverterString.allocationSize(value.`uploadId`) +
             FfiConverterString.allocationSize(value.`trackId`) +
             FfiConverterString.allocationSize(value.`title`) +
@@ -7779,6 +8585,7 @@ public object FfiConverterTypeRemoteQueueItem: FfiConverterRustBuffer<RemoteQueu
     )
 
     override fun write(value: RemoteQueueItem, buf: ByteBuffer) {
+            FfiConverterString.write(value.`url`, buf)
             FfiConverterString.write(value.`uploadId`, buf)
             FfiConverterString.write(value.`trackId`, buf)
             FfiConverterString.write(value.`title`, buf)
@@ -7790,6 +8597,107 @@ public object FfiConverterTypeRemoteQueueItem: FfiConverterRustBuffer<RemoteQueu
             FfiConverterString.write(value.`songUri`, buf)
             FfiConverterString.write(value.`albumUri`, buf)
             FfiConverterInt.write(value.`trackNumber`, buf)
+    }
+}
+
+
+
+/**
+ * RSVP tallies (`app.rocksky.event.defs#rsvpCounts`).
+ */
+data class RsvpCounts (
+    var `going`: kotlin.Long, 
+    var `interested`: kotlin.Long, 
+    var `notGoing`: kotlin.Long
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRsvpCounts: FfiConverterRustBuffer<RsvpCounts> {
+    override fun read(buf: ByteBuffer): RsvpCounts {
+        return RsvpCounts(
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RsvpCounts) = (
+            FfiConverterLong.allocationSize(value.`going`) +
+            FfiConverterLong.allocationSize(value.`interested`) +
+            FfiConverterLong.allocationSize(value.`notGoing`)
+    )
+
+    override fun write(value: RsvpCounts, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`going`, buf)
+            FfiConverterLong.write(value.`interested`, buf)
+            FfiConverterLong.write(value.`notGoing`, buf)
+    }
+}
+
+
+
+/**
+ * One response to an event (`app.rocksky.event.defs#rsvpView`).
+ */
+data class RsvpView (
+    var `uri`: kotlin.String, 
+    var `cid`: kotlin.String?, 
+    /**
+     * `community.lexicon.calendar.rsvp#{going,interested,notgoing}`.
+     */
+    var `status`: kotlin.String, 
+    var `did`: kotlin.String, 
+    var `handle`: kotlin.String, 
+    var `displayName`: kotlin.String, 
+    var `avatar`: kotlin.String?, 
+    var `createdAt`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRsvpView: FfiConverterRustBuffer<RsvpView> {
+    override fun read(buf: ByteBuffer): RsvpView {
+        return RsvpView(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RsvpView) = (
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterOptionalString.allocationSize(value.`cid`) +
+            FfiConverterString.allocationSize(value.`status`) +
+            FfiConverterString.allocationSize(value.`did`) +
+            FfiConverterString.allocationSize(value.`handle`) +
+            FfiConverterString.allocationSize(value.`displayName`) +
+            FfiConverterOptionalString.allocationSize(value.`avatar`) +
+            FfiConverterString.allocationSize(value.`createdAt`)
+    )
+
+    override fun write(value: RsvpView, buf: ByteBuffer) {
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterOptionalString.write(value.`cid`, buf)
+            FfiConverterString.write(value.`status`, buf)
+            FfiConverterString.write(value.`did`, buf)
+            FfiConverterString.write(value.`handle`, buf)
+            FfiConverterString.write(value.`displayName`, buf)
+            FfiConverterOptionalString.write(value.`avatar`, buf)
+            FfiConverterString.write(value.`createdAt`, buf)
     }
 }
 
@@ -9067,6 +9975,13 @@ public object FfiConverterTypeRemoteCommand : FfiConverterRustBuffer<RemoteComma
  */
 sealed class RemoteEvent {
     
+    data class CommandError(
+        val `deviceId`: kotlin.String, 
+        val `deviceName`: kotlin.String, 
+        val `message`: kotlin.String) : RemoteEvent() {
+        companion object
+    }
+    
     data class Devices(
         val `primaryDevice`: kotlin.String?, 
         val `devices`: List<RemoteDevice>) : RemoteEvent() {
@@ -9122,31 +10037,36 @@ sealed class RemoteEvent {
 public object FfiConverterTypeRemoteEvent : FfiConverterRustBuffer<RemoteEvent>{
     override fun read(buf: ByteBuffer): RemoteEvent {
         return when(buf.getInt()) {
-            1 -> RemoteEvent.Devices(
+            1 -> RemoteEvent.CommandError(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                )
+            2 -> RemoteEvent.Devices(
                 FfiConverterOptionalString.read(buf),
                 FfiConverterSequenceTypeRemoteDevice.read(buf),
                 )
-            2 -> RemoteEvent.DeviceRegistered(
+            3 -> RemoteEvent.DeviceRegistered(
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 )
-            3 -> RemoteEvent.DeviceUnregistered(
+            4 -> RemoteEvent.DeviceUnregistered(
                 FfiConverterString.read(buf),
                 )
-            4 -> RemoteEvent.PrimaryChanged(
+            5 -> RemoteEvent.PrimaryChanged(
                 FfiConverterString.read(buf),
                 )
-            5 -> RemoteEvent.NowPlaying(
+            6 -> RemoteEvent.NowPlaying(
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterTypeRemoteNowPlaying.read(buf),
                 )
-            6 -> RemoteEvent.Status(
+            7 -> RemoteEvent.Status(
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterTypeRemoteStatus.read(buf),
                 )
-            7 -> RemoteEvent.Queue(
+            8 -> RemoteEvent.Queue(
                 FfiConverterString.read(buf),
                 FfiConverterString.read(buf),
                 FfiConverterUInt.read(buf),
@@ -9157,6 +10077,15 @@ public object FfiConverterTypeRemoteEvent : FfiConverterRustBuffer<RemoteEvent>{
     }
 
     override fun allocationSize(value: RemoteEvent) = when(value) {
+        is RemoteEvent.CommandError -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`deviceId`)
+                + FfiConverterString.allocationSize(value.`deviceName`)
+                + FfiConverterString.allocationSize(value.`message`)
+            )
+        }
         is RemoteEvent.Devices -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
@@ -9219,44 +10148,51 @@ public object FfiConverterTypeRemoteEvent : FfiConverterRustBuffer<RemoteEvent>{
 
     override fun write(value: RemoteEvent, buf: ByteBuffer) {
         when(value) {
-            is RemoteEvent.Devices -> {
+            is RemoteEvent.CommandError -> {
                 buf.putInt(1)
+                FfiConverterString.write(value.`deviceId`, buf)
+                FfiConverterString.write(value.`deviceName`, buf)
+                FfiConverterString.write(value.`message`, buf)
+                Unit
+            }
+            is RemoteEvent.Devices -> {
+                buf.putInt(2)
                 FfiConverterOptionalString.write(value.`primaryDevice`, buf)
                 FfiConverterSequenceTypeRemoteDevice.write(value.`devices`, buf)
                 Unit
             }
             is RemoteEvent.DeviceRegistered -> {
-                buf.putInt(2)
+                buf.putInt(3)
                 FfiConverterString.write(value.`deviceId`, buf)
                 FfiConverterString.write(value.`name`, buf)
                 Unit
             }
             is RemoteEvent.DeviceUnregistered -> {
-                buf.putInt(3)
-                FfiConverterString.write(value.`deviceId`, buf)
-                Unit
-            }
-            is RemoteEvent.PrimaryChanged -> {
                 buf.putInt(4)
                 FfiConverterString.write(value.`deviceId`, buf)
                 Unit
             }
-            is RemoteEvent.NowPlaying -> {
+            is RemoteEvent.PrimaryChanged -> {
                 buf.putInt(5)
+                FfiConverterString.write(value.`deviceId`, buf)
+                Unit
+            }
+            is RemoteEvent.NowPlaying -> {
+                buf.putInt(6)
                 FfiConverterString.write(value.`deviceId`, buf)
                 FfiConverterString.write(value.`deviceName`, buf)
                 FfiConverterTypeRemoteNowPlaying.write(value.`track`, buf)
                 Unit
             }
             is RemoteEvent.Status -> {
-                buf.putInt(6)
+                buf.putInt(7)
                 FfiConverterString.write(value.`deviceId`, buf)
                 FfiConverterString.write(value.`deviceName`, buf)
                 FfiConverterTypeRemoteStatus.write(value.`status`, buf)
                 Unit
             }
             is RemoteEvent.Queue -> {
-                buf.putInt(7)
+                buf.putInt(8)
                 FfiConverterString.write(value.`deviceId`, buf)
                 FfiConverterString.write(value.`deviceName`, buf)
                 FfiConverterUInt.write(value.`index`, buf)
@@ -9596,6 +10532,38 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
 /**
  * @suppress
  */
+public object FfiConverterOptionalByteArray: FfiConverterRustBuffer<kotlin.ByteArray?> {
+    override fun read(buf: ByteBuffer): kotlin.ByteArray? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterByteArray.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.ByteArray?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterByteArray.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.ByteArray?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterByteArray.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeDropboxView: FfiConverterRustBuffer<DropboxView?> {
     override fun read(buf: ByteBuffer): DropboxView? {
         if (buf.get().toInt() == 0) {
@@ -9618,6 +10586,38 @@ public object FfiConverterOptionalTypeDropboxView: FfiConverterRustBuffer<Dropbo
         } else {
             buf.put(1)
             FfiConverterTypeDropboxView.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeEventExternalIds: FfiConverterRustBuffer<EventExternalIds?> {
+    override fun read(buf: ByteBuffer): EventExternalIds? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeEventExternalIds.read(buf)
+    }
+
+    override fun allocationSize(value: EventExternalIds?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeEventExternalIds.allocationSize(value)
+        }
+    }
+
+    override fun write(value: EventExternalIds?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeEventExternalIds.write(value, buf)
         }
     }
 }
@@ -10056,6 +11056,146 @@ public object FfiConverterSequenceTypeEqualizerPreset: FfiConverterRustBuffer<Li
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeEventArtist: FfiConverterRustBuffer<List<EventArtist>> {
+    override fun read(buf: ByteBuffer): List<EventArtist> {
+        val len = buf.getInt()
+        return List<EventArtist>(len) {
+            FfiConverterTypeEventArtist.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<EventArtist>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeEventArtist.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<EventArtist>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeEventArtist.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeEventLocation: FfiConverterRustBuffer<List<EventLocation>> {
+    override fun read(buf: ByteBuffer): List<EventLocation> {
+        val len = buf.getInt()
+        return List<EventLocation>(len) {
+            FfiConverterTypeEventLocation.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<EventLocation>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeEventLocation.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<EventLocation>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeEventLocation.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeEventMedia: FfiConverterRustBuffer<List<EventMedia>> {
+    override fun read(buf: ByteBuffer): List<EventMedia> {
+        val len = buf.getInt()
+        return List<EventMedia>(len) {
+            FfiConverterTypeEventMedia.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<EventMedia>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeEventMedia.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<EventMedia>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeEventMedia.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeEventUri: FfiConverterRustBuffer<List<EventUri>> {
+    override fun read(buf: ByteBuffer): List<EventUri> {
+        val len = buf.getInt()
+        return List<EventUri>(len) {
+            FfiConverterTypeEventUri.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<EventUri>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeEventUri.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<EventUri>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeEventUri.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeEventView: FfiConverterRustBuffer<List<EventView>> {
+    override fun read(buf: ByteBuffer): List<EventView> {
+        val len = buf.getInt()
+        return List<EventView>(len) {
+            FfiConverterTypeEventView.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<EventView>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeEventView.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<EventView>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeEventView.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeNotificationView: FfiConverterRustBuffer<List<NotificationView>> {
     override fun read(buf: ByteBuffer): List<NotificationView> {
         val len = buf.getInt()
@@ -10158,6 +11298,34 @@ public object FfiConverterSequenceTypeRemoteQueueItem: FfiConverterRustBuffer<Li
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeRemoteQueueItem.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRsvpView: FfiConverterRustBuffer<List<RsvpView>> {
+    override fun read(buf: ByteBuffer): List<RsvpView> {
+        val len = buf.getInt()
+        return List<RsvpView>(len) {
+            FfiConverterTypeRsvpView.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RsvpView>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRsvpView.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RsvpView>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRsvpView.write(it, buf)
         }
     }
 }
