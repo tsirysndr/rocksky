@@ -3,6 +3,24 @@
 All notable changes to the Rocksky Clojure SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.13.0] - 2026-10-17
+
+### Added
+
+- `rocksky.event` namespace (`events`, `event`, `rsvps`, `artist-events`,
+  `put-rsvp`) over the new `app.rocksky.event.*` and
+  `app.rocksky.artist.getArtistEvents` lexicons.
+- `match-song` candidates now carry `"source"`, `"providerId"`, `"mbId"`,
+  `"mbReleaseId"` and `"mbArtists"`.
+- Remote player tracks accept `:bitrate`, `:waveform` (256 peaks) and
+  `:waveformStatus`; controllers receive a `:command-error` event when a
+  target player rejects a command.
+
+### Changed
+
+- `match-song`'s album is a hard filter; an unmatched lookup returns an empty
+  `"matches"` array without song fields.
+
 ## [0.12.0] - 2026-10-07
 
 ### Added

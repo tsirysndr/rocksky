@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.0
+
+- Added `Rocksky::Event` (`events`, `event`, `rsvps`, `artist_events`,
+  `put_rsvp`) over the new `app.rocksky.event.*` and
+  `app.rocksky.artist.getArtistEvents` lexicons.
+- `match_song` candidates now carry `source`, `providerId`, `mbId`,
+  `mbReleaseId` and `mbArtists`; `album` is a hard filter and an unmatched
+  lookup returns an empty `matches` array without song fields.
+- Remote player tracks accept `bitrate`, `waveform` (256 peaks) and
+  `waveformStatus`; controllers receive a `:command_error` event when a
+  target player rejects a command.
+
 ## 0.13.0
 
 - Regenerated the native core against the updated `app.rocksky.*` lexicons.

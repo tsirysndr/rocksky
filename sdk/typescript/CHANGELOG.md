@@ -4,6 +4,29 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.18.0] - 2026-10-17
+
+Regenerated from the updated `app.rocksky.*` lexicons, plus remote-protocol
+parity with the Rust core.
+
+### Added
+
+- **Music events.** New `app.rocksky.event.*` and `app.rocksky.artist.getArtistEvents`
+  lexicons, with generated `EventView`, `EventRsvpView`, `EventArtistView`,
+  `EventLocationView`, `EventMediaView`, `EventRsvpCounts`, `MusicExternalIds`
+  and the `community.lexicon.calendar` / `community.lexicon.location` record
+  types. `RockskyClient` gained `events()`, `event()`, `eventRsvps()`,
+  `artistEvents()` and the auth-gated `putRsvp()`.
+- **Richer `matchSong` candidates.** Each entry in `matches` now reports its
+  `source`, `providerId`, `mbId`, `mbReleaseId` and `mbArtists`.
+
+### Changed
+
+- `matchSong`'s `album` is now a hard filter: only candidates matching that
+  album after normalization are accepted, even alongside an explicit `mbId` /
+  `isrc`. When nothing is accepted the response carries an empty `matches`
+  array and no song fields.
+
 ## [0.17.0] - 2026-10-07
 
 Regenerated from the updated `app.rocksky.*` lexicons.
