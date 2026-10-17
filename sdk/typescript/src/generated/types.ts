@@ -151,6 +151,22 @@ export interface AddItemsToQueueParams {
   shuffle?: boolean;
 }
 
+/** A physical location in the form of a street address. */
+export interface Address {
+  /** The ISO 3166 country code. Preferably the 2-letter code. */
+  country: string;
+  /** The postal code of the location. */
+  postalCode?: string;
+  /** The administrative region of the country. For example, a state in the USA. */
+  region?: string;
+  /** The locality of the region. For example, a city in the USA. */
+  locality?: string;
+  /** The street address. */
+  street?: string;
+  /** The name of the location. */
+  name?: string;
+}
+
 export interface AddSongsOutput {
   /** AT-URIs of the created app.rocksky.playlist.song records */
   uris: AtUri[];
@@ -851,6 +867,181 @@ export interface EqualizerRecord {
   updatedAt?: DateTime;
 }
 
+/** An artist on an event lineup, linked to the Rocksky artist when one was resolved. */
+export interface EventArtistView {
+  /** The unique identifier of the linked Rocksky artist. */
+  id?: string;
+  /** AT-URI of the linked artist. */
+  uri?: AtUri;
+  /** The SHA256 hash of the linked artist. */
+  sha256?: string;
+  /** The artist name as billed on the event. */
+  name: string;
+  /** The picture of the linked artist. */
+  picture?: string;
+  /** MusicBrainz artist id. */
+  mbid?: string;
+  /** The artist's billing on this event. */
+  role?: string;
+  /** The stage the artist plays on. */
+  stage?: string;
+  /** When this artist's set starts. */
+  startsAt?: DateTime;
+}
+
+/** One entry of the calendar event's locations, flattened: `type` says which community.lexicon.location shape it came from, and only the fields of that shape are set. */
+export interface EventLocationView {
+  type: string;
+  /** The name of the location (venue name). */
+  name?: string;
+  /** ISO 3166 country code. */
+  country?: string;
+  postalCode?: string;
+  region?: string;
+  /** City or town. */
+  locality?: string;
+  street?: string;
+  latitude?: string;
+  longitude?: string;
+  altitude?: string;
+  /** Foursquare Open Source Places id. */
+  fsqPlaceId?: string;
+  /** H3 encoded location. */
+  h3?: string;
+  /** A URL standing in for the location (online events). */
+  uri?: Uri;
+}
+
+/** One entry of the calendar event's media array, with a URL the blob can be fetched from. */
+export interface EventMediaView {
+  /** What the image is for. */
+  role: string;
+  /** Where to load the image from. */
+  url: Uri;
+  /** CID of the blob in the publisher's repo. */
+  cid: Cid;
+  mimeType: string;
+  /** Blob size in bytes. */
+  size?: number;
+  width?: number;
+  height?: number;
+  alt?: string;
+}
+
+export interface EventRecord {
+  /** The name of the event. */
+  name: string;
+  /** The description of the event. */
+  description?: string;
+  /** Client-declared timestamp when the event was created. */
+  createdAt: DateTime;
+  /** Client-declared timestamp when the event starts. */
+  startsAt?: DateTime;
+  /** Client-declared timestamp when the event ends. */
+  endsAt?: DateTime;
+  /** The attendance mode of the event. */
+  mode?: unknown;
+  /** The status of the event. */
+  status?: unknown;
+  /** The locations where the event takes place. */
+  locations?: EventUri | Address | Fsq | Geo | Hthree[];
+  /** URIs associated with the event. */
+  uris?: EventUri[];
+  /** Whether a response is requested from attendees. */
+  rsvpExpected?: boolean;
+}
+
+export interface EventRsvpCounts {
+  going: number;
+  interested: number;
+  notGoing: number;
+}
+
+/** A community.lexicon.calendar.rsvp on an event, with its author. */
+export interface EventRsvpView {
+  /** AT-URI of the rsvp record. */
+  uri: AtUri;
+  cid?: Cid;
+  status: string;
+  did: Did;
+  handle: string;
+  displayName: string;
+  avatar?: Uri;
+  createdAt: DateTime;
+}
+
+/** A URI associated with the event. */
+export interface EventUri {
+  uri: Uri;
+  /** The display name of the URI. */
+  name?: string;
+}
+
+export interface EventUriView {
+  uri: Uri;
+  /** The display name of the URI. */
+  name?: string;
+}
+
+/** A music event: the calendar event merged with its app.rocksky.event.music annotation. */
+export interface EventView {
+  /** The unique identifier of the event. */
+  id: string;
+  /** AT-URI of the community.lexicon.calendar.event record. */
+  uri: AtUri;
+  /** CID of the calendar event record revision that was indexed. */
+  cid?: Cid;
+  /** AT-URI of the app.rocksky.event.music record. */
+  musicUri: AtUri;
+  /** CID of the music record revision that was indexed. */
+  musicCid?: Cid;
+  /** The name of the event. */
+  name: string;
+  /** The description of the event. */
+  description?: string;
+  /** What sort of music event this is (concert, festival...). */
+  kind?: string;
+  /** The main genre of the event. */
+  genre?: string;
+  tags?: string[];
+  /** When the event starts. */
+  startsAt?: DateTime;
+  /** When the event ends. */
+  endsAt?: DateTime;
+  /** The attendance mode, as a community.lexicon.calendar.event#mode token. */
+  mode?: string;
+  /** The event status, as a community.lexicon.calendar.event#status token. */
+  status?: string;
+  /** Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none. */
+  imageUrl?: Uri;
+  /** Images attached to the calendar event record (poster, header), as blobs in the publisher's repo. */
+  media?: EventMediaView[];
+  /** Where tickets can be bought. */
+  ticketsUrl?: Uri;
+  /** Where the event takes place. */
+  locations: EventLocationView[];
+  /** Links associated with the event. */
+  uris: EventUriView[];
+  /** The lineup, in billing order. */
+  artists: EventArtistView[];
+  externalIds?: MusicExternalIds;
+  /** The DID of the repo that published the event. */
+  organizerDid: Did;
+  /** The handle of the publisher. */
+  organizerHandle?: string;
+  /** The display name of the publisher. */
+  organizerName?: string;
+  /** The avatar of the publisher. */
+  organizerAvatarUrl?: Uri;
+  rsvpCounts: EventRsvpCounts;
+  /** The authenticated viewer's RSVP, as a community.lexicon.calendar.rsvp status token. Absent when not authenticated or when the viewer has not responded. */
+  viewerRsvp?: string;
+  /** When the event record was created. */
+  createdAt: DateTime;
+  /** When the event was last indexed. */
+  updatedAt: DateTime;
+}
+
 export interface FeedGeneratorsView {
   feeds?: FeedGeneratorView[];
 }
@@ -1089,12 +1280,31 @@ export interface FollowRecord {
   via?: StrongRef;
 }
 
+/** A physical location contained in the Foursquare Open Source Places dataset. */
+export interface Fsq {
+  /** The unique identifier of a Foursquare POI. */
+  fsq_place_id: string;
+  latitude?: string;
+  longitude?: string;
+  /** The name of the location. */
+  name?: string;
+}
+
 export interface GeneratorRecord {
   did: Did;
   avatar?: BlobRef;
   displayName: string;
   description?: string;
   createdAt: DateTime;
+}
+
+/** A physical location in the form of a WGS84 coordinate. */
+export interface Geo {
+  latitude: string;
+  longitude: string;
+  altitude?: string;
+  /** The name of the location. */
+  name?: string;
 }
 
 export interface GetActorAlbumsOutput {
@@ -1310,6 +1520,21 @@ export interface GetArtistAlbumsParams {
   uri: AtUri;
 }
 
+export interface GetArtistEventsOutput {
+  events: EventView[];
+}
+
+export interface GetArtistEventsParams {
+  /** The URI of the artist to retrieve events for */
+  uri: AtUri;
+  /** Return past events too, most recent first. */
+  includePast?: boolean;
+  /** The maximum number of events to return. */
+  limit?: number;
+  /** The offset for pagination. */
+  offset?: number;
+}
+
 export interface GetArtistInfoOutput {
   status?: string;
   version?: string;
@@ -1421,6 +1646,51 @@ export interface GetDownloadUrlOutput {
 export interface GetDownloadUrlParams {
   /** The song id. */
   id: string;
+}
+
+export interface GetEventParams {
+  /** AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record. */
+  uri: AtUri;
+}
+
+export interface GetEventRsvpsOutput {
+  rsvps: EventRsvpView[];
+}
+
+export interface GetEventRsvpsParams {
+  /** AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record. */
+  uri: AtUri;
+  /** Only responses with this status. */
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface GetEventsOutput {
+  events: EventView[];
+}
+
+export interface GetEventsParams {
+  /** Only events this artist plays: the artist's AT-URI, id or sha256. */
+  artist?: string;
+  /** Only events published by this repo. */
+  did?: Did;
+  /** Only events this DID has RSVP'd to (going or interested). */
+  rsvpBy?: Did;
+  /** Only events of this kind (concert, festival...). */
+  kind?: string;
+  /** Only events whose genre matches (case-insensitive). */
+  genre?: string;
+  /** Only events that end at or after this time. Defaults to the start of today (UTC) when neither `to` nor `includePast` is given. */
+  from?: DateTime;
+  /** Only events that start at or before this time. */
+  to?: DateTime;
+  /** Return past events too, most recent first, instead of upcoming ones. */
+  includePast?: boolean;
+  /** The maximum number of events to return. */
+  limit?: number;
+  /** The offset for pagination. */
+  offset?: number;
 }
 
 export interface GetFeedGeneratorOutput {
@@ -2062,6 +2332,14 @@ export interface GraphRelationship {
   followedBy?: AtUri;
 }
 
+/** A physical location in the form of a H3 encoded location. */
+export interface Hthree {
+  /** The h3 encoded location. */
+  value: string;
+  /** The name of the location. */
+  name?: string;
+}
+
 export interface InsertDirectoryParams {
   /** The URI of the playlist to start */
   uri: AtUri;
@@ -2277,7 +2555,7 @@ export interface MatchSongParams {
   title: string;
   /** The artist of the song to retrieve */
   artist: string;
-  /** Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release */
+  /** Optional album title — only candidates matching this album after normalization are accepted, including when an explicit identifier is supplied */
   album?: string;
   /** Optional MusicBrainz recording ID to anchor the match */
   mbId?: string;
@@ -2300,6 +2578,54 @@ export interface MirrorSourceView {
   lastPolledAt?: DateTime;
   /** Watermark — scrobbles from the external service older than this are skipped. */
   lastScrobbleSeenAt?: DateTime;
+}
+
+/** An artist on the lineup. */
+export interface MusicArtist {
+  /** The artist name as billed. */
+  name: string;
+  /** AT-URI of the app.rocksky.artist record, when the artist is known to Rocksky. */
+  uri?: AtUri;
+  /** MusicBrainz artist id. */
+  mbid?: string;
+  /** The artist's billing on this event. */
+  role?: string;
+  /** The stage the artist plays on, for multi-stage events such as festivals. */
+  stage?: string;
+  /** When this artist's set starts. */
+  startsAt?: DateTime;
+}
+
+/** Identifiers of the event on other services. */
+export interface MusicExternalIds {
+  ticketmaster?: string;
+  songkick?: string;
+  bandsintown?: string;
+  residentAdvisor?: string;
+  setlistfm?: string;
+  dice?: string;
+  eventbrite?: string;
+}
+
+export interface MusicRecord {
+  /** Strong reference (AT-URI + CID) to the community.lexicon.calendar.event record this annotates. */
+  subject: StrongRef;
+  /** What sort of music event this is. */
+  kind?: string;
+  /** The lineup, in billing order. */
+  artists: MusicArtist[];
+  /** The main genre of the event. */
+  genre?: string;
+  /** Free-form tags (sub-genres, scene, tour name...). */
+  tags?: string[];
+  /** Identifiers of the same event on ticketing and event-listing services. */
+  externalIds?: MusicExternalIds;
+  /** Where tickets can be bought. */
+  ticketsUrl?: Uri;
+  /** Poster or banner image of the event. */
+  imageUrl?: Uri;
+  /** Client-declared timestamp when this record was created. */
+  createdAt: DateTime;
 }
 
 /** The user who triggered a notification. */
@@ -2625,6 +2951,18 @@ export interface PutPresetInput {
   bands: RockboxEqualizerBand[];
 }
 
+export interface PutRsvpInput {
+  /** The calendar or music event URI. */
+  uri: AtUri;
+  status: string;
+}
+
+export interface PutRsvpOutput {
+  /** The RSVP record URI. */
+  uri: AtUri;
+  status: string;
+}
+
 export interface RadioRecord {
   /** The name of the radio station. */
   name: string;
@@ -2776,6 +3114,11 @@ export interface RockboxToneSettings {
   balance?: number;
   /** Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide */
   channels?: string;
+}
+
+export interface RsvpRecord {
+  subject: StrongRef;
+  status: string;
 }
 
 export interface SavePlayQueueInput {
@@ -3131,6 +3474,15 @@ export interface SongMatchView {
   explicit?: boolean;
   /** Match confidence score in the range 0-100 (higher is better). */
   score?: number;
+  /** The metadata provider for this candidate. */
+  source?: string;
+  /** The provider identifier, including non-numeric identifiers. */
+  providerId?: string;
+  /** The MusicBrainz recording identifier of this candidate. */
+  mbId?: string;
+  /** The MusicBrainz release identifier of this candidate. */
+  mbReleaseId?: string;
+  mbArtists?: SongResponseMbArtistsItemView[];
 }
 
 export interface SongRecentListenerView {
@@ -3645,6 +3997,7 @@ export interface Endpoints {
   "app.rocksky.apikey.updateApikey": ApiKeyView;
   "app.rocksky.artist.getArtist": ArtistViewDetailed;
   "app.rocksky.artist.getArtistAlbums": GetArtistAlbumsOutput;
+  "app.rocksky.artist.getArtistEvents": GetArtistEventsOutput;
   "app.rocksky.artist.getArtistListeners": GetArtistListenersOutput;
   "app.rocksky.artist.getArtistRecentListeners": GetArtistRecentListenersOutput;
   "app.rocksky.artist.getArtists": ArtistGetArtistsOutput;
@@ -3661,6 +4014,10 @@ export interface Endpoints {
   "app.rocksky.equalizer.deletePreset": void;
   "app.rocksky.equalizer.listPresets": ListPresetsOutput;
   "app.rocksky.equalizer.putPreset": EqualizerPresetView;
+  "app.rocksky.event.getEvent": EventView;
+  "app.rocksky.event.getEventRsvps": GetEventRsvpsOutput;
+  "app.rocksky.event.getEvents": GetEventsOutput;
+  "app.rocksky.event.putRsvp": PutRsvpOutput;
   "app.rocksky.feed.describeFeedGenerator": DescribeFeedGeneratorOutput;
   "app.rocksky.feed.getAlbumRecommendations": FeedRecommendedAlbumsView;
   "app.rocksky.feed.getArtistRecommendations": FeedRecommendedArtistsView;

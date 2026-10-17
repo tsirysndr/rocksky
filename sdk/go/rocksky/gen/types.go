@@ -151,6 +151,22 @@ type AddItemsToQueueParams struct {
 	Shuffle bool `json:"shuffle,omitempty"`
 }
 
+// Address A physical location in the form of a street address.
+type Address struct {
+	// The ISO 3166 country code. Preferably the 2-letter code.
+	Country string `json:"country,omitempty"`
+	// The postal code of the location.
+	PostalCode string `json:"postalCode,omitempty"`
+	// The administrative region of the country. For example, a state in the USA.
+	Region string `json:"region,omitempty"`
+	// The locality of the region. For example, a city in the USA.
+	Locality string `json:"locality,omitempty"`
+	// The street address.
+	Street string `json:"street,omitempty"`
+	// The name of the location.
+	Name string `json:"name,omitempty"`
+}
+
 type AddSongsOutput struct {
 	// AT-URIs of the created app.rocksky.playlist.song records
 	Uris []string `json:"uris,omitempty"`
@@ -849,6 +865,181 @@ type EqualizerRecord struct {
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
+// EventArtistView An artist on an event lineup, linked to the Rocksky artist when one was resolved.
+type EventArtistView struct {
+	// The unique identifier of the linked Rocksky artist.
+	ID string `json:"id,omitempty"`
+	// AT-URI of the linked artist.
+	URI string `json:"uri,omitempty"`
+	// The SHA256 hash of the linked artist.
+	SHA256 string `json:"sha256,omitempty"`
+	// The artist name as billed on the event.
+	Name string `json:"name,omitempty"`
+	// The picture of the linked artist.
+	Picture string `json:"picture,omitempty"`
+	// MusicBrainz artist id.
+	MBID string `json:"mbid,omitempty"`
+	// The artist's billing on this event.
+	Role string `json:"role,omitempty"`
+	// The stage the artist plays on.
+	Stage string `json:"stage,omitempty"`
+	// When this artist's set starts.
+	StartsAt string `json:"startsAt,omitempty"`
+}
+
+// EventLocationView One entry of the calendar event's locations, flattened: `type` says which community.lexicon.location shape it came from, and only the fields of that shape are set.
+type EventLocationView struct {
+	Type string `json:"type,omitempty"`
+	// The name of the location (venue name).
+	Name string `json:"name,omitempty"`
+	// ISO 3166 country code.
+	Country string `json:"country,omitempty"`
+	PostalCode string `json:"postalCode,omitempty"`
+	Region string `json:"region,omitempty"`
+	// City or town.
+	Locality string `json:"locality,omitempty"`
+	Street string `json:"street,omitempty"`
+	Latitude string `json:"latitude,omitempty"`
+	Longitude string `json:"longitude,omitempty"`
+	Altitude string `json:"altitude,omitempty"`
+	// Foursquare Open Source Places id.
+	FsqPlaceID string `json:"fsqPlaceId,omitempty"`
+	// H3 encoded location.
+	H3 string `json:"h3,omitempty"`
+	// A URL standing in for the location (online events).
+	URI string `json:"uri,omitempty"`
+}
+
+// EventMediaView One entry of the calendar event's media array, with a URL the blob can be fetched from.
+type EventMediaView struct {
+	// What the image is for.
+	Role string `json:"role,omitempty"`
+	// Where to load the image from.
+	URL string `json:"url,omitempty"`
+	// CID of the blob in the publisher's repo.
+	CID string `json:"cid,omitempty"`
+	MimeType string `json:"mimeType,omitempty"`
+	// Blob size in bytes.
+	Size int `json:"size,omitempty"`
+	Width int `json:"width,omitempty"`
+	Height int `json:"height,omitempty"`
+	Alt string `json:"alt,omitempty"`
+}
+
+type EventRecord struct {
+	// The name of the event.
+	Name string `json:"name,omitempty"`
+	// The description of the event.
+	Description string `json:"description,omitempty"`
+	// Client-declared timestamp when the event was created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// Client-declared timestamp when the event starts.
+	StartsAt string `json:"startsAt,omitempty"`
+	// Client-declared timestamp when the event ends.
+	EndsAt string `json:"endsAt,omitempty"`
+	// The attendance mode of the event.
+	Mode any `json:"mode,omitempty"`
+	// The status of the event.
+	Status any `json:"status,omitempty"`
+	// The locations where the event takes place.
+	Locations []any `json:"locations,omitempty"`
+	// URIs associated with the event.
+	Uris []EventUri `json:"uris,omitempty"`
+	// Whether a response is requested from attendees.
+	RsvpExpected bool `json:"rsvpExpected,omitempty"`
+}
+
+type EventRsvpCounts struct {
+	Going int `json:"going,omitempty"`
+	Interested int `json:"interested,omitempty"`
+	NotGoing int `json:"notGoing,omitempty"`
+}
+
+// EventRsvpView A community.lexicon.calendar.rsvp on an event, with its author.
+type EventRsvpView struct {
+	// AT-URI of the rsvp record.
+	URI string `json:"uri,omitempty"`
+	CID string `json:"cid,omitempty"`
+	Status string `json:"status,omitempty"`
+	DID string `json:"did,omitempty"`
+	Handle string `json:"handle,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Avatar string `json:"avatar,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+}
+
+// EventUri A URI associated with the event.
+type EventUri struct {
+	URI string `json:"uri,omitempty"`
+	// The display name of the URI.
+	Name string `json:"name,omitempty"`
+}
+
+type EventUriView struct {
+	URI string `json:"uri,omitempty"`
+	// The display name of the URI.
+	Name string `json:"name,omitempty"`
+}
+
+// EventView A music event: the calendar event merged with its app.rocksky.event.music annotation.
+type EventView struct {
+	// The unique identifier of the event.
+	ID string `json:"id,omitempty"`
+	// AT-URI of the community.lexicon.calendar.event record.
+	URI string `json:"uri,omitempty"`
+	// CID of the calendar event record revision that was indexed.
+	CID string `json:"cid,omitempty"`
+	// AT-URI of the app.rocksky.event.music record.
+	MusicURI string `json:"musicUri,omitempty"`
+	// CID of the music record revision that was indexed.
+	MusicCID string `json:"musicCid,omitempty"`
+	// The name of the event.
+	Name string `json:"name,omitempty"`
+	// The description of the event.
+	Description string `json:"description,omitempty"`
+	// What sort of music event this is (concert, festival...).
+	Kind string `json:"kind,omitempty"`
+	// The main genre of the event.
+	Genre string `json:"genre,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+	// When the event starts.
+	StartsAt string `json:"startsAt,omitempty"`
+	// When the event ends.
+	EndsAt string `json:"endsAt,omitempty"`
+	// The attendance mode, as a community.lexicon.calendar.event#mode token.
+	Mode string `json:"mode,omitempty"`
+	// The event status, as a community.lexicon.calendar.event#status token.
+	Status string `json:"status,omitempty"`
+	// Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none.
+	ImageURL string `json:"imageUrl,omitempty"`
+	// Images attached to the calendar event record (poster, header), as blobs in the publisher's repo.
+	Media []EventMediaView `json:"media,omitempty"`
+	// Where tickets can be bought.
+	TicketsURL string `json:"ticketsUrl,omitempty"`
+	// Where the event takes place.
+	Locations []EventLocationView `json:"locations,omitempty"`
+	// Links associated with the event.
+	Uris []EventUriView `json:"uris,omitempty"`
+	// The lineup, in billing order.
+	Artists []EventArtistView `json:"artists,omitempty"`
+	ExternalIds *MusicExternalIds `json:"externalIds,omitempty"`
+	// The DID of the repo that published the event.
+	OrganizerDID string `json:"organizerDid,omitempty"`
+	// The handle of the publisher.
+	OrganizerHandle string `json:"organizerHandle,omitempty"`
+	// The display name of the publisher.
+	OrganizerName string `json:"organizerName,omitempty"`
+	// The avatar of the publisher.
+	OrganizerAvatarURL string `json:"organizerAvatarUrl,omitempty"`
+	RsvpCounts *EventRsvpCounts `json:"rsvpCounts,omitempty"`
+	// The authenticated viewer's RSVP, as a community.lexicon.calendar.rsvp status token. Absent when not authenticated or when the viewer has not responded.
+	ViewerRsvp string `json:"viewerRsvp,omitempty"`
+	// When the event record was created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// When the event was last indexed.
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
 type FeedGeneratorsView struct {
 	Feeds []FeedGeneratorView `json:"feeds,omitempty"`
 }
@@ -1087,12 +1278,31 @@ type FollowRecord struct {
 	Via *StrongRef `json:"via,omitempty"`
 }
 
+// Fsq A physical location contained in the Foursquare Open Source Places dataset.
+type Fsq struct {
+	// The unique identifier of a Foursquare POI.
+	FsqPlaceID string `json:"fsq_place_id,omitempty"`
+	Latitude string `json:"latitude,omitempty"`
+	Longitude string `json:"longitude,omitempty"`
+	// The name of the location.
+	Name string `json:"name,omitempty"`
+}
+
 type GeneratorRecord struct {
 	DID string `json:"did,omitempty"`
 	Avatar BlobRef `json:"avatar,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
 	Description string `json:"description,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
+}
+
+// Geo A physical location in the form of a WGS84 coordinate.
+type Geo struct {
+	Latitude string `json:"latitude,omitempty"`
+	Longitude string `json:"longitude,omitempty"`
+	Altitude string `json:"altitude,omitempty"`
+	// The name of the location.
+	Name string `json:"name,omitempty"`
 }
 
 type GetActorAlbumsOutput struct {
@@ -1308,6 +1518,21 @@ type GetArtistAlbumsParams struct {
 	URI string `json:"uri,omitempty"`
 }
 
+type GetArtistEventsOutput struct {
+	Events []EventView `json:"events,omitempty"`
+}
+
+type GetArtistEventsParams struct {
+	// The URI of the artist to retrieve events for
+	URI string `json:"uri,omitempty"`
+	// Return past events too, most recent first.
+	IncludePast bool `json:"includePast,omitempty"`
+	// The maximum number of events to return.
+	Limit int `json:"limit,omitempty"`
+	// The offset for pagination.
+	Offset int `json:"offset,omitempty"`
+}
+
 type GetArtistInfoOutput struct {
 	Status string `json:"status,omitempty"`
 	Version string `json:"version,omitempty"`
@@ -1419,6 +1644,51 @@ type GetDownloadUrlOutput struct {
 type GetDownloadUrlParams struct {
 	// The song id.
 	ID string `json:"id,omitempty"`
+}
+
+type GetEventParams struct {
+	// AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.
+	URI string `json:"uri,omitempty"`
+}
+
+type GetEventRsvpsOutput struct {
+	Rsvps []EventRsvpView `json:"rsvps,omitempty"`
+}
+
+type GetEventRsvpsParams struct {
+	// AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.
+	URI string `json:"uri,omitempty"`
+	// Only responses with this status.
+	Status string `json:"status,omitempty"`
+	Limit int `json:"limit,omitempty"`
+	Offset int `json:"offset,omitempty"`
+}
+
+type GetEventsOutput struct {
+	Events []EventView `json:"events,omitempty"`
+}
+
+type GetEventsParams struct {
+	// Only events this artist plays: the artist's AT-URI, id or sha256.
+	Artist string `json:"artist,omitempty"`
+	// Only events published by this repo.
+	DID string `json:"did,omitempty"`
+	// Only events this DID has RSVP'd to (going or interested).
+	RsvpBy string `json:"rsvpBy,omitempty"`
+	// Only events of this kind (concert, festival...).
+	Kind string `json:"kind,omitempty"`
+	// Only events whose genre matches (case-insensitive).
+	Genre string `json:"genre,omitempty"`
+	// Only events that end at or after this time. Defaults to the start of today (UTC) when neither `to` nor `includePast` is given.
+	From string `json:"from,omitempty"`
+	// Only events that start at or before this time.
+	To string `json:"to,omitempty"`
+	// Return past events too, most recent first, instead of upcoming ones.
+	IncludePast bool `json:"includePast,omitempty"`
+	// The maximum number of events to return.
+	Limit int `json:"limit,omitempty"`
+	// The offset for pagination.
+	Offset int `json:"offset,omitempty"`
 }
 
 type GetFeedGeneratorOutput struct {
@@ -2046,6 +2316,14 @@ type GraphRelationship struct {
 	FollowedBy string `json:"followedBy,omitempty"`
 }
 
+// Hthree A physical location in the form of a H3 encoded location.
+type Hthree struct {
+	// The h3 encoded location.
+	Value string `json:"value,omitempty"`
+	// The name of the location.
+	Name string `json:"name,omitempty"`
+}
+
 type InsertDirectoryParams struct {
 	// The URI of the playlist to start
 	URI string `json:"uri,omitempty"`
@@ -2259,7 +2537,7 @@ type MatchSongParams struct {
 	Title string `json:"title,omitempty"`
 	// The artist of the song to retrieve
 	Artist string `json:"artist,omitempty"`
-	// Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release
+	// Optional album title — only candidates matching this album after normalization are accepted, including when an explicit identifier is supplied
 	Album string `json:"album,omitempty"`
 	// Optional MusicBrainz recording ID to anchor the match
 	MbID string `json:"mbId,omitempty"`
@@ -2282,6 +2560,54 @@ type MirrorSourceView struct {
 	LastPolledAt string `json:"lastPolledAt,omitempty"`
 	// Watermark — scrobbles from the external service older than this are skipped.
 	LastScrobbleSeenAt string `json:"lastScrobbleSeenAt,omitempty"`
+}
+
+// MusicArtist An artist on the lineup.
+type MusicArtist struct {
+	// The artist name as billed.
+	Name string `json:"name,omitempty"`
+	// AT-URI of the app.rocksky.artist record, when the artist is known to Rocksky.
+	URI string `json:"uri,omitempty"`
+	// MusicBrainz artist id.
+	MBID string `json:"mbid,omitempty"`
+	// The artist's billing on this event.
+	Role string `json:"role,omitempty"`
+	// The stage the artist plays on, for multi-stage events such as festivals.
+	Stage string `json:"stage,omitempty"`
+	// When this artist's set starts.
+	StartsAt string `json:"startsAt,omitempty"`
+}
+
+// MusicExternalIds Identifiers of the event on other services.
+type MusicExternalIds struct {
+	Ticketmaster string `json:"ticketmaster,omitempty"`
+	Songkick string `json:"songkick,omitempty"`
+	Bandsintown string `json:"bandsintown,omitempty"`
+	ResidentAdvisor string `json:"residentAdvisor,omitempty"`
+	Setlistfm string `json:"setlistfm,omitempty"`
+	Dice string `json:"dice,omitempty"`
+	Eventbrite string `json:"eventbrite,omitempty"`
+}
+
+type MusicRecord struct {
+	// Strong reference (AT-URI + CID) to the community.lexicon.calendar.event record this annotates.
+	Subject *StrongRef `json:"subject,omitempty"`
+	// What sort of music event this is.
+	Kind string `json:"kind,omitempty"`
+	// The lineup, in billing order.
+	Artists []MusicArtist `json:"artists,omitempty"`
+	// The main genre of the event.
+	Genre string `json:"genre,omitempty"`
+	// Free-form tags (sub-genres, scene, tour name...).
+	Tags []string `json:"tags,omitempty"`
+	// Identifiers of the same event on ticketing and event-listing services.
+	ExternalIds *MusicExternalIds `json:"externalIds,omitempty"`
+	// Where tickets can be bought.
+	TicketsURL string `json:"ticketsUrl,omitempty"`
+	// Poster or banner image of the event.
+	ImageURL string `json:"imageUrl,omitempty"`
+	// Client-declared timestamp when this record was created.
+	CreatedAt string `json:"createdAt,omitempty"`
 }
 
 // NotificationActor The user who triggered a notification.
@@ -2606,6 +2932,18 @@ type PutPresetInput struct {
 	Bands []RockboxEqualizerBand `json:"bands,omitempty"`
 }
 
+type PutRsvpInput struct {
+	// The calendar or music event URI.
+	URI string `json:"uri,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type PutRsvpOutput struct {
+	// The RSVP record URI.
+	URI string `json:"uri,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
 type RadioRecord struct {
 	// The name of the radio station.
 	Name string `json:"name,omitempty"`
@@ -2757,6 +3095,11 @@ type RockboxToneSettings struct {
 	Balance int `json:"balance,omitempty"`
 	// Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide
 	Channels string `json:"channels,omitempty"`
+}
+
+type RsvpRecord struct {
+	Subject *StrongRef `json:"subject,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
 type SavePlayQueueInput struct {
@@ -3112,6 +3455,15 @@ type SongMatchView struct {
 	Explicit bool `json:"explicit,omitempty"`
 	// Match confidence score in the range 0-100 (higher is better).
 	Score int `json:"score,omitempty"`
+	// The metadata provider for this candidate.
+	Source string `json:"source,omitempty"`
+	// The provider identifier, including non-numeric identifiers.
+	ProviderID string `json:"providerId,omitempty"`
+	// The MusicBrainz recording identifier of this candidate.
+	MbID string `json:"mbId,omitempty"`
+	// The MusicBrainz release identifier of this candidate.
+	MbReleaseID string `json:"mbReleaseId,omitempty"`
+	MbArtists []SongResponseMbArtistsItemView `json:"mbArtists,omitempty"`
 }
 
 type SongRecentListenerView struct {

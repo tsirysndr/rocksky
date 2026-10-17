@@ -10,6 +10,7 @@ pub mod get_event;
 pub mod get_event_rsvps;
 pub mod get_events;
 pub mod music;
+pub mod put_rsvp;
 
 #[allow(unused_imports)]
 use alloc::collections::BTreeMap;
@@ -193,7 +194,7 @@ pub struct EventView<S: BosStr = DefaultStr> {
     pub genre: Option<S>,
     ///The unique identifier of the event.
     pub id: S,
-    ///Poster or banner image of the event.
+    ///Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image_url: Option<UriValue<S>>,
     ///What sort of music event this is (concert, festival...).
@@ -201,6 +202,9 @@ pub struct EventView<S: BosStr = DefaultStr> {
     pub kind: Option<EventViewKind<S>>,
     ///Where the event takes place.
     pub locations: Vec<event::LocationView<S>>,
+    ///Images attached to the calendar event record (poster, header), as blobs in the publisher's repo.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media: Option<Vec<event::MediaView<S>>>,
     ///The attendance mode, as a community.lexicon.calendar.event#mode token.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<EventViewMode<S>>,
@@ -743,6 +747,113 @@ where
     }
 }
 
+/// One entry of the calendar event's media array, with a URL the blob can be fetched from.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct MediaView<S: BosStr = DefaultStr> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alt: Option<S>,
+    ///CID of the blob in the publisher's repo.
+    pub cid: Cid<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<i64>,
+    pub mime_type: S,
+    ///What the image is for.
+    pub role: MediaViewRole<S>,
+    ///Blob size in bytes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<i64>,
+    ///Where to load the image from.
+    pub url: UriValue<S>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<i64>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// What the image is for.
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum MediaViewRole<S: BosStr = DefaultStr> {
+    Thumbnail,
+    Header,
+    Other(S),
+}
+
+impl<S: BosStr> MediaViewRole<S> {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Thumbnail => "thumbnail",
+            Self::Header => "header",
+            Self::Other(s) => s.as_ref(),
+        }
+    }
+    /// Construct from a string-like value, matching known values.
+    pub fn from_value(s: S) -> Self {
+        match s.as_ref() {
+            "thumbnail" => Self::Thumbnail,
+            "header" => Self::Header,
+            _ => Self::Other(s),
+        }
+    }
+}
+
+impl<S: BosStr> core::fmt::Display for MediaViewRole<S> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl<S: BosStr> AsRef<str> for MediaViewRole<S> {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl<S: BosStr> Serialize for MediaViewRole<S> {
+    fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
+    where
+        Ser: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de, S: Deserialize<'de> + BosStr> Deserialize<'de> for MediaViewRole<S> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = S::deserialize(deserializer)?;
+        Ok(Self::from_value(s))
+    }
+}
+
+impl<S: BosStr + Default> Default for MediaViewRole<S> {
+    fn default() -> Self {
+        Self::Other(Default::default())
+    }
+}
+
+impl<S: BosStr> jacquard_common::IntoStatic for MediaViewRole<S>
+where
+    S: BosStr + jacquard_common::IntoStatic,
+    S::Output: BosStr,
+{
+    type Output = MediaViewRole<S::Output>;
+    fn into_static(self) -> Self::Output {
+        match self {
+            MediaViewRole::Thumbnail => MediaViewRole::Thumbnail,
+            MediaViewRole::Header => MediaViewRole::Header,
+            MediaViewRole::Other(v) => MediaViewRole::Other(v.into_static()),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
 #[serde(
     rename_all = "camelCase",
@@ -915,6 +1026,48 @@ impl<S: BosStr> LexiconSchema for LocationView<S> {
         lexicon_doc_app_rocksky_event_defs()
     }
     fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for MediaView<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.event.defs"
+    }
+    fn def_name() -> &'static str {
+        "mediaView"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_event_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        if let Some(ref value) = self.height {
+            if *value < 1i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("height"),
+                    min: 1i64,
+                    actual: *value,
+                });
+            }
+        }
+        if let Some(ref value) = self.size {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("size"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        if let Some(ref value) = self.width {
+            if *value < 1i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("width"),
+                    min: 1i64,
+                    actual: *value,
+                });
+            }
+        }
         Ok(())
     }
 }
@@ -1219,7 +1372,9 @@ fn lexicon_doc_app_rocksky_event_defs() -> LexiconDoc<'static> {
                             SmolStr::new_static("imageUrl"),
                             LexObjectProperty::String(LexString {
                                 description: Some(
-                                    CowStr::new_static("Poster or banner image of the event."),
+                                    CowStr::new_static(
+                                        "Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none.",
+                                    ),
                                 ),
                                 format: Some(LexStringFormat::Uri),
                                 ..Default::default()
@@ -1245,6 +1400,23 @@ fn lexicon_doc_app_rocksky_event_defs() -> LexiconDoc<'static> {
                                 items: LexArrayItem::Ref(LexRef {
                                     r#ref: CowStr::new_static(
                                         "app.rocksky.event.defs#locationView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("media"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "Images attached to the calendar event record (poster, header), as blobs in the publisher's repo.",
+                                    ),
+                                ),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.event.defs#mediaView",
                                     ),
                                     ..Default::default()
                                 }),
@@ -1527,6 +1699,88 @@ fn lexicon_doc_app_rocksky_event_defs() -> LexiconDoc<'static> {
                                     ),
                                 ),
                                 format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("mediaView"),
+                LexUserType::Object(LexObject {
+                    description: Some(
+                        CowStr::new_static(
+                            "One entry of the calendar event's media array, with a URL the blob can be fetched from.",
+                        ),
+                    ),
+                    required: Some(
+                        vec![
+                            SmolStr::new_static("role"), SmolStr::new_static("url"),
+                            SmolStr::new_static("cid"), SmolStr::new_static("mimeType")
+                        ],
+                    ),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("alt"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("cid"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "CID of the blob in the publisher's repo.",
+                                    ),
+                                ),
+                                format: Some(LexStringFormat::Cid),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("height"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(1i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mimeType"),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("role"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("What the image is for."),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("size"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("url"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("Where to load the image from."),
+                                ),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("width"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(1i64),
                                 ..Default::default()
                             }),
                         );
@@ -1939,6 +2193,7 @@ pub struct EventViewBuilder<St: event_view_state::State, S: BosStr = DefaultStr>
         Option<UriValue<S>>,
         Option<EventViewKind<S>>,
         Option<Vec<event::LocationView<S>>>,
+        Option<Vec<event::MediaView<S>>>,
         Option<EventViewMode<S>>,
         Option<Cid<S>>,
         Option<AtUri<S>>,
@@ -1982,6 +2237,7 @@ impl EventViewBuilder<event_view_state::Empty, DefaultStr> {
             _fields: (
                 None, None, None, None, None, None, None, None, None, None, None, None, None, None,
                 None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+                None,
             ),
             _type: PhantomData,
         }
@@ -1996,6 +2252,7 @@ impl<S: BosStr> EventViewBuilder<event_view_state::Empty, S> {
             _fields: (
                 None, None, None, None, None, None, None, None, None, None, None, None, None, None,
                 None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+                None,
             ),
             _type: PhantomData,
         }
@@ -2167,14 +2424,27 @@ where
 }
 
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
+    /// Set the `media` field (optional)
+    pub fn media(mut self, value: impl Into<Option<Vec<event::MediaView<S>>>>) -> Self {
+        self._fields.11 = value.into();
+        self
+    }
+    /// Set the `media` field to an Option value (optional)
+    pub fn maybe_media(mut self, value: Option<Vec<event::MediaView<S>>>) -> Self {
+        self._fields.11 = value;
+        self
+    }
+}
+
+impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `mode` field (optional)
     pub fn mode(mut self, value: impl Into<Option<EventViewMode<S>>>) -> Self {
-        self._fields.11 = value.into();
+        self._fields.12 = value.into();
         self
     }
     /// Set the `mode` field to an Option value (optional)
     pub fn maybe_mode(mut self, value: Option<EventViewMode<S>>) -> Self {
-        self._fields.11 = value;
+        self._fields.12 = value;
         self
     }
 }
@@ -2182,12 +2452,12 @@ impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `musicCid` field (optional)
     pub fn music_cid(mut self, value: impl Into<Option<Cid<S>>>) -> Self {
-        self._fields.12 = value.into();
+        self._fields.13 = value.into();
         self
     }
     /// Set the `musicCid` field to an Option value (optional)
     pub fn maybe_music_cid(mut self, value: Option<Cid<S>>) -> Self {
-        self._fields.12 = value;
+        self._fields.13 = value;
         self
     }
 }
@@ -2202,7 +2472,7 @@ where
         mut self,
         value: impl Into<AtUri<S>>,
     ) -> EventViewBuilder<event_view_state::SetMusicUri<St>, S> {
-        self._fields.13 = Option::Some(value.into());
+        self._fields.14 = Option::Some(value.into());
         EventViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -2221,7 +2491,7 @@ where
         mut self,
         value: impl Into<S>,
     ) -> EventViewBuilder<event_view_state::SetName<St>, S> {
-        self._fields.14 = Option::Some(value.into());
+        self._fields.15 = Option::Some(value.into());
         EventViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -2233,12 +2503,12 @@ where
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `organizerAvatarUrl` field (optional)
     pub fn organizer_avatar_url(mut self, value: impl Into<Option<UriValue<S>>>) -> Self {
-        self._fields.15 = value.into();
+        self._fields.16 = value.into();
         self
     }
     /// Set the `organizerAvatarUrl` field to an Option value (optional)
     pub fn maybe_organizer_avatar_url(mut self, value: Option<UriValue<S>>) -> Self {
-        self._fields.15 = value;
+        self._fields.16 = value;
         self
     }
 }
@@ -2253,7 +2523,7 @@ where
         mut self,
         value: impl Into<Did<S>>,
     ) -> EventViewBuilder<event_view_state::SetOrganizerDid<St>, S> {
-        self._fields.16 = Option::Some(value.into());
+        self._fields.17 = Option::Some(value.into());
         EventViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -2265,12 +2535,12 @@ where
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `organizerHandle` field (optional)
     pub fn organizer_handle(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.17 = value.into();
+        self._fields.18 = value.into();
         self
     }
     /// Set the `organizerHandle` field to an Option value (optional)
     pub fn maybe_organizer_handle(mut self, value: Option<S>) -> Self {
-        self._fields.17 = value;
+        self._fields.18 = value;
         self
     }
 }
@@ -2278,12 +2548,12 @@ impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `organizerName` field (optional)
     pub fn organizer_name(mut self, value: impl Into<Option<S>>) -> Self {
-        self._fields.18 = value.into();
+        self._fields.19 = value.into();
         self
     }
     /// Set the `organizerName` field to an Option value (optional)
     pub fn maybe_organizer_name(mut self, value: Option<S>) -> Self {
-        self._fields.18 = value;
+        self._fields.19 = value;
         self
     }
 }
@@ -2298,7 +2568,7 @@ where
         mut self,
         value: impl Into<event::RsvpCounts<S>>,
     ) -> EventViewBuilder<event_view_state::SetRsvpCounts<St>, S> {
-        self._fields.19 = Option::Some(value.into());
+        self._fields.20 = Option::Some(value.into());
         EventViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -2310,12 +2580,12 @@ where
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `startsAt` field (optional)
     pub fn starts_at(mut self, value: impl Into<Option<Datetime>>) -> Self {
-        self._fields.20 = value.into();
+        self._fields.21 = value.into();
         self
     }
     /// Set the `startsAt` field to an Option value (optional)
     pub fn maybe_starts_at(mut self, value: Option<Datetime>) -> Self {
-        self._fields.20 = value;
+        self._fields.21 = value;
         self
     }
 }
@@ -2323,12 +2593,12 @@ impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `status` field (optional)
     pub fn status(mut self, value: impl Into<Option<EventViewStatus<S>>>) -> Self {
-        self._fields.21 = value.into();
+        self._fields.22 = value.into();
         self
     }
     /// Set the `status` field to an Option value (optional)
     pub fn maybe_status(mut self, value: Option<EventViewStatus<S>>) -> Self {
-        self._fields.21 = value;
+        self._fields.22 = value;
         self
     }
 }
@@ -2336,12 +2606,12 @@ impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `tags` field (optional)
     pub fn tags(mut self, value: impl Into<Option<Vec<S>>>) -> Self {
-        self._fields.22 = value.into();
+        self._fields.23 = value.into();
         self
     }
     /// Set the `tags` field to an Option value (optional)
     pub fn maybe_tags(mut self, value: Option<Vec<S>>) -> Self {
-        self._fields.22 = value;
+        self._fields.23 = value;
         self
     }
 }
@@ -2349,12 +2619,12 @@ impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `ticketsUrl` field (optional)
     pub fn tickets_url(mut self, value: impl Into<Option<UriValue<S>>>) -> Self {
-        self._fields.23 = value.into();
+        self._fields.24 = value.into();
         self
     }
     /// Set the `ticketsUrl` field to an Option value (optional)
     pub fn maybe_tickets_url(mut self, value: Option<UriValue<S>>) -> Self {
-        self._fields.23 = value;
+        self._fields.24 = value;
         self
     }
 }
@@ -2369,7 +2639,7 @@ where
         mut self,
         value: impl Into<Datetime>,
     ) -> EventViewBuilder<event_view_state::SetUpdatedAt<St>, S> {
-        self._fields.24 = Option::Some(value.into());
+        self._fields.25 = Option::Some(value.into());
         EventViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -2388,7 +2658,7 @@ where
         mut self,
         value: impl Into<AtUri<S>>,
     ) -> EventViewBuilder<event_view_state::SetUri<St>, S> {
-        self._fields.25 = Option::Some(value.into());
+        self._fields.26 = Option::Some(value.into());
         EventViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -2407,7 +2677,7 @@ where
         mut self,
         value: impl Into<Vec<event::UriView<S>>>,
     ) -> EventViewBuilder<event_view_state::SetUris<St>, S> {
-        self._fields.26 = Option::Some(value.into());
+        self._fields.27 = Option::Some(value.into());
         EventViewBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -2419,12 +2689,12 @@ where
 impl<St: event_view_state::State, S: BosStr> EventViewBuilder<St, S> {
     /// Set the `viewerRsvp` field (optional)
     pub fn viewer_rsvp(mut self, value: impl Into<Option<EventViewViewerRsvp<S>>>) -> Self {
-        self._fields.27 = value.into();
+        self._fields.28 = value.into();
         self
     }
     /// Set the `viewerRsvp` field to an Option value (optional)
     pub fn maybe_viewer_rsvp(mut self, value: Option<EventViewViewerRsvp<S>>) -> Self {
-        self._fields.27 = value;
+        self._fields.28 = value;
         self
     }
 }
@@ -2458,23 +2728,24 @@ where
             image_url: self._fields.8,
             kind: self._fields.9,
             locations: self._fields.10.unwrap(),
-            mode: self._fields.11,
-            music_cid: self._fields.12,
-            music_uri: self._fields.13.unwrap(),
-            name: self._fields.14.unwrap(),
-            organizer_avatar_url: self._fields.15,
-            organizer_did: self._fields.16.unwrap(),
-            organizer_handle: self._fields.17,
-            organizer_name: self._fields.18,
-            rsvp_counts: self._fields.19.unwrap(),
-            starts_at: self._fields.20,
-            status: self._fields.21,
-            tags: self._fields.22,
-            tickets_url: self._fields.23,
-            updated_at: self._fields.24.unwrap(),
-            uri: self._fields.25.unwrap(),
-            uris: self._fields.26.unwrap(),
-            viewer_rsvp: self._fields.27,
+            media: self._fields.11,
+            mode: self._fields.12,
+            music_cid: self._fields.13,
+            music_uri: self._fields.14.unwrap(),
+            name: self._fields.15.unwrap(),
+            organizer_avatar_url: self._fields.16,
+            organizer_did: self._fields.17.unwrap(),
+            organizer_handle: self._fields.18,
+            organizer_name: self._fields.19,
+            rsvp_counts: self._fields.20.unwrap(),
+            starts_at: self._fields.21,
+            status: self._fields.22,
+            tags: self._fields.23,
+            tickets_url: self._fields.24,
+            updated_at: self._fields.25.unwrap(),
+            uri: self._fields.26.unwrap(),
+            uris: self._fields.27.unwrap(),
+            viewer_rsvp: self._fields.28,
             extra_data: Default::default(),
         }
     }
@@ -2492,23 +2763,316 @@ where
             image_url: self._fields.8,
             kind: self._fields.9,
             locations: self._fields.10.unwrap(),
-            mode: self._fields.11,
-            music_cid: self._fields.12,
-            music_uri: self._fields.13.unwrap(),
-            name: self._fields.14.unwrap(),
-            organizer_avatar_url: self._fields.15,
-            organizer_did: self._fields.16.unwrap(),
-            organizer_handle: self._fields.17,
-            organizer_name: self._fields.18,
-            rsvp_counts: self._fields.19.unwrap(),
-            starts_at: self._fields.20,
-            status: self._fields.21,
-            tags: self._fields.22,
-            tickets_url: self._fields.23,
-            updated_at: self._fields.24.unwrap(),
-            uri: self._fields.25.unwrap(),
-            uris: self._fields.26.unwrap(),
-            viewer_rsvp: self._fields.27,
+            media: self._fields.11,
+            mode: self._fields.12,
+            music_cid: self._fields.13,
+            music_uri: self._fields.14.unwrap(),
+            name: self._fields.15.unwrap(),
+            organizer_avatar_url: self._fields.16,
+            organizer_did: self._fields.17.unwrap(),
+            organizer_handle: self._fields.18,
+            organizer_name: self._fields.19,
+            rsvp_counts: self._fields.20.unwrap(),
+            starts_at: self._fields.21,
+            status: self._fields.22,
+            tags: self._fields.23,
+            tickets_url: self._fields.24,
+            updated_at: self._fields.25.unwrap(),
+            uri: self._fields.26.unwrap(),
+            uris: self._fields.27.unwrap(),
+            viewer_rsvp: self._fields.28,
+            extra_data: Some(extra_data),
+        }
+    }
+}
+
+pub mod media_view_state {
+
+    pub use crate::builder_types::{IsSet, IsUnset, Set, Unset};
+    #[allow(unused)]
+    use ::core::marker::PhantomData;
+    mod sealed {
+        pub trait Sealed {}
+    }
+    /// State trait tracking which required fields have been set
+    pub trait State: sealed::Sealed {
+        type Cid;
+        type MimeType;
+        type Role;
+        type Url;
+    }
+    /// Empty state - all required fields are unset
+    pub struct Empty(());
+    impl sealed::Sealed for Empty {}
+    impl State for Empty {
+        type Cid = Unset;
+        type MimeType = Unset;
+        type Role = Unset;
+        type Url = Unset;
+    }
+    ///State transition - sets the `cid` field to Set
+    pub struct SetCid<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetCid<St> {}
+    impl<St: State> State for SetCid<St> {
+        type Cid = Set<members::cid>;
+        type MimeType = St::MimeType;
+        type Role = St::Role;
+        type Url = St::Url;
+    }
+    ///State transition - sets the `mime_type` field to Set
+    pub struct SetMimeType<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetMimeType<St> {}
+    impl<St: State> State for SetMimeType<St> {
+        type Cid = St::Cid;
+        type MimeType = Set<members::mime_type>;
+        type Role = St::Role;
+        type Url = St::Url;
+    }
+    ///State transition - sets the `role` field to Set
+    pub struct SetRole<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetRole<St> {}
+    impl<St: State> State for SetRole<St> {
+        type Cid = St::Cid;
+        type MimeType = St::MimeType;
+        type Role = Set<members::role>;
+        type Url = St::Url;
+    }
+    ///State transition - sets the `url` field to Set
+    pub struct SetUrl<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetUrl<St> {}
+    impl<St: State> State for SetUrl<St> {
+        type Cid = St::Cid;
+        type MimeType = St::MimeType;
+        type Role = St::Role;
+        type Url = Set<members::url>;
+    }
+    /// Marker types for field names
+    #[allow(non_camel_case_types)]
+    pub mod members {
+        ///Marker type for the `cid` field
+        pub struct cid(());
+        ///Marker type for the `mime_type` field
+        pub struct mime_type(());
+        ///Marker type for the `role` field
+        pub struct role(());
+        ///Marker type for the `url` field
+        pub struct url(());
+    }
+}
+
+/// Builder for constructing an instance of this type.
+pub struct MediaViewBuilder<St: media_view_state::State, S: BosStr = DefaultStr> {
+    _state: PhantomData<fn() -> St>,
+    _fields: (
+        Option<S>,
+        Option<Cid<S>>,
+        Option<i64>,
+        Option<S>,
+        Option<MediaViewRole<S>>,
+        Option<i64>,
+        Option<UriValue<S>>,
+        Option<i64>,
+    ),
+    _type: PhantomData<fn() -> S>,
+}
+
+impl MediaView<DefaultStr> {
+    /// Create a new builder for this type, using the default string type (DefaultStr = SmolStr) if needed
+    pub fn new() -> MediaViewBuilder<media_view_state::Empty, DefaultStr> {
+        MediaViewBuilder::new()
+    }
+}
+
+impl<S: BosStr> MediaView<S> {
+    /// Create a new builder for this type
+    pub fn builder() -> MediaViewBuilder<media_view_state::Empty, S> {
+        MediaViewBuilder::builder()
+    }
+}
+
+impl MediaViewBuilder<media_view_state::Empty, DefaultStr> {
+    /// Create a new builder with all fields unset, using the default string type, if needed
+    pub fn new() -> Self {
+        MediaViewBuilder {
+            _state: PhantomData,
+            _fields: (None, None, None, None, None, None, None, None),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<S: BosStr> MediaViewBuilder<media_view_state::Empty, S> {
+    /// Create a new builder with all fields unset
+    pub fn builder() -> Self {
+        MediaViewBuilder {
+            _state: PhantomData,
+            _fields: (None, None, None, None, None, None, None, None),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St: media_view_state::State, S: BosStr> MediaViewBuilder<St, S> {
+    /// Set the `alt` field (optional)
+    pub fn alt(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.0 = value.into();
+        self
+    }
+    /// Set the `alt` field to an Option value (optional)
+    pub fn maybe_alt(mut self, value: Option<S>) -> Self {
+        self._fields.0 = value;
+        self
+    }
+}
+
+impl<St, S: BosStr> MediaViewBuilder<St, S>
+where
+    St: media_view_state::State,
+    St::Cid: media_view_state::IsUnset,
+{
+    /// Set the `cid` field (required)
+    pub fn cid(
+        mut self,
+        value: impl Into<Cid<S>>,
+    ) -> MediaViewBuilder<media_view_state::SetCid<St>, S> {
+        self._fields.1 = Option::Some(value.into());
+        MediaViewBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St: media_view_state::State, S: BosStr> MediaViewBuilder<St, S> {
+    /// Set the `height` field (optional)
+    pub fn height(mut self, value: impl Into<Option<i64>>) -> Self {
+        self._fields.2 = value.into();
+        self
+    }
+    /// Set the `height` field to an Option value (optional)
+    pub fn maybe_height(mut self, value: Option<i64>) -> Self {
+        self._fields.2 = value;
+        self
+    }
+}
+
+impl<St, S: BosStr> MediaViewBuilder<St, S>
+where
+    St: media_view_state::State,
+    St::MimeType: media_view_state::IsUnset,
+{
+    /// Set the `mimeType` field (required)
+    pub fn mime_type(
+        mut self,
+        value: impl Into<S>,
+    ) -> MediaViewBuilder<media_view_state::SetMimeType<St>, S> {
+        self._fields.3 = Option::Some(value.into());
+        MediaViewBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St, S: BosStr> MediaViewBuilder<St, S>
+where
+    St: media_view_state::State,
+    St::Role: media_view_state::IsUnset,
+{
+    /// Set the `role` field (required)
+    pub fn role(
+        mut self,
+        value: impl Into<MediaViewRole<S>>,
+    ) -> MediaViewBuilder<media_view_state::SetRole<St>, S> {
+        self._fields.4 = Option::Some(value.into());
+        MediaViewBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St: media_view_state::State, S: BosStr> MediaViewBuilder<St, S> {
+    /// Set the `size` field (optional)
+    pub fn size(mut self, value: impl Into<Option<i64>>) -> Self {
+        self._fields.5 = value.into();
+        self
+    }
+    /// Set the `size` field to an Option value (optional)
+    pub fn maybe_size(mut self, value: Option<i64>) -> Self {
+        self._fields.5 = value;
+        self
+    }
+}
+
+impl<St, S: BosStr> MediaViewBuilder<St, S>
+where
+    St: media_view_state::State,
+    St::Url: media_view_state::IsUnset,
+{
+    /// Set the `url` field (required)
+    pub fn url(
+        mut self,
+        value: impl Into<UriValue<S>>,
+    ) -> MediaViewBuilder<media_view_state::SetUrl<St>, S> {
+        self._fields.6 = Option::Some(value.into());
+        MediaViewBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St: media_view_state::State, S: BosStr> MediaViewBuilder<St, S> {
+    /// Set the `width` field (optional)
+    pub fn width(mut self, value: impl Into<Option<i64>>) -> Self {
+        self._fields.7 = value.into();
+        self
+    }
+    /// Set the `width` field to an Option value (optional)
+    pub fn maybe_width(mut self, value: Option<i64>) -> Self {
+        self._fields.7 = value;
+        self
+    }
+}
+
+impl<St, S: BosStr> MediaViewBuilder<St, S>
+where
+    St: media_view_state::State,
+    St::Cid: media_view_state::IsSet,
+    St::MimeType: media_view_state::IsSet,
+    St::Role: media_view_state::IsSet,
+    St::Url: media_view_state::IsSet,
+{
+    /// Build the final struct.
+    pub fn build(self) -> MediaView<S> {
+        MediaView {
+            alt: self._fields.0,
+            cid: self._fields.1.unwrap(),
+            height: self._fields.2,
+            mime_type: self._fields.3.unwrap(),
+            role: self._fields.4.unwrap(),
+            size: self._fields.5,
+            url: self._fields.6.unwrap(),
+            width: self._fields.7,
+            extra_data: Default::default(),
+        }
+    }
+    /// Build the final struct with custom extra_data.
+    pub fn build_with_data(self, extra_data: BTreeMap<SmolStr, Data<S>>) -> MediaView<S> {
+        MediaView {
+            alt: self._fields.0,
+            cid: self._fields.1.unwrap(),
+            height: self._fields.2,
+            mime_type: self._fields.3.unwrap(),
+            role: self._fields.4.unwrap(),
+            size: self._fields.5,
+            url: self._fields.6.unwrap(),
+            width: self._fields.7,
             extra_data: Some(extra_data),
         }
     }

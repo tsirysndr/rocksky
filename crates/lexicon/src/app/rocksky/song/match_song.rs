@@ -13,13 +13,18 @@ use serde::{Deserialize, Serialize};
 pub const NSID: &str = "app.rocksky.song.matchSong";
 
 /// Matches a song against Rocksky’s music database and external metadata
-/// providers to resolve the best canonical track, artist, and album
+/// providers to resolve the best canonical track, artist, and album.
+/// Completed lookups return HTTP 200 in the existing songViewDetailed
+/// format. When multiple recordings remain, the highest-ranked accepted
+/// candidate supplies the song fields; external alternatives remain in
+/// matches. When no candidate is accepted, returns an empty matches array
+/// without song fields. Supply a known isrc or mbId to anchor a recording.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Parameters {
-    /// Optional album title — candidates whose album matches it
-    /// (case-insensitive) are preferred, so remaster/live/single editions don't
-    /// shadow the intended release
+    /// Optional album title — only candidates matching this album after
+    /// normalization are accepted, including when an explicit identifier is
+    /// supplied
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub album: Option<String>,
     /// The artist of the song to retrieve

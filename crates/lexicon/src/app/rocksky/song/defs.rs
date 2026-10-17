@@ -94,15 +94,29 @@ pub struct SongMatchView {
     /// A URL to the matched track on the provider. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mb_artists: Option<Vec<ResponseMbArtistsItemView>>,
+    /// The MusicBrainz recording identifier of this candidate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    /// The MusicBrainz release identifier of this candidate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mb_release_id: Option<String>,
     /// A URL to a short audio preview of the matched track. Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preview: Option<String>,
+    /// The provider identifier, including non-numeric identifiers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<String>,
     /// The provider's popularity rank for the matched track.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rank: Option<i64>,
     /// Match confidence score in the range 0-100 (higher is better).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub score: Option<i64>,
+    /// The metadata provider for this candidate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
     /// The title of the matched track.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,

@@ -108,6 +108,14 @@ class AddItemsToQueueParams(RockskyModel):
     position: int | None = Field(default=None, alias="position")
     shuffle: bool | None = Field(default=None, alias="shuffle")
 
+class Address(RockskyModel):
+    country: str = Field(alias="country")
+    postal_code: str | None = Field(default=None, alias="postalCode")
+    region: str | None = Field(default=None, alias="region")
+    locality: str | None = Field(default=None, alias="locality")
+    street: str | None = Field(default=None, alias="street")
+    name: str | None = Field(default=None, alias="name")
+
 class AddSongsOutput(RockskyModel):
     uris: list[str] = Field(alias="uris")
 
@@ -516,6 +524,108 @@ class EqualizerRecord(RockskyModel):
     created_at: str = Field(alias="createdAt")
     updated_at: str | None = Field(default=None, alias="updatedAt")
 
+class EventArtistView(RockskyModel):
+    id: str | None = Field(default=None, alias="id")
+    uri: str | None = Field(default=None, alias="uri")
+    sha256: str | None = Field(default=None, alias="sha256")
+    name: str = Field(alias="name")
+    picture: str | None = Field(default=None, alias="picture")
+    mbid: str | None = Field(default=None, alias="mbid")
+    role: str | None = Field(default=None, alias="role")
+    stage: str | None = Field(default=None, alias="stage")
+    starts_at: str | None = Field(default=None, alias="startsAt")
+
+class EventLocationView(RockskyModel):
+    type_: str = Field(alias="type")
+    name: str | None = Field(default=None, alias="name")
+    country: str | None = Field(default=None, alias="country")
+    postal_code: str | None = Field(default=None, alias="postalCode")
+    region: str | None = Field(default=None, alias="region")
+    locality: str | None = Field(default=None, alias="locality")
+    street: str | None = Field(default=None, alias="street")
+    latitude: str | None = Field(default=None, alias="latitude")
+    longitude: str | None = Field(default=None, alias="longitude")
+    altitude: str | None = Field(default=None, alias="altitude")
+    fsq_place_id: str | None = Field(default=None, alias="fsqPlaceId")
+    h3: str | None = Field(default=None, alias="h3")
+    uri: str | None = Field(default=None, alias="uri")
+
+class EventMediaView(RockskyModel):
+    role: str = Field(alias="role")
+    url: str = Field(alias="url")
+    cid: str = Field(alias="cid")
+    mime_type: str = Field(alias="mimeType")
+    size: int | None = Field(default=None, alias="size")
+    width: int | None = Field(default=None, alias="width")
+    height: int | None = Field(default=None, alias="height")
+    alt: str | None = Field(default=None, alias="alt")
+
+class EventRecord(RockskyModel):
+    name: str = Field(alias="name")
+    description: str | None = Field(default=None, alias="description")
+    created_at: str = Field(alias="createdAt")
+    starts_at: str | None = Field(default=None, alias="startsAt")
+    ends_at: str | None = Field(default=None, alias="endsAt")
+    mode: JsonValue | None = Field(default=None, alias="mode")
+    status: JsonValue | None = Field(default=None, alias="status")
+    locations: list[EventUri | Address | Fsq | Geo | Hthree] | None = Field(default=None, alias="locations")
+    uris: list[EventUri] | None = Field(default=None, alias="uris")
+    rsvp_expected: bool | None = Field(default=None, alias="rsvpExpected")
+
+class EventRsvpCounts(RockskyModel):
+    going: int = Field(alias="going")
+    interested: int = Field(alias="interested")
+    not_going: int = Field(alias="notGoing")
+
+class EventRsvpView(RockskyModel):
+    uri: str = Field(alias="uri")
+    cid: str | None = Field(default=None, alias="cid")
+    status: str = Field(alias="status")
+    did: str = Field(alias="did")
+    handle: str = Field(alias="handle")
+    display_name: str = Field(alias="displayName")
+    avatar: str | None = Field(default=None, alias="avatar")
+    created_at: str = Field(alias="createdAt")
+
+class EventUri(RockskyModel):
+    uri: str = Field(alias="uri")
+    name: str | None = Field(default=None, alias="name")
+
+class EventUriView(RockskyModel):
+    uri: str = Field(alias="uri")
+    name: str | None = Field(default=None, alias="name")
+
+class EventView(RockskyModel):
+    id: str = Field(alias="id")
+    uri: str = Field(alias="uri")
+    cid: str | None = Field(default=None, alias="cid")
+    music_uri: str = Field(alias="musicUri")
+    music_cid: str | None = Field(default=None, alias="musicCid")
+    name: str = Field(alias="name")
+    description: str | None = Field(default=None, alias="description")
+    kind: str | None = Field(default=None, alias="kind")
+    genre: str | None = Field(default=None, alias="genre")
+    tags: list[str] | None = Field(default=None, alias="tags")
+    starts_at: str | None = Field(default=None, alias="startsAt")
+    ends_at: str | None = Field(default=None, alias="endsAt")
+    mode: str | None = Field(default=None, alias="mode")
+    status: str | None = Field(default=None, alias="status")
+    image_url: str | None = Field(default=None, alias="imageUrl")
+    media: list[EventMediaView] | None = Field(default=None, alias="media")
+    tickets_url: str | None = Field(default=None, alias="ticketsUrl")
+    locations: list[EventLocationView] = Field(alias="locations")
+    uris: list[EventUriView] = Field(alias="uris")
+    artists: list[EventArtistView] = Field(alias="artists")
+    external_ids: MusicExternalIds | None = Field(default=None, alias="externalIds")
+    organizer_did: str = Field(alias="organizerDid")
+    organizer_handle: str | None = Field(default=None, alias="organizerHandle")
+    organizer_name: str | None = Field(default=None, alias="organizerName")
+    organizer_avatar_url: str | None = Field(default=None, alias="organizerAvatarUrl")
+    rsvp_counts: EventRsvpCounts = Field(alias="rsvpCounts")
+    viewer_rsvp: str | None = Field(default=None, alias="viewerRsvp")
+    created_at: str = Field(alias="createdAt")
+    updated_at: str = Field(alias="updatedAt")
+
 class FeedGeneratorsView(RockskyModel):
     feeds: list[FeedGeneratorView] | None = Field(default=None, alias="feeds")
 
@@ -694,12 +804,24 @@ class FollowRecord(RockskyModel):
     subject: str = Field(alias="subject")
     via: StrongRef | None = Field(default=None, alias="via")
 
+class Fsq(RockskyModel):
+    fsq_place_id: str = Field(alias="fsq_place_id")
+    latitude: str | None = Field(default=None, alias="latitude")
+    longitude: str | None = Field(default=None, alias="longitude")
+    name: str | None = Field(default=None, alias="name")
+
 class GeneratorRecord(RockskyModel):
     did: str = Field(alias="did")
     avatar: BlobRef | None = Field(default=None, alias="avatar")
     display_name: str = Field(alias="displayName")
     description: str | None = Field(default=None, alias="description")
     created_at: str = Field(alias="createdAt")
+
+class Geo(RockskyModel):
+    latitude: str = Field(alias="latitude")
+    longitude: str = Field(alias="longitude")
+    altitude: str | None = Field(default=None, alias="altitude")
+    name: str | None = Field(default=None, alias="name")
 
 class GetActorAlbumsOutput(RockskyModel):
     albums: list[AlbumViewBasic] | None = Field(default=None, alias="albums")
@@ -835,6 +957,15 @@ class GetArtistAlbumsOutput(RockskyModel):
 class GetArtistAlbumsParams(RockskyModel):
     uri: str = Field(alias="uri")
 
+class GetArtistEventsOutput(RockskyModel):
+    events: list[EventView] = Field(alias="events")
+
+class GetArtistEventsParams(RockskyModel):
+    uri: str = Field(alias="uri")
+    include_past: bool | None = Field(default=None, alias="includePast")
+    limit: int | None = Field(default=None, alias="limit")
+    offset: int | None = Field(default=None, alias="offset")
+
 class GetArtistInfoOutput(RockskyModel):
     status: str | None = Field(default=None, alias="status")
     version: str | None = Field(default=None, alias="version")
@@ -905,6 +1036,33 @@ class GetDownloadUrlOutput(RockskyModel):
 
 class GetDownloadUrlParams(RockskyModel):
     id: str = Field(alias="id")
+
+class GetEventParams(RockskyModel):
+    uri: str = Field(alias="uri")
+
+class GetEventRsvpsOutput(RockskyModel):
+    rsvps: list[EventRsvpView] = Field(alias="rsvps")
+
+class GetEventRsvpsParams(RockskyModel):
+    uri: str = Field(alias="uri")
+    status: str | None = Field(default=None, alias="status")
+    limit: int | None = Field(default=None, alias="limit")
+    offset: int | None = Field(default=None, alias="offset")
+
+class GetEventsOutput(RockskyModel):
+    events: list[EventView] = Field(alias="events")
+
+class GetEventsParams(RockskyModel):
+    artist: str | None = Field(default=None, alias="artist")
+    did: str | None = Field(default=None, alias="did")
+    rsvp_by: str | None = Field(default=None, alias="rsvpBy")
+    kind: str | None = Field(default=None, alias="kind")
+    genre: str | None = Field(default=None, alias="genre")
+    from_: str | None = Field(default=None, alias="from")
+    to: str | None = Field(default=None, alias="to")
+    include_past: bool | None = Field(default=None, alias="includePast")
+    limit: int | None = Field(default=None, alias="limit")
+    offset: int | None = Field(default=None, alias="offset")
 
 class GetFeedGeneratorOutput(RockskyModel):
     view: FeedGeneratorView | None = Field(default=None, alias="view")
@@ -1341,6 +1499,10 @@ class GraphRelationship(RockskyModel):
     following: str | None = Field(default=None, alias="following")
     followed_by: str | None = Field(default=None, alias="followedBy")
 
+class Hthree(RockskyModel):
+    value: str = Field(alias="value")
+    name: str | None = Field(default=None, alias="name")
+
 class InsertDirectoryParams(RockskyModel):
     uri: str = Field(alias="uri")
     directory: str = Field(alias="directory")
@@ -1501,6 +1663,34 @@ class MirrorSourceView(RockskyModel):
     has_credentials: bool = Field(alias="hasCredentials")
     last_polled_at: str | None = Field(default=None, alias="lastPolledAt")
     last_scrobble_seen_at: str | None = Field(default=None, alias="lastScrobbleSeenAt")
+
+class MusicArtist(RockskyModel):
+    name: str = Field(alias="name")
+    uri: str | None = Field(default=None, alias="uri")
+    mbid: str | None = Field(default=None, alias="mbid")
+    role: str | None = Field(default=None, alias="role")
+    stage: str | None = Field(default=None, alias="stage")
+    starts_at: str | None = Field(default=None, alias="startsAt")
+
+class MusicExternalIds(RockskyModel):
+    ticketmaster: str | None = Field(default=None, alias="ticketmaster")
+    songkick: str | None = Field(default=None, alias="songkick")
+    bandsintown: str | None = Field(default=None, alias="bandsintown")
+    resident_advisor: str | None = Field(default=None, alias="residentAdvisor")
+    setlistfm: str | None = Field(default=None, alias="setlistfm")
+    dice: str | None = Field(default=None, alias="dice")
+    eventbrite: str | None = Field(default=None, alias="eventbrite")
+
+class MusicRecord(RockskyModel):
+    subject: StrongRef = Field(alias="subject")
+    kind: str | None = Field(default=None, alias="kind")
+    artists: list[MusicArtist] = Field(alias="artists")
+    genre: str | None = Field(default=None, alias="genre")
+    tags: list[str] | None = Field(default=None, alias="tags")
+    external_ids: MusicExternalIds | None = Field(default=None, alias="externalIds")
+    tickets_url: str | None = Field(default=None, alias="ticketsUrl")
+    image_url: str | None = Field(default=None, alias="imageUrl")
+    created_at: str = Field(alias="createdAt")
 
 class NotificationActor(RockskyModel):
     id: str | None = Field(default=None, alias="id")
@@ -1699,6 +1889,14 @@ class PutPresetInput(RockskyModel):
     precut: int | None = Field(default=None, alias="precut")
     bands: list[RockboxEqualizerBand] = Field(alias="bands")
 
+class PutRsvpInput(RockskyModel):
+    uri: str = Field(alias="uri")
+    status: str = Field(alias="status")
+
+class PutRsvpOutput(RockskyModel):
+    uri: str = Field(alias="uri")
+    status: str = Field(alias="status")
+
 class RadioRecord(RockskyModel):
     name: str = Field(alias="name")
     url: str = Field(alias="url")
@@ -1782,6 +1980,10 @@ class RockboxToneSettings(RockskyModel):
     treble: int | None = Field(default=None, alias="treble")
     balance: int | None = Field(default=None, alias="balance")
     channels: str | None = Field(default=None, alias="channels")
+
+class RsvpRecord(RockskyModel):
+    subject: StrongRef = Field(alias="subject")
+    status: str = Field(alias="status")
 
 class SavePlayQueueInput(RockskyModel):
     id: str | None = Field(default=None, alias="id")
@@ -2001,6 +2203,11 @@ class SongMatchView(RockskyModel):
     rank: int | None = Field(default=None, alias="rank")
     explicit: bool | None = Field(default=None, alias="explicit")
     score: int | None = Field(default=None, alias="score")
+    source: str | None = Field(default=None, alias="source")
+    provider_id: str | None = Field(default=None, alias="providerId")
+    mb_id: str | None = Field(default=None, alias="mbId")
+    mb_release_id: str | None = Field(default=None, alias="mbReleaseId")
+    mb_artists: list[SongResponseMbArtistsItemView] | None = Field(default=None, alias="mbArtists")
 
 class SongRecentListenerView(RockskyModel):
     id: str | None = Field(default=None, alias="id")
@@ -2307,6 +2514,7 @@ ActorResponseSpotifyUserView.model_rebuild()
 ActorTrackView.model_rebuild()
 AddDirectoryToQueueParams.model_rebuild()
 AddItemsToQueueParams.model_rebuild()
+Address.model_rebuild()
 AddSongsOutput.model_rebuild()
 AddSongsParams.model_rebuild()
 AlbumDiscogsArtistView.model_rebuild()
@@ -2359,6 +2567,15 @@ DropboxResponseParentDirectoryView.model_rebuild()
 DropboxTemporaryLinkView.model_rebuild()
 EqualizerPresetView.model_rebuild()
 EqualizerRecord.model_rebuild()
+EventArtistView.model_rebuild()
+EventLocationView.model_rebuild()
+EventMediaView.model_rebuild()
+EventRecord.model_rebuild()
+EventRsvpCounts.model_rebuild()
+EventRsvpView.model_rebuild()
+EventUri.model_rebuild()
+EventUriView.model_rebuild()
+EventView.model_rebuild()
 FeedGeneratorsView.model_rebuild()
 FeedGeneratorView.model_rebuild()
 FeedItemView.model_rebuild()
@@ -2379,7 +2596,9 @@ FeedView.model_rebuild()
 FollowAccountOutput.model_rebuild()
 FollowAccountParams.model_rebuild()
 FollowRecord.model_rebuild()
+Fsq.model_rebuild()
 GeneratorRecord.model_rebuild()
+Geo.model_rebuild()
 GetActorAlbumsOutput.model_rebuild()
 GetActorAlbumsParams.model_rebuild()
 GetActorArtistsOutput.model_rebuild()
@@ -2411,6 +2630,8 @@ GetApikeysOutput.model_rebuild()
 GetApikeysParams.model_rebuild()
 GetArtistAlbumsOutput.model_rebuild()
 GetArtistAlbumsParams.model_rebuild()
+GetArtistEventsOutput.model_rebuild()
+GetArtistEventsParams.model_rebuild()
 GetArtistInfoOutput.model_rebuild()
 GetArtistInfoParams.model_rebuild()
 GetArtistListenersOutput.model_rebuild()
@@ -2429,6 +2650,11 @@ GetDecadesOutput.model_rebuild()
 GetDecadesParams.model_rebuild()
 GetDownloadUrlOutput.model_rebuild()
 GetDownloadUrlParams.model_rebuild()
+GetEventParams.model_rebuild()
+GetEventRsvpsOutput.model_rebuild()
+GetEventRsvpsParams.model_rebuild()
+GetEventsOutput.model_rebuild()
+GetEventsParams.model_rebuild()
 GetFeedGeneratorOutput.model_rebuild()
 GetFeedGeneratorParams.model_rebuild()
 GetFeedGeneratorsParams.model_rebuild()
@@ -2518,6 +2744,7 @@ GoogledriveResponseDirectoryView.model_rebuild()
 GoogledriveResponseParentDirectoryView.model_rebuild()
 GraphNotFoundActor.model_rebuild()
 GraphRelationship.model_rebuild()
+Hthree.model_rebuild()
 InsertDirectoryParams.model_rebuild()
 InsertFilesParams.model_rebuild()
 LibraryCreatePlaylistInput.model_rebuild()
@@ -2547,6 +2774,9 @@ ListPresetsOutput.model_rebuild()
 ListPresetsParams.model_rebuild()
 MatchSongParams.model_rebuild()
 MirrorSourceView.model_rebuild()
+MusicArtist.model_rebuild()
+MusicExternalIds.model_rebuild()
+MusicRecord.model_rebuild()
 NotificationActor.model_rebuild()
 NotificationSubjectView.model_rebuild()
 NotificationView.model_rebuild()
@@ -2577,6 +2807,8 @@ ProfileRecord.model_rebuild()
 PutAudioSettingsInput.model_rebuild()
 PutMirrorSourceInput.model_rebuild()
 PutPresetInput.model_rebuild()
+PutRsvpInput.model_rebuild()
+PutRsvpOutput.model_rebuild()
 RadioRecord.model_rebuild()
 RadioViewBasic.model_rebuild()
 RadioViewDetailed.model_rebuild()
@@ -2592,6 +2824,7 @@ RockboxEqualizerSettings.model_rebuild()
 RockboxReplayGainSettings.model_rebuild()
 RockboxSettingsView.model_rebuild()
 RockboxToneSettings.model_rebuild()
+RsvpRecord.model_rebuild()
 SavePlayQueueInput.model_rebuild()
 SavePlayQueueOutput.model_rebuild()
 ScrobbleFirstScrobbleView.model_rebuild()

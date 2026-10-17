@@ -72,7 +72,9 @@ pub struct EventView {
     pub genre: Option<String>,
     /// The unique identifier of the event.
     pub id: String,
-    /// Poster or banner image of the event. Format: `uri`.
+    /// Poster or banner image of the event: the music record's imageUrl, or the
+    /// calendar event's thumbnail media when the music record has none. Format:
+    /// `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image_url: Option<String>,
     /// What sort of music event this is (concert, festival...). Known values:
@@ -82,6 +84,10 @@ pub struct EventView {
     pub kind: Option<String>,
     /// Where the event takes place.
     pub locations: Vec<LocationView>,
+    /// Images attached to the calendar event record (poster, header), as blobs
+    /// in the publisher's repo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media: Option<Vec<MediaView>>,
     /// The attendance mode, as a community.lexicon.calendar.event#mode token.
     /// Known values: `community.lexicon.calendar.event#inperson`,
     /// `community.lexicon.calendar.event#virtual`,
@@ -179,6 +185,29 @@ pub struct LocationView {
     /// A URL standing in for the location (online events). Format: `uri`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+}
+
+/// One entry of the calendar event's media array, with a URL the blob can
+/// be fetched from.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alt: Option<String>,
+    /// CID of the blob in the publisher's repo. Format: `cid`.
+    pub cid: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<i64>,
+    pub mime_type: String,
+    /// What the image is for. Known values: `thumbnail`, `header`.
+    pub role: String,
+    /// Blob size in bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<i64>,
+    /// Where to load the image from. Format: `uri`.
+    pub url: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

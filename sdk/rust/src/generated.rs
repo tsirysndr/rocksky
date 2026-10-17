@@ -239,6 +239,28 @@ pub struct AddItemsToQueueParams {
     pub shuffle: Option<bool>,
 }
 
+/// A physical location in the form of a street address.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Address {
+    /// The ISO 3166 country code. Preferably the 2-letter code.
+    pub country: String,
+    /// The postal code of the location.
+    #[serde(rename = "postalCode", default, skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    /// The administrative region of the country. For example, a state in the USA.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    /// The locality of the region. For example, a city in the USA.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locality: Option<String>,
+    /// The street address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub street: Option<String>,
+    /// The name of the location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AddSongsOutput {
     /// AT-URIs of the created app.rocksky.playlist.song records
@@ -1263,6 +1285,255 @@ pub struct EqualizerRecord {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+/// An artist on an event lineup, linked to the Rocksky artist when one was resolved.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventArtistView {
+    /// The unique identifier of the linked Rocksky artist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// AT-URI of the linked artist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    /// The SHA256 hash of the linked artist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    /// The artist name as billed on the event.
+    pub name: String,
+    /// The picture of the linked artist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub picture: Option<String>,
+    /// MusicBrainz artist id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    /// The artist's billing on this event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// The stage the artist plays on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage: Option<String>,
+    /// When this artist's set starts.
+    #[serde(rename = "startsAt", default, skip_serializing_if = "Option::is_none")]
+    pub starts_at: Option<DateTime<Utc>>,
+}
+
+/// One entry of the calendar event's locations, flattened: `type` says which community.lexicon.location shape it came from, and only the fields of that shape are set.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventLocationView {
+    #[serde(rename = "type")]
+    pub type_: String,
+    /// The name of the location (venue name).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// ISO 3166 country code.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country: Option<String>,
+    #[serde(rename = "postalCode", default, skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    /// City or town.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locality: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub street: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latitude: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub longitude: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub altitude: Option<String>,
+    /// Foursquare Open Source Places id.
+    #[serde(rename = "fsqPlaceId", default, skip_serializing_if = "Option::is_none")]
+    pub fsq_place_id: Option<String>,
+    /// H3 encoded location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub h3: Option<String>,
+    /// A URL standing in for the location (online events).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+}
+
+/// One entry of the calendar event's media array, with a URL the blob can be fetched from.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventMediaView {
+    /// What the image is for.
+    pub role: String,
+    /// Where to load the image from.
+    pub url: String,
+    /// CID of the blob in the publisher's repo.
+    pub cid: String,
+    #[serde(rename = "mimeType")]
+    pub mime_type: String,
+    /// Blob size in bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alt: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventRecord {
+    /// The name of the event.
+    pub name: String,
+    /// The description of the event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Client-declared timestamp when the event was created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// Client-declared timestamp when the event starts.
+    #[serde(rename = "startsAt", default, skip_serializing_if = "Option::is_none")]
+    pub starts_at: Option<DateTime<Utc>>,
+    /// Client-declared timestamp when the event ends.
+    #[serde(rename = "endsAt", default, skip_serializing_if = "Option::is_none")]
+    pub ends_at: Option<DateTime<Utc>>,
+    /// The attendance mode of the event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Value>,
+    /// The status of the event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<Value>,
+    /// The locations where the event takes place.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<Value>,
+    /// URIs associated with the event.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub uris: Vec<EventUri>,
+    /// Whether a response is requested from attendees.
+    #[serde(rename = "rsvpExpected", default, skip_serializing_if = "Option::is_none")]
+    pub rsvp_expected: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventRsvpCounts {
+    pub going: i64,
+    pub interested: i64,
+    #[serde(rename = "notGoing")]
+    pub not_going: i64,
+}
+
+/// A community.lexicon.calendar.rsvp on an event, with its author.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventRsvpView {
+    /// AT-URI of the rsvp record.
+    pub uri: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cid: Option<String>,
+    pub status: String,
+    pub did: String,
+    pub handle: String,
+    #[serde(rename = "displayName")]
+    pub display_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+}
+
+/// A URI associated with the event.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventUri {
+    pub uri: String,
+    /// The display name of the URI.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventUriView {
+    pub uri: String,
+    /// The display name of the URI.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+/// A music event: the calendar event merged with its app.rocksky.event.music annotation.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EventView {
+    /// The unique identifier of the event.
+    pub id: String,
+    /// AT-URI of the community.lexicon.calendar.event record.
+    pub uri: String,
+    /// CID of the calendar event record revision that was indexed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cid: Option<String>,
+    /// AT-URI of the app.rocksky.event.music record.
+    #[serde(rename = "musicUri")]
+    pub music_uri: String,
+    /// CID of the music record revision that was indexed.
+    #[serde(rename = "musicCid", default, skip_serializing_if = "Option::is_none")]
+    pub music_cid: Option<String>,
+    /// The name of the event.
+    pub name: String,
+    /// The description of the event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// What sort of music event this is (concert, festival...).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// The main genre of the event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    /// When the event starts.
+    #[serde(rename = "startsAt", default, skip_serializing_if = "Option::is_none")]
+    pub starts_at: Option<DateTime<Utc>>,
+    /// When the event ends.
+    #[serde(rename = "endsAt", default, skip_serializing_if = "Option::is_none")]
+    pub ends_at: Option<DateTime<Utc>>,
+    /// The attendance mode, as a community.lexicon.calendar.event#mode token.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// The event status, as a community.lexicon.calendar.event#status token.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Poster or banner image of the event: the music record's imageUrl, or the calendar event's thumbnail media when the music record has none.
+    #[serde(rename = "imageUrl", default, skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<String>,
+    /// Images attached to the calendar event record (poster, header), as blobs in the publisher's repo.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub media: Vec<EventMediaView>,
+    /// Where tickets can be bought.
+    #[serde(rename = "ticketsUrl", default, skip_serializing_if = "Option::is_none")]
+    pub tickets_url: Option<String>,
+    /// Where the event takes place.
+    pub locations: Vec<EventLocationView>,
+    /// Links associated with the event.
+    pub uris: Vec<EventUriView>,
+    /// The lineup, in billing order.
+    pub artists: Vec<EventArtistView>,
+    #[serde(rename = "externalIds", default, skip_serializing_if = "Option::is_none")]
+    pub external_ids: Option<MusicExternalIds>,
+    /// The DID of the repo that published the event.
+    #[serde(rename = "organizerDid")]
+    pub organizer_did: String,
+    /// The handle of the publisher.
+    #[serde(rename = "organizerHandle", default, skip_serializing_if = "Option::is_none")]
+    pub organizer_handle: Option<String>,
+    /// The display name of the publisher.
+    #[serde(rename = "organizerName", default, skip_serializing_if = "Option::is_none")]
+    pub organizer_name: Option<String>,
+    /// The avatar of the publisher.
+    #[serde(rename = "organizerAvatarUrl", default, skip_serializing_if = "Option::is_none")]
+    pub organizer_avatar_url: Option<String>,
+    #[serde(rename = "rsvpCounts")]
+    pub rsvp_counts: EventRsvpCounts,
+    /// The authenticated viewer's RSVP, as a community.lexicon.calendar.rsvp status token. Absent when not authenticated or when the viewer has not responded.
+    #[serde(rename = "viewerRsvp", default, skip_serializing_if = "Option::is_none")]
+    pub viewer_rsvp: Option<String>,
+    /// When the event record was created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// When the event was last indexed.
+    #[serde(rename = "updatedAt")]
+    pub updated_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FeedGeneratorsView {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -1650,6 +1921,20 @@ pub struct FollowRecord {
     pub via: Option<StrongRef>,
 }
 
+/// A physical location contained in the Foursquare Open Source Places dataset.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Fsq {
+    /// The unique identifier of a Foursquare POI.
+    pub fsq_place_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latitude: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub longitude: Option<String>,
+    /// The name of the location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GeneratorRecord {
     pub did: String,
@@ -1661,6 +1946,18 @@ pub struct GeneratorRecord {
     pub description: Option<String>,
     #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
+}
+
+/// A physical location in the form of a WGS84 coordinate.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Geo {
+    pub latitude: String,
+    pub longitude: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub altitude: Option<String>,
+    /// The name of the location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1967,6 +2264,26 @@ pub struct GetArtistAlbumsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetArtistEventsOutput {
+    pub events: Vec<EventView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetArtistEventsParams {
+    /// The URI of the artist to retrieve events for
+    pub uri: String,
+    /// Return past events too, most recent first.
+    #[serde(rename = "includePast", default, skip_serializing_if = "Option::is_none")]
+    pub include_past: Option<bool>,
+    /// The maximum number of events to return.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    /// The offset for pagination.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetArtistInfoOutput {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
@@ -2121,6 +2438,69 @@ pub struct GetDownloadUrlOutput {
 pub struct GetDownloadUrlParams {
     /// The song id.
     pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetEventParams {
+    /// AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetEventRsvpsOutput {
+    pub rsvps: Vec<EventRsvpView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetEventRsvpsParams {
+    /// AT-URI of the community.lexicon.calendar.event or app.rocksky.event.music record.
+    pub uri: String,
+    /// Only responses with this status.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetEventsOutput {
+    pub events: Vec<EventView>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetEventsParams {
+    /// Only events this artist plays: the artist's AT-URI, id or sha256.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// Only events published by this repo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
+    /// Only events this DID has RSVP'd to (going or interested).
+    #[serde(rename = "rsvpBy", default, skip_serializing_if = "Option::is_none")]
+    pub rsvp_by: Option<String>,
+    /// Only events of this kind (concert, festival...).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Only events whose genre matches (case-insensitive).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    /// Only events that end at or after this time. Defaults to the start of today (UTC) when neither `to` nor `includePast` is given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<DateTime<Utc>>,
+    /// Only events that start at or before this time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to: Option<DateTime<Utc>>,
+    /// Return past events too, most recent first, instead of upcoming ones.
+    #[serde(rename = "includePast", default, skip_serializing_if = "Option::is_none")]
+    pub include_past: Option<bool>,
+    /// The maximum number of events to return.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    /// The offset for pagination.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3048,6 +3428,16 @@ pub struct GraphRelationship {
     pub followed_by: Option<String>,
 }
 
+/// A physical location in the form of a H3 encoded location.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Hthree {
+    /// The h3 encoded location.
+    pub value: String,
+    /// The name of the location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct InsertDirectoryParams {
     /// The URI of the playlist to start
@@ -3365,7 +3755,7 @@ pub struct MatchSongParams {
     pub title: String,
     /// The artist of the song to retrieve
     pub artist: String,
-    /// Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release
+    /// Optional album title — only candidates matching this album after normalization are accepted, including when an explicit identifier is supplied
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub album: Option<String>,
     /// Optional MusicBrainz recording ID to anchor the match
@@ -3397,6 +3787,76 @@ pub struct MirrorSourceView {
     /// Watermark — scrobbles from the external service older than this are skipped.
     #[serde(rename = "lastScrobbleSeenAt", default, skip_serializing_if = "Option::is_none")]
     pub last_scrobble_seen_at: Option<DateTime<Utc>>,
+}
+
+/// An artist on the lineup.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MusicArtist {
+    /// The artist name as billed.
+    pub name: String,
+    /// AT-URI of the app.rocksky.artist record, when the artist is known to Rocksky.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    /// MusicBrainz artist id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    /// The artist's billing on this event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// The stage the artist plays on, for multi-stage events such as festivals.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage: Option<String>,
+    /// When this artist's set starts.
+    #[serde(rename = "startsAt", default, skip_serializing_if = "Option::is_none")]
+    pub starts_at: Option<DateTime<Utc>>,
+}
+
+/// Identifiers of the event on other services.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MusicExternalIds {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ticketmaster: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub songkick: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bandsintown: Option<String>,
+    #[serde(rename = "residentAdvisor", default, skip_serializing_if = "Option::is_none")]
+    pub resident_advisor: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub setlistfm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dice: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub eventbrite: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MusicRecord {
+    /// Strong reference (AT-URI + CID) to the community.lexicon.calendar.event record this annotates.
+    pub subject: StrongRef,
+    /// What sort of music event this is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// The lineup, in billing order.
+    pub artists: Vec<MusicArtist>,
+    /// The main genre of the event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
+    /// Free-form tags (sub-genres, scene, tour name...).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    /// Identifiers of the same event on ticketing and event-listing services.
+    #[serde(rename = "externalIds", default, skip_serializing_if = "Option::is_none")]
+    pub external_ids: Option<MusicExternalIds>,
+    /// Where tickets can be bought.
+    #[serde(rename = "ticketsUrl", default, skip_serializing_if = "Option::is_none")]
+    pub tickets_url: Option<String>,
+    /// Poster or banner image of the event.
+    #[serde(rename = "imageUrl", default, skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<String>,
+    /// Client-declared timestamp when this record was created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
 }
 
 /// The user who triggered a notification.
@@ -3867,6 +4327,20 @@ pub struct PutPresetInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PutRsvpInput {
+    /// The calendar or music event URI.
+    pub uri: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PutRsvpOutput {
+    /// The RSVP record URI.
+    pub uri: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RadioRecord {
     /// The name of the radio station.
     pub name: String,
@@ -4076,6 +4550,12 @@ pub struct RockboxToneSettings {
     /// Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub channels: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RsvpRecord {
+    pub subject: StrongRef,
+    pub status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -4622,6 +5102,20 @@ pub struct SongMatchView {
     /// Match confidence score in the range 0-100 (higher is better).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub score: Option<i64>,
+    /// The metadata provider for this candidate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    /// The provider identifier, including non-numeric identifiers.
+    #[serde(rename = "providerId", default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<String>,
+    /// The MusicBrainz recording identifier of this candidate.
+    #[serde(rename = "mbId", default, skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<String>,
+    /// The MusicBrainz release identifier of this candidate.
+    #[serde(rename = "mbReleaseId", default, skip_serializing_if = "Option::is_none")]
+    pub mb_release_id: Option<String>,
+    #[serde(rename = "mbArtists", default, skip_serializing_if = "Vec::is_empty")]
+    pub mb_artists: Vec<SongResponseMbArtistsItemView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

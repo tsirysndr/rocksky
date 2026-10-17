@@ -44,7 +44,7 @@ impl Method {
     }
 }
 
-/// Every method, sorted by NSID. 155 of them.
+/// Every method, sorted by NSID. 156 of them.
 pub const METHODS: &[Method] = &[
     // Get albums for an actor
     Method {
@@ -348,6 +348,14 @@ pub const METHODS: &[Method] = &[
         kind: MethodKind::Query,
         has_parameters: true,
         has_input: false,
+        has_output: true,
+    },
+    // Set the authenticated user's RSVP on an event. Reuses their existing RSVP record.
+    Method {
+        nsid: "app.rocksky.event.putRsvp",
+        kind: MethodKind::Procedure,
+        has_parameters: false,
+        has_input: true,
         has_output: true,
     },
     // Get information about a feed generator
@@ -1206,7 +1214,7 @@ pub const METHODS: &[Method] = &[
         has_input: false,
         has_output: true,
     },
-    // Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album
+    // Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album. Completed lookups return HTTP 200 in the existing songViewDetailed format. When multiple recordings remain, the highest-ranked accepted candidate supplies the song fields; external alternatives remain in matches. When no candidate is accepted, returns an empty matches array without song fields. Supply a known isrc or mbId to anchor a recording.
     Method {
         nsid: "app.rocksky.song.matchSong",
         kind: MethodKind::Query,

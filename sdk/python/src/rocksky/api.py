@@ -99,6 +99,11 @@ class XrpcClient(XrpcTransport):
         response.raise_for_status()
         return TypeAdapter(models.GetArtistAlbumsOutput).validate_json(response.body)
 
+    def artist_get_artist_events(self, params: models.GetArtistEventsParams) -> models.GetArtistEventsOutput:
+        response = self.raw("GET", "app.rocksky.artist.getArtistEvents", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
+        response.raise_for_status()
+        return TypeAdapter(models.GetArtistEventsOutput).validate_json(response.body)
+
     def artist_get_artist_listeners(self, params: models.GetArtistListenersParams) -> models.GetArtistListenersOutput:
         response = self.raw("GET", "app.rocksky.artist.getArtistListeners", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
         response.raise_for_status()
@@ -178,6 +183,26 @@ class XrpcClient(XrpcTransport):
         response = self.raw("POST", "app.rocksky.equalizer.putPreset", params=None, body=body.model_dump(by_alias=True, exclude_unset=True))
         response.raise_for_status()
         return TypeAdapter(models.EqualizerPresetView).validate_json(response.body)
+
+    def event_get_event(self, params: models.GetEventParams) -> models.EventView:
+        response = self.raw("GET", "app.rocksky.event.getEvent", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
+        response.raise_for_status()
+        return TypeAdapter(models.EventView).validate_json(response.body)
+
+    def event_get_event_rsvps(self, params: models.GetEventRsvpsParams) -> models.GetEventRsvpsOutput:
+        response = self.raw("GET", "app.rocksky.event.getEventRsvps", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
+        response.raise_for_status()
+        return TypeAdapter(models.GetEventRsvpsOutput).validate_json(response.body)
+
+    def event_get_events(self, params: models.GetEventsParams) -> models.GetEventsOutput:
+        response = self.raw("GET", "app.rocksky.event.getEvents", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
+        response.raise_for_status()
+        return TypeAdapter(models.GetEventsOutput).validate_json(response.body)
+
+    def event_put_rsvp(self, body: models.PutRsvpInput) -> models.PutRsvpOutput:
+        response = self.raw("POST", "app.rocksky.event.putRsvp", params=None, body=body.model_dump(by_alias=True, exclude_unset=True))
+        response.raise_for_status()
+        return TypeAdapter(models.PutRsvpOutput).validate_json(response.body)
 
     def feed_describe_feed_generator(self) -> models.DescribeFeedGeneratorOutput:
         response = self.raw("GET", "app.rocksky.feed.describeFeedGenerator", params=None, body=None)

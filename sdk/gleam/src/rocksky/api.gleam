@@ -97,6 +97,11 @@ pub fn artist_get_artist_albums(client: xrpc.Client, params: models.GetArtistAlb
   xrpc.request(client, xrpc.Get, "app.rocksky.artist.getArtistAlbums", models.encode_get_artist_albums_params(params), None, models.get_artist_albums_output_decoder())
 }
 
+/// app.rocksky.artist.getArtistEvents
+pub fn artist_get_artist_events(client: xrpc.Client, params: models.GetArtistEventsParams) -> Result(models.GetArtistEventsOutput, xrpc.Error) {
+  xrpc.request(client, xrpc.Get, "app.rocksky.artist.getArtistEvents", models.encode_get_artist_events_params(params), None, models.get_artist_events_output_decoder())
+}
+
 /// app.rocksky.artist.getArtistListeners
 pub fn artist_get_artist_listeners(client: xrpc.Client, params: models.GetArtistListenersParams) -> Result(models.GetArtistListenersOutput, xrpc.Error) {
   xrpc.request(client, xrpc.Get, "app.rocksky.artist.getArtistListeners", models.encode_get_artist_listeners_params(params), None, models.get_artist_listeners_output_decoder())
@@ -175,6 +180,26 @@ pub fn equalizer_list_presets(client: xrpc.Client, params: models.ListPresetsPar
 /// app.rocksky.equalizer.putPreset
 pub fn equalizer_put_preset(client: xrpc.Client, input: models.PutPresetInput) -> Result(models.EqualizerPresetView, xrpc.Error) {
   xrpc.request(client, xrpc.Post, "app.rocksky.equalizer.putPreset", json.object([]), Some(models.encode_put_preset_input(input)), models.equalizer_preset_view_decoder())
+}
+
+/// app.rocksky.event.getEvent
+pub fn event_get_event(client: xrpc.Client, params: models.GetEventParams) -> Result(models.EventView, xrpc.Error) {
+  xrpc.request(client, xrpc.Get, "app.rocksky.event.getEvent", models.encode_get_event_params(params), None, models.event_view_decoder())
+}
+
+/// app.rocksky.event.getEventRsvps
+pub fn event_get_event_rsvps(client: xrpc.Client, params: models.GetEventRsvpsParams) -> Result(models.GetEventRsvpsOutput, xrpc.Error) {
+  xrpc.request(client, xrpc.Get, "app.rocksky.event.getEventRsvps", models.encode_get_event_rsvps_params(params), None, models.get_event_rsvps_output_decoder())
+}
+
+/// app.rocksky.event.getEvents
+pub fn event_get_events(client: xrpc.Client, params: models.GetEventsParams) -> Result(models.GetEventsOutput, xrpc.Error) {
+  xrpc.request(client, xrpc.Get, "app.rocksky.event.getEvents", models.encode_get_events_params(params), None, models.get_events_output_decoder())
+}
+
+/// app.rocksky.event.putRsvp
+pub fn event_put_rsvp(client: xrpc.Client, input: models.PutRsvpInput) -> Result(models.PutRsvpOutput, xrpc.Error) {
+  xrpc.request(client, xrpc.Post, "app.rocksky.event.putRsvp", json.object([]), Some(models.encode_put_rsvp_input(input)), models.put_rsvp_output_decoder())
 }
 
 /// app.rocksky.feed.describeFeedGenerator

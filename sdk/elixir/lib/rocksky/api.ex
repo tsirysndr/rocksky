@@ -90,6 +90,11 @@ defmodule Rocksky.Api do
     Rocksky.Xrpc.request(client, :get, "app.rocksky.artist.getArtistAlbums", Rocksky.Models.GetArtistAlbumsParams.encode(params), nil, {:record, Rocksky.Models.GetArtistAlbumsOutput})
   end
 
+  @spec artist_get_artist_events(Rocksky.Xrpc.t(), Rocksky.Models.GetArtistEventsParams.t()) :: {:ok, Rocksky.Models.GetArtistEventsOutput.t()} | {:error, term()}
+  def artist_get_artist_events(client, params) do
+    Rocksky.Xrpc.request(client, :get, "app.rocksky.artist.getArtistEvents", Rocksky.Models.GetArtistEventsParams.encode(params), nil, {:record, Rocksky.Models.GetArtistEventsOutput})
+  end
+
   @spec artist_get_artist_listeners(Rocksky.Xrpc.t(), Rocksky.Models.GetArtistListenersParams.t()) :: {:ok, Rocksky.Models.GetArtistListenersOutput.t()} | {:error, term()}
   def artist_get_artist_listeners(client, params) do
     Rocksky.Xrpc.request(client, :get, "app.rocksky.artist.getArtistListeners", Rocksky.Models.GetArtistListenersParams.encode(params), nil, {:record, Rocksky.Models.GetArtistListenersOutput})
@@ -168,6 +173,26 @@ defmodule Rocksky.Api do
   @spec equalizer_put_preset(Rocksky.Xrpc.t(), Rocksky.Models.PutPresetInput.t()) :: {:ok, Rocksky.Models.EqualizerPresetView.t()} | {:error, term()}
   def equalizer_put_preset(client, input) do
     Rocksky.Xrpc.request(client, :post, "app.rocksky.equalizer.putPreset", %{}, Rocksky.Models.PutPresetInput.encode(input), {:record, Rocksky.Models.EqualizerPresetView})
+  end
+
+  @spec event_get_event(Rocksky.Xrpc.t(), Rocksky.Models.GetEventParams.t()) :: {:ok, Rocksky.Models.EventView.t()} | {:error, term()}
+  def event_get_event(client, params) do
+    Rocksky.Xrpc.request(client, :get, "app.rocksky.event.getEvent", Rocksky.Models.GetEventParams.encode(params), nil, {:record, Rocksky.Models.EventView})
+  end
+
+  @spec event_get_event_rsvps(Rocksky.Xrpc.t(), Rocksky.Models.GetEventRsvpsParams.t()) :: {:ok, Rocksky.Models.GetEventRsvpsOutput.t()} | {:error, term()}
+  def event_get_event_rsvps(client, params) do
+    Rocksky.Xrpc.request(client, :get, "app.rocksky.event.getEventRsvps", Rocksky.Models.GetEventRsvpsParams.encode(params), nil, {:record, Rocksky.Models.GetEventRsvpsOutput})
+  end
+
+  @spec event_get_events(Rocksky.Xrpc.t(), Rocksky.Models.GetEventsParams.t()) :: {:ok, Rocksky.Models.GetEventsOutput.t()} | {:error, term()}
+  def event_get_events(client, params) do
+    Rocksky.Xrpc.request(client, :get, "app.rocksky.event.getEvents", Rocksky.Models.GetEventsParams.encode(params), nil, {:record, Rocksky.Models.GetEventsOutput})
+  end
+
+  @spec event_put_rsvp(Rocksky.Xrpc.t(), Rocksky.Models.PutRsvpInput.t()) :: {:ok, Rocksky.Models.PutRsvpOutput.t()} | {:error, term()}
+  def event_put_rsvp(client, input) do
+    Rocksky.Xrpc.request(client, :post, "app.rocksky.event.putRsvp", %{}, Rocksky.Models.PutRsvpInput.encode(input), {:record, Rocksky.Models.PutRsvpOutput})
   end
 
   @spec feed_describe_feed_generator(Rocksky.Xrpc.t()) :: {:ok, Rocksky.Models.DescribeFeedGeneratorOutput.t()} | {:error, term()}

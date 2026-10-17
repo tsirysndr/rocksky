@@ -234,15 +234,29 @@ pub struct SongMatchView<S: BosStr = DefaultStr> {
     ///A URL to the matched track on the provider.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub link: Option<UriValue<S>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mb_artists: Option<Vec<song::ResponseMbArtistsItemView<S>>>,
+    ///The MusicBrainz recording identifier of this candidate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mb_id: Option<S>,
+    ///The MusicBrainz release identifier of this candidate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mb_release_id: Option<S>,
     ///A URL to a short audio preview of the matched track.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preview: Option<UriValue<S>>,
+    ///The provider identifier, including non-numeric identifiers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<S>,
     ///The provider's popularity rank for the matched track.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rank: Option<i64>,
     ///Match confidence score in the range 0-100 (higher is better).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub score: Option<i64>,
+    ///The metadata provider for this candidate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<S>,
     ///The title of the matched track.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
@@ -2096,6 +2110,40 @@ fn lexicon_doc_app_rocksky_song_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("mbArtists"),
+                            LexObjectProperty::Array(LexArray {
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static(
+                                        "app.rocksky.song.defs#responseMbArtistsItemView",
+                                    ),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mbId"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The MusicBrainz recording identifier of this candidate.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("mbReleaseId"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The MusicBrainz release identifier of this candidate.",
+                                    ),
+                                ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("preview"),
                             LexObjectProperty::String(LexString {
                                 description: Some(
@@ -2104,6 +2152,17 @@ fn lexicon_doc_app_rocksky_song_defs() -> LexiconDoc<'static> {
                                     ),
                                 ),
                                 format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("providerId"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The provider identifier, including non-numeric identifiers.",
+                                    ),
+                                ),
                                 ..Default::default()
                             }),
                         );
@@ -2118,6 +2177,17 @@ fn lexicon_doc_app_rocksky_song_defs() -> LexiconDoc<'static> {
                             LexObjectProperty::Integer(LexInteger {
                                 minimum: Some(0i64),
                                 maximum: Some(100i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("source"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The metadata provider for this candidate.",
+                                    ),
+                                ),
                                 ..Default::default()
                             }),
                         );

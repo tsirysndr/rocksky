@@ -142,6 +142,17 @@ defmodule Rocksky.Models.AddItemsToQueueParams do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
+defmodule Rocksky.Models.Address do
+  @enforce_keys [:country]
+  defstruct [:country, :postal_code, :region, :locality, :street, :name]
+  @type t :: %__MODULE__{country: String.t(), postal_code: String.t() | nil, region: String.t() | nil, locality: String.t() | nil, street: String.t() | nil, name: String.t() | nil}
+  def __schema__, do: [{"country", :country, true, false, :string}, {"postalCode", :postal_code, false, false, :string}, {"region", :region, false, false, :string}, {"locality", :locality, false, false, :string}, {"street", :street, false, false, :string}, {"name", :name, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
 defmodule Rocksky.Models.AddSongsOutput do
   @enforce_keys [:uris]
   defstruct [:uris]
@@ -714,6 +725,105 @@ defmodule Rocksky.Models.EqualizerRecord do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
+defmodule Rocksky.Models.EventArtistView do
+  @enforce_keys [:name]
+  defstruct [:id, :uri, :sha256, :name, :picture, :mbid, :role, :stage, :starts_at]
+  @type t :: %__MODULE__{id: String.t() | nil, uri: String.t() | nil, sha256: String.t() | nil, name: String.t(), picture: String.t() | nil, mbid: String.t() | nil, role: String.t() | nil, stage: String.t() | nil, starts_at: String.t() | nil}
+  def __schema__, do: [{"id", :id, false, false, :string}, {"uri", :uri, false, false, :string}, {"sha256", :sha256, false, false, :string}, {"name", :name, true, false, :string}, {"picture", :picture, false, false, :string}, {"mbid", :mbid, false, false, :string}, {"role", :role, false, false, :string}, {"stage", :stage, false, false, :string}, {"startsAt", :starts_at, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventLocationView do
+  @enforce_keys [:type]
+  defstruct [:type, :name, :country, :postal_code, :region, :locality, :street, :latitude, :longitude, :altitude, :fsq_place_id, :h3, :uri]
+  @type t :: %__MODULE__{type: String.t(), name: String.t() | nil, country: String.t() | nil, postal_code: String.t() | nil, region: String.t() | nil, locality: String.t() | nil, street: String.t() | nil, latitude: String.t() | nil, longitude: String.t() | nil, altitude: String.t() | nil, fsq_place_id: String.t() | nil, h3: String.t() | nil, uri: String.t() | nil}
+  def __schema__, do: [{"type", :type, true, false, :string}, {"name", :name, false, false, :string}, {"country", :country, false, false, :string}, {"postalCode", :postal_code, false, false, :string}, {"region", :region, false, false, :string}, {"locality", :locality, false, false, :string}, {"street", :street, false, false, :string}, {"latitude", :latitude, false, false, :string}, {"longitude", :longitude, false, false, :string}, {"altitude", :altitude, false, false, :string}, {"fsqPlaceId", :fsq_place_id, false, false, :string}, {"h3", :h3, false, false, :string}, {"uri", :uri, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventMediaView do
+  @enforce_keys [:role, :url, :cid, :mime_type]
+  defstruct [:role, :url, :cid, :mime_type, :size, :width, :height, :alt]
+  @type t :: %__MODULE__{role: String.t(), url: String.t(), cid: String.t(), mime_type: String.t(), size: integer() | nil, width: integer() | nil, height: integer() | nil, alt: String.t() | nil}
+  def __schema__, do: [{"role", :role, true, false, :string}, {"url", :url, true, false, :string}, {"cid", :cid, true, false, :string}, {"mimeType", :mime_type, true, false, :string}, {"size", :size, false, false, :integer}, {"width", :width, false, false, :integer}, {"height", :height, false, false, :integer}, {"alt", :alt, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventRecord do
+  @enforce_keys [:name, :created_at]
+  defstruct [:name, :description, :created_at, :starts_at, :ends_at, :mode, :status, :locations, :uris, :rsvp_expected]
+  @type t :: %__MODULE__{name: String.t(), description: String.t() | nil, created_at: String.t(), starts_at: String.t() | nil, ends_at: String.t() | nil, mode: Rocksky.Codec.json_value() | nil, status: Rocksky.Codec.json_value() | nil, locations: [Rocksky.Codec.json_value()] | nil, uris: [Rocksky.Models.EventUri.t()] | nil, rsvp_expected: boolean() | nil}
+  def __schema__, do: [{"name", :name, true, false, :string}, {"description", :description, false, false, :string}, {"createdAt", :created_at, true, false, :string}, {"startsAt", :starts_at, false, false, :string}, {"endsAt", :ends_at, false, false, :string}, {"mode", :mode, false, false, :json_value}, {"status", :status, false, false, :json_value}, {"locations", :locations, false, false, {:list, :json_value}}, {"uris", :uris, false, false, {:list, {:record, Rocksky.Models.EventUri}}}, {"rsvpExpected", :rsvp_expected, false, false, :boolean}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventRsvpCounts do
+  @enforce_keys [:going, :interested, :not_going]
+  defstruct [:going, :interested, :not_going]
+  @type t :: %__MODULE__{going: integer(), interested: integer(), not_going: integer()}
+  def __schema__, do: [{"going", :going, true, false, :integer}, {"interested", :interested, true, false, :integer}, {"notGoing", :not_going, true, false, :integer}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventRsvpView do
+  @enforce_keys [:uri, :status, :did, :handle, :display_name, :created_at]
+  defstruct [:uri, :cid, :status, :did, :handle, :display_name, :avatar, :created_at]
+  @type t :: %__MODULE__{uri: String.t(), cid: String.t() | nil, status: String.t(), did: String.t(), handle: String.t(), display_name: String.t(), avatar: String.t() | nil, created_at: String.t()}
+  def __schema__, do: [{"uri", :uri, true, false, :string}, {"cid", :cid, false, false, :string}, {"status", :status, true, false, :string}, {"did", :did, true, false, :string}, {"handle", :handle, true, false, :string}, {"displayName", :display_name, true, false, :string}, {"avatar", :avatar, false, false, :string}, {"createdAt", :created_at, true, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventUri do
+  @enforce_keys [:uri]
+  defstruct [:uri, :name]
+  @type t :: %__MODULE__{uri: String.t(), name: String.t() | nil}
+  def __schema__, do: [{"uri", :uri, true, false, :string}, {"name", :name, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventUriView do
+  @enforce_keys [:uri]
+  defstruct [:uri, :name]
+  @type t :: %__MODULE__{uri: String.t(), name: String.t() | nil}
+  def __schema__, do: [{"uri", :uri, true, false, :string}, {"name", :name, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.EventView do
+  @enforce_keys [:id, :uri, :music_uri, :name, :locations, :uris, :artists, :organizer_did, :rsvp_counts, :created_at, :updated_at]
+  defstruct [:id, :uri, :cid, :music_uri, :music_cid, :name, :description, :kind, :genre, :tags, :starts_at, :ends_at, :mode, :status, :image_url, :media, :tickets_url, :locations, :uris, :artists, :external_ids, :organizer_did, :organizer_handle, :organizer_name, :organizer_avatar_url, :rsvp_counts, :viewer_rsvp, :created_at, :updated_at]
+  @type t :: %__MODULE__{id: String.t(), uri: String.t(), cid: String.t() | nil, music_uri: String.t(), music_cid: String.t() | nil, name: String.t(), description: String.t() | nil, kind: String.t() | nil, genre: String.t() | nil, tags: [String.t()] | nil, starts_at: String.t() | nil, ends_at: String.t() | nil, mode: String.t() | nil, status: String.t() | nil, image_url: String.t() | nil, media: [Rocksky.Models.EventMediaView.t()] | nil, tickets_url: String.t() | nil, locations: [Rocksky.Models.EventLocationView.t()], uris: [Rocksky.Models.EventUriView.t()], artists: [Rocksky.Models.EventArtistView.t()], external_ids: Rocksky.Models.MusicExternalIds.t() | nil, organizer_did: String.t(), organizer_handle: String.t() | nil, organizer_name: String.t() | nil, organizer_avatar_url: String.t() | nil, rsvp_counts: Rocksky.Models.EventRsvpCounts.t(), viewer_rsvp: String.t() | nil, created_at: String.t(), updated_at: String.t()}
+  def __schema__, do: [{"id", :id, true, false, :string}, {"uri", :uri, true, false, :string}, {"cid", :cid, false, false, :string}, {"musicUri", :music_uri, true, false, :string}, {"musicCid", :music_cid, false, false, :string}, {"name", :name, true, false, :string}, {"description", :description, false, false, :string}, {"kind", :kind, false, false, :string}, {"genre", :genre, false, false, :string}, {"tags", :tags, false, false, {:list, :string}}, {"startsAt", :starts_at, false, false, :string}, {"endsAt", :ends_at, false, false, :string}, {"mode", :mode, false, false, :string}, {"status", :status, false, false, :string}, {"imageUrl", :image_url, false, false, :string}, {"media", :media, false, false, {:list, {:record, Rocksky.Models.EventMediaView}}}, {"ticketsUrl", :tickets_url, false, false, :string}, {"locations", :locations, true, false, {:list, {:record, Rocksky.Models.EventLocationView}}}, {"uris", :uris, true, false, {:list, {:record, Rocksky.Models.EventUriView}}}, {"artists", :artists, true, false, {:list, {:record, Rocksky.Models.EventArtistView}}}, {"externalIds", :external_ids, false, false, {:record, Rocksky.Models.MusicExternalIds}}, {"organizerDid", :organizer_did, true, false, :string}, {"organizerHandle", :organizer_handle, false, false, :string}, {"organizerName", :organizer_name, false, false, :string}, {"organizerAvatarUrl", :organizer_avatar_url, false, false, :string}, {"rsvpCounts", :rsvp_counts, true, false, {:record, Rocksky.Models.EventRsvpCounts}}, {"viewerRsvp", :viewer_rsvp, false, false, :string}, {"createdAt", :created_at, true, false, :string}, {"updatedAt", :updated_at, true, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
 defmodule Rocksky.Models.FeedGeneratorsView do
   @enforce_keys []
   defstruct [:feeds]
@@ -934,11 +1044,33 @@ defmodule Rocksky.Models.FollowRecord do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
+defmodule Rocksky.Models.Fsq do
+  @enforce_keys [:fsq_place_id]
+  defstruct [:fsq_place_id, :latitude, :longitude, :name]
+  @type t :: %__MODULE__{fsq_place_id: String.t(), latitude: String.t() | nil, longitude: String.t() | nil, name: String.t() | nil}
+  def __schema__, do: [{"fsq_place_id", :fsq_place_id, true, false, :string}, {"latitude", :latitude, false, false, :string}, {"longitude", :longitude, false, false, :string}, {"name", :name, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
 defmodule Rocksky.Models.GeneratorRecord do
   @enforce_keys [:did, :display_name, :created_at]
   defstruct [:did, :avatar, :display_name, :description, :created_at]
   @type t :: %__MODULE__{did: String.t(), avatar: Rocksky.Models.BlobRef.t() | nil, display_name: String.t(), description: String.t() | nil, created_at: String.t()}
   def __schema__, do: [{"did", :did, true, false, :string}, {"avatar", :avatar, false, false, {:record, Rocksky.Models.BlobRef}}, {"displayName", :display_name, true, false, :string}, {"description", :description, false, false, :string}, {"createdAt", :created_at, true, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.Geo do
+  @enforce_keys [:latitude, :longitude]
+  defstruct [:latitude, :longitude, :altitude, :name]
+  @type t :: %__MODULE__{latitude: String.t(), longitude: String.t(), altitude: String.t() | nil, name: String.t() | nil}
+  def __schema__, do: [{"latitude", :latitude, true, false, :string}, {"longitude", :longitude, true, false, :string}, {"altitude", :altitude, false, false, :string}, {"name", :name, false, false, :string}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()
@@ -1286,6 +1418,28 @@ defmodule Rocksky.Models.GetArtistAlbumsParams do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
+defmodule Rocksky.Models.GetArtistEventsOutput do
+  @enforce_keys [:events]
+  defstruct [:events]
+  @type t :: %__MODULE__{events: [Rocksky.Models.EventView.t()]}
+  def __schema__, do: [{"events", :events, true, false, {:list, {:record, Rocksky.Models.EventView}}}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.GetArtistEventsParams do
+  @enforce_keys [:uri]
+  defstruct [:uri, :include_past, :limit, :offset]
+  @type t :: %__MODULE__{uri: String.t(), include_past: boolean() | nil, limit: integer() | nil, offset: integer() | nil}
+  def __schema__, do: [{"uri", :uri, true, false, :string}, {"includePast", :include_past, false, false, :boolean}, {"limit", :limit, false, false, :integer}, {"offset", :offset, false, false, :integer}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
 defmodule Rocksky.Models.GetArtistInfoOutput do
   @enforce_keys []
   defstruct [:status, :version, :type, :server_version, :open_subsonic, :artist_info2]
@@ -1478,6 +1632,61 @@ defmodule Rocksky.Models.GetDownloadUrlParams do
   defstruct [:id]
   @type t :: %__MODULE__{id: String.t()}
   def __schema__, do: [{"id", :id, true, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.GetEventParams do
+  @enforce_keys [:uri]
+  defstruct [:uri]
+  @type t :: %__MODULE__{uri: String.t()}
+  def __schema__, do: [{"uri", :uri, true, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.GetEventRsvpsOutput do
+  @enforce_keys [:rsvps]
+  defstruct [:rsvps]
+  @type t :: %__MODULE__{rsvps: [Rocksky.Models.EventRsvpView.t()]}
+  def __schema__, do: [{"rsvps", :rsvps, true, false, {:list, {:record, Rocksky.Models.EventRsvpView}}}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.GetEventRsvpsParams do
+  @enforce_keys [:uri]
+  defstruct [:uri, :status, :limit, :offset]
+  @type t :: %__MODULE__{uri: String.t(), status: String.t() | nil, limit: integer() | nil, offset: integer() | nil}
+  def __schema__, do: [{"uri", :uri, true, false, :string}, {"status", :status, false, false, :string}, {"limit", :limit, false, false, :integer}, {"offset", :offset, false, false, :integer}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.GetEventsOutput do
+  @enforce_keys [:events]
+  defstruct [:events]
+  @type t :: %__MODULE__{events: [Rocksky.Models.EventView.t()]}
+  def __schema__, do: [{"events", :events, true, false, {:list, {:record, Rocksky.Models.EventView}}}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.GetEventsParams do
+  @enforce_keys []
+  defstruct [:artist, :did, :rsvp_by, :kind, :genre, :from, :to, :include_past, :limit, :offset]
+  @type t :: %__MODULE__{artist: String.t() | nil, did: String.t() | nil, rsvp_by: String.t() | nil, kind: String.t() | nil, genre: String.t() | nil, from: String.t() | nil, to: String.t() | nil, include_past: boolean() | nil, limit: integer() | nil, offset: integer() | nil}
+  def __schema__, do: [{"artist", :artist, false, false, :string}, {"did", :did, false, false, :string}, {"rsvpBy", :rsvp_by, false, false, :string}, {"kind", :kind, false, false, :string}, {"genre", :genre, false, false, :string}, {"from", :from, false, false, :string}, {"to", :to, false, false, :string}, {"includePast", :include_past, false, false, :boolean}, {"limit", :limit, false, false, :integer}, {"offset", :offset, false, false, :integer}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()
@@ -2463,6 +2672,17 @@ defmodule Rocksky.Models.GraphRelationship do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
+defmodule Rocksky.Models.Hthree do
+  @enforce_keys [:value]
+  defstruct [:value, :name]
+  @type t :: %__MODULE__{value: String.t(), name: String.t() | nil}
+  def __schema__, do: [{"value", :value, true, false, :string}, {"name", :name, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
 defmodule Rocksky.Models.InsertDirectoryParams do
   @enforce_keys [:uri, :directory]
   defstruct [:uri, :directory, :position]
@@ -2776,6 +2996,39 @@ defmodule Rocksky.Models.MirrorSourceView do
   defstruct [:provider, :enabled, :push_enabled, :external_username, :has_credentials, :last_polled_at, :last_scrobble_seen_at]
   @type t :: %__MODULE__{provider: String.t(), enabled: boolean(), push_enabled: boolean() | nil, external_username: String.t() | nil, has_credentials: boolean(), last_polled_at: String.t() | nil, last_scrobble_seen_at: String.t() | nil}
   def __schema__, do: [{"provider", :provider, true, false, :string}, {"enabled", :enabled, true, false, :boolean}, {"pushEnabled", :push_enabled, false, false, :boolean}, {"externalUsername", :external_username, false, false, :string}, {"hasCredentials", :has_credentials, true, false, :boolean}, {"lastPolledAt", :last_polled_at, false, false, :string}, {"lastScrobbleSeenAt", :last_scrobble_seen_at, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.MusicArtist do
+  @enforce_keys [:name]
+  defstruct [:name, :uri, :mbid, :role, :stage, :starts_at]
+  @type t :: %__MODULE__{name: String.t(), uri: String.t() | nil, mbid: String.t() | nil, role: String.t() | nil, stage: String.t() | nil, starts_at: String.t() | nil}
+  def __schema__, do: [{"name", :name, true, false, :string}, {"uri", :uri, false, false, :string}, {"mbid", :mbid, false, false, :string}, {"role", :role, false, false, :string}, {"stage", :stage, false, false, :string}, {"startsAt", :starts_at, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.MusicExternalIds do
+  @enforce_keys []
+  defstruct [:ticketmaster, :songkick, :bandsintown, :resident_advisor, :setlistfm, :dice, :eventbrite]
+  @type t :: %__MODULE__{ticketmaster: String.t() | nil, songkick: String.t() | nil, bandsintown: String.t() | nil, resident_advisor: String.t() | nil, setlistfm: String.t() | nil, dice: String.t() | nil, eventbrite: String.t() | nil}
+  def __schema__, do: [{"ticketmaster", :ticketmaster, false, false, :string}, {"songkick", :songkick, false, false, :string}, {"bandsintown", :bandsintown, false, false, :string}, {"residentAdvisor", :resident_advisor, false, false, :string}, {"setlistfm", :setlistfm, false, false, :string}, {"dice", :dice, false, false, :string}, {"eventbrite", :eventbrite, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.MusicRecord do
+  @enforce_keys [:subject, :artists, :created_at]
+  defstruct [:subject, :kind, :artists, :genre, :tags, :external_ids, :tickets_url, :image_url, :created_at]
+  @type t :: %__MODULE__{subject: Rocksky.Models.StrongRef.t(), kind: String.t() | nil, artists: [Rocksky.Models.MusicArtist.t()], genre: String.t() | nil, tags: [String.t()] | nil, external_ids: Rocksky.Models.MusicExternalIds.t() | nil, tickets_url: String.t() | nil, image_url: String.t() | nil, created_at: String.t()}
+  def __schema__, do: [{"subject", :subject, true, false, {:record, Rocksky.Models.StrongRef}}, {"kind", :kind, false, false, :string}, {"artists", :artists, true, false, {:list, {:record, Rocksky.Models.MusicArtist}}}, {"genre", :genre, false, false, :string}, {"tags", :tags, false, false, {:list, :string}}, {"externalIds", :external_ids, false, false, {:record, Rocksky.Models.MusicExternalIds}}, {"ticketsUrl", :tickets_url, false, false, :string}, {"imageUrl", :image_url, false, false, :string}, {"createdAt", :created_at, true, false, :string}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()
@@ -3112,6 +3365,28 @@ defmodule Rocksky.Models.PutPresetInput do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
+defmodule Rocksky.Models.PutRsvpInput do
+  @enforce_keys [:uri, :status]
+  defstruct [:uri, :status]
+  @type t :: %__MODULE__{uri: String.t(), status: String.t()}
+  def __schema__, do: [{"uri", :uri, true, false, :string}, {"status", :status, true, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.PutRsvpOutput do
+  @enforce_keys [:uri, :status]
+  defstruct [:uri, :status]
+  @type t :: %__MODULE__{uri: String.t(), status: String.t()}
+  def __schema__, do: [{"uri", :uri, true, false, :string}, {"status", :status, true, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
 defmodule Rocksky.Models.RadioRecord do
   @enforce_keys [:name, :url, :created_at]
   defstruct [:name, :url, :description, :genre, :logo, :website, :created_at]
@@ -3271,6 +3546,17 @@ defmodule Rocksky.Models.RockboxToneSettings do
   defstruct [:bass, :treble, :balance, :channels]
   @type t :: %__MODULE__{bass: integer() | nil, treble: integer() | nil, balance: integer() | nil, channels: String.t() | nil}
   def __schema__, do: [{"bass", :bass, false, false, :integer}, {"treble", :treble, false, false, :integer}, {"balance", :balance, false, false, :integer}, {"channels", :channels, false, false, :string}]
+  @spec decode(map()) :: {:ok, t()} | {:error, term()}
+  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
+  @spec encode(t()) :: map()
+  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
+end
+
+defmodule Rocksky.Models.RsvpRecord do
+  @enforce_keys [:subject, :status]
+  defstruct [:subject, :status]
+  @type t :: %__MODULE__{subject: Rocksky.Models.StrongRef.t(), status: String.t()}
+  def __schema__, do: [{"subject", :subject, true, false, {:record, Rocksky.Models.StrongRef}}, {"status", :status, true, false, :string}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()
@@ -3455,9 +3741,9 @@ end
 
 defmodule Rocksky.Models.SongMatchView do
   @enforce_keys []
-  defstruct [:id, :title, :artist, :album, :album_art, :isrc, :duration_ms, :track_number, :disc_number, :link, :preview, :rank, :explicit, :score]
-  @type t :: %__MODULE__{id: integer() | nil, title: String.t() | nil, artist: String.t() | nil, album: String.t() | nil, album_art: String.t() | nil, isrc: String.t() | nil, duration_ms: integer() | nil, track_number: integer() | nil, disc_number: integer() | nil, link: String.t() | nil, preview: String.t() | nil, rank: integer() | nil, explicit: boolean() | nil, score: integer() | nil}
-  def __schema__, do: [{"id", :id, false, false, :integer}, {"title", :title, false, false, :string}, {"artist", :artist, false, false, :string}, {"album", :album, false, false, :string}, {"albumArt", :album_art, false, false, :string}, {"isrc", :isrc, false, false, :string}, {"durationMs", :duration_ms, false, false, :integer}, {"trackNumber", :track_number, false, false, :integer}, {"discNumber", :disc_number, false, false, :integer}, {"link", :link, false, false, :string}, {"preview", :preview, false, false, :string}, {"rank", :rank, false, false, :integer}, {"explicit", :explicit, false, false, :boolean}, {"score", :score, false, false, :integer}]
+  defstruct [:id, :title, :artist, :album, :album_art, :isrc, :duration_ms, :track_number, :disc_number, :link, :preview, :rank, :explicit, :score, :source, :provider_id, :mb_id, :mb_release_id, :mb_artists]
+  @type t :: %__MODULE__{id: integer() | nil, title: String.t() | nil, artist: String.t() | nil, album: String.t() | nil, album_art: String.t() | nil, isrc: String.t() | nil, duration_ms: integer() | nil, track_number: integer() | nil, disc_number: integer() | nil, link: String.t() | nil, preview: String.t() | nil, rank: integer() | nil, explicit: boolean() | nil, score: integer() | nil, source: String.t() | nil, provider_id: String.t() | nil, mb_id: String.t() | nil, mb_release_id: String.t() | nil, mb_artists: [Rocksky.Models.SongResponseMbArtistsItemView.t()] | nil}
+  def __schema__, do: [{"id", :id, false, false, :integer}, {"title", :title, false, false, :string}, {"artist", :artist, false, false, :string}, {"album", :album, false, false, :string}, {"albumArt", :album_art, false, false, :string}, {"isrc", :isrc, false, false, :string}, {"durationMs", :duration_ms, false, false, :integer}, {"trackNumber", :track_number, false, false, :integer}, {"discNumber", :disc_number, false, false, :integer}, {"link", :link, false, false, :string}, {"preview", :preview, false, false, :string}, {"rank", :rank, false, false, :integer}, {"explicit", :explicit, false, false, :boolean}, {"score", :score, false, false, :integer}, {"source", :source, false, false, :string}, {"providerId", :provider_id, false, false, :string}, {"mbId", :mb_id, false, false, :string}, {"mbReleaseId", :mb_release_id, false, false, :string}, {"mbArtists", :mb_artists, false, false, {:list, {:record, Rocksky.Models.SongResponseMbArtistsItemView}}}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()

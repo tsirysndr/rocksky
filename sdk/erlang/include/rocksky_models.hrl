@@ -28,6 +28,8 @@
 -type add_directory_to_queue_params() :: #add_directory_to_queue_params{}.
 -record(add_items_to_queue_params, {'player_id' = undefined :: binary() | undefined, 'items' = undefined :: [binary()] | undefined, 'position' = undefined :: integer() | undefined, 'shuffle' = undefined :: boolean() | undefined}).
 -type add_items_to_queue_params() :: #add_items_to_queue_params{}.
+-record(address, {'country' = undefined :: binary() | undefined, 'postal_code' = undefined :: binary() | undefined, 'region' = undefined :: binary() | undefined, 'locality' = undefined :: binary() | undefined, 'street' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type address() :: #address{}.
 -record(add_songs_output, {'uris' = undefined :: [binary()] | undefined}).
 -type add_songs_output() :: #add_songs_output{}.
 -record(add_songs_params, {'uri' = undefined :: binary() | undefined, 'songs' = undefined :: [binary()] | undefined}).
@@ -132,6 +134,24 @@
 -type equalizer_preset_view() :: #equalizer_preset_view{}.
 -record(equalizer_record, {'name' = undefined :: binary() | undefined, 'precut' = undefined :: integer() | undefined, 'bands' = undefined :: [rockbox_equalizer_band()] | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
 -type equalizer_record() :: #equalizer_record{}.
+-record(event_artist_view, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'sha256' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'picture' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'role' = undefined :: binary() | undefined, 'stage' = undefined :: binary() | undefined, 'starts_at' = undefined :: binary() | undefined}).
+-type event_artist_view() :: #event_artist_view{}.
+-record(event_location_view, {'type' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'country' = undefined :: binary() | undefined, 'postal_code' = undefined :: binary() | undefined, 'region' = undefined :: binary() | undefined, 'locality' = undefined :: binary() | undefined, 'street' = undefined :: binary() | undefined, 'latitude' = undefined :: binary() | undefined, 'longitude' = undefined :: binary() | undefined, 'altitude' = undefined :: binary() | undefined, 'fsq_place_id' = undefined :: binary() | undefined, 'h3' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined}).
+-type event_location_view() :: #event_location_view{}.
+-record(event_media_view, {'role' = undefined :: binary() | undefined, 'url' = undefined :: binary() | undefined, 'cid' = undefined :: binary() | undefined, 'mime_type' = undefined :: binary() | undefined, 'size' = undefined :: integer() | undefined, 'width' = undefined :: integer() | undefined, 'height' = undefined :: integer() | undefined, 'alt' = undefined :: binary() | undefined}).
+-type event_media_view() :: #event_media_view{}.
+-record(event_record, {'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'starts_at' = undefined :: binary() | undefined, 'ends_at' = undefined :: binary() | undefined, 'mode' = undefined :: json_value() | undefined, 'status' = undefined :: json_value() | undefined, 'locations' = undefined :: [json_value()] | undefined, 'uris' = undefined :: [event_uri()] | undefined, 'rsvp_expected' = undefined :: boolean() | undefined}).
+-type event_record() :: #event_record{}.
+-record(event_rsvp_counts, {'going' = undefined :: integer() | undefined, 'interested' = undefined :: integer() | undefined, 'not_going' = undefined :: integer() | undefined}).
+-type event_rsvp_counts() :: #event_rsvp_counts{}.
+-record(event_rsvp_view, {'uri' = undefined :: binary() | undefined, 'cid' = undefined :: binary() | undefined, 'status' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type event_rsvp_view() :: #event_rsvp_view{}.
+-record(event_uri, {'uri' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type event_uri() :: #event_uri{}.
+-record(event_uri_view, {'uri' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type event_uri_view() :: #event_uri_view{}.
+-record(event_view, {'id' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'cid' = undefined :: binary() | undefined, 'music_uri' = undefined :: binary() | undefined, 'music_cid' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'kind' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'starts_at' = undefined :: binary() | undefined, 'ends_at' = undefined :: binary() | undefined, 'mode' = undefined :: binary() | undefined, 'status' = undefined :: binary() | undefined, 'image_url' = undefined :: binary() | undefined, 'media' = undefined :: [event_media_view()] | undefined, 'tickets_url' = undefined :: binary() | undefined, 'locations' = undefined :: [event_location_view()] | undefined, 'uris' = undefined :: [event_uri_view()] | undefined, 'artists' = undefined :: [event_artist_view()] | undefined, 'external_ids' = undefined :: music_external_ids() | undefined, 'organizer_did' = undefined :: binary() | undefined, 'organizer_handle' = undefined :: binary() | undefined, 'organizer_name' = undefined :: binary() | undefined, 'organizer_avatar_url' = undefined :: binary() | undefined, 'rsvp_counts' = undefined :: event_rsvp_counts() | undefined, 'viewer_rsvp' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined, 'updated_at' = undefined :: binary() | undefined}).
+-type event_view() :: #event_view{}.
 -record(feed_generators_view, {'feeds' = undefined :: [feed_generator_view()] | undefined}).
 -type feed_generators_view() :: #feed_generators_view{}.
 -record(feed_generator_view, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'creator' = undefined :: actor_profile_view_basic() | undefined, 'did' = undefined :: binary() | undefined}).
@@ -172,8 +192,12 @@
 -type follow_account_params() :: #follow_account_params{}.
 -record(follow_record, {'created_at' = undefined :: binary() | undefined, 'subject' = undefined :: binary() | undefined, 'via' = undefined :: strong_ref() | undefined}).
 -type follow_record() :: #follow_record{}.
+-record(fsq, {'fsq_place_id' = undefined :: binary() | undefined, 'latitude' = undefined :: binary() | undefined, 'longitude' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type fsq() :: #fsq{}.
 -record(generator_record, {'did' = undefined :: binary() | undefined, 'avatar' = undefined :: blob_ref() | undefined, 'display_name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
 -type generator_record() :: #generator_record{}.
+-record(geo, {'latitude' = undefined :: binary() | undefined, 'longitude' = undefined :: binary() | undefined, 'altitude' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type geo() :: #geo{}.
 -record(get_actor_albums_output, {'albums' = undefined :: [album_view_basic()] | undefined}).
 -type get_actor_albums_output() :: #get_actor_albums_output{}.
 -record(get_actor_albums_params, {'did' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined, 'start_date' = undefined :: binary() | undefined, 'end_date' = undefined :: binary() | undefined}).
@@ -236,6 +260,10 @@
 -type get_artist_albums_output() :: #get_artist_albums_output{}.
 -record(get_artist_albums_params, {'uri' = undefined :: binary() | undefined}).
 -type get_artist_albums_params() :: #get_artist_albums_params{}.
+-record(get_artist_events_output, {'events' = undefined :: [event_view()] | undefined}).
+-type get_artist_events_output() :: #get_artist_events_output{}.
+-record(get_artist_events_params, {'uri' = undefined :: binary() | undefined, 'include_past' = undefined :: boolean() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_artist_events_params() :: #get_artist_events_params{}.
 -record(get_artist_info_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined, 'artist_info2' = undefined :: json_value() | undefined}).
 -type get_artist_info_output() :: #get_artist_info_output{}.
 -record(get_artist_info_params, {'id' = undefined :: binary() | undefined}).
@@ -272,6 +300,16 @@
 -type get_download_url_output() :: #get_download_url_output{}.
 -record(get_download_url_params, {'id' = undefined :: binary() | undefined}).
 -type get_download_url_params() :: #get_download_url_params{}.
+-record(get_event_params, {'uri' = undefined :: binary() | undefined}).
+-type get_event_params() :: #get_event_params{}.
+-record(get_event_rsvps_output, {'rsvps' = undefined :: [event_rsvp_view()] | undefined}).
+-type get_event_rsvps_output() :: #get_event_rsvps_output{}.
+-record(get_event_rsvps_params, {'uri' = undefined :: binary() | undefined, 'status' = undefined :: binary() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_event_rsvps_params() :: #get_event_rsvps_params{}.
+-record(get_events_output, {'events' = undefined :: [event_view()] | undefined}).
+-type get_events_output() :: #get_events_output{}.
+-record(get_events_params, {'artist' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'rsvp_by' = undefined :: binary() | undefined, 'kind' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'from' = undefined :: binary() | undefined, 'to' = undefined :: binary() | undefined, 'include_past' = undefined :: boolean() | undefined, 'limit' = undefined :: integer() | undefined, 'offset' = undefined :: integer() | undefined}).
+-type get_events_params() :: #get_events_params{}.
 -record(get_feed_generator_output, {'view' = undefined :: feed_generator_view() | undefined}).
 -type get_feed_generator_output() :: #get_feed_generator_output{}.
 -record(get_feed_generator_params, {'feed' = undefined :: binary() | undefined}).
@@ -450,6 +488,8 @@
 -type graph_not_found_actor() :: #graph_not_found_actor{}.
 -record(graph_relationship, {'did' = undefined :: binary() | undefined, 'following' = undefined :: binary() | undefined, 'followed_by' = undefined :: binary() | undefined}).
 -type graph_relationship() :: #graph_relationship{}.
+-record(hthree, {'value' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined}).
+-type hthree() :: #hthree{}.
 -record(insert_directory_params, {'uri' = undefined :: binary() | undefined, 'directory' = undefined :: binary() | undefined, 'position' = undefined :: integer() | undefined}).
 -type insert_directory_params() :: #insert_directory_params{}.
 -record(insert_files_params, {'uri' = undefined :: binary() | undefined, 'files' = undefined :: [binary()] | undefined, 'position' = undefined :: integer() | undefined}).
@@ -508,6 +548,12 @@
 -type match_song_params() :: #match_song_params{}.
 -record(mirror_source_view, {'provider' = undefined :: binary() | undefined, 'enabled' = undefined :: boolean() | undefined, 'push_enabled' = undefined :: boolean() | undefined, 'external_username' = undefined :: binary() | undefined, 'has_credentials' = undefined :: boolean() | undefined, 'last_polled_at' = undefined :: binary() | undefined, 'last_scrobble_seen_at' = undefined :: binary() | undefined}).
 -type mirror_source_view() :: #mirror_source_view{}.
+-record(music_artist, {'name' = undefined :: binary() | undefined, 'uri' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'role' = undefined :: binary() | undefined, 'stage' = undefined :: binary() | undefined, 'starts_at' = undefined :: binary() | undefined}).
+-type music_artist() :: #music_artist{}.
+-record(music_external_ids, {'ticketmaster' = undefined :: binary() | undefined, 'songkick' = undefined :: binary() | undefined, 'bandsintown' = undefined :: binary() | undefined, 'resident_advisor' = undefined :: binary() | undefined, 'setlistfm' = undefined :: binary() | undefined, 'dice' = undefined :: binary() | undefined, 'eventbrite' = undefined :: binary() | undefined}).
+-type music_external_ids() :: #music_external_ids{}.
+-record(music_record, {'subject' = undefined :: strong_ref() | undefined, 'kind' = undefined :: binary() | undefined, 'artists' = undefined :: [music_artist()] | undefined, 'genre' = undefined :: binary() | undefined, 'tags' = undefined :: [binary()] | undefined, 'external_ids' = undefined :: music_external_ids() | undefined, 'tickets_url' = undefined :: binary() | undefined, 'image_url' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
+-type music_record() :: #music_record{}.
 -record(notification_actor, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined}).
 -type notification_actor() :: #notification_actor{}.
 -record(notification_subject_view, {'uri' = undefined :: binary() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined}).
@@ -568,6 +614,10 @@
 -type put_mirror_source_input() :: #put_mirror_source_input{}.
 -record(put_preset_input, {'name' = undefined :: binary() | undefined, 'precut' = undefined :: integer() | undefined, 'bands' = undefined :: [rockbox_equalizer_band()] | undefined}).
 -type put_preset_input() :: #put_preset_input{}.
+-record(put_rsvp_input, {'uri' = undefined :: binary() | undefined, 'status' = undefined :: binary() | undefined}).
+-type put_rsvp_input() :: #put_rsvp_input{}.
+-record(put_rsvp_output, {'uri' = undefined :: binary() | undefined, 'status' = undefined :: binary() | undefined}).
+-type put_rsvp_output() :: #put_rsvp_output{}.
 -record(radio_record, {'name' = undefined :: binary() | undefined, 'url' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'genre' = undefined :: binary() | undefined, 'logo' = undefined :: blob_ref() | undefined, 'website' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
 -type radio_record() :: #radio_record{}.
 -record(radio_view_basic, {'id' = undefined :: binary() | undefined, 'name' = undefined :: binary() | undefined, 'description' = undefined :: binary() | undefined, 'created_at' = undefined :: binary() | undefined}).
@@ -598,6 +648,8 @@
 -type rockbox_settings_view() :: #rockbox_settings_view{}.
 -record(rockbox_tone_settings, {'bass' = undefined :: integer() | undefined, 'treble' = undefined :: integer() | undefined, 'balance' = undefined :: integer() | undefined, 'channels' = undefined :: binary() | undefined}).
 -type rockbox_tone_settings() :: #rockbox_tone_settings{}.
+-record(rsvp_record, {'subject' = undefined :: strong_ref() | undefined, 'status' = undefined :: binary() | undefined}).
+-type rsvp_record() :: #rsvp_record{}.
 -record(save_play_queue_input, {'id' = undefined :: binary() | undefined, 'current' = undefined :: binary() | undefined, 'position' = undefined :: integer() | undefined}).
 -type save_play_queue_input() :: #save_play_queue_input{}.
 -record(save_play_queue_output, {'status' = undefined :: binary() | undefined, 'version' = undefined :: binary() | undefined, 'type' = undefined :: binary() | undefined, 'server_version' = undefined :: binary() | undefined, 'open_subsonic' = undefined :: boolean() | undefined}).
@@ -630,7 +682,7 @@
 -type song_first_scrobble_view() :: #song_first_scrobble_view{}.
 -record(song_get_song_params, {'uri' = undefined :: binary() | undefined, 'mbid' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'spotify_id' = undefined :: binary() | undefined}).
 -type song_get_song_params() :: #song_get_song_params{}.
--record(song_match_view, {'id' = undefined :: integer() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'duration_ms' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'link' = undefined :: binary() | undefined, 'preview' = undefined :: binary() | undefined, 'rank' = undefined :: integer() | undefined, 'explicit' = undefined :: boolean() | undefined, 'score' = undefined :: integer() | undefined}).
+-record(song_match_view, {'id' = undefined :: integer() | undefined, 'title' = undefined :: binary() | undefined, 'artist' = undefined :: binary() | undefined, 'album' = undefined :: binary() | undefined, 'album_art' = undefined :: binary() | undefined, 'isrc' = undefined :: binary() | undefined, 'duration_ms' = undefined :: integer() | undefined, 'track_number' = undefined :: integer() | undefined, 'disc_number' = undefined :: integer() | undefined, 'link' = undefined :: binary() | undefined, 'preview' = undefined :: binary() | undefined, 'rank' = undefined :: integer() | undefined, 'explicit' = undefined :: boolean() | undefined, 'score' = undefined :: integer() | undefined, 'source' = undefined :: binary() | undefined, 'provider_id' = undefined :: binary() | undefined, 'mb_id' = undefined :: binary() | undefined, 'mb_release_id' = undefined :: binary() | undefined, 'mb_artists' = undefined :: [song_response_mb_artists_item_view()] | undefined}).
 -type song_match_view() :: #song_match_view{}.
 -record(song_recent_listener_view, {'id' = undefined :: binary() | undefined, 'did' = undefined :: binary() | undefined, 'handle' = undefined :: binary() | undefined, 'display_name' = undefined :: binary() | undefined, 'avatar' = undefined :: binary() | undefined, 'timestamp' = undefined :: binary() | undefined, 'scrobble_uri' = undefined :: binary() | undefined}).
 -type song_recent_listener_view() :: #song_recent_listener_view{}.

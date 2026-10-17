@@ -428,6 +428,38 @@ pub fn encode_add_items_to_queue_params(value: AddItemsToQueueParams) -> json.Js
   ]))
 }
 
+pub type Address {
+  Address(country: String, postal_code: Option(String), region: Option(String), locality: Option(String), street: Option(String), name: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_address(country: String) -> Address {
+  Address(country: country, postal_code: None, region: None, locality: None, street: None, name: None)
+}
+
+pub fn address_decoder() -> decode.Decoder(Address) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use country <- decode.field("country", decode.string)
+  use postal_code <- decode.optional_field("postalCode", None, decode.optional(decode.string))
+  use region <- decode.optional_field("region", None, decode.optional(decode.string))
+  use locality <- decode.optional_field("locality", None, decode.optional(decode.string))
+  use street <- decode.optional_field("street", None, decode.optional(decode.string))
+  use name <- decode.optional_field("name", None, decode.optional(decode.string))
+  decode.success(Address(country: country, postal_code: postal_code, region: region, locality: locality, street: street, name: name))
+}
+
+pub fn encode_address(value: Address) -> json.Json {
+  json.object(list.flatten([
+    [#("country", json.string(value.country))],
+    case value.postal_code { Some(v) -> [#("postalCode", json.string(v))] None -> [] },
+    case value.region { Some(v) -> [#("region", json.string(v))] None -> [] },
+    case value.locality { Some(v) -> [#("locality", json.string(v))] None -> [] },
+    case value.street { Some(v) -> [#("street", json.string(v))] None -> [] },
+    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
+  ]))
+}
+
 pub type AddSongsOutput {
   AddSongsOutput(uris: List(String))
 }
@@ -2076,6 +2108,354 @@ pub fn encode_equalizer_record(value: EqualizerRecord) -> json.Json {
   ]))
 }
 
+pub type EventArtistView {
+  EventArtistView(id: Option(String), uri: Option(String), sha256: Option(String), name: String, picture: Option(String), mbid: Option(String), role: Option(String), stage: Option(String), starts_at: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_artist_view(name: String) -> EventArtistView {
+  EventArtistView(id: None, uri: None, sha256: None, name: name, picture: None, mbid: None, role: None, stage: None, starts_at: None)
+}
+
+pub fn event_artist_view_decoder() -> decode.Decoder(EventArtistView) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use id <- decode.optional_field("id", None, decode.optional(decode.string))
+  use uri <- decode.optional_field("uri", None, decode.optional(decode.string))
+  use sha256 <- decode.optional_field("sha256", None, decode.optional(decode.string))
+  use name <- decode.field("name", decode.string)
+  use picture <- decode.optional_field("picture", None, decode.optional(decode.string))
+  use mbid <- decode.optional_field("mbid", None, decode.optional(decode.string))
+  use role <- decode.optional_field("role", None, decode.optional(decode.string))
+  use stage <- decode.optional_field("stage", None, decode.optional(decode.string))
+  use starts_at <- decode.optional_field("startsAt", None, decode.optional(decode.string))
+  decode.success(EventArtistView(id: id, uri: uri, sha256: sha256, name: name, picture: picture, mbid: mbid, role: role, stage: stage, starts_at: starts_at))
+}
+
+pub fn encode_event_artist_view(value: EventArtistView) -> json.Json {
+  json.object(list.flatten([
+    case value.id { Some(v) -> [#("id", json.string(v))] None -> [] },
+    case value.uri { Some(v) -> [#("uri", json.string(v))] None -> [] },
+    case value.sha256 { Some(v) -> [#("sha256", json.string(v))] None -> [] },
+    [#("name", json.string(value.name))],
+    case value.picture { Some(v) -> [#("picture", json.string(v))] None -> [] },
+    case value.mbid { Some(v) -> [#("mbid", json.string(v))] None -> [] },
+    case value.role { Some(v) -> [#("role", json.string(v))] None -> [] },
+    case value.stage { Some(v) -> [#("stage", json.string(v))] None -> [] },
+    case value.starts_at { Some(v) -> [#("startsAt", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type EventLocationView {
+  EventLocationView(type_: String, name: Option(String), country: Option(String), postal_code: Option(String), region: Option(String), locality: Option(String), street: Option(String), latitude: Option(String), longitude: Option(String), altitude: Option(String), fsq_place_id: Option(String), h3: Option(String), uri: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_location_view(type_: String) -> EventLocationView {
+  EventLocationView(type_: type_, name: None, country: None, postal_code: None, region: None, locality: None, street: None, latitude: None, longitude: None, altitude: None, fsq_place_id: None, h3: None, uri: None)
+}
+
+pub fn event_location_view_decoder() -> decode.Decoder(EventLocationView) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use type_ <- decode.field("type", decode.string)
+  use name <- decode.optional_field("name", None, decode.optional(decode.string))
+  use country <- decode.optional_field("country", None, decode.optional(decode.string))
+  use postal_code <- decode.optional_field("postalCode", None, decode.optional(decode.string))
+  use region <- decode.optional_field("region", None, decode.optional(decode.string))
+  use locality <- decode.optional_field("locality", None, decode.optional(decode.string))
+  use street <- decode.optional_field("street", None, decode.optional(decode.string))
+  use latitude <- decode.optional_field("latitude", None, decode.optional(decode.string))
+  use longitude <- decode.optional_field("longitude", None, decode.optional(decode.string))
+  use altitude <- decode.optional_field("altitude", None, decode.optional(decode.string))
+  use fsq_place_id <- decode.optional_field("fsqPlaceId", None, decode.optional(decode.string))
+  use h3 <- decode.optional_field("h3", None, decode.optional(decode.string))
+  use uri <- decode.optional_field("uri", None, decode.optional(decode.string))
+  decode.success(EventLocationView(type_: type_, name: name, country: country, postal_code: postal_code, region: region, locality: locality, street: street, latitude: latitude, longitude: longitude, altitude: altitude, fsq_place_id: fsq_place_id, h3: h3, uri: uri))
+}
+
+pub fn encode_event_location_view(value: EventLocationView) -> json.Json {
+  json.object(list.flatten([
+    [#("type", json.string(value.type_))],
+    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
+    case value.country { Some(v) -> [#("country", json.string(v))] None -> [] },
+    case value.postal_code { Some(v) -> [#("postalCode", json.string(v))] None -> [] },
+    case value.region { Some(v) -> [#("region", json.string(v))] None -> [] },
+    case value.locality { Some(v) -> [#("locality", json.string(v))] None -> [] },
+    case value.street { Some(v) -> [#("street", json.string(v))] None -> [] },
+    case value.latitude { Some(v) -> [#("latitude", json.string(v))] None -> [] },
+    case value.longitude { Some(v) -> [#("longitude", json.string(v))] None -> [] },
+    case value.altitude { Some(v) -> [#("altitude", json.string(v))] None -> [] },
+    case value.fsq_place_id { Some(v) -> [#("fsqPlaceId", json.string(v))] None -> [] },
+    case value.h3 { Some(v) -> [#("h3", json.string(v))] None -> [] },
+    case value.uri { Some(v) -> [#("uri", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type EventMediaView {
+  EventMediaView(role: String, url: String, cid: String, mime_type: String, size: Option(Int), width: Option(Int), height: Option(Int), alt: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_media_view(role: String, url: String, cid: String, mime_type: String) -> EventMediaView {
+  EventMediaView(role: role, url: url, cid: cid, mime_type: mime_type, size: None, width: None, height: None, alt: None)
+}
+
+pub fn event_media_view_decoder() -> decode.Decoder(EventMediaView) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use role <- decode.field("role", decode.string)
+  use url <- decode.field("url", decode.string)
+  use cid <- decode.field("cid", decode.string)
+  use mime_type <- decode.field("mimeType", decode.string)
+  use size <- decode.optional_field("size", None, decode.optional(decode.int))
+  use width <- decode.optional_field("width", None, decode.optional(decode.int))
+  use height <- decode.optional_field("height", None, decode.optional(decode.int))
+  use alt <- decode.optional_field("alt", None, decode.optional(decode.string))
+  decode.success(EventMediaView(role: role, url: url, cid: cid, mime_type: mime_type, size: size, width: width, height: height, alt: alt))
+}
+
+pub fn encode_event_media_view(value: EventMediaView) -> json.Json {
+  json.object(list.flatten([
+    [#("role", json.string(value.role))],
+    [#("url", json.string(value.url))],
+    [#("cid", json.string(value.cid))],
+    [#("mimeType", json.string(value.mime_type))],
+    case value.size { Some(v) -> [#("size", json.int(v))] None -> [] },
+    case value.width { Some(v) -> [#("width", json.int(v))] None -> [] },
+    case value.height { Some(v) -> [#("height", json.int(v))] None -> [] },
+    case value.alt { Some(v) -> [#("alt", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type EventRecord {
+  EventRecord(name: String, description: Option(String), created_at: String, starts_at: Option(String), ends_at: Option(String), mode: Option(json_value.JsonValue), status: Option(json_value.JsonValue), locations: Option(List(json_value.JsonValue)), uris: Option(List(EventUri)), rsvp_expected: Option(Bool))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_record(name: String, created_at: String) -> EventRecord {
+  EventRecord(name: name, description: None, created_at: created_at, starts_at: None, ends_at: None, mode: None, status: None, locations: None, uris: None, rsvp_expected: None)
+}
+
+pub fn event_record_decoder() -> decode.Decoder(EventRecord) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use name <- decode.field("name", decode.string)
+  use description <- decode.optional_field("description", None, decode.optional(decode.string))
+  use created_at <- decode.field("createdAt", decode.string)
+  use starts_at <- decode.optional_field("startsAt", None, decode.optional(decode.string))
+  use ends_at <- decode.optional_field("endsAt", None, decode.optional(decode.string))
+  use mode <- decode.optional_field("mode", None, decode.optional(json_value.decoder()))
+  use status <- decode.optional_field("status", None, decode.optional(json_value.decoder()))
+  use locations <- decode.optional_field("locations", None, decode.optional(decode.list(json_value.decoder())))
+  use uris <- decode.optional_field("uris", None, decode.optional(decode.list(event_uri_decoder())))
+  use rsvp_expected <- decode.optional_field("rsvpExpected", None, decode.optional(decode.bool))
+  decode.success(EventRecord(name: name, description: description, created_at: created_at, starts_at: starts_at, ends_at: ends_at, mode: mode, status: status, locations: locations, uris: uris, rsvp_expected: rsvp_expected))
+}
+
+pub fn encode_event_record(value: EventRecord) -> json.Json {
+  json.object(list.flatten([
+    [#("name", json.string(value.name))],
+    case value.description { Some(v) -> [#("description", json.string(v))] None -> [] },
+    [#("createdAt", json.string(value.created_at))],
+    case value.starts_at { Some(v) -> [#("startsAt", json.string(v))] None -> [] },
+    case value.ends_at { Some(v) -> [#("endsAt", json.string(v))] None -> [] },
+    case value.mode { Some(v) -> [#("mode", json_value.encode(v))] None -> [] },
+    case value.status { Some(v) -> [#("status", json_value.encode(v))] None -> [] },
+    case value.locations { Some(v) -> [#("locations", json.array(v, fn(item) { json_value.encode(item) }))] None -> [] },
+    case value.uris { Some(v) -> [#("uris", json.array(v, fn(item) { encode_event_uri(item) }))] None -> [] },
+    case value.rsvp_expected { Some(v) -> [#("rsvpExpected", json.bool(v))] None -> [] },
+  ]))
+}
+
+pub type EventRsvpCounts {
+  EventRsvpCounts(going: Int, interested: Int, not_going: Int)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_rsvp_counts(going: Int, interested: Int, not_going: Int) -> EventRsvpCounts {
+  EventRsvpCounts(going: going, interested: interested, not_going: not_going)
+}
+
+pub fn event_rsvp_counts_decoder() -> decode.Decoder(EventRsvpCounts) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use going <- decode.field("going", decode.int)
+  use interested <- decode.field("interested", decode.int)
+  use not_going <- decode.field("notGoing", decode.int)
+  decode.success(EventRsvpCounts(going: going, interested: interested, not_going: not_going))
+}
+
+pub fn encode_event_rsvp_counts(value: EventRsvpCounts) -> json.Json {
+  json.object(list.flatten([
+    [#("going", json.int(value.going))],
+    [#("interested", json.int(value.interested))],
+    [#("notGoing", json.int(value.not_going))],
+  ]))
+}
+
+pub type EventRsvpView {
+  EventRsvpView(uri: String, cid: Option(String), status: String, did: String, handle: String, display_name: String, avatar: Option(String), created_at: String)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_rsvp_view(uri: String, status: String, did: String, handle: String, display_name: String, created_at: String) -> EventRsvpView {
+  EventRsvpView(uri: uri, cid: None, status: status, did: did, handle: handle, display_name: display_name, avatar: None, created_at: created_at)
+}
+
+pub fn event_rsvp_view_decoder() -> decode.Decoder(EventRsvpView) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  use cid <- decode.optional_field("cid", None, decode.optional(decode.string))
+  use status <- decode.field("status", decode.string)
+  use did <- decode.field("did", decode.string)
+  use handle <- decode.field("handle", decode.string)
+  use display_name <- decode.field("displayName", decode.string)
+  use avatar <- decode.optional_field("avatar", None, decode.optional(decode.string))
+  use created_at <- decode.field("createdAt", decode.string)
+  decode.success(EventRsvpView(uri: uri, cid: cid, status: status, did: did, handle: handle, display_name: display_name, avatar: avatar, created_at: created_at))
+}
+
+pub fn encode_event_rsvp_view(value: EventRsvpView) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+    case value.cid { Some(v) -> [#("cid", json.string(v))] None -> [] },
+    [#("status", json.string(value.status))],
+    [#("did", json.string(value.did))],
+    [#("handle", json.string(value.handle))],
+    [#("displayName", json.string(value.display_name))],
+    case value.avatar { Some(v) -> [#("avatar", json.string(v))] None -> [] },
+    [#("createdAt", json.string(value.created_at))],
+  ]))
+}
+
+pub type EventUri {
+  EventUri(uri: String, name: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_uri(uri: String) -> EventUri {
+  EventUri(uri: uri, name: None)
+}
+
+pub fn event_uri_decoder() -> decode.Decoder(EventUri) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  use name <- decode.optional_field("name", None, decode.optional(decode.string))
+  decode.success(EventUri(uri: uri, name: name))
+}
+
+pub fn encode_event_uri(value: EventUri) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type EventUriView {
+  EventUriView(uri: String, name: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_uri_view(uri: String) -> EventUriView {
+  EventUriView(uri: uri, name: None)
+}
+
+pub fn event_uri_view_decoder() -> decode.Decoder(EventUriView) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  use name <- decode.optional_field("name", None, decode.optional(decode.string))
+  decode.success(EventUriView(uri: uri, name: name))
+}
+
+pub fn encode_event_uri_view(value: EventUriView) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type EventView {
+  EventView(id: String, uri: String, cid: Option(String), music_uri: String, music_cid: Option(String), name: String, description: Option(String), kind: Option(String), genre: Option(String), tags: Option(List(String)), starts_at: Option(String), ends_at: Option(String), mode: Option(String), status: Option(String), image_url: Option(String), media: Option(List(EventMediaView)), tickets_url: Option(String), locations: List(EventLocationView), uris: List(EventUriView), artists: List(EventArtistView), external_ids: Option(MusicExternalIds), organizer_did: String, organizer_handle: Option(String), organizer_name: Option(String), organizer_avatar_url: Option(String), rsvp_counts: EventRsvpCounts, viewer_rsvp: Option(String), created_at: String, updated_at: String)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_event_view(id: String, uri: String, music_uri: String, name: String, locations: List(EventLocationView), uris: List(EventUriView), artists: List(EventArtistView), organizer_did: String, rsvp_counts: EventRsvpCounts, created_at: String, updated_at: String) -> EventView {
+  EventView(id: id, uri: uri, cid: None, music_uri: music_uri, music_cid: None, name: name, description: None, kind: None, genre: None, tags: None, starts_at: None, ends_at: None, mode: None, status: None, image_url: None, media: None, tickets_url: None, locations: locations, uris: uris, artists: artists, external_ids: None, organizer_did: organizer_did, organizer_handle: None, organizer_name: None, organizer_avatar_url: None, rsvp_counts: rsvp_counts, viewer_rsvp: None, created_at: created_at, updated_at: updated_at)
+}
+
+pub fn event_view_decoder() -> decode.Decoder(EventView) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use id <- decode.field("id", decode.string)
+  use uri <- decode.field("uri", decode.string)
+  use cid <- decode.optional_field("cid", None, decode.optional(decode.string))
+  use music_uri <- decode.field("musicUri", decode.string)
+  use music_cid <- decode.optional_field("musicCid", None, decode.optional(decode.string))
+  use name <- decode.field("name", decode.string)
+  use description <- decode.optional_field("description", None, decode.optional(decode.string))
+  use kind <- decode.optional_field("kind", None, decode.optional(decode.string))
+  use genre <- decode.optional_field("genre", None, decode.optional(decode.string))
+  use tags <- decode.optional_field("tags", None, decode.optional(decode.list(decode.string)))
+  use starts_at <- decode.optional_field("startsAt", None, decode.optional(decode.string))
+  use ends_at <- decode.optional_field("endsAt", None, decode.optional(decode.string))
+  use mode <- decode.optional_field("mode", None, decode.optional(decode.string))
+  use status <- decode.optional_field("status", None, decode.optional(decode.string))
+  use image_url <- decode.optional_field("imageUrl", None, decode.optional(decode.string))
+  use media <- decode.optional_field("media", None, decode.optional(decode.list(event_media_view_decoder())))
+  use tickets_url <- decode.optional_field("ticketsUrl", None, decode.optional(decode.string))
+  use locations <- decode.field("locations", decode.list(event_location_view_decoder()))
+  use uris <- decode.field("uris", decode.list(event_uri_view_decoder()))
+  use artists <- decode.field("artists", decode.list(event_artist_view_decoder()))
+  use external_ids <- decode.optional_field("externalIds", None, decode.optional(music_external_ids_decoder()))
+  use organizer_did <- decode.field("organizerDid", decode.string)
+  use organizer_handle <- decode.optional_field("organizerHandle", None, decode.optional(decode.string))
+  use organizer_name <- decode.optional_field("organizerName", None, decode.optional(decode.string))
+  use organizer_avatar_url <- decode.optional_field("organizerAvatarUrl", None, decode.optional(decode.string))
+  use rsvp_counts <- decode.field("rsvpCounts", event_rsvp_counts_decoder())
+  use viewer_rsvp <- decode.optional_field("viewerRsvp", None, decode.optional(decode.string))
+  use created_at <- decode.field("createdAt", decode.string)
+  use updated_at <- decode.field("updatedAt", decode.string)
+  decode.success(EventView(id: id, uri: uri, cid: cid, music_uri: music_uri, music_cid: music_cid, name: name, description: description, kind: kind, genre: genre, tags: tags, starts_at: starts_at, ends_at: ends_at, mode: mode, status: status, image_url: image_url, media: media, tickets_url: tickets_url, locations: locations, uris: uris, artists: artists, external_ids: external_ids, organizer_did: organizer_did, organizer_handle: organizer_handle, organizer_name: organizer_name, organizer_avatar_url: organizer_avatar_url, rsvp_counts: rsvp_counts, viewer_rsvp: viewer_rsvp, created_at: created_at, updated_at: updated_at))
+}
+
+pub fn encode_event_view(value: EventView) -> json.Json {
+  json.object(list.flatten([
+    [#("id", json.string(value.id))],
+    [#("uri", json.string(value.uri))],
+    case value.cid { Some(v) -> [#("cid", json.string(v))] None -> [] },
+    [#("musicUri", json.string(value.music_uri))],
+    case value.music_cid { Some(v) -> [#("musicCid", json.string(v))] None -> [] },
+    [#("name", json.string(value.name))],
+    case value.description { Some(v) -> [#("description", json.string(v))] None -> [] },
+    case value.kind { Some(v) -> [#("kind", json.string(v))] None -> [] },
+    case value.genre { Some(v) -> [#("genre", json.string(v))] None -> [] },
+    case value.tags { Some(v) -> [#("tags", json.array(v, fn(item) { json.string(item) }))] None -> [] },
+    case value.starts_at { Some(v) -> [#("startsAt", json.string(v))] None -> [] },
+    case value.ends_at { Some(v) -> [#("endsAt", json.string(v))] None -> [] },
+    case value.mode { Some(v) -> [#("mode", json.string(v))] None -> [] },
+    case value.status { Some(v) -> [#("status", json.string(v))] None -> [] },
+    case value.image_url { Some(v) -> [#("imageUrl", json.string(v))] None -> [] },
+    case value.media { Some(v) -> [#("media", json.array(v, fn(item) { encode_event_media_view(item) }))] None -> [] },
+    case value.tickets_url { Some(v) -> [#("ticketsUrl", json.string(v))] None -> [] },
+    [#("locations", json.array(value.locations, fn(item) { encode_event_location_view(item) }))],
+    [#("uris", json.array(value.uris, fn(item) { encode_event_uri_view(item) }))],
+    [#("artists", json.array(value.artists, fn(item) { encode_event_artist_view(item) }))],
+    case value.external_ids { Some(v) -> [#("externalIds", encode_music_external_ids(v))] None -> [] },
+    [#("organizerDid", json.string(value.organizer_did))],
+    case value.organizer_handle { Some(v) -> [#("organizerHandle", json.string(v))] None -> [] },
+    case value.organizer_name { Some(v) -> [#("organizerName", json.string(v))] None -> [] },
+    case value.organizer_avatar_url { Some(v) -> [#("organizerAvatarUrl", json.string(v))] None -> [] },
+    [#("rsvpCounts", encode_event_rsvp_counts(value.rsvp_counts))],
+    case value.viewer_rsvp { Some(v) -> [#("viewerRsvp", json.string(v))] None -> [] },
+    [#("createdAt", json.string(value.created_at))],
+    [#("updatedAt", json.string(value.updated_at))],
+  ]))
+}
+
 pub type FeedGeneratorsView {
   FeedGeneratorsView(feeds: Option(List(FeedGeneratorView)))
 }
@@ -2752,6 +3132,34 @@ pub fn encode_follow_record(value: FollowRecord) -> json.Json {
   ]))
 }
 
+pub type Fsq {
+  Fsq(fsq_place_id: String, latitude: Option(String), longitude: Option(String), name: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_fsq(fsq_place_id: String) -> Fsq {
+  Fsq(fsq_place_id: fsq_place_id, latitude: None, longitude: None, name: None)
+}
+
+pub fn fsq_decoder() -> decode.Decoder(Fsq) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use fsq_place_id <- decode.field("fsq_place_id", decode.string)
+  use latitude <- decode.optional_field("latitude", None, decode.optional(decode.string))
+  use longitude <- decode.optional_field("longitude", None, decode.optional(decode.string))
+  use name <- decode.optional_field("name", None, decode.optional(decode.string))
+  decode.success(Fsq(fsq_place_id: fsq_place_id, latitude: latitude, longitude: longitude, name: name))
+}
+
+pub fn encode_fsq(value: Fsq) -> json.Json {
+  json.object(list.flatten([
+    [#("fsq_place_id", json.string(value.fsq_place_id))],
+    case value.latitude { Some(v) -> [#("latitude", json.string(v))] None -> [] },
+    case value.longitude { Some(v) -> [#("longitude", json.string(v))] None -> [] },
+    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
+  ]))
+}
+
 pub type GeneratorRecord {
   GeneratorRecord(did: String, avatar: Option(BlobRef), display_name: String, description: Option(String), created_at: String)
 }
@@ -2779,6 +3187,34 @@ pub fn encode_generator_record(value: GeneratorRecord) -> json.Json {
     [#("displayName", json.string(value.display_name))],
     case value.description { Some(v) -> [#("description", json.string(v))] None -> [] },
     [#("createdAt", json.string(value.created_at))],
+  ]))
+}
+
+pub type Geo {
+  Geo(latitude: String, longitude: String, altitude: Option(String), name: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_geo(latitude: String, longitude: String) -> Geo {
+  Geo(latitude: latitude, longitude: longitude, altitude: None, name: None)
+}
+
+pub fn geo_decoder() -> decode.Decoder(Geo) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use latitude <- decode.field("latitude", decode.string)
+  use longitude <- decode.field("longitude", decode.string)
+  use altitude <- decode.optional_field("altitude", None, decode.optional(decode.string))
+  use name <- decode.optional_field("name", None, decode.optional(decode.string))
+  decode.success(Geo(latitude: latitude, longitude: longitude, altitude: altitude, name: name))
+}
+
+pub fn encode_geo(value: Geo) -> json.Json {
+  json.object(list.flatten([
+    [#("latitude", json.string(value.latitude))],
+    [#("longitude", json.string(value.longitude))],
+    case value.altitude { Some(v) -> [#("altitude", json.string(v))] None -> [] },
+    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
   ]))
 }
 
@@ -3546,6 +3982,56 @@ pub fn encode_get_artist_albums_params(value: GetArtistAlbumsParams) -> json.Jso
   ]))
 }
 
+pub type GetArtistEventsOutput {
+  GetArtistEventsOutput(events: List(EventView))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_get_artist_events_output(events: List(EventView)) -> GetArtistEventsOutput {
+  GetArtistEventsOutput(events: events)
+}
+
+pub fn get_artist_events_output_decoder() -> decode.Decoder(GetArtistEventsOutput) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use events <- decode.field("events", decode.list(event_view_decoder()))
+  decode.success(GetArtistEventsOutput(events: events))
+}
+
+pub fn encode_get_artist_events_output(value: GetArtistEventsOutput) -> json.Json {
+  json.object(list.flatten([
+    [#("events", json.array(value.events, fn(item) { encode_event_view(item) }))],
+  ]))
+}
+
+pub type GetArtistEventsParams {
+  GetArtistEventsParams(uri: String, include_past: Option(Bool), limit: Option(Int), offset: Option(Int))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_get_artist_events_params(uri: String) -> GetArtistEventsParams {
+  GetArtistEventsParams(uri: uri, include_past: None, limit: None, offset: None)
+}
+
+pub fn get_artist_events_params_decoder() -> decode.Decoder(GetArtistEventsParams) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  use include_past <- decode.optional_field("includePast", None, decode.optional(decode.bool))
+  use limit <- decode.optional_field("limit", None, decode.optional(decode.int))
+  use offset <- decode.optional_field("offset", None, decode.optional(decode.int))
+  decode.success(GetArtistEventsParams(uri: uri, include_past: include_past, limit: limit, offset: offset))
+}
+
+pub fn encode_get_artist_events_params(value: GetArtistEventsParams) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+    case value.include_past { Some(v) -> [#("includePast", json.bool(v))] None -> [] },
+    case value.limit { Some(v) -> [#("limit", json.int(v))] None -> [] },
+    case value.offset { Some(v) -> [#("offset", json.int(v))] None -> [] },
+  ]))
+}
+
 pub type GetArtistInfoOutput {
   GetArtistInfoOutput(status: Option(String), version: Option(String), type_: Option(String), server_version: Option(String), open_subsonic: Option(Bool), artist_info2: Option(json_value.JsonValue))
 }
@@ -3973,6 +4459,140 @@ pub fn get_download_url_params_decoder() -> decode.Decoder(GetDownloadUrlParams)
 pub fn encode_get_download_url_params(value: GetDownloadUrlParams) -> json.Json {
   json.object(list.flatten([
     [#("id", json.string(value.id))],
+  ]))
+}
+
+pub type GetEventParams {
+  GetEventParams(uri: String)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_get_event_params(uri: String) -> GetEventParams {
+  GetEventParams(uri: uri)
+}
+
+pub fn get_event_params_decoder() -> decode.Decoder(GetEventParams) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  decode.success(GetEventParams(uri: uri))
+}
+
+pub fn encode_get_event_params(value: GetEventParams) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+  ]))
+}
+
+pub type GetEventRsvpsOutput {
+  GetEventRsvpsOutput(rsvps: List(EventRsvpView))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_get_event_rsvps_output(rsvps: List(EventRsvpView)) -> GetEventRsvpsOutput {
+  GetEventRsvpsOutput(rsvps: rsvps)
+}
+
+pub fn get_event_rsvps_output_decoder() -> decode.Decoder(GetEventRsvpsOutput) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use rsvps <- decode.field("rsvps", decode.list(event_rsvp_view_decoder()))
+  decode.success(GetEventRsvpsOutput(rsvps: rsvps))
+}
+
+pub fn encode_get_event_rsvps_output(value: GetEventRsvpsOutput) -> json.Json {
+  json.object(list.flatten([
+    [#("rsvps", json.array(value.rsvps, fn(item) { encode_event_rsvp_view(item) }))],
+  ]))
+}
+
+pub type GetEventRsvpsParams {
+  GetEventRsvpsParams(uri: String, status: Option(String), limit: Option(Int), offset: Option(Int))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_get_event_rsvps_params(uri: String) -> GetEventRsvpsParams {
+  GetEventRsvpsParams(uri: uri, status: None, limit: None, offset: None)
+}
+
+pub fn get_event_rsvps_params_decoder() -> decode.Decoder(GetEventRsvpsParams) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  use status <- decode.optional_field("status", None, decode.optional(decode.string))
+  use limit <- decode.optional_field("limit", None, decode.optional(decode.int))
+  use offset <- decode.optional_field("offset", None, decode.optional(decode.int))
+  decode.success(GetEventRsvpsParams(uri: uri, status: status, limit: limit, offset: offset))
+}
+
+pub fn encode_get_event_rsvps_params(value: GetEventRsvpsParams) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+    case value.status { Some(v) -> [#("status", json.string(v))] None -> [] },
+    case value.limit { Some(v) -> [#("limit", json.int(v))] None -> [] },
+    case value.offset { Some(v) -> [#("offset", json.int(v))] None -> [] },
+  ]))
+}
+
+pub type GetEventsOutput {
+  GetEventsOutput(events: List(EventView))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_get_events_output(events: List(EventView)) -> GetEventsOutput {
+  GetEventsOutput(events: events)
+}
+
+pub fn get_events_output_decoder() -> decode.Decoder(GetEventsOutput) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use events <- decode.field("events", decode.list(event_view_decoder()))
+  decode.success(GetEventsOutput(events: events))
+}
+
+pub fn encode_get_events_output(value: GetEventsOutput) -> json.Json {
+  json.object(list.flatten([
+    [#("events", json.array(value.events, fn(item) { encode_event_view(item) }))],
+  ]))
+}
+
+pub type GetEventsParams {
+  GetEventsParams(artist: Option(String), did: Option(String), rsvp_by: Option(String), kind: Option(String), genre: Option(String), from: Option(String), to: Option(String), include_past: Option(Bool), limit: Option(Int), offset: Option(Int))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_get_events_params() -> GetEventsParams {
+  GetEventsParams(artist: None, did: None, rsvp_by: None, kind: None, genre: None, from: None, to: None, include_past: None, limit: None, offset: None)
+}
+
+pub fn get_events_params_decoder() -> decode.Decoder(GetEventsParams) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use artist <- decode.optional_field("artist", None, decode.optional(decode.string))
+  use did <- decode.optional_field("did", None, decode.optional(decode.string))
+  use rsvp_by <- decode.optional_field("rsvpBy", None, decode.optional(decode.string))
+  use kind <- decode.optional_field("kind", None, decode.optional(decode.string))
+  use genre <- decode.optional_field("genre", None, decode.optional(decode.string))
+  use from <- decode.optional_field("from", None, decode.optional(decode.string))
+  use to <- decode.optional_field("to", None, decode.optional(decode.string))
+  use include_past <- decode.optional_field("includePast", None, decode.optional(decode.bool))
+  use limit <- decode.optional_field("limit", None, decode.optional(decode.int))
+  use offset <- decode.optional_field("offset", None, decode.optional(decode.int))
+  decode.success(GetEventsParams(artist: artist, did: did, rsvp_by: rsvp_by, kind: kind, genre: genre, from: from, to: to, include_past: include_past, limit: limit, offset: offset))
+}
+
+pub fn encode_get_events_params(value: GetEventsParams) -> json.Json {
+  json.object(list.flatten([
+    case value.artist { Some(v) -> [#("artist", json.string(v))] None -> [] },
+    case value.did { Some(v) -> [#("did", json.string(v))] None -> [] },
+    case value.rsvp_by { Some(v) -> [#("rsvpBy", json.string(v))] None -> [] },
+    case value.kind { Some(v) -> [#("kind", json.string(v))] None -> [] },
+    case value.genre { Some(v) -> [#("genre", json.string(v))] None -> [] },
+    case value.from { Some(v) -> [#("from", json.string(v))] None -> [] },
+    case value.to { Some(v) -> [#("to", json.string(v))] None -> [] },
+    case value.include_past { Some(v) -> [#("includePast", json.bool(v))] None -> [] },
+    case value.limit { Some(v) -> [#("limit", json.int(v))] None -> [] },
+    case value.offset { Some(v) -> [#("offset", json.int(v))] None -> [] },
   ]))
 }
 
@@ -6270,6 +6890,30 @@ pub fn encode_graph_relationship(value: GraphRelationship) -> json.Json {
   ]))
 }
 
+pub type Hthree {
+  Hthree(value: String, name: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_hthree(value: String) -> Hthree {
+  Hthree(value: value, name: None)
+}
+
+pub fn hthree_decoder() -> decode.Decoder(Hthree) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use value <- decode.field("value", decode.string)
+  use name <- decode.optional_field("name", None, decode.optional(decode.string))
+  decode.success(Hthree(value: value, name: name))
+}
+
+pub fn encode_hthree(value: Hthree) -> json.Json {
+  json.object(list.flatten([
+    [#("value", json.string(value.value))],
+    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
+  ]))
+}
+
 pub type InsertDirectoryParams {
   InsertDirectoryParams(uri: String, directory: String, position: Option(Int))
 }
@@ -7053,6 +7697,110 @@ pub fn encode_mirror_source_view(value: MirrorSourceView) -> json.Json {
     [#("hasCredentials", json.bool(value.has_credentials))],
     case value.last_polled_at { Some(v) -> [#("lastPolledAt", json.string(v))] None -> [] },
     case value.last_scrobble_seen_at { Some(v) -> [#("lastScrobbleSeenAt", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type MusicArtist {
+  MusicArtist(name: String, uri: Option(String), mbid: Option(String), role: Option(String), stage: Option(String), starts_at: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_music_artist(name: String) -> MusicArtist {
+  MusicArtist(name: name, uri: None, mbid: None, role: None, stage: None, starts_at: None)
+}
+
+pub fn music_artist_decoder() -> decode.Decoder(MusicArtist) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use name <- decode.field("name", decode.string)
+  use uri <- decode.optional_field("uri", None, decode.optional(decode.string))
+  use mbid <- decode.optional_field("mbid", None, decode.optional(decode.string))
+  use role <- decode.optional_field("role", None, decode.optional(decode.string))
+  use stage <- decode.optional_field("stage", None, decode.optional(decode.string))
+  use starts_at <- decode.optional_field("startsAt", None, decode.optional(decode.string))
+  decode.success(MusicArtist(name: name, uri: uri, mbid: mbid, role: role, stage: stage, starts_at: starts_at))
+}
+
+pub fn encode_music_artist(value: MusicArtist) -> json.Json {
+  json.object(list.flatten([
+    [#("name", json.string(value.name))],
+    case value.uri { Some(v) -> [#("uri", json.string(v))] None -> [] },
+    case value.mbid { Some(v) -> [#("mbid", json.string(v))] None -> [] },
+    case value.role { Some(v) -> [#("role", json.string(v))] None -> [] },
+    case value.stage { Some(v) -> [#("stage", json.string(v))] None -> [] },
+    case value.starts_at { Some(v) -> [#("startsAt", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type MusicExternalIds {
+  MusicExternalIds(ticketmaster: Option(String), songkick: Option(String), bandsintown: Option(String), resident_advisor: Option(String), setlistfm: Option(String), dice: Option(String), eventbrite: Option(String))
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_music_external_ids() -> MusicExternalIds {
+  MusicExternalIds(ticketmaster: None, songkick: None, bandsintown: None, resident_advisor: None, setlistfm: None, dice: None, eventbrite: None)
+}
+
+pub fn music_external_ids_decoder() -> decode.Decoder(MusicExternalIds) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use ticketmaster <- decode.optional_field("ticketmaster", None, decode.optional(decode.string))
+  use songkick <- decode.optional_field("songkick", None, decode.optional(decode.string))
+  use bandsintown <- decode.optional_field("bandsintown", None, decode.optional(decode.string))
+  use resident_advisor <- decode.optional_field("residentAdvisor", None, decode.optional(decode.string))
+  use setlistfm <- decode.optional_field("setlistfm", None, decode.optional(decode.string))
+  use dice <- decode.optional_field("dice", None, decode.optional(decode.string))
+  use eventbrite <- decode.optional_field("eventbrite", None, decode.optional(decode.string))
+  decode.success(MusicExternalIds(ticketmaster: ticketmaster, songkick: songkick, bandsintown: bandsintown, resident_advisor: resident_advisor, setlistfm: setlistfm, dice: dice, eventbrite: eventbrite))
+}
+
+pub fn encode_music_external_ids(value: MusicExternalIds) -> json.Json {
+  json.object(list.flatten([
+    case value.ticketmaster { Some(v) -> [#("ticketmaster", json.string(v))] None -> [] },
+    case value.songkick { Some(v) -> [#("songkick", json.string(v))] None -> [] },
+    case value.bandsintown { Some(v) -> [#("bandsintown", json.string(v))] None -> [] },
+    case value.resident_advisor { Some(v) -> [#("residentAdvisor", json.string(v))] None -> [] },
+    case value.setlistfm { Some(v) -> [#("setlistfm", json.string(v))] None -> [] },
+    case value.dice { Some(v) -> [#("dice", json.string(v))] None -> [] },
+    case value.eventbrite { Some(v) -> [#("eventbrite", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type MusicRecord {
+  MusicRecord(subject: StrongRef, kind: Option(String), artists: List(MusicArtist), genre: Option(String), tags: Option(List(String)), external_ids: Option(MusicExternalIds), tickets_url: Option(String), image_url: Option(String), created_at: String)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_music_record(subject: StrongRef, artists: List(MusicArtist), created_at: String) -> MusicRecord {
+  MusicRecord(subject: subject, kind: None, artists: artists, genre: None, tags: None, external_ids: None, tickets_url: None, image_url: None, created_at: created_at)
+}
+
+pub fn music_record_decoder() -> decode.Decoder(MusicRecord) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use subject <- decode.field("subject", strong_ref_decoder())
+  use kind <- decode.optional_field("kind", None, decode.optional(decode.string))
+  use artists <- decode.field("artists", decode.list(music_artist_decoder()))
+  use genre <- decode.optional_field("genre", None, decode.optional(decode.string))
+  use tags <- decode.optional_field("tags", None, decode.optional(decode.list(decode.string)))
+  use external_ids <- decode.optional_field("externalIds", None, decode.optional(music_external_ids_decoder()))
+  use tickets_url <- decode.optional_field("ticketsUrl", None, decode.optional(decode.string))
+  use image_url <- decode.optional_field("imageUrl", None, decode.optional(decode.string))
+  use created_at <- decode.field("createdAt", decode.string)
+  decode.success(MusicRecord(subject: subject, kind: kind, artists: artists, genre: genre, tags: tags, external_ids: external_ids, tickets_url: tickets_url, image_url: image_url, created_at: created_at))
+}
+
+pub fn encode_music_record(value: MusicRecord) -> json.Json {
+  json.object(list.flatten([
+    [#("subject", encode_strong_ref(value.subject))],
+    case value.kind { Some(v) -> [#("kind", json.string(v))] None -> [] },
+    [#("artists", json.array(value.artists, fn(item) { encode_music_artist(item) }))],
+    case value.genre { Some(v) -> [#("genre", json.string(v))] None -> [] },
+    case value.tags { Some(v) -> [#("tags", json.array(v, fn(item) { json.string(item) }))] None -> [] },
+    case value.external_ids { Some(v) -> [#("externalIds", encode_music_external_ids(v))] None -> [] },
+    case value.tickets_url { Some(v) -> [#("ticketsUrl", json.string(v))] None -> [] },
+    case value.image_url { Some(v) -> [#("imageUrl", json.string(v))] None -> [] },
+    [#("createdAt", json.string(value.created_at))],
   ]))
 }
 
@@ -7930,6 +8678,54 @@ pub fn encode_put_preset_input(value: PutPresetInput) -> json.Json {
   ]))
 }
 
+pub type PutRsvpInput {
+  PutRsvpInput(uri: String, status: String)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_put_rsvp_input(uri: String, status: String) -> PutRsvpInput {
+  PutRsvpInput(uri: uri, status: status)
+}
+
+pub fn put_rsvp_input_decoder() -> decode.Decoder(PutRsvpInput) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  use status <- decode.field("status", decode.string)
+  decode.success(PutRsvpInput(uri: uri, status: status))
+}
+
+pub fn encode_put_rsvp_input(value: PutRsvpInput) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+    [#("status", json.string(value.status))],
+  ]))
+}
+
+pub type PutRsvpOutput {
+  PutRsvpOutput(uri: String, status: String)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_put_rsvp_output(uri: String, status: String) -> PutRsvpOutput {
+  PutRsvpOutput(uri: uri, status: status)
+}
+
+pub fn put_rsvp_output_decoder() -> decode.Decoder(PutRsvpOutput) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use uri <- decode.field("uri", decode.string)
+  use status <- decode.field("status", decode.string)
+  decode.success(PutRsvpOutput(uri: uri, status: status))
+}
+
+pub fn encode_put_rsvp_output(value: PutRsvpOutput) -> json.Json {
+  json.object(list.flatten([
+    [#("uri", json.string(value.uri))],
+    [#("status", json.string(value.status))],
+  ]))
+}
+
 pub type RadioRecord {
   RadioRecord(name: String, url: String, description: Option(String), genre: Option(String), logo: Option(BlobRef), website: Option(String), created_at: String)
 }
@@ -8335,6 +9131,30 @@ pub fn encode_rockbox_tone_settings(value: RockboxToneSettings) -> json.Json {
     case value.treble { Some(v) -> [#("treble", json.int(v))] None -> [] },
     case value.balance { Some(v) -> [#("balance", json.int(v))] None -> [] },
     case value.channels { Some(v) -> [#("channels", json.string(v))] None -> [] },
+  ]))
+}
+
+pub type RsvpRecord {
+  RsvpRecord(subject: StrongRef, status: String)
+}
+
+/// Construct with required fields; optional fields default to None.
+pub fn new_rsvp_record(subject: StrongRef, status: String) -> RsvpRecord {
+  RsvpRecord(subject: subject, status: status)
+}
+
+pub fn rsvp_record_decoder() -> decode.Decoder(RsvpRecord) {
+  use <- decode.recursive
+  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
+  use subject <- decode.field("subject", strong_ref_decoder())
+  use status <- decode.field("status", decode.string)
+  decode.success(RsvpRecord(subject: subject, status: status))
+}
+
+pub fn encode_rsvp_record(value: RsvpRecord) -> json.Json {
+  json.object(list.flatten([
+    [#("subject", encode_strong_ref(value.subject))],
+    [#("status", json.string(value.status))],
   ]))
 }
 
@@ -9001,12 +9821,12 @@ pub fn encode_song_get_song_params(value: SongGetSongParams) -> json.Json {
 }
 
 pub type SongMatchView {
-  SongMatchView(id: Option(Int), title: Option(String), artist: Option(String), album: Option(String), album_art: Option(String), isrc: Option(String), duration_ms: Option(Int), track_number: Option(Int), disc_number: Option(Int), link: Option(String), preview: Option(String), rank: Option(Int), explicit: Option(Bool), score: Option(Int))
+  SongMatchView(id: Option(Int), title: Option(String), artist: Option(String), album: Option(String), album_art: Option(String), isrc: Option(String), duration_ms: Option(Int), track_number: Option(Int), disc_number: Option(Int), link: Option(String), preview: Option(String), rank: Option(Int), explicit: Option(Bool), score: Option(Int), source: Option(String), provider_id: Option(String), mb_id: Option(String), mb_release_id: Option(String), mb_artists: Option(List(SongResponseMbArtistsItemView)))
 }
 
 /// Construct with required fields; optional fields default to None.
 pub fn new_song_match_view() -> SongMatchView {
-  SongMatchView(id: None, title: None, artist: None, album: None, album_art: None, isrc: None, duration_ms: None, track_number: None, disc_number: None, link: None, preview: None, rank: None, explicit: None, score: None)
+  SongMatchView(id: None, title: None, artist: None, album: None, album_art: None, isrc: None, duration_ms: None, track_number: None, disc_number: None, link: None, preview: None, rank: None, explicit: None, score: None, source: None, provider_id: None, mb_id: None, mb_release_id: None, mb_artists: None)
 }
 
 pub fn song_match_view_decoder() -> decode.Decoder(SongMatchView) {
@@ -9026,7 +9846,12 @@ pub fn song_match_view_decoder() -> decode.Decoder(SongMatchView) {
   use rank <- decode.optional_field("rank", None, decode.optional(decode.int))
   use explicit <- decode.optional_field("explicit", None, decode.optional(decode.bool))
   use score <- decode.optional_field("score", None, decode.optional(decode.int))
-  decode.success(SongMatchView(id: id, title: title, artist: artist, album: album, album_art: album_art, isrc: isrc, duration_ms: duration_ms, track_number: track_number, disc_number: disc_number, link: link, preview: preview, rank: rank, explicit: explicit, score: score))
+  use source <- decode.optional_field("source", None, decode.optional(decode.string))
+  use provider_id <- decode.optional_field("providerId", None, decode.optional(decode.string))
+  use mb_id <- decode.optional_field("mbId", None, decode.optional(decode.string))
+  use mb_release_id <- decode.optional_field("mbReleaseId", None, decode.optional(decode.string))
+  use mb_artists <- decode.optional_field("mbArtists", None, decode.optional(decode.list(song_response_mb_artists_item_view_decoder())))
+  decode.success(SongMatchView(id: id, title: title, artist: artist, album: album, album_art: album_art, isrc: isrc, duration_ms: duration_ms, track_number: track_number, disc_number: disc_number, link: link, preview: preview, rank: rank, explicit: explicit, score: score, source: source, provider_id: provider_id, mb_id: mb_id, mb_release_id: mb_release_id, mb_artists: mb_artists))
 }
 
 pub fn encode_song_match_view(value: SongMatchView) -> json.Json {
@@ -9045,6 +9870,11 @@ pub fn encode_song_match_view(value: SongMatchView) -> json.Json {
     case value.rank { Some(v) -> [#("rank", json.int(v))] None -> [] },
     case value.explicit { Some(v) -> [#("explicit", json.bool(v))] None -> [] },
     case value.score { Some(v) -> [#("score", json.int(v))] None -> [] },
+    case value.source { Some(v) -> [#("source", json.string(v))] None -> [] },
+    case value.provider_id { Some(v) -> [#("providerId", json.string(v))] None -> [] },
+    case value.mb_id { Some(v) -> [#("mbId", json.string(v))] None -> [] },
+    case value.mb_release_id { Some(v) -> [#("mbReleaseId", json.string(v))] None -> [] },
+    case value.mb_artists { Some(v) -> [#("mbArtists", json.array(v, fn(item) { encode_song_response_mb_artists_item_view(item) }))] None -> [] },
   ]))
 }
 

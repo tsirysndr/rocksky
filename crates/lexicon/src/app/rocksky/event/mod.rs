@@ -5,3 +5,4 @@ pub mod get_event;
 pub mod get_event_rsvps;
 pub mod get_events;
 pub mod music;
+pub mod put_rsvp;
