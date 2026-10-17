@@ -1922,6 +1922,15 @@ pub struct RemoteNowPlaying {
     /// Audio sample rate in Hz (e.g. 44100), when the player knows it.
     #[uniffi(default = None)]
     pub sample_rate: Option<u32>,
+    /// Source audio bitrate in kilobits per second.
+    #[uniffi(default = None)]
+    pub bitrate: Option<u32>,
+    /// 256 normalized amplitude peaks (0..255), in track-time order.
+    #[uniffi(default = None)]
+    pub waveform: Option<Vec<u8>>,
+    /// "pending", "ready", or "unavailable". Omitted by older players.
+    #[uniffi(default = None)]
+    pub waveform_status: Option<String>,
     /// Queue shuffle state. Leave `None` when the player has no shuffle — that
     /// is how a controller knows to hide the toggle instead of showing it wrong.
     #[uniffi(default = None)]
@@ -2034,6 +2043,9 @@ impl From<RemoteNowPlaying> for rocksky_sdk::RemoteNowPlaying {
             is_playing: v.is_playing,
             codec: v.codec,
             sample_rate: v.sample_rate,
+            bitrate: v.bitrate,
+            waveform: v.waveform,
+            waveform_status: v.waveform_status,
             shuffle: v.shuffle,
             repeat: v
                 .repeat
@@ -2257,6 +2269,9 @@ impl From<rocksky_sdk::RemoteNowPlaying> for RemoteNowPlaying {
             is_playing: v.is_playing,
             codec: v.codec,
             sample_rate: v.sample_rate,
+            bitrate: v.bitrate,
+            waveform: v.waveform,
+            waveform_status: v.waveform_status,
             shuffle: v.shuffle,
             repeat: v.repeat.map(|r| r.as_wire().to_string()),
             volume: v.volume,

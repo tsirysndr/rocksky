@@ -647,6 +647,12 @@ struct NowPlayingJson {
     is_playing: bool,
     codec: Option<String>,
     sample_rate: Option<u32>,
+    /// Source audio bitrate in kilobits per second.
+    bitrate: Option<u32>,
+    /// 256 normalized amplitude peaks (0..255), in track-time order.
+    waveform: Option<Vec<u8>>,
+    /// "pending", "ready", or "unavailable".
+    waveform_status: Option<String>,
     /// Omit when the player has no such control — a controller uses the absence
     /// to hide the toggle rather than render a wrong default.
     shuffle: Option<bool>,
@@ -673,6 +679,9 @@ impl Default for NowPlayingJson {
             volume: None,
             codec: None,
             sample_rate: None,
+            bitrate: None,
+            waveform: None,
+            waveform_status: None,
         }
     }
 }
@@ -834,6 +843,9 @@ pub unsafe extern "C" fn rocksky_remote_player_set_now_playing(
                 is_playing: t.is_playing,
                 codec: t.codec,
                 sample_rate: t.sample_rate,
+                bitrate: t.bitrate,
+                waveform: t.waveform,
+                waveform_status: t.waveform_status,
                 shuffle: t.shuffle,
                 repeat: t
                     .repeat
@@ -978,6 +990,9 @@ fn now_playing_to_json(t: &rocksky_sdk::RemoteNowPlaying) -> serde_json::Value {
         "isPlaying": t.is_playing,
         "codec": t.codec,
         "sampleRate": t.sample_rate,
+        "bitrate": t.bitrate,
+        "waveform": t.waveform,
+        "waveformStatus": t.waveform_status,
     })
 }
 
@@ -1010,7 +1025,7 @@ fn event_to_json(e: &rocksky_sdk::RemoteEvent) -> serde_json::Value {
             device_name,
             message,
         } => {
-            serde_json::json!({ "type": "commandError", "deviceId": device_id, "deviceName": device_name, "message": message })
+            serde_json::json!({ "type": "command_error", "deviceId": device_id, "deviceName": device_name, "message": message })
         }
         E::Devices {
             primary_device,
