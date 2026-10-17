@@ -40,8 +40,10 @@ pub opaque type RemotePlayer {
 
 /// Playback state you advertise with [set_now_playing](#set_now_playing), and
 /// the shape carried by controller now-playing events. `codec` (e.g. `"mp3"`,
-/// `"flac"`) and `sample_rate` (Hz, e.g. `44100`) are optional audio info,
-/// set when the player knows them.
+/// `"flac"`), `sample_rate` (Hz, e.g. `44100`) and `bitrate` (kbit/s) are
+/// optional audio info, set when the player knows them. `waveform` is exactly
+/// 256 normalized amplitude peaks (0..255) in track-time order, and
+/// `waveform_status` is `"pending"`, `"ready"` or `"unavailable"`.
 pub type NowPlaying {
   NowPlaying(
     title: String,
@@ -54,6 +56,9 @@ pub type NowPlaying {
     is_playing: Bool,
     codec: Option(String),
     sample_rate: Option(Int),
+    bitrate: Option(Int),
+    waveform: Option(List(Int)),
+    waveform_status: Option(String),
   )
 }
 
@@ -269,6 +274,9 @@ fn now_playing_to_json(t: NowPlaying) -> json.Json {
     #("isPlaying", json.bool(t.is_playing)),
     #("codec", json.nullable(t.codec, json.string)),
     #("sampleRate", json.nullable(t.sample_rate, json.int)),
+    #("bitrate", json.nullable(t.bitrate, json.int)),
+    #("waveform", json.nullable(t.waveform, json.array(_, json.int))),
+    #("waveformStatus", json.nullable(t.waveform_status, json.string)),
   ])
 }
 
@@ -317,6 +325,21 @@ pub fn now_playing_decoder() -> decode.Decoder(NowPlaying) {
     None,
     decode.optional(decode.int),
   )
+  use bitrate <- decode.optional_field(
+    "bitrate",
+    None,
+    decode.optional(decode.int),
+  )
+  use waveform <- decode.optional_field(
+    "waveform",
+    None,
+    decode.optional(decode.list(decode.int)),
+  )
+  use waveform_status <- decode.optional_field(
+    "waveformStatus",
+    None,
+    decode.optional(decode.string),
+  )
   decode.success(NowPlaying(
     title,
     artist,
@@ -328,6 +351,9 @@ pub fn now_playing_decoder() -> decode.Decoder(NowPlaying) {
     is_playing,
     codec,
     sample_rate,
+    bitrate,
+    waveform,
+    waveform_status,
   ))
 }
 

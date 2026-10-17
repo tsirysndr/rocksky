@@ -119,10 +119,13 @@ defmodule Rocksky.RemoteController do
   @doc """
   Block until the next update, returned as a decoded event map with a `"type"`
   key (`"devices"`, `"device_registered"`, `"device_unregistered"`,
-  `"primary_changed"`, `"now_playing"`, `"status"`, `"queue"`). A
-  `"now_playing"` event carries the track under `"track"` (camelCase string
-  keys, including the optional `"codec"` and `"sampleRate"` audio info when the
-  player advertised them). Returns `nil` once the controller is disconnected.
+  `"primary_changed"`, `"now_playing"`, `"status"`, `"queue"`,
+  `"command_error"`). A `"now_playing"` event carries the track under `"track"`
+  (camelCase string keys, including the optional `"codec"`, `"sampleRate"`,
+  `"bitrate"`, `"waveform"` and `"waveformStatus"` audio info when the player
+  advertised them). A `"command_error"` event (`"deviceId"`, `"deviceName"`,
+  `"message"`) means the target player rejected a command this controller sent.
+  Returns `nil` once the controller is disconnected.
   """
   def next_event(handle) do
     case :rocksky_remote_controller.next_event(handle) do
@@ -144,7 +147,8 @@ defmodule Rocksky.RemoteController do
 
   `handlers` is a map keyed by event type; each function receives the full event
   map: `:devices`, `:device_registered`, `:device_unregistered`,
-  `:primary_changed`, `:now_playing`, `:status`, `:queue`. Unhandled events are
+  `:primary_changed`, `:now_playing`, `:status`, `:queue`, `:command_error`.
+  Unhandled events are
   ignored.
   """
   def listen(handle, handlers) when is_map(handlers),

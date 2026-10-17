@@ -35,6 +35,9 @@ pub fn main() {
         is_playing: True,
         codec: Some("flac"),
         sample_rate: Some(44_100),
+        bitrate: None,
+        waveform: None,
+        waveform_status: None,
       ),
     )
   let _ =

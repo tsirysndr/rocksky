@@ -67,6 +67,8 @@ pub type Event {
     index: Int,
     queue: List(QueueItem),
   )
+  /// A target player rejected a command this controller sent.
+  CommandError(device_id: String, device_name: String, message: String)
 }
 
 // ---- FFI (rocksky_nif) ----------------------------------------------------
@@ -451,6 +453,20 @@ fn event_decoder() -> decode.Decoder(Event) {
         device_name: device_name,
         index: index,
         queue: queue,
+      ))
+    }
+    "command_error" -> {
+      use device_id <- decode.field("deviceId", decode.string)
+      use device_name <- decode.optional_field("deviceName", "", decode.string)
+      use message <- decode.optional_field(
+        "message",
+        "The player rejected this request.",
+        decode.string,
+      )
+      decode.success(CommandError(
+        device_id: device_id,
+        device_name: device_name,
+        message: message,
       ))
     }
     _ -> decode.failure(DeviceUnregistered(device_id: ""), "Event")

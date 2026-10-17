@@ -44,8 +44,10 @@ next_command(Player) ->
 %% keys: <<"title">>, <<"artist">>, and optional <<"album">>, <<"albumArtist">>,
 %% <<"albumArt">>, <<"durationMs">>, <<"elapsedMs">>, <<"isPlaying">>,
 %% <<"codec">> (audio codec/container, e.g. <<"mp3">>, <<"flac">>),
-%% <<"sampleRate">> (Hz, e.g. 44100). Call it whenever the track changes and
-%% periodically with a fresh <<"elapsedMs">>.
+%% <<"sampleRate">> (Hz, e.g. 44100), <<"bitrate">> (kbit/s), <<"waveform">>
+%% (exactly 256 amplitude peaks 0..255 in track-time order) and
+%% <<"waveformStatus">> (<<"pending">> | <<"ready">> | <<"unavailable">>). Call it
+%% whenever the track changes and periodically with a fresh <<"elapsedMs">>.
 set_now_playing(Player, Track) when is_map(Track) ->
     unwrap(rocksky_nif:remote_player_set_now_playing(
         Player, iolist_to_binary(json:encode(Track)))).

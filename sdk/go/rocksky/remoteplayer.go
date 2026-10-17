@@ -25,7 +25,16 @@ type RemoteNowPlaying struct {
 	IsPlaying   bool
 	Codec       string // audio codec/container (e.g. "mp3", "flac"), optional
 	SampleRate  int    // sample rate in Hz (e.g. 44100), optional
+	Bitrate     int    // source bitrate in kbit/s, optional
+	// Waveform holds exactly 256 normalized amplitude peaks (0..255) in
+	// track-time order; any other length is not sent.
+	Waveform []byte
+	// WaveformStatus is "pending", "ready" or "unavailable"; "" omits it.
+	WaveformStatus string
 }
+
+// waveformPeaks is the only waveform length the protocol accepts.
+const waveformPeaks = 256
 
 // RemoteQueueItem is one queue entry. Provide UploadID (Rocksky uploads) or
 // TrackID (Navidrome/Subsonic id) so the item can be streamed.
@@ -249,6 +258,20 @@ func (p *RemotePlayer) SetNowPlaying(t RemoteNowPlaying) {
 	}
 	if t.SampleRate != 0 {
 		data["sample_rate"] = t.SampleRate
+	}
+	if t.Bitrate != 0 {
+		data["bitrate"] = t.Bitrate
+	}
+	if len(t.Waveform) == waveformPeaks {
+		// []byte would marshal as base64; the protocol carries plain integers.
+		peaks := make([]int, len(t.Waveform))
+		for i, b := range t.Waveform {
+			peaks[i] = int(b)
+		}
+		data["waveform"] = peaks
+	}
+	if t.WaveformStatus != "" {
+		data["waveform_status"] = t.WaveformStatus
 	}
 	p.sendData(data)
 }

@@ -31,6 +31,9 @@ type RemoteControllerHandlers struct {
 	NowPlaying         func(deviceID, deviceName string, track RemoteNowPlaying)
 	Status             func(deviceID, deviceName, status string)
 	Queue              func(deviceID, deviceName string, index int, queue []RemoteQueueItem)
+	// CommandError fires when a target player rejects a command this
+	// controller sent (for example an unreachable stream URL).
+	CommandError func(deviceID, deviceName, message string)
 }
 
 // RemoteControllerOptions configures a RemoteController.
@@ -302,17 +305,20 @@ type queueSnapshotJSON struct {
 }
 
 type trackJSON struct {
-	Title       string `json:"title"`
-	Artist      string `json:"artist"`
-	Album       string `json:"album"`
-	AlbumArtist string `json:"album_artist"`
-	AlbumArt    string `json:"album_art"`
-	DurationMs  int64  `json:"duration_ms"`
-	Length      int64  `json:"length"`
-	Elapsed     int64  `json:"elapsed"`
-	IsPlaying   bool   `json:"is_playing"`
-	Codec       string `json:"codec"`
-	SampleRate  int    `json:"sample_rate"`
+	Title          string `json:"title"`
+	Artist         string `json:"artist"`
+	Album          string `json:"album"`
+	AlbumArtist    string `json:"album_artist"`
+	AlbumArt       string `json:"album_art"`
+	DurationMs     int64  `json:"duration_ms"`
+	Length         int64  `json:"length"`
+	Elapsed        int64  `json:"elapsed"`
+	IsPlaying      bool   `json:"is_playing"`
+	Codec          string `json:"codec"`
+	SampleRate     int    `json:"sample_rate"`
+	Bitrate        int    `json:"bitrate"`
+	Waveform       []int  `json:"waveform"`
+	WaveformStatus string `json:"waveform_status"`
 }
 
 func (t trackJSON) toNowPlaying() RemoteNowPlaying {
@@ -320,11 +326,27 @@ func (t trackJSON) toNowPlaying() RemoteNowPlaying {
 	if dur == 0 {
 		dur = t.Length
 	}
-	return RemoteNowPlaying{
+	np := RemoteNowPlaying{
 		Title: t.Title, Artist: t.Artist, Album: t.Album, AlbumArtist: t.AlbumArtist,
 		AlbumArt: t.AlbumArt, DurationMs: dur, ElapsedMs: t.Elapsed, IsPlaying: t.IsPlaying,
-		Codec: t.Codec, SampleRate: t.SampleRate,
+		Codec: t.Codec, SampleRate: t.SampleRate, Bitrate: t.Bitrate,
 	}
+	if len(t.Waveform) == waveformPeaks {
+		peaks := make([]byte, 0, waveformPeaks)
+		for _, v := range t.Waveform {
+			if v < 0 || v > 255 {
+				peaks = nil
+				break
+			}
+			peaks = append(peaks, byte(v))
+		}
+		np.Waveform = peaks
+	}
+	switch t.WaveformStatus {
+	case "pending", "ready", "unavailable":
+		np.WaveformStatus = t.WaveformStatus
+	}
+	return np
 }
 
 func (d descriptorJSON) toItem() RemoteQueueItem {
@@ -403,6 +425,17 @@ func (c *RemoteController) handleMessage(msg ctlInbound) {
 		return
 	}
 	switch dataType.Type {
+	case "command_error":
+		if h.CommandError != nil {
+			var e struct {
+				Message string `json:"message"`
+			}
+			_ = json.Unmarshal(msg.Data, &e)
+			if e.Message == "" {
+				e.Message = "The player rejected this request."
+			}
+			h.CommandError(msg.DeviceID, msg.DeviceName, e.Message)
+		}
 	case "track":
 		if h.NowPlaying != nil {
 			var t trackJSON

@@ -195,6 +195,8 @@ class RemoteControllerHandlers {
     var onNowPlaying: ((uniffi.rocksky_uniffi.RemoteEvent.NowPlaying) -> Unit)? = null
     var onStatus: ((uniffi.rocksky_uniffi.RemoteEvent.Status) -> Unit)? = null
     var onQueue: ((uniffi.rocksky_uniffi.RemoteEvent.Queue) -> Unit)? = null
+    /** A command this controller sent was rejected by the target player. */
+    var onCommandError: ((uniffi.rocksky_uniffi.RemoteEvent.CommandError) -> Unit)? = null
 }
 
 /**
@@ -224,6 +226,7 @@ fun RemoteController.listen(configure: RemoteControllerHandlers.() -> Unit): Thr
                 is uniffi.rocksky_uniffi.RemoteEvent.NowPlaying -> handlers.onNowPlaying?.invoke(event)
                 is uniffi.rocksky_uniffi.RemoteEvent.Status -> handlers.onStatus?.invoke(event)
                 is uniffi.rocksky_uniffi.RemoteEvent.Queue -> handlers.onQueue?.invoke(event)
+                is uniffi.rocksky_uniffi.RemoteEvent.CommandError -> handlers.onCommandError?.invoke(event)
             }
         }
     }, "rocksky-remote-controller").apply { isDaemon = true; start() }

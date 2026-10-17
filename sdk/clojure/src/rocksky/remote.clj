@@ -148,9 +148,11 @@
 (defn set-now-playing
   "Advertise the current track. `track` is a map with camelCase keys: :title,
   :artist, :album, :albumArtist, :albumArt, :durationMs, :elapsedMs, :isPlaying,
-  plus optional audio info :codec (audio codec/container, e.g. \"mp3\", \"flac\")
-  and :sampleRate (sample rate in Hz, e.g. 44100), included in the track payload
-  when set and omitted otherwise."
+  plus optional audio info :codec (audio codec/container, e.g. \"mp3\", \"flac\"),
+  :sampleRate (sample rate in Hz, e.g. 44100), :bitrate (kbit/s), :waveform
+  (exactly 256 amplitude peaks 0..255 in track-time order) and :waveformStatus
+  (\"pending\", \"ready\" or \"unavailable\"), included in the track payload when
+  set and omitted otherwise."
   [^RemotePlayer player track]
   (with-open [^Arena a (Arena/ofConfined)]
     (unwrap (.invokeWithArguments ^MethodHandle @h-p-nowplaying
@@ -362,9 +364,11 @@
 (defn- dispatch-event
   "Route one parsed event to the handler keyed by its `type`
   (:devices :device-registered :device-unregistered :primary-changed
-  :now-playing :status :queue). The handler receives the whole event map. A
-  :now-playing event's \"track\" map includes optional \"codec\" / \"sampleRate\"
-  audio info when the player advertised it."
+  :now-playing :status :queue :command-error). The handler receives the whole
+  event map. A :now-playing event's \"track\" map includes optional \"codec\" /
+  \"sampleRate\" / \"bitrate\" / \"waveform\" / \"waveformStatus\" audio info when
+  the player advertised it. A :command-error event (\"deviceId\", \"deviceName\",
+  \"message\") means the target player rejected a command this controller sent."
   [handlers ev]
   (let [k (keyword (str/replace (str (get ev "type")) "_" "-"))]
     (when-let [h (get handlers k)]

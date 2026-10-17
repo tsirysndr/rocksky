@@ -82,9 +82,11 @@ module Rocksky
     # Advertise the currently-playing track. Call whenever it changes, and
     # periodically (~every 1–4s) with a fresh +elapsedMs+ so controllers show
     # smooth progress. +track+ is a camelCase Hash. Optional audio info —
-    # +codec+ (audio codec/container, e.g. "mp3", "flac") and +sampleRate+
-    # (sample rate in Hz, e.g. 44100) — is included in the track payload when
-    # set, and omitted otherwise.
+    # +codec+ (audio codec/container, e.g. "mp3", "flac"), +sampleRate+
+    # (sample rate in Hz, e.g. 44100), +bitrate+ (kbit/s), +waveform+ (exactly
+    # 256 amplitude peaks 0..255 in track-time order) and +waveformStatus+
+    # ("pending", "ready" or "unavailable") — is included in the track payload
+    # when set, and omitted otherwise.
     def set_now_playing(track)
       Rocksky.unwrap(C.rocksky_remote_player_set_now_playing(@ptr, JSON.generate(track)))
     end
@@ -168,10 +170,13 @@ module Rocksky
 
     # Register a handler for a server event type, one of +:devices+,
     # +:device_registered+, +:device_unregistered+, +:primary_changed+,
-    # +:now_playing+, +:status+, +:queue+. The block receives the full
-    # symbol-keyed event Hash. A +:now_playing+ event carries the advertised
-    # track under +:track+, including optional +:codec+ / +:sampleRate+ audio
-    # info when the player supplied it. Returns +self+ for chaining.
+    # +:now_playing+, +:status+, +:queue+, +:command_error+. The block receives
+    # the full symbol-keyed event Hash. A +:now_playing+ event carries the
+    # advertised track under +:track+, including optional +:codec+ /
+    # +:sampleRate+ / +:bitrate+ / +:waveform+ / +:waveformStatus+ audio info
+    # when the player supplied it. A +:command_error+ event (+:deviceId+,
+    # +:deviceName+, +:message+) means the target player rejected a command
+    # this controller sent. Returns +self+ for chaining.
     def on(event_type, &block)
       @handlers[event_type.to_sym] = block
       self

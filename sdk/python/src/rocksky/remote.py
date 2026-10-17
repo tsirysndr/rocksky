@@ -69,6 +69,7 @@ _ALIASES = {
     "deviceUnregistered": "device_unregistered",
     "primaryChanged": "primary_changed",
     "nowPlaying": "now_playing",
+    "commandError": "command_error",
 }
 
 
@@ -204,8 +205,9 @@ class RemoteController(_Poller):
     Connects and registers in the background on construction. Register event
     handlers with :meth:`on` — each receives the matching :class:`RemoteEvent`
     variant (``devices``, ``device_registered``, ``device_unregistered``,
-    ``primary_changed``, ``now_playing``, ``status``, ``queue``) — then call
-    :meth:`listen`.
+    ``primary_changed``, ``now_playing``, ``status``, ``queue``,
+    ``command_error``) — then call :meth:`listen`. A ``command_error`` event
+    means the target player rejected a command this controller sent.
     """
 
     def __init__(
@@ -317,5 +319,7 @@ class RemoteController(_Poller):
             self._emit("status", event)
         elif event.is_queue():
             self._emit("queue", event)
+        elif event.is_command_error():
+            self._emit("command_error", event)
         else:  # pragma: no cover - defensive
             self._debug("unknown event", event)

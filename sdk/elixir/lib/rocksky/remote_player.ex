@@ -51,8 +51,10 @@ defmodule Rocksky.RemotePlayer do
   keys: `"title"`, `"artist"`, and optional `"album"`, `"albumArtist"`,
   `"albumArt"`, `"durationMs"`, `"elapsedMs"`, `"isPlaying"`, `"codec"`
   (audio codec/container, e.g. `"mp3"`, `"flac"`), `"sampleRate"` (Hz, e.g.
-  `44100`). Call it whenever the track changes, and periodically with a fresh
-  `"elapsedMs"` so controllers show smooth progress.
+  `44100`), `"bitrate"` (kbit/s), `"waveform"` (exactly 256 amplitude peaks
+  0..255 in track-time order) and `"waveformStatus"` (`"pending"`, `"ready"` or
+  `"unavailable"`). Call it whenever the track changes, and periodically with a
+  fresh `"elapsedMs"` so controllers show smooth progress.
   """
   def set_now_playing(handle, track) when is_map(track),
     do: :rocksky_remote_player.set_now_playing(handle, track)
